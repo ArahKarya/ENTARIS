@@ -371,6 +371,9 @@ export const CreateProductionRunSchema = z.object({
   referenceNumber: z.string().nullable().optional(),
   inputs: z.array(ProductionInputLineSchema).min(1, 'Minimal satu item input.'),
   outputs: z.array(ProductionOutputLineSchema).min(1, 'Minimal satu item output.'),
+  // When true, production can consume more than current stock (stock goes negative).
+  // Use case: backdated production input where sales already reduced stock.
+  allowNegativeStock: z.boolean().optional().default(false),
 }).superRefine((data, ctx) => {
   // Enforce unit_price > 0 for main Output lines (non-by-product).
   // This prevents silent dumping of output value into HPP variance when cost is missing.

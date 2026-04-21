@@ -117,9 +117,16 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
         if (!item) throw new BusinessError(`Item input tidak ditemukan.`);
         if (!item.isActive) throw new BusinessError(`Item '${item.name}' tidak aktif.`);
         if (Number(item.currentStock) < input.quantity) {
-          throw new BusinessError(
-            `Stok '${item.name}' tidak cukup. Stok saat ini: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`
-          );
+          if (body.allowNegativeStock) {
+            logger.warn(
+              { itemId: item.id, itemName: item.name, currentStock: Number(item.currentStock), requested: input.quantity },
+              'Production input with insufficient stock (allowNegativeStock=true)',
+            );
+          } else {
+            throw new BusinessError(
+              `Stok '${item.name}' tidak cukup. Stok saat ini: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`
+            );
+          }
         }
       }
 
@@ -427,9 +434,16 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
         const qty = Number(mov.quantity);
 
         if (isIn && Number(mov.item.currentStock) < qty) {
-          throw new BusinessError(
-            `Tidak dapat mengedit: stok '${mov.item.name}' tidak mencukupi untuk pembalikan.`
-          );
+          if (body.allowNegativeStock) {
+            logger.warn(
+              { itemId: mov.itemId, itemName: mov.item.name, currentStock: Number(mov.item.currentStock), reverseQty: qty },
+              'Production edit reverse with insufficient stock (allowNegativeStock=true)',
+            );
+          } else {
+            throw new BusinessError(
+              `Tidak dapat mengedit: stok '${mov.item.name}' tidak mencukupi untuk pembalikan.`
+            );
+          }
         }
 
         if (isIn) outputItemIds.add(mov.itemId);
@@ -491,9 +505,16 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
         if (!item) throw new BusinessError('Item input tidak ditemukan.');
         if (!item.isActive) throw new BusinessError(`Item '${item.name}' tidak aktif.`);
         if (Number(item.currentStock) < input.quantity) {
-          throw new BusinessError(
-            `Stok '${item.name}' tidak cukup. Stok saat ini: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`
-          );
+          if (body.allowNegativeStock) {
+            logger.warn(
+              { itemId: item.id, itemName: item.name, currentStock: Number(item.currentStock), requested: input.quantity },
+              'Production edit input with insufficient stock (allowNegativeStock=true)',
+            );
+          } else {
+            throw new BusinessError(
+              `Stok '${item.name}' tidak cukup. Stok saat ini: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`
+            );
+          }
         }
       }
 
@@ -744,10 +765,19 @@ router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, re
         const qty = Number(mov.quantity);
 
         // Check reversal won't cause negative stock for 'In' movements (reversing In = subtract)
+        // Cancel accepts optional ?allowNegativeStock=true query param to bypass this guard.
+        const allowNeg = req.query.allowNegativeStock === 'true';
         if (isIn && Number(mov.item.currentStock) < qty) {
-          throw new BusinessError(
-            `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan.`
-          );
+          if (allowNeg) {
+            logger.warn(
+              { itemId: mov.itemId, itemName: mov.item.name, currentStock: Number(mov.item.currentStock), reverseQty: qty },
+              'Production cancel reverse with insufficient stock (allowNegativeStock=true)',
+            );
+          } else {
+            throw new BusinessError(
+              `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan.`
+            );
+          }
         }
 
         if (isIn) outputItemIds.add(mov.itemId);
