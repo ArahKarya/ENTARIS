@@ -7,6 +7,27 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
+// Simple Levenshtein distance (edit distance) for fuzzy name matching
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost,
+      );
+    }
+  }
+  return matrix[a.length][b.length];
+}
+
 // GET /api/parties
 router.get('/', async (req, res) => {
   try {
@@ -31,6 +52,57 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /parties error');
     return res.status(500).json({ error: 'Gagal mengambil data pihak.' });
+  }
+});
+
+// GET /api/parties/similar?name=X&type=Y — find similar parties for duplicate detection
+// Returns up to 5 parties with a similarity score (0..1). Matches by substring + Levenshtein.
+router.get('/similar', async (req, res) => {
+  try {
+    const name = typeof req.query.name === 'string' ? req.query.name.trim() : '';
+    const type = typeof req.query.type === 'string' ? req.query.type : undefined;
+    if (name.length < 2) return res.json({ data: [] });
+
+    const lower = name.toLowerCase();
+    const firstWord = lower.split(/\s+/)[0];
+
+    const nameFilter = {
+      OR: [
+        { name: { contains: name, mode: 'insensitive' as const } },
+        { name: { startsWith: firstWord, mode: 'insensitive' as const } },
+      ],
+    };
+
+    const typeFilter = type && ['Customer', 'Supplier', 'Both'].includes(type)
+      ? { OR: [{ partyType: type as 'Customer' | 'Supplier' | 'Both' }, { partyType: 'Both' as const }] }
+      : null;
+
+    const candidates = await prisma.party.findMany({
+      where: typeFilter ? { AND: [nameFilter, typeFilter] } : nameFilter,
+      select: {
+        id: true, name: true, partyType: true, phone: true, isActive: true,
+      },
+      take: 50,
+    });
+
+    // Compute Levenshtein-based similarity score
+    const scored = candidates.map((p) => {
+      const pn = p.name.toLowerCase();
+      const dist = levenshtein(lower, pn);
+      const maxLen = Math.max(lower.length, pn.length);
+      const similarity = maxLen === 0 ? 1 : 1 - dist / maxLen;
+      return { ...p, similarity };
+    });
+
+    const results = scored
+      .filter((p) => p.similarity >= 0.6)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 5);
+
+    return res.json({ data: results });
+  } catch (error) {
+    logger.error({ error }, 'GET /parties/similar error');
+    return res.status(500).json({ error: 'Gagal mencari mitra serupa.' });
   }
 });
 

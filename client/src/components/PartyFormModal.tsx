@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle, Building2, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
+import { X, Loader2, AlertCircle, AlertTriangle, Building2, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
 import { cn } from '../lib/utils';
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const h = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(h);
+  }, [value, delay]);
+  return debounced;
+}
+
+interface SimilarParty {
+  id: string;
+  name: string;
+  partyType: 'Customer' | 'Supplier' | 'Both';
+  phone: string | null;
+  isActive: boolean;
+  similarity: number;
+}
 
 type PartyType = 'Customer' | 'Supplier' | 'Both';
 
@@ -84,6 +102,20 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
     mutation.mutate({ ...rest, taxId: npwp || undefined });
   };
 
+  // Duplicate detection — fetch similar parties when typing name (only on create)
+  const debouncedName = useDebounce(form.name.trim(), 400);
+  const { data: similarParties } = useQuery<SimilarParty[]>({
+    queryKey: ['parties-similar', debouncedName, form.partyType],
+    queryFn: async () => {
+      const res = await api.get('/parties/similar', {
+        params: { name: debouncedName, type: form.partyType },
+      });
+      return res.data.data ?? [];
+    },
+    enabled: !isEdit && isOpen && debouncedName.length >= 2,
+  });
+  const hasDuplicateWarning = !isEdit && (similarParties?.length ?? 0) > 0;
+
   if (!isOpen) return null;
 
   const inputCls = 'w-full border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400';
@@ -151,6 +183,34 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                     className={inputCls}
                   />
                 </div>
+                {hasDuplicateWarning && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-amber-800">Nama mirip sudah ada</p>
+                        <p className="text-xs text-amber-700 mt-0.5">Periksa apakah salah satu di bawah ini adalah mitra yang Anda maksud:</p>
+                        <div className="mt-2 space-y-1">
+                          {similarParties!.map((sp) => (
+                            <div key={sp.id} className="flex items-center justify-between bg-white rounded-md px-2 py-1.5 border border-amber-200">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-gray-900 truncate">{sp.name}</p>
+                                <p className="text-[10px] text-gray-500">
+                                  {sp.partyType === 'Customer' ? 'Pelanggan' : sp.partyType === 'Supplier' ? 'Vendor' : 'Pelanggan & Vendor'}
+                                  {sp.phone ? ` • ${sp.phone}` : ''}
+                                  {!sp.isActive ? ' • (Non-aktif)' : ''}
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-amber-600 font-semibold ml-2">
+                                {Math.round(sp.similarity * 100)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* NPWP */}

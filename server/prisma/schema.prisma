@@ -490,6 +490,8 @@ enum PaymentType {
   Pay
   VendorDeposit
   CustomerDeposit
+  VendorRefund
+  CustomerRefund
 }
 
 enum UserRole {

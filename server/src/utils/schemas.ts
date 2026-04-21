@@ -111,13 +111,16 @@ export const CreatePaymentSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
   partyId: z.string().min(1, 'Pihak wajib dipilih.'),
   amount: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
-  paymentType: z.enum(['Receive', 'Pay', 'VendorDeposit', 'CustomerDeposit']),
+  paymentType: z.enum(['Receive', 'Pay', 'VendorDeposit', 'CustomerDeposit', 'VendorRefund', 'CustomerRefund']),
   accountId: z.string().min(1, 'Akun kas/bank wajib dipilih.'),
   allocations: z.array(AllocationSchema).optional(),
   splits: z.array(PaymentSplitSchema).optional(),
   referenceNo: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   isOpeningBalance: z.boolean().optional(),
+  // Refund-only: reference to the original Pay/Receive payment being partially reversed.
+  // When provided, server restores invoice outstanding proportionally.
+  refundSourcePaymentId: z.string().min(1).nullable().optional(),
 });
 
 // ─── Vendor Deposit Application ───────────────────────────────────────────────

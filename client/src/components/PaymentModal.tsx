@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle, TrendingDown, TrendingUp, CheckCircle2, Paperclip, Plus, Trash2 } from 'lucide-react';
+import { X, Loader2, AlertCircle, TrendingDown, TrendingUp, CheckCircle2, Paperclip, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
 
-type PaymentType = 'Receive' | 'Pay';
+type PaymentType = 'Receive' | 'Pay' | 'VendorRefund' | 'CustomerRefund';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -28,6 +28,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
   ]);
   const [referenceNo, setReferenceNo] = useState('');
   const [notes, setNotes] = useState('');
+  const [refundSourcePaymentId, setRefundSourcePaymentId] = useState<string>('');
   const [error, setError] = useState('');
   const [savedId, setSavedId] = useState<string | null>(null);
 
@@ -45,13 +46,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       setSplits([{ accountId: '', amount: '', notes: '' }]);
       setReferenceNo('');
       setNotes('');
+      setRefundSourcePaymentId('');
       setError('');
       setSavedId(null);
     }
   }, [isOpen, defaultType]);
 
+  const isReceiveFlow = paymentType === 'Receive' || paymentType === 'CustomerRefund';
+  const isRefund = paymentType === 'VendorRefund' || paymentType === 'CustomerRefund';
+
   // Parties — filter by type based on payment direction
-  const partyType = paymentType === 'Receive' ? 'Customer' : 'Supplier';
+  const partyType = isReceiveFlow ? 'Customer' : 'Supplier';
   const { data: parties } = useQuery({
     queryKey: ['parties', partyType],
     queryFn: async () => {
@@ -84,11 +89,28 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     enabled: isOpen,
   });
 
+  // Source payment list — only for Refund types. Shows prior Pay/Receive to same party.
+  const { data: sourcePayments } = useQuery({
+    queryKey: ['payments-source-for-refund', partyId, paymentType],
+    queryFn: async () => {
+      const expectedType = paymentType === 'VendorRefund' ? 'Pay' : 'Receive';
+      const res = await api.get('/payments', { params: { limit: 200 } });
+      const all: any[] = res.data.data ?? res.data;
+      return all.filter(
+        (p: any) =>
+          p.partyId === partyId &&
+          p.status === 'Submitted' &&
+          p.paymentType === expectedType,
+      );
+    },
+    enabled: isOpen && isRefund && !!partyId,
+  });
+
   // Open invoices for selected party (for display only — server auto-allocates)
   const { data: openInvoices } = useQuery({
     queryKey: ['open-invoices', partyId, paymentType],
     queryFn: async () => {
-      if (paymentType === 'Receive') {
+      if (isReceiveFlow) {
         const res = await api.get('/sales/invoices', { params: { partyId } });
         return (res.data.data ?? res.data).filter((inv: any) =>
           Number(inv.outstanding) > 0 && !['Cancelled', 'Paid'].includes(inv.status)
@@ -151,12 +173,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       referenceNo: referenceNo || null,
       notes: notes || null,
     };
-    if (splitMode) {
+    if (splitMode && !isRefund) {
       payload.splits = splits.map((sp) => ({
         accountId: sp.accountId,
         amount: Number(sp.amount),
         notes: sp.notes || null,
       }));
+    }
+    if (isRefund && refundSourcePaymentId) {
+      payload.refundSourcePaymentId = refundSourcePaymentId;
     }
     mutation.mutate(payload);
   };
@@ -178,6 +203,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
   if (!isOpen) return null;
 
   const isReceive = paymentType === 'Receive';
+  const isVendorRefund = paymentType === 'VendorRefund';
+
+  const typeLabel = isRefund
+    ? (isVendorRefund ? 'Refund dari Vendor' : 'Refund ke Pelanggan')
+    : (isReceive ? 'Terima Pembayaran' : 'Bayar Hutang');
 
   return (
     <div
@@ -192,14 +222,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isReceive ? 'bg-green-50' : 'bg-orange-50'}`}>
-              {isReceive
-                ? <TrendingDown size={16} className="text-green-600" />
-                : <TrendingUp size={16} className="text-orange-500" />}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isRefund ? 'bg-purple-50' : isReceive ? 'bg-green-50' : 'bg-orange-50'}`}>
+              {isRefund
+                ? <RotateCcw size={16} className="text-purple-600" />
+                : isReceive
+                  ? <TrendingDown size={16} className="text-green-600" />
+                  : <TrendingUp size={16} className="text-orange-500" />}
             </div>
             <div>
               <h2 id="payment-modal-title" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                {isReceive ? 'Terima Pembayaran' : 'Bayar Hutang'}
+                {typeLabel}
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">Draft • belum disimpan</p>
             </div>
@@ -215,24 +247,57 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           {/* Payment Type Toggle */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tipe Transaksi</label>
-            <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-              {(['Receive', 'Pay'] as PaymentType[]).map((t) => (
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                { t: 'Receive' as PaymentType, label: 'Penerimaan', icon: <TrendingDown size={14} />, activeCls: 'bg-green-600 text-white' },
+                { t: 'Pay' as PaymentType, label: 'Pengeluaran', icon: <TrendingUp size={14} />, activeCls: 'bg-orange-500 text-white' },
+                { t: 'CustomerRefund' as PaymentType, label: 'Refund ke Pelanggan', icon: <RotateCcw size={14} />, activeCls: 'bg-purple-600 text-white' },
+                { t: 'VendorRefund' as PaymentType, label: 'Refund dari Vendor', icon: <RotateCcw size={14} />, activeCls: 'bg-purple-600 text-white' },
+              ]).map(({ t, label, icon, activeCls }) => (
                 <button
                   key={t}
-                  onClick={() => { setPaymentType(t); setPartyId(''); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium transition-colors ${
+                  onClick={() => {
+                    setPaymentType(t);
+                    setPartyId('');
+                    setRefundSourcePaymentId('');
+                    if (t === 'VendorRefund' || t === 'CustomerRefund') setSplitMode(false);
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium rounded-lg border transition-colors ${
                     paymentType === t
-                      ? t === 'Receive' ? 'bg-green-600 text-white' : 'bg-orange-500 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                      ? `${activeCls} border-transparent`
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  {t === 'Receive'
-                    ? <><TrendingDown size={14} /> Penerimaan</>
-                    : <><TrendingUp size={14} /> Pengeluaran</>}
+                  {icon} {label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Refund Source Payment Picker */}
+          {isRefund && partyId && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                Pembayaran Asal (opsional)
+              </label>
+              <select
+                value={refundSourcePaymentId}
+                onChange={e => setRefundSourcePaymentId(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">— Tanpa link (generic refund) —</option>
+                {(sourcePayments ?? []).map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {p.paymentNumber} • {formatDate(p.date)} • {formatRupiah(Number(p.amount))}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-500 mt-1">
+                Pilih pembayaran {isVendorRefund ? 'Pay' : 'Receive'} yang sebagian dikembalikan.
+                Sistem otomatis kurangi alokasinya dan restore outstanding faktur terkait.
+              </p>
+            </div>
+          )}
 
           {/* Date & Party */}
           <div className="grid grid-cols-2 gap-4">
@@ -323,19 +388,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
             />
           </div>
 
-          {/* Split toggle */}
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">Distribusi Akun</label>
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={splitMode}
-                onChange={(e) => setSplitMode(e.target.checked)}
-                className="rounded"
-              />
-              Split ke beberapa akun (mis. dipotong komisi)
-            </label>
-          </div>
+          {/* Split toggle — disabled for refund */}
+          {!isRefund && (
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">Distribusi Akun</label>
+              <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={splitMode}
+                  onChange={(e) => setSplitMode(e.target.checked)}
+                  className="rounded"
+                />
+                Split ke beberapa akun (mis. dipotong komisi)
+              </label>
+            </div>
+          )}
 
           {!splitMode ? (
             <div>

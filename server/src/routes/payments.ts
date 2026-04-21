@@ -279,6 +279,153 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
         return { ...payment, party, unallocatedAmount: 0 };
       }
 
+      // ── VendorRefund / CustomerRefund branch ────────────────────────────
+      // Supplier sends money back to us (VendorRefund) → DR Bank / CR Hutang Usaha
+      // We send money back to customer (CustomerRefund) → DR Piutang Usaha / CR Bank
+      // Optionally linked to a source payment — when provided, reduces source allocation
+      // and restores the linked invoice outstanding.
+      if (body.paymentType === 'VendorRefund' || body.paymentType === 'CustomerRefund') {
+        const isVendorRefund = body.paymentType === 'VendorRefund';
+        if (isVendorRefund && party.partyType !== 'Supplier' && party.partyType !== 'Both') {
+          throw new BusinessError('Refund vendor hanya berlaku untuk Supplier.');
+        }
+        if (!isVendorRefund && party.partyType !== 'Customer' && party.partyType !== 'Both') {
+          throw new BusinessError('Refund pelanggan hanya berlaku untuk Customer.');
+        }
+
+        const liabAssetAccount = isVendorRefund
+          ? await systemAccounts.getAccount('AP')
+          : await systemAccounts.getAccount('AR');
+
+        // For VendorRefund: DR Bank, CR Hutang   → bank.amount stays, hutang goes up
+        // For CustomerRefund: CR Bank, DR Piutang → bank.amount stays, piutang goes up
+        const bankItem = {
+          accountId: body.accountId,
+          partyId: null as string | null,
+          debit: isVendorRefund ? numAmount : 0,
+          credit: isVendorRefund ? 0 : numAmount,
+          description: `Refund ${isVendorRefund ? 'Vendor' : 'Pelanggan'}: ${paymentNumber}`,
+        };
+        const liabAssetItem = {
+          accountId: liabAssetAccount.id,
+          partyId: body.partyId,
+          debit: isVendorRefund ? 0 : numAmount,
+          credit: isVendorRefund ? numAmount : 0,
+          description: `Refund ${isVendorRefund ? 'Vendor' : 'Pelanggan'}: ${paymentNumber} — restore ${isVendorRefund ? 'hutang' : 'piutang'}`,
+        };
+
+        const jvNumber = `JV-${paymentNumber}`;
+        const existingJV = await tx.journalEntry.findUnique({ where: { entryNumber: jvNumber } });
+        if (existingJV) throw new BusinessError(`Nomor jurnal ${jvNumber} sudah ada. Silakan coba lagi.`);
+
+        const journalEntry = await tx.journalEntry.create({
+          data: {
+            entryNumber: jvNumber,
+            date: parsedDate,
+            narration: `Refund ${isVendorRefund ? 'Vendor' : 'Pelanggan'}: ${paymentNumber} - ${party.name}`,
+            status: 'Submitted',
+            fiscalYearId: fiscalYear.id,
+            createdBy: req.user!.userId,
+            submittedAt: new Date(),
+            items: { create: [bankItem, liabAssetItem] },
+          },
+        });
+
+        await tx.accountingLedgerEntry.createMany({
+          data: [bankItem, liabAssetItem].map((it) => ({
+            date: parsedDate,
+            accountId: it.accountId,
+            partyId: it.partyId,
+            debit: Number(it.debit),
+            credit: Number(it.credit),
+            referenceType: 'JournalEntry',
+            referenceId: journalEntry.id,
+            description: it.description,
+            fiscalYearId: fiscalYear.id,
+          })),
+        });
+
+        await updateAccountBalance(tx, bankItem.accountId, Number(bankItem.debit), Number(bankItem.credit));
+        await updateAccountBalance(tx, liabAssetItem.accountId, Number(liabAssetItem.debit), Number(liabAssetItem.credit));
+
+        // If linked to source payment: reduce source allocation and restore invoice
+        if (body.refundSourcePaymentId) {
+          const expectedType = isVendorRefund ? 'Pay' : 'Receive';
+          const source = await tx.payment.findUnique({
+            where: { id: body.refundSourcePaymentId },
+            include: { allocations: true },
+          });
+          if (!source) throw new BusinessError('Pembayaran asal tidak ditemukan.');
+          if (source.partyId !== body.partyId) throw new BusinessError('Pembayaran asal bukan dari pihak yang sama.');
+          if (source.paymentType !== expectedType) {
+            throw new BusinessError(`Pembayaran asal harus bertipe ${expectedType}.`);
+          }
+          if (source.status !== 'Submitted') throw new BusinessError('Pembayaran asal sudah dibatalkan.');
+
+          // Reduce allocations starting from latest (newest invoice first) — restore that invoice's outstanding
+          let remaining = new Decimal(numAmount);
+          const expectedInvoiceType = isVendorRefund ? 'PurchaseInvoice' : 'SalesInvoice';
+          const sortedAllocs = [...source.allocations]
+            .filter((a) => a.invoiceType === expectedInvoiceType)
+            .sort((a, b) => Number(b.allocatedAmount) - Number(a.allocatedAmount));
+
+          for (const alloc of sortedAllocs) {
+            if (remaining.lte(0)) break;
+            const allocAmount = new Decimal(alloc.allocatedAmount.toString());
+            const reverseAmt = Decimal.min(remaining, allocAmount);
+            remaining = remaining.minus(reverseAmt);
+            const newAlloc = allocAmount.minus(reverseAmt);
+
+            if (newAlloc.lte(new Decimal('0.01'))) {
+              await tx.paymentAllocation.delete({ where: { id: alloc.id } });
+            } else {
+              await tx.paymentAllocation.update({
+                where: { id: alloc.id },
+                data: { allocatedAmount: newAlloc.toNumber() },
+              });
+            }
+
+            // Restore invoice outstanding + status
+            if (isVendorRefund) {
+              const inv = await tx.purchaseInvoice.findUnique({ where: { id: alloc.invoiceId } });
+              if (inv) {
+                const newOutstanding = new Decimal(inv.outstanding.toString()).plus(reverseAmt);
+                const newStatus = newOutstanding.gte(new Decimal(inv.grandTotal.toString()))
+                  ? 'Submitted'
+                  : 'PartiallyPaid';
+                await tx.purchaseInvoice.update({
+                  where: { id: inv.id },
+                  data: { outstanding: newOutstanding.toNumber(), status: newStatus },
+                });
+              }
+            } else {
+              const inv = await tx.salesInvoice.findUnique({ where: { id: alloc.invoiceId } });
+              if (inv) {
+                const newOutstanding = new Decimal(inv.outstanding.toString()).plus(reverseAmt);
+                const newStatus = newOutstanding.gte(new Decimal(inv.grandTotal.toString()))
+                  ? 'Submitted'
+                  : 'PartiallyPaid';
+                await tx.salesInvoice.update({
+                  where: { id: inv.id },
+                  data: { outstanding: newOutstanding.toNumber(), status: newStatus },
+                });
+              }
+            }
+          }
+
+          if (remaining.gt(new Decimal('0.01'))) {
+            throw new BusinessError(
+              `Nilai refund (${numAmount}) melebihi total alokasi pembayaran asal yang tersedia.`,
+            );
+          }
+        }
+
+        await tx.payment.update({ where: { id: payment.id }, data: { journalEntryId: journalEntry.id } });
+        await recalcPartyOutstanding(tx, body.partyId);
+
+        return { ...payment, party, unallocatedAmount: 0 };
+      }
+
       // ── Receive / Pay branch ────────────────────────────────────────────
       const arAccount = await systemAccounts.getAccount('AR');
       const apAccount = await systemAccounts.getAccount('AP');
@@ -456,6 +603,11 @@ router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, r
       }
       if (payment.paymentType === 'CustomerDeposit') {
         throw new BusinessError('Gunakan endpoint Uang Muka Pelanggan untuk membatalkan deposit.');
+      }
+      if (payment.paymentType === 'VendorRefund' || payment.paymentType === 'CustomerRefund') {
+        throw new BusinessError(
+          'Refund belum mendukung cancel otomatis. Buat jurnal koreksi manual untuk membatalkan refund ini.',
+        );
       }
 
       // ── Receive / Pay cancel branch ─────────────────────────────────────
