@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# backup.sh — PMD Finance Daily Database Backup
+# backup.sh — Simple ERP Daily Database Backup
 # Dump PostgreSQL → gzip → push to GitHub (backups branch)
 # Usage: bash scripts/backup.sh
 # ============================================================
@@ -13,9 +13,9 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_BRANCH="backups"
 MAX_BACKUPS=3
 TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
-BACKUP_FILENAME="pmd_finance_${TIMESTAMP}.sql.gz"
-UPLOADS_FILENAME="pmd_uploads_${TIMESTAMP}.tar.gz"
-WORKTREE_DIR="/tmp/pmd-backup-worktree"
+BACKUP_FILENAME="simple_erp_${TIMESTAMP}.sql.gz"
+UPLOADS_FILENAME="simple_erp_uploads_${TIMESTAMP}.tar.gz"
+WORKTREE_DIR="/tmp/simple-erp-backup-worktree"
 LOG_FILE="${SCRIPT_DIR}/backup.log"
 
 # ─── Functions ────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ fi
 
 # Defaults
 DB_USER="${DB_USER:-user}"
-DB_NAME="${DB_NAME:-pmd_finance}"
+DB_NAME="${DB_NAME:-simple_erp}"
 
 log "=== Backup Started ==="
 log "Database: ${DB_NAME}, User: ${DB_USER}"
@@ -140,7 +140,7 @@ else
   git -C "$WORKTREE_DIR" rm -rf . 2>/dev/null || true
 
   cat > "${WORKTREE_DIR}/README.md" << 'HEREDOC'
-# PMD Finance — Database Backups
+# Simple ERP — Database Backups
 
 Automated daily backups of the PostgreSQL database.
 Maximum 3 days retained.
@@ -152,12 +152,12 @@ Maximum 3 days retained.
 bash scripts/restore.sh
 
 # Restore specific backup
-bash scripts/restore.sh pmd_finance_2026-03-17_020000.sql.gz
+bash scripts/restore.sh simple_erp_2026-03-17_020000.sql.gz
 ```
 
 ## Files
 
-- `pmd_finance_YYYY-MM-DD_HHMMSS.sql.gz` — gzipped pg_dump (plain SQL)
+- `simple_erp_YYYY-MM-DD_HHMMSS.sql.gz` — gzipped pg_dump (plain SQL)
 HEREDOC
 
   git -C "$WORKTREE_DIR" add README.md
@@ -174,7 +174,7 @@ fi
 
 # Rotate: keep only MAX_BACKUPS most recent .sql.gz AND .tar.gz files
 cd "$WORKTREE_DIR"
-for pattern in 'pmd_finance_*.sql.gz' 'pmd_uploads_*.tar.gz'; do
+for pattern in 'simple_erp_*.sql.gz' 'simple_erp_uploads_*.tar.gz'; do
   COUNT=$(ls -1 $pattern 2>/dev/null | wc -l | tr -d ' ')
   if [ "$COUNT" -gt "$MAX_BACKUPS" ]; then
     ls -1t $pattern | tail -n +$((MAX_BACKUPS + 1)) | while read -r old_file; do

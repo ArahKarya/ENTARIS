@@ -234,7 +234,7 @@ export const CompanySettingsTab: React.FC = () => {
               <textarea
                 value={invoiceSettings.sales?.bankAccounts || ''}
                 onChange={(e) => updateInvoiceSetting('sales', 'bankAccounts', e.target.value)}
-                placeholder="BRI: 0123-4567-8901 a.n. PT Pangan Masa Depan&#10;Mandiri: 1234-5678-9012 a.n. PT Pangan Masa Depan"
+                placeholder="BRI: 0123-4567-8901 a.n. Nama Perusahaan Anda&#10;Mandiri: 1234-5678-9012 a.n. Nama Perusahaan Anda"
                 rows={3}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
               />

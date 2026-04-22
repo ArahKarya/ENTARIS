@@ -1,8 +1,8 @@
-# Finance-PMD — Project Instructions
+# Simple ERP — Project Instructions
 
 ## Overview
 
-ERP Keuangan untuk PT Pangan Masa Depan (rice milling). Full-stack TypeScript app with double-entry bookkeeping.
+Simple ERP — aplikasi keuangan & operasional untuk UKM hingga enterprise. Full-stack TypeScript app with double-entry bookkeeping.
 
 ## Tech Stack
 
@@ -132,4 +132,3 @@ docker compose logs -f app      # View logs
 ## Out of Scope
 
 - HRD (absensi, payroll) — handled by third-party app
-- No overlap with ERP Pangan Masa Depan (erp-pangan-masa-depan) production/inventory modules

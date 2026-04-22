@@ -387,17 +387,17 @@ const LoginPage: React.FC = () => {
                   animation: 'login-logo-enter 1s cubic-bezier(0.34,1.56,0.64,1) 0.15s both',
                 }}
               >
-                <img src="/pwa-512x512.png" alt="Keuangan PMD" className="w-full h-full object-contain" />
+                <img src="/pwa-512x512.png" alt="Simple ERP" className="w-full h-full object-contain" />
               </div>
             </div>
             <h1
               className="text-[30px] font-bold tracking-tight"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              Masuk ke Keuangan
+              Masuk ke Simple ERP
             </h1>
             <p className="mt-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              Sistem ERP Keuangan — PT Pangan Masa Depan
+              Sistem ERP Keuangan & Operasional
             </p>
           </div>
 

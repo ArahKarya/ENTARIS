@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Keuangan - PT Pangan Masa Depan',
-        short_name: 'Keuangan',
-        description: 'Aplikasi Keuangan PT Pangan Masa Depan',
+        name: 'Simple ERP',
+        short_name: 'Simple ERP',
+        description: 'Simple ERP — Aplikasi keuangan & operasional untuk UKM hingga enterprise',
         theme_color: '#2c4d78',
         background_color: '#fafafb',
         display: 'standalone',

@@ -20,7 +20,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-04-13',
     title: 'Fitur Baru, Perbaikan Bug & Icon Aplikasi',
     changes: [
-      'Icon aplikasi baru (PMD biru) dengan background transparan untuk favicon, PWA, sidebar & login',
+      'Icon aplikasi baru dengan background transparan untuk favicon, PWA, sidebar & login',
       'Pisahkan icon aplikasi (statis) dari logo perusahaan (untuk invoice & dokumen)',
       'Fix Health Check: halaman tidak muncul karena double /api prefix pada endpoint',
       'Fix Aset Tetap, Persetujuan, HPP, Jadwal Piutang/Hutang: double /api prefix diperbaiki',

@@ -1,6 +1,6 @@
-# PMD Finance — Server
+# Simple ERP — Server
 
-Backend Express API untuk aplikasi ERP keuangan PMD Finance.
+Backend Express API untuk Simple ERP.
 
 ## Stack
 
@@ -22,7 +22,7 @@ npm run build            # Compile TypeScript → dist/
 npm run prisma:generate  # Generate Prisma client
 npm run prisma:migrate   # Jalankan migrasi database
 npm run seed             # Seed data awal
-npm test                 # Jalankan 39 unit tests
+npm test                 # Jalankan unit tests
 npm run test:watch       # Test watch mode
 ```
 
@@ -31,10 +31,10 @@ npm run test:watch       # Test watch mode
 Buat file `.env` di direktori ini:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/pmd_finance"
+DATABASE_URL="postgresql://user:password@localhost:5432/simple_erp"
 POSTGRES_USER=user
 POSTGRES_PASSWORD=password
-POSTGRES_DB=pmd_finance
+POSTGRES_DB=simple_erp
 
 PORT=3001
 NODE_ENV=development

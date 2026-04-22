@@ -17,7 +17,7 @@ import os
 from datetime import datetime
 
 VERSION = '1.8.0'
-COMPANY = 'PT Pangan Masa Depan'
+COMPANY = 'Simple ERP'
 
 # ── Colors ──────────────────────────────────────────────────
 C_PRIMARY = HexColor('#1e40af')

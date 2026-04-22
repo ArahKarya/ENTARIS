@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# restore.sh — PMD Finance Database Restore
+# restore.sh — Simple ERP Database Restore
 # Restore from GitHub backups branch or local file
 # Usage:
 #   bash scripts/restore.sh                     # List available backups
@@ -13,7 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_BRANCH="backups"
-WORKTREE_DIR="/tmp/pmd-restore-worktree"
+WORKTREE_DIR="/tmp/simple-erp-restore-worktree"
 
 # ─── Functions ────────────────────────────────────────────────────────────────
 cleanup() {
@@ -41,7 +41,7 @@ if [ -z "$DB_USER" ] && [ -f "${PROJECT_DIR}/server/.env" ]; then
 fi
 
 DB_USER="${DB_USER:-user}"
-DB_NAME="${DB_NAME:-pmd_finance}"
+DB_NAME="${DB_NAME:-simple_erp}"
 
 # ─── Find PostgreSQL container ────────────────────────────────────────────────
 find_pg_container() {
@@ -55,7 +55,7 @@ find_pg_container() {
 # ─── Mode: List backups ──────────────────────────────────────────────────────
 if [ $# -eq 0 ]; then
   echo "╔══════════════════════════════════════════════════╗"
-  echo "║     PMD Finance — Available Database Backups     ║"
+  echo "║     Simple ERP — Available Database Backups     ║"
   echo "╚══════════════════════════════════════════════════╝"
   echo ""
 
@@ -74,7 +74,7 @@ if [ $# -eq 0 ]; then
   done
   echo ""
   echo "To restore:  bash scripts/restore.sh <filename>"
-  echo "Example:     bash scripts/restore.sh pmd_finance_2026-03-17_020000.sql.gz"
+  echo "Example:     bash scripts/restore.sh simple_erp_2026-03-17_020000.sql.gz"
   exit 0
 fi
 
@@ -106,7 +106,7 @@ else
     echo "❌ Backup file '${BACKUP_ARG}' not found on backups branch."
     echo ""
     echo "Available backups:"
-    ls -1 "${WORKTREE_DIR}"/pmd_finance_*.sql.gz 2>/dev/null | xargs -I{} basename {} || echo "  (none)"
+    ls -1 "${WORKTREE_DIR}"/simple_erp_*.sql.gz 2>/dev/null | xargs -I{} basename {} || echo "  (none)"
     exit 1
   fi
   echo "✅ Found backup: ${BACKUP_ARG}"
@@ -134,7 +134,7 @@ fi
 echo ""
 echo "🔄 Stopping application..."
 if command -v pm2 &>/dev/null; then
-  pm2 stop pmd-finance 2>/dev/null || true
+  pm2 stop simple-erp 2>/dev/null || true
 fi
 
 # ─── Find container ──────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ npx prisma migrate deploy 2>/dev/null || echo "⚠️  Prisma migrate skipped (m
 echo ""
 echo "🚀 Restarting application..."
 if command -v pm2 &>/dev/null; then
-  pm2 restart pmd-finance 2>/dev/null || pm2 start dist/index.js --name pmd-finance 2>/dev/null || true
+  pm2 restart simple-erp 2>/dev/null || pm2 start dist/index.js --name simple-erp 2>/dev/null || true
   echo "✅ Application restarted via PM2"
 else
   echo "⚠️  No PM2 found. Start manually: cd server && node dist/index.js"

@@ -49,7 +49,7 @@ async function main() {
     console.log(`- Upserted User: ${u.email} (${u.role})`);
   }
 
-  // 3. Seed COA — Standard Chart of Accounts for PT Pangan Masa Depan
+  // 3. Seed COA — Standard Chart of Accounts (Indonesian PSAK baseline)
   const A = AccountType.ASSET;
   const L = AccountType.LIABILITY;
   const E = AccountType.EQUITY;
@@ -390,7 +390,7 @@ async function main() {
     update: {},
     create: {
       slug: 'default',
-      companyName: 'PT Pangan Masa Depan',
+      companyName: 'Nama Perusahaan Anda',
       address: '',
       phone: '',
       email: '',

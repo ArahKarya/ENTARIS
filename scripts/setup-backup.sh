@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# setup-backup.sh — PMD Finance Backup System Setup
+# setup-backup.sh — Simple ERP Backup System Setup
 # One-time setup: verify prerequisites, run initial backup,
 # install daily cron job.
 # Usage: bash scripts/setup-backup.sh
@@ -13,7 +13,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_BRANCH="backups"
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║     PMD Finance — Backup System Setup            ║"
+echo "║     Simple ERP — Backup System Setup            ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -94,12 +94,12 @@ echo "⏰ Setting up daily cron job..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 CRON_CMD="0 2 * * * cd ${PROJECT_DIR} && bash scripts/backup.sh >> scripts/backup.log 2>&1"
-CRON_MARKER="# PMD Finance daily backup"
+CRON_MARKER="# Simple ERP daily backup"
 
-if crontab -l 2>/dev/null | grep -q "PMD Finance daily backup"; then
+if crontab -l 2>/dev/null | grep -q "Simple ERP daily backup"; then
   echo "  ✅ Cron job already exists. Updating..."
   # Remove old entry and add new one
-  (crontab -l 2>/dev/null | grep -v "PMD Finance daily backup" | grep -v "scripts/backup.sh"; echo ""; echo "$CRON_MARKER"; echo "$CRON_CMD") | crontab -
+  (crontab -l 2>/dev/null | grep -v "Simple ERP daily backup" | grep -v "scripts/backup.sh"; echo ""; echo "$CRON_MARKER"; echo "$CRON_CMD") | crontab -
 else
   # Add new cron entry
   (crontab -l 2>/dev/null; echo ""; echo "$CRON_MARKER"; echo "$CRON_CMD") | crontab -

@@ -1,6 +1,6 @@
-# PMD Finance — Client
+# Simple ERP — Client
 
-Frontend React untuk aplikasi ERP keuangan PMD Finance.
+Frontend React untuk Simple ERP.
 
 ## Stack
 
