@@ -11,10 +11,15 @@ interface CashFlowData {
 
 const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
-export default function CashFlowChart() {
+interface CashFlowProps {
+  startDate?: string;
+  endDate?: string;
+}
+
+export default function CashFlowChart({ startDate, endDate }: CashFlowProps = {}) {
   const { data, isLoading } = useQuery<CashFlowData>({
-    queryKey: ['dashboard-cash-flow'],
-    queryFn: async () => (await api.get('/dashboard/cash-flow')).data,
+    queryKey: ['dashboard-cash-flow', startDate, endDate],
+    queryFn: async () => (await api.get('/dashboard/cash-flow', { params: { startDate, endDate } })).data,
   });
 
   if (isLoading || !data) {

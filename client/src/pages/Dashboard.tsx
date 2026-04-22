@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Settings2, LayoutDashboard, DollarSign, TrendingUp, Package, Factory } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
@@ -28,6 +28,7 @@ import RendemenTrendChart from '../components/widgets/RendemenTrendChart';
 import CogsBackfillWidget from '../components/widgets/CogsBackfillWidget';
 import DashboardSettings, { DEFAULT_WIDGETS, type WidgetConfig } from '../components/DashboardSettings';
 import DashboardSectionNav, { type SectionDef } from '../components/DashboardSectionNav';
+import DashboardPeriodFilter, { type PeriodRange, computePresetRange } from '../components/DashboardPeriodFilter';
 
 // Widget IDs only visible to finance roles (not StaffProduksi)
 const FINANCE_WIDGET_IDS = new Set([
@@ -135,19 +136,34 @@ export const Dashboard = () => {
     []
   );
 
-  // Data queries
+  // Period filter state (persisted to localStorage)
+  const [period, setPeriod] = useState<PeriodRange>(() => {
+    try {
+      const raw = localStorage.getItem('dashboard-period');
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    const def = computePresetRange('thisMonth');
+    return { preset: 'thisMonth', ...def };
+  });
+  useEffect(() => {
+    try { localStorage.setItem('dashboard-period', JSON.stringify(period)); } catch { /* ignore */ }
+  }, [period]);
+
+  const periodParams = { startDate: period.startDate, endDate: period.endDate };
+
+  // Data queries (period-aware)
   const { data: metrics, isLoading: isMetricsLoading } = useQuery({
-    queryKey: ['dashboard-metrics'],
+    queryKey: ['dashboard-metrics', period.startDate, period.endDate],
     queryFn: async () => {
-      const r = await api.get('/dashboard/metrics');
+      const r = await api.get('/dashboard/metrics', { params: periodParams });
       return r.data;
     },
   });
 
   const { data: chartData, isLoading: isChartsLoading } = useQuery({
-    queryKey: ['dashboard-charts'],
+    queryKey: ['dashboard-charts', period.startDate, period.endDate],
     queryFn: async () => {
-      const r = await api.get('/dashboard/charts');
+      const r = await api.get('/dashboard/charts', { params: periodParams });
       return r.data;
     },
   });
@@ -192,10 +208,8 @@ export const Dashboard = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-xs text-muted-foreground font-tabular">
-            {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <DashboardPeriodFilter value={period} onChange={setPeriod} />
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-2 rounded-md border border-border bg-card transition-colors hover:bg-accent text-muted-foreground"
@@ -238,15 +252,15 @@ export const Dashboard = () => {
               {isEnabled('revenue-chart') && (
                 <RevenueChart data={chartData} loading={isChartsLoading} />
               )}
-              {isEnabled('monthly-profit') && <MonthlyProfitChart />}
+              {isEnabled('monthly-profit') && <MonthlyProfitChart startDate={period.startDate} endDate={period.endDate} />}
             </div>
           )}
 
           {(isEnabled('cash-flow-summary') || isEnabled('financial-ratios') || isEnabled('expense-breakdown')) && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isEnabled('cash-flow-summary') && <CashFlowChart />}
+              {isEnabled('cash-flow-summary') && <CashFlowChart startDate={period.startDate} endDate={period.endDate} />}
               {isEnabled('financial-ratios') && <FinancialRatios />}
-              {isEnabled('expense-breakdown') && <ExpenseBreakdown />}
+              {isEnabled('expense-breakdown') && <ExpenseBreakdown startDate={period.startDate} endDate={period.endDate} />}
             </div>
           )}
 

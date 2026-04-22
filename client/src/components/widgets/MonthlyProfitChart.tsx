@@ -11,10 +11,15 @@ interface MonthData {
 
 const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
-export default function MonthlyProfitChart() {
+interface Props {
+  startDate?: string;
+  endDate?: string;
+}
+
+export default function MonthlyProfitChart({ startDate, endDate }: Props = {}) {
   const { data, isLoading } = useQuery<MonthData[]>({
-    queryKey: ['monthly-profit'],
-    queryFn: async () => (await api.get('/dashboard/monthly-profit')).data,
+    queryKey: ['monthly-profit', startDate, endDate],
+    queryFn: async () => (await api.get('/dashboard/monthly-profit', { params: { startDate, endDate } })).data,
   });
 
   if (isLoading || !data) {

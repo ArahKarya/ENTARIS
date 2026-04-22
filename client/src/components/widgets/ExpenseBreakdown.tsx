@@ -7,11 +7,16 @@ import { formatRupiah } from '../../lib/formatters';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 
-const ExpenseBreakdown: React.FC = () => {
+interface Props {
+  startDate?: string;
+  endDate?: string;
+}
+
+const ExpenseBreakdown: React.FC<Props> = ({ startDate, endDate }) => {
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboard-expense-breakdown'],
+    queryKey: ['dashboard-expense-breakdown', startDate, endDate],
     queryFn: async () => {
-      const r = await api.get('/dashboard/expense-breakdown');
+      const r = await api.get('/dashboard/expense-breakdown', { params: { startDate, endDate } });
       return r.data;
     },
   });
