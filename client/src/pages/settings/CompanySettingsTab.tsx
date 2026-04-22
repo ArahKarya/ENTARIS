@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import { Save, Loader2, Upload, X, ImageIcon, Plus, Trash2 } from 'lucide-react';
+import { Save, Loader2, Upload, X, ImageIcon, Plus, Trash2, Sun, Moon } from 'lucide-react';
 
 interface InvoiceFormatSettings {
   sales?: {
@@ -20,7 +20,8 @@ interface InvoiceFormatSettings {
 
 export const CompanySettingsTab: React.FC = () => {
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRefLight = useRef<HTMLInputElement>(null);
+  const fileInputRefDark = useRef<HTMLInputElement>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -30,6 +31,7 @@ export const CompanySettingsTab: React.FC = () => {
     taxId: '',
     defaultCurrency: 'IDR',
     logoUrl: null as string | null,
+    logoUrlDark: null as string | null,
   });
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceFormatSettings>({
     sales: { bankAccounts: '', footerNote: '', showSignature: true, signatureLabels: ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'] },
@@ -55,6 +57,7 @@ export const CompanySettingsTab: React.FC = () => {
         taxId: settings.taxId || '',
         defaultCurrency: settings.defaultCurrency || settings.currency || 'IDR',
         logoUrl: settings.logoUrl || null,
+        logoUrlDark: settings.logoUrlDark || null,
       }));
       if (settings.invoiceSettings) {
         const s = settings.invoiceSettings as InvoiceFormatSettings;
@@ -103,7 +106,7 @@ export const CompanySettingsTab: React.FC = () => {
     onError: () => toast.error('Gagal menyimpan pengaturan.')
   });
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (variant: 'logoUrl' | 'logoUrlDark') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -114,14 +117,15 @@ export const CompanySettingsTab: React.FC = () => {
 
     const reader = new FileReader();
     reader.onload = (ev) => {
-      handleChange('logoUrl', ev.target?.result as string);
+      handleChange(variant, ev.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveLogo = () => {
-    handleChange('logoUrl', null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleRemoveLogo = (variant: 'logoUrl' | 'logoUrlDark') => {
+    handleChange(variant, null);
+    const ref = variant === 'logoUrl' ? fileInputRefLight : fileInputRefDark;
+    if (ref.current) ref.current.value = '';
   };
 
   const fields = [
@@ -143,46 +147,96 @@ export const CompanySettingsTab: React.FC = () => {
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-6">
         {/* Logo Upload Section */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-3">Logo Perusahaan</label>
-          <div className="flex items-start gap-4">
-            <div className="w-28 h-20 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center bg-gray-50 flex-shrink-0 overflow-hidden">
-              {formData.logoUrl ? (
-                <img src={formData.logoUrl} alt="Logo preview" className="w-full h-full object-contain p-2" />
-              ) : (
-                <div className="flex flex-col items-center gap-1 text-gray-400">
-                  <ImageIcon size={20} />
-                  <span className="text-xs">Belum ada</span>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Logo Perusahaan</label>
+          <p className="text-xs text-gray-400 mb-3">
+            Upload 2 varian supaya tetap terlihat di semua tema. Jika varian dark mode kosong, varian light akan dipakai di semua mode.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Light mode variant */}
+            <div className="border border-gray-200 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-gray-700">
+                <Sun size={13} /> Mode Light
+                <span className="text-[10px] font-normal text-gray-400 ml-1">(logo gelap di atas background terang)</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-24 h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-white flex-shrink-0 overflow-hidden">
+                  {formData.logoUrl ? (
+                    <img src={formData.logoUrl} alt="Logo light preview" className="w-full h-full object-contain p-1.5" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-400">
+                      <ImageIcon size={18} />
+                      <span className="text-[10px]">Belum ada</span>
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    ref={fileInputRefLight}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload('logoUrl')}
+                    className="hidden"
+                    id="logo-upload-light"
+                  />
+                  <label htmlFor="logo-upload-light" className="btn-secondary cursor-pointer text-xs py-1.5 px-3">
+                    <Upload size={12} />
+                    {formData.logoUrl ? 'Ganti' : 'Upload'}
+                  </label>
+                  {formData.logoUrl && (
+                    <button type="button" onClick={() => handleRemoveLogo('logoUrl')}
+                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700">
+                      <X size={11} /> Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                onChange={handleLogoUpload}
-                className="hidden"
-                id="logo-upload"
-              />
-              <label htmlFor="logo-upload" className="btn-secondary cursor-pointer text-xs py-1.5 px-3">
-                <Upload size={13} />
-                {formData.logoUrl ? 'Ganti Logo' : 'Upload Logo'}
-              </label>
-
-              {formData.logoUrl && (
-                <button type="button" onClick={handleRemoveLogo}
-                  className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition-colors">
-                  <X size={12} /> Hapus Logo
-                </button>
-              )}
-
-              <p className="text-xs text-gray-400 mt-1">
-                PNG, JPG, SVG · Maks. 2MB<br />
-                Disarankan: background transparan
-              </p>
+            {/* Dark mode variant */}
+            <div className="border border-gray-200 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-gray-700">
+                <Moon size={13} /> Mode Dark
+                <span className="text-[10px] font-normal text-gray-400 ml-1">(logo terang di atas background gelap)</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-24 h-20 border-2 border-dashed border-gray-700 rounded-lg flex items-center justify-center bg-neutral-900 flex-shrink-0 overflow-hidden">
+                  {formData.logoUrlDark ? (
+                    <img src={formData.logoUrlDark} alt="Logo dark preview" className="w-full h-full object-contain p-1.5" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-500">
+                      <ImageIcon size={18} />
+                      <span className="text-[10px]">Belum ada</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    ref={fileInputRefDark}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload('logoUrlDark')}
+                    className="hidden"
+                    id="logo-upload-dark"
+                  />
+                  <label htmlFor="logo-upload-dark" className="btn-secondary cursor-pointer text-xs py-1.5 px-3">
+                    <Upload size={12} />
+                    {formData.logoUrlDark ? 'Ganti' : 'Upload'}
+                  </label>
+                  {formData.logoUrlDark && (
+                    <button type="button" onClick={() => handleRemoveLogo('logoUrlDark')}
+                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700">
+                      <X size={11} /> Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
+
+          <p className="text-xs text-gray-400 mt-2">
+            PNG, JPG, SVG · Maks. 2MB per file · Disarankan background transparan.
+          </p>
         </div>
 
         <div className="border-t border-gray-100" />

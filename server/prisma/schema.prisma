@@ -449,6 +449,7 @@ model CompanySettings {
   email                String?
   taxId                String? @map("tax_id")
   logoUrl              String? @map("logo_url")
+  logoUrlDark          String? @map("logo_url_dark")
   defaultCurrency      String  @default("IDR") @map("default_currency")
   fiscalYearStartMonth Int     @default(1) @map("fiscal_year_start_month")
   invoiceSettings      Json?   @map("invoice_settings")

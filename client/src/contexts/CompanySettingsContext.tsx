@@ -10,6 +10,7 @@ interface CompanySettings {
   email: string | null;
   taxId: string | null;
   logoUrl: string | null;
+  logoUrlDark: string | null;
   defaultCurrency: string;
 }
 

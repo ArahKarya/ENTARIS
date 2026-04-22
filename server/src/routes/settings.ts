@@ -89,6 +89,9 @@ router.put('/company', roleMiddleware(['Admin']), async (req, res) => {
   if (body.logoUrl && typeof body.logoUrl === 'string' && body.logoUrl.length > 5 * 1024 * 1024) {
     return res.status(400).json({ error: 'Ukuran logo terlalu besar (maks. ~4MB setelah encoding).' });
   }
+  if (body.logoUrlDark && typeof body.logoUrlDark === 'string' && body.logoUrlDark.length > 5 * 1024 * 1024) {
+    return res.status(400).json({ error: 'Ukuran logo (dark mode) terlalu besar (maks. ~4MB setelah encoding).' });
+  }
 
   try {
     const data = {
@@ -100,6 +103,7 @@ router.put('/company', roleMiddleware(['Admin']), async (req, res) => {
       defaultCurrency: body.currency || rawBody.defaultCurrency || 'IDR',
       fiscalYearStartMonth: body.fiscalYearStartMonth ?? 1,
       ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl || null }),
+      ...(body.logoUrlDark !== undefined && { logoUrlDark: body.logoUrlDark || null }),
       ...(body.invoiceSettings !== undefined && {
         invoiceSettings: body.invoiceSettings === null
           ? Prisma.DbNull

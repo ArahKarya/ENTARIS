@@ -185,6 +185,7 @@ export const UpdateCompanySettingsSchema = z.object({
   email: z.string().email('Format email tidak valid.').nullable().optional().or(z.literal('')),
   taxId: z.string().nullable().optional(),
   logoUrl: z.string().nullable().optional(),
+  logoUrlDark: z.string().nullable().optional(),
   currency: z.string().optional(),
   dateFormat: z.string().optional(),
   fiscalYearStartMonth: z.coerce.number().int().min(1, 'Bulan harus antara 1-12.').max(12, 'Bulan harus antara 1-12.').optional(),

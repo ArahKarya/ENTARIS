@@ -7,6 +7,7 @@ import { APP_VERSION, APP_BUILD_DATE } from '../lib/version';
 interface PublicBranding {
   companyName: string | null;
   logoUrl: string | null;
+  logoUrlDark: string | null;
 }
 
 const animStyles = `
@@ -22,7 +23,19 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [branding, setBranding] = useState<PublicBranding>({ companyName: null, logoUrl: null });
+  const [branding, setBranding] = useState<PublicBranding>({ companyName: null, logoUrl: null, logoUrlDark: null });
+
+  // Detect resolved theme without throwing outside ThemeProvider (login is pre-auth).
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return document.documentElement.classList.contains('dark');
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    const obs = new MutationObserver(() => setIsDark(root.classList.contains('dark')));
+    obs.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,6 +70,16 @@ const LoginPage: React.FC = () => {
   };
 
   const displayName = branding.companyName || 'Simple ERP';
+  // Left panel always has a dark industrial background → prefer dark variant.
+  const darkPanelLogo = branding.logoUrlDark || branding.logoUrl || '/pwa-512x512.png';
+  // Right panel (mobile brand) follows resolved app theme.
+  const mobileLogo = isDark
+    ? (branding.logoUrlDark || branding.logoUrl || '/pwa-512x512.png')
+    : (branding.logoUrl || branding.logoUrlDark || '/pwa-512x512.png');
+  // Only invert the fallback static icon (it ships as white on transparent) when
+  // rendered on light backgrounds. Custom uploads are used as-is.
+  const darkPanelNeedsInvert = !branding.logoUrlDark && !branding.logoUrl;
+  const mobileNeedsInvert = !branding.logoUrl && !branding.logoUrlDark && !isDark;
 
   return (
     <>
@@ -86,9 +109,9 @@ const LoginPage: React.FC = () => {
           <div className="relative flex items-center gap-3">
             <div className="w-10 h-10 rounded-md bg-white/5 ring-1 ring-white/10 flex items-center justify-center overflow-hidden">
               <img
-                src={branding.logoUrl || '/pwa-512x512.png'}
+                src={darkPanelLogo}
                 alt={displayName}
-                className="w-7 h-7 object-contain invert opacity-90"
+                className={`w-7 h-7 object-contain opacity-90 ${darkPanelNeedsInvert ? 'invert' : ''}`}
               />
             </div>
             <div>
@@ -138,9 +161,9 @@ const LoginPage: React.FC = () => {
             <div className="flex lg:hidden items-center gap-3 mb-10">
               <div className="w-10 h-10 rounded-md bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center overflow-hidden">
                 <img
-                  src={branding.logoUrl || '/pwa-512x512.png'}
+                  src={mobileLogo}
                   alt={displayName}
-                  className="w-7 h-7 object-contain invert dark:invert-0 opacity-90"
+                  className={`w-7 h-7 object-contain opacity-90 ${mobileNeedsInvert ? 'invert' : ''}`}
                 />
               </div>
               <div>

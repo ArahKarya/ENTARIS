@@ -66,7 +66,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const location = useLocation();
   const settings = useCompanySettings();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  // Pick the right logo variant per theme, with sensible fallbacks so the sidebar
+  // logo stays visible in both modes. Default static icon ships as white, so it
+  // needs inversion only on light backgrounds.
+  const customLogo = resolvedTheme === 'dark'
+    ? (settings?.logoUrlDark || settings?.logoUrl || null)
+    : (settings?.logoUrl || settings?.logoUrlDark || null);
+  const sidebarLogoSrc = customLogo || '/pwa-192x192.png';
+  const needsInvert = !customLogo && resolvedTheme !== 'dark';
 
   const cycleTheme = () => {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
@@ -115,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
         {(!isCollapsed || mobileOpen) && (
           <div className="flex items-center gap-2 overflow-hidden">
             <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              <img src="/pwa-192x192.png" alt="Logo" className="w-full h-full object-contain" />
+              <img src={sidebarLogoSrc} alt="Logo" className={`w-full h-full object-contain ${needsInvert ? 'invert' : ''}`} />
             </div>
             <span className="text-sm font-bold tracking-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
               {settings?.companyName || 'Keuangan'}
