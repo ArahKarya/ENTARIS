@@ -1,6 +1,8 @@
-# Keuangan ERP
+# Simple ERP
 
-**Aplikasi ERP keuangan fullstack TypeScript** untuk pengelolaan akuntansi, penjualan, pembelian, stok, dan pelaporan — dirancang untuk UKM hingga perusahaan manufaktur (*rice mill / pangan*). Double-entry bookkeeping penuh, deploy 1-command via Docker.
+**Solusi ERP keuangan yang mudah dipasang, cepat digunakan, dan cukup kuat untuk bertumbuh bersama bisnis Anda** — dari toko/UKM dengan beberapa user, hingga perusahaan manufaktur (rice mill, trading, pangan) yang butuh pembukuan double-entry penuh, multi-role, dan audit trail lengkap.
+
+Fullstack TypeScript (React 19 + Express 5 + Prisma 7 + PostgreSQL 16), self-hosted via Docker Compose. Satu perintah untuk deploy, langsung pakai — tanpa biaya lisensi bulanan, data 100% milik Anda.
 
 ![Stack](https://img.shields.io/badge/stack-React%2019%20%7C%20Express%205%20%7C%20Prisma%207-0ea5e9)
 ![Database](https://img.shields.io/badge/database-PostgreSQL%2016-336791)
@@ -9,8 +11,35 @@
 
 ---
 
+## Mengapa Simple ERP?
+
+| | Kenapa penting |
+|---|---|
+| **🚀 Cepat dipasang** | `docker compose up -d --build` — dalam 5 menit aplikasi sudah bisa login. Seed otomatis (chart of account, fiscal year, system accounts) saat pertama kali jalan. |
+| **🧱 Pondasi akuntansi yang benar** | Double-entry bookkeeping murni. Setiap transaksi (invoice, pembayaran, JV, produksi, stok) otomatis posting ke GL dan selalu balanced — tidak ada "angka melayang". |
+| **📈 Skalabilitas bertahap** | Mulai dari warung/UKM (1-3 user, tanpa modul produksi) hingga pabrik (puluhan user, BOM, konversi produksi, HPP, pajak per item, multi-gudang) — fitur tinggal diaktifkan, schema sama. |
+| **💰 Gratis & self-hosted** | MIT license. Data & backup ada di server Anda sendiri (Raspberry Pi 5, VPS murah, atau on-premise). Tidak ada vendor lock-in, tidak ada biaya per-user. |
+| **🇮🇩 Cocok untuk bisnis Indonesia** | UI Bahasa Indonesia, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, export PDF/Excel siap cetak. |
+| **🛠️ Mudah disesuaikan** | TypeScript end-to-end, kode rapi, Prisma schema terbuka — tim internal atau developer eksternal bisa tambah modul baru tanpa perlu membongkar core. |
+
+### Cocok untuk
+
+- **UKM & toko retail** yang ingin lepas dari Excel/buku tulis tanpa biaya SaaS bulanan
+- **Perusahaan distribusi / trading** dengan banyak vendor, pelanggan, dan invoice outstanding
+- **Perusahaan manufaktur** (rice mill, pangan, pupuk, produk industri) dengan kebutuhan BOM, konversi produksi, dan HPP real-time
+- **Kantor akuntan / konsultan** yang ingin self-host pembukuan multi-klien di infra sendiri
+
+### Tidak (belum) cocok untuk
+
+- Perusahaan yang butuh modul HRD/payroll/absensi (gunakan aplikasi HRIS terpisah)
+- Bisnis yang wajib multi-tenant SaaS dengan billing otomatis (aplikasi ini single-tenant per-deploy)
+- Perusahaan yang butuh sertifikasi formal (ISO, SOC2) out-of-the-box — audit trail tersedia, tapi sertifikasi perlu proses terpisah
+
+---
+
 ## Daftar Isi
 
+- [Mengapa Simple ERP?](#mengapa-simple-erp)
 - [Cuplikan Aplikasi](#cuplikan-aplikasi)
 - [Fitur Utama](#fitur-utama)
 - [Tech Stack](#tech-stack)
