@@ -966,7 +966,7 @@ router.get('/daily', async (req, res) => {
           date: pr.date,
           inputs: inputs.map((i) => ({ itemName: i.item.name, quantity: Number(i.quantity), unit: i.item.unit })),
           outputs: outputs.map((i) => ({ itemName: i.item.name, quantity: Number(i.quantity), unit: i.item.unit, isByProduct: i.isByProduct })),
-          rendemenPct: pr.rendemenPct ? Number(pr.rendemenPct) : null,
+          yieldPct: pr.yieldPct ? Number(pr.yieldPct) : null,
         };
       }),
       summary: {
@@ -975,8 +975,8 @@ router.get('/daily', async (req, res) => {
           s + pr.items.filter((i) => i.lineType === 'Input').reduce((ss, i) => ss + Number(i.quantity), 0), 0),
         totalOutputKg: productionRuns.reduce((s, pr) =>
           s + pr.items.filter((i) => i.lineType === 'Output').reduce((ss, i) => ss + Number(i.quantity), 0), 0),
-        avgRendemen: productionRuns.length > 0
-          ? +(productionRuns.reduce((s, pr) => s + Number(pr.rendemenPct || 0), 0) / productionRuns.length).toFixed(1)
+        avgYield: productionRuns.length > 0
+          ? +(productionRuns.reduce((s, pr) => s + Number(pr.yieldPct || 0), 0) / productionRuns.length).toFixed(1)
           : 0,
       },
     };

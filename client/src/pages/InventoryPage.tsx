@@ -775,8 +775,8 @@ export function InventoryPage() {
                           ))}
                         </td>
                         <td className={cn('text-right font-mono tabular-nums text-gray-800', isCancelled && 'line-through')}>
-                          {run.rendemenPct != null
-                            ? `${Number(run.rendemenPct).toFixed(1)}%`
+                          {run.yieldPct != null
+                            ? `${Number(run.yieldPct).toFixed(1)}%`
                             : '—'}
                         </td>
                         <td className="text-gray-500 text-xs max-w-[140px] truncate">

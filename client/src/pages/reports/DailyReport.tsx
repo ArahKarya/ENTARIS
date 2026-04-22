@@ -146,7 +146,7 @@ const DailyReport = () => {
               <SummaryCard label="Jumlah Run" value={String(data.production.summary.totalRuns)} />
               <SummaryCard label="Total Input" value={`${data.production.summary.totalInputKg.toLocaleString('id-ID')} kg`} />
               <SummaryCard label="Total Output" value={`${data.production.summary.totalOutputKg.toLocaleString('id-ID')} kg`} />
-              <SummaryCard label="Yield Rata-rata" value={data.production.summary.avgRendemen > 0 ? `${data.production.summary.avgRendemen}%` : '—'} />
+              <SummaryCard label="Yield Rata-rata" value={data.production.summary.avgYield > 0 ? `${data.production.summary.avgYield}%` : '—'} />
             </div>
             <div className="table-responsive">
               <table className="data-table text-xs">
@@ -158,7 +158,7 @@ const DailyReport = () => {
                         <td className="font-mono">{run.runNumber}</td>
                         <td>{run.inputs.map((i: any) => `${i.itemName} (${i.quantity.toLocaleString('id-ID')} ${i.unit})`).join(', ')}</td>
                         <td>{run.outputs.map((o: any) => `${o.itemName} (${o.quantity.toLocaleString('id-ID')} ${o.unit})${o.isByProduct ? ' *' : ''}`).join(', ')}</td>
-                        <td className="text-right tabular-nums">{run.rendemenPct ? `${run.rendemenPct}%` : '—'}</td>
+                        <td className="text-right tabular-nums">{run.yieldPct ? `${run.yieldPct}%` : '—'}</td>
                       </tr>
                     ))}
                 </tbody>

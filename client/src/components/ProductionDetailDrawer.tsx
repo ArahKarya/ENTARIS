@@ -118,7 +118,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 <div className="bg-purple-50 rounded-lg p-3 text-center">
                   <p className="text-xs font-semibold text-purple-500 uppercase">Yield</p>
                   <p className="text-lg font-bold text-purple-700">
-                    {run.rendemenPct != null ? `${Number(run.rendemenPct).toFixed(1)}%` : '—'}
+                    {run.yieldPct != null ? `${Number(run.yieldPct).toFixed(1)}%` : '—'}
                   </p>
                 </div>
               </div>

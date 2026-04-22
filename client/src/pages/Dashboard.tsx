@@ -24,7 +24,7 @@ import CashFlowChart from '../components/widgets/CashFlowChart';
 import AgingSummary from '../components/widgets/AgingSummary';
 import CashPositionWidget from '../components/widgets/CashPositionWidget';
 import TopVendors from '../components/widgets/TopVendors';
-import RendemenTrendChart from '../components/widgets/RendemenTrendChart';
+import YieldTrendChart from '../components/widgets/YieldTrendChart';
 import CogsBackfillWidget from '../components/widgets/CogsBackfillWidget';
 import DashboardSettings, { DEFAULT_WIDGETS, type WidgetConfig } from '../components/DashboardSettings';
 import DashboardSectionNav, { type SectionDef } from '../components/DashboardSectionNav';
@@ -41,14 +41,23 @@ const FINANCE_WIDGET_IDS = new Set([
 const KEUANGAN_WIDGETS = ['revenue-chart', 'monthly-profit', 'cash-flow-summary', 'financial-ratios', 'expense-breakdown', 'aging-summary', 'overdue-invoices', 'top-vendors'];
 const SALES_WIDGETS = ['top-customers', 'recent-activities'];
 const STOK_WIDGETS = ['warehouse-kpi', 'stock-alert', 'movement-trend', 'category-distribution', 'top-items', 'recent-movements', 'cogs-backfill'];
-const PRODUKSI_WIDGETS = ['production-stats', 'rendemen-trend'];
+const PRODUKSI_WIDGETS = ['production-stats', 'yield-trend'];
 
 const STORAGE_KEY = 'dashboard-widgets';
 
 function loadWidgetPrefs(): Record<string, boolean> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migrate legacy widget id 'rendemen-trend' → 'yield-trend' so user's saved toggle carries over
+      if (parsed['rendemen-trend'] !== undefined && parsed['yield-trend'] === undefined) {
+        parsed['yield-trend'] = parsed['rendemen-trend'];
+        delete parsed['rendemen-trend'];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+      return parsed;
+    }
   } catch { /* ignore */ }
   return {};
 }
@@ -351,9 +360,9 @@ export const Dashboard = () => {
             </div>
           )}
 
-          {isEnabled('rendemen-trend') && (
+          {isEnabled('yield-trend') && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <RendemenTrendChart />
+              <YieldTrendChart />
             </div>
           )}
         </section>

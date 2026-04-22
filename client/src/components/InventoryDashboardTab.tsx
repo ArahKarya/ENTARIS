@@ -63,7 +63,7 @@ interface RecentMovement {
 interface ProductionStats {
   totalRuns: number;
   thisMonthRuns: number;
-  avgRendemen: number;
+  avgYield: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -547,7 +547,7 @@ export default function InventoryDashboardTab() {
                   Rata-rata Yield
                 </span>
                 <p className="text-2xl font-semibold tabular-nums mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                  {Number(prodStats.avgRendemen).toFixed(1)}%
+                  {Number(prodStats.avgYield).toFixed(1)}%
                 </p>
               </div>
             </div>

@@ -110,12 +110,12 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const addOutput = () => setOutputs(prev => [...prev, { itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
   const removeOutput = (idx: number) => setOutputs(prev => prev.filter((_, i) => i !== idx));
 
-  // Rendemen calculation: total main output / total input
+  // Yield calculation: total main output / total input
   const totalInputQty = inputs.reduce((s, r) => s + (parseFloat(r.quantity) || 0), 0);
   const totalMainOutputQty = outputs
     .filter(o => !o.isByProduct)
     .reduce((s, r) => s + (parseFloat(r.quantity) || 0), 0);
-  const rendemenPct = totalInputQty > 0 && totalMainOutputQty > 0
+  const yieldPct = totalInputQty > 0 && totalMainOutputQty > 0
     ? ((totalMainOutputQty / totalInputQty) * 100).toFixed(1)
     : null;
 
@@ -391,11 +391,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
               </div>
             </div>
 
-            {/* Rendemen summary */}
-            {rendemenPct !== null && (
+            {/* Yield summary */}
+            {yieldPct !== null && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-800">
                 <span className="font-semibold">Yield: </span>
-                {rendemenPct}%
+                {yieldPct}%
                 <span className="text-blue-600 ml-1">
                   ({totalMainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
                   {' / '}

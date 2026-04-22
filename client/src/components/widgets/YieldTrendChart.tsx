@@ -12,23 +12,23 @@ import {
 } from 'recharts';
 import api from '../../lib/api';
 
-interface RendemenTrendMonth {
+interface YieldTrendMonth {
   label: string;
-  avgRendemen: number;
+  avgYield: number;
   runCount: number;
 }
 
-interface RendemenTrendData {
-  months: RendemenTrendMonth[];
+interface YieldTrendData {
+  months: YieldTrendMonth[];
   overallAvg: number;
   latest: number;
   deltaPct: number;
 }
 
-export default function RendemenTrendChart() {
-  const { data, isLoading } = useQuery<RendemenTrendData>({
-    queryKey: ['dashboard-rendemen-trend'],
-    queryFn: async () => (await api.get('/inventory/dashboard/rendemen-trend')).data,
+export default function YieldTrendChart() {
+  const { data, isLoading } = useQuery<YieldTrendData>({
+    queryKey: ['dashboard-yield-trend'],
+    queryFn: async () => (await api.get('/inventory/dashboard/yield-trend')).data,
   });
 
   const DeltaIcon = !data ? Minus : data.deltaPct > 0 ? TrendingUp : data.deltaPct < 0 ? TrendingDown : Minus;
@@ -138,7 +138,7 @@ export default function RendemenTrendChart() {
               )}
               <Line
                 type="monotone"
-                dataKey="avgRendemen"
+                dataKey="avgYield"
                 stroke="#6366f1"
                 strokeWidth={2.5}
                 dot={{ r: 3, fill: '#6366f1' }}

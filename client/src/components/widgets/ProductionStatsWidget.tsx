@@ -9,7 +9,7 @@ import api from '../../lib/api';
 interface ProductionStats {
   totalRuns: number;
   thisMonthRuns: number;
-  avgRendemen: number;
+  avgYield: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +74,7 @@ export default function ProductionStatsWidget() {
               Rata-rata Yield
             </span>
             <p className="text-lg font-semibold tabular-nums mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-              {Number(data.avgRendemen).toFixed(1)}%
+              {Number(data.avgYield).toFixed(1)}%
             </p>
           </div>
         </div>

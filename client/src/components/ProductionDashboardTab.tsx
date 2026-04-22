@@ -19,19 +19,19 @@ interface DashboardData {
     totalRuns: number;
     periodRuns: number;
     prevPeriodRuns: number;
-    avgRendemen: number;
-    avgRendemenPeriod: number;
+    avgYield: number;
+    avgYieldPeriod: number;
     totalInputQtyPeriod: number;
     totalOutputQtyPeriod: number;
     totalByProductQtyPeriod: number;
   };
-  rendemenTrend: { date: string; avgRendemen: number; count: number }[];
+  yieldTrend: { date: string; avgYield: number; count: number }[];
   topInputs: { id: string; name: string; unit: string; quantity: number }[];
   topOutputs: { id: string; name: string; unit: string; quantity: number }[];
-  bestRendemen: { runNumber: string; date: string; rendemenPct: number }[];
-  worstRendemen: { runNumber: string; date: string; rendemenPct: number }[];
+  bestYield: { runNumber: string; date: string; yieldPct: number }[];
+  worstYield: { runNumber: string; date: string; yieldPct: number }[];
   recentProduction: {
-    id: string; runNumber: string; date: string; rendemenPct: number | null;
+    id: string; runNumber: string; date: string; yieldPct: number | null;
     referenceNumber: string | null; totalInput: number; totalOutput: number;
     inputSummary: string; outputSummary: string;
   }[];
@@ -121,7 +121,7 @@ export default function ProductionDashboardTab({ items = [] }: Props) {
 function DashboardContent({ data }: { data: DashboardData }) {
   const { summary } = data;
   const periodDelta = summary.periodRuns - summary.prevPeriodRuns;
-  const rendemenPeriod = summary.totalInputQtyPeriod > 0
+  const yieldPeriod = summary.totalInputQtyPeriod > 0
     ? (summary.totalOutputQtyPeriod / summary.totalInputQtyPeriod * 100)
     : 0;
 
@@ -151,13 +151,13 @@ function DashboardContent({ data }: { data: DashboardData }) {
         <KPICard
           icon={<BarChart3 size={16} />}
           label="Yield Keseluruhan"
-          value={`${summary.avgRendemen.toFixed(1)}%`}
+          value={`${summary.avgYield.toFixed(1)}%`}
           color="purple"
         />
         <KPICard
           icon={<TrendingUp size={16} />}
           label="Yield Periode"
-          value={`${summary.avgRendemenPeriod.toFixed(1)}%`}
+          value={`${summary.avgYieldPeriod.toFixed(1)}%`}
           color="amber"
         />
       </div>
@@ -175,8 +175,8 @@ function DashboardContent({ data }: { data: DashboardData }) {
           <p className="text-xl font-bold text-green-700 mt-1 tabular-nums">
             {fmtNum(summary.totalOutputQtyPeriod, 1)} <span className="text-sm font-normal">Kg</span>
           </p>
-          {rendemenPeriod > 0 && (
-            <p className="text-xs text-green-600 mt-0.5">Yield: {rendemenPeriod.toFixed(1)}%</p>
+          {yieldPeriod > 0 && (
+            <p className="text-xs text-green-600 mt-0.5">Yield: {yieldPeriod.toFixed(1)}%</p>
           )}
         </div>
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
@@ -187,8 +187,8 @@ function DashboardContent({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      {/* Rendemen Trend Chart */}
-      {data.rendemenTrend.length > 0 && <RendemenTrendChart trend={data.rendemenTrend} />}
+      {/* Yield Trend Chart */}
+      {data.yieldTrend.length > 0 && <YieldTrendChart trend={data.yieldTrend} />}
 
       {/* Top Inputs & Outputs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -206,18 +206,18 @@ function DashboardContent({ data }: { data: DashboardData }) {
         />
       </div>
 
-      {/* Best & Worst Rendemen */}
+      {/* Best & Worst Yield */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RendemenList
+        <YieldList
           title="Yield Tertinggi"
           icon={<TrendingUp size={14} className="text-green-500" />}
-          items={data.bestRendemen}
+          items={data.bestYield}
           color="green"
         />
-        <RendemenList
+        <YieldList
           title="Yield Terendah"
           icon={<TrendingDown size={14} className="text-red-500" />}
-          items={data.worstRendemen}
+          items={data.worstYield}
           color="red"
         />
       </div>
@@ -258,12 +258,12 @@ function DashboardContent({ data }: { data: DashboardData }) {
                       {r.outputSummary || '\u2014'}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      {r.rendemenPct !== null ? (
+                      {r.yieldPct !== null ? (
                         <span className={cn(
                           'font-mono font-semibold tabular-nums text-sm',
-                          r.rendemenPct >= 60 ? 'text-green-600' : r.rendemenPct >= 50 ? 'text-amber-600' : 'text-red-600'
+                          r.yieldPct >= 60 ? 'text-green-600' : r.yieldPct >= 50 ? 'text-amber-600' : 'text-red-600'
                         )}>
-                          {r.rendemenPct.toFixed(1)}%
+                          {r.yieldPct.toFixed(1)}%
                         </span>
                       ) : '\u2014'}
                     </td>
@@ -343,8 +343,8 @@ function RankList({ title, icon, items, color }: {
   );
 }
 
-function RendemenTrendChart({ trend }: { trend: { date: string; avgRendemen: number; count: number }[] }) {
-  const values = trend.map(d => d.avgRendemen);
+function YieldTrendChart({ trend }: { trend: { date: string; avgYield: number; count: number }[] }) {
+  const values = trend.map(d => d.avgYield);
   const minVal = Math.floor(Math.min(...values) / 5) * 5; // round down to nearest 5
   const maxVal = Math.ceil(Math.max(...values) / 5) * 5;  // round up to nearest 5
   const range = maxVal - minVal || 10;
@@ -360,7 +360,7 @@ function RendemenTrendChart({ trend }: { trend: { date: string; avgRendemen: num
     <div className="bg-white border border-gray-200 rounded-xl p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
         <BarChart3 size={14} className="text-gray-400" />
-        Tren Rendemen Harian
+        Tren Yield Harian
       </h3>
       <div className="relative" style={{ minHeight: '200px' }}>
         {/* Y-axis grid + labels */}
@@ -389,8 +389,8 @@ function RendemenTrendChart({ trend }: { trend: { date: string; avgRendemen: num
           {/* Bars */}
           <div className="absolute inset-0 flex items-end gap-1.5 px-1">
             {trend.map((d) => {
-              const heightPct = Math.max(3, ((d.avgRendemen - minVal) / range) * 100);
-              const isGood = d.avgRendemen >= 60;
+              const heightPct = Math.max(3, ((d.avgYield - minVal) / range) * 100);
+              const isGood = d.avgYield >= 60;
               const day = d.date.slice(8);
               const month = d.date.slice(5, 7);
               return (
@@ -401,7 +401,7 @@ function RendemenTrendChart({ trend }: { trend: { date: string; avgRendemen: num
                       'text-[9px] font-semibold tabular-nums mb-0.5',
                       isGood ? 'text-green-600' : 'text-amber-600'
                     )}>
-                      {d.avgRendemen.toFixed(1)}%
+                      {d.avgYield.toFixed(1)}%
                     </span>
                     {/* Bar */}
                     <div
@@ -433,9 +433,9 @@ function RendemenTrendChart({ trend }: { trend: { date: string; avgRendemen: num
   );
 }
 
-function RendemenList({ title, icon, items, color }: {
+function YieldList({ title, icon, items, color }: {
   title: string; icon: React.ReactNode;
-  items: { runNumber: string; date: string; rendemenPct: number }[]; color: string;
+  items: { runNumber: string; date: string; yieldPct: number }[]; color: string;
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -459,7 +459,7 @@ function RendemenList({ title, icon, items, color }: {
                 'font-mono font-semibold text-sm tabular-nums shrink-0 ml-2',
                 color === 'green' ? 'text-green-600' : 'text-red-600'
               )}>
-                {item.rendemenPct.toFixed(1)}%
+                {item.yieldPct.toFixed(1)}%
               </span>
             </div>
           ))}

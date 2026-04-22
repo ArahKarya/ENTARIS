@@ -188,7 +188,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         { label: 'Jumlah Run', value: String(data.production.summary.totalRuns) },
         { label: 'Total Input (kg)', value: num(data.production.summary.totalInputKg) },
         { label: 'Total Output (kg)', value: num(data.production.summary.totalOutputKg) },
-        { label: 'Yield Rata-rata', value: data.production.summary.avgRendemen > 0 ? `${data.production.summary.avgRendemen}%` : '—' },
+        { label: 'Yield Rata-rata', value: data.production.summary.avgYield > 0 ? `${data.production.summary.avgYield}%` : '—' },
       ]} />
       {data.production.runs.length > 0 ? (
         <>
@@ -210,7 +210,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
                 <Text style={[S.cellRight, { width: 70 }]}>{num(totalIn)} kg</Text>
                 <Text style={[S.cell, { flex: 1 }]}>{run.outputs.map((x: any) => `${x.itemName}${x.isByProduct ? ' *' : ''}`).join(', ')}</Text>
                 <Text style={[S.cellRight, { width: 70 }]}>{num(totalOut)} kg</Text>
-                <Text style={[S.cellRight, { width: 60 }]}>{run.rendemenPct ? `${run.rendemenPct}%` : '—'}</Text>
+                <Text style={[S.cellRight, { width: 60 }]}>{run.yieldPct ? `${run.yieldPct}%` : '—'}</Text>
               </View>
             );
           })}

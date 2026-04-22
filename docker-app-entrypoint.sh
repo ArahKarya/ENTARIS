@@ -27,7 +27,7 @@ echo "[APP] Migrations complete."
 USER_COUNT=$(node -e "
   const { Pool } = require('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  pool.query('SELECT COUNT(*)::int AS c FROM \"User\"')
+  pool.query('SELECT COUNT(*)::int AS c FROM users')
     .then(r => { console.log(r.rows[0].c); pool.end(); })
     .catch(() => { console.log('0'); pool.end(); });
 " 2>/dev/null || echo "0")

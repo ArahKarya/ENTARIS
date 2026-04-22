@@ -530,7 +530,7 @@ router.post('/generate-dummy', roleMiddleware(['Admin']), async (req, res) => {
           await tx.inventoryItem.update({ where: { id: gkpItem.id }, data: { currentStock: { decrement: gilingQty } } });
           results.movements++;
 
-          // Stock In: GKG hasil proses giling (rendemen ~85%)
+          // Stock In: GKG hasil proses giling (yield ~85%)
           const gkgQty = Math.round(gilingQty * 0.85);
           const smGkgNum = await genSM(tx, 'SM', gilingDate, gilingFy.id);
           await tx.stockMovement.create({
@@ -553,17 +553,17 @@ router.post('/generate-dummy', roleMiddleware(['Admin']), async (req, res) => {
           const outBekatul = Math.round(inputGkg * 0.08);
           const outSekam = Math.round(inputGkg * 0.20);
           const outMenir = Math.round(inputGkg * 0.05);
-          const rendemen = Math.round((outBeras / inputGkg) * 10000) / 100;
+          const yield1 = Math.round((outBeras / inputGkg) * 10000) / 100;
 
           await tx.productionRun.create({
             data: {
-              runNumber: prodNum, date: prodDate, rendemenPct: rendemen,
+              runNumber: prodNum, date: prodDate, yieldPct: yield1,
               notes: 'Produksi beras premium bulan ' + (month.getMonth() + 1),
               fiscalYearId: prodFy.id, createdById: admin.id,
               items: {
                 create: [
                   { itemId: gkgItem.id, lineType: 'Input', quantity: inputGkg },
-                  { itemId: berasPrm.id, lineType: 'Output', quantity: outBeras, rendemenPct: rendemen },
+                  { itemId: berasPrm.id, lineType: 'Output', quantity: outBeras, yieldPct: yield1 },
                   ...(bekatul ? [{ itemId: bekatul.id, lineType: 'Output' as const, quantity: outBekatul }] : []),
                   ...(sekam ? [{ itemId: sekam.id, lineType: 'Output' as const, quantity: outSekam }] : []),
                   ...(menir ? [{ itemId: menir.id, lineType: 'Output' as const, quantity: outMenir }] : []),
@@ -616,23 +616,23 @@ router.post('/generate-dummy', roleMiddleware(['Admin']), async (req, res) => {
           }
         }
 
-        // Second production run type: GKG → Beras Medium (lower rendemen)
+        // Second production run type: GKG → Beras Medium (lower yield)
         if (berasMed) {
           const prodDate2 = new Date(now.getFullYear(), now.getMonth(), 10);
           const prodFy2 = await getFY(tx, prodDate2);
           const prodNum2 = await genSM(tx, 'PR', prodDate2, prodFy2.id);
           const inputQty2 = 2000;
           const outBeras2 = Math.round(inputQty2 * 0.58);
-          const rendemen2 = Math.round((outBeras2 / inputQty2) * 10000) / 100;
+          const yield2 = Math.round((outBeras2 / inputQty2) * 10000) / 100;
 
           await tx.productionRun.create({
             data: {
-              runNumber: prodNum2, date: prodDate2, rendemenPct: rendemen2,
+              runNumber: prodNum2, date: prodDate2, yieldPct: yield2,
               notes: 'Produksi beras medium', fiscalYearId: prodFy2.id, createdById: admin.id,
               items: {
                 create: [
                   { itemId: gkgItem.id, lineType: 'Input', quantity: inputQty2 },
-                  { itemId: berasMed.id, lineType: 'Output', quantity: outBeras2, rendemenPct: rendemen2 },
+                  { itemId: berasMed.id, lineType: 'Output', quantity: outBeras2, yieldPct: yield2 },
                 ],
               },
             },

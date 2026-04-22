@@ -575,7 +575,7 @@ model ProductionRun {
   referenceType   String?             @map("reference_type")
   referenceId     String?             @map("reference_id")
   referenceNumber String?             @map("reference_number")
-  rendemenPct     Decimal?            @map("rendemen_pct") @db.Decimal(5, 2)
+  yieldPct        Decimal?            @map("yield_pct") @db.Decimal(5, 2)
   items           ProductionRunItem[]
   isCancelled     Boolean             @default(false) @map("is_cancelled")
   fiscalYearId    String              @map("fiscal_year_id")
@@ -599,7 +599,7 @@ model ProductionRunItem {
   lineType        String        @map("line_type")
   quantity        Decimal       @db.Decimal(15, 3)
   unitPrice       Decimal?      @map("unit_price") @db.Decimal(15, 2)
-  rendemenPct     Decimal?      @map("rendemen_pct") @db.Decimal(5, 2)
+  yieldPct        Decimal?      @map("yield_pct") @db.Decimal(5, 2)
   isByProduct     Boolean       @default(false) @map("is_by_product")
   createdAt       DateTime      @default(now()) @map("created_at")
 

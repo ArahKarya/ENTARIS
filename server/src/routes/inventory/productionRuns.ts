@@ -146,10 +146,10 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
       const runDate = new Date(body.date);
       const runNumber = await generateDocumentNumber(tx, 'PR', runDate, fiscalYear.id);
 
-      // 5. Calculate rendemenPct: total main output / total input × 100
+      // 5. Calculate yieldPct: total main output / total input × 100
       const totalInputQty = body.inputs.reduce((s, i) => s + i.quantity, 0);
       const totalMainOutputQty = body.outputs.filter(o => !o.isByProduct).reduce((s, o) => s + o.quantity, 0);
-      const rendemenPct = totalInputQty > 0 ? (totalMainOutputQty / totalInputQty) * 100 : null;
+      const yieldPct = totalInputQty > 0 ? (totalMainOutputQty / totalInputQty) * 100 : null;
 
       // 6. Create the ProductionRun header
       const run = await tx.productionRun.create({
@@ -160,7 +160,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           referenceType: body.referenceType || null,
           referenceId: body.referenceId || null,
           referenceNumber: body.referenceNumber || null,
-          rendemenPct: rendemenPct !== null ? rendemenPct : null,
+          yieldPct: yieldPct !== null ? yieldPct : null,
           fiscalYearId: fiscalYear.id,
           createdById: req.user!.userId,
         },
@@ -364,7 +364,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           lineType: 'Input',
           quantity: i.quantity,
           unitPrice: null as number | null,
-          rendemenPct: null as number | null,
+          yieldPct: null as number | null,
           isByProduct: false,
         })),
         ...body.outputs.map((o) => {
@@ -377,7 +377,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
             lineType: o.isByProduct ? 'ByProduct' : 'Output',
             quantity: o.quantity,
             unitPrice: o.unitPrice ?? null,
-            rendemenPct: rPct,
+            yieldPct: rPct,
             isByProduct: o.isByProduct ?? false,
           };
         }),
@@ -529,7 +529,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
 
       const totalInputQty = body.inputs.reduce((s, i) => s + i.quantity, 0);
       const totalMainOutputQty = body.outputs.filter(o => !o.isByProduct).reduce((s, o) => s + o.quantity, 0);
-      const rendemenPct = totalInputQty > 0 ? (totalMainOutputQty / totalInputQty) * 100 : null;
+      const yieldPct = totalInputQty > 0 ? (totalMainOutputQty / totalInputQty) * 100 : null;
 
       // Update header
       await tx.productionRun.update({
@@ -540,7 +540,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
           referenceType: body.referenceType || null,
           referenceId: body.referenceId || null,
           referenceNumber: body.referenceNumber || null,
-          rendemenPct: rendemenPct !== null ? rendemenPct : null,
+          yieldPct: yieldPct !== null ? yieldPct : null,
           fiscalYearId: fiscalYear.id,
         },
       });
@@ -710,13 +710,13 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
         ...body.inputs.map(i => ({
           productionRunId: id, itemId: i.itemId, lineType: 'Input',
           quantity: i.quantity, unitPrice: null as number | null,
-          rendemenPct: null as number | null, isByProduct: false,
+          yieldPct: null as number | null, isByProduct: false,
         })),
         ...body.outputs.map((o) => ({
           productionRunId: id, itemId: o.itemId,
           lineType: o.isByProduct ? 'ByProduct' : 'Output',
           quantity: o.quantity, unitPrice: o.unitPrice ?? null,
-          rendemenPct: totalInputQty > 0 && !o.isByProduct ? (o.quantity / totalInputQty) * 100 : null,
+          yieldPct: totalInputQty > 0 && !o.isByProduct ? (o.quantity / totalInputQty) * 100 : null,
           isByProduct: o.isByProduct ?? false,
         })),
       ];

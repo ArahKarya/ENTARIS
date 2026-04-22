@@ -188,21 +188,21 @@ router.get('/production-stats', async (_req, res) => {
       prisma.productionRun.count({ where: { isCancelled: false } }),
       prisma.productionRun.count({ where: { isCancelled: false, date: { gte: thisMonth } } }),
       prisma.productionRun.findMany({
-        where: { isCancelled: false, rendemenPct: { not: null } },
-        select: { rendemenPct: true },
+        where: { isCancelled: false, yieldPct: { not: null } },
+        select: { yieldPct: true },
         orderBy: { date: 'desc' },
         take: 50,
       }),
     ]);
 
-    const avgRendemen = runs.length > 0
-      ? Math.round(runs.reduce((s, r) => s + Number(r.rendemenPct), 0) / runs.length * 100) / 100
+    const avgYield = runs.length > 0
+      ? Math.round(runs.reduce((s, r) => s + Number(r.yieldPct), 0) / runs.length * 100) / 100
       : 0;
 
     return res.json({
       totalRuns,
       thisMonthRuns,
-      avgRendemen,
+      avgYield,
     });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/dashboard/production-stats error');
@@ -243,28 +243,28 @@ router.get('/production', async (req, res) => {
     const baseWhere: any = { isCancelled: false };
     if (runIdFilter) baseWhere.id = { in: runIdFilter };
 
-    // 1. KPI: total runs, period runs, prev period runs, avg rendemen
+    // 1. KPI: total runs, period runs, prev period runs, avg yield
     const [totalRuns, periodRuns, prevPeriodRuns, allActiveRuns] = await Promise.all([
       prisma.productionRun.count({ where: baseWhere }),
       prisma.productionRun.count({ where: { ...baseWhere, date: { gte: periodStart, lte: periodEnd } } }),
       prisma.productionRun.count({ where: { ...baseWhere, date: { gte: prevPeriodStart, lte: prevPeriodEnd } } }),
       prisma.productionRun.findMany({
         where: baseWhere,
-        select: { id: true, runNumber: true, date: true, rendemenPct: true },
+        select: { id: true, runNumber: true, date: true, yieldPct: true },
         orderBy: { date: 'desc' },
       }),
     ]);
 
-    const runsWithRendemen = allActiveRuns.filter(r => r.rendemenPct !== null);
-    const avgRendemen = runsWithRendemen.length > 0
-      ? runsWithRendemen.reduce((s, r) => s + Number(r.rendemenPct), 0) / runsWithRendemen.length
+    const runsWithYield = allActiveRuns.filter(r => r.yieldPct !== null);
+    const avgYield = runsWithYield.length > 0
+      ? runsWithYield.reduce((s, r) => s + Number(r.yieldPct), 0) / runsWithYield.length
       : 0;
-    const periodRendemen = runsWithRendemen.filter(r => {
+    const periodYield = runsWithYield.filter(r => {
       const d = new Date(r.date);
       return d >= periodStart && d <= periodEnd;
     });
-    const avgRendemenPeriod = periodRendemen.length > 0
-      ? periodRendemen.reduce((s, r) => s + Number(r.rendemenPct), 0) / periodRendemen.length
+    const avgYieldPeriod = periodYield.length > 0
+      ? periodYield.reduce((s, r) => s + Number(r.yieldPct), 0) / periodYield.length
       : 0;
 
     // 2. Total input/output quantities in period
@@ -302,21 +302,21 @@ router.get('/production', async (req, res) => {
       .filter(i => i.lineType === 'ByProduct' || i.isByProduct)
       .reduce((s, i) => s + Number(i.quantity), 0);
 
-    // 3. Rendemen trend: daily within period
+    // 3. Yield trend: daily within period
     const trendRuns = allActiveRuns.filter(r => {
       const d = new Date(r.date);
-      return d >= periodStart && d <= periodEnd && r.rendemenPct !== null;
+      return d >= periodStart && d <= periodEnd && r.yieldPct !== null;
     });
-    const rendemenByDay = new Map<string, { total: number; count: number }>();
+    const yieldByDay = new Map<string, { total: number; count: number }>();
     for (const r of trendRuns) {
       const day = new Date(r.date).toISOString().split('T')[0];
-      const entry = rendemenByDay.get(day) || { total: 0, count: 0 };
-      entry.total += Number(r.rendemenPct);
+      const entry = yieldByDay.get(day) || { total: 0, count: 0 };
+      entry.total += Number(r.yieldPct);
       entry.count += 1;
-      rendemenByDay.set(day, entry);
+      yieldByDay.set(day, entry);
     }
-    const rendemenTrend = Array.from(rendemenByDay.entries())
-      .map(([date, v]) => ({ date, avgRendemen: Math.round((v.total / v.count) * 100) / 100, count: v.count }))
+    const yieldTrend = Array.from(yieldByDay.entries())
+      .map(([date, v]) => ({ date, avgYield: Math.round((v.total / v.count) * 100) / 100, count: v.count }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // 4. Top 5 input items in period
@@ -357,21 +357,21 @@ router.get('/production', async (req, res) => {
       return { id, name: item?.name || '', unit: item?.unit || '', quantity: qty };
     });
 
-    // 6. Best & worst rendemen runs in period
-    const sortedByRendemen = periodRendemen
-      .sort((a, b) => Number(b.rendemenPct) - Number(a.rendemenPct));
-    const bestRendemen = sortedByRendemen.slice(0, 5).map(r => ({
-      runNumber: r.runNumber, date: r.date, rendemenPct: Number(r.rendemenPct),
+    // 6. Best & worst yield runs in period
+    const sortedByYield = periodYield
+      .sort((a, b) => Number(b.yieldPct) - Number(a.yieldPct));
+    const bestYield = sortedByYield.slice(0, 5).map(r => ({
+      runNumber: r.runNumber, date: r.date, yieldPct: Number(r.yieldPct),
     }));
-    const worstRendemen = sortedByRendemen.slice(-5).reverse().map(r => ({
-      runNumber: r.runNumber, date: r.date, rendemenPct: Number(r.rendemenPct),
+    const worstYield = sortedByYield.slice(-5).reverse().map(r => ({
+      runNumber: r.runNumber, date: r.date, yieldPct: Number(r.yieldPct),
     }));
 
     // 7. Recent 10 production runs (within period)
     const recentProduction = await prisma.productionRun.findMany({
       where: { ...baseWhere, date: { gte: periodStart, lte: periodEnd } },
       select: {
-        id: true, runNumber: true, date: true, rendemenPct: true, referenceNumber: true,
+        id: true, runNumber: true, date: true, yieldPct: true, referenceNumber: true,
         items: {
           select: { lineType: true, quantity: true, isByProduct: true, item: { select: { name: true, unit: true } } },
         },
@@ -385,17 +385,17 @@ router.get('/production', async (req, res) => {
         totalRuns,
         periodRuns,
         prevPeriodRuns,
-        avgRendemen: Math.round(avgRendemen * 100) / 100,
-        avgRendemenPeriod: Math.round(avgRendemenPeriod * 100) / 100,
+        avgYield: Math.round(avgYield * 100) / 100,
+        avgYieldPeriod: Math.round(avgYieldPeriod * 100) / 100,
         totalInputQtyPeriod,
         totalOutputQtyPeriod,
         totalByProductQtyPeriod,
       },
-      rendemenTrend,
+      yieldTrend,
       topInputs,
       topOutputs,
-      bestRendemen,
-      worstRendemen,
+      bestYield,
+      worstYield,
       recentProduction: recentProduction.map(r => {
         const inputs = r.items.filter(i => i.lineType === 'Input');
         const outputs = r.items.filter(i => i.lineType === 'Output');
@@ -403,7 +403,7 @@ router.get('/production', async (req, res) => {
           id: r.id,
           runNumber: r.runNumber,
           date: r.date,
-          rendemenPct: r.rendemenPct ? Number(r.rendemenPct) : null,
+          yieldPct: r.yieldPct ? Number(r.yieldPct) : null,
           referenceNumber: r.referenceNumber,
           totalInput: inputs.reduce((s, i) => s + Number(i.quantity), 0),
           totalOutput: outputs.reduce((s, i) => s + Number(i.quantity), 0),
@@ -418,19 +418,19 @@ router.get('/production', async (req, res) => {
   }
 });
 
-// GET /api/inventory/dashboard/rendemen-trend — rata-rata rendemen per bulan (6 bulan terakhir)
-router.get('/rendemen-trend', async (_req, res) => {
+// GET /api/inventory/dashboard/yield-trend — rata-rata yield per bulan (6 bulan terakhir)
+router.get('/yield-trend', async (_req, res) => {
   try {
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    const rows = await prisma.$queryRaw<Array<{ month: Date; avg_rendemen: number | null; run_count: bigint }>>`
+    const rows = await prisma.$queryRaw<Array<{ month: Date; avg_yield: number | null; run_count: bigint }>>`
       SELECT date_trunc('month', date) AS month,
-             AVG(rendemen_pct)::float AS avg_rendemen,
+             AVG(yield_pct)::float AS avg_yield,
              COUNT(*) AS run_count
       FROM production_runs
       WHERE is_cancelled = false
-        AND rendemen_pct IS NOT NULL
+        AND yield_pct IS NOT NULL
         AND date >= ${sixMonthsAgo}
       GROUP BY 1
       ORDER BY 1 ASC
@@ -440,36 +440,36 @@ router.get('/rendemen-trend', async (_req, res) => {
     const byKey = new Map(
       rows.map((r) => [
         `${r.month.getFullYear()}-${r.month.getMonth()}`,
-        { avg: r.avg_rendemen ?? 0, count: Number(r.run_count) },
+        { avg: r.avg_yield ?? 0, count: Number(r.run_count) },
       ])
     );
 
-    const months: Array<{ label: string; avgRendemen: number; runCount: number }> = [];
+    const months: Array<{ label: string; avgYield: number; runCount: number }> = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       const entry = byKey.get(key);
       months.push({
         label: monthNames[d.getMonth()],
-        avgRendemen: entry ? Math.round(entry.avg * 100) / 100 : 0,
+        avgYield: entry ? Math.round(entry.avg * 100) / 100 : 0,
         runCount: entry ? entry.count : 0,
       });
     }
 
     const withRuns = months.filter((m) => m.runCount > 0);
     const overallAvg = withRuns.length > 0
-      ? Math.round((withRuns.reduce((s, m) => s + m.avgRendemen, 0) / withRuns.length) * 100) / 100
+      ? Math.round((withRuns.reduce((s, m) => s + m.avgYield, 0) / withRuns.length) * 100) / 100
       : 0;
     const last = months[months.length - 1];
     const prev = months[months.length - 2];
-    const deltaPct = prev && prev.avgRendemen > 0
-      ? Math.round(((last.avgRendemen - prev.avgRendemen) / prev.avgRendemen) * 10000) / 100
+    const deltaPct = prev && prev.avgYield > 0
+      ? Math.round(((last.avgYield - prev.avgYield) / prev.avgYield) * 10000) / 100
       : 0;
 
-    return res.json({ months, overallAvg, latest: last?.avgRendemen ?? 0, deltaPct });
+    return res.json({ months, overallAvg, latest: last?.avgYield ?? 0, deltaPct });
   } catch (error) {
-    logger.error({ error }, 'GET /inventory/dashboard/rendemen-trend error');
-    return res.status(500).json({ error: 'Gagal mengambil trend rendemen.' });
+    logger.error({ error }, 'GET /inventory/dashboard/yield-trend error');
+    return res.status(500).json({ error: 'Gagal mengambil trend yield.' });
   }
 });
 
