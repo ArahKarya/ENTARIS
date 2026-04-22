@@ -381,6 +381,62 @@
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
+/* ────────────────────────────────────────────────────────────────────────────
+   Industrial theme overrides — remap legacy blue accent utilities to the
+   new steel-blue primary token so existing pages (dozens of files) pick up
+   the industrial palette without per-file edits.
+   ──────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Primary action (solid) */
+  .bg-blue-600,
+  .bg-blue-700,
+  .hover\:bg-blue-700:hover,
+  .hover\:bg-blue-800:hover {
+    background-color: var(--primary) !important;
+  }
+  .bg-blue-600:hover,
+  .hover\:bg-blue-700:hover,
+  .hover\:bg-blue-800:hover {
+    background-color: color-mix(in oklch, var(--primary) 88%, black) !important;
+  }
+
+  /* Soft accent pill */
+  .bg-blue-50,
+  .bg-blue-100 {
+    background-color: color-mix(in oklch, var(--primary) 10%, var(--background)) !important;
+  }
+
+  /* Blue text accents → primary text */
+  .text-blue-500,
+  .text-blue-600,
+  .text-blue-700,
+  .text-blue-800 {
+    color: var(--primary) !important;
+  }
+
+  /* Focus/active ring */
+  .ring-blue-500,
+  .focus\:ring-blue-500:focus,
+  .focus\:ring-blue-600:focus {
+    --tw-ring-color: var(--ring) !important;
+  }
+
+  /* Border accents */
+  .border-blue-200,
+  .border-blue-300,
+  .border-blue-500,
+  .border-blue-600 {
+    border-color: color-mix(in oklch, var(--primary) 35%, var(--border)) !important;
+  }
+
+  /* Dark mode adjustments — softer tint so pills don't clash */
+  .dark .bg-blue-50,
+  .dark .bg-blue-100 {
+    background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
+    color: var(--primary) !important;
+  }
+}
+
 /* Skip-link a11y */
 .skip-to-content {
   position: absolute;
