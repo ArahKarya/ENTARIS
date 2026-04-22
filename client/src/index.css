@@ -437,6 +437,125 @@
   }
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+   Dark mode — remap common Tailwind gray/white utilities to new tokens so
+   existing pages (bg-white, text-gray-*, border-gray-*) become dark-aware
+   without per-file edits.
+   ──────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Surfaces */
+  .dark .bg-white { background-color: var(--card) !important; }
+  .dark .bg-gray-50 { background-color: var(--background) !important; }
+  .dark .bg-gray-100 { background-color: var(--muted) !important; }
+  .dark .bg-gray-200 { background-color: var(--accent) !important; }
+  .dark .bg-slate-50 { background-color: var(--background) !important; }
+  .dark .bg-slate-100 { background-color: var(--muted) !important; }
+
+  /* Foreground text */
+  .dark .text-gray-900,
+  .dark .text-slate-900,
+  .dark .text-black { color: var(--foreground) !important; }
+  .dark .text-gray-800,
+  .dark .text-gray-700,
+  .dark .text-slate-800,
+  .dark .text-slate-700 { color: var(--foreground) !important; }
+  .dark .text-gray-600,
+  .dark .text-gray-500,
+  .dark .text-slate-600,
+  .dark .text-slate-500 { color: var(--muted-foreground) !important; }
+  .dark .text-gray-400,
+  .dark .text-gray-300,
+  .dark .text-gray-200,
+  .dark .text-slate-400,
+  .dark .text-slate-300 { color: var(--muted-foreground) !important; opacity: 0.75; }
+
+  /* Borders */
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-gray-300,
+  .dark .border-slate-200,
+  .dark .border-slate-100 { border-color: var(--border) !important; }
+
+  /* Dividers (divide-*) — applies to children */
+  .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+  .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+  .dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border) !important;
+  }
+
+  /* Hover surfaces */
+  .dark .hover\:bg-gray-50:hover,
+  .dark .hover\:bg-gray-100:hover,
+  .dark .hover\:bg-slate-50:hover,
+  .dark .hover\:bg-slate-100:hover { background-color: var(--accent) !important; }
+
+  /* Ring / focus */
+  .dark .ring-gray-200,
+  .dark .ring-gray-300 { --tw-ring-color: var(--border) !important; }
+  .dark .focus\:ring-gray-500:focus { --tw-ring-color: var(--ring) !important; }
+
+  /* Input / select / textarea fallback when element has no explicit bg */
+  .dark input:not([type='checkbox']):not([type='radio']):not([class*='bg-']),
+  .dark select:not([class*='bg-']),
+  .dark textarea:not([class*='bg-']) {
+    background-color: var(--card) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border) !important;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder { color: var(--muted-foreground) !important; opacity: 0.7; }
+
+  /* Shadow → softer in dark mode so white shadows don't bleed */
+  .dark .shadow-sm,
+  .dark .shadow,
+  .dark .shadow-md {
+    box-shadow: var(--shadow-sm) !important;
+  }
+
+  /* Soft status pills — retint against dark surface */
+  .dark .bg-green-50,
+  .dark .bg-green-100 {
+    background-color: color-mix(in oklch, var(--success) 18%, transparent) !important;
+    color: var(--success) !important;
+  }
+  .dark .bg-red-50,
+  .dark .bg-red-100 {
+    background-color: color-mix(in oklch, var(--destructive) 18%, transparent) !important;
+    color: var(--destructive) !important;
+  }
+  .dark .bg-yellow-50,
+  .dark .bg-yellow-100,
+  .dark .bg-amber-50,
+  .dark .bg-amber-100,
+  .dark .bg-orange-50,
+  .dark .bg-orange-100 {
+    background-color: color-mix(in oklch, var(--warning) 18%, transparent) !important;
+    color: var(--warning) !important;
+  }
+  .dark .bg-purple-50,
+  .dark .bg-purple-100,
+  .dark .bg-indigo-50,
+  .dark .bg-indigo-100 {
+    background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
+    color: var(--primary) !important;
+  }
+
+  /* Text in status pills in dark mode */
+  .dark .text-green-700,
+  .dark .text-green-600,
+  .dark .text-green-800 { color: var(--success) !important; }
+  .dark .text-red-700,
+  .dark .text-red-600,
+  .dark .text-red-500,
+  .dark .text-red-800 { color: var(--destructive) !important; }
+  .dark .text-yellow-700,
+  .dark .text-yellow-600,
+  .dark .text-amber-700,
+  .dark .text-amber-600,
+  .dark .text-orange-700,
+  .dark .text-orange-600 { color: var(--warning) !important; }
+}
+
 /* Skip-link a11y */
 .skip-to-content {
   position: absolute;
