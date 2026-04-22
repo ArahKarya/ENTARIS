@@ -8,13 +8,17 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Client deps
+# Upgrade npm to avoid the npm@10.8.2 "Exit handler never called" bug on ARM
+RUN npm install -g npm@11
+
+# Client deps (serialized to reduce peak memory on low-RAM hosts)
 COPY client/package.json client/package-lock.json* ./client/
-RUN cd client && npm ci --legacy-peer-deps
+RUN cd client && npm ci --legacy-peer-deps --no-audit --no-fund --maxsockets=1 --prefer-offline \
+    && test -x node_modules/.bin/tsc
 
 # Server deps
 COPY server/package.json server/package-lock.json* ./server/
-RUN cd server && npm ci
+RUN cd server && npm ci --no-audit --no-fund --maxsockets=1
 
 # ── Stage 2: Build client + server ──────────────────────────────────────────
 FROM deps AS builder
