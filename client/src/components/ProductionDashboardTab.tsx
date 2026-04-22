@@ -150,13 +150,13 @@ function DashboardContent({ data }: { data: DashboardData }) {
         />
         <KPICard
           icon={<BarChart3 size={16} />}
-          label="Rendemen Keseluruhan"
+          label="Yield Keseluruhan"
           value={`${summary.avgRendemen.toFixed(1)}%`}
           color="purple"
         />
         <KPICard
           icon={<TrendingUp size={16} />}
-          label="Rendemen Periode"
+          label="Yield Periode"
           value={`${summary.avgRendemenPeriod.toFixed(1)}%`}
           color="amber"
         />
@@ -176,7 +176,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
             {fmtNum(summary.totalOutputQtyPeriod, 1)} <span className="text-sm font-normal">Kg</span>
           </p>
           {rendemenPeriod > 0 && (
-            <p className="text-xs text-green-600 mt-0.5">Rendemen: {rendemenPeriod.toFixed(1)}%</p>
+            <p className="text-xs text-green-600 mt-0.5">Yield: {rendemenPeriod.toFixed(1)}%</p>
           )}
         </div>
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
@@ -209,13 +209,13 @@ function DashboardContent({ data }: { data: DashboardData }) {
       {/* Best & Worst Rendemen */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <RendemenList
-          title="Rendemen Tertinggi"
+          title="Yield Tertinggi"
           icon={<TrendingUp size={14} className="text-green-500" />}
           items={data.bestRendemen}
           color="green"
         />
         <RendemenList
-          title="Rendemen Terendah"
+          title="Yield Terendah"
           icon={<TrendingDown size={14} className="text-red-500" />}
           items={data.worstRendemen}
           color="red"
@@ -239,7 +239,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
                   <th className="text-left px-4 py-2.5 font-medium">No. Produksi</th>
                   <th className="text-left px-4 py-2.5 font-medium">Input</th>
                   <th className="text-left px-4 py-2.5 font-medium">Output</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Rendemen</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Yield</th>
                 </tr>
               </thead>
               <tbody>

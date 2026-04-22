@@ -700,7 +700,7 @@ export function InventoryPage() {
                   <th scope="col">Referensi</th>
                   <th scope="col">Input</th>
                   <th scope="col">Output</th>
-                  <th scope="col" className="text-right">Rendemen %</th>
+                  <th scope="col" className="text-right">Yield %</th>
                   <th scope="col">Catatan</th>
                   <th scope="col" className="w-10">Aksi</th>
                 </tr>

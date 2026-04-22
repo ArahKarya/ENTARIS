@@ -394,7 +394,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
             {/* Rendemen summary */}
             {rendemenPct !== null && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-800">
-                <span className="font-semibold">Rendemen: </span>
+                <span className="font-semibold">Yield: </span>
                 {rendemenPct}%
                 <span className="text-blue-600 ml-1">
                   ({totalMainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}

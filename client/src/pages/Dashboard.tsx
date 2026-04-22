@@ -342,7 +342,7 @@ export const Dashboard = () => {
           <SectionHeader
             icon={Factory}
             title="Produksi"
-            subtitle="Statistik produksi & rendemen"
+            subtitle="Statistik produksi & yield"
           />
 
           {isEnabled('production-stats') && (

@@ -28,7 +28,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'aging-summary', name: 'Ringkasan Aging', description: 'Aging piutang dan hutang per bucket', icon: Clock, enabled: true },
   { id: 'cash-position', name: 'Posisi Kas & Bank', description: 'Saldo per akun kas/bank dengan total', icon: Wallet, enabled: true },
   { id: 'top-vendors', name: 'Vendor Teratas', description: 'Top 5 vendor berdasarkan total pembelian', icon: Truck, enabled: true },
-  { id: 'rendemen-trend', name: 'Tren Rendemen', description: 'Rata-rata yield produksi 6 bulan terakhir', icon: Percent, enabled: true },
+  { id: 'rendemen-trend', name: 'Tren Yield', description: 'Rata-rata yield produksi 6 bulan terakhir', icon: Percent, enabled: true },
   { id: 'cogs-backfill', name: 'COGS Pending Settle', description: 'Sales stok minus yang menunggu auto-koreksi COGS', icon: AlertTriangle, enabled: true },
 ];
 

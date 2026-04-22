@@ -46,7 +46,7 @@ export default function RendemenTrendChart() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Rendemen Produksi
+            Yield Produksi
           </h2>
           <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
             Rata-rata yield per bulan (6 bulan)
@@ -117,7 +117,7 @@ export default function RendemenTrendChart() {
                   borderRadius: 8,
                   fontSize: 12,
                 }}
-                formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Rendemen']}
+                formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Yield']}
                 labelFormatter={(label: any, payload: any) => {
                   const rc = payload?.[0]?.payload?.runCount ?? 0;
                   return `${label} — ${rc} run`;

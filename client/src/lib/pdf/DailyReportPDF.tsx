@@ -188,7 +188,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         { label: 'Jumlah Run', value: String(data.production.summary.totalRuns) },
         { label: 'Total Input (kg)', value: num(data.production.summary.totalInputKg) },
         { label: 'Total Output (kg)', value: num(data.production.summary.totalOutputKg) },
-        { label: 'Rendemen Rata-rata', value: data.production.summary.avgRendemen > 0 ? `${data.production.summary.avgRendemen}%` : '—' },
+        { label: 'Yield Rata-rata', value: data.production.summary.avgRendemen > 0 ? `${data.production.summary.avgRendemen}%` : '—' },
       ]} />
       {data.production.runs.length > 0 ? (
         <>
@@ -198,7 +198,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
             <Text style={[S.th, { width: 70, textAlign: 'right' }]}>Qty Input</Text>
             <Text style={[S.th, { flex: 1 }]}>Output</Text>
             <Text style={[S.th, { width: 70, textAlign: 'right' }]}>Qty Output</Text>
-            <Text style={[S.th, { width: 60, textAlign: 'right' }]}>Rendemen</Text>
+            <Text style={[S.th, { width: 60, textAlign: 'right' }]}>Yield</Text>
           </View>
           {data.production.runs.map((run: any, i: number) => {
             const totalIn = run.inputs.reduce((s: number, x: any) => s + x.quantity, 0);

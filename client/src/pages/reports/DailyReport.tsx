@@ -146,11 +146,11 @@ const DailyReport = () => {
               <SummaryCard label="Jumlah Run" value={String(data.production.summary.totalRuns)} />
               <SummaryCard label="Total Input" value={`${data.production.summary.totalInputKg.toLocaleString('id-ID')} kg`} />
               <SummaryCard label="Total Output" value={`${data.production.summary.totalOutputKg.toLocaleString('id-ID')} kg`} />
-              <SummaryCard label="Rendemen Rata-rata" value={data.production.summary.avgRendemen > 0 ? `${data.production.summary.avgRendemen}%` : '—'} />
+              <SummaryCard label="Yield Rata-rata" value={data.production.summary.avgRendemen > 0 ? `${data.production.summary.avgRendemen}%` : '—'} />
             </div>
             <div className="table-responsive">
               <table className="data-table text-xs">
-                <thead><tr><th>No. Run</th><th>Input</th><th>Output</th><th className="text-right">Rendemen</th></tr></thead>
+                <thead><tr><th>No. Run</th><th>Input</th><th>Output</th><th className="text-right">Yield</th></tr></thead>
                 <tbody>
                   {data.production.runs.length === 0 ? <EmptyRow colSpan={4} message="Tidak ada produksi hari ini" /> :
                     data.production.runs.map((run: any) => (

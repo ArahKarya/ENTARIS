@@ -71,7 +71,7 @@ export default function ProductionStatsWidget() {
           </div>
           <div>
             <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-              Rata-rata Rendemen
+              Rata-rata Yield
             </span>
             <p className="text-lg font-semibold tabular-nums mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
               {Number(data.avgRendemen).toFixed(1)}%

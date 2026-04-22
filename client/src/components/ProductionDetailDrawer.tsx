@@ -116,7 +116,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                   <p className="text-lg font-bold text-green-700">{fmtNum(totalOutputQty)} <span className="text-xs font-normal">Kg</span></p>
                 </div>
                 <div className="bg-purple-50 rounded-lg p-3 text-center">
-                  <p className="text-xs font-semibold text-purple-500 uppercase">Rendemen</p>
+                  <p className="text-xs font-semibold text-purple-500 uppercase">Yield</p>
                   <p className="text-lg font-bold text-purple-700">
                     {run.rendemenPct != null ? `${Number(run.rendemenPct).toFixed(1)}%` : '—'}
                   </p>
