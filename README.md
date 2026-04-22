@@ -38,6 +38,7 @@ Fullstack TypeScript (React 19 + Express 5 + Prisma 7 + PostgreSQL 16), self-hos
 - [Fitur Utama](#fitur-utama)
 - [Tech Stack](#tech-stack)
 - [Quick Start (Docker)](#quick-start-docker)
+- [Login Default (Demo)](#login-default-demo)
 - [Perintah Docker Harian](#perintah-docker-harian)
 - [Deploy ke Server / Raspberry Pi](#deploy-ke-server--raspberry-pi)
 - [Arsitektur](#arsitektur-docker)
@@ -316,15 +317,22 @@ Server running at http://localhost:3001
 http://localhost:3001
 ```
 
-**Login default:**
+---
 
-| Email | Password | Role |
-|---|---|---|
-| `admin@arahkarya.com` | `Adminarahkarya123!dsw` | Admin (full access) |
-| `staff@keuangan.local` | `Admin123!` | Accountant |
-| `viewer@keuangan.local` | `Admin123!` | Viewer (read-only) |
+## Login Default (Demo)
 
-> **Ganti password default segera setelah login pertama!** Bisa via menu user di header → "Ganti Password", atau via Onboarding Wizard.
+Setelah seed pertama, aplikasi punya 4 akun default siap pakai:
+
+| Username / Email            | Password                   | Role          | Akses |
+|-----------------------------|----------------------------|---------------|-------|
+| `admin@arahkarya.com`       | `Adminarahkarya123!dsw`    | Admin         | Full access — semua modul, user management, settings |
+| `staff@keuangan.local`      | `Admin123!`                | Accountant    | Transaksi keuangan, invoice, jurnal, laporan |
+| `produksi@keuangan.local`   | `Admin123!`                | StaffProduksi | Pembelian, stok & produksi, vendor (read-only untuk uang muka) |
+| `viewer@keuangan.local`     | `Admin123!`                | Viewer        | Read-only semua data |
+
+> **Field login menerima email atau username** (misal `admin` saja tanpa domain juga jalan).
+
+> ⚠️ **Ganti password default segera setelah login pertama di production.** Bisa via menu user di header → "Ganti Password", atau via Onboarding Wizard. Password bisa di-override saat seed pakai env `SEED_ADMIN_PASSWORD`.
 
 ---
 
