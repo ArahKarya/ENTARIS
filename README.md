@@ -220,7 +220,7 @@ Output yang diharapkan:
 [APP] Database connected.
 [APP] Migrations complete.
 [APP] Database kosong, menjalankan seed data awal...
-[APP] Seed selesai — login: admin@keuangan.local / Admin123!
+[APP] Seed selesai — login: admin@arahkarya.com / Adminarahkarya123!dsw
 [APP] Starting Keuangan ERP on port 3001...
 Server running at http://localhost:3001
 ```
@@ -235,7 +235,7 @@ http://localhost:3001
 
 | Email | Password | Role |
 |---|---|---|
-| `admin@keuangan.local` | `Admin123!` | Admin (full access) |
+| `admin@arahkarya.com` | `Adminarahkarya123!dsw` | Admin (full access) |
 | `staff@keuangan.local` | `Admin123!` | Accountant |
 | `viewer@keuangan.local` | `Admin123!` | Viewer (read-only) |
 
@@ -421,7 +421,7 @@ docker compose exec app node -e "
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   bcrypt.hash('NewPassword123!', 12).then(hash =>
-    prisma.user.update({ where: { email: 'admin@keuangan.local' }, data: { passwordHash: hash } })
+    prisma.user.update({ where: { email: 'admin@arahkarya.com' }, data: { passwordHash: hash } })
   ).then(() => { console.log('Password reset!'); process.exit(0); });
 "
 ```

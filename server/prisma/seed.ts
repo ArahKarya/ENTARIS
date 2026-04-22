@@ -24,24 +24,25 @@ async function main() {
   console.log('- Created Fiscal Year: 2026');
 
   // 2. Seed Users
-  const hashedPassword = await bcrypt.hash('Admin123!', 12);
+  const defaultPassword = await bcrypt.hash('Admin123!', 12);
+  const adminPassword = await bcrypt.hash('Adminarahkarya123!dsw', 12);
 
   const users = [
-    { username: 'admin',    fullName: 'Administrator',   email: 'admin@keuangan.local',    role: UserRole.Admin },
-    { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@keuangan.local',    role: UserRole.Accountant },
-    { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@keuangan.local', role: UserRole.StaffProduksi },
-    { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@keuangan.local',   role: UserRole.Viewer },
+    { username: 'admin',    fullName: 'Administrator',   email: 'admin@arahkarya.com',     role: UserRole.Admin,         password: adminPassword   },
+    { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@keuangan.local',    role: UserRole.Accountant,    password: defaultPassword },
+    { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@keuangan.local', role: UserRole.StaffProduksi, password: defaultPassword },
+    { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@keuangan.local',   role: UserRole.Viewer,        password: defaultPassword },
   ];
 
   for (const u of users) {
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { username: u.username, fullName: u.fullName, role: u.role, passwordHash: hashedPassword },
+      update: { username: u.username, fullName: u.fullName, role: u.role, passwordHash: u.password },
       create: {
         username: u.username,
         fullName: u.fullName,
         email: u.email,
-        passwordHash: hashedPassword,
+        passwordHash: u.password,
         role: u.role,
       },
     });

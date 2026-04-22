@@ -114,7 +114,7 @@ docker compose logs -f app      # View logs
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@keuangan.local | Admin123! | Admin |
+| admin@arahkarya.com | Adminarahkarya123!dsw | Admin |
 | staff@keuangan.local | Admin123! | Accountant |
 | viewer@keuangan.local | Admin123! | Viewer |
 
