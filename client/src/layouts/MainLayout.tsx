@@ -67,11 +67,11 @@ export const MainLayout = () => {
   const pageName = routeNames[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Skip nav link (ACC-05) */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-white px-4 py-2 rounded text-sm font-medium text-blue-700 shadow"
+        className="skip-to-content"
       >
         Langsung ke konten utama
       </a>
@@ -99,59 +99,54 @@ export const MainLayout = () => {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden main-content">
         {/* Header */}
         <header
-          className="h-14 border-b flex items-center px-3 lg:px-6 justify-between shrink-0"
-          style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+          className="h-14 border-b border-border bg-card flex items-center px-3 lg:px-6 justify-between shrink-0"
           data-no-print
         >
-          <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             {/* Hamburger menu button - only on mobile */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-1.5 -ml-1 mr-1 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
-              style={{ color: 'var(--color-text-muted)' }}
+              className="p-1.5 -ml-1 mr-1 rounded-md transition-colors hover:bg-accent text-muted-foreground lg:hidden"
               aria-label="Buka menu"
             >
               <Menu className="w-5 h-5" />
             </button>
             <span className="hidden sm:inline">Finance</span>
-            <span className="hidden sm:inline" style={{ color: 'var(--color-text-muted)' }}>/</span>
-            <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{pageName}</span>
+            <span className="hidden sm:inline opacity-50">/</span>
+            <span className="font-medium text-foreground">{pageName}</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Search button */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-              style={{ color: 'var(--color-text-muted)' }}
+              className="p-1.5 rounded-md transition-colors hover:bg-accent text-muted-foreground"
               title="Pencarian (Ctrl+K)"
             >
               <Search className="w-4 h-4" />
             </button>
-            {/* Shortcuts help button */}
             <button
               onClick={() => setIsShortcutHelpOpen(true)}
-              className="hidden sm:block p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-              style={{ color: 'var(--color-text-muted)' }}
+              className="hidden sm:block p-1.5 rounded-md transition-colors hover:bg-accent text-muted-foreground"
               title="Pintasan Keyboard (?)"
             >
               <Keyboard className="w-4 h-4" />
             </button>
-            {/* Notification bell */}
             <NotificationBell />
-            <div className="flex items-center gap-2 sm:gap-2.5 pl-1.5 sm:pl-2 ml-0.5 sm:ml-1 border-l" style={{ borderColor: 'var(--color-border)' }}>
-              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-xs">
+            <div className="flex items-center gap-2 sm:gap-2.5 pl-1.5 sm:pl-2 ml-0.5 sm:ml-1 border-l border-border">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center font-semibold text-xs"
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--primary)' }}
+              >
                 {user?.fullName?.charAt(0) || 'U'}
               </div>
               <div className="hidden md:block">
-                <p className="text-xs font-semibold leading-none" style={{ color: 'var(--color-text-primary)' }}>{user?.fullName || 'User'}</p>
-                <p className="text-xs mt-0.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{user?.role || 'Role'}</p>
+                <p className="text-xs font-semibold leading-none text-foreground">{user?.fullName || 'User'}</p>
+                <p className="text-[10px] mt-1 uppercase tracking-wider text-muted-foreground">{user?.role || 'Role'}</p>
               </div>
             </div>
             <button
               onClick={() => setIsPasswordModalOpen(true)}
               aria-label="Ganti Password"
-              className="hidden sm:block p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-              style={{ color: 'var(--color-text-muted)' }}
+              className="hidden sm:block p-1.5 rounded-md transition-colors hover:bg-accent text-muted-foreground"
               title="Ganti Password"
             >
               <KeyRound className="w-4 h-4" />
@@ -159,7 +154,7 @@ export const MainLayout = () => {
             <button
               onClick={handleLogout}
               aria-label="Logout"
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -168,7 +163,7 @@ export const MainLayout = () => {
         </header>
 
         {/* Content */}
-        <div id="main-content" className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+        <div id="main-content" className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 bg-background">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
             <Outlet />
           </div>

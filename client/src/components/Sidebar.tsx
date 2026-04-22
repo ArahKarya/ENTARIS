@@ -105,13 +105,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
         mobileOpen ? 'w-[260px]' : (isCollapsed ? 'w-[60px]' : 'w-[220px]')
       )}
       style={{
-        backgroundColor: 'var(--color-bg-primary)',
-        borderColor: 'var(--color-border)',
-        color: 'var(--color-text-secondary)',
+        backgroundColor: 'var(--sidebar)',
+        borderColor: 'var(--sidebar-border)',
+        color: 'var(--sidebar-foreground)',
       }}
     >
       {/* Logo */}
-      <div className="h-14 flex items-center justify-between px-3 border-b" style={{ borderColor: 'var(--color-border-light)' }}>
+      <div className="h-14 flex items-center justify-between px-3 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
         {(!isCollapsed || mobileOpen) && (
           <div className="flex items-center gap-2 overflow-hidden">
             <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -162,15 +162,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
               title={!showLabel ? item.label : undefined}
               onClick={handleNavClick}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 my-0.5 rounded-lg text-sm transition-colors duration-150',
+                'flex items-center gap-3 px-3 py-2 my-0.5 rounded-md text-sm transition-colors duration-150',
                 isActive
-                  ? 'bg-blue-50 text-blue-800 font-semibold'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                  ? 'font-semibold'
+                  : 'font-medium hover:brightness-105'
               )}
+              style={
+                isActive
+                  ? { backgroundColor: 'var(--sidebar-accent)', color: 'var(--sidebar-primary)' }
+                  : { color: 'var(--sidebar-foreground)' }
+              }
             >
               <item.icon
                 size={18}
-                className={cn('flex-shrink-0', isActive ? 'text-blue-600' : 'text-gray-400')}
+                className={cn('flex-shrink-0', isActive ? '' : 'opacity-60')}
+                style={isActive ? { color: 'var(--sidebar-primary)' } : undefined}
               />
               {showLabel && <span className="truncate">{item.label}</span>}
             </Link>
@@ -204,15 +210,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
       )}
 
       {/* User */}
-      <div className="border-t p-3" style={{ borderColor: 'var(--color-border-light)' }}>
-        <div className={cn('flex items-center gap-2 p-2 rounded-lg', !mobileOpen && isCollapsed && 'justify-center')}>
-          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center font-semibold text-xs text-blue-700 flex-shrink-0">
+      <div className="border-t p-3" style={{ borderColor: 'var(--sidebar-border)' }}>
+        <div className={cn('flex items-center gap-2 p-2 rounded-md', !mobileOpen && isCollapsed && 'justify-center')}>
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center font-semibold text-xs flex-shrink-0"
+            style={{ backgroundColor: 'var(--sidebar-accent)', color: 'var(--sidebar-primary)' }}
+          >
             {user?.fullName?.charAt(0) || 'U'}
           </div>
           {(mobileOpen || !isCollapsed) && (
             <div className="overflow-hidden">
-              <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{user?.fullName || 'User'}</p>
-              <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{user?.role || 'Admin'}</p>
+              <p className="text-xs font-semibold truncate" style={{ color: 'var(--sidebar-foreground)' }}>{user?.fullName || 'User'}</p>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>{user?.role || 'Admin'}</p>
             </div>
           )}
         </div>
