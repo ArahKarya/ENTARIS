@@ -330,19 +330,19 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
               </button>
             </div>
 
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="border border-gray-200 rounded-xl overflow-x-auto">
+              <table className="w-full text-sm" style={{ minWidth: 960 }}>
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                     <th className="text-left px-4 py-3 w-8">#</th>
-                    <th className="text-left px-4 py-3 min-w-[200px]">Nama Barang / Jasa</th>
-                    <th className="text-center px-3 py-3 w-20">Qty</th>
+                    <th className="text-left px-4 py-3 min-w-[220px] max-w-[280px]">Nama Barang / Jasa</th>
+                    <th className="text-center px-3 py-3 w-28 min-w-[112px]">Qty</th>
                     <th className="text-left px-3 py-3 w-24">Satuan</th>
-                    <th className="text-right px-3 py-3 w-36">Harga Satuan</th>
+                    <th className="text-right px-3 py-3 w-36 min-w-[130px]">Harga Satuan</th>
                     <th className="text-right px-3 py-3 w-20">Diskon %</th>
                     <th className="text-right px-3 py-3 w-20">PPN %</th>
                     <th className="text-right px-3 py-3 w-20">PPh %</th>
-                    <th className="text-right px-4 py-3 w-36">Jumlah</th>
+                    <th className="text-right px-4 py-3 w-36 min-w-[130px]">Jumlah</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
