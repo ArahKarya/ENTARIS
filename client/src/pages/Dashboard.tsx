@@ -178,28 +178,30 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6 pb-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            {isStaffProduksi ? 'Dashboard Gudang & Produksi' : 'Dashboard'}
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-            {isStaffProduksi
-              ? `Ringkasan stok, gudang & produksi ${company?.companyName || 'perusahaan Anda'}`
-              : `Ringkasan keuangan ${company?.companyName || 'perusahaan Anda'}`}
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <LayoutDashboard className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground truncate">
+              {isStaffProduksi ? 'Dashboard Gudang & Produksi' : 'Dashboard'}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isStaffProduksi
+                ? `Ringkasan stok, gudang & produksi ${company?.companyName || 'perusahaan Anda'}`
+                : `Ringkasan keuangan ${company?.companyName || 'perusahaan Anda'}`}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-muted-foreground font-tabular">
             {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
           </span>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="p-2 rounded-lg border transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
-            style={{ borderColor: 'var(--color-border)' }}
+            className="p-2 rounded-md border border-border bg-card transition-colors hover:bg-accent text-muted-foreground"
             title="Konfigurasi Dashboard"
           >
-            <Settings2 size={16} style={{ color: 'var(--color-text-muted)' }} />
+            <Settings2 size={16} />
           </button>
         </div>
       </div>
