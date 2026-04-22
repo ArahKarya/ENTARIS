@@ -11,6 +11,7 @@ import { logger } from './lib/logger';
 
 // Route handlers
 import authRoutes from './routes/auth';
+import publicRoutes from './routes/public';
 import coaRoutes from './routes/coa';
 import journalRoutes from './routes/journals';
 import salesRoutes from './routes/sales';
@@ -124,6 +125,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date()
 
 // ─── Public Routes ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
+app.use('/api/public', publicRoutes);
 
 // ─── Protected Routes ──────────────────────────────────────────────────────────
 app.use('/api', apiRateLimit);

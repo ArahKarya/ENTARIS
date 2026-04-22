@@ -346,12 +346,16 @@ docker compose ps
 
 ### Update aplikasi
 
+**Untuk production**, pin ke tag release stabil (bukan `main`):
+
 ```bash
-git pull
+bash scripts/backup.sh           # WAJIB sebelum update
+git fetch --tags
+git checkout vX.Y.Z              # cek GitHub Releases
 docker compose up -d --build
 ```
 
-Data aman — tersimpan di Docker volume `pgdata`, tidak terhapus saat rebuild.
+Data aman — tersimpan di Docker volume `pgdata`, tidak terhapus saat rebuild. Prosedur update lengkap + kebijakan semver + breaking change handling di [MIGRATION.md](./MIGRATION.md).
 
 ### Backup database
 

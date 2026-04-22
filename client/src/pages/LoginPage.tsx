@@ -4,6 +4,11 @@ import api from '../lib/api';
 import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { APP_VERSION, APP_BUILD_DATE } from '../lib/version';
 
+interface PublicBranding {
+  companyName: string | null;
+  logoUrl: string | null;
+}
+
 /* ── Animated mesh background (canvas) ──────────────────────────────── */
 
 interface Point {
@@ -268,11 +273,27 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [branding, setBranding] = useState<PublicBranding>({ companyName: null, logoUrl: null });
   const navigate = useNavigate();
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<PublicBranding>('/public/branding')
+      .then((res) => {
+        if (!cancelled) setBranding(res.data);
+      })
+      .catch(() => {
+        /* ignore — falls back to defaults */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -387,17 +408,23 @@ const LoginPage: React.FC = () => {
                   animation: 'login-logo-enter 1s cubic-bezier(0.34,1.56,0.64,1) 0.15s both',
                 }}
               >
-                <img src="/pwa-512x512.png" alt="Simple ERP" className="w-full h-full object-contain" />
+                <img
+                  src={branding.logoUrl || '/pwa-512x512.png'}
+                  alt={branding.companyName || 'Simple ERP'}
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
             <h1
               className="text-[30px] font-bold tracking-tight"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              Masuk ke Simple ERP
+              Masuk ke {branding.companyName || 'Simple ERP'}
             </h1>
             <p className="mt-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              Sistem ERP Keuangan & Operasional
+              {branding.companyName
+                ? `Sistem ERP — ${branding.companyName}`
+                : 'Sistem ERP Keuangan & Operasional'}
             </p>
           </div>
 
