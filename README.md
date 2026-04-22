@@ -29,12 +29,6 @@ Fullstack TypeScript (React 19 + Express 5 + Prisma 7 + PostgreSQL 16), self-hos
 - **Perusahaan manufaktur** (rice mill, pangan, pupuk, produk industri) dengan kebutuhan BOM, konversi produksi, dan HPP real-time
 - **Kantor akuntan / konsultan** yang ingin self-host pembukuan multi-klien di infra sendiri
 
-### Tidak (belum) cocok untuk
-
-- Perusahaan yang butuh modul HRD/payroll/absensi (gunakan aplikasi HRIS terpisah)
-- Bisnis yang wajib multi-tenant SaaS dengan billing otomatis (aplikasi ini single-tenant per-deploy)
-- Perusahaan yang butuh sertifikasi formal (ISO, SOC2) out-of-the-box — audit trail tersedia, tapi sertifikasi perlu proses terpisah
-
 ---
 
 ## Daftar Isi
@@ -153,30 +147,92 @@ Kelola profil perusahaan, 26 role akun sistem, backup/restore database, fiscal y
 
 ## Fitur Utama
 
-| Modul | Deskripsi |
-|---|---|
-| **Dashboard** | KPI real-time, widget toggle, grafik pendapatan vs beban |
-| **Bagan Akun (COA)** | Hierarki parent-child, import/export Excel, auto GL posting |
-| **Buku Besar** | Jurnal double-entry, filter tanggal, hide cancelled, import CSV |
-| **Penjualan** | Invoice pelanggan, auto GL, PPN per-item, diskon, cancel |
-| **Pembelian** | Invoice pemasok, auto GL, cancel |
-| **Bank & Kas** | Penerimaan/pengeluaran, split payment, auto-alokasi invoice |
-| **Rekonsiliasi Bank** | Cocokkan mutasi bank dengan transaksi buku |
-| **Pelanggan & Vendor** | Manajemen mitra, saldo terutang, deposit, import Excel |
-| **Stok & Produksi** | Inventori, mutasi, produksi rendemen, import saldo awal |
-| **Laporan** | Trial Balance, Laba Rugi, Neraca, Arus Kas, Aging, Pajak, HPP |
-| **Drill-down** | Klik angka di laporan → lihat detail transaksi sumber |
-| **Transaksi Berulang** | Template jurnal otomatis (harian/mingguan/bulanan) |
-| **Approval Workflow** | Persetujuan multi-level untuk transaksi tertentu |
-| **Notifikasi** | Alert invoice overdue, stok rendah, auto-check |
-| **Aset Tetap** | Register, depresiasi otomatis per periode |
-| **Jejak Audit** | Log aktivitas lengkap dengan filter |
-| **Pajak** | Konfigurasi PPN/PPh, laporan pajak bulanan |
-| **Dark Mode** | Toggle light/dark/system |
-| **Global Search** | `Ctrl+K` command palette, cari apapun |
-| **PWA** | Installable di mobile/desktop |
-| **Backup & Restore** | Via UI, upload backup eksternal |
-| **Akun Sistem** | 26 role akun konfigurabel (IFRS/GAAP) |
+Fitur dikelompokkan per area bisnis. Semua modul terintegrasi pada satu basis data dengan posting otomatis ke Buku Besar, sehingga angka di dashboard dan laporan selalu konsisten dengan transaksi sumber.
+
+### 1. Akuntansi Inti
+
+- **Bagan Akun (Chart of Accounts)** hierarkis parent-child tak terbatas level, dengan klasifikasi *rootType* (Asset, Liability, Equity, Revenue, Expense) yang menentukan perilaku debit/kredit otomatis. Dilengkapi import/export Excel beserta saldo awal.
+- **Buku Besar (General Ledger)** double-entry murni — setiap transaksi otomatis menghasilkan pasangan jurnal yang balanced. Filter periode, preset cepat (Hari Ini / Minggu / Bulan / YTD), toggle sembunyikan transaksi yang dibatalkan.
+- **Jurnal Umum (Journal Voucher)** untuk adjusment manual multi-line; validasi otomatis total debit = total kredit sebelum posting; support *cancel & reverse* dengan jejak lengkap.
+- **26 Akun Sistem konfigurabel** — mapping satu kali untuk piutang, hutang, persediaan, kas/bank, PPN, HPP, deposit, depresiasi, laba berjalan, laba ditahan, dll. Ganti nomor akun sesuai kebijakan internal tanpa ubah kode.
+- **Tahun Fiskal** multi-period dengan proses tutup buku otomatis (*year-end closing*) yang memindahkan laba tahun berjalan ke laba ditahan dan menutup akun nominal.
+
+### 2. Penjualan & Piutang
+
+- **Invoice Penjualan** per-item dengan PPN individual per baris, diskon per-item maupun global, biaya tambahan (ongkir, packing), dan auto-posting `DR Piutang / CR Penjualan`.
+- **Penerimaan Pembayaran** dengan auto-alokasi ke invoice outstanding berbasis FIFO; mendukung *split payment* (satu transfer untuk beberapa invoice), *partial payment*, dan refund uang muka.
+- **Deposit Pelanggan** (uang muka) dengan konversi otomatis ke invoice saat realisasi.
+- **Aging Piutang** real-time dalam bucket 0-30 / 31-60 / 61-90 / >90 hari, lengkap dengan jadwal piutang jatuh tempo untuk kebutuhan collection.
+- **Cancel & Return** yang membatalkan invoice sekaligus membalik posting GL secara otomatis — tidak perlu jurnal koreksi manual.
+
+### 3. Pembelian & Hutang
+
+- **Invoice Pembelian** per-item dengan PPN masukan per baris, biaya lain, dan auto-posting `DR Persediaan (atau Beban) / CR Hutang`.
+- **Pembayaran ke Vendor** dengan auto-alokasi, split, dan dukungan deposit ke vendor untuk pembelian yang dibayar di muka.
+- **Aging Hutang** dan jadwal hutang jatuh tempo untuk perencanaan arus kas keluar.
+- **Cancel Invoice** otomatis membalik posting ke persediaan, hutang, dan PPN masukan.
+
+### 4. Bank, Kas & Rekonsiliasi
+
+- **Kas & Bank multi-akun** (kas kecil, kas besar, BRI, Mandiri, BCA, dll.) masing-masing dengan saldo real-time.
+- **Rekonsiliasi Bank** — upload mutasi bank (CSV/Excel) lalu cocokkan dengan transaksi di buku; tandai *matched* / *outstanding* / *bank-only*; hitung *reconciled balance* otomatis.
+- **Transfer antar Kas/Bank** dengan posting double-entry otomatis.
+
+### 5. Stok & Produksi
+
+- **Inventori multi-item** dengan pencatatan *moving average cost* untuk HPP akurat.
+- **Mutasi Stok** masuk/keluar manual, dengan posting GL otomatis ke persediaan dan HPP.
+- **Stock Opname** (penghitungan fisik) dengan pencatatan selisih yang otomatis posting sebagai penyesuaian persediaan.
+- **Produksi** dengan pola *konversi bahan baku → produk jadi + by-product* (cocok untuk rice mill: gabah → beras + sekam + dedak), termasuk perhitungan rendemen dan HPP otomatis.
+- **Import Saldo Awal** via Excel untuk migrasi dari sistem lama.
+
+### 6. Aset Tetap & Depresiasi
+
+- **Register Aset Tetap** dengan kategori, tanggal perolehan, metode penyusutan (garis lurus), masa manfaat, dan nilai residu.
+- **Depresiasi Otomatis** per periode (bulanan) dengan jurnal yang terposting otomatis ke akun beban penyusutan dan akumulasi penyusutan.
+- **Disposisi Aset** (penjualan/penghapusan) dengan perhitungan untung/rugi pelepasan otomatis.
+
+### 7. Laporan & Analisa
+
+Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung ke detail transaksi sumber.
+
+- **Trial Balance** — ringkasan seluruh saldo akun per tanggal tertentu
+- **Laba/Rugi (Profit & Loss)** — periode bebas, comparative vs periode sebelumnya, break-down per kategori pendapatan/beban
+- **Neraca (Balance Sheet)** — posisi keuangan per tanggal cut-off, termasuk ekuitas dan laba tahun berjalan
+- **Arus Kas (Cash Flow)** — metode langsung, pemasukan/pengeluaran per akun kas & bank
+- **Aging Piutang & Hutang** — bucket umur lengkap per pelanggan/vendor
+- **Jadwal Piutang & Hutang** — daftar invoice jatuh tempo
+- **Buku Besar per Akun (Ledger Book)** — mutasi detail per akun dengan saldo berjalan
+- **Laporan Pajak** — rekap PPN keluaran/masukan bulanan untuk kebutuhan SPT Masa
+- **Laporan HPP** — rincian harga pokok penjualan per periode
+- **Laporan Harian** — ringkasan aktivitas operasional per hari
+- **Export** setiap laporan ke **PDF** (siap cetak) dan **Excel** (untuk analisa lanjutan)
+
+### 8. Operasional & Otomasi
+
+- **Dashboard real-time** multi-tab (Overview / Keuangan / Sales / Stok / Produksi) dengan widget yang bisa di-toggle sesuai kebutuhan user.
+- **Transaksi Berulang (Recurring)** — template jurnal untuk beban rutin (sewa, gaji, langganan) yang auto-generate per jadwal harian/mingguan/bulanan.
+- **Approval Workflow** multi-level untuk transaksi di atas threshold tertentu (konfigurabel); dengan notifikasi ke approver.
+- **Notifikasi** terintegrasi untuk invoice jatuh tempo, stok di bawah minimum, approval pending, dan event penting lainnya.
+- **Global Search (Ctrl + K)** — command palette untuk cari invoice, pelanggan, akun, transaksi dari mana saja di aplikasi.
+- **Health Check Page** — diagnosa otomatis kesehatan data (saldo tidak balance, invoice orphan, mapping akun hilang, dsb.) untuk memastikan integritas data.
+
+### 9. Governance, Keamanan & Data
+
+- **Role-based Access Control** — 4 role built-in (Admin / Accountant / StaffProduksi / Viewer) dengan granular permission per modul.
+- **Audit Trail** lengkap — setiap insert/update/delete tercatat dengan user, timestamp, dan *before/after* value. Dapat difilter per user, tabel, atau periode.
+- **Manajemen User** dengan reset password, deaktivasi, dan penguncian akun otomatis setelah percobaan login gagal berlebihan (rate limiting).
+- **JWT Authentication** dengan *short-lived token* + refresh strategy; password di-hash bcrypt 12 rounds.
+- **Backup & Restore** via UI — download snapshot SQL, upload restore file, atau jadwalkan backup otomatis via cron di sisi server.
+- **Attachments** — lampirkan dokumen pendukung (PDF bukti, foto nota) ke invoice atau jurnal; tersimpan di volume terpisah dengan link dari record.
+
+### 10. Pengalaman Pengguna (UX)
+
+- **Progressive Web App (PWA)** — bisa di-install di desktop atau ponsel seperti aplikasi native, dengan *offline-ready* shell.
+- **Dark Mode** (light / dark / mengikuti sistem) untuk kenyamanan jangka panjang.
+- **Keyboard-first** — hotkey untuk navigasi utama, form submit, dan aksi umum; mengurangi ketergantungan pada mouse untuk user power.
+- **Responsive** — UI beradaptasi untuk desktop, tablet, dan mobile.
+- **Bahasa Indonesia sepenuhnya** pada UI; kode & komentar dalam Bahasa Inggris sesuai praktik internasional.
 
 ---
 
