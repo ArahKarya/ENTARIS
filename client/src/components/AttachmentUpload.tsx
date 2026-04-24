@@ -31,6 +31,11 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments', referenceType, referenceId] });
+      // Uploading a payment/deposit attachment also affects any currently-open
+      // invoice drawer's 'Dari Pembayaran' section, so refresh that cache too.
+      if (referenceType === 'payment') {
+        queryClient.invalidateQueries({ queryKey: ['invoice-related-attachments'] });
+      }
       setError('');
     },
     onError: (err: any) => {

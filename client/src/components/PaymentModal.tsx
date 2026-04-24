@@ -139,6 +139,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
+      // Refresh 'Dari Pembayaran' section on any invoice detail drawer currently open.
+      queryClient.invalidateQueries({ queryKey: ['invoice-related-attachments'] });
       setSavedId(res.data?.id || res.data?.payment?.id);
     },
     onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan pembayaran.'),

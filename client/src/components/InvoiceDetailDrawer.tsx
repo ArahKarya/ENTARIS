@@ -149,6 +149,8 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       return res.data as { invoice: unknown[]; payments: PaymentAttachmentRef[] };
     },
     enabled: !!invoiceId && canHaveAttachments,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
   const paymentAttachments = relatedAttachments?.payments ?? [];
 

@@ -38,6 +38,9 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
     mutationFn: (id: string) => api.delete(`/attachments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments', referenceType, referenceId] });
+      if (referenceType === 'payment') {
+        queryClient.invalidateQueries({ queryKey: ['invoice-related-attachments'] });
+      }
       setDeleteId(null);
     },
   });
