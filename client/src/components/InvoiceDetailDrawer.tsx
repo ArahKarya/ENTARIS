@@ -261,12 +261,24 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         />
       );
       const invoiceBlob = await pdf(invoiceDoc).toBlob();
-      const refs: AttachmentRef[] = attachments.map((a) => ({
+      // Include invoice's own attachments + any payment attachments linked to this
+      // invoice (via allocations / deposit applications) so the merged PDF
+      // contains the full document trail.
+      const invoiceRefs: AttachmentRef[] = attachments.map((a) => ({
         id: a.id,
         fileName: a.fileName,
         mimeType: a.mimeType,
         fetchUrl: `/attachments/file/${a.id}`,
       }));
+      const paymentRefs: AttachmentRef[] = paymentAttachments.map((a) => ({
+        id: a.id,
+        fileName: a.payment?.paymentNumber
+          ? `[${a.payment.paymentNumber}] ${a.fileName}`
+          : a.fileName,
+        mimeType: a.mimeType,
+        fetchUrl: `/attachments/file/${a.id}`,
+      }));
+      const refs: AttachmentRef[] = [...invoiceRefs, ...paymentRefs];
       const merged = await mergeInvoicePdfWithAttachments(invoiceBlob, refs, {
         fetchBinary: async (url) => {
           const res = await api.get(url, { responseType: 'arraybuffer' });
@@ -338,15 +350,15 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                 <XCircle size={16} />
               </button>
             )}
-            {invoice && (canHaveAttachments && attachments.length > 0 ? (
+            {invoice && (canHaveAttachments && (attachments.length + paymentAttachments.length) > 0 ? (
               <button
                 onClick={downloadMergedPdf}
                 disabled={isMerging}
                 className="btn-secondary btn-sm flex items-center gap-1.5 disabled:opacity-50"
-                title={`Unduh PDF invoice + ${attachments.length} lampiran dalam 1 file`}
+                title={`Unduh PDF invoice + ${attachments.length + paymentAttachments.length} lampiran (${attachments.length} invoice, ${paymentAttachments.length} pembayaran) dalam 1 file`}
               >
                 {isMerging ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                <span className="hidden sm:inline">Unduh PDF +{attachments.length}</span>
+                <span className="hidden sm:inline">Unduh PDF +{attachments.length + paymentAttachments.length}</span>
               </button>
             ) : (
               <PDFDownloadButton
