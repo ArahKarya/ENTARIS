@@ -177,6 +177,33 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const biayaLain = Number(invoice?.biayaLain ?? 0);
   const allocations = invoice?.paymentAllocations ?? [];
   const depositApplications = invoice?.depositApplications ?? [];
+
+  // Build "Rincian Pembayaran" rows for the invoice PDF. Show only
+  // non-cancelled allocations (Cancelled payments are excluded).
+  const paymentBreakdown = allocations
+    .filter((a: any) => a.payment && a.payment.status !== 'Cancelled')
+    .map((a: any) => ({
+      paymentNumber: a.payment.paymentNumber,
+      date: a.payment.date,
+      amount: a.payment.amount,
+      allocatedAmount: a.allocatedAmount,
+      referenceNo: a.payment.referenceNo ?? null,
+      notes: a.payment.notes ?? null,
+      primaryAccount: a.payment.account
+        ? {
+            accountNumber: a.payment.account.accountNumber,
+            name: a.payment.account.name,
+            rootType: a.payment.account.rootType,
+          }
+        : null,
+      splits: (a.payment.splits ?? []).map((s: any) => ({
+        accountNumber: s.account.accountNumber,
+        accountName: s.account.name,
+        rootType: s.account.rootType,
+        amount: s.amount,
+        notes: s.notes ?? null,
+      })),
+    }));
   // Payment breakdown: deposit-applied vs cash-paid
   const paidFromDeposit = depositApplications
     .filter((a: any) => !a.isCancelled)
@@ -258,6 +285,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
           }))}
           company={company}
           invoiceSettings={company.invoiceSettings}
+          payments={paymentBreakdown}
         />
       );
       const invoiceBlob = await pdf(invoiceDoc).toBlob();
@@ -410,6 +438,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     }))}
                     company={company}
                     invoiceSettings={company.invoiceSettings}
+                    payments={paymentBreakdown}
                   />
                 }
               />

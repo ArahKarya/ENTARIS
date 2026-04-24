@@ -56,10 +56,25 @@ router.get('/:id', async (req, res) => {
     });
     if (!invoice) return res.status(404).json({ error: 'Invoice tidak ditemukan.' });
 
-    // Get payment allocations for this invoice
+    // Get payment allocations for this invoice — with splits so the PDF can
+    // break down cash vs. non-cash portions (commission, discount, etc).
     const allocations = await prisma.paymentAllocation.findMany({
       where: { invoiceType: 'SalesInvoice', invoiceId: invoice.id },
-      include: { payment: { select: { id: true, paymentNumber: true, date: true, amount: true, referenceNo: true } } },
+      include: {
+        payment: {
+          select: {
+            id: true, paymentNumber: true, date: true, amount: true, referenceNo: true,
+            notes: true, status: true,
+            account: { select: { id: true, accountNumber: true, name: true, rootType: true } },
+            splits: {
+              select: {
+                id: true, amount: true, notes: true,
+                account: { select: { id: true, accountNumber: true, name: true, rootType: true } },
+              },
+            },
+          },
+        },
+      },
       orderBy: { payment: { date: 'desc' } },
     });
 

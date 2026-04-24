@@ -155,6 +155,24 @@ export interface InvoiceFormatSettings {
   };
 }
 
+export interface PaymentSplitBreakdown {
+  accountNumber: string;
+  accountName: string;
+  rootType: string;
+  amount: number | string;
+  notes?: string | null;
+}
+export interface PaymentBreakdown {
+  paymentNumber: string;
+  date: string;
+  amount: number | string;
+  referenceNo?: string | null;
+  notes?: string | null;
+  primaryAccount?: { accountNumber: string; name: string; rootType: string } | null;
+  splits: PaymentSplitBreakdown[];
+  allocatedAmount: number | string;
+}
+
 export interface InvoicePDFProps {
   type: 'sales' | 'purchase';
   invoiceNumber: string;
@@ -190,6 +208,10 @@ export interface InvoicePDFProps {
     logoUrl?: string | null;
   };
   invoiceSettings?: InvoiceFormatSettings | null;
+  // Payments allocated to this invoice (for "Rincian Pembayaran" section).
+  // When provided and non-empty, renders the per-payment / per-split breakdown
+  // below the totals panel. Does not change grand_total — it is read-only info.
+  payments?: PaymentBreakdown[];
 }
 
 // ─── Status pill color ────────────────────────────────────────────────────────
@@ -209,6 +231,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
     labelPotongan, labelBiaya, grandTotal,
     outstanding, paidFromCash, paidFromDeposit, partyDepositBalance,
     party, items, company, invoiceSettings,
+    payments,
   } = props;
 
   const isSales = type === 'sales';
@@ -463,6 +486,76 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
             </View>
           );
         })()}
+
+        {/* ── RINCIAN PEMBAYARAN (detail per payment + split) ── */}
+        {payments && payments.length > 0 && (
+          <View style={{ marginTop: 10, padding: 6, borderWidth: 0.5, borderColor: C.border, borderRadius: 3 }}>
+            <Text style={{ fontSize: 8, fontWeight: 600, color: C.muted, marginBottom: 4, letterSpacing: 0.5 }}>
+              RINCIAN PEMBAYARAN
+            </Text>
+            {payments.map((p, idx) => (
+              <View key={idx} style={{ marginBottom: idx < payments.length - 1 ? 5 : 0, paddingBottom: idx < payments.length - 1 ? 4 : 0, borderBottomWidth: idx < payments.length - 1 ? 0.3 : 0, borderBottomColor: C.border }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1 }}>
+                  <Text style={{ fontSize: 7.5, fontWeight: 600, color: C.dark }}>
+                    {tgl(p.date)} · {p.paymentNumber}
+                    {p.referenceNo ? ` (Ref: ${p.referenceNo})` : ''}
+                  </Text>
+                  <Text style={{ fontSize: 7.5, fontWeight: 600, color: C.dark }}>{idr(Number(p.allocatedAmount))}</Text>
+                </View>
+                {p.splits && p.splits.length > 0 ? (
+                  p.splits.map((s, sidx) => (
+                    <View key={sidx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingLeft: 8 }}>
+                      <Text style={{ fontSize: 7, color: C.muted }}>
+                        • {s.accountNumber} {s.accountName}
+                        {s.notes ? ` — ${s.notes}` : ''}
+                      </Text>
+                      <Text style={{ fontSize: 7, color: C.muted }}>{idr(Number(s.amount))}</Text>
+                    </View>
+                  ))
+                ) : p.primaryAccount ? (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingLeft: 8 }}>
+                    <Text style={{ fontSize: 7, color: C.muted }}>
+                      • {p.primaryAccount.accountNumber} {p.primaryAccount.name}
+                    </Text>
+                    <Text style={{ fontSize: 7, color: C.muted }}>{idr(Number(p.amount))}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ))}
+            {/* Aggregate summary: cash vs non-cash */}
+            {(() => {
+              let cashTotal = 0;
+              let nonCashTotal = 0;
+              for (const p of payments) {
+                if (p.splits && p.splits.length > 0) {
+                  for (const s of p.splits) {
+                    const isCashLike = s.accountNumber?.startsWith('1.1');
+                    if (isCashLike) cashTotal += Number(s.amount);
+                    else nonCashTotal += Number(s.amount);
+                  }
+                } else {
+                  const isCashLike = p.primaryAccount?.accountNumber?.startsWith('1.1');
+                  const amt = Number(p.allocatedAmount);
+                  if (isCashLike) cashTotal += amt;
+                  else nonCashTotal += amt;
+                }
+              }
+              if (nonCashTotal < 0.01) return null;
+              return (
+                <View style={{ marginTop: 4, paddingTop: 3, borderTopWidth: 0.3, borderTopColor: C.border }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 7.5, color: C.muted }}>Diterima cash / bank</Text>
+                    <Text style={{ fontSize: 7.5, color: C.muted }}>{idr(cashTotal)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 7.5, color: C.muted }}>Potongan / alokasi lain</Text>
+                    <Text style={{ fontSize: 7.5, color: C.muted }}>{idr(nonCashTotal)}</Text>
+                  </View>
+                </View>
+              );
+            })()}
+          </View>
+        )}
 
         {/* ── BANK ACCOUNTS (sales only) ── */}
         {bankAccounts && (
