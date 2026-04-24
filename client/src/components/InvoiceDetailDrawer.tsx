@@ -127,10 +127,30 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     mutationFn: (id: string) => api.delete(`/attachments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice-attachments', attachmentRefType, invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-related-attachments', type, invoiceId] });
       toast.success('Lampiran dihapus.');
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal hapus lampiran.'),
   });
+
+  // Payment attachments linked to this invoice via payment_allocations or deposit applications.
+  // Read-only here — users manage these from the Payments module.
+  interface PaymentAttachmentRef {
+    id: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+    payment: { id: string; paymentNumber: string; paymentType: string; date: string; status: string } | null;
+  }
+  const { data: relatedAttachments } = useQuery({
+    queryKey: ['invoice-related-attachments', type, invoiceId],
+    queryFn: async () => {
+      const res = await api.get(`/attachments/invoice/${type}/${invoiceId}/related`);
+      return res.data as { invoice: unknown[]; payments: PaymentAttachmentRef[] };
+    },
+    enabled: !!invoiceId && canHaveAttachments,
+  });
+  const paymentAttachments = relatedAttachments?.payments ?? [];
 
   if (!invoiceId) return null;
 
@@ -638,6 +658,44 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Related: attachments from payments/deposit applications linked to this invoice */}
+                  {paymentAttachments.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <Paperclip size={10} /> Dari Pembayaran ({paymentAttachments.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {paymentAttachments.map((a) => (
+                          <div key={a.id} className="flex items-center gap-2 p-2 bg-blue-50/40 rounded-lg text-xs border border-blue-100/50">
+                            {a.mimeType === 'application/pdf' ? (
+                              <FileText size={14} className="text-red-500 shrink-0" />
+                            ) : (
+                              <ImageIcon size={14} className="text-blue-500 shrink-0" />
+                            )}
+                            <a
+                              href={`/api/attachments/file/${a.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 truncate text-gray-700 hover:text-blue-600"
+                              title={a.fileName}
+                            >
+                              {a.fileName}
+                            </a>
+                            {a.payment && (
+                              <span className="text-[10px] font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                {a.payment.paymentNumber}
+                              </span>
+                            )}
+                            <span className="text-gray-400 whitespace-nowrap">{(a.fileSize / 1024).toFixed(0)} KB</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-gray-400 italic mt-1.5">
+                        Lampiran ini milik pembayaran terkait. Kelola dari menu Bank &amp; Kas.
+                      </p>
                     </div>
                   )}
                 </div>

@@ -136,6 +136,97 @@ router.get('/file/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ─── GET /api/attachments/invoice/:type/:id/related ─────────────────────────
+// Returns all attachments related to an invoice:
+// - the invoice's own attachments (source: 'invoice')
+// - attachments from every payment that has an active allocation to this invoice
+//   (source: 'payment', annotated with payment number/type/date so the UI can group them)
+// Type is 'sales' or 'purchase'.
+router.get('/invoice/:type/:id/related', async (req: AuthRequest, res: Response) => {
+  try {
+    const invoiceType = req.params.type as string;
+    const invoiceId = req.params.id as string;
+    if (!['sales', 'purchase'].includes(invoiceType)) {
+      return res.status(400).json({ error: "type harus 'sales' atau 'purchase'." });
+    }
+    const refType = invoiceType === 'sales' ? 'sales_invoice' : 'purchase_invoice';
+    const allocInvoiceType = invoiceType === 'sales' ? 'SalesInvoice' : 'PurchaseInvoice';
+
+    // Invoice's own attachments
+    const ownAttachments = await prisma.transactionAttachment.findMany({
+      where: { referenceType: refType, referenceId: invoiceId },
+      orderBy: { createdAt: 'asc' },
+      include: { user: { select: { fullName: true } } },
+    });
+
+    // Payments that have an active allocation to this invoice
+    const allocations = await prisma.paymentAllocation.findMany({
+      where: { invoiceType: allocInvoiceType, invoiceId },
+      select: { paymentId: true },
+    });
+    const paymentIds = [...new Set(allocations.map((a) => a.paymentId))];
+
+    // Also include deposit applications — for sales, customer_deposit_applications
+    // (VendorDeposit for purchase); they reference a deposit payment that may carry
+    // the transfer proof.
+    if (invoiceType === 'sales') {
+      const cdaPayments = await prisma.customerDepositApplication.findMany({
+        where: { salesInvoiceId: invoiceId, isCancelled: false },
+        select: { depositPaymentId: true },
+      });
+      for (const a of cdaPayments) paymentIds.push(a.depositPaymentId);
+    } else {
+      const vdaPayments = await prisma.vendorDepositApplication.findMany({
+        where: { purchaseInvoiceId: invoiceId, isCancelled: false },
+        select: { depositPaymentId: true },
+      });
+      for (const a of vdaPayments) paymentIds.push(a.depositPaymentId);
+    }
+
+    const uniquePaymentIds = [...new Set(paymentIds)];
+    const paymentAttachments = uniquePaymentIds.length === 0
+      ? []
+      : await prisma.transactionAttachment.findMany({
+          where: { referenceType: 'payment', referenceId: { in: uniquePaymentIds } },
+          orderBy: { createdAt: 'asc' },
+          include: { user: { select: { fullName: true } } },
+        });
+
+    // Fetch payment metadata for annotation (payment_number, date, type)
+    const paymentMeta = uniquePaymentIds.length === 0
+      ? []
+      : await prisma.payment.findMany({
+          where: { id: { in: uniquePaymentIds } },
+          select: { id: true, paymentNumber: true, paymentType: true, date: true, status: true },
+        });
+    const metaMap = new Map(paymentMeta.map((p) => [p.id, p]));
+
+    const invoiceAttachments = ownAttachments.map((a) => ({
+      ...a,
+      source: 'invoice' as const,
+      payment: null as null,
+    }));
+
+    const paymentAttachmentsAnnotated = paymentAttachments.map((a) => {
+      const m = metaMap.get(a.referenceId);
+      return {
+        ...a,
+        source: 'payment' as const,
+        payment: m
+          ? { id: m.id, paymentNumber: m.paymentNumber, paymentType: m.paymentType, date: m.date, status: m.status }
+          : null,
+      };
+    });
+
+    return res.json({
+      invoice: invoiceAttachments,
+      payments: paymentAttachmentsAnnotated,
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /attachments/invoice/:type/:id/related', 'Gagal mengambil lampiran terkait.');
+  }
+});
+
 // ─── GET /api/attachments/:referenceType/:referenceId ────────────────────────
 router.get('/:referenceType/:referenceId', async (req: AuthRequest, res: Response) => {
   try {
