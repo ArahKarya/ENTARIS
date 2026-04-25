@@ -11,6 +11,7 @@ import InvoicePDF from '../lib/pdf/InvoicePDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import { mergeInvoicePdfWithAttachments } from '../lib/pdf/mergePdfWithAttachments';
 import type { AttachmentRef } from '../lib/pdf/mergePdfWithAttachments';
+import { computeDeductions } from '../lib/invoiceDeductions';
 import ApplyDepositModal from './ApplyDepositModal';
 import ApplyCustomerDepositModal from './ApplyCustomerDepositModal';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -177,6 +178,11 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const biayaLain = Number(invoice?.biayaLain ?? 0);
   const allocations = invoice?.paymentAllocations ?? [];
   const depositApplications = invoice?.depositApplications ?? [];
+
+  // Derive potongan/komisi from non-cash payment splits.
+  // Doesn't change GL — purely a display layer over what's already booked.
+  const deductions = computeDeductions(allocations);
+  const netAfterDeductions = grandTotal - deductions.total;
 
   // Build "Rincian Pembayaran" rows for the invoice PDF. Show only
   // non-cancelled allocations (Cancelled payments are excluded).
@@ -778,8 +784,35 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     )}
                     <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
                       <span className="text-sm font-semibold text-gray-700">Grand Total</span>
-                      <span className="text-lg font-bold text-blue-600 font-mono tabular-nums">{formatRupiah(grandTotal)}</span>
+                      <span className={cn(
+                        'font-mono tabular-nums',
+                        deductions.total > 0
+                          ? 'text-sm text-gray-500 line-through'
+                          : 'text-lg font-bold text-blue-600'
+                      )}>
+                        {formatRupiah(grandTotal)}
+                      </span>
                     </div>
+                    {deductions.total > 0 && (
+                      <>
+                        <div className="pt-1 space-y-0.5">
+                          {deductions.byAccount.map((d) => (
+                            <div key={d.accountNumber} className="flex justify-between text-xs">
+                              <span className="text-amber-600">
+                                {d.accountNumber} {d.label}
+                              </span>
+                              <span className="font-mono text-amber-700 tabular-nums">
+                                ({formatRupiah(d.total)})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t border-amber-200 pt-2 flex justify-between items-baseline bg-amber-50/40 -mx-2 px-2 py-1.5 rounded">
+                          <span className="text-sm font-semibold text-amber-900">Net Setelah Potongan</span>
+                          <span className="text-lg font-bold text-amber-700 font-mono tabular-nums">{formatRupiah(netAfterDeductions)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -36,7 +36,33 @@ router.get('/', async (req, res) => {
       prisma.salesInvoice.count({ where }),
     ]);
 
-    return res.json({ data: invoices, total, page: Number(page), limit: take });
+    // Attach deductionTotal: sum of payment splits routed to non-cash accounts
+    // (commission, discount, etc) per invoice. Single batched query.
+    const invoiceIds = invoices.map((i) => i.id);
+    let deductionMap: Record<string, number> = {};
+    if (invoiceIds.length > 0) {
+      const rows = await prisma.$queryRaw<Array<{ invoice_id: string; total: number }>>`
+        SELECT pa.invoice_id::text AS invoice_id,
+               COALESCE(SUM(ps.amount), 0)::float AS total
+        FROM payment_allocations pa
+        JOIN payments p ON p.id = pa.payment_id
+        JOIN payment_splits ps ON ps.payment_id = p.id
+        JOIN accounts a ON a.id = ps.account_id
+        WHERE pa.invoice_type = 'SalesInvoice'
+          AND pa.invoice_id IN (${Prisma.join(invoiceIds)})
+          AND p.status != 'Cancelled'
+          AND a."accountNumber" NOT LIKE '1.1%'
+        GROUP BY pa.invoice_id
+      `;
+      deductionMap = Object.fromEntries(rows.map((r) => [r.invoice_id, Number(r.total)]));
+    }
+
+    const enriched = invoices.map((inv) => ({
+      ...inv,
+      deductionTotal: deductionMap[inv.id] ?? 0,
+    }));
+
+    return res.json({ data: enriched, total, page: Number(page), limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /sales/invoices error');
     return res.status(500).json({ error: 'Gagal mengambil data invoice penjualan.' });

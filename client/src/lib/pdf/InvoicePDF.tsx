@@ -446,6 +446,45 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         </View>
 
+        {/* ── DEDUCTIONS FROM PAYMENT (komisi/potongan from non-cash splits) ── */}
+        {(() => {
+          if (!payments || payments.length === 0) return null;
+          // Aggregate non-cash splits by account
+          const grouped = new Map<string, { label: string; accountNumber: string; total: number }>();
+          for (const p of payments) {
+            for (const s of p.splits ?? []) {
+              const acc = s.accountNumber ?? '';
+              if (acc.startsWith('1.1')) continue; // skip cash/bank
+              const amt = Number(s.amount);
+              if (!(amt > 0)) continue;
+              const existing = grouped.get(acc);
+              if (existing) existing.total += amt;
+              else grouped.set(acc, { label: s.accountName, accountNumber: acc, total: amt });
+            }
+          }
+          if (grouped.size === 0) return null;
+          const totalDeduction = Array.from(grouped.values()).reduce((s, g) => s + g.total, 0);
+          const netTotal = numGT - totalDeduction;
+          return (
+            <View style={{ marginTop: 4 }}>
+              {Array.from(grouped.values()).map((d) => (
+                <View key={d.accountNumber} style={S.summaryRight}>
+                  <Text style={[S.summaryLabel, { color: C.orange }]}>
+                    {d.accountNumber} {d.label} (−)
+                  </Text>
+                  <Text style={[S.summaryValue, { color: C.orange }]}>({idr(d.total)})</Text>
+                </View>
+              ))}
+              <View style={[S.summaryTotalRow, { marginTop: 2 }]}>
+                <View style={[S.summaryTotal, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+                  <Text style={[S.summaryTotalLabel, { color: '#92400e' }]}>NET TOTAL</Text>
+                  <Text style={[S.summaryTotalValue, { color: '#b45309' }]}>{idr(netTotal)}</Text>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
         {/* ── PAYMENT STATUS ── */}
         {(() => {
           const numOut = Number(outstanding ?? numGT);

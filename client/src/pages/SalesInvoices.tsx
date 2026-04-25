@@ -249,7 +249,14 @@ export const SalesInvoices = () => {
                   <td className="text-center">
                     <span className="badge badge-gray text-xs">{invoice.items?.length ?? 0} item</span>
                   </td>
-                  <td className="text-right font-mono font-medium text-gray-900 tabular-nums">{formatRupiah(Number(invoice.grandTotal))}</td>
+                  <td className="text-right font-mono font-medium text-gray-900 tabular-nums">
+                    {formatRupiah(Number(invoice.grandTotal))}
+                    {Number(invoice.deductionTotal ?? 0) > 0 && (
+                      <div className="text-[11px] font-normal text-amber-600 mt-0.5" title={`Potongan dari pembayaran (komisi/diskon): ${formatRupiah(Number(invoice.deductionTotal))}\nNet: ${formatRupiah(Number(invoice.grandTotal) - Number(invoice.deductionTotal))}`}>
+                        −{formatRupiah(Number(invoice.deductionTotal))} pot. → net {formatRupiah(Number(invoice.grandTotal) - Number(invoice.deductionTotal))}
+                      </div>
+                    )}
+                  </td>
                   <td className="text-right">
                     <span className={cn('font-mono font-medium tabular-nums', Number(invoice.outstanding) > 0 ? 'text-red-500' : 'text-green-600')}>
                       {formatRupiah(Number(invoice.outstanding))}
