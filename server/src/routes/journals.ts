@@ -271,19 +271,16 @@ router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req:
         data: { status: 'Cancelled', cancelledAt: new Date() },
       });
 
-      // Add reversal ledger entries
-      await tx.accountingLedgerEntry.createMany({
-        data: entry.items.map((item) => ({
-          date: new Date(),
-          accountId: item.accountId,
-          partyId: item.partyId,
-          debit: item.credit,
-          credit: item.debit,
-          referenceType: 'JournalEntry' as const,
-          referenceId: entry.id,
-          description: `[BATAL] ${item.description || entry.narration}`,
-          fiscalYearId: entry.fiscalYearId,
-        })),
+      // Soft-cancel the original ALE rows (consistent with how
+      // payment/sales-invoice/purchase-invoice cancel handlers work).
+      // Previously this code path created additional [BATAL] reversal
+      // entries while leaving originals active, which doubled raw DR/CR
+      // totals on ALE vs JournalItem (parent JE is now status=Cancelled
+      // so JI rows are implicitly excluded from sums) and tripped the
+      // health check 'ALE vs JournalItem Sync'.
+      await tx.accountingLedgerEntry.updateMany({
+        where: { referenceId: entry.id, isCancelled: false },
+        data: { isCancelled: true },
       });
     }, { timeout: 15000 });
 
