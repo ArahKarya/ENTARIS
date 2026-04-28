@@ -41,10 +41,12 @@ router.get('/', async (req, res) => {
         (sum, app) => sum.plus(new Decimal(app.appliedAmount.toString())),
         new Decimal(0)
       );
-      const remaining = new Decimal(d.amount.toString()).minus(totalApplied);
+      const refunded = new Decimal(d.refundedAmount.toString());
+      const remaining = new Decimal(d.amount.toString()).minus(totalApplied).minus(refunded);
       return {
         ...d,
         totalApplied: totalApplied.toNumber(),
+        totalRefunded: refunded.toNumber(),
         remaining: remaining.toNumber(),
       };
     });
@@ -78,13 +80,15 @@ router.get('/balance/:partyId', async (req, res) => {
         (sum, app) => sum.plus(new Decimal(app.appliedAmount.toString())),
         new Decimal(0)
       );
-      const remaining = new Decimal(d.amount.toString()).minus(totalApplied);
+      const refunded = new Decimal(d.refundedAmount.toString());
+      const remaining = new Decimal(d.amount.toString()).minus(totalApplied).minus(refunded);
       return {
         id: d.id,
         paymentNumber: d.paymentNumber,
         date: d.date,
         amount: Number(d.amount),
         totalApplied: totalApplied.toNumber(),
+        totalRefunded: refunded.toNumber(),
         remaining: remaining.toNumber(),
         referenceNo: d.referenceNo,
         account: d.account,
@@ -242,7 +246,8 @@ router.post('/apply', roleMiddleware(['Admin', 'Accountant']), async (req: AuthR
         (sum, app) => sum.plus(new Decimal(app.appliedAmount.toString())),
         new Decimal(0)
       );
-      const depositRemaining = new Decimal(deposit.amount.toString()).minus(totalApplied);
+      const refunded = new Decimal(deposit.refundedAmount.toString());
+      const depositRemaining = new Decimal(deposit.amount.toString()).minus(totalApplied).minus(refunded);
       const invoiceOutstanding = new Decimal(invoice.outstanding.toString());
       const applyAmount = new Decimal(body.amount);
 
