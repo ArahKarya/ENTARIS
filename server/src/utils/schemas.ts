@@ -158,6 +158,26 @@ export const RefundCustomerDepositSchema = z
     path: ['cashAccountId'],
   });
 
+// ─── Vendor Deposit Refund / Offset ───────────────────────────────────────────
+// Menyelesaikan sisa uang muka vendor (DP belanja yang dikembalikan vendor):
+//   - offset terhadap hutang (otomatis FIFO ke purchase invoice terlama), dan/atau
+//   - pengembalian kas ke rekening bank/kas.
+export const RefundVendorDepositSchema = z
+  .object({
+    date: z.string().min(1, 'Tanggal wajib diisi.'),
+    offsetAmount: z.coerce.number().min(0).default(0),
+    cashAmount: z.coerce.number().min(0).default(0),
+    cashAccountId: z.string().uuid().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })
+  .refine((d) => d.offsetAmount + d.cashAmount > 0, {
+    message: 'Masukkan jumlah offset hutang atau refund kas minimal salah satu.',
+  })
+  .refine((d) => d.cashAmount === 0 || !!d.cashAccountId, {
+    message: 'Pilih akun kas/bank untuk refund kas.',
+    path: ['cashAccountId'],
+  });
+
 // ─── Party ────────────────────────────────────────────────────────────────────
 export const CreatePartySchema = z.object({
   name: z.string().min(1, 'Nama wajib diisi.'),
