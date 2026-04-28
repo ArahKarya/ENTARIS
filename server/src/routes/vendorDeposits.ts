@@ -133,18 +133,13 @@ router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req:
           where: { id: deposit.journalEntry.id },
           data: { status: 'Cancelled', cancelledAt: new Date() },
         });
-        await tx.accountingLedgerEntry.createMany({
-          data: deposit.journalEntry.items.map((item) => ({
-            date: new Date(),
-            accountId: item.accountId,
-            partyId: deposit.partyId,
-            debit: item.credit,
-            credit: item.debit,
-            referenceType: 'JournalEntry' as const,
-            referenceId: deposit.journalEntry!.id,
-            description: `[BATAL] ${item.description || 'Pembatalan uang muka vendor'}`,
-            fiscalYearId: deposit.fiscalYearId,
-          })),
+        // Soft-cancel original ALE rows. Avoid the legacy [BATAL] reversal
+        // pattern — adding mirrored rows alongside live originals doubles
+        // raw DR/CR totals on ALE while JI is implicitly excluded by the
+        // parent JE's status, breaking the ALE↔JI sync health check.
+        await tx.accountingLedgerEntry.updateMany({
+          where: { referenceId: deposit.journalEntry.id, isCancelled: false },
+          data: { isCancelled: true },
         });
       } else {
         // No linked journal (legacy imports) — reverse account balances directly
