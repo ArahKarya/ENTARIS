@@ -19,14 +19,10 @@ router.get('/metrics', async (_req, res) => {
           date: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
         }
       }),
-      prisma.$queryRaw<[{ total: bigint }]>`
-        SELECT COALESCE(SUM(
-          CASE WHEN sm.movement_type IN ('In', 'AdjustmentIn') THEN sm.total_value
-               ELSE -sm.total_value END
-        ), 0) AS total
-        FROM stock_movements sm
-        JOIN inventory_items ii ON sm.item_id = ii.id
-        WHERE ii.is_active = true AND sm.is_cancelled = false
+      prisma.$queryRaw<[{ total: string | number }]>`
+        SELECT COALESCE(SUM(balance), 0) AS total
+        FROM accounts
+        WHERE "accountNumber" LIKE '1.4%' AND NOT "isGroup"
       `,
     ]);
 
