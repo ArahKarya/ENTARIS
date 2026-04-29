@@ -177,7 +177,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
               date: movementDate,
               debit: totalValue,
               credit: 0,
-              referenceType: 'StockMovement',
+              referenceType: 'JournalEntry',
               referenceId: je.id,
               fiscalYearId: fiscalYear.id,
             },
@@ -186,7 +186,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
               date: movementDate,
               debit: 0,
               credit: totalValue,
-              referenceType: 'StockMovement',
+              referenceType: 'JournalEntry',
               referenceId: je.id,
               fiscalYearId: fiscalYear.id,
             },
@@ -413,8 +413,8 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 
         await tx.accountingLedgerEntry.createMany({
           data: [
-            { accountId: debitAccountId, date: movementDate, debit: newTotalValue, credit: 0, referenceType: 'StockMovement', referenceId: je.id, fiscalYearId: fiscalYear.id },
-            { accountId: creditAccountId, date: movementDate, debit: 0, credit: newTotalValue, referenceType: 'StockMovement', referenceId: je.id, fiscalYearId: fiscalYear.id },
+            { accountId: debitAccountId, date: movementDate, debit: newTotalValue, credit: 0, referenceType: 'JournalEntry', referenceId: je.id, fiscalYearId: fiscalYear.id },
+            { accountId: creditAccountId, date: movementDate, debit: 0, credit: newTotalValue, referenceType: 'JournalEntry', referenceId: je.id, fiscalYearId: fiscalYear.id },
           ],
         });
 
