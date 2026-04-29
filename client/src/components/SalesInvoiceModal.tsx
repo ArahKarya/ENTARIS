@@ -245,7 +245,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   })();
   const hasShortage = stockShortages.length > 0;
 
-  const canSubmit = partyId && items.some(i => i.itemName) && grandTotal > 0 && !mutation.isPending
+  const canSubmit = partyId && items.some(i => i.itemName) && grandTotal >= 0 && !mutation.isPending
     && (!hasShortage || allowNegativeStock);
 
   if (!isOpen) return null;
