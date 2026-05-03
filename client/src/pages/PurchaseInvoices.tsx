@@ -2,12 +2,13 @@ import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Plus, Search, Package, Loader2, ChevronLeft, ChevronRight,
-  DollarSign, AlertTriangle, CheckCircle2, Receipt,
+  DollarSign, AlertTriangle, CheckCircle2, Receipt, Download,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
+import { exportToExcel } from '../lib/exportExcel';
 import PurchaseInvoiceModal from '../components/PurchaseInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import PaymentModal from '../components/PaymentModal';
@@ -125,6 +126,23 @@ export const PurchaseInvoices = () => {
 
   const isOverdue = (inv: any) => inv.dueDate && new Date(inv.dueDate) < new Date() && Number(inv.outstanding) > 0;
 
+  const handleExport = () => {
+    const rows = filtered.map((inv: any) => ({
+      Tanggal: formatDate(inv.date),
+      'Nomor Invoice': inv.invoiceNumber,
+      Pemasok: inv.supplier?.name ?? '',
+      Telepon: inv.supplier?.phone ?? '',
+      'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
+      Total: Number(inv.grandTotal),
+      'Sisa Tagihan': Number(inv.outstanding),
+      'Sudah Dibayar': Number(inv.grandTotal) - Number(inv.outstanding),
+      Status: isOverdue(inv) ? `${inv.status} (Overdue)` : inv.status,
+      Catatan: inv.notes ?? '',
+    }));
+    const stamp = new Date().toISOString().slice(0, 10);
+    exportToExcel(rows, `invoice-pembelian-${stamp}`);
+  };
+
   return (
     <div className="space-y-5 pb-8">
       {/* Header */}
@@ -134,6 +152,15 @@ export const PurchaseInvoices = () => {
           <p className="text-sm text-gray-500 mt-0.5">Kelola faktur pembelian dari vendor/supplier.</p>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="btn-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Ekspor daftar invoice (sesuai filter) ke Excel"
+          >
+            <Download size={15} /> Ekspor Excel
+          </button>
           <button
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors"
             onClick={() => setIsPayOpen(true)}

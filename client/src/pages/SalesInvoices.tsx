@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import {
   Plus, Search, FileText, Loader2, ChevronLeft, ChevronRight,
-  DollarSign, AlertTriangle, CheckCircle2, Receipt,
+  DollarSign, AlertTriangle, CheckCircle2, Receipt, Download,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
+import { exportToExcel } from '../lib/exportExcel';
 import SalesInvoiceModal from '../components/SalesInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 
@@ -72,6 +73,23 @@ export const SalesInvoices = () => {
 
   const isOverdue = (inv: any) => inv.dueDate && new Date(inv.dueDate) < new Date() && Number(inv.outstanding) > 0;
 
+  const handleExport = () => {
+    const rows = filtered.map((inv: any) => ({
+      Tanggal: formatDate(inv.date),
+      'Nomor Invoice': inv.invoiceNumber,
+      Pelanggan: inv.customer?.name ?? '',
+      Telepon: inv.customer?.phone ?? '',
+      'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
+      Total: Number(inv.grandTotal),
+      'Sisa Tagihan': Number(inv.outstanding),
+      'Sudah Dibayar': Number(inv.grandTotal) - Number(inv.outstanding),
+      Status: isOverdue(inv) ? `${inv.status} (Overdue)` : inv.status,
+      Catatan: inv.notes ?? '',
+    }));
+    const stamp = new Date().toISOString().slice(0, 10);
+    exportToExcel(rows, `invoice-penjualan-${stamp}`);
+  };
+
   return (
     <div className="space-y-5 pb-8">
       {/* Header */}
@@ -80,9 +98,20 @@ export const SalesInvoices = () => {
           <h1 className="text-xl font-semibold text-gray-900">Invoice Penjualan</h1>
           <p className="text-sm text-gray-500 mt-0.5">Kelola faktur penjualan dan piutang pelanggan.</p>
         </div>
-        <button className="btn-primary self-start" onClick={() => setIsModalOpen(true)}>
-          <Plus size={15} /> Buat Invoice Baru
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="btn-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Ekspor daftar invoice (sesuai filter) ke Excel"
+          >
+            <Download size={15} /> Ekspor Excel
+          </button>
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+            <Plus size={15} /> Buat Invoice Baru
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
