@@ -74,18 +74,36 @@ export const SalesInvoices = () => {
   const isOverdue = (inv: any) => inv.dueDate && new Date(inv.dueDate) < new Date() && Number(inv.outstanding) > 0;
 
   const handleExport = () => {
-    const rows = filtered.map((inv: any) => ({
-      Tanggal: formatDate(inv.date),
-      'Nomor Invoice': inv.invoiceNumber,
-      Pelanggan: inv.customer?.name ?? '',
-      Telepon: inv.customer?.phone ?? '',
-      'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
-      Total: Number(inv.grandTotal),
-      'Sisa Tagihan': Number(inv.outstanding),
-      'Sudah Dibayar': Number(inv.grandTotal) - Number(inv.outstanding),
-      Status: isOverdue(inv) ? `${inv.status} (Overdue)` : inv.status,
-      Catatan: inv.notes ?? '',
-    }));
+    const rows: Record<string, unknown>[] = [];
+    for (const inv of filtered as any[]) {
+      const totalPaid = Number(inv.grandTotal) - Number(inv.outstanding);
+      const statusLabel = isOverdue(inv) ? `${inv.status} (Overdue)` : inv.status;
+      const items = Array.isArray(inv.items) && inv.items.length > 0 ? inv.items : [null];
+      for (const it of items) {
+        rows.push({
+          Tanggal: formatDate(inv.date),
+          'Nomor Dokumen': inv.invoiceNumber,
+          Pelanggan: inv.customer?.name ?? '',
+          Telepon: inv.customer?.phone ?? '',
+          'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
+          'Jenis Item': it ? (it.itemType === 'service' ? 'Jasa' : 'Produk') : '',
+          'Nama Produk': it?.itemName ?? '',
+          Deskripsi: it?.description ?? '',
+          Qty: it ? Number(it.quantity) : '',
+          Unit: it?.unit ?? '',
+          'Harga Satuan': it ? Number(it.rate) : '',
+          'Diskon (%)': it ? Number(it.discount ?? 0) : '',
+          'PPN (%)': it ? Number(it.taxPct ?? 0) : '',
+          'PPh (%)': it ? Number(it.pphPct ?? 0) : '',
+          'Subtotal Item': it ? Number(it.amount) : '',
+          'Total Invoice': Number(inv.grandTotal),
+          'Sudah Dibayar': totalPaid,
+          'Sisa Tagihan': Number(inv.outstanding),
+          Status: statusLabel,
+          Catatan: inv.notes ?? '',
+        });
+      }
+    }
     const stamp = new Date().toISOString().slice(0, 10);
     exportToExcel(rows, `invoice-penjualan-${stamp}`);
   };

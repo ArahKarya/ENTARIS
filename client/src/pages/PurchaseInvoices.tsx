@@ -127,18 +127,41 @@ export const PurchaseInvoices = () => {
   const isOverdue = (inv: any) => inv.dueDate && new Date(inv.dueDate) < new Date() && Number(inv.outstanding) > 0;
 
   const handleExport = () => {
-    const rows = filtered.map((inv: any) => ({
-      Tanggal: formatDate(inv.date),
-      'Nomor Invoice': inv.invoiceNumber,
-      Pemasok: inv.supplier?.name ?? '',
-      Telepon: inv.supplier?.phone ?? '',
-      'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
-      Total: Number(inv.grandTotal),
-      'Sisa Tagihan': Number(inv.outstanding),
-      'Sudah Dibayar': Number(inv.grandTotal) - Number(inv.outstanding),
-      Status: isOverdue(inv) ? `${inv.status} (Overdue)` : inv.status,
-      Catatan: inv.notes ?? '',
-    }));
+    const rows: Record<string, unknown>[] = [];
+    for (const inv of filtered as any[]) {
+      const totalPaid = Number(inv.grandTotal) - Number(inv.outstanding);
+      const statusLabel = isOverdue(inv) ? `${inv.status} (Overdue)` : inv.status;
+      const items = Array.isArray(inv.items) && inv.items.length > 0 ? inv.items : [null];
+      for (const it of items) {
+        rows.push({
+          Tanggal: formatDate(inv.date),
+          'Nomor Dokumen': inv.invoiceNumber,
+          Pemasok: inv.supplier?.name ?? '',
+          Telepon: inv.supplier?.phone ?? '',
+          'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
+          'Nama Produk': it?.itemName ?? '',
+          Deskripsi: it?.description ?? '',
+          Qty: it ? Number(it.quantity) : '',
+          Unit: it?.unit ?? '',
+          'Harga Satuan': it ? Number(it.rate) : '',
+          'Diskon (%)': it ? Number(it.discount ?? 0) : '',
+          'PPN (%)': it ? Number(it.taxPct ?? 0) : '',
+          'PPh (%)': it ? Number(it.pphPct ?? 0) : '',
+          'Potongan Item': it ? Number(it.potonganItem ?? 0) : '',
+          'Subtotal Item': it ? Number(it.amount) : '',
+          Kualitas: it?.kualitas ?? '',
+          'Refaksi (Kg)': it?.refaksi != null ? Number(it.refaksi) : '',
+          'Timbangan Truk (Kg)': it?.timbanganTruk != null ? Number(it.timbanganTruk) : '',
+          'Timbangan Diterima (Kg)': it?.timbanganDiterima != null ? Number(it.timbanganDiterima) : '',
+          'Nomor Mobil': it?.nomorMobil ?? '',
+          'Total Invoice': Number(inv.grandTotal),
+          'Sudah Dibayar': totalPaid,
+          'Sisa Tagihan': Number(inv.outstanding),
+          Status: statusLabel,
+          Catatan: inv.notes ?? '',
+        });
+      }
+    }
     const stamp = new Date().toISOString().slice(0, 10);
     exportToExcel(rows, `invoice-pembelian-${stamp}`);
   };
