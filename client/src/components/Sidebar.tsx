@@ -209,6 +209,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
             </div>
           )}
         </div>
+        {(mobileOpen || !isCollapsed) && (
+          <p
+            className="text-[10px] text-center mt-2 leading-tight"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            © {new Date().getFullYear()} Arah Karya
+            <br />
+            <span className="opacity-70">by Yayang Setya Nugroho</span>
+          </p>
+        )}
       </div>
     </aside>
   );
