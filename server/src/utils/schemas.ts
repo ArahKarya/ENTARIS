@@ -65,6 +65,36 @@ export const CreateSalesInvoiceSchema = z.object({
   allowNegativeStock: z.boolean().optional().default(false),
 });
 
+// ─── Quotation ───────────────────────────────────────────────────────────────
+// Non-binding offer document. No GL impact until converted to a Sales Invoice.
+// Items mirror InvoiceItemSchema (product/service, qty, rate, discount, tax/pph).
+export const CreateQuotationSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  validUntil: z.string().min(1, 'Tanggal berlaku-sampai wajib diisi.'),
+  partyId: z.string().min(1, 'Pelanggan wajib dipilih.'),
+  items: z.array(InvoiceItemSchema).min(1, 'Minimal satu item.'),
+  notes: z.string().nullable().optional(),
+  potongan: z.coerce.number().min(0).optional().default(0),
+  biayaLain: z.coerce.number().optional().default(0),
+  labelPotongan: z.string().nullable().optional(),
+  labelBiaya: z.string().nullable().optional(),
+  terms: z.string().nullable().optional(),
+}).refine(
+  (data) => new Date(data.validUntil) >= new Date(data.date),
+  { message: 'Tanggal berlaku-sampai harus sama dengan atau setelah tanggal penawaran.', path: ['validUntil'] },
+);
+
+export const UpdateQuotationSchema = CreateQuotationSchema;
+
+export const RejectQuotationSchema = z.object({
+  reason: z.string().min(5, 'Alasan minimal 5 karakter.').max(500),
+});
+
+export const ConvertQuotationSchema = z.object({
+  dueDate: z.string().nullable().optional(),
+  allowNegativeStock: z.boolean().optional().default(false),
+}).optional();
+
 // ─── Purchase Invoice ─────────────────────────────────────────────────────────
 // Extends generic InvoiceItemSchema with raw-material weigh & quality fields.
 // `quantity` remains the source of truth for stock movement, but the service

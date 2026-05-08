@@ -6,6 +6,7 @@ import { GeneralLedger } from './pages/GeneralLedger';
 import { COAPage } from './pages/COAPage';
 import { SalesInvoices } from './pages/SalesInvoices';
 import { PurchaseInvoices } from './pages/PurchaseInvoices';
+import Quotations from './pages/Quotations';
 import { Payments } from './pages/Payments';
 import { PartiesPage } from './pages/PartiesPage';
 import { InventoryPage } from './pages/InventoryPage';
@@ -78,6 +79,7 @@ function App() {
             <Route path="/coa" element={<FinanceRoute><COAPage /></FinanceRoute>} />
             <Route path="/gl" element={<FinanceRoute><GeneralLedger /></FinanceRoute>} />
             <Route path="/sales" element={<FinanceRoute><SalesInvoices /></FinanceRoute>} />
+            <Route path="/quotations" element={<FinanceRoute><Quotations /></FinanceRoute>} />
             <Route path="/purchase" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><PurchaseInvoices /></RoleRoute>} />
             <Route path="/payments" element={<FinanceRoute><Payments /></FinanceRoute>} />
             <Route path="/vendor-deposits" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><VendorDeposits /></RoleRoute>} />

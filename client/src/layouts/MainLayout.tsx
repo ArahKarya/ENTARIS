@@ -15,6 +15,7 @@ const routeNames: Record<string, string> = {
   'coa': 'Bagan Akun',
   'gl': 'Buku Besar',
   'sales': 'Penjualan',
+  'quotations': 'Penawaran',
   'purchase': 'Pembelian',
   'payments': 'Bank & Kas',
   'parties': 'Pelanggan & Vendor',

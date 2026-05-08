@@ -25,6 +25,7 @@ import {
   HeartPulse,
   Building2,
   ShieldCheck,
+  FileSignature,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -38,6 +39,7 @@ const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Network, label: 'Bagan Akun', href: '/coa', roles: ['Admin', 'Accountant', 'Viewer'] },
   { icon: Receipt, label: 'Buku Besar', href: '/gl', roles: ['Admin', 'Accountant', 'Viewer'] },
+  { icon: FileSignature, label: 'Penawaran', href: '/quotations', roles: ['Admin', 'Accountant', 'Viewer'] },
   { icon: ShoppingCart, label: 'Penjualan', href: '/sales', roles: ['Admin', 'Accountant', 'Viewer'] },
   { icon: Package, label: 'Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
   { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory' },

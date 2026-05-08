@@ -40,6 +40,7 @@ model Account {
   journalItems          JournalItem[]
   salesItems            SalesInvoiceItem[]
   purchaseItems         PurchaseInvoiceItem[]
+  quotationItems        QuotationItem[]         @relation("QuotationItemAccount")
   payments              Payment[]               @relation("PaymentAccount")
   paymentSplits         PaymentSplit[]          @relation("PaymentSplitAccount")
   inventoryItems        InventoryItem[]         @relation("ItemAccount")
@@ -76,6 +77,7 @@ model Party {
   salesInvoices          SalesInvoice[]
   purchaseInvoices       PurchaseInvoice[]
   payments               Payment[]
+  quotations             Quotation[]             @relation("QuotationCustomer")
   ledgerEntries          AccountingLedgerEntry[]
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
@@ -183,6 +185,7 @@ model SalesInvoice {
   items               SalesInvoiceItem[]
   cogsBackfills       CogsBackfillQueue[]
   depositApplications CustomerDepositApplication[] @relation("CustomerDepositApplied")
+  quotation           Quotation?                   @relation("QuotationConvertedTo")
   submittedAt         DateTime?                    @map("submitted_at")
   cancelledAt         DateTime?                    @map("cancelled_at")
   isDummy             Boolean                      @default(false) @map("is_dummy")
@@ -194,6 +197,87 @@ model SalesInvoice {
   @@index([date])
   @@index([fiscalYearId])
   @@map("sales_invoices")
+}
+
+enum QuotationStatus {
+  Draft
+  Sent
+  Accepted
+  Rejected
+  Expired
+  Cancelled
+}
+
+model Quotation {
+  id               String          @id @default(uuid())
+  quotationNumber  String          @unique @map("quotation_number")
+  date             DateTime
+  validUntil       DateTime        @map("valid_until")
+  partyId          String          @map("party_id")
+  customer         Party           @relation("QuotationCustomer", fields: [partyId], references: [id])
+  status           QuotationStatus @default(Draft)
+  subtotal         Decimal         @db.Decimal(15, 2)
+  taxPct           Decimal         @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan         Decimal         @default(0) @db.Decimal(15, 2)
+  biayaLain        Decimal         @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  labelPotongan    String?         @map("label_potongan")
+  labelBiaya       String?         @map("label_biaya")
+  grandTotal       Decimal         @map("grand_total") @db.Decimal(15, 2)
+  terms            String?
+  notes            String?
+  rejectReason     String?         @map("reject_reason")
+  salesInvoiceId   String?         @unique @map("sales_invoice_id")
+  salesInvoice     SalesInvoice?   @relation("QuotationConvertedTo", fields: [salesInvoiceId], references: [id])
+  fiscalYearId     String          @map("fiscal_year_id")
+  fiscalYear       FiscalYear      @relation("QuotationFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy        String          @map("created_by")
+  user             User            @relation("QuotationCreator", fields: [createdBy], references: [id])
+  items            QuotationItem[]
+  sentAt           DateTime?       @map("sent_at")
+  acceptedAt       DateTime?       @map("accepted_at")
+  rejectedAt       DateTime?       @map("rejected_at")
+  expiredAt        DateTime?       @map("expired_at")
+  convertedAt      DateTime?       @map("converted_at")
+  cancelledAt      DateTime?       @map("cancelled_at")
+  expiryNotifiedAt DateTime?       @map("expiry_notified_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([validUntil])
+  @@index([fiscalYearId])
+  @@index([status, validUntil])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id              String         @id @default(uuid())
+  quotationId     String         @map("quotation_id")
+  quotation       Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  itemType        String         @default("product") @map("item_type")
+  inventoryItemId String?        @map("inventory_item_id")
+  inventoryItem   InventoryItem? @relation("QuotationItemInventory", fields: [inventoryItemId], references: [id])
+  serviceItemId   String?        @map("service_item_id")
+  serviceItem     ServiceItem?   @relation("QuotationItemService", fields: [serviceItemId], references: [id])
+  accountId       String?        @map("account_id")
+  account         Account?       @relation("QuotationItemAccount", fields: [accountId], references: [id])
+  itemName        String         @map("item_name")
+  quantity        Decimal        @db.Decimal(15, 3)
+  unit            String         @default("Kg")
+  rate            Decimal        @db.Decimal(15, 2)
+  discount        Decimal        @default(0) @db.Decimal(5, 2)
+  amount          Decimal        @db.Decimal(15, 2)
+  taxPct          Decimal        @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  pphPct          Decimal        @default(0) @map("pph_pct") @db.Decimal(5, 2)
+  description     String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([quotationId])
+  @@index([inventoryItemId])
+  @@index([serviceItemId])
+  @@map("quotation_items")
 }
 
 model SalesInvoiceItem {
@@ -363,6 +447,7 @@ model FiscalYear {
   journalEntries   JournalEntry[]
   salesInvoices    SalesInvoice[]
   purchaseInvoices PurchaseInvoice[]
+  quotations       Quotation[]             @relation("QuotationFiscalYear")
   payments         Payment[]
   stockMovements   StockMovement[]
   productionRuns   ProductionRun[]
@@ -386,6 +471,7 @@ model User {
   journalEntries              JournalEntry[]
   salesInvoices               SalesInvoice[]
   purchaseInvoices            PurchaseInvoice[]
+  quotations                  Quotation[]                  @relation("QuotationCreator")
   payments                    Payment[]
   closedYears                 FiscalYear[]                 @relation("ClosedBy")
   audits                      AuditLog[]
@@ -527,6 +613,7 @@ model InventoryItem {
   productionLines      ProductionRunItem[]   @relation("ProductionLines")
   salesInvoiceItems    SalesInvoiceItem[]    @relation("SalesInvoiceInventory")
   purchaseInvoiceItems PurchaseInvoiceItem[] @relation("PurchaseInvoiceInventory")
+  quotationItems       QuotationItem[]       @relation("QuotationItemInventory")
   opnameLines          StockOpnameItem[]     @relation("OpnameLines")
   cogsBackfills        CogsBackfillQueue[]   @relation("CogsBackfillItem")
   createdAt            DateTime              @default(now()) @map("created_at")
@@ -789,6 +876,7 @@ model ServiceItem {
   isActive          Boolean            @default(true) @map("is_active")
   isDummy           Boolean            @default(false) @map("is_dummy")
   salesInvoiceItems SalesInvoiceItem[] @relation("SalesInvoiceService")
+  quotationItems    QuotationItem[]    @relation("QuotationItemService")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 

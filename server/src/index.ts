@@ -39,6 +39,8 @@ import customerDepositRoutes from './routes/customerDeposits';
 import systemAccountRoutes from './routes/systemAccounts';
 import attachmentRoutes from './routes/attachments';
 import stockOpnameRoutes from './routes/stockOpname';
+import quotationRoutes from './routes/quotations';
+import { startQuotationSweeper } from './jobs/quotationSweeper';
 import healthCheckRoutes from './routes/healthCheck';
 import fixedAssetRoutes from './routes/fixedAssets';
 import approvalRoutes from './routes/approvals';
@@ -165,6 +167,7 @@ app.use('/api/health-check', healthCheckRoutes);
 app.use('/api/fixed-assets', fixedAssetRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/cogs-backfill', cogsBackfillRoutes);
+app.use('/api/quotations', quotationRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist
@@ -211,4 +214,8 @@ app.listen(port, () => {
   };
   void purgeExpiredTokens();
   setInterval(purgeExpiredTokens, 60 * 60 * 1000);
+
+  // Quotation lifecycle: auto-expire stale Sent quotations and queue
+  // notifications for ones approaching their validUntil date.
+  startQuotationSweeper();
 });
