@@ -178,6 +178,7 @@ model SalesInvoice {
   terms               String?
   dueDate             DateTime?                    @map("due_date")
   notes               String?
+  customerRefNo       String?                      @map("customer_ref_no")
   fiscalYearId        String                       @map("fiscal_year_id")
   fiscalYear          FiscalYear                   @relation(fields: [fiscalYearId], references: [id])
   createdBy           String                       @map("created_by")

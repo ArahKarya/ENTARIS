@@ -56,6 +56,7 @@ export const CreateSalesInvoiceSchema = z.object({
   items: z.array(InvoiceItemSchema).min(1, 'Minimal satu item.'),
   dueDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  customerRefNo: z.string().max(100).nullable().optional(),    // No. PO / Penawaran pelanggan
   taxPct: z.coerce.number().min(0).max(100).optional().default(0),    // PPN %
   potongan: z.coerce.number().min(0).optional().default(0),           // potongan amount
   biayaLain: z.coerce.number().optional().default(0),          // biaya tambahan (boleh negatif = potongan)

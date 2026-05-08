@@ -253,6 +253,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
           date={invoice.date}
           dueDate={invoice.dueDate}
           terms={invoice.terms}
+          customerRefNo={invoice.customerRefNo}
           status={invoice.status}
           notes={invoice.notes}
           taxPct={invoice.taxPct ?? 0}
@@ -406,6 +407,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     date={invoice.date}
                     dueDate={invoice.dueDate}
                     terms={invoice.terms}
+          customerRefNo={invoice.customerRefNo}
                     status={invoice.status}
                     notes={invoice.notes}
                     taxPct={invoice.taxPct ?? 0}
@@ -569,6 +571,12 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                         <div>
                           <p className="text-xs text-gray-400">Termin</p>
                           <p className="text-xs font-medium text-gray-800">{invoice.terms}</p>
+                        </div>
+                      )}
+                      {invoice.customerRefNo && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-gray-400">No. Ref. PO / Penawaran</p>
+                          <p className="text-xs font-mono font-medium text-gray-800">{invoice.customerRefNo}</p>
                         </div>
                       )}
                       <div>

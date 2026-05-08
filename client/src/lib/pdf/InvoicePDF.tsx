@@ -181,6 +181,7 @@ export interface InvoicePDFProps {
   terms?: string | null;
   status: string;
   notes?: string | null;
+  customerRefNo?: string | null;
   taxPct?: number | string;
   potongan?: number | string;
   biayaLain?: number | string;
@@ -226,7 +227,7 @@ function statusStyle(status: string) {
 // ─── Main component ───────────────────────────────────────────────────────────
 const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
   const {
-    type, invoiceNumber, date, dueDate, terms, status, notes,
+    type, invoiceNumber, date, dueDate, terms, status, notes, customerRefNo,
     taxPct = 0, potongan = 0, biayaLain = 0,
     labelPotongan, labelBiaya, grandTotal,
     outstanding, paidFromCash, paidFromDeposit, partyDepositBalance,
@@ -329,6 +330,12 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                 <View style={S.metaItem}>
                   <Text style={S.metaItemLabel}>Termin</Text>
                   <Text style={S.metaItemValue}>{terms}</Text>
+                </View>
+              )}
+              {customerRefNo && (
+                <View style={S.metaItem}>
+                  <Text style={S.metaItemLabel}>No. Ref. PO / Penawaran</Text>
+                  <Text style={S.metaItemValue}>{customerRefNo}</Text>
                 </View>
               )}
             </View>

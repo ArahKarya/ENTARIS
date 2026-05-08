@@ -38,6 +38,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   const [partyId, setPartyId] = useState('');
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState('Net 30');
+  const [customerRefNo, setCustomerRefNo] = useState(''); // No. PO / Penawaran pelanggan
 
   const calcDueDate = (baseDate: string, term: string): string => {
     const days = term === 'Cash' ? 0 : parseInt(term.replace('Net ', ''), 10) || 30;
@@ -133,6 +134,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       setPartyId('');
       setNotes('');
       setTerms('Net 30');
+      setCustomerRefNo('');
       setPotongan(0);
       setBiayaLain(0);
       setLabelPotongan('Potongan');
@@ -314,9 +316,17 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Info</label>
-                <p className="text-xs text-gray-400 mt-1">PPN & PPh diatur per baris item</p>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi PO / Penawaran (opsional)</label>
+                <input
+                  type="text"
+                  value={customerRefNo}
+                  onChange={(e) => setCustomerRefNo(e.target.value)}
+                  placeholder="mis. PO-2026-001 atau QO-202604-0012"
+                  maxLength={100}
+                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">Akan dicetak di invoice sebagai referensi pembeli. PPN & PPh diatur per baris item.</p>
               </div>
             </div>
           </div>
@@ -664,7 +674,9 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             <button onClick={onClose} className="btn-secondary">Batal</button>
             <button
               onClick={() => mutation.mutate({
-                date: invoiceDate, dueDate, partyId, notes, terms, potongan, biayaLain, labelPotongan, labelBiaya,
+                date: invoiceDate, dueDate, partyId, notes, terms,
+                customerRefNo: customerRefNo || null,
+                potongan, biayaLain, labelPotongan, labelBiaya,
                 allowNegativeStock,
                 items: items.map(i => ({
                   ...i,

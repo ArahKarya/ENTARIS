@@ -249,6 +249,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
           labelPotongan: body.labelPotongan || null,
           labelBiaya: body.labelBiaya || null,
           terms: body.terms || null,
+          customerRefNo: body.customerRefNo || null,
           status: 'Submitted',
           notes: body.notes || null,
           fiscalYearId: fiscalYear.id,
