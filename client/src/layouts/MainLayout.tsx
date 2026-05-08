@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
-import { LogOut, Search, Keyboard, KeyRound, Menu } from 'lucide-react';
+import { LogOut, Search, Keyboard, KeyRound, Menu, Sun, Moon, Monitor } from 'lucide-react';
 import { NotificationBell } from '../components/NotificationBell';
 import { useHotkey } from '../hooks/useHotkeys';
 import { CommandPalette } from '../components/CommandPalette';
 import { ShortcutHelp } from '../components/ShortcutHelp';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import OnboardingWizard from '../components/OnboardingWizard';
+import { useTheme } from '../contexts/ThemeContext';
 import api from '../lib/api';
 
 const routeNames: Record<string, string> = {
@@ -32,6 +33,7 @@ const routeNames: Record<string, string> = {
 export const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -70,6 +72,13 @@ export const MainLayout = () => {
     localStorage.removeItem('user');
     navigate('/login');
   };
+
+  const cycleTheme = () => {
+    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+    setTheme(next);
+  };
+  const ThemeIcon = theme === 'dark' ? Moon : theme === 'system' ? Monitor : Sun;
+  const themeTitle = theme === 'dark' ? 'Tema: Gelap (klik untuk Sistem)' : theme === 'system' ? 'Tema: Sistem (klik untuk Terang)' : 'Tema: Terang (klik untuk Gelap)';
 
   const segment = location.pathname.split('/').filter(Boolean)[0] || '';
   const pageName = routeNames[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
@@ -131,6 +140,14 @@ export const MainLayout = () => {
               aria-label="Buka pencarian"
             >
               <Search className="w-4 h-4" />
+            </button>
+            <button
+              onClick={cycleTheme}
+              className="p-1.5 rounded-md transition-colors hover:bg-accent text-muted-foreground"
+              title={themeTitle}
+              aria-label="Ganti tema"
+            >
+              <ThemeIcon className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsShortcutHelpOpen(true)}

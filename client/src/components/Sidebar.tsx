@@ -12,9 +12,6 @@ import {
   Package,
   Network,
   Warehouse,
-  Sun,
-  Moon,
-  Monitor,
   Shield,
   ScrollText,
   Repeat,
@@ -68,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const location = useLocation();
   const settings = useCompanySettings();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   // Pick the right logo variant per theme, with sensible fallbacks so the sidebar
   // logo stays visible in both modes. Default static icon ships as white, so it
@@ -78,14 +75,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
     : (settings?.logoUrl || settings?.logoUrlDark || null);
   const sidebarLogoSrc = customLogo || '/pwa-192x192.png';
   const needsInvert = !customLogo && resolvedTheme !== 'dark';
-
-  const cycleTheme = () => {
-    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
-    setTheme(next);
-  };
-
-  const ThemeIcon = theme === 'dark' ? Moon : theme === 'system' ? Monitor : Sun;
-  const themeLabel = theme === 'dark' ? 'Tema: Gelap' : theme === 'system' ? 'Tema: Sistem' : 'Tema: Terang';
 
   const user = useMemo(() => {
     try {
@@ -194,22 +183,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
           );
         })}
       </nav>
-
-      {/* Theme Toggle */}
-      <div className="px-2 pb-1">
-        <button
-          onClick={cycleTheme}
-          title={themeLabel}
-          className={cn(
-            'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors',
-            'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-          )}
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          <ThemeIcon size={16} className="flex-shrink-0" />
-          {(mobileOpen || !isCollapsed) && <span className="truncate text-xs font-medium">{themeLabel}</span>}
-        </button>
-      </div>
 
       {/* Version */}
       {(mobileOpen || !isCollapsed) && (
