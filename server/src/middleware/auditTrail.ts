@@ -7,10 +7,11 @@ export const auditTrailMiddleware = async (req: AuthRequest, res: Response, next
   const originalJson = res.json.bind(res);
 
   res.json = function (body) {
-    if (req.user && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    if (req.user && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       const actionMap: Record<string, string> = {
         POST: 'CREATE',
         PUT: 'UPDATE',
+        PATCH: 'UPDATE',
         DELETE: 'DELETE',
       };
 

@@ -3,11 +3,12 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
+import { roleMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 // GET /api/cogs-backfill — list pending/settled queue entries
-router.get('/', async (req, res) => {
+router.get('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
   try {
     const { status, itemId, limit = '50' } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
@@ -38,7 +39,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/cogs-backfill/summary — aggregate for dashboard widget
-router.get('/summary', async (_req, res) => {
+router.get('/summary', roleMiddleware(['Admin', 'Accountant']), async (_req, res) => {
   try {
     const [pendingCount, byItem] = await Promise.all([
       prisma.cogsBackfillQueue.count({ where: { status: { in: ['Pending', 'PartiallySettled'] } } }),

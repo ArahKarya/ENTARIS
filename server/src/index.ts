@@ -8,6 +8,7 @@ import path from 'path';
 import { authMiddleware } from './middleware/auth';
 import { auditTrailMiddleware } from './middleware/auditTrail';
 import { logger } from './lib/logger';
+import { prisma } from './lib/prisma';
 
 // Route handlers
 import authRoutes from './routes/auth';
@@ -123,12 +124,14 @@ const apiRateLimit = rateLimit({
 // ─── Health Check ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
+// ─── Rate-limit ALL /api routes (including /api/auth/*) ────────────────────────
+app.use('/api', apiRateLimit);
+
 // ─── Public Routes ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
 
 // ─── Protected Routes ──────────────────────────────────────────────────────────
-app.use('/api', apiRateLimit);
 app.use('/api', authMiddleware);
 app.use('/api', auditTrailMiddleware);
 
@@ -190,4 +193,22 @@ app.listen(port, () => {
   systemAccounts.validateStartup().catch((err) => {
     logger.error({ err }, 'System account mapping validation failed');
   });
+
+  // Periodic cleanup of expired blacklisted tokens. The blacklist is checked
+  // on every authenticated request; without pruning it grows unbounded and
+  // slows down `findUnique`. Runs every hour.
+  const purgeExpiredTokens = async () => {
+    try {
+      const result = await prisma.tokenBlacklist.deleteMany({
+        where: { expiresAt: { lt: new Date() } },
+      });
+      if (result.count > 0) {
+        logger.info({ deleted: result.count }, 'Purged expired blacklisted tokens');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Token blacklist purge failed');
+    }
+  };
+  void purgeExpiredTokens();
+  setInterval(purgeExpiredTokens, 60 * 60 * 1000);
 });
