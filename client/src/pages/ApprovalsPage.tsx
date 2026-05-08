@@ -4,6 +4,7 @@ import { ShieldCheck, Plus, Check, X, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface ApprovalRule {
   id: string;
@@ -45,6 +46,7 @@ export default function ApprovalsPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<'requests' | 'rules'>('requests');
   const [showRuleForm, setShowRuleForm] = useState(false);
+  const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
 
   const { data: requests = [] } = useQuery<ApprovalRequest[]>({
     queryKey: ['approval-requests'],
@@ -211,7 +213,7 @@ export default function ApprovalsPage() {
                       <td><span className="badge badge-blue">{rule.requiredRole}</span></td>
                       <td><span className={cn('badge', rule.isActive ? 'badge-green' : 'badge-gray')}>{rule.isActive ? 'Aktif' : 'Nonaktif'}</span></td>
                       <td>
-                        <button onClick={() => { if (confirm('Hapus aturan ini?')) deleteRuleMut.mutate(rule.id); }}
+                        <button onClick={() => setDeleteRuleId(rule.id)}
                           className="text-xs text-red-500 hover:text-red-700">Hapus</button>
                       </td>
                     </tr>
@@ -222,6 +224,19 @@ export default function ApprovalsPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteRuleId !== null}
+        title="Hapus Aturan Approval"
+        message="Hapus aturan ini? Tindakan ini tidak bisa dibatalkan."
+        confirmLabel="Ya, Hapus"
+        variant="danger"
+        onCancel={() => setDeleteRuleId(null)}
+        onConfirm={() => {
+          if (deleteRuleId) deleteRuleMut.mutate(deleteRuleId);
+          setDeleteRuleId(null);
+        }}
+      />
     </div>
   );
 }

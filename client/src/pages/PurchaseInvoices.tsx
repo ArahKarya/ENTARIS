@@ -12,6 +12,7 @@ import { exportToExcel } from '../lib/exportExcel';
 import PurchaseInvoiceModal from '../components/PurchaseInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import PaymentModal from '../components/PaymentModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -32,14 +33,16 @@ export const PurchaseInvoices = () => {
   const [isPayOpen, setIsPayOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editPrefill, setEditPrefill] = useState<any>(null);
+  const [editConfirmTarget, setEditConfirmTarget] = useState<any>(null);
   const queryClient = useQueryClient();
 
   // "Edit Lengkap" workflow: cancel old invoice, then open modal prefilled with its data
-  const handleEditFull = async (invoice: any) => {
+  const handleEditFull = (invoice: any) => {
     if (!invoice?.id) return;
-    if (!confirm(`Edit invoice ${invoice.invoiceNumber}?\n\nInvoice lama akan dibatalkan dan kamu akan membuat invoice baru dengan data yang sudah terisi. Nomor invoice akan berubah.`)) {
-      return;
-    }
+    setEditConfirmTarget(invoice);
+  };
+
+  const performEditFull = async (invoice: any) => {
     try {
       await api.post(`/purchase/invoices/${invoice.id}/cancel`);
       toast.success(`Invoice ${invoice.invoiceNumber} dibatalkan. Silakan edit & simpan ulang.`);
@@ -429,6 +432,20 @@ export const PurchaseInvoices = () => {
         isOpen={isPayOpen}
         onClose={() => setIsPayOpen(false)}
         defaultType="Pay"
+      />
+
+      <ConfirmDialog
+        open={editConfirmTarget !== null}
+        title="Edit Invoice"
+        message={`Edit invoice ${editConfirmTarget?.invoiceNumber}? Invoice lama akan dibatalkan dan kamu akan membuat invoice baru dengan data yang sudah terisi. Nomor invoice akan berubah.`}
+        confirmLabel="Lanjut Edit"
+        variant="danger"
+        onCancel={() => setEditConfirmTarget(null)}
+        onConfirm={() => {
+          const target = editConfirmTarget;
+          setEditConfirmTarget(null);
+          if (target) void performEditFull(target);
+        }}
       />
     </div>
   );

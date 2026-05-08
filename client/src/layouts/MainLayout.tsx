@@ -49,6 +49,13 @@ export const MainLayout = () => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Update browser tab title to current page so tab list & history are useful
+  useEffect(() => {
+    const segment = location.pathname.split('/').filter(Boolean)[0] || '';
+    const name = routeNames[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
+    document.title = name ? `${name} — Simple ERP` : 'Simple ERP';
+  }, [location.pathname]);
+
   useHotkey('mod+k', () => setIsSearchOpen(true));
   useHotkey('?', () => setIsShortcutHelpOpen(true), !isSearchOpen && !isShortcutHelpOpen);
 
@@ -120,6 +127,7 @@ export const MainLayout = () => {
               onClick={() => setIsSearchOpen(true)}
               className="p-1.5 rounded-md transition-colors hover:bg-accent text-muted-foreground"
               title="Pencarian (Ctrl+K)"
+              aria-label="Buka pencarian"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -127,6 +135,7 @@ export const MainLayout = () => {
               onClick={() => setIsShortcutHelpOpen(true)}
               className="hidden sm:block p-1.5 rounded-md transition-colors hover:bg-accent text-muted-foreground"
               title="Pintasan Keyboard (?)"
+              aria-label="Lihat pintasan keyboard"
             >
               <Keyboard className="w-4 h-4" />
             </button>

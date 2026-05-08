@@ -335,8 +335,10 @@
 
 /* Data table */
 .data-table { @apply w-full text-sm; font-variant-numeric: tabular-nums; }
+.data-table thead { position: sticky; top: 0; z-index: 1; }
 .data-table thead tr { border-bottom: 1px solid var(--border); }
 .data-table thead th {
+  background: var(--card);
   color: var(--muted-foreground);
   @apply text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3;
 }

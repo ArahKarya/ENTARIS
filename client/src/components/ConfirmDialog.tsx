@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+
 interface ConfirmDialogProps {
   open: boolean;
   title?: string;
@@ -19,6 +22,22 @@ export function ConfirmDialog({
   cancelLabel = 'Batal',
   variant = 'default',
 }: ConfirmDialogProps) {
+  useBodyScrollLock(open);
+
+  const confirmRef = useRef<HTMLButtonElement>(null);
+
+  // Focus the confirm button on open so keyboard users can hit Enter immediately,
+  // and ESC closes from anywhere.
+  useEffect(() => {
+    if (!open) return;
+    confirmRef.current?.focus();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
@@ -27,22 +46,26 @@ export function ConfirmDialog({
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
       className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4"
-      onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="rounded-xl shadow-xl w-full max-w-sm p-6" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-        <h2 id="confirm-dialog-title" className="text-base font-semibold text-gray-900 mb-2">
+      <div
+        className="rounded-xl shadow-xl w-full max-w-sm p-6"
+        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+      >
+        <h2 id="confirm-dialog-title" className="text-base font-semibold text-foreground mb-2">
           {title}
         </h2>
-        <p className="text-sm text-gray-600 mb-6">{message}</p>
+        <p className="text-sm text-muted-foreground mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-lg transition-colors"
           >
             {cancelLabel}
           </button>
           <button
+            ref={confirmRef}
             type="button"
             onClick={onConfirm}
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${

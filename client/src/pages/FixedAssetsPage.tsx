@@ -4,6 +4,7 @@ import { Building2, Plus, ChevronDown, ChevronRight, Play, Trash2 } from 'lucide
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface FixedAsset {
   id: string;
@@ -43,6 +44,7 @@ export default function FixedAssetsPage() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [disposeTarget, setDisposeTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: assets = [], isLoading } = useQuery<FixedAsset[]>({
     queryKey: ['fixed-assets'],
@@ -227,9 +229,10 @@ export default function FixedAssetsPage() {
                 </div>
                 {asset.status === 'Active' && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); if (confirm('Disposisi aset ini?')) disposeMut.mutate({ assetId: asset.id, disposalDate: new Date().toISOString().substring(0, 10) }); }}
+                    onClick={(e) => { e.stopPropagation(); setDisposeTarget({ id: asset.id, name: asset.name ?? asset.assetNumber ?? '' }); }}
                     className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
                     title="Disposisi"
+                    aria-label="Disposisi aset"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -284,6 +287,21 @@ export default function FixedAssetsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={disposeTarget !== null}
+        title="Disposisi Aset"
+        message={`Yakin ingin disposisi aset "${disposeTarget?.name}"? Aset akan ditandai disposed dan tidak lagi dihitung depresiasinya.`}
+        confirmLabel="Ya, Disposisi"
+        variant="danger"
+        onCancel={() => setDisposeTarget(null)}
+        onConfirm={() => {
+          if (disposeTarget) {
+            disposeMut.mutate({ assetId: disposeTarget.id, disposalDate: new Date().toISOString().substring(0, 10) });
+          }
+          setDisposeTarget(null);
+        }}
+      />
     </div>
   );
 }
