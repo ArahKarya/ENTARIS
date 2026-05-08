@@ -166,6 +166,18 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
 
   const items = invoice?.items ?? [];
   const subtotal = items.reduce((s: number, i: any) => s + Number(i.amount), 0);
+  // Sum quantity per unit. For purchase invoices, prefer timbanganDiterima
+  // (received weight) when present, else fall back to quantity.
+  const totalQtyByUnit: Record<string, number> = {};
+  for (const i of items as any[]) {
+    const q = Number(i.timbanganDiterima ?? i.quantity ?? 0);
+    if (q <= 0) continue;
+    const u = i.unit || 'Pcs';
+    totalQtyByUnit[u] = (totalQtyByUnit[u] ?? 0) + q;
+  }
+  const totalQtyLabel = Object.entries(totalQtyByUnit)
+    .map(([u, q]) => `${(q as number).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${u}`)
+    .join(' · ');
   const taxPct = Number(invoice?.taxPct ?? 0);
   // Per-item tax: sum each item's tax, fallback to invoice-level for old invoices
   const taxAmount = items.some((i: any) => Number(i.taxPct ?? 0) > 0)
@@ -762,6 +774,12 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
               <div className="px-6 py-4 border-b border-gray-100">
                 <div className="flex justify-end">
                   <div className="w-72 space-y-2">
+                    {totalQtyLabel && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Total Qty</span>
+                        <span className="font-mono text-gray-800 tabular-nums">{totalQtyLabel}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Subtotal</span>
                       <span className="font-mono text-gray-800 tabular-nums">{formatRupiah(subtotal)}</span>

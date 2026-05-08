@@ -227,6 +227,14 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   const taxAmount = items.reduce((s, it) => s + lineTax(it), 0);
   const pphAmount = items.reduce((s, it) => s + linePph(it), 0);
   const grandTotal = subtotal + taxAmount - pphAmount - potongan + biayaLain;
+  // Sum quantities only for rows that share a unit so the figure stays
+  // meaningful (mixing Kg + Pcs would be misleading).
+  const totalQtyByUnit = items.reduce<Record<string, number>>((acc, it) => {
+    if (!it.itemName || !it.quantity) return acc;
+    const u = it.unit || 'Pcs';
+    acc[u] = (acc[u] ?? 0) + it.quantity;
+    return acc;
+  }, {});
 
   const stockShortages = (() => {
     const qtyByItem = new Map<string, number>();
@@ -525,6 +533,18 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             {/* Totals */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <div className="space-y-2.5">
+                {/* Total Qty (per unit) */}
+                {Object.keys(totalQtyByUnit).length > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Total Qty</span>
+                    <span className="font-mono text-gray-800 tabular-nums">
+                      {Object.entries(totalQtyByUnit)
+                        .map(([u, q]) => `${q.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${u}`)
+                        .join(' · ')}
+                    </span>
+                  </div>
+                )}
+
                 {/* Subtotal */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Subtotal</span>

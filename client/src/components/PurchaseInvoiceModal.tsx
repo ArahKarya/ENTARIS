@@ -220,6 +220,15 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const totalPph = lineCalcs.reduce((s, c) => s + c.pph, 0);
   const totalPotongan = items.reduce((s, i) => s + (i.potonganItem || 0), 0);
   const grandTotal = subtotalItems + biayaLain;
+  // Sum effective quantity (timbanganDiterima) per unit so the total stays
+  // meaningful when items use different units (Kg vs Sak vs Pcs).
+  const totalQtyByUnit = items.reduce<Record<string, number>>((acc, it) => {
+    const q = Number(it.timbanganDiterima ?? 0);
+    if (!it.itemName || q <= 0) return acc;
+    const u = it.unit || 'Kg';
+    acc[u] = (acc[u] ?? 0) + q;
+    return acc;
+  }, {});
   // Every row must be valid; at least one row must produce value.
   // rate boleh negatif (baris jasa/biaya yang mengurangi tagihan), tapi tidak boleh 0.
   const allRowsValid = items.every(
@@ -526,6 +535,16 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
             </div>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <div className="space-y-2 text-sm">
+                {Object.keys(totalQtyByUnit).length > 0 && (
+                  <div className="flex justify-between text-gray-600 text-xs font-medium">
+                    <span>Total Qty</span>
+                    <span className="font-mono tabular-nums">
+                      {Object.entries(totalQtyByUnit)
+                        .map(([u, q]) => `${q.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${u}`)
+                        .join(' · ')}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-500 text-xs">
                   <span>Total PPN (info)</span>
                   <span className="font-mono tabular-nums">{formatRupiah(totalPpn)}</span>
