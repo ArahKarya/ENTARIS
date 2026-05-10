@@ -3,9 +3,9 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '2.3.0';
-export const APP_BUILD_DATE = '2026-04-13';
-export const APP_NAME = 'Keuangan';
+export const APP_VERSION = '3.0.0';
+export const APP_BUILD_DATE = '2026-05-10';
+export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,35 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.0.0',
+    date: '2026-05-10',
+    title: 'Rebrand ERP PMD, Pipeline Inquiry → Penawaran → Invoice, Public Form',
+    changes: [
+      'Rebrand: aplikasi berganti nama dari "Simple ERP" menjadi "ERP PMD"; domain pindah ke erp.panganmasadepan.com',
+      'Modul Inquiry: catat pertanyaan calon customer (prospect) sebelum penawaran resmi — workflow Baru → Diproses → Dikonversi/Hilang/Ditutup, multi-channel tracking (WA/Telp/Email/Walk-in/Referral)',
+      'Public Inquiry Form: halaman /tanya untuk customer isi sendiri, terintegrasi auto ke pipeline. Anti-spam: honeypot + rate limit',
+      'QR Code Generator: generate QR di header Inquiry untuk dibagikan via WA/IG bio/cetak brosur, dengan tracking sumber',
+      'Modul Penawaran (Quotations): full lifecycle Draft → Sent → Accepted/Rejected/Expired, conversion ke Sales Invoice, PDF export, Excel export',
+      'Auto-expire Penawaran: sweeper otomatis tiap jam mark Sent yang lewat validUntil jadi Expired + notifikasi 3 hari sebelum expiry',
+      'Sidebar Modular: 9 modul (Penjualan, Pembelian, Stok & Produksi, Bank & Kas, Akuntansi, Laporan, Master Data, Sistem) dengan submenu collapse/expand, persist state',
+      'Theme Toggle: dipindahkan dari sidebar ke header (samping Search) — Light/Dark/System cycle',
+      'Excel Export per-item Invoice Penjualan & Pembelian (sebelumnya per-invoice saja)',
+      'No. Referensi PO/Penawaran di Sales Invoice (customerRefNo) — tampil di drawer & PDF',
+      'Total Qty di Invoice Modal & Drawer — agregat per unit (Kg / Sak / Pcs)',
+      'Vendor Deposit Refund: endpoint baru /vendor-deposits/:id/refund untuk offset hutang FIFO + refund kas',
+      'Industrial Professional theme: OKLCH steel blue, Inter + Plus Jakarta Sans, dark mode improvements',
+      'Composite indexes ALE & stock_movements (perf)',
+      'Magic-byte MIME validation untuk upload (security)',
+      'Token blacklist purge cron (reliability)',
+      'Cogs Backfill role guard (security)',
+      'Sticky table thead, ConfirmDialog adoption di Approvals/FixedAssets/PurchaseInvoices',
+      'Health Check fixes: ALE referenceType StockMovement → JournalEntry pada manual stock adjustment',
+      'Dashboard Inventory: formula nilai stok pakai GL saldo (bukan SM cumulative)',
+      'Sales invoice boleh grandTotal=0 (untuk sample/replacement/100% diskon)',
+      'Generalize: industri-agnostik via terminology hook (vendor/customer label configurable)',
+    ],
+  },
   {
     version: '2.3.0',
     date: '2026-04-13',

@@ -132,7 +132,7 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 level="M"
                 includeMargin={false}
                 bgColor="#ffffff"
-                fgColor="#1e3a8a"
+                fgColor="#374151"
               />
             </div>
             <p className="text-[11px] text-gray-500 text-center px-4 break-all font-mono">{url}</p>

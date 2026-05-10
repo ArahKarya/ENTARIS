@@ -160,11 +160,17 @@ Fitur dikelompokkan per area bisnis. Semua modul terintegrasi pada satu basis da
 
 ### 2. Penjualan & Piutang
 
-- **Invoice Penjualan** per-item dengan PPN individual per baris, diskon per-item maupun global, biaya tambahan (ongkir, packing), dan auto-posting `DR Piutang / CR Penjualan`.
+Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua tahap saling terhubung satu klik.
+
+- **Inquiry (NEW)** — catat pertanyaan calon customer/prospect sebelum penawaran resmi. Workflow Baru → Diproses → Dikonversi/Hilang/Ditutup; channel tracking (WhatsApp / Telepon / Email / Walk-in / Referral); items hybrid (free-text atau structured); auto-create Party saat conversion ke Penawaran.
+- **Public Inquiry Form (NEW)** — halaman publik `/tanya` untuk customer isi sendiri, langsung masuk ke pipeline. Mobile-first, branded dengan logo perusahaan, anti-spam (honeypot + rate limit). Dilengkapi **QR Code Generator** untuk dibagikan via WA / IG bio / brosur / kartu nama dengan tracking sumber.
+- **Penawaran (Quotations)** — full lifecycle Draft → Sent → Accepted/Rejected/Expired. Auto-expire sweeper tiap jam + notifikasi 3 hari sebelum expiry. PDF "PENAWARAN HARGA" dengan validity box, status badge, signatures, disclaimer "Bukan Faktur Resmi". Conversion satu-klik ke Sales Invoice.
+- **Invoice Penjualan** per-item dengan PPN individual per baris, diskon per-item maupun global, biaya tambahan (ongkir, packing), No. Referensi PO/Penawaran customer, dan auto-posting `DR Piutang / CR Penjualan`. Boleh `grandTotal=0` untuk sample/replacement/100% diskon.
 - **Penerimaan Pembayaran** dengan auto-alokasi ke invoice outstanding berbasis FIFO; mendukung *split payment* (satu transfer untuk beberapa invoice), *partial payment*, dan refund uang muka.
 - **Deposit Pelanggan** (uang muka) dengan konversi otomatis ke invoice saat realisasi.
 - **Aging Piutang** real-time dalam bucket 0-30 / 31-60 / 61-90 / >90 hari, lengkap dengan jadwal piutang jatuh tempo untuk kebutuhan collection.
 - **Cancel & Return** yang membatalkan invoice sekaligus membalik posting GL secara otomatis — tidak perlu jurnal koreksi manual.
+- **Excel Export per-item** — daftar invoice di-export sebagai 1 baris per item (bukan per invoice), termasuk kolom kualitas/timbangan untuk pembelian.
 
 ### 3. Pembelian & Hutang
 
