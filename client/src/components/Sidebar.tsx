@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   LayoutDashboard,
   Receipt,
@@ -8,6 +8,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CreditCard,
   Package,
   Network,
@@ -23,6 +24,9 @@ import {
   Building2,
   ShieldCheck,
   FileSignature,
+  Inbox,
+  BookOpen,
+  ServerCog,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -30,30 +34,98 @@ import { useCompanySettings } from '../contexts/CompanySettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { APP_VERSION } from '../lib/version';
 
-type NavItem = { icon: React.FC<any>; label: string; href: string; roles?: string[] };
+type Role = 'Admin' | 'Accountant' | 'StaffProduksi' | 'Viewer';
 
+interface NavItem {
+  icon: React.FC<any>;
+  label: string;
+  href?: string;
+  roles?: Role[];
+  children?: NavItem[];
+}
+
+// ─── Module / submodule structure (Opsi A — by business function) ──────────
+// Parent without href is a pure group toggle. With href, parent is both link
+// and group — we treat it as group only (children take precedence).
 const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: Network, label: 'Bagan Akun', href: '/coa', roles: ['Admin', 'Accountant', 'Viewer'] },
-  { icon: Receipt, label: 'Buku Besar', href: '/gl', roles: ['Admin', 'Accountant', 'Viewer'] },
-  { icon: FileSignature, label: 'Penawaran', href: '/quotations', roles: ['Admin', 'Accountant', 'Viewer'] },
-  { icon: ShoppingCart, label: 'Penjualan', href: '/sales', roles: ['Admin', 'Accountant', 'Viewer'] },
-  { icon: Package, label: 'Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
-  { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory' },
-  { icon: ClipboardCheck, label: 'Stok Opname', href: '/stock-opname', roles: ['Admin', 'Accountant'] },
-  { icon: CreditCard, label: 'Bank & Kas', href: '/payments', roles: ['Admin', 'Accountant', 'Viewer'] },
-  { icon: Wallet, label: 'Uang Muka Vendor', href: '/vendor-deposits', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
-  { icon: Wallet, label: 'Uang Muka Pelanggan', href: '/customer-deposits', roles: ['Admin', 'Accountant'] },
-  { icon: Scale, label: 'Rekonsiliasi Bank', href: '/reconciliation', roles: ['Admin', 'Accountant'] },
-  { icon: Users, label: 'Pelanggan & Vendor', href: '/parties', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
-  { icon: Repeat, label: 'Transaksi Berulang', href: '/recurring', roles: ['Admin', 'Accountant'] },
-  { icon: Building2, label: 'Aset Tetap', href: '/fixed-assets', roles: ['Admin', 'Accountant'] },
-  { icon: FileBarChart, label: 'Laporan Keuangan', href: '/reports', roles: ['Admin', 'Accountant', 'Viewer'] },
-  { icon: ShieldCheck, label: 'Approval', href: '/approvals', roles: ['Admin', 'Accountant'] },
-  { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['Admin'] },
-  { icon: Shield, label: 'Manajemen User', href: '/users', roles: ['Admin'] },
-  { icon: ScrollText, label: 'Jejak Audit', href: '/audit', roles: ['Admin'] },
-  { icon: HeartPulse, label: 'Health Check', href: '/health-check', roles: ['Admin'] },
+
+  {
+    icon: ShoppingCart,
+    label: 'Penjualan',
+    roles: ['Admin', 'Accountant', 'Viewer'],
+    children: [
+      { icon: Inbox, label: 'Inquiry', href: '/inquiries', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: FileSignature, label: 'Penawaran', href: '/quotations', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: Receipt, label: 'Invoice Penjualan', href: '/sales', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: Wallet, label: 'Uang Muka Pelanggan', href: '/customer-deposits', roles: ['Admin', 'Accountant'] },
+    ],
+  },
+
+  {
+    icon: Package,
+    label: 'Pembelian',
+    roles: ['Admin', 'Accountant', 'StaffProduksi'],
+    children: [
+      { icon: Receipt, label: 'Invoice Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Wallet, label: 'Uang Muka Vendor', href: '/vendor-deposits', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+    ],
+  },
+
+  {
+    icon: Warehouse,
+    label: 'Stok & Produksi',
+    children: [
+      { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory' },
+      { icon: ClipboardCheck, label: 'Stok Opname', href: '/stock-opname', roles: ['Admin', 'Accountant'] },
+    ],
+  },
+
+  {
+    icon: CreditCard,
+    label: 'Bank & Kas',
+    roles: ['Admin', 'Accountant', 'Viewer'],
+    children: [
+      { icon: CreditCard, label: 'Transaksi Bank/Kas', href: '/payments', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: Scale, label: 'Rekonsiliasi Bank', href: '/reconciliation', roles: ['Admin', 'Accountant'] },
+      { icon: Repeat, label: 'Transaksi Berulang', href: '/recurring', roles: ['Admin', 'Accountant'] },
+    ],
+  },
+
+  {
+    icon: BookOpen,
+    label: 'Akuntansi',
+    roles: ['Admin', 'Accountant', 'Viewer'],
+    children: [
+      { icon: Network, label: 'Bagan Akun', href: '/coa', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: Receipt, label: 'Buku Besar', href: '/gl', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: Building2, label: 'Aset Tetap', href: '/fixed-assets', roles: ['Admin', 'Accountant'] },
+      { icon: ShieldCheck, label: 'Approval', href: '/approvals', roles: ['Admin', 'Accountant'] },
+    ],
+  },
+
+  { icon: FileBarChart, label: 'Laporan', href: '/reports', roles: ['Admin', 'Accountant', 'Viewer'] },
+
+  {
+    icon: Users,
+    label: 'Master Data',
+    roles: ['Admin', 'Accountant', 'StaffProduksi'],
+    children: [
+      { icon: Users, label: 'Pelanggan & Vendor', href: '/parties', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+    ],
+  },
+
+  {
+    icon: ServerCog,
+    label: 'Sistem',
+    roles: ['Admin'],
+    children: [
+      { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['Admin'] },
+      { icon: Shield, label: 'Manajemen User', href: '/users', roles: ['Admin'] },
+      { icon: ScrollText, label: 'Jejak Audit', href: '/audit', roles: ['Admin'] },
+      { icon: HeartPulse, label: 'Health Check', href: '/health-check', roles: ['Admin'] },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -61,15 +133,34 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
+const EXPANDED_KEY = 'sidebar.expandedGroups';
+
+function loadExpanded(): Set<string> {
+  try {
+    const raw = localStorage.getItem(EXPANDED_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveExpanded(s: Set<string>): void {
+  try {
+    localStorage.setItem(EXPANDED_KEY, JSON.stringify([...s]));
+  } catch {
+    /* ignore */
+  }
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileClose }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(() => loadExpanded());
   const location = useLocation();
   const settings = useCompanySettings();
   const { resolvedTheme } = useTheme();
 
-  // Pick the right logo variant per theme, with sensible fallbacks so the sidebar
-  // logo stays visible in both modes. Default static icon ships as white, so it
-  // needs inversion only on light backgrounds.
   const customLogo = resolvedTheme === 'dark'
     ? (settings?.logoUrlDark || settings?.logoUrl || null)
     : (settings?.logoUrl || settings?.logoUrlDark || null);
@@ -84,16 +175,133 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
     }
   }, []);
 
-  const navItems = useMemo(() => {
-    const role = user?.role;
-    return allNavItems.filter((item) => !item.roles || item.roles.includes(role));
-  }, [user?.role]);
+  const userRole = user?.role as Role | undefined;
+
+  // Filter nav items by role. Hide a group entirely if no child matches.
+  const navItems = useMemo<NavItem[]>(() => {
+    const filterByRole = (items: NavItem[]): NavItem[] =>
+      items
+        .filter((it) => !it.roles || (userRole !== undefined && it.roles.includes(userRole)))
+        .map((it) => {
+          if (!it.children) return it;
+          const visibleChildren = filterByRole(it.children);
+          if (visibleChildren.length === 0) return null;
+          return { ...it, children: visibleChildren };
+        })
+        .filter((it): it is NavItem => it !== null);
+    return filterByRole(allNavItems);
+  }, [userRole]);
+
+  // Auto-expand the group whose child URL matches current location.
+  useEffect(() => {
+    const path = location.pathname;
+    const groupOfActive = navItems.find((g) =>
+      g.children?.some((c) => c.href && (c.href === '/' ? path === '/' : path.startsWith(c.href))),
+    );
+    if (groupOfActive && !expanded.has(groupOfActive.label)) {
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        next.add(groupOfActive.label);
+        saveExpanded(next);
+        return next;
+      });
+    }
+    // Intentionally no `expanded` in deps — only react to location changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, navItems]);
+
+  const toggleGroup = (label: string) => {
+    // When sidebar is collapsed in desktop mode, open it before expanding a group
+    if (isCollapsed && !mobileOpen) setIsCollapsed(false);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      saveExpanded(next);
+      return next;
+    });
+  };
 
   const handleNavClick = () => {
-    // Auto-close sidebar on mobile when a nav item is clicked
-    if (onMobileClose) {
-      onMobileClose();
-    }
+    if (onMobileClose) onMobileClose();
+  };
+
+  const isLinkActive = (href: string): boolean =>
+    href === '/' ? location.pathname === '/' : location.pathname.startsWith(href);
+
+  const groupHasActive = (item: NavItem): boolean =>
+    !!item.children?.some((c) => c.href && isLinkActive(c.href));
+
+  const showLabels = mobileOpen || !isCollapsed;
+
+  const renderLink = (item: NavItem, indented: boolean) => {
+    if (!item.href) return null;
+    const isActive = isLinkActive(item.href);
+    return (
+      <Link
+        key={item.label + item.href}
+        to={item.href}
+        title={!showLabels ? item.label : undefined}
+        onClick={handleNavClick}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2 my-0.5 rounded-md text-sm transition-colors duration-150',
+          indented && showLabels && 'pl-9',
+          isActive ? 'font-semibold' : 'font-medium hover:brightness-105',
+        )}
+        style={
+          isActive
+            ? { backgroundColor: 'var(--sidebar-accent)', color: 'var(--sidebar-primary)' }
+            : { color: 'var(--sidebar-foreground)' }
+        }
+      >
+        <item.icon
+          size={indented ? 14 : 18}
+          className={cn('flex-shrink-0', isActive ? '' : 'opacity-60')}
+          style={isActive ? { color: 'var(--sidebar-primary)' } : undefined}
+        />
+        {showLabels && <span className="truncate">{item.label}</span>}
+      </Link>
+    );
+  };
+
+  const renderGroup = (item: NavItem) => {
+    const isOpen = expanded.has(item.label);
+    const hasActive = groupHasActive(item);
+    return (
+      <div key={item.label}>
+        <button
+          type="button"
+          onClick={() => toggleGroup(item.label)}
+          title={!showLabels ? item.label : undefined}
+          aria-expanded={isOpen}
+          className={cn(
+            'flex items-center gap-3 w-full px-3 py-2 my-0.5 rounded-md text-sm transition-colors duration-150 text-left',
+            hasActive ? 'font-semibold' : 'font-medium hover:brightness-105',
+          )}
+          style={
+            hasActive
+              ? { color: 'var(--sidebar-primary)' }
+              : { color: 'var(--sidebar-foreground)' }
+          }
+        >
+          <item.icon
+            size={18}
+            className={cn('flex-shrink-0', hasActive ? '' : 'opacity-60')}
+            style={hasActive ? { color: 'var(--sidebar-primary)' } : undefined}
+          />
+          {showLabels && (
+            <>
+              <span className="truncate flex-1">{item.label}</span>
+              <ChevronDown
+                size={14}
+                className={cn('flex-shrink-0 opacity-60 transition-transform', isOpen && 'rotate-180')}
+              />
+            </>
+          )}
+        </button>
+        {isOpen && showLabels && item.children?.map((child) => renderLink(child, true))}
+      </div>
+    );
   };
 
   const sidebarContent = (
@@ -101,8 +309,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
       data-no-print
       className={cn(
         'h-screen border-r transition-all duration-300 flex flex-col z-50 flex-shrink-0',
-        // On mobile (inside drawer), always show full width
-        mobileOpen ? 'w-[260px]' : (isCollapsed ? 'w-[60px]' : 'w-[220px]')
+        mobileOpen ? 'w-[260px]' : (isCollapsed ? 'w-[60px]' : 'w-[240px]'),
       )}
       style={{
         backgroundColor: 'var(--sidebar)',
@@ -128,7 +335,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
           </div>
         )}
 
-        {/* On mobile: show close button. On desktop: show collapse toggle */}
         {mobileOpen ? (
           <button
             onClick={onMobileClose}
@@ -150,38 +356,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2">
-        {navItems.map((item) => {
-          const isActive =
-            location.pathname === item.href ||
-            (item.href !== '/' && location.pathname.startsWith(item.href));
-          const showLabel = mobileOpen || !isCollapsed;
-          return (
-            <Link
-              key={item.label}
-              to={item.href}
-              title={!showLabel ? item.label : undefined}
-              onClick={handleNavClick}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 my-0.5 rounded-md text-sm transition-colors duration-150',
-                isActive
-                  ? 'font-semibold'
-                  : 'font-medium hover:brightness-105'
-              )}
-              style={
-                isActive
-                  ? { backgroundColor: 'var(--sidebar-accent)', color: 'var(--sidebar-primary)' }
-                  : { color: 'var(--sidebar-foreground)' }
-              }
-            >
-              <item.icon
-                size={18}
-                className={cn('flex-shrink-0', isActive ? '' : 'opacity-60')}
-                style={isActive ? { color: 'var(--sidebar-primary)' } : undefined}
-              />
-              {showLabel && <span className="truncate">{item.label}</span>}
-            </Link>
-          );
-        })}
+        {navItems.map((item) => (item.children ? renderGroup(item) : renderLink(item, false)))}
       </nav>
 
       {/* Version */}

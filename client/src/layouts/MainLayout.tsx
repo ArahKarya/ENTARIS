@@ -16,6 +16,7 @@ const routeNames: Record<string, string> = {
   'coa': 'Bagan Akun',
   'gl': 'Buku Besar',
   'sales': 'Penjualan',
+  'inquiries': 'Inquiry',
   'quotations': 'Penawaran',
   'purchase': 'Pembelian',
   'payments': 'Bank & Kas',
@@ -56,7 +57,7 @@ export const MainLayout = () => {
   useEffect(() => {
     const segment = location.pathname.split('/').filter(Boolean)[0] || '';
     const name = routeNames[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
-    document.title = name ? `${name} — Simple ERP` : 'Simple ERP';
+    document.title = name ? `${name} — ERP PMD` : 'ERP PMD';
   }, [location.pathname]);
 
   useHotkey('mod+k', () => setIsSearchOpen(true));
