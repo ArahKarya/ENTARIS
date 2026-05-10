@@ -78,6 +78,7 @@ model Party {
   purchaseInvoices       PurchaseInvoice[]
   payments               Payment[]
   quotations             Quotation[]             @relation("QuotationCustomer")
+  inquiries              Inquiry[]               @relation("InquiryParty")
   ledgerEntries          AccountingLedgerEntry[]
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
@@ -229,6 +230,7 @@ model Quotation {
   rejectReason     String?         @map("reject_reason")
   salesInvoiceId   String?         @unique @map("sales_invoice_id")
   salesInvoice     SalesInvoice?   @relation("QuotationConvertedTo", fields: [salesInvoiceId], references: [id])
+  inquiry          Inquiry?        @relation("QuotationFromInquiry")
   fiscalYearId     String          @map("fiscal_year_id")
   fiscalYear       FiscalYear      @relation("QuotationFiscalYear", fields: [fiscalYearId], references: [id])
   createdBy        String          @map("created_by")
@@ -279,6 +281,84 @@ model QuotationItem {
   @@index([inventoryItemId])
   @@index([serviceItemId])
   @@map("quotation_items")
+}
+
+enum InquiryStatus {
+  Baru
+  Diproses
+  Dikonversi
+  Hilang
+  Ditutup
+}
+
+enum InquiryChannel {
+  WhatsApp
+  Telepon
+  Email
+  WalkIn
+  Referral
+  Lainnya
+}
+
+// Customer/prospect inquiry — captured before a Quotation is issued.
+// Lives in the Sales pipeline as the earliest stage: Inquiry → Quotation → Sales Invoice.
+model Inquiry {
+  id            String         @id @default(uuid())
+  inquiryNumber String         @unique @map("inquiry_number")
+  date          DateTime
+  status        InquiryStatus  @default(Baru)
+  channel       InquiryChannel @default(Lainnya)
+
+  // Contact info — partyId optional (prospect not yet in Parties).
+  // prospectName always present (denormalized for fast list display).
+  partyId       String?        @map("party_id")
+  party         Party?         @relation("InquiryParty", fields: [partyId], references: [id])
+  prospectName  String         @map("prospect_name")
+  prospectPhone String?        @map("prospect_phone")
+  prospectEmail String?        @map("prospect_email")
+
+  // Items: hybrid — either a freetext blob OR structured InquiryItem rows.
+  itemsMode     String         @default("freetext") @map("items_mode") // 'freetext' | 'structured'
+  itemsText     String?        @map("items_text")
+  items         InquiryItem[]
+
+  notes         String?
+  followUpDate  DateTime?      @map("follow_up_date")
+  lossReason    String?        @map("loss_reason")
+
+  // Conversion link — set once when convert-to-quotation succeeds.
+  quotationId   String?        @unique @map("quotation_id")
+  quotation     Quotation?     @relation("QuotationFromInquiry", fields: [quotationId], references: [id])
+  convertedAt   DateTime?      @map("converted_at")
+
+  fiscalYearId  String         @map("fiscal_year_id")
+  fiscalYear    FiscalYear     @relation("InquiryFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy     String         @map("created_by")
+  user          User           @relation("InquiryCreator", fields: [createdBy], references: [id])
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@map("inquiries")
+}
+
+model InquiryItem {
+  id             String   @id @default(uuid())
+  inquiryId      String   @map("inquiry_id")
+  inquiry        Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  itemName       String   @map("item_name")
+  quantity       Decimal? @db.Decimal(15, 3)
+  unit           String?
+  estimatedPrice Decimal? @map("estimated_price") @db.Decimal(15, 2)
+  description    String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([inquiryId])
+  @@map("inquiry_items")
 }
 
 model SalesInvoiceItem {
@@ -449,6 +529,7 @@ model FiscalYear {
   salesInvoices    SalesInvoice[]
   purchaseInvoices PurchaseInvoice[]
   quotations       Quotation[]             @relation("QuotationFiscalYear")
+  inquiries        Inquiry[]               @relation("InquiryFiscalYear")
   payments         Payment[]
   stockMovements   StockMovement[]
   productionRuns   ProductionRun[]
@@ -473,6 +554,7 @@ model User {
   salesInvoices               SalesInvoice[]
   purchaseInvoices            PurchaseInvoice[]
   quotations                  Quotation[]                  @relation("QuotationCreator")
+  inquiries                   Inquiry[]                    @relation("InquiryCreator")
   payments                    Payment[]
   closedYears                 FiscalYear[]                 @relation("ClosedBy")
   audits                      AuditLog[]

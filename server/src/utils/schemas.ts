@@ -96,6 +96,44 @@ export const ConvertQuotationSchema = z.object({
   allowNegativeStock: z.boolean().optional().default(false),
 }).optional();
 
+// ─── Inquiry ────────────────────────────────────────────────────────────────
+// Customer/prospect lead. Captured before a Quotation is issued.
+const InquiryItemInputSchema = z.object({
+  itemName: z.string().min(1, 'Nama item wajib diisi.'),
+  quantity: z.coerce.number().nonnegative().nullable().optional(),
+  unit: z.string().nullable().optional(),
+  estimatedPrice: z.coerce.number().nonnegative().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
+const InquiryChannelEnum = z.enum(['WhatsApp', 'Telepon', 'Email', 'WalkIn', 'Referral', 'Lainnya']);
+const InquiryStatusEnum = z.enum(['Baru', 'Diproses', 'Dikonversi', 'Hilang', 'Ditutup']);
+
+export const CreateInquirySchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  channel: InquiryChannelEnum.optional().default('Lainnya'),
+  partyId: z.string().min(1).nullable().optional(),
+  prospectName: z.string().min(1, 'Nama prospek/customer wajib diisi.').max(200),
+  prospectPhone: z.string().max(50).nullable().optional(),
+  prospectEmail: z.string().email().or(z.literal('')).nullable().optional(),
+  itemsMode: z.enum(['freetext', 'structured']).optional().default('freetext'),
+  itemsText: z.string().nullable().optional(),
+  items: z.array(InquiryItemInputSchema).optional().default([]),
+  notes: z.string().nullable().optional(),
+  followUpDate: z.string().nullable().optional(),
+}).refine(
+  (data) =>
+    data.itemsMode !== 'structured' || (data.items && data.items.length > 0) || !!data.itemsText,
+  { message: 'Inquiry harus berisi item (structured) atau permintaan (free-text).', path: ['items'] },
+);
+
+export const UpdateInquirySchema = CreateInquirySchema;
+
+export const InquiryStatusUpdateSchema = z.object({
+  status: InquiryStatusEnum,
+  lossReason: z.string().max(500).nullable().optional(),
+});
+
 // ─── Purchase Invoice ─────────────────────────────────────────────────────────
 // Extends generic InvoiceItemSchema with raw-material weigh & quality fields.
 // `quantity` remains the source of truth for stock movement, but the service

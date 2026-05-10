@@ -34,9 +34,13 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   editTarget?: any | null;
+  // Called after a NEW quotation is created (not on edit). Receives the
+  // server response so the caller can run side-effects like linking an
+  // inquiry → quotation. Awaited before the modal closes.
+  onCreated?: (quotation: any) => void | Promise<void>;
 }
 
-const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
+const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreated }) => {
   const isEdit = Boolean(editTarget?.id);
   const today = new Date().toISOString().split('T')[0];
   const defaultValidUntil = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
@@ -162,9 +166,12 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
       const res = await api[method](url, data);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       toast.success(isEdit ? 'Penawaran berhasil diperbarui.' : 'Penawaran berhasil dibuat.');
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      if (!isEdit && onCreated) {
+        try { await onCreated(data); } catch { /* caller handles its own toast */ }
+      }
       onClose();
     },
     onError: (err: any) => setError(err.response?.data?.error ?? 'Gagal menyimpan penawaran.'),

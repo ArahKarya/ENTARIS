@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import api from '../lib/api';
 import {
   Plus, Search, FileText, Loader2, ChevronLeft, ChevronRight,
   CheckCircle2, Clock, FileCheck2, Download, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery } from '@tanstack/react-query';
-import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import QuotationModal from '../components/QuotationModal';
@@ -50,6 +51,33 @@ export const Quotations = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [inquiryPrefill, setInquiryPrefill] = useState<any>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle deep-link from Inquiry → Quotation conversion. The inquiry drawer
+  // stashes the prefill payload in sessionStorage and navigates with
+  // ?from-inquiry=<inquiryId>. We pop it here and open the modal pre-filled.
+  useEffect(() => {
+    const inquiryId = searchParams.get('from-inquiry');
+    if (!inquiryId) return;
+    try {
+      const raw = sessionStorage.getItem('inquiry-convert-prefill');
+      if (raw) {
+        const payload = JSON.parse(raw);
+        sessionStorage.removeItem('inquiry-convert-prefill');
+        setInquiryPrefill(payload);
+        setEditTarget({
+          partyId: payload.partyId,
+          notes: payload.notes ? `${payload.notes}\n\n[Dari inquiry ${payload.inquiryNumber}]` : `[Dari inquiry ${payload.inquiryNumber}]`,
+          items: payload.items ?? [],
+        });
+        setIsModalOpen(true);
+      }
+    } catch { /* ignore */ }
+    // Clear param so refresh doesn't re-trigger
+    searchParams.delete('from-inquiry');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const { data: raw, isLoading } = useQuery({
     queryKey: ['quotations'],
@@ -367,8 +395,16 @@ export const Quotations = () => {
 
       <QuotationModal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditTarget(null); }}
+        onClose={() => { setIsModalOpen(false); setEditTarget(null); setInquiryPrefill(null); }}
         editTarget={editTarget}
+        onCreated={async (q) => {
+          if (inquiryPrefill?.inquiryId && q?.id) {
+            try {
+              await api.post(`/inquiries/${inquiryPrefill.inquiryId}/link`, { salesInvoiceId: undefined, quotationId: q.id });
+            } catch { /* ignore */ }
+            setInquiryPrefill(null);
+          }
+        }}
       />
 
       <QuotationDetailDrawer

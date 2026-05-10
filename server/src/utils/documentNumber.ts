@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
  */
 export async function generateDocumentNumber(
   tx: Prisma.TransactionClient,
-  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO',
+  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ',
   date: Date,
   fiscalYearId: string
 ): Promise<string> {
@@ -50,6 +50,8 @@ export async function generateDocumentNumber(
     count = await tx.stockOpname.count({ where });
   } else if (prefix === 'QO') {
     count = await tx.quotation.count({ where });
+  } else if (prefix === 'INQ') {
+    count = await tx.inquiry.count({ where });
   } else {
     count = await tx.journalEntry.count({ where });
   }

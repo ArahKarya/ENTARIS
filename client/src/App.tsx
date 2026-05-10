@@ -7,11 +7,13 @@ import { COAPage } from './pages/COAPage';
 import { SalesInvoices } from './pages/SalesInvoices';
 import { PurchaseInvoices } from './pages/PurchaseInvoices';
 import Quotations from './pages/Quotations';
+import Inquiries from './pages/Inquiries';
 import { Payments } from './pages/Payments';
 import { PartiesPage } from './pages/PartiesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { StockOpnamePage } from './pages/StockOpnamePage';
 import LoginPage from './pages/LoginPage';
+import PublicInquiry from './pages/PublicInquiry';
 
 import Reports from './pages/Reports';
 import TrialBalance from './pages/reports/TrialBalance';
@@ -72,6 +74,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/tanya" element={<PublicInquiry />} />
+        <Route path="/inquire" element={<PublicInquiry />} />
         
         <Route element={<ProtectedRoute />}>
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
@@ -79,6 +83,7 @@ function App() {
             <Route path="/coa" element={<FinanceRoute><COAPage /></FinanceRoute>} />
             <Route path="/gl" element={<FinanceRoute><GeneralLedger /></FinanceRoute>} />
             <Route path="/sales" element={<FinanceRoute><SalesInvoices /></FinanceRoute>} />
+            <Route path="/inquiries" element={<FinanceRoute><Inquiries /></FinanceRoute>} />
             <Route path="/quotations" element={<FinanceRoute><Quotations /></FinanceRoute>} />
             <Route path="/purchase" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><PurchaseInvoices /></RoleRoute>} />
             <Route path="/payments" element={<FinanceRoute><Payments /></FinanceRoute>} />
