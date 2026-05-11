@@ -335,6 +335,11 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
           lineWarehouseId = defaultWh?.id ?? null;
         }
+        if (!lineWarehouseId) {
+          throw new BusinessError(
+            `Item "${inventoryItem.name}" perlu dipilihkan gudang tujuan. Tidak ada gudang default — pilih manual di baris item.`,
+          );
+        }
 
         await tx.inventoryItem.update({
           where: { id: inventoryItem.id },
@@ -343,13 +348,11 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
             averageCost: newAvgCost,
           },
         });
-        if (lineWarehouseId) {
-          await tx.inventoryStock.upsert({
-            where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
-            create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: Number(item.quantity) },
-            update: { currentStock: { increment: Number(item.quantity) } },
-          });
-        }
+        await tx.inventoryStock.upsert({
+          where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
+          create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: Number(item.quantity) },
+          update: { currentStock: { increment: Number(item.quantity) } },
+        });
 
         await tx.stockMovement.create({
           data: {

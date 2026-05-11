@@ -256,8 +256,13 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     return out;
   })();
   const hasShortage = stockShortages.length > 0;
+  // Product line must have a warehouse — backend rejects when null & no default exists.
+  const hasMissingWarehouse = items.some(i =>
+    i.itemType === 'product' && i.inventoryItemId && !i.warehouseId,
+  );
 
   const canSubmit = partyId && items.some(i => i.itemName) && grandTotal >= 0 && !mutation.isPending
+    && !hasMissingWarehouse
     && (!hasShortage || allowNegativeStock);
 
   if (!isOpen) return null;
@@ -698,7 +703,11 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
         {/* ── FOOTER ACTIONS ── */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
           <p className="text-xs text-gray-400">
-            {canSubmit ? `Total: ${formatRupiah(grandTotal)}` : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
+            {canSubmit
+              ? `Total: ${formatRupiah(grandTotal)}`
+              : hasMissingWarehouse
+                ? 'Pilih gudang sumber untuk setiap baris barang.'
+                : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
           </p>
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-secondary">Batal</button>

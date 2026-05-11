@@ -408,19 +408,24 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
           const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
           lineWarehouseId = defaultWh?.id ?? null;
         }
+        // Inventory-linked lines MUST land on a specific warehouse, otherwise
+        // per-warehouse stock drifts from the global total.
+        if (!lineWarehouseId) {
+          throw new BusinessError(
+            `Item "${inventoryItem.name}" perlu dipilihkan gudang sumber. Tidak ada gudang default — pilih manual di baris item.`,
+          );
+        }
 
         // Reduce stock (averageCost unchanged on stock out)
         await tx.inventoryItem.update({
           where: { id: inventoryItem.id },
           data: { currentStock: { decrement: qty } },
         });
-        if (lineWarehouseId) {
-          await tx.inventoryStock.upsert({
-            where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
-            create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: -qty },
-            update: { currentStock: { decrement: qty } },
-          });
-        }
+        await tx.inventoryStock.upsert({
+          where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
+          create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: -qty },
+          update: { currentStock: { decrement: qty } },
+        });
 
         // Create stock movement Out with actual cost (not selling price)
         const movementNumber = await generateDocumentNumber(tx, 'SM', parsedDate, fiscalYear.id);

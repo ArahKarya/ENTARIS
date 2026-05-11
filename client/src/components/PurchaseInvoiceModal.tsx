@@ -237,10 +237,15 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const allRowsValid = items.every(
     (i) => i.itemName.trim().length > 0 && i.rate !== 0 && i.timbanganDiterima > 0,
   );
+  // Bahan-baku line must have a destination warehouse — backend rejects otherwise.
+  const hasMissingWarehouse = items.some(
+    (i) => i.itemType === 'material' && i.inventoryItemId && !i.warehouseId,
+  );
   const canSubmit =
     partyId &&
     items.length > 0 &&
     allRowsValid &&
+    !hasMissingWarehouse &&
     grandTotal > 0 &&
     !mutation.isPending;
 
@@ -608,7 +613,11 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
         {/* FOOTER */}
         <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-2">
           <p className="text-xs text-gray-400 hidden sm:block">
-            {canSubmit ? `Total: ${formatRupiah(grandTotal)}` : 'Lengkapi supplier & minimal 1 item'}
+            {canSubmit
+              ? `Total: ${formatRupiah(grandTotal)}`
+              : hasMissingWarehouse
+                ? 'Pilih gudang tujuan untuk setiap baris bahan baku.'
+                : 'Lengkapi supplier & minimal 1 item'}
           </p>
           <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
             <button onClick={onClose} className="btn-secondary flex-1 sm:flex-none">Batal</button>
