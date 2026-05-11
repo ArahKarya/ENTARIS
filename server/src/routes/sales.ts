@@ -399,11 +399,26 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
           );
         }
 
+        // Resolve warehouse: prefer the line's explicit warehouseId, else
+        // the default warehouse. Multi-warehouse rolled out 2026-05-11.
+        let lineWarehouseId: string | null = item.warehouseId ?? null;
+        if (!lineWarehouseId) {
+          const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
+          lineWarehouseId = defaultWh?.id ?? null;
+        }
+
         // Reduce stock (averageCost unchanged on stock out)
         await tx.inventoryItem.update({
           where: { id: inventoryItem.id },
           data: { currentStock: { decrement: qty } },
         });
+        if (lineWarehouseId) {
+          await tx.inventoryStock.upsert({
+            where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
+            create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: -qty },
+            update: { currentStock: { decrement: qty } },
+          });
+        }
 
         // Create stock movement Out with actual cost (not selling price)
         const movementNumber = await generateDocumentNumber(tx, 'SM', parsedDate, fiscalYear.id);
@@ -412,6 +427,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
             movementNumber,
             date: parsedDate,
             itemId: inventoryItem.id,
+            warehouseId: lineWarehouseId,
             movementType: 'Out',
             quantity: qty,
             unitCost: cogsUnitCost,
@@ -606,6 +622,12 @@ router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, r
           where: { id: sm.itemId },
           data: { currentStock: { increment: Number(sm.quantity) } },
         });
+        if (sm.warehouseId) {
+          await tx.inventoryStock.update({
+            where: { itemId_warehouseId: { itemId: sm.itemId, warehouseId: sm.warehouseId } },
+            data: { currentStock: { increment: Number(sm.quantity) } },
+          });
+        }
         await tx.stockMovement.update({
           where: { id: sm.id },
           data: { isCancelled: true },

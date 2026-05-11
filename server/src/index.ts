@@ -41,6 +41,8 @@ import attachmentRoutes from './routes/attachments';
 import stockOpnameRoutes from './routes/stockOpname';
 import quotationRoutes from './routes/quotations';
 import inquiryRoutes from './routes/inquiries';
+import warehouseRoutes from './routes/warehouses';
+import stockTransferRoutes from './routes/stockTransfers';
 import { startQuotationSweeper } from './jobs/quotationSweeper';
 import healthCheckRoutes from './routes/healthCheck';
 import fixedAssetRoutes from './routes/fixedAssets';
@@ -170,6 +172,8 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/cogs-backfill', cogsBackfillRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/stock-transfers', stockTransferRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist

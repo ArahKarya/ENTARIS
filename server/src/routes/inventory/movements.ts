@@ -74,14 +74,28 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
       if (!item) throw new BusinessError('Item stok tidak ditemukan.');
       if (!item.isActive) throw new BusinessError('Item stok tidak aktif.');
 
+      // 2b. Resolve warehouse — explicit from body OR default warehouse.
+      let warehouseId: string | null = body.warehouseId || null;
+      if (!warehouseId) {
+        const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
+        warehouseId = defaultWh?.id ?? null;
+      }
+      if (!warehouseId) throw new BusinessError('Gudang tidak ditemukan dan tidak ada gudang default aktif.');
+
       const qty = body.quantity;
       const isOut = body.movementType === 'Out' || body.movementType === 'AdjustmentOut';
       const isIn = body.movementType === 'In' || body.movementType === 'AdjustmentIn';
 
-      // 3. Validate stock availability (only for regular Out, not AdjustmentOut which is a correction)
-      if (body.movementType === 'Out' && Number(item.currentStock) < qty) {
+      // 3. Validate stock availability per WAREHOUSE (only for regular Out).
+      // Per-warehouse balance is the source of truth now.
+      const stockRow = await tx.inventoryStock.findUnique({
+        where: { itemId_warehouseId: { itemId: item.id, warehouseId } },
+      });
+      const stockAtWarehouse = Number(stockRow?.currentStock ?? 0);
+      if (body.movementType === 'Out' && stockAtWarehouse < qty) {
+        const wh = await tx.warehouse.findUnique({ where: { id: warehouseId } });
         throw new BusinessError(
-          `Stok tidak cukup. Stok saat ini: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`
+          `Stok di ${wh?.name ?? 'gudang'} tidak cukup. Tersedia: ${stockAtWarehouse.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`,
         );
       }
 
@@ -93,8 +107,13 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
       const unitCost = body.unitCost ?? 0;
       const totalValue = qty * unitCost;
 
-      // 6. Update stock + weighted average cost
+      // 6. Update inventory_stocks (per-warehouse) AND inventory_items.current_stock (total denorm).
       const stockDelta = isIn ? qty : -qty;
+      await tx.inventoryStock.upsert({
+        where: { itemId_warehouseId: { itemId: item.id, warehouseId } },
+        create: { itemId: item.id, warehouseId, currentStock: stockDelta },
+        update: { currentStock: { increment: stockDelta } },
+      });
       const updateData: Record<string, unknown> = { currentStock: { increment: stockDelta } };
       if (isIn && unitCost > 0) {
         updateData.averageCost = calcWeightedAverage(item.currentStock, item.averageCost, qty, unitCost);
@@ -206,6 +225,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           movementNumber,
           date: movementDate,
           itemId: item.id,
+          warehouseId,
           movementType: body.movementType as any,
           quantity: qty,
           unitCost,

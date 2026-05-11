@@ -318,6 +318,7 @@ export const UpdateInventoryItemSchema = CreateInventoryItemSchema.partial().ext
 // ─── Stock Movement ───────────────────────────────────────────────────────────
 export const CreateStockMovementSchema = z.object({
   itemId: z.string().min(1, 'Item wajib dipilih.'),
+  warehouseId: z.string().uuid().nullable().optional(),
   movementType: z.enum(['In', 'Out', 'AdjustmentIn', 'AdjustmentOut']),
   quantity: z.coerce.number().positive('Kuantitas harus lebih dari 0.'),
   unitCost: z.coerce.number().min(0).optional(),

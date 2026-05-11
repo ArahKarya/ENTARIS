@@ -328,6 +328,13 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           unitCost,
         );
 
+        // Resolve warehouse: line-explicit OR default. Multi-warehouse since 2026-05-11.
+        let lineWarehouseId: string | null = item.warehouseId ?? null;
+        if (!lineWarehouseId) {
+          const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
+          lineWarehouseId = defaultWh?.id ?? null;
+        }
+
         await tx.inventoryItem.update({
           where: { id: inventoryItem.id },
           data: {
@@ -335,12 +342,20 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
             averageCost: newAvgCost,
           },
         });
+        if (lineWarehouseId) {
+          await tx.inventoryStock.upsert({
+            where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
+            create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: Number(item.quantity) },
+            update: { currentStock: { increment: Number(item.quantity) } },
+          });
+        }
 
         await tx.stockMovement.create({
           data: {
             movementNumber,
             date: parsedDate,
             itemId: inventoryItem.id,
+            warehouseId: lineWarehouseId,
             movementType: 'In',
             quantity: Number(item.quantity),
             unitCost,
@@ -464,6 +479,12 @@ router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, r
           where: { id: sm.itemId },
           data: { currentStock: { decrement: Number(sm.quantity) } },
         });
+        if (sm.warehouseId) {
+          await tx.inventoryStock.update({
+            where: { itemId_warehouseId: { itemId: sm.itemId, warehouseId: sm.warehouseId } },
+            data: { currentStock: { decrement: Number(sm.quantity) } },
+          });
+        }
         await tx.stockMovement.update({
           where: { id: sm.id },
           data: { isCancelled: true },
