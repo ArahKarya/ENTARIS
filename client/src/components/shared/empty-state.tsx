@@ -12,8 +12,8 @@ type EmptyStateProps = {
 
 export function EmptyState({
   icon: Icon = FileQuestion,
-  title = 'No data',
-  description = 'No data available at this time.',
+  title = 'Belum ada data',
+  description = 'Belum ada data untuk ditampilkan.',
   action,
   className,
 }: EmptyStateProps) {

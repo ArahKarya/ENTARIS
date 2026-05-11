@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { X, Loader2, AlertCircle, Wallet, CheckCircle2, Paperclip } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
 import AttachmentUpload from './AttachmentUpload';
+import RupiahInput from './RupiahInput';
 import AttachmentPreview from './AttachmentPreview';
 
 interface CustomerDepositModalProps {
@@ -197,13 +198,12 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
           <div className={isOpeningBalance ? '' : 'grid grid-cols-2 gap-4'}>
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jumlah (Rp)</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              <RupiahInput
+                value={typeof amount === 'number' ? amount : 0}
+                onChange={(v) => setAmount(v === 0 ? '' : v)}
                 placeholder="0"
-                min={0}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Jumlah uang muka"
               />
             </div>
             {!isOpeningBalance && (

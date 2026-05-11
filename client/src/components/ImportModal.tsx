@@ -162,7 +162,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-12 overflow-y-auto" onClick={handleClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="import-modal-title" className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-12 overflow-y-auto" onClick={handleClose}>
       <div
         className="w-full max-w-[calc(100vw-1rem)] sm:max-w-md lg:max-w-3xl rounded-xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}

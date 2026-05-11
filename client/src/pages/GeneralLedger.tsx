@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import {
   Plus, Search, Calendar as CalendarIcon,
-  Loader2, FileSpreadsheet, Upload, XCircle
+  FileSpreadsheet, Upload, XCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import JournalEntryModal from '../components/JournalEntryModal';
 import ImportModal from '../components/ImportModal';
+import TableRowSkeleton from '../components/TableRowSkeleton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { toast } from 'sonner';
@@ -184,12 +185,7 @@ export const GeneralLedger = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
-                <td colSpan={8} className="py-16 text-center text-gray-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-                  Memuat data transaksi...
-                </td>
-              </tr>
+              <TableRowSkeleton columns={8} rows={6} />
             ) : journals?.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-16 text-center">

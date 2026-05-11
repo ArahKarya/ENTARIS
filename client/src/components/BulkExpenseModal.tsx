@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Loader2, AlertCircle, CheckCircle2, Plus, Trash2, Paperclip, TrendingUp, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import RupiahInput from './RupiahInput';
 import { formatRupiah } from '../lib/formatters';
 import { uploadAttachments, validateAttachmentFiles } from '../lib/attachments';
 import SearchableSelect from './SearchableSelect';
@@ -389,16 +390,13 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <input
-                      type="number"
-                      value={row.amount}
-                      onChange={(e) =>
-                        updateRow(row.tempId, { amount: e.target.value === '' ? '' : Number(e.target.value) })
-                      }
+                    <RupiahInput
+                      value={typeof row.amount === 'number' ? row.amount : 0}
+                      onChange={(v) => updateRow(row.tempId, { amount: v === 0 ? '' : v })}
                       disabled={locked}
                       placeholder="0"
-                      min={0}
-                      className="w-full border border-gray-200 rounded-md py-1.5 px-2 text-xs text-right font-mono tabular-nums text-gray-900 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:bg-gray-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full border border-gray-200 rounded-md py-1.5 px-2 text-xs text-right font-mono tabular-nums text-gray-900 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:bg-gray-50"
+                      aria-label="Jumlah"
                     />
                   </div>
                   <div className="md:col-span-1 flex justify-center">

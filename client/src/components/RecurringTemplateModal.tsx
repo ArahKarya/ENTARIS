@@ -136,7 +136,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-12 overflow-y-auto" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="recurring-template-modal-title" className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-12 overflow-y-auto" onClick={onClose}>
       <div
         className="w-full max-w-[calc(100vw-1rem)] sm:max-w-md lg:max-w-2xl rounded-xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}

@@ -58,7 +58,7 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <div className="rounded-sm border border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-              No data available.
+              Belum ada data.
             </div>
           )}
         </div>
@@ -94,7 +94,7 @@ export function DataTable<TData, TValue>({
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No data available.
+                    Belum ada data.
                   </TableCell>
                 </TableRow>
               )}

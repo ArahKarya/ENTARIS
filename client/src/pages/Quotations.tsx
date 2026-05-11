@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import {
-  Plus, Search, FileText, Loader2, ChevronLeft, ChevronRight,
+  Plus, Search, FileText, ChevronLeft, ChevronRight,
   CheckCircle2, Clock, FileCheck2, Download, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -11,6 +11,7 @@ import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import QuotationModal from '../components/QuotationModal';
 import QuotationDetailDrawer from '../components/QuotationDetailDrawer';
+import TableRowSkeleton from '../components/TableRowSkeleton';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -299,12 +300,7 @@ export const Quotations = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center text-muted-foreground">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    Memuat data penawaran...
-                  </td>
-                </tr>
+                <TableRowSkeleton columns={7} rows={6} />
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-16 text-center">

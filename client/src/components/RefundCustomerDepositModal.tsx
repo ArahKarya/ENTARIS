@@ -108,11 +108,11 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
   if (!isOpen || !deposit) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="refund-customer-deposit-title" className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl">
         <div className="flex items-center justify-between px-5 py-3 border-b">
           <div>
-            <h3 className="font-semibold text-gray-900">Refund / Offset Uang Muka</h3>
+            <h3 id="refund-customer-deposit-title" className="font-semibold text-gray-900">Refund / Offset Uang Muka</h3>
             <p className="text-xs text-gray-500 mt-0.5">{deposit.paymentNumber} — {deposit.party?.name}</p>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, XCircle, CreditCard, Loader2, TrendingDown, TrendingUp, ArrowRightLeft, FileText, Wallet, Paperclip } from 'lucide-react';
+import { Search, XCircle, CreditCard, TrendingDown, TrendingUp, ArrowRightLeft, FileText, Wallet, Paperclip } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import PaymentModal from '../components/PaymentModal';
 import TransferModal from '../components/TransferModal';
+import TableRowSkeleton from '../components/TableRowSkeleton';
 import ExpenseModal from '../components/ExpenseModal';
 import BulkExpenseModal from '../components/BulkExpenseModal';
 import { Layers } from 'lucide-react';
@@ -232,12 +233,7 @@ export const Payments = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
-                <td colSpan={7} className="py-16 text-center text-gray-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-                  Memuat data transaksi...
-                </td>
-              </tr>
+              <TableRowSkeleton columns={7} rows={6} />
             ) : allTransactions.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-16 text-center">

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  Plus, Search, FileText, Loader2, ChevronLeft, ChevronRight,
+  Plus, Search, FileText, ChevronLeft, ChevronRight,
   DollarSign, AlertTriangle, CheckCircle2, Receipt, Download,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -10,6 +10,7 @@ import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import SalesInvoiceModal from '../components/SalesInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
+import TableRowSkeleton from '../components/TableRowSkeleton';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -245,12 +246,7 @@ export const SalesInvoices = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
-                <td colSpan={8} className="py-16 text-center text-gray-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-                  Memuat data invoice...
-                </td>
-              </tr>
+              <TableRowSkeleton columns={8} rows={6} />
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-16 text-center">

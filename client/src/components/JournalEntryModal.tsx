@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { X, Plus, Trash2, Loader2, AlertCircle, Save } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
+import RupiahInput from './RupiahInput';
 
 interface Account {
   id: string;
@@ -165,21 +166,19 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={item.debit || ''}
-                          onChange={(e) => updateItem(index, 'debit', Number(e.target.value))}
-                          className="w-full border-none bg-transparent text-sm text-gray-800 font-mono focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          placeholder="0"
+                        <RupiahInput
+                          value={item.debit}
+                          onChange={(v) => updateItem(index, 'debit', v)}
+                          className="w-full border-none bg-transparent text-sm text-gray-800 font-mono text-right focus:ring-0 focus:outline-none p-0"
+                          aria-label="Debit"
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={item.credit || ''}
-                          onChange={(e) => updateItem(index, 'credit', Number(e.target.value))}
-                          className="w-full border-none bg-transparent text-sm text-gray-800 font-mono focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          placeholder="0"
+                        <RupiahInput
+                          value={item.credit}
+                          onChange={(v) => updateItem(index, 'credit', v)}
+                          className="w-full border-none bg-transparent text-sm text-gray-800 font-mono text-right focus:ring-0 focus:outline-none p-0"
+                          aria-label="Kredit"
                         />
                       </td>
                       <td className="px-2 py-2 text-center">

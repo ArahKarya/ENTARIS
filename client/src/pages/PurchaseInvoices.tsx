@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
-  Plus, Search, Package, Loader2, ChevronLeft, ChevronRight,
+  Plus, Search, Package, ChevronLeft, ChevronRight,
   DollarSign, AlertTriangle, CheckCircle2, Receipt, Download,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -11,6 +11,7 @@ import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import PurchaseInvoiceModal from '../components/PurchaseInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
+import TableRowSkeleton from '../components/TableRowSkeleton';
 import PaymentModal from '../components/PaymentModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
@@ -312,12 +313,7 @@ export const PurchaseInvoices = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
-                <td colSpan={8} className="py-16 text-center text-gray-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-                  Memuat data pembelian...
-                </td>
-              </tr>
+              <TableRowSkeleton columns={8} rows={6} />
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-16 text-center">
