@@ -219,7 +219,9 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
         let drAccountId = inventoryAccount.id; // default: generic 1.4.0
 
         if (invItem.inventoryItemId) {
-          const linkedItem = await tx.inventoryItem.findUnique({ where: { id: invItem.inventoryItemId } });
+          // Reuse invItemMap pre-fetched at the top of the route — saves
+          // one findUnique per line (N+1 in the original implementation).
+          const linkedItem = invItemMap.get(invItem.inventoryItemId);
           if (linkedItem?.accountId) {
             drAccountId = linkedItem.accountId; // use item-specific account (e.g. 1.4.5)
           }

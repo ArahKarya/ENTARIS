@@ -151,6 +151,32 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
         accountId: string; description: string | null;
       }> = [];
 
+      // Pre-fetch all referenced account/serviceItem rows in one round-trip
+      // each. Without this, every item line did its own findUnique inside the
+      // tx — invoice with 10 lines = 20+ serial queries blocking the tx.
+      const customAccountIds = [...new Set(
+        body.items.map((i) => i.accountId).filter((id): id is string => !!id),
+      )];
+      const serviceItemIds = [...new Set(
+        body.items.map((i) => i.serviceItemId).filter((id): id is string => !!id),
+      )];
+      const [customAccounts, serviceItemsBatch] = await Promise.all([
+        customAccountIds.length
+          ? tx.account.findMany({
+              where: { id: { in: customAccountIds } },
+              select: { id: true },
+            })
+          : Promise.resolve([]),
+        serviceItemIds.length
+          ? tx.serviceItem.findMany({
+              where: { id: { in: serviceItemIds } },
+              select: { id: true, accountId: true },
+            })
+          : Promise.resolve([]),
+      ]);
+      const customAccountSet = new Set(customAccounts.map((a) => a.id));
+      const serviceItemMap = new Map(serviceItemsBatch.map((s) => [s.id, s]));
+
       for (const item of body.items) {
         const itemAmount = new Decimal(item.quantity)
           .mul(new Decimal(item.rate))
@@ -160,11 +186,10 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 
         // Determine the revenue account for this line
         let lineAccountId = salesAccount.id;
-        if (item.accountId) {
-          const customAccount = await tx.account.findUnique({ where: { id: item.accountId } });
-          if (customAccount) lineAccountId = customAccount.id;
+        if (item.accountId && customAccountSet.has(item.accountId)) {
+          lineAccountId = item.accountId;
         } else if (item.serviceItemId) {
-          const svc = await tx.serviceItem.findUnique({ where: { id: item.serviceItemId } });
+          const svc = serviceItemMap.get(item.serviceItemId);
           if (svc) lineAccountId = svc.accountId;
         } else if (item.itemType === 'service') {
           // Service item without serviceItemId → use Pendapatan Jasa (4.2)

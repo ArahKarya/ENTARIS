@@ -131,7 +131,7 @@ router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req:
       // Reverse journal entry balances
       if (deposit.journalEntry) {
         for (const item of deposit.journalEntry.items) {
-          await updateAccountBalance(tx, item.accountId, Number(item.credit), Number(item.debit));
+          await updateAccountBalance(tx, item.accountId, item.credit, item.debit);
         }
         await tx.journalEntry.update({
           where: { id: deposit.journalEntry.id },
@@ -362,7 +362,7 @@ router.post('/apply/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequ
 
         // Reverse account balances from journal items
         for (const item of application.journalEntry.items) {
-          await updateAccountBalance(tx, item.accountId, Number(item.credit), Number(item.debit));
+          await updateAccountBalance(tx, item.accountId, item.credit, item.debit);
         }
       }
 

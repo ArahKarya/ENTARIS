@@ -220,7 +220,7 @@ router.post(
 
                     await updateBalancesForItems(
                       tx,
-                      journal.items.map((i) => ({ accountId: i.accountId, debit: Number(i.debit), credit: Number(i.credit) }))
+                      journal.items.map((i) => ({ accountId: i.accountId, debit: i.debit, credit: i.credit })),
                     );
                   }, { timeout: 15000 });
                 }

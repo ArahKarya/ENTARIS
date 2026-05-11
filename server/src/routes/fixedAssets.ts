@@ -231,7 +231,7 @@ router.post('/:id/depreciate', async (req: AuthRequest, res) => {
       // Update account balances
       const { updateAccountBalance } = await import('../utils/accountBalance');
       for (const item of jeItems) {
-        await updateAccountBalance(tx, item.accountId, Number(item.debit), Number(item.credit));
+        await updateAccountBalance(tx, item.accountId, item.debit, item.credit);
       }
 
       // Mark depreciation as posted

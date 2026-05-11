@@ -8,7 +8,6 @@ import path from 'path';
 import { authMiddleware } from './middleware/auth';
 import { auditTrailMiddleware } from './middleware/auditTrail';
 import { logger } from './lib/logger';
-import { prisma } from './lib/prisma';
 
 // Route handlers
 import authRoutes from './routes/auth';
@@ -43,7 +42,7 @@ import quotationRoutes from './routes/quotations';
 import inquiryRoutes from './routes/inquiries';
 import warehouseRoutes from './routes/warehouses';
 import stockTransferRoutes from './routes/stockTransfers';
-import { startQuotationSweeper } from './jobs/quotationSweeper';
+import { startScheduler } from './jobs/scheduler';
 import healthCheckRoutes from './routes/healthCheck';
 import fixedAssetRoutes from './routes/fixedAssets';
 import approvalRoutes from './routes/approvals';
@@ -220,25 +219,8 @@ app.listen(port, () => {
     logger.error({ err }, 'System account mapping validation failed');
   });
 
-  // Periodic cleanup of expired blacklisted tokens. The blacklist is checked
-  // on every authenticated request; without pruning it grows unbounded and
-  // slows down `findUnique`. Runs every hour.
-  const purgeExpiredTokens = async () => {
-    try {
-      const result = await prisma.tokenBlacklist.deleteMany({
-        where: { expiresAt: { lt: new Date() } },
-      });
-      if (result.count > 0) {
-        logger.info({ deleted: result.count }, 'Purged expired blacklisted tokens');
-      }
-    } catch (err) {
-      logger.error({ err }, 'Token blacklist purge failed');
-    }
-  };
-  void purgeExpiredTokens();
-  setInterval(purgeExpiredTokens, 60 * 60 * 1000);
-
-  // Quotation lifecycle: auto-expire stale Sent quotations and queue
-  // notifications for ones approaching their validUntil date.
-  startQuotationSweeper();
+  // All background jobs (token purge, quotation sweep, recurring runner) go
+  // through the central scheduler. Postgres advisory locks make it safe to
+  // run multiple replicas — only one will pick up each scheduled tick.
+  startScheduler();
 });

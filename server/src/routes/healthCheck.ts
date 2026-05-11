@@ -24,6 +24,7 @@ router.get('/', roleMiddleware(['Admin']), async (_req, res) => {
       checkUnbalancedJournals(),
       checkOrphanAle(),
       checkStockMovementMismatch(),
+      checkWarehouseStockDrift(),
     ]);
 
     const overallStatus = checks.some((c) => c.status === 'error')
@@ -394,6 +395,49 @@ async function checkStockMovementMismatch(): Promise<CheckResult> {
       : 'Semua stok produk sesuai',
     count: mismatches.length,
     details: mismatches,
+    fixable: false,
+  };
+}
+
+// Per-warehouse stock drift: inventory_items.current_stock (denormalized total)
+// should equal SUM(inventory_stocks.current_stock) for that item. A mismatch
+// means one of the multi-warehouse update paths is missing an inventory_stocks
+// upsert — bug introduced 2026-05-11 with multi-warehouse rollout.
+async function checkWarehouseStockDrift(): Promise<CheckResult> {
+  const drifts = await prisma.$queryRaw<Array<{
+    item_id: string;
+    item_name: string;
+    code: string;
+    item_total: number;
+    warehouse_sum: number;
+    difference: number;
+  }>>`
+    WITH wh_sum AS (
+      SELECT item_id, COALESCE(SUM(current_stock), 0) AS total
+        FROM inventory_stocks
+       GROUP BY item_id
+    )
+    SELECT i.id AS item_id,
+           i.name AS item_name,
+           i.code,
+           i.current_stock AS item_total,
+           COALESCE(w.total, 0) AS warehouse_sum,
+           ABS(i.current_stock - COALESCE(w.total, 0)) AS difference
+      FROM inventory_items i
+      LEFT JOIN wh_sum w ON w.item_id = i.id
+     WHERE ABS(i.current_stock - COALESCE(w.total, 0)) > 0.001
+     ORDER BY difference DESC
+     LIMIT 20
+  `;
+
+  return {
+    name: 'Drift Stok per Gudang',
+    status: drifts.length > 0 ? 'warning' : 'ok',
+    message: drifts.length > 0
+      ? `${drifts.length} item: total inventory_items ≠ SUM(inventory_stocks per gudang)`
+      : 'Total stok per item konsisten dengan saldo per gudang',
+    count: drifts.length,
+    details: drifts,
     fixable: false,
   };
 }

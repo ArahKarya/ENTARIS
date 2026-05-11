@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
+import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, roleMiddleware } from '../middleware/auth';
 import { updateBalancesForItems } from '../utils/accountBalance';
@@ -126,9 +127,9 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
         tx,
         journalEntry.items.map((i) => ({
           accountId: i.accountId,
-          debit: Number(i.debit),
-          credit: Number(i.credit),
-        }))
+          debit: i.debit,
+          credit: i.credit,
+        })),
       );
 
       // Update party denorm balances — account-aware so UM (2.1.2/1.3) lines
@@ -203,13 +204,13 @@ router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req:
     }
 
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Reverse account balances
+      // Reverse account balances (swap debit↔credit to undo)
       await updateBalancesForItems(
         tx,
         entry.items.map((i) => ({
           accountId: i.accountId,
-          debit: Number(i.credit),
-          credit: Number(i.debit),
+          debit: i.credit,
+          credit: i.debit,
         })),
       );
 
@@ -239,9 +240,10 @@ router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req:
         });
         const inv = await tx.salesInvoice.findUnique({ where: { id: app.salesInvoiceId } });
         if (inv) {
-          const restored = Number(inv.outstanding) + Number(app.appliedAmount);
-          const newStatus =
-            restored >= Number(inv.grandTotal) - 0.01 ? 'Submitted' : 'PartiallyPaid';
+          const restored = new Decimal(inv.outstanding.toString())
+            .plus(app.appliedAmount.toString());
+          const grandTotal = new Decimal(inv.grandTotal.toString());
+          const newStatus = restored.greaterThanOrEqualTo(grandTotal) ? 'Submitted' : 'PartiallyPaid';
           await tx.salesInvoice.update({
             where: { id: inv.id },
             data: { outstanding: restored, status: newStatus },

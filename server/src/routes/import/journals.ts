@@ -141,9 +141,9 @@ router.post(
               tx,
               journalEntry.items.map((i) => ({
                 accountId: i.accountId,
-                debit: Number(i.debit),
-                credit: Number(i.credit),
-              }))
+                debit: i.debit,
+                credit: i.credit,
+              })),
             );
           }, { timeout: 15000 });
 
