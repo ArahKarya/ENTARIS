@@ -1,12 +1,38 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { roleMiddleware, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { validateBody } from '../utils/validate';
 import Decimal from 'decimal.js';
 
 const router = Router();
 
 router.use(roleMiddleware(['Admin', 'Accountant']));
+
+// ── Schemas ─────────────────────────────────────────────────────────────────
+const CreateFixedAssetSchema = z.object({
+  name: z.string().min(1, 'Nama aset wajib diisi.').max(200),
+  category: z.string().min(1, 'Kategori wajib diisi.').max(100),
+  description: z.string().max(500).nullable().optional(),
+  acquisitionDate: z.string().min(1, 'Tanggal akuisisi wajib diisi.'),
+  acquisitionCost: z.coerce.number().positive('Harga perolehan harus lebih dari 0.'),
+  usefulLifeMonths: z.coerce.number().int().positive('Umur ekonomis (bulan) harus lebih dari 0.').max(1200),
+  salvageValue: z.coerce.number().min(0).optional().default(0),
+  depreciationMethod: z.enum(['straight_line']).optional().default('straight_line'),
+  assetAccountId: z.string().uuid('assetAccountId harus UUID valid.'),
+  depreciationAccountId: z.string().uuid('depreciationAccountId harus UUID valid.'),
+  accumulatedDepAccountId: z.string().uuid('accumulatedDepAccountId harus UUID valid.'),
+});
+
+const DepreciateSchema = z.object({
+  entryId: z.string().uuid('entryId harus UUID valid.'),
+});
+
+const DisposeSchema = z.object({
+  disposalDate: z.string().min(1, 'Tanggal pelepasan wajib diisi.'),
+  disposalAmount: z.coerce.number().min(0).optional().default(0),
+});
 
 // GET / — list all fixed assets
 router.get('/', async (req, res) => {
@@ -70,12 +96,14 @@ router.get('/:id', async (req, res) => {
 
 // POST / — create new fixed asset
 router.post('/', async (req: AuthRequest, res) => {
+  const body = validateBody(CreateFixedAssetSchema, req.body, res);
+  if (!body) return;
   try {
     const {
       name, category, description, acquisitionDate, acquisitionCost,
       usefulLifeMonths, salvageValue, depreciationMethod,
       assetAccountId, depreciationAccountId, accumulatedDepAccountId,
-    } = req.body;
+    } = body;
 
     const fiscalYear = await prisma.fiscalYear.findFirst({
       where: { startDate: { lte: new Date(acquisitionDate) }, endDate: { gte: new Date(acquisitionDate) } },
@@ -141,8 +169,10 @@ router.post('/', async (req: AuthRequest, res) => {
 
 // POST /:id/depreciate — post depreciation for a specific period
 router.post('/:id/depreciate', async (req: AuthRequest, res) => {
+  const body = validateBody(DepreciateSchema, req.body, res);
+  if (!body) return;
   try {
-    const { entryId } = req.body;
+    const { entryId } = body;
 
     const entry = await prisma.depreciationEntry.findUnique({
       where: { id: entryId },
@@ -233,8 +263,10 @@ router.post('/:id/depreciate', async (req: AuthRequest, res) => {
 
 // POST /:id/dispose — dispose of an asset
 router.post('/:id/dispose', async (req: AuthRequest, res) => {
+  const body = validateBody(DisposeSchema, req.body, res);
+  if (!body) return;
   try {
-    const { disposalDate, disposalAmount } = req.body;
+    const { disposalDate, disposalAmount } = body;
     const asset = await prisma.fixedAsset.findUnique({ where: { id: req.params.id as string } });
     if (!asset) return res.status(404).json({ error: 'Aset tidak ditemukan.' });
     if (asset.status !== 'Active') return res.status(400).json({ error: 'Aset sudah tidak aktif.' });

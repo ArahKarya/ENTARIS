@@ -161,6 +161,15 @@ router.get('/file/:id', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'File tidak ditemukan.' });
     }
 
+    // Role-based access: StaffProduksi only sees invoice attachments, mirroring
+    // the upload gate. Other roles already have read access via their normal
+    // navigation, so the UUID-guess attack surface is reduced to admin/account.
+    const role = req.user?.role;
+    if (role === 'StaffProduksi' &&
+        !['purchase_invoice', 'sales_invoice'].includes(attachment.referenceType)) {
+      return res.status(403).json({ error: 'Akses ditolak untuk file ini.' });
+    }
+
     const fullPath = getFullPath(attachment.filePath);
     const isImage = attachment.mimeType.startsWith('image/');
 

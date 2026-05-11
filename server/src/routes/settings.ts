@@ -15,8 +15,10 @@ import { recalcPartyOutstanding } from '../utils/accountBalance';
 
 const router = Router();
 
-// GET /api/settings/runtime — runtime info (platform, domain, versions)
-router.get('/runtime', async (req, res) => {
+// GET /api/settings/runtime — runtime info (platform, domain, versions).
+// Restricted to Admin/Accountant because nodeVersion + hostname + memory size
+// are useful reconnaissance signals to anyone with read access to the system.
+router.get('/runtime', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
   try {
     const protocol = req.protocol;
     const host = req.get('host') || 'localhost';

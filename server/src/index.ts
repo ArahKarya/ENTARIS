@@ -87,26 +87,33 @@ const allowedOrigins = (
   .split(',')
   .map((o) => o.trim());
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, same-origin)
+      // Same-origin / non-browser tools (no Origin header).
+      // In dev allow; in prod still allow so server-to-server (curl health
+      // checks, internal scripts) keeps working — but it never carries the
+      // session cookie, so it can't impersonate a logged-in user.
       if (!origin) return callback(null, true);
       // Allow explicitly listed origins
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
-      // Allow private network IPs (LAN access)
-      try {
-        const originHost = new URL(origin).hostname;
-        if (
-          originHost === 'localhost' ||
-          originHost === '127.0.0.1' ||
-          originHost.startsWith('192.168.') ||
-          originHost.startsWith('10.') ||
-          /^172\.(1[6-9]|2\d|3[01])\./.test(originHost)
-        ) {
-          return callback(null, true);
-        }
-      } catch { /* invalid origin URL, fall through */ }
+      // LAN bypass only outside production (keeps dev ergonomics).
+      if (!isProduction) {
+        try {
+          const originHost = new URL(origin).hostname;
+          if (
+            originHost === 'localhost' ||
+            originHost === '127.0.0.1' ||
+            originHost.startsWith('192.168.') ||
+            originHost.startsWith('10.') ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(originHost)
+          ) {
+            return callback(null, true);
+          }
+        } catch { /* invalid origin URL, fall through */ }
+      }
       logger.warn({ origin, allowedOrigins }, 'CORS origin blocked');
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
@@ -188,9 +195,19 @@ app.get('*path', (_req, res, next) => {
 });
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error({ err }, 'Unhandled error');
-  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+// Always log the full error internally but expose only a generic message to
+// the client. Per-route handlers (handleRouteError / BusinessError) own user-
+// facing messages; this is the fallback for uncaught throws and should never
+// leak Prisma internals, stack details, or DB schema info.
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = typeof err?.status === 'number' && err.status >= 400 && err.status < 600
+    ? err.status
+    : 500;
+  logger.error({ err, path: req.path, method: req.method }, 'Unhandled error');
+  const userMessage = status >= 500
+    ? 'Terjadi kesalahan pada server. Silakan coba lagi.'
+    : (typeof err?.message === 'string' && err.message.length < 200 ? err.message : 'Permintaan tidak dapat diproses.');
+  res.status(status).json({ error: userMessage });
 });
 
 // ─── Process Handlers ──────────────────────────────────────────────────────────

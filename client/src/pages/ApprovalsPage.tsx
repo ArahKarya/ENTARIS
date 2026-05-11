@@ -195,31 +195,33 @@ export default function ApprovalsPage() {
             <div className="card p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Belum ada aturan approval.</div>
           ) : (
             <div className="card overflow-hidden">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Tipe Dokumen</th>
-                    <th className="text-right">Min. Nominal</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rules.map((rule) => (
-                    <tr key={rule.id}>
-                      <td>{docTypes.find((d) => d.value === rule.documentType)?.label || rule.documentType}</td>
-                      <td className="text-right tabular-nums">Rp {fmt(Number(rule.minAmount))}</td>
-                      <td><span className="badge badge-blue">{rule.requiredRole}</span></td>
-                      <td><span className={cn('badge', rule.isActive ? 'badge-green' : 'badge-gray')}>{rule.isActive ? 'Aktif' : 'Nonaktif'}</span></td>
-                      <td>
-                        <button onClick={() => setDeleteRuleId(rule.id)}
-                          className="text-xs text-red-500 hover:text-red-700">Hapus</button>
-                      </td>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Tipe Dokumen</th>
+                      <th className="text-right">Min. Nominal</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {rules.map((rule) => (
+                      <tr key={rule.id}>
+                        <td>{docTypes.find((d) => d.value === rule.documentType)?.label || rule.documentType}</td>
+                        <td className="text-right tabular-nums">Rp {fmt(Number(rule.minAmount))}</td>
+                        <td><span className="badge badge-blue">{rule.requiredRole}</span></td>
+                        <td><span className={cn('badge', rule.isActive ? 'badge-green' : 'badge-gray')}>{rule.isActive ? 'Aktif' : 'Nonaktif'}</span></td>
+                        <td>
+                          <button onClick={() => setDeleteRuleId(rule.id)}
+                            className="text-xs text-red-500 hover:text-red-700">Hapus</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

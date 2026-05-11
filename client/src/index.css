@@ -514,14 +514,21 @@
     box-shadow: var(--shadow-sm) !important;
   }
 
-  /* Soft status pills — retint against dark surface */
+  /* Soft status pills — retint against dark surface.
+     Includes opacity-suffixed variants (e.g. bg-amber-50/40) because Tailwind
+     v4 emits a separate class for each opacity step; without these,
+     drawers/modals using `bg-amber-50/40` stay nearly-white in dark mode. */
   .dark .bg-green-50,
-  .dark .bg-green-100 {
+  .dark .bg-green-100,
+  .dark [class*="bg-green-50/"],
+  .dark [class*="bg-green-100/"] {
     background-color: color-mix(in oklch, var(--success) 18%, transparent) !important;
     color: var(--success) !important;
   }
   .dark .bg-red-50,
-  .dark .bg-red-100 {
+  .dark .bg-red-100,
+  .dark [class*="bg-red-50/"],
+  .dark [class*="bg-red-100/"] {
     background-color: color-mix(in oklch, var(--destructive) 18%, transparent) !important;
     color: var(--destructive) !important;
   }
@@ -530,16 +537,46 @@
   .dark .bg-amber-50,
   .dark .bg-amber-100,
   .dark .bg-orange-50,
-  .dark .bg-orange-100 {
+  .dark .bg-orange-100,
+  .dark [class*="bg-yellow-50/"],
+  .dark [class*="bg-yellow-100/"],
+  .dark [class*="bg-amber-50/"],
+  .dark [class*="bg-amber-100/"],
+  .dark [class*="bg-orange-50/"],
+  .dark [class*="bg-orange-100/"] {
     background-color: color-mix(in oklch, var(--warning) 18%, transparent) !important;
     color: var(--warning) !important;
   }
   .dark .bg-purple-50,
   .dark .bg-purple-100,
   .dark .bg-indigo-50,
-  .dark .bg-indigo-100 {
+  .dark .bg-indigo-100,
+  .dark [class*="bg-purple-50/"],
+  .dark [class*="bg-purple-100/"],
+  .dark [class*="bg-indigo-50/"],
+  .dark [class*="bg-indigo-100/"] {
     background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
     color: var(--primary) !important;
+  }
+  .dark [class*="bg-blue-50/"],
+  .dark [class*="bg-blue-100/"] {
+    background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
+    color: var(--primary) !important;
+  }
+  .dark [class*="bg-teal-50/"],
+  .dark [class*="bg-teal-100/"],
+  .dark [class*="bg-cyan-50/"],
+  .dark [class*="bg-cyan-100/"] {
+    background-color: color-mix(in oklch, var(--success) 18%, transparent) !important;
+  }
+  /* Gray opacity variants (e.g. bg-gray-50/60 frequently used as subtle hover/section bg) */
+  .dark [class*="bg-gray-50/"],
+  .dark [class*="bg-slate-50/"] { background-color: var(--background) !important; }
+  .dark [class*="bg-gray-100/"],
+  .dark [class*="bg-slate-100/"] { background-color: var(--muted) !important; }
+  /* Pure white panels with opacity (e.g. bg-white/80 sticky bars) */
+  .dark [class*="bg-white/"] {
+    background-color: color-mix(in oklch, var(--card) 90%, transparent) !important;
   }
 
   /* Text in status pills in dark mode */
