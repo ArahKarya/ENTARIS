@@ -39,6 +39,7 @@ const InvoiceItemSchema = z.object({
   itemName: z.string().min(1, 'Nama item wajib diisi.'),
   itemType: z.enum(['product', 'service']).optional().default('product'),
   inventoryItemId: z.string().uuid().nullable().optional(),
+  warehouseId: z.string().uuid().nullable().optional(),  // multi-warehouse: source for SI, destination for PI
   serviceItemId: z.string().uuid().nullable().optional(),
   accountId: z.string().uuid().nullable().optional(),
   quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),

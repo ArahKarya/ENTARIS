@@ -145,6 +145,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
       // Resolve per-item accountId (service items may have their own revenue account)
       const resolvedItems: Array<{
         itemName: string; itemType: string; inventoryItemId: string | null;
+        warehouseId: string | null;
         serviceItemId: string | null; quantity: number; unit: string;
         rate: number; discount: number; amount: number; taxPct: number; pphPct: number;
         accountId: string; description: string | null;
@@ -174,6 +175,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
           itemName: item.itemName,
           itemType: item.itemType || 'product',
           inventoryItemId: item.inventoryItemId || null,
+          warehouseId: item.warehouseId || null,
           serviceItemId: item.serviceItemId || null,
           quantity: item.quantity,
           unit: item.unit || 'pcs',

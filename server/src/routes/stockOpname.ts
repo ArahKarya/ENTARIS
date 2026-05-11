@@ -10,6 +10,7 @@ import { updateAccountBalance, recalculateAccountBalances } from '../utils/accou
 import { cancelJournalsByPrefix } from '../utils/journalCancel';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
+import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStock';
 
 const router = Router();
 
@@ -157,6 +158,9 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
       if (itemsWithDiff.length > 0) {
         const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
         const varianceAccount = await systemAccounts.getAccount('INVENTORY_VARIANCE');
+        // Stock opname adjustments apply to the default warehouse (single-warehouse
+        // count). For multi-warehouse opname, callers should run separate sessions per warehouse.
+        const opnameWarehouseId = await resolveWarehouseId(tx, null);
 
         const journalItems: { accountId: string; debit: number; credit: number; description: string }[] = [];
         const movementIds: { itemId: string; movementId: string }[] = [];
@@ -174,6 +178,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
               movementNumber: movNumber,
               date: txDate,
               itemId: opItem.itemId,
+              warehouseId: opnameWarehouseId,
               movementType,
               quantity: absDiff,
               unitCost: opItem.unitCost,
@@ -190,11 +195,12 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 
           movementIds.push({ itemId: opItem.itemId, movementId: movement.id });
 
-          // Update inventory stock
+          // Update inventory stock (item-level total + per-warehouse)
           await tx.inventoryItem.update({
             where: { id: opItem.itemId },
             data: { currentStock: { increment: opItem.difference } },
           });
+          await adjustWarehouseStock(tx, opItem.itemId, opnameWarehouseId, opItem.difference);
 
           // Build GL entries
           const invAcctId = item.accountId || defaultInvAccount.id;
@@ -301,14 +307,17 @@ router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, re
           );
         }
 
-        // Reverse stock
+        // Reverse stock (item-level total + per-warehouse from the original movement)
         await tx.inventoryItem.update({
           where: { id: opItem.itemId },
           data: { currentStock: { increment: -diff } },
         });
-
-        // Cancel stock movement
         if (opItem.movementId) {
+          const mov = await tx.stockMovement.findUnique({
+            where: { id: opItem.movementId },
+            select: { warehouseId: true },
+          });
+          await adjustWarehouseStock(tx, opItem.itemId, mov?.warehouseId ?? null, -diff);
           await tx.stockMovement.update({
             where: { id: opItem.movementId },
             data: { isCancelled: true },

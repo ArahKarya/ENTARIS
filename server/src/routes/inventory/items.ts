@@ -9,9 +9,12 @@ import { logger } from '../../lib/logger';
 const router = Router();
 
 // GET /api/inventory/items
+// When `warehouseId` is provided, `currentStock` is overridden with the
+// per-warehouse stock from inventory_stocks (0 if no row). Without the param,
+// the response shows the global total denormalized on inventory_items.
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '100', search, isActive } = req.query;
+    const { page = '1', limit = '100', search, isActive, warehouseId } = req.query;
     const take = Math.min(Number(limit) || 100, 200);
     const skip = (Number(page) - 1) * take;
 
@@ -32,11 +35,24 @@ router.get('/', async (req, res) => {
       prisma.inventoryItem.count({ where }),
     ]);
 
-    // Sort by current stock quantity descending
-    allItems.sort((a, b) => Number(b.currentStock) - Number(a.currentStock));
+    let items = allItems;
+    if (typeof warehouseId === 'string' && warehouseId.length > 0) {
+      const stockRows = await prisma.inventoryStock.findMany({
+        where: { warehouseId, itemId: { in: allItems.map((i) => i.id) } },
+        select: { itemId: true, currentStock: true },
+      });
+      const stockByItem = new Map(stockRows.map((s) => [s.itemId, s.currentStock]));
+      items = allItems.map((i) => ({
+        ...i,
+        currentStock: stockByItem.get(i.id) ?? 0,
+      })) as typeof allItems;
+    }
 
-    const items = allItems.slice(skip, skip + take);
-    return res.json({ data: items, total, page: Number(page), limit: take });
+    // Sort by current stock quantity descending
+    items.sort((a, b) => Number(b.currentStock) - Number(a.currentStock));
+
+    const paged = items.slice(skip, skip + take);
+    return res.json({ data: paged, total, page: Number(page), limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/items error');
     return res.status(500).json({ error: 'Gagal mengambil data item stok.' });

@@ -11,6 +11,7 @@ import { systemAccounts } from '../../services/systemAccounts';
 import { logger } from '../../lib/logger';
 import { calcWeightedAverage } from '../../utils/weightedAverage';
 import { settleCogsBackfillForItem } from '../../services/cogsBackfillService';
+import { adjustWarehouseStock } from '../../utils/warehouseStock';
 
 const router = Router();
 
@@ -320,6 +321,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
         where: { id: oldMov.itemId },
         data: { currentStock: { increment: oldReverseDelta } },
       });
+      await adjustWarehouseStock(tx, oldMov.itemId, oldMov.warehouseId, oldReverseDelta);
 
       // 3. Reverse old GL entries if exist
       const oldAffectedAccountIds: string[] = [];
@@ -360,6 +362,8 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
         where: { id: oldMov.itemId },
         data: { currentStock: { increment: newStockDelta } },
       });
+      // Reuse the same warehouse the movement was originally posted to.
+      await adjustWarehouseStock(tx, oldMov.itemId, oldMov.warehouseId, newStockDelta);
 
       // 5. Create new GL entries if needed
       const newUnitCost = body.unitCost ?? 0;
@@ -499,12 +503,13 @@ router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, re
         throw new BusinessError('Tidak dapat membatalkan: stok tidak mencukupi untuk pembalikan.');
       }
 
-      // Reverse stock
+      // Reverse stock (item-level total + per-warehouse)
       const reverseDelta = isOut ? qty : -qty;
       await tx.inventoryItem.update({
         where: { id: movement.itemId },
         data: { currentStock: { increment: reverseDelta } },
       });
+      await adjustWarehouseStock(tx, movement.itemId, movement.warehouseId, reverseDelta);
 
       // Cancel journal entry if exists
       if (movement.journalEntryId) {

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { X, Plus, Trash2, Loader2, AlertCircle, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
+import WarehousePicker from './WarehousePicker';
 
 // Rice-mill purchase invoice item.
 // Flow: timbanganTruk (info only) → refaksi (kg deducted) → timbanganDiterima (net received)
@@ -14,6 +15,7 @@ interface InvoiceItem {
   itemType: ItemType;          // 'material' = bahan baku w/ timbangan; 'service' = jasa/biaya
   itemName: string;
   inventoryItemId: string;
+  warehouseId: string;         // gudang tujuan stock-in (material only)
   description: string;
   unit: string;
   kualitas: string;
@@ -36,6 +38,7 @@ const defaultItem = (type: ItemType = 'material'): InvoiceItem => ({
   itemType: type,
   itemName: '',
   inventoryItemId: '',
+  warehouseId: '',
   description: '',
   unit: type === 'service' ? 'pcs' : 'Kg',
   kualitas: '',
@@ -348,6 +351,14 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                               {!item.inventoryItemId && (
                                 <input type="text" value={item.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)} placeholder="atau manual..." className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400" />
                               )}
+                              <div className="mt-1">
+                                <WarehousePicker
+                                  value={item.warehouseId}
+                                  onChange={(v) => updateItem(idx, 'warehouseId', v)}
+                                  size="sm"
+                                  placeholder="Gudang tujuan..."
+                                />
+                              </div>
                             </>
                           )}
                         </td>
@@ -442,6 +453,17 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                         </>
                       )}
                     </div>
+                    {!isService && (
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Gudang Tujuan</label>
+                        <WarehousePicker
+                          value={item.warehouseId}
+                          onChange={(v) => updateItem(idx, 'warehouseId', v)}
+                          size="md"
+                          placeholder="Pilih gudang..."
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">No. Mobil</label>
                       <input type="text" value={item.nomorMobil} onChange={(e) => updateItem(idx, 'nomorMobil', e.target.value)} placeholder="B 1234 ABC" className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono uppercase" />
@@ -601,6 +623,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                   items: items.map((i) => ({
                     itemName: i.itemName,
                     inventoryItemId: i.inventoryItemId || null,
+                    warehouseId: i.itemType === 'material' ? (i.warehouseId || null) : null,
                     description: i.description || null,
                     quantity: i.timbanganDiterima > 0 ? i.timbanganDiterima : 0,
                     unit: i.unit,

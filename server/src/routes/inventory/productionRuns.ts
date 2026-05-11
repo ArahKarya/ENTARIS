@@ -12,6 +12,7 @@ import { systemAccounts } from '../../services/systemAccounts';
 import { logger } from '../../lib/logger';
 import { calcWeightedAverage } from '../../utils/weightedAverage';
 import { settleCogsBackfillForItem } from '../../services/cogsBackfillService';
+import { resolveWarehouseId, adjustWarehouseStock } from '../../utils/warehouseStock';
 
 const router = Router();
 
@@ -167,6 +168,8 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
       });
 
       // 7. Process inputs: reduce stock + create StockMovement Out (with averageCost)
+      // Production runs use the default warehouse for both consumption and yield.
+      const productionWarehouseId = await resolveWarehouseId(tx, null);
       let totalInputValue = new Decimal(0);
       for (const input of body.inputs) {
         const item = itemMap.get(input.itemId);
@@ -181,6 +184,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           where: { id: input.itemId },
           data: { currentStock: { decrement: input.quantity } },
         });
+        await adjustWarehouseStock(tx, input.itemId, productionWarehouseId, -input.quantity);
 
         const movNumber = await generateDocumentNumber(tx, 'SM', runDate, fiscalYear.id);
         await tx.stockMovement.create({
@@ -188,6 +192,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
             movementNumber: movNumber,
             date: runDate,
             itemId: input.itemId,
+            warehouseId: productionWarehouseId,
             movementType: 'Out',
             quantity: input.quantity,
             unitCost: inputUnitCost,
@@ -219,6 +224,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
             ...(newAvgCost !== undefined ? { averageCost: newAvgCost } : {}),
           },
         });
+        await adjustWarehouseStock(tx, output.itemId, productionWarehouseId, output.quantity);
         const totalValue = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
         totalOutputValue = totalOutputValue.plus(new Decimal(totalValue));
 
@@ -228,6 +234,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
             movementNumber: movNumber,
             date: runDate,
             itemId: output.itemId,
+            warehouseId: productionWarehouseId,
             movementType: 'In',
             quantity: output.quantity,
             unitCost,
@@ -453,6 +460,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
           where: { id: mov.itemId },
           data: { currentStock: { increment: reverseDelta } },
         });
+        await adjustWarehouseStock(tx, mov.itemId, mov.warehouseId, reverseDelta);
 
         await tx.stockMovement.update({
           where: { id: mov.id },
@@ -546,6 +554,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
       });
 
       // Process inputs
+      const productionWarehouseId = await resolveWarehouseId(tx, null);
       let totalInputValue = new Decimal(0);
       for (const input of body.inputs) {
         const item = itemMap.get(input.itemId);
@@ -559,11 +568,13 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
           where: { id: input.itemId },
           data: { currentStock: { decrement: input.quantity } },
         });
+        await adjustWarehouseStock(tx, input.itemId, productionWarehouseId, -input.quantity);
 
         const movNumber = await generateDocumentNumber(tx, 'SM', txDate, fiscalYear.id);
         await tx.stockMovement.create({
           data: {
             movementNumber: movNumber, date: txDate, itemId: input.itemId,
+            warehouseId: productionWarehouseId,
             movementType: 'Out', quantity: input.quantity, unitCost: inputUnitCost,
             totalValue: inputTotalValue, referenceType: 'ProductionRun', referenceId: id,
             referenceNumber: oldRun.runNumber, notes: body.notes || null,
@@ -588,6 +599,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
             ...(newAvgCost !== undefined ? { averageCost: newAvgCost } : {}),
           },
         });
+        await adjustWarehouseStock(tx, output.itemId, productionWarehouseId, output.quantity);
         const totalValue = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
         totalOutputValue = totalOutputValue.plus(new Decimal(totalValue));
 
@@ -595,6 +607,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
         await tx.stockMovement.create({
           data: {
             movementNumber: movNumber, date: txDate, itemId: output.itemId,
+            warehouseId: productionWarehouseId,
             movementType: 'In', quantity: output.quantity, unitCost, totalValue,
             referenceType: 'ProductionRun', referenceId: id,
             referenceNumber: oldRun.runNumber, notes: body.notes || null,
@@ -787,6 +800,7 @@ router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, re
           where: { id: mov.itemId },
           data: { currentStock: { increment: reverseDelta } },
         });
+        await adjustWarehouseStock(tx, mov.itemId, mov.warehouseId, reverseDelta);
 
         await tx.stockMovement.update({
           where: { id: mov.id },

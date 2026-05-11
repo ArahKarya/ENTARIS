@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import WarehousePicker from './WarehousePicker';
 
 
 interface InvoiceItem {
@@ -11,6 +12,7 @@ interface InvoiceItem {
   itemName: string;
   itemType: 'product' | 'service';
   inventoryItemId: string;
+  warehouseId: string;       // sumber gudang stock-out (product only)
   serviceItemId: string;
   accountId: string;
   description: string;
@@ -29,7 +31,7 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter', 'Jasa'];
 
 const defaultItem = (): InvoiceItem => ({
-  id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0
+  id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0
 });
 
 const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -410,9 +412,17 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                                 value={item.itemName}
                                 onChange={e => updateItem(idx, 'itemName', e.target.value)}
                                 placeholder="Atau ketik nama barang manual..."
-                                className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400"
+                                className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400 mb-1"
                               />
                             )}
+                            <div className="mt-1">
+                              <WarehousePicker
+                                value={item.warehouseId}
+                                onChange={(v) => updateItem(idx, 'warehouseId', v)}
+                                size="sm"
+                                placeholder="Pilih gudang sumber..."
+                              />
+                            </div>
                           </>
                         ) : (
                           <>
@@ -702,6 +712,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   ...i,
                   itemType: i.itemType,
                   inventoryItemId: i.inventoryItemId || null,
+                  warehouseId: i.itemType === 'product' ? (i.warehouseId || null) : null,
                   serviceItemId: i.serviceItemId || null,
                   accountId: i.accountId || null,
                   taxPct: i.taxPct,

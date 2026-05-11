@@ -13,6 +13,7 @@ import InventoryDashboardTab from '../components/InventoryDashboardTab';
 import ProductionDetailDrawer from '../components/ProductionDetailDrawer';
 import ProductionDashboardTab from '../components/ProductionDashboardTab';
 import ImportModal from '../components/ImportModal';
+import WarehousePicker from '../components/WarehousePicker';
 import { exportToExcel } from '../lib/exportExcel';
 
 type TabType = 'dashboard' | 'items' | 'movements' | 'production' | 'services';
@@ -36,6 +37,9 @@ export function InventoryPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // --- Items tab state ---
+  const [itemsWarehouseFilter, setItemsWarehouseFilter] = useState('');  // '' = total across warehouses
 
   // --- Movements tab state ---
   const [movementModalOpen, setMovementModalOpen] = useState(false);
@@ -75,8 +79,10 @@ export function InventoryPage() {
 
   // --- Queries ---
   const { data: itemsRaw, isLoading: itemsLoading } = useQuery({
-    queryKey: ['inventory-items'],
-    queryFn: () => api.get('/inventory/items').then(r => r.data),
+    queryKey: ['inventory-items', itemsWarehouseFilter],
+    queryFn: () => api
+      .get('/inventory/items', { params: itemsWarehouseFilter ? { warehouseId: itemsWarehouseFilter } : {} })
+      .then(r => r.data),
   });
   const items: any[] = Array.isArray(itemsRaw)
     ? itemsRaw
@@ -362,7 +368,28 @@ export function InventoryPage() {
 
       {/* ─── Tab 1: Master Item ─── */}
       {activeTab === 'items' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="space-y-3">
+          <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2">
+            <label className="text-xs text-gray-500">Tampilkan stok per gudang:</label>
+            <div className="w-56">
+              <WarehousePicker
+                value={itemsWarehouseFilter}
+                onChange={setItemsWarehouseFilter}
+                autoDefault={false}
+                placeholder="— Semua gudang (total) —"
+                size="sm"
+              />
+            </div>
+            {itemsWarehouseFilter && (
+              <button
+                onClick={() => setItemsWarehouseFilter('')}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
          <div className="table-responsive">
           <table className="data-table">
             <thead>
@@ -371,7 +398,7 @@ export function InventoryPage() {
                 <th scope="col">Nama</th>
                 <th scope="col">Satuan</th>
                 <th scope="col">Kategori</th>
-                <th scope="col" className="text-right">Stok Saat Ini</th>
+                <th scope="col" className="text-right">{itemsWarehouseFilter ? 'Stok di Gudang' : 'Stok Saat Ini'}</th>
                 <th scope="col" className="text-right">Stok Min</th>
                 <th scope="col" className="text-center">Status</th>
                 <th scope="col" className="w-10"></th>
@@ -462,6 +489,7 @@ export function InventoryPage() {
             </tbody>
           </table>
          </div>
+          </div>
         </div>
       )}
 

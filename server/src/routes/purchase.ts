@@ -153,6 +153,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
               return {
                 itemName: item.itemName,
                 inventoryItemId: item.inventoryItemId || null,
+                warehouseId: item.warehouseId || null,
                 quantity: item.effectiveQty.toNumber(),
                 unit: item.unit || 'pcs',
                 rate: item.rate,
