@@ -311,33 +311,33 @@ model Inquiry {
 
   // Contact info — partyId optional (prospect not yet in Parties).
   // prospectName always present (denormalized for fast list display).
-  partyId       String?        @map("party_id")
-  party         Party?         @relation("InquiryParty", fields: [partyId], references: [id])
-  prospectName  String         @map("prospect_name")
-  prospectPhone String?        @map("prospect_phone")
-  prospectEmail String?        @map("prospect_email")
+  partyId       String? @map("party_id")
+  party         Party?  @relation("InquiryParty", fields: [partyId], references: [id])
+  prospectName  String  @map("prospect_name")
+  prospectPhone String? @map("prospect_phone")
+  prospectEmail String? @map("prospect_email")
 
   // Items: hybrid — either a freetext blob OR structured InquiryItem rows.
-  itemsMode     String         @default("freetext") @map("items_mode") // 'freetext' | 'structured'
-  itemsText     String?        @map("items_text")
-  items         InquiryItem[]
+  itemsMode String        @default("freetext") @map("items_mode") // 'freetext' | 'structured'
+  itemsText String?       @map("items_text")
+  items     InquiryItem[]
 
-  notes         String?
-  followUpDate  DateTime?      @map("follow_up_date")
-  lossReason    String?        @map("loss_reason")
+  notes        String?
+  followUpDate DateTime? @map("follow_up_date")
+  lossReason   String?   @map("loss_reason")
 
   // Conversion link — set once when convert-to-quotation succeeds.
-  quotationId   String?        @unique @map("quotation_id")
-  quotation     Quotation?     @relation("QuotationFromInquiry", fields: [quotationId], references: [id])
-  convertedAt   DateTime?      @map("converted_at")
+  quotationId String?    @unique @map("quotation_id")
+  quotation   Quotation? @relation("QuotationFromInquiry", fields: [quotationId], references: [id])
+  convertedAt DateTime?  @map("converted_at")
 
-  fiscalYearId  String         @map("fiscal_year_id")
-  fiscalYear    FiscalYear     @relation("InquiryFiscalYear", fields: [fiscalYearId], references: [id])
-  createdBy     String         @map("created_by")
-  user          User           @relation("InquiryCreator", fields: [createdBy], references: [id])
+  fiscalYearId String     @map("fiscal_year_id")
+  fiscalYear   FiscalYear @relation("InquiryFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy    String     @map("created_by")
+  user         User       @relation("InquiryCreator", fields: [createdBy], references: [id])
 
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([partyId])
   @@index([status])
@@ -368,6 +368,8 @@ model SalesInvoiceItem {
   itemType        String              @default("product") @map("item_type")
   inventoryItemId String?             @map("inventory_item_id")
   inventoryItem   InventoryItem?      @relation("SalesInvoiceInventory", fields: [inventoryItemId], references: [id])
+  warehouseId     String?             @map("warehouse_id")
+  warehouse       Warehouse?          @relation("SalesInvoiceItemWarehouse", fields: [warehouseId], references: [id])
   serviceItemId   String?             @map("service_item_id")
   serviceItem     ServiceItem?        @relation("SalesInvoiceService", fields: [serviceItemId], references: [id])
   cogsBackfills   CogsBackfillQueue[]
@@ -386,6 +388,7 @@ model SalesInvoiceItem {
   @@index([salesInvoiceId])
   @@index([inventoryItemId])
   @@index([serviceItemId])
+  @@index([warehouseId])
   @@map("sales_invoice_items")
 }
 
@@ -428,6 +431,8 @@ model PurchaseInvoiceItem {
   purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
   inventoryItemId   String?         @map("inventory_item_id")
   inventoryItem     InventoryItem?  @relation("PurchaseInvoiceInventory", fields: [inventoryItemId], references: [id])
+  warehouseId       String?         @map("warehouse_id")
+  warehouse         Warehouse?      @relation("PurchaseInvoiceItemWarehouse", fields: [warehouseId], references: [id])
   itemName          String          @map("item_name")
   quantity          Decimal         @db.Decimal(15, 3)
   unit              String
@@ -448,6 +453,7 @@ model PurchaseInvoiceItem {
 
   @@index([purchaseInvoiceId])
   @@index([inventoryItemId])
+  @@index([warehouseId])
   @@map("purchase_invoice_items")
 }
 
@@ -534,6 +540,7 @@ model FiscalYear {
   stockMovements   StockMovement[]
   productionRuns   ProductionRun[]
   stockOpnames     StockOpname[]
+  stockTransfers   StockTransfer[]         @relation("TransferFiscalYear")
   fixedAssets      FixedAsset[]
   cogsBackfills    CogsBackfillQueue[]     @relation("CogsBackfillFY")
   createdAt        DateTime                @default(now()) @map("created_at")
@@ -567,6 +574,7 @@ model User {
   tokenBlacklist              TokenBlacklist[]
   attachments                 TransactionAttachment[]
   stockOpnames                StockOpname[]                @relation("OpnameCreatedBy")
+  stockTransfers              StockTransfer[]              @relation("TransferCreator")
   fixedAssets                 FixedAsset[]                 @relation("AssetCreatedBy")
   approvalRequests            ApprovalRequest[]            @relation("ApprovalRequester")
   approvalApprovals           ApprovalRequest[]            @relation("ApprovalApprover")
@@ -676,6 +684,57 @@ enum StockMovementType {
   Out
   AdjustmentIn
   AdjustmentOut
+  TransferOut
+  TransferIn
+}
+
+// Physical/logical storage location. Stock balance is tracked per
+// (item, warehouse) in InventoryStock. Cost (averageCost) stays at the
+// item level — single weighted average across warehouses by design,
+// keeping the model simpler for use cases where cost doesn't materially
+// differ by location.
+model Warehouse {
+  id                   String                @id @default(uuid())
+  code                 String                @unique
+  name                 String
+  location             String?
+  description          String?
+  isActive             Boolean               @default(true) @map("is_active")
+  isDefault            Boolean               @default(false) @map("is_default")
+  sortOrder            Int                   @default(0) @map("sort_order")
+  stocks               InventoryStock[]
+  movements            StockMovement[]
+  transfersFrom        StockTransfer[]       @relation("TransferFrom")
+  transfersTo          StockTransfer[]       @relation("TransferTo")
+  purchaseInvoiceItems PurchaseInvoiceItem[] @relation("PurchaseInvoiceItemWarehouse")
+  salesInvoiceItems    SalesInvoiceItem[]    @relation("SalesInvoiceItemWarehouse")
+  productionLines      ProductionRunItem[]   @relation("ProductionLineWarehouse")
+  opnameLines          StockOpnameItem[]     @relation("OpnameLineWarehouse")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("warehouses")
+}
+
+// Stock balance per (item, warehouse). Replaces single-tenant
+// InventoryItem.currentStock as the source of truth for "where is the
+// stock physically?". InventoryItem.currentStock stays as a denormalized
+// total (sum across all warehouses) for fast list-page queries.
+model InventoryStock {
+  id           String        @id @default(uuid())
+  itemId       String        @map("item_id")
+  item         InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  warehouseId  String        @map("warehouse_id")
+  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
+  currentStock Decimal       @default(0) @map("current_stock") @db.Decimal(20, 3)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@unique([itemId, warehouseId])
+  @@index([itemId])
+  @@index([warehouseId])
+  @@map("inventory_stocks")
 }
 
 model InventoryItem {
@@ -692,6 +751,7 @@ model InventoryItem {
   isDummy              Boolean               @default(false) @map("is_dummy")
   accountId            String?               @map("account_id")
   account              Account?              @relation("ItemAccount", fields: [accountId], references: [id])
+  stocks               InventoryStock[]
   movements            StockMovement[]
   productionLines      ProductionRunItem[]   @relation("ProductionLines")
   salesInvoiceItems    SalesInvoiceItem[]    @relation("SalesInvoiceInventory")
@@ -699,10 +759,58 @@ model InventoryItem {
   quotationItems       QuotationItem[]       @relation("QuotationItemInventory")
   opnameLines          StockOpnameItem[]     @relation("OpnameLines")
   cogsBackfills        CogsBackfillQueue[]   @relation("CogsBackfillItem")
+  transferLines        StockTransferItem[]
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
 
   @@map("inventory_items")
+}
+
+// Stock transfer between warehouses. One logical transfer → two
+// StockMovement rows (TransferOut from source + TransferIn to destination)
+// plus an InventoryStock decrement/increment pair. No GL impact (same
+// account on both sides).
+model StockTransfer {
+  id              String              @id @default(uuid())
+  transferNumber  String              @unique @map("transfer_number")
+  date            DateTime
+  fromWarehouseId String              @map("from_warehouse_id")
+  fromWarehouse   Warehouse           @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String              @map("to_warehouse_id")
+  toWarehouse     Warehouse           @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  status          DocumentStatus      @default(Draft)
+  notes           String?
+  items           StockTransferItem[]
+  fiscalYearId    String              @map("fiscal_year_id")
+  fiscalYear      FiscalYear          @relation("TransferFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy       String              @map("created_by")
+  user            User                @relation("TransferCreator", fields: [createdBy], references: [id])
+  submittedAt     DateTime?           @map("submitted_at")
+  cancelledAt     DateTime?           @map("cancelled_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([status])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([fiscalYearId])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id          String        @id @default(uuid())
+  transferId  String        @map("transfer_id")
+  transfer    StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  itemId      String        @map("item_id")
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  quantity    Decimal       @db.Decimal(20, 3)
+  description String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@index([transferId])
+  @@index([itemId])
+  @@map("stock_transfer_items")
 }
 
 model StockMovement {
@@ -711,6 +819,8 @@ model StockMovement {
   date            DateTime
   itemId          String            @map("item_id")
   item            InventoryItem     @relation(fields: [itemId], references: [id])
+  warehouseId     String?           @map("warehouse_id")
+  warehouse       Warehouse?        @relation(fields: [warehouseId], references: [id])
   movementType    StockMovementType @map("movement_type")
   quantity        Decimal           @db.Decimal(20, 3)
   unitCost        Decimal           @default(0) @map("unit_cost") @db.Decimal(20, 2)
@@ -732,6 +842,7 @@ model StockMovement {
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
   @@index([itemId])
+  @@index([warehouseId])
   @@index([date])
   @@index([movementType])
   @@index([fiscalYearId])
@@ -767,6 +878,8 @@ model ProductionRunItem {
   productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
   itemId          String        @map("item_id")
   item            InventoryItem @relation("ProductionLines", fields: [itemId], references: [id])
+  warehouseId     String?       @map("warehouse_id")
+  warehouse       Warehouse?    @relation("ProductionLineWarehouse", fields: [warehouseId], references: [id])
   lineType        String        @map("line_type")
   quantity        Decimal       @db.Decimal(15, 3)
   unitPrice       Decimal?      @map("unit_price") @db.Decimal(15, 2)
@@ -775,6 +888,7 @@ model ProductionRunItem {
   createdAt       DateTime      @default(now()) @map("created_at")
 
   @@index([productionRunId])
+  @@index([warehouseId])
   @@map("production_run_items")
 }
 
@@ -812,6 +926,8 @@ model StockOpnameItem {
   stockOpname   StockOpname   @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade)
   itemId        String        @map("item_id")
   item          InventoryItem @relation("OpnameLines", fields: [itemId], references: [id])
+  warehouseId   String?       @map("warehouse_id")
+  warehouse     Warehouse?    @relation("OpnameLineWarehouse", fields: [warehouseId], references: [id])
   systemStock   Decimal       @map("system_stock") @db.Decimal(15, 3)
   actualStock   Decimal       @map("actual_stock") @db.Decimal(15, 3)
   difference    Decimal       @db.Decimal(15, 3)
@@ -823,6 +939,7 @@ model StockOpnameItem {
 
   @@index([stockOpnameId])
   @@index([itemId])
+  @@index([warehouseId])
   @@map("stock_opname_items")
 }
 
