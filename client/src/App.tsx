@@ -9,6 +9,7 @@ import { PurchaseInvoices } from './pages/PurchaseInvoices';
 import Quotations from './pages/Quotations';
 import Inquiries from './pages/Inquiries';
 import Warehouses from './pages/Warehouses';
+import WarehouseStockDashboard from './pages/WarehouseStockDashboard';
 import StockTransfers from './pages/StockTransfers';
 import { Payments } from './pages/Payments';
 import { PartiesPage } from './pages/PartiesPage';
@@ -95,6 +96,7 @@ function App() {
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/stock-opname" element={<RoleRoute allowed={['Admin', 'Accountant']}><StockOpnamePage /></RoleRoute>} />
             <Route path="/warehouses" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><Warehouses /></RoleRoute>} />
+            <Route path="/warehouse-stock" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><WarehouseStockDashboard /></RoleRoute>} />
             <Route path="/stock-transfers" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><StockTransfers /></RoleRoute>} />
 
             {/* Report Routes */}

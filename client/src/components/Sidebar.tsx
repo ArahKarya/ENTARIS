@@ -77,6 +77,7 @@ const allNavItems: NavItem[] = [
     label: 'Stok & Produksi',
     children: [
       { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory' },
+      { icon: LayoutDashboard, label: 'Dashboard Per Gudang', href: '/warehouse-stock' },
       { icon: ClipboardCheck, label: 'Stok Opname', href: '/stock-opname', roles: ['Admin', 'Accountant'] },
       { icon: Repeat, label: 'Transfer Stok', href: '/stock-transfers', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
       { icon: Building2, label: 'Daftar Gudang', href: '/warehouses', roles: ['Admin', 'Accountant', 'StaffProduksi'] },

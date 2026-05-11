@@ -24,6 +24,7 @@ const routeNames: Record<string, string> = {
   'reports': 'Laporan Keuangan',
   'inventory': 'Stok & Gudang',
   'warehouses': 'Gudang',
+  'warehouse-stock': 'Dashboard Per Gudang',
   'stock-transfers': 'Transfer Stok',
   'reconciliation': 'Rekonsiliasi Bank',
   'settings': 'Pengaturan',
