@@ -23,6 +23,8 @@ const routeNames: Record<string, string> = {
   'parties': 'Pelanggan & Vendor',
   'reports': 'Laporan Keuangan',
   'inventory': 'Stok & Gudang',
+  'warehouses': 'Gudang',
+  'stock-transfers': 'Transfer Stok',
   'reconciliation': 'Rekonsiliasi Bank',
   'settings': 'Pengaturan',
   'users': 'Manajemen User',

@@ -78,6 +78,8 @@ const allNavItems: NavItem[] = [
     children: [
       { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory' },
       { icon: ClipboardCheck, label: 'Stok Opname', href: '/stock-opname', roles: ['Admin', 'Accountant'] },
+      { icon: Repeat, label: 'Transfer Stok', href: '/stock-transfers', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Building2, label: 'Daftar Gudang', href: '/warehouses', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
     ],
   },
 

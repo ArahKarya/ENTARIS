@@ -8,6 +8,8 @@ import { SalesInvoices } from './pages/SalesInvoices';
 import { PurchaseInvoices } from './pages/PurchaseInvoices';
 import Quotations from './pages/Quotations';
 import Inquiries from './pages/Inquiries';
+import Warehouses from './pages/Warehouses';
+import StockTransfers from './pages/StockTransfers';
 import { Payments } from './pages/Payments';
 import { PartiesPage } from './pages/PartiesPage';
 import { InventoryPage } from './pages/InventoryPage';
@@ -92,6 +94,8 @@ function App() {
             <Route path="/parties" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><PartiesPage /></RoleRoute>} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/stock-opname" element={<RoleRoute allowed={['Admin', 'Accountant']}><StockOpnamePage /></RoleRoute>} />
+            <Route path="/warehouses" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><Warehouses /></RoleRoute>} />
+            <Route path="/stock-transfers" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><StockTransfers /></RoleRoute>} />
 
             {/* Report Routes */}
             <Route path="/reports" element={<FinanceRoute><Reports /></FinanceRoute>} />
