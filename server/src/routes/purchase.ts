@@ -13,6 +13,7 @@ import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { calcWeightedAverage } from '../utils/weightedAverage';
 import { settleCogsBackfillForItem } from '../services/cogsBackfillService';
+import { cancelPurchaseInvoiceInTx } from '../services/invoiceCancellation';
 import {
   computePurchaseItem,
   sumPotonganItem,
@@ -419,87 +420,10 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 // POST /api/purchase/invoices/:id/cancel — cancel purchase invoice
 router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
   try {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const invoice = await tx.purchaseInvoice.findUnique({
-        where: { id: req.params.id as string },
-        include: { supplier: true },
-      });
-      if (!invoice) throw new BusinessError('Invoice tidak ditemukan.');
-      if (invoice.status === 'Cancelled') throw new BusinessError('Invoice sudah dibatalkan.');
-      if (invoice.status === 'Paid') throw new BusinessError('Invoice sudah lunas, tidak bisa dibatalkan.');
-
-      const allocations = await tx.paymentAllocation.findMany({
-        where: { invoiceType: 'PurchaseInvoice', invoiceId: invoice.id },
-      });
-      if (allocations.length > 0) {
-        throw new BusinessError('Invoice memiliki pembayaran teralokasi. Batalkan pembayaran terlebih dahulu.');
-      }
-
-      const activeDepositApps = await tx.vendorDepositApplication.count({
-        where: { purchaseInvoiceId: invoice.id, isCancelled: false },
-      });
-      if (activeDepositApps > 0) {
-        throw new BusinessError('Invoice memiliki alokasi uang muka aktif. Batalkan alokasi terlebih dahulu.');
-      }
-
-      await tx.purchaseInvoice.update({
-        where: { id: invoice.id },
-        data: { status: 'Cancelled', outstanding: 0, cancelledAt: new Date() },
-      });
-
-      const jvNumber = `JV-${invoice.invoiceNumber}`;
-      const journal = await tx.journalEntry.findUnique({ where: { entryNumber: jvNumber } });
-      if (journal) {
-        await tx.journalEntry.update({
-          where: { id: journal.id },
-          data: { status: 'Cancelled', cancelledAt: new Date() },
-        });
-        await tx.accountingLedgerEntry.updateMany({
-          where: { referenceId: journal.id },
-          data: { isCancelled: true },
-        });
-      }
-
-      // Reverse account balances from journal entry items (swap debit/credit)
-      if (journal) {
-        const jeItems = await tx.journalItem.findMany({ where: { journalEntryId: journal.id } });
-        for (const jeItem of jeItems) {
-          await updateAccountBalance(tx, jeItem.accountId, Number(jeItem.credit), Number(jeItem.debit));
-        }
-      } else {
-        // Fallback: reverse generic accounts
-        const apAccount = await systemAccounts.getAccount('AP');
-        const inventoryAccount = await systemAccounts.getAccount('INVENTORY');
-        await updateAccountBalance(tx, inventoryAccount.id, 0, Number(invoice.grandTotal));
-        await updateAccountBalance(tx, apAccount.id, Number(invoice.grandTotal), 0);
-      }
-
-      await recalcPartyOutstanding(tx, invoice.partyId);
-
-      // Reverse stock movements created from this invoice
-      const stockMovements = await tx.stockMovement.findMany({
-        where: { referenceType: 'PurchaseInvoice', referenceId: invoice.id, isCancelled: false },
-      });
-      for (const sm of stockMovements) {
-        await tx.inventoryItem.update({
-          where: { id: sm.itemId },
-          data: { currentStock: { decrement: Number(sm.quantity) } },
-        });
-        if (sm.warehouseId) {
-          await tx.inventoryStock.update({
-            where: { itemId_warehouseId: { itemId: sm.itemId, warehouseId: sm.warehouseId } },
-            data: { currentStock: { decrement: Number(sm.quantity) } },
-          });
-        }
-        await tx.stockMovement.update({
-          where: { id: sm.id },
-          data: { isCancelled: true },
-        });
-      }
-
-      return { id: invoice.id, status: 'Cancelled' };
-    }, { timeout: 15000 });
-
+    const result = await prisma.$transaction(
+      (tx) => cancelPurchaseInvoiceInTx(tx, req.params.id as string),
+      { timeout: 15000 },
+    );
     return res.json(result);
   } catch (error: any) {
     return handleRouteError(res, error, 'POST /purchase/invoices/:id/cancel', 'Gagal membatalkan invoice.');

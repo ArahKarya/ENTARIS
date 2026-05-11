@@ -10,6 +10,7 @@ import { validateBody } from '../utils/validate';
 import { CreateSalesInvoiceSchema } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { systemAccounts } from '../services/systemAccounts';
+import { cancelSalesInvoiceInTx } from '../services/invoiceCancellation';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -569,109 +570,10 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 // POST /api/sales/invoices/:id/cancel — cancel sales invoice
 router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
   try {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const invoice = await tx.salesInvoice.findUnique({
-        where: { id: req.params.id as string },
-        include: { customer: true },
-      });
-      if (!invoice) throw new BusinessError('Invoice tidak ditemukan.');
-      if (invoice.status === 'Cancelled') throw new BusinessError('Invoice sudah dibatalkan.');
-      if (invoice.status === 'Paid') throw new BusinessError('Invoice sudah lunas, tidak bisa dibatalkan.');
-
-      // Check if there are payment allocations
-      const allocations = await tx.paymentAllocation.findMany({
-        where: { invoiceType: 'SalesInvoice', invoiceId: invoice.id },
-      });
-      if (allocations.length > 0) {
-        throw new BusinessError('Invoice memiliki pembayaran teralokasi. Batalkan pembayaran terlebih dahulu.');
-      }
-
-      // Check for active customer deposit applications
-      const activeDepositApps = await tx.customerDepositApplication.count({
-        where: { salesInvoiceId: invoice.id, isCancelled: false },
-      });
-      if (activeDepositApps > 0) {
-        throw new BusinessError('Invoice memiliki alokasi uang muka pelanggan aktif. Batalkan alokasi terlebih dahulu.');
-      }
-
-      // Cancel the invoice
-      await tx.salesInvoice.update({
-        where: { id: invoice.id },
-        data: { status: 'Cancelled', outstanding: 0, cancelledAt: new Date() },
-      });
-
-      // Cancel ledger entries from the auto-posted journal
-      const jvNumber = `JV-${invoice.invoiceNumber}`;
-      const journal = await tx.journalEntry.findUnique({ where: { entryNumber: jvNumber } });
-      if (journal) {
-        await tx.journalEntry.update({
-          where: { id: journal.id },
-          data: { status: 'Cancelled', cancelledAt: new Date() },
-        });
-        await tx.accountingLedgerEntry.updateMany({
-          where: { referenceId: journal.id },
-          data: { isCancelled: true },
-        });
-      }
-
-      // Reverse account balances using journal items (supports multi-account)
-      if (journal) {
-        const journalItems = await tx.journalItem.findMany({ where: { journalEntryId: journal.id } });
-        for (const ji of journalItems) {
-          await updateAccountBalance(tx, ji.accountId, Number(ji.credit), Number(ji.debit));
-        }
-      }
-
-      // Reverse COGS journal if exists
-      const cogsJvNumber = `JV-COGS-${invoice.invoiceNumber}`;
-      const cogsJournal = await tx.journalEntry.findUnique({ where: { entryNumber: cogsJvNumber } });
-      if (cogsJournal) {
-        await tx.journalEntry.update({
-          where: { id: cogsJournal.id },
-          data: { status: 'Cancelled', cancelledAt: new Date() },
-        });
-        await tx.accountingLedgerEntry.updateMany({
-          where: { referenceId: cogsJournal.id },
-          data: { isCancelled: true },
-        });
-
-        // Reverse balances per actual account referenced in the COGS journal.
-        // Each inventory item posts to its own sub-account (1.4.xx), not the
-        // generic INVENTORY parent — use journalItem rows verbatim so every
-        // item-specific account is reversed correctly.
-        const cogsItems = await tx.journalItem.findMany({ where: { journalEntryId: cogsJournal.id } });
-        for (const ji of cogsItems) {
-          await updateAccountBalance(tx, ji.accountId, Number(ji.credit), Number(ji.debit));
-        }
-      }
-
-      // Reverse stock movements created from this invoice
-      const stockMovements = await tx.stockMovement.findMany({
-        where: { referenceType: 'SalesInvoice', referenceId: invoice.id, isCancelled: false },
-      });
-      for (const sm of stockMovements) {
-        await tx.inventoryItem.update({
-          where: { id: sm.itemId },
-          data: { currentStock: { increment: Number(sm.quantity) } },
-        });
-        if (sm.warehouseId) {
-          await tx.inventoryStock.update({
-            where: { itemId_warehouseId: { itemId: sm.itemId, warehouseId: sm.warehouseId } },
-            data: { currentStock: { increment: Number(sm.quantity) } },
-          });
-        }
-        await tx.stockMovement.update({
-          where: { id: sm.id },
-          data: { isCancelled: true },
-        });
-      }
-
-      // Recalc party outstanding from invoice data
-      await recalcPartyOutstanding(tx, invoice.partyId);
-
-      return { id: invoice.id, status: 'Cancelled' };
-    }, { timeout: 15000 });
-
+    const result = await prisma.$transaction(
+      (tx) => cancelSalesInvoiceInTx(tx, req.params.id as string),
+      { timeout: 15000 },
+    );
     return res.json(result);
   } catch (error: any) {
     return handleRouteError(res, error, 'POST /sales/invoices/:id/cancel', 'Gagal membatalkan invoice.');
