@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, Loader2, Warehouse as WhIcon, Star, AlertTriangle, Search } from 'lucide-react';
+import { pdf } from '@react-pdf/renderer';
+import { ChevronDown, ChevronRight, Loader2, Warehouse as WhIcon, Star, AlertTriangle, Search, FileDown } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { useCompanySettings } from '../contexts/CompanySettingsContext';
+import WarehouseStockPDF, { type WarehouseBlock } from '../lib/pdf/WarehouseStockPDF';
 
 interface Warehouse {
   id: string;
@@ -148,6 +152,8 @@ function StockSection({ warehouse, search }: { warehouse: Warehouse; search: str
 export const WarehouseStockDashboard = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const company = useCompanySettings();
 
   const { data: warehouses, isLoading } = useQuery({
     queryKey: ['warehouses'],
@@ -156,6 +162,56 @@ export const WarehouseStockDashboard = () => {
       return res.data.data as Warehouse[];
     },
   });
+
+  const handleDownloadPDF = async () => {
+    if (!warehouses || warehouses.length === 0) return;
+    setIsDownloading(true);
+    try {
+      // Fetch detail (with non-zero stocks) for every warehouse in parallel.
+      const details = await Promise.all(
+        warehouses.map((w) =>
+          api.get(`/warehouses/${w.id}`).then((r) => r.data as WarehouseDetail),
+        ),
+      );
+      const blocks: WarehouseBlock[] = details.map((d) => ({
+        code: d.code,
+        name: d.name,
+        location: d.location,
+        isDefault: d.isDefault,
+        items: d.stocks
+          .map((s) => ({
+            code: s.item.code,
+            name: s.item.name,
+            unit: s.item.unit,
+            currentStock: Number(s.currentStock),
+            averageCost: Number(s.item.averageCost ?? 0),
+          }))
+          .sort((a, b) => b.currentStock - a.currentStock),
+      }));
+
+      const blob = await pdf(
+        <WarehouseStockPDF
+          warehouses={blocks}
+          generatedAt={new Date()}
+          company={{ name: company?.companyName ?? 'Perusahaan', address: company?.address }}
+        />,
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.download = `Stok-Per-Gudang_${stamp}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error ?? 'Gagal membuat PDF.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const toggle = (id: string) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -178,6 +234,14 @@ export const WarehouseStockDashboard = () => {
         <div className="flex items-center gap-2">
           <button onClick={expandAll} className="btn-secondary text-xs">Buka semua</button>
           <button onClick={collapseAll} className="btn-secondary text-xs">Tutup semua</button>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isDownloading || !warehouses || warehouses.length === 0}
+            className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          >
+            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
+            Unduh PDF
+          </button>
         </div>
       </div>
 
