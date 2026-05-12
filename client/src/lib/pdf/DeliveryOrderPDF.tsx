@@ -79,12 +79,14 @@ const S = StyleSheet.create({
   },
   cell: { fontSize: 10.5, color: C.black },
   cellBold: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: C.black },
-  colNo: { width: 24 },
-  colCode: { width: 60 },
-  colName: { flex: 1 },
-  colQty: { width: 60, textAlign: 'right' },
-  colUnit: { width: 44, textAlign: 'center' },
-  colDesc: { width: 110 },
+  // Every column gets explicit paddingRight so adjacent cell text never
+  // butts against the next column. Last column (colDesc) has no padding.
+  colNo: { width: 26, paddingRight: 6 },
+  colCode: { width: 95, paddingRight: 8, fontSize: 9 },
+  colName: { flex: 1, paddingRight: 8 },
+  colQty: { width: 56, paddingRight: 6, textAlign: 'right' },
+  colUnit: { width: 38, paddingRight: 6, textAlign: 'center' },
+  colDesc: { width: 90 },
 
   // ── Notes ──────────────────────────────────────────────────────────
   notesBox: {
