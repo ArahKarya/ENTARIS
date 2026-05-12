@@ -30,13 +30,8 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
     enabled: isOpen && !!partyId,
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedDepositId('');
-      setAmount('');
-      setError('');
-    }
-  }, [isOpen]);
+  // No reset useEffect here: parent uses `{isOpen && <Modal .../>}` so each
+  // open is a fresh mount and the useState() defaults above run again.
 
   // Auto-fill amount when deposit is selected
   useEffect(() => {

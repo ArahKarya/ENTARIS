@@ -1004,10 +1004,10 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         onCancel={() => setCancelDepositAppId(null)}
       />
 
-      {/* Apply Deposit Modal (Purchase) */}
-      {!isSales && invoice && (
+      {/* Apply Deposit Modal (Purchase). Conditional mount for fresh state. */}
+      {!isSales && invoice && isApplyDepositOpen && (
         <ApplyDepositModal
-          isOpen={isApplyDepositOpen}
+          isOpen={true}
           onClose={() => setIsApplyDepositOpen(false)}
           purchaseInvoiceId={invoiceId!}
           partyId={invoice.partyId ?? invoice.supplier?.id ?? ''}
@@ -1015,10 +1015,11 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         />
       )}
 
-      {/* Apply Customer Deposit Modal (Sales) */}
-      {isSales && invoice && (
+      {/* Apply Customer Deposit Modal (Sales). Conditional mount so each open
+          starts with fresh state — no reset useEffect needed inside the modal. */}
+      {isSales && invoice && isApplyCustomerDepositOpen && (
         <ApplyCustomerDepositModal
-          isOpen={isApplyCustomerDepositOpen}
+          isOpen={true}
           onClose={() => setIsApplyCustomerDepositOpen(false)}
           salesInvoiceId={invoiceId!}
           partyId={invoice.partyId ?? invoice.customer?.id ?? ''}

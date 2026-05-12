@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,16 +50,8 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
     enabled: isOpen,
   });
 
-  useEffect(() => {
-    if (isOpen && deposit) {
-      setDate(today);
-      setOffsetAmount(0);
-      setCashAmount(0);
-      setCashAccountId('');
-      setNotes('');
-      setError('');
-    }
-  }, [isOpen, deposit?.id]);
+  // No reset useEffect: parent uses `{refundTarget && <Modal key={id} ... />}`
+  // so each deposit target gets a fresh mount + useState() defaults.
 
   const remaining = Number(deposit?.remaining ?? 0);
   const maxOffset = Math.min(remaining, Number(partyOutstanding ?? 0));

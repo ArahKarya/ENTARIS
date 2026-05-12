@@ -241,11 +241,16 @@ export const CustomerDeposits = () => {
         onClose={() => setIsModalOpen(false)}
       />
 
-      <RefundCustomerDepositModal
-        isOpen={refundTarget !== null}
-        onClose={() => setRefundTarget(null)}
-        deposit={refundTarget}
-      />
+      {/* Conditional mount = fresh state per open; key ties to the deposit id
+          so switching targets re-initializes form fields. */}
+      {refundTarget && (
+        <RefundCustomerDepositModal
+          key={refundTarget.id}
+          isOpen={true}
+          onClose={() => setRefundTarget(null)}
+          deposit={refundTarget}
+        />
+      )}
 
       <ConfirmDialog
         open={cancelTarget !== null}
