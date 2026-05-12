@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -19,6 +19,9 @@ const C = {
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: 56, paddingHorizontal: 36, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  companyBlock: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  companyLogo: { width: 56, height: 56, objectFit: 'contain' as const },
+  companyInfo: { flexDirection: 'column' as const, flex: 1 },
   companyName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.primary },
   companyMeta: { fontSize: 7, color: C.muted, marginTop: 1 },
   title: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: C.dark, textAlign: 'right' },
@@ -87,7 +90,14 @@ export interface DeliveryOrderPDFProps {
   recipientName?: string | null;
   notes?: string | null;
   items: DeliveryOrderPDFItem[];
-  company: { name: string; address?: string | null; phone?: string | null };
+  company: {
+    name: string;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    logoUrl?: string | null;
+  };
 }
 
 const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
@@ -100,10 +110,17 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
       <Page size="A4" style={S.page} wrap>
         {/* Header */}
         <View style={S.headerRow} fixed>
-          <View>
-            <Text style={S.companyName}>{company.name}</Text>
-            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-            {company.phone && <Text style={S.companyMeta}>Telp: {company.phone}</Text>}
+          <View style={S.companyBlock}>
+            {company.logoUrl && (
+              <Image style={S.companyLogo} src={company.logoUrl} />
+            )}
+            <View style={S.companyInfo}>
+              <Text style={S.companyName}>{company.name}</Text>
+              {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
+              {company.phone   && <Text style={S.companyMeta}>Telp: {company.phone}</Text>}
+              {company.email   && <Text style={S.companyMeta}>{company.email}</Text>}
+              {company.taxId   && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+            </View>
           </View>
           <View>
             <Text style={S.title}>SURAT JALAN</Text>

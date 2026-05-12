@@ -95,6 +95,9 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
         name: company.name,
         address: company.address,
         phone: company.phone,
+        email: company.email,
+        taxId: company.taxId,
+        logoUrl: company.logoUrl,
       }}
     />
   ) : null;
