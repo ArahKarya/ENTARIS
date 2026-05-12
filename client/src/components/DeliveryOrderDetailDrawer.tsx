@@ -67,11 +67,13 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
 
   if (!doId) return null;
 
-  const status: string = doc?.status ?? 'Submitted';
-  const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.Submitted;
+  const rawStatus: string = doc?.status ?? 'Submitted';
   const customer = doc?.customer ?? doc?.party ?? null;
   const items: any[] = doc?.items ?? [];
   const invoiceRef = doc?.salesInvoice ?? doc?.invoice ?? null;
+  // "Invoiced" is derived — enum stays Submitted with invoiceId set.
+  const status: string = rawStatus === 'Submitted' && invoiceRef ? 'Invoiced' : rawStatus;
+  const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.Submitted;
 
   const pdfDoc = doc ? (
     <DeliveryOrderPDF

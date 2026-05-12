@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { X, FileDown, Clock, CreditCard, Package, User, Calendar, AlertTriangle, CheckCircle2, Loader2, Wallet, XCircle, Pencil, Save, Paperclip, FileText, Image as ImageIcon, Trash2, Download } from 'lucide-react';
+import { X, FileDown, Clock, CreditCard, Package, User, Calendar, AlertTriangle, CheckCircle2, Loader2, Wallet, XCircle, Pencil, Save, Paperclip, FileText, Image as ImageIcon, Trash2, Download, Truck } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { cn } from '../lib/utils';
 import api from '../lib/api';
@@ -602,6 +602,34 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
 
               {/* Items Table */}
               <div className="px-6 py-4 border-b border-gray-100">
+                {isSales && (() => {
+                  const linkedDOs = Array.from(
+                    new Map(
+                      items
+                        .map((it: any) => it.deliveryOrderItem?.deliveryOrder)
+                        .filter((d: any) => d)
+                        .map((d: any) => [d.id, d]),
+                    ).values(),
+                  );
+                  if (linkedDOs.length === 0) return null;
+                  return (
+                    <div className="mb-3 p-2.5 bg-blue-50/60 border border-blue-100 rounded-lg flex items-start gap-2 text-xs">
+                      <Truck size={13} className="text-blue-600 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-blue-700 font-semibold mb-0.5">
+                          Ditagihkan dari {linkedDOs.length === 1 ? 'Surat Jalan' : `${linkedDOs.length} Surat Jalan`}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {linkedDOs.map((d: any) => (
+                            <span key={d.id} className="font-mono text-[11px] px-1.5 py-0.5 bg-white border border-blue-200 rounded text-blue-700">
+                              {d.doNumber}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
                   <Package size={10} /> Daftar Barang / Jasa ({items.length} item)
                 </p>
@@ -625,10 +653,15 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                         <tr key={item.id || idx} className={cn('border-b border-gray-50 last:border-0', idx % 2 === 1 && 'bg-gray-50/50')}>
                           <td className="px-4 py-2.5 text-center text-xs text-gray-300">{idx + 1}</td>
                           <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="text-sm font-medium text-gray-800">{item.itemName}</p>
                               {item.itemType === 'service' && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-100 text-purple-700">Jasa</span>
+                              )}
+                              {item.deliveryOrderItem?.deliveryOrder?.doNumber && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-blue-100 text-blue-700">
+                                  <Truck size={8} /> {item.deliveryOrderItem.deliveryOrder.doNumber}
+                                </span>
                               )}
                             </div>
                             {item.description && <p className="text-xs text-gray-400">{item.description}</p>}

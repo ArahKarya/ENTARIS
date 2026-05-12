@@ -217,6 +217,8 @@ export const DeliveryOrders = () => {
                 paginated.map((d: any) => {
                   const customer = d.customer ?? d.party;
                   const invoiceRef = d.salesInvoice ?? d.invoice;
+                  // "Invoiced" is a derived state — enum has only Draft/Submitted/Cancelled.
+                  const displayStatus = d.status === 'Submitted' && invoiceRef ? 'Invoiced' : d.status;
                   return (
                     <tr
                       key={d.id}
@@ -238,8 +240,8 @@ export const DeliveryOrders = () => {
                         <span className="badge badge-gray text-xs">{d._count?.items ?? d.items?.length ?? 0} item</span>
                       </td>
                       <td className="text-center">
-                        <span className={cn('badge', STATUS_BADGE[d.status] ?? 'badge-gray')}>
-                          {STATUS_LABEL[d.status] ?? d.status}
+                        <span className={cn('badge', STATUS_BADGE[displayStatus] ?? 'badge-gray')}>
+                          {STATUS_LABEL[displayStatus] ?? displayStatus}
                         </span>
                       </td>
                       <td>

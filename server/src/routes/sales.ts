@@ -73,7 +73,17 @@ router.get('/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         customer: true,
-        items: { include: { serviceItem: { select: { id: true, code: true, name: true } } } },
+        items: {
+          include: {
+            serviceItem: { select: { id: true, code: true, name: true } },
+            deliveryOrderItem: {
+              select: {
+                id: true,
+                deliveryOrder: { select: { id: true, doNumber: true, date: true } },
+              },
+            },
+          },
+        },
         user: { select: { id: true, fullName: true } },
       },
     });

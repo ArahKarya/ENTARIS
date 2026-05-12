@@ -66,6 +66,7 @@ router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
         where,
         include: {
           customer: { select: { id: true, name: true } },
+          invoice: { select: { id: true, invoiceNumber: true } },
           _count: { select: { items: true } },
         },
         orderBy: { date: 'desc' },
