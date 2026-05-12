@@ -221,8 +221,16 @@ export async function checkStockMovementMismatch(): Promise<CheckResult> {
     difference: number;
   }>>`
     WITH computed AS (
+      -- TransferIn/TransferOut are within the same item: at total-stock level
+      -- they cancel out (source -qty + destination +qty = 0). The previous
+      -- formula classified TransferIn as negative, producing huge false drifts
+      -- for any item that has ever been the destination of a transfer.
       SELECT sm.item_id,
-             SUM(CASE WHEN sm.movement_type IN ('In', 'AdjustmentIn') THEN sm.quantity ELSE -sm.quantity END) AS total_stock
+             SUM(CASE
+                   WHEN sm.movement_type IN ('In', 'AdjustmentIn', 'TransferIn')
+                     THEN sm.quantity
+                   ELSE -sm.quantity
+                 END) AS total_stock
         FROM stock_movements sm
        WHERE sm.is_cancelled = false
        GROUP BY sm.item_id

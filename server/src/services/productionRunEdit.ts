@@ -164,6 +164,11 @@ export async function editProductionRunInTx(
   });
 
   const productionWarehouseId = await resolveWarehouseId(tx, null);
+  if (!productionWarehouseId) {
+    throw new BusinessError(
+      'Tidak ada gudang default. Set salah satu gudang sebagai default sebelum mengedit produksi.',
+    );
+  }
 
   // Inputs
   for (const input of body.inputs) {

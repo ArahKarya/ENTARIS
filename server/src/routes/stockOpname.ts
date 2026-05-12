@@ -161,6 +161,11 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
         // Stock opname adjustments apply to the default warehouse (single-warehouse
         // count). For multi-warehouse opname, callers should run separate sessions per warehouse.
         const opnameWarehouseId = await resolveWarehouseId(tx, null);
+        if (!opnameWarehouseId) {
+          throw new BusinessError(
+            'Tidak ada gudang default. Set salah satu gudang sebagai default sebelum submit stok opname.',
+          );
+        }
 
         const journalItems: { accountId: string; debit: number; credit: number; description: string }[] = [];
         const movementIds: { itemId: string; movementId: string }[] = [];

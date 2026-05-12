@@ -105,7 +105,16 @@ export async function submitProductionRunInTx(
     },
   });
 
+  // Production runs need a specific warehouse so inventory_stocks stays in
+  // sync with the denormalized inventory_items.currentStock. Silent-null path
+  // historically caused drift (e.g. GKP-KEBO showed total != SUM(per-warehouse)
+  // when production was posted while no default existed).
   const productionWarehouseId = await resolveWarehouseId(tx, null);
+  if (!productionWarehouseId) {
+    throw new BusinessError(
+      'Tidak ada gudang default. Set salah satu gudang sebagai default sebelum mencatat produksi.',
+    );
+  }
 
   // Inputs: stock-out + StockMovement Out
   let totalInputValue = new Decimal(0);
