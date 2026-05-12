@@ -558,3 +558,26 @@ export const CreateStockOpnameSchema = z.object({
 export const SubmitStockOpnameSchema = z.object({
   items: z.array(StockOpnameItemSchema).min(1, 'Minimal satu item stok opname.'),
 });
+
+// ─── Delivery Order (Surat Jalan) ────────────────────────────────────────────
+// Physical delivery document. Decrements stock without GL impact — multiple
+// DOs are aggregated into a single sales invoice for monthly/weekly billing.
+const DeliveryOrderItemSchema = z.object({
+  inventoryItemId: z.string().uuid().nullable().optional(),
+  warehouseId: z.string().uuid().nullable().optional(),
+  itemName: z.string().min(1, 'Nama item wajib diisi.'),
+  quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
+  unit: z.string().min(1, 'Satuan wajib diisi.'),
+  description: z.string().nullable().optional(),
+});
+
+export const CreateDeliveryOrderSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  partyId: z.string().uuid('Customer wajib dipilih.'),
+  nomorMobil: z.string().max(50).nullable().optional(),
+  driverName: z.string().max(200).nullable().optional(),
+  recipientName: z.string().max(200).nullable().optional(),
+  notes: z.string().nullable().optional(),
+  items: z.array(DeliveryOrderItemSchema).min(1, 'Minimal satu item.'),
+  allowNegativeStock: z.boolean().optional().default(false),
+});

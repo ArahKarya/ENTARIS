@@ -17,6 +17,7 @@ import {
   ScrollText,
   Repeat,
   Scale,
+  Truck,
   Wallet,
   X,
   ClipboardCheck,
@@ -53,11 +54,12 @@ const allNavItems: NavItem[] = [
   {
     icon: ShoppingCart,
     label: 'Penjualan',
-    roles: ['Admin', 'Accountant', 'Viewer'],
+    roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'],
     children: [
       { icon: Inbox, label: 'Inquiry', href: '/inquiries', roles: ['Admin', 'Accountant', 'Viewer'] },
       { icon: FileSignature, label: 'Penawaran', href: '/quotations', roles: ['Admin', 'Accountant', 'Viewer'] },
       { icon: Receipt, label: 'Invoice Penjualan', href: '/sales', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: Truck, label: 'Surat Jalan', href: '/delivery-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
       { icon: Wallet, label: 'Uang Muka Pelanggan', href: '/customer-deposits', roles: ['Admin', 'Accountant'] },
     ],
   },
