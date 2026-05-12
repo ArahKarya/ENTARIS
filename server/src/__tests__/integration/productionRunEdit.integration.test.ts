@@ -55,9 +55,6 @@ d('editProductionRunInTx — single input / single output', () => {
     try {
       await prisma.$transaction(async (tx) => {
         // Ensure a default warehouse for resolveWarehouseId in submit/edit.
-        await tx.warehouse.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
-        await tx.warehouse.update({ where: { id: warehouseId }, data: { isDefault: true } });
-
         const inputItem = await tx.inventoryItem.create({
           data: {
             code: `TEST-EDIT-IN-${stamp}`,
@@ -88,6 +85,7 @@ d('editProductionRunInTx — single input / single output', () => {
           tx,
           {
             date: new Date().toISOString().slice(0, 10),
+            warehouseId,
             inputs: [{ itemId: inputItem.id, quantity: 60 }],
             outputs: [{ itemId: outputItem.id, quantity: 50, unitPrice: 11_000 }],
           },
@@ -108,6 +106,7 @@ d('editProductionRunInTx — single input / single output', () => {
           run!.id,
           {
             date: new Date().toISOString().slice(0, 10),
+            warehouseId,
             inputs: [{ itemId: inputItem.id, quantity: 80 }],
             outputs: [{ itemId: outputItem.id, quantity: 70, unitPrice: 12_000 }],
           },
@@ -164,9 +163,6 @@ d('editProductionRunInTx — single input / single output', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.warehouse.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
-        await tx.warehouse.update({ where: { id: warehouseId }, data: { isDefault: true } });
-
         const inputItem = await tx.inventoryItem.create({
           data: { code: `TEST-CXL-EDIT-IN-${stamp}`, name: `X ${stamp}`, unit: 'kg', currentStock: 100, averageCost: 1000, isActive: true },
         });
@@ -181,6 +177,7 @@ d('editProductionRunInTx — single input / single output', () => {
           tx,
           {
             date: new Date().toISOString().slice(0, 10),
+            warehouseId,
             inputs: [{ itemId: inputItem.id, quantity: 10 }],
             outputs: [{ itemId: outputItem.id, quantity: 8, unitPrice: 1500 }],
           },
@@ -200,6 +197,7 @@ d('editProductionRunInTx — single input / single output', () => {
             run!.id,
             {
               date: new Date().toISOString().slice(0, 10),
+              warehouseId,
               inputs: [{ itemId: inputItem.id, quantity: 5 }],
               outputs: [{ itemId: outputItem.id, quantity: 4, unitPrice: 1500 }],
             },

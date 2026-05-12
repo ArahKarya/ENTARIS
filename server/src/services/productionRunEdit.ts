@@ -163,10 +163,10 @@ export async function editProductionRunInTx(
     },
   });
 
-  const productionWarehouseId = await resolveWarehouseId(tx, null);
+  const productionWarehouseId = await resolveWarehouseId(tx, body.warehouseId);
   if (!productionWarehouseId) {
     throw new BusinessError(
-      'Tidak ada gudang default. Set salah satu gudang sebagai default sebelum mengedit produksi.',
+      'Gudang produksi wajib dipilih. Pilih gudang di form atau set salah satu gudang sebagai default.',
     );
   }
 

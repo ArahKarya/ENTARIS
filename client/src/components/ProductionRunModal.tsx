@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { toast } from 'sonner';
 import SearchableSelect from './SearchableSelect';
 import type { SelectOption } from './SearchableSelect';
+import WarehousePicker from './WarehousePicker';
 
 interface LineItem {
   itemId: string;
@@ -30,6 +31,7 @@ const today = () => new Date().toISOString().split('T')[0];
 export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const queryClient = useQueryClient();
   const [date, setDate] = useState(today());
+  const [warehouseId, setWarehouseId] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [inputs, setInputs] = useState<LineItem[]>([{ itemId: '', quantity: '' }]);
@@ -46,6 +48,10 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         const inputItems = runItems.filter((i: any) => i.lineType === 'Input');
         const outputItems = runItems.filter((i: any) => i.lineType === 'Output' || i.lineType === 'ByProduct');
         setDate(editRun.date ? new Date(editRun.date).toISOString().split('T')[0] : today());
+        // Reload warehouse from the run's first item movement (all input/output
+        // moves share the same warehouseId per run).
+        const firstItem = (editRun.items ?? [])[0];
+        setWarehouseId(firstItem?.warehouseId ?? firstItem?.warehouse?.id ?? '');
         setReferenceNumber(editRun.referenceNumber ?? '');
         setNotes(editRun.notes ?? '');
         setInputs(inputItems.length > 0
@@ -63,6 +69,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         );
       } else {
         setDate(today());
+        setWarehouseId('');
         setReferenceNumber('');
         setNotes('');
         setInputs([{ itemId: '', quantity: '' }]);
@@ -125,6 +132,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
 
     const errs: string[] = [];
     if (!date) errs.push('Tanggal wajib diisi.');
+    if (!warehouseId) errs.push('Gudang wajib dipilih.');
     const validInputs = inputs.filter(i => i.itemId && i.quantity && parseFloat(i.quantity) > 0);
     const validOutputs = outputs.filter(o => o.itemId && o.quantity && parseFloat(o.quantity) > 0);
     if (validInputs.length === 0) errs.push('Minimal satu item input.');
@@ -135,6 +143,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
     try {
       const payload = {
         date,
+        warehouseId,
         notes: notes || null,
         referenceNumber: referenceNumber || null,
         inputs: validInputs.map(i => ({ itemId: i.itemId, quantity: parseFloat(i.quantity) })),
@@ -201,7 +210,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
             )}
 
             {/* Basic info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">
                   Tanggal <span className="text-red-500">*</span>
@@ -212,6 +221,18 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
                   onChange={e => setDate(e.target.value)}
                   required
                   className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                  Gudang <span className="text-red-500">*</span>
+                </label>
+                <WarehousePicker
+                  value={warehouseId}
+                  onChange={setWarehouseId}
+                  size="md"
+                  autoDefault={true}
+                  placeholder="Pilih gudang produksi..."
                 />
               </div>
               <div>

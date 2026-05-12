@@ -61,17 +61,6 @@ d('submitProductionRunInTx — single input / single output', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        // Ensure a default warehouse exists for resolveWarehouseId. Service
-        // requires it; tx-scoped change rolls back at the sentinel throw.
-        await tx.warehouse.updateMany({
-          where: { isDefault: true },
-          data: { isDefault: false },
-        });
-        await tx.warehouse.update({
-          where: { id: warehouseId },
-          data: { isDefault: true },
-        });
-
         // Setup: create input item with stock + cost, output item starts at 0.
         const inputItem = await tx.inventoryItem.create({
           data: {
@@ -98,10 +87,13 @@ d('submitProductionRunInTx — single input / single output', () => {
           },
         });
 
+        // Pass warehouseId explicitly — preferred path now that the UI has a
+        // WarehousePicker on the production run form.
         const run = await submitProductionRunInTx(
           tx,
           {
             date: new Date().toISOString().slice(0, 10),
+            warehouseId,
             inputs: [{ itemId: inputItem.id, quantity: 60 }],
             outputs: [{ itemId: outputItem.id, quantity: 50, unitPrice: 11_000 }],
           },
@@ -186,6 +178,7 @@ d('submitProductionRunInTx — single input / single output', () => {
           tx,
           {
             date: new Date().toISOString().slice(0, 10),
+            warehouseId,
             inputs: [{ itemId: inputItem.id, quantity: 100 }], // 100 > 10
             outputs: [{ itemId: outputItem.id, quantity: 50, unitPrice: 6_000 }],
           },

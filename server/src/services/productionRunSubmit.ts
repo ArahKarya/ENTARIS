@@ -13,6 +13,10 @@ type Tx = Prisma.TransactionClient;
 
 export interface SubmitProductionRunInput {
   date: string;
+  // Optional: when caller provides a warehouseId we use it as the production
+  // location. Otherwise resolveWarehouseId falls back to the default. One of
+  // the two must resolve, else the service throws.
+  warehouseId?: string | null;
   inputs: Array<{ itemId: string; quantity: number }>;
   outputs: Array<{ itemId: string; quantity: number; unitPrice?: number | null; isByProduct?: boolean }>;
   notes?: string | null;
@@ -108,11 +112,13 @@ export async function submitProductionRunInTx(
   // Production runs need a specific warehouse so inventory_stocks stays in
   // sync with the denormalized inventory_items.currentStock. Silent-null path
   // historically caused drift (e.g. GKP-KEBO showed total != SUM(per-warehouse)
-  // when production was posted while no default existed).
-  const productionWarehouseId = await resolveWarehouseId(tx, null);
+  // when production was posted while no default existed). Prefer the explicit
+  // body.warehouseId from the UI picker; fall back to default warehouse for
+  // legacy callers; otherwise force the user to pick.
+  const productionWarehouseId = await resolveWarehouseId(tx, body.warehouseId);
   if (!productionWarehouseId) {
     throw new BusinessError(
-      'Tidak ada gudang default. Set salah satu gudang sebagai default sebelum mencatat produksi.',
+      'Gudang produksi wajib dipilih. Pilih gudang di form atau set salah satu gudang sebagai default.',
     );
   }
 

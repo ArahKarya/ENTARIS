@@ -459,6 +459,9 @@ const ProductionOutputLineSchema = z.object({
 
 export const CreateProductionRunSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
+  // Warehouse where inputs are consumed AND outputs deposited. Preferred over
+  // the legacy default-warehouse fallback so user is explicit per run.
+  warehouseId: z.string().uuid('Gudang wajib dipilih.').nullable().optional(),
   notes: z.string().nullable().optional(),
   referenceType: z.string().nullable().optional(),
   referenceId: z.string().nullable().optional(),
