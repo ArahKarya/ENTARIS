@@ -30,18 +30,52 @@ const defaultItem = (): DOItem => ({
 
 interface Props {
   onClose: () => void;
+  /** Existing DO to edit. When provided, modal opens in edit mode: PUT /:id
+   *  instead of POST /, pre-filled with the DO's current header + items. */
+  editDO?: {
+    id: string;
+    doNumber: string;
+    date: string;
+    partyId: string;
+    nomorMobil: string | null;
+    driverName: string | null;
+    recipientName: string | null;
+    notes: string | null;
+    items: Array<{
+      id: string;
+      inventoryItemId: string | null;
+      warehouseId: string | null;
+      itemName: string;
+      quantity: number;
+      unit: string;
+      description: string | null;
+    }>;
+  };
 }
 
-const DeliveryOrderModal: React.FC<Props> = ({ onClose }) => {
+const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   const today = new Date().toISOString().split('T')[0];
+  const isEdit = !!editDO;
 
-  const [date, setDate] = useState(today);
-  const [partyId, setPartyId] = useState('');
-  const [nomorMobil, setNomorMobil] = useState('');
-  const [driverName, setDriverName] = useState('');
-  const [recipientName, setRecipientName] = useState('');
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<DOItem[]>([defaultItem()]);
+  const [date, setDate] = useState(() => editDO ? editDO.date.slice(0, 10) : today);
+  const [partyId, setPartyId] = useState(() => editDO?.partyId ?? '');
+  const [nomorMobil, setNomorMobil] = useState(() => editDO?.nomorMobil ?? '');
+  const [driverName, setDriverName] = useState(() => editDO?.driverName ?? '');
+  const [recipientName, setRecipientName] = useState(() => editDO?.recipientName ?? '');
+  const [notes, setNotes] = useState(() => editDO?.notes ?? '');
+  const [items, setItems] = useState<DOItem[]>(() =>
+    editDO
+      ? editDO.items.map((it) => ({
+          id: crypto.randomUUID(),
+          inventoryItemId: it.inventoryItemId ?? '',
+          warehouseId: it.warehouseId ?? '',
+          itemName: it.itemName,
+          quantity: Number(it.quantity),
+          unit: it.unit,
+          description: it.description ?? '',
+        }))
+      : [defaultItem()],
+  );
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [error, setError] = useState('');
 
@@ -82,19 +116,26 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose }) => {
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await api.post('/delivery-orders', data);
+      const res = isEdit
+        ? await api.put(`/delivery-orders/${editDO!.id}`, data)
+        : await api.post('/delivery-orders', data);
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Surat jalan berhasil dibuat. Stok dikeluarkan dari gudang.');
+      toast.success(
+        isEdit
+          ? `${editDO!.doNumber} berhasil diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.`
+          : 'Surat jalan berhasil dibuat. Stok dikeluarkan dari gudang.',
+      );
       queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-order-detail'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items-active'] });
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan surat jalan.'),
+    onError: (err: any) => setError(err.response?.data?.error || (isEdit ? 'Gagal mengedit surat jalan.' : 'Gagal menyimpan surat jalan.')),
   });
 
   const addItem = () => setItems([...items, defaultItem()]);
@@ -199,7 +240,9 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose }) => {
               <Truck size={18} className="text-blue-600" />
             </div>
             <div>
-              <h2 id="do-modal-title" className="text-base font-semibold text-gray-900">Buat Surat Jalan</h2>
+              <h2 id="do-modal-title" className="text-base font-semibold text-gray-900">
+                {isEdit ? `Edit ${editDO!.doNumber}` : 'Buat Surat Jalan'}
+              </h2>
               <p className="text-xs text-gray-400 mt-0.5">Dokumen pengiriman fisik • stok keluar saat disimpan</p>
             </div>
           </div>

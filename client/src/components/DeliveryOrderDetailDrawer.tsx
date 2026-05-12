@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import {
-  X, Truck, User, Calendar, Package, Loader2, XCircle, FileDown, FileText, ExternalLink, AlertTriangle,
+  X, Truck, User, Calendar, Package, Loader2, XCircle, FileDown, FileText, ExternalLink, AlertTriangle, Pencil,
 } from 'lucide-react';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
@@ -12,6 +12,7 @@ import { formatDate } from '../lib/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
 import DeliveryOrderPDF from '../lib/pdf/DeliveryOrderPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
+import DeliveryOrderModal from './DeliveryOrderModal';
 
 interface Props {
   doId: string | null;
@@ -40,6 +41,8 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
 
   const userRole = useMemo(() => getUserRole(), []);
   const isAdmin = userRole === 'Admin';
+  const canEdit = userRole === 'Admin' || userRole === 'Accountant';
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: doc, isLoading } = useQuery({
     queryKey: ['delivery-order-detail', doId],
@@ -301,6 +304,15 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
 
             {status === 'Submitted' && (
               <>
+                {canEdit && (
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                    title="Edit surat jalan (nomor & tanggal dipertahankan)"
+                  >
+                    <Pencil size={14} /> Edit
+                  </button>
+                )}
                 {isAdmin && (
                   <button
                     onClick={() => setConfirmCancel(true)}
@@ -337,6 +349,31 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
         onCancel={() => setConfirmCancel(false)}
         onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
       />
+
+      {editOpen && doc && (
+        <DeliveryOrderModal
+          onClose={() => setEditOpen(false)}
+          editDO={{
+            id: doc.id,
+            doNumber: doc.doNumber,
+            date: doc.date,
+            partyId: doc.partyId ?? customer?.id ?? '',
+            nomorMobil: doc.nomorMobil ?? null,
+            driverName: doc.driverName ?? null,
+            recipientName: doc.recipientName ?? null,
+            notes: doc.notes ?? null,
+            items: items.map((it: any) => ({
+              id: it.id,
+              inventoryItemId: it.inventoryItemId ?? null,
+              warehouseId: it.warehouseId ?? null,
+              itemName: it.itemName,
+              quantity: Number(it.quantity),
+              unit: it.unit,
+              description: it.description ?? null,
+            })),
+          }}
+        />
+      )}
     </>
   );
 };

@@ -235,7 +235,7 @@ export const DeliveryOrders = () => {
                         {d.nomorMobil || <span className="text-gray-300">—</span>}
                       </td>
                       <td className="text-center">
-                        <span className="badge badge-gray text-xs">{d.items?.length ?? 0} item</span>
+                        <span className="badge badge-gray text-xs">{d._count?.items ?? d.items?.length ?? 0} item</span>
                       </td>
                       <td className="text-center">
                         <span className={cn('badge', STATUS_BADGE[d.status] ?? 'badge-gray')}>

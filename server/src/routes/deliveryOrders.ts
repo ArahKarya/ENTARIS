@@ -7,6 +7,7 @@ import { CreateDeliveryOrderSchema } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { submitDeliveryOrderInTx } from '../services/deliveryOrderSubmit';
 import { cancelDeliveryOrderInTx } from '../services/deliveryOrderCancel';
+import { editDeliveryOrderInTx } from '../services/deliveryOrderEdit';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -170,6 +171,24 @@ router.patch('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) 
     return res.json(updated);
   } catch (error) {
     return handleRouteError(res, error, 'PATCH /delivery-orders/:id', 'Gagal memperbarui surat jalan.');
+  }
+});
+
+// ─── PUT /:id full edit — reverse old movements, re-apply new items ────────
+// Allowed only when DO is Submitted and not yet linked to an invoice.
+// doNumber is preserved.
+router.put('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+  const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
+  if (!body) return;
+  try {
+    const result = await prisma.$transaction(
+      (tx) => editDeliveryOrderInTx(tx, req.params.id as string, body, req.user!.userId),
+      { timeout: 15000 },
+    );
+    logger.info({ doId: req.params.id, userId: req.user!.userId }, 'Delivery order edited');
+    return res.json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'PUT /delivery-orders/:id', 'Gagal mengedit surat jalan.');
   }
 });
 
