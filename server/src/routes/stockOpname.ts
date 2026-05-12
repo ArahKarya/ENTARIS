@@ -102,7 +102,10 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 
       const opnameNumber = await generateDocumentNumber(tx, 'SO', txDate, fiscalYear.id);
 
-      // Fetch all items to get system stock and averageCost
+      // Fetch all items for averageCost + name. systemStock source depends
+      // on whether the user picked a warehouse — when set, compare against
+      // the per-warehouse balance from inventory_stocks so opname only
+      // affects that warehouse. When not set, fall back to the global total.
       const allItemIds = body.items.map((i: any) => i.itemId);
       const allItems = await tx.inventoryItem.findMany({
         where: { id: { in: allItemIds } },
@@ -110,17 +113,28 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
       });
       const itemMap = new Map(allItems.map((i) => [i.id, i]));
 
-      // Validate all items exist
       for (const input of body.items) {
         if (!itemMap.has(input.itemId)) {
           throw new BusinessError(`Item dengan ID ${input.itemId} tidak ditemukan.`);
         }
       }
 
+      // Pre-fetch per-warehouse stock when scoped to a specific warehouse.
+      const perWarehouseStock = new Map<string, number>();
+      if (body.warehouseId) {
+        const rows = await tx.inventoryStock.findMany({
+          where: { warehouseId: body.warehouseId, itemId: { in: allItemIds } },
+          select: { itemId: true, currentStock: true },
+        });
+        for (const r of rows) perWarehouseStock.set(r.itemId, Number(r.currentStock));
+      }
+
       // Build opname items with difference calculation
       const opnameItems = body.items.map((input: any) => {
         const item = itemMap.get(input.itemId)!;
-        const systemStock = Number(item.currentStock);
+        const systemStock = body.warehouseId
+          ? (perWarehouseStock.get(input.itemId) ?? 0)
+          : Number(item.currentStock);
         const actualStock = input.actualStock;
         const diff = new Decimal(actualStock).minus(new Decimal(systemStock)).toDecimalPlaces(3).toNumber();
         const unitCost = Number(item.averageCost);
@@ -158,12 +172,14 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
       if (itemsWithDiff.length > 0) {
         const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
         const varianceAccount = await systemAccounts.getAccount('INVENTORY_VARIANCE');
-        // Stock opname adjustments apply to the default warehouse (single-warehouse
-        // count). For multi-warehouse opname, callers should run separate sessions per warehouse.
-        const opnameWarehouseId = await resolveWarehouseId(tx, null);
+        // Stock opname applies to one warehouse per session. Prefer the
+        // explicit pick from the UI; fall back to default warehouse if set;
+        // otherwise force the user to pick. (Multi-warehouse opname → run a
+        // separate session per warehouse.)
+        const opnameWarehouseId = await resolveWarehouseId(tx, body.warehouseId);
         if (!opnameWarehouseId) {
           throw new BusinessError(
-            'Tidak ada gudang default. Set salah satu gudang sebagai default sebelum submit stok opname.',
+            'Gudang opname wajib dipilih. Pilih gudang di form atau set salah satu gudang sebagai default.',
           );
         }
 

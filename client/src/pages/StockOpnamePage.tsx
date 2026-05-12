@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import PDFDownloadButton from '../components/PDFDownloadButton';
 import StockOpnamePDF from '../lib/pdf/StockOpnamePDF';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
+import WarehousePicker from '../components/WarehousePicker';
 
 const formatNumber = (val: number | string, decimals = 3) =>
   Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
@@ -245,15 +246,20 @@ function StockOpnameDetail({ data }: { data: any }) {
 
 function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess: () => void }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [warehouseId, setWarehouseId] = useState('');
   const [notes, setNotes] = useState('');
   const [search, setSearch] = useState('');
   const [actualStocks, setActualStocks] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Load all active items
+  // Load all active items. When a warehouse is picked, the endpoint returns
+  // per-warehouse currentStock — opname compares against that, not the global
+  // total, so counting POLES only doesn't accidentally adjust GILING.
   const { data: itemsRaw, isLoading } = useQuery({
-    queryKey: ['inventory-items-all'],
-    queryFn: () => api.get('/inventory/items?limit=200&isActive=true').then((r) => r.data),
+    queryKey: ['inventory-items-opname', warehouseId],
+    queryFn: () => api
+      .get('/inventory/items', { params: { limit: 500, isActive: true, ...(warehouseId ? { warehouseId } : {}) } })
+      .then((r) => r.data),
   });
   const items: any[] = useMemo(() => {
     const raw = Array.isArray(itemsRaw) ? itemsRaw : (itemsRaw?.data ?? []);
@@ -305,10 +311,16 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
       return;
     }
 
+    if (!warehouseId) {
+      toast.error('Pilih gudang opname terlebih dahulu.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await api.post('/stock-opname', {
         date,
+        warehouseId,
         notes: notes || null,
         items: opnameItems,
       });
@@ -336,11 +348,31 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
           <label className="label">Tanggal</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input w-full" />
         </div>
-        <div className="md:col-span-2">
+        <div>
+          <label className="label">Gudang <span className="text-red-500">*</span></label>
+          <WarehousePicker
+            value={warehouseId}
+            onChange={(id) => {
+              // Reset entered values when switching warehouse — "Stok Sistem"
+              // changes so the existing entries no longer mean the same thing.
+              setWarehouseId(id);
+              setActualStocks({});
+            }}
+            size="md"
+            autoDefault={true}
+            placeholder="Pilih gudang opname..."
+          />
+        </div>
+        <div>
           <label className="label">Catatan</label>
           <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="input w-full" placeholder="Opsional..." />
         </div>
       </div>
+      {!warehouseId && (
+        <div className="card p-3 text-sm text-amber-700 bg-amber-50 border border-amber-200">
+          Pilih gudang dulu untuk menampilkan stok sistem per gudang.
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
@@ -422,7 +454,7 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
       {/* Submit */}
       <div className="flex justify-end gap-2 pt-2">
         <button onClick={onBack} className="btn btn-secondary">Batal</button>
-        <button onClick={handleSubmit} disabled={submitting} className="btn btn-primary">
+        <button onClick={handleSubmit} disabled={submitting || !warehouseId} className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed">
           {submitting ? <><Loader2 size={16} className="animate-spin mr-1" /> Menyimpan...</> : 'Simpan & Proses'}
         </button>
       </div>

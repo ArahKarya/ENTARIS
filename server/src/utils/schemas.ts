@@ -556,11 +556,15 @@ const StockOpnameItemSchema = z.object({
 
 export const CreateStockOpnameSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
+  // Warehouse where this opname session was counted. Preferred over the
+  // default-warehouse fallback so user is explicit per session.
+  warehouseId: z.string().uuid('Gudang wajib dipilih.').nullable().optional(),
   notes: z.string().nullable().optional(),
   items: z.array(StockOpnameItemSchema).min(1, 'Minimal satu item stok opname.'),
 });
 
 export const SubmitStockOpnameSchema = z.object({
+  warehouseId: z.string().uuid('Gudang wajib dipilih.').nullable().optional(),
   items: z.array(StockOpnameItemSchema).min(1, 'Minimal satu item stok opname.'),
 });
 
