@@ -29,6 +29,10 @@ export interface SubmitSalesInvoiceInput {
     taxPct?: number;
     pphPct?: number;
     description?: string | null;
+    // When set, this line was billed from an existing DO. Skip new stock-out
+    // (DO already did it); COGS uses the unitCost locked on the DO's
+    // stockMovement (not the current averageCost).
+    deliveryOrderItemId?: string | null;
   }>;
   dueDate?: string | null;
   notes?: string | null;
@@ -107,6 +111,7 @@ export async function submitSalesInvoiceInTx(
     serviceItemId: string | null; quantity: number; unit: string;
     rate: number; discount: number; amount: number; taxPct: number; pphPct: number;
     accountId: string; description: string | null;
+    deliveryOrderItemId: string | null;
   }> = [];
 
   for (const item of body.items) {
@@ -141,13 +146,17 @@ export async function submitSalesInvoiceInTx(
       pphPct: item.pphPct ?? 0,
       accountId: lineAccountId,
       description: item.description || null,
+      deliveryOrderItemId: item.deliveryOrderItemId || null,
     });
   }
 
-  // Stock availability check: aggregate qty per inventoryItemId.
+  // Stock availability check: aggregate qty per inventoryItemId. Skip
+  // from-DO lines (those decrements already happened at DO submit; we'd
+  // double-count current stock).
   const qtyByItem = new Map<string, number>();
   for (const it of resolvedItems) {
     if (!it.inventoryItemId) continue;
+    if (it.deliveryOrderItemId) continue;
     qtyByItem.set(it.inventoryItemId, (qtyByItem.get(it.inventoryItemId) ?? 0) + it.quantity);
   }
   if (qtyByItem.size > 0) {
@@ -303,8 +312,17 @@ export async function submitSalesInvoiceInTx(
   await recalcPartyOutstanding(tx, body.partyId);
 
   // ── Inventory deduction + COGS ──
+  // Two paths per inventory-linked line:
+  //   (a) Direct sale: decrement stock + create stockMovement Out; COGS uses
+  //       current averageCost. (Existing behavior.)
+  //   (b) From-DO: stock-out already happened at DO submit. We just need to
+  //       compute COGS using the unitCost LOCKED on the DO's stockMovement,
+  //       which represents the actual cost of the goods physically delivered.
   let totalCogs = new Decimal(0);
   const cogsByAccount = new Map<string, { amount: number; names: string[] }>();
+  // Collect DO ids touched by this invoice so we can mark them as Invoiced
+  // after the loop.
+  const linkedDOIds = new Set<string>();
   for (const item of invoice.items) {
     const invItemId = item.inventoryItemId;
     if (!invItemId) continue;
@@ -313,6 +331,53 @@ export async function submitSalesInvoiceInTx(
     if (!inventoryItem || !inventoryItem.isActive) continue;
 
     const qty = Number(item.quantity);
+
+    // ── From-DO branch ────────────────────────────────────────────
+    if (item.deliveryOrderItemId) {
+      const doItem = await tx.deliveryOrderItem.findUnique({
+        where: { id: item.deliveryOrderItemId },
+        include: { stockMovement: true, deliveryOrder: true },
+      });
+      if (!doItem) {
+        throw new BusinessError(`Baris dari Surat Jalan tidak ditemukan (id=${item.deliveryOrderItemId}).`);
+      }
+      if (doItem.deliveryOrder.status === 'Cancelled') {
+        throw new BusinessError(
+          `Surat Jalan ${doItem.deliveryOrder.doNumber} sudah dibatalkan — tidak bisa di-invoice.`,
+        );
+      }
+      if (doItem.deliveryOrder.invoiceId && doItem.deliveryOrder.invoiceId !== invoice.id) {
+        throw new BusinessError(
+          `Surat Jalan ${doItem.deliveryOrder.doNumber} sudah ada di invoice lain.`,
+        );
+      }
+      // Locked unitCost from the DO stockMovement is the truth for COGS here.
+      // Fallback to averageCost only if the DO had no inventory link (shouldn't
+      // happen for an inventory-linked invoice line, but defensive).
+      const cogsUnitCost = doItem.stockMovement
+        ? Number(doItem.stockMovement.unitCost)
+        : Math.max(0, Number(inventoryItem.averageCost));
+      const cogsAmount = new Decimal(qty).times(new Decimal(cogsUnitCost)).toDecimalPlaces(2).toNumber();
+
+      totalCogs = totalCogs.plus(new Decimal(cogsAmount));
+      const invAcctId = inventoryItem.accountId || inventoryAccount.id;
+      const existing = cogsByAccount.get(invAcctId);
+      if (existing) {
+        existing.amount += cogsAmount;
+        existing.names.push(item.itemName);
+      } else {
+        cogsByAccount.set(invAcctId, { amount: cogsAmount, names: [item.itemName] });
+      }
+
+      linkedDOIds.add(doItem.deliveryOrderId);
+      logger.info(
+        { invoiceId: invoice.id, doId: doItem.deliveryOrderId, doItemId: doItem.id, qty, lockedUnitCost: cogsUnitCost },
+        'Sales invoice line billed from existing delivery order',
+      );
+      continue; // skip the direct-sale path
+    }
+
+    // ── Direct-sale branch (existing behavior) ─────────────────────
     const stockBefore = Number(inventoryItem.currentStock);
     const avgCost = Number(inventoryItem.averageCost);
     const cogsUnitCost = avgCost > 0 ? avgCost : 0;
@@ -390,6 +455,14 @@ export async function submitSalesInvoiceInTx(
     }
 
     logger.info({ invoiceId: invoice.id, itemId: inventoryItem.id, qty }, 'Auto stock deduction from sales');
+  }
+
+  // Mark every touched DO as Invoiced (link back to this invoice).
+  if (linkedDOIds.size > 0) {
+    await tx.deliveryOrder.updateMany({
+      where: { id: { in: Array.from(linkedDOIds) } },
+      data: { invoiceId: invoice.id, invoicedAt: new Date() },
+    });
   }
 
   const totalCogsNum = totalCogs.toDecimalPlaces(2).toNumber();

@@ -49,6 +49,8 @@ const InvoiceItemSchema = z.object({
   taxPct: z.coerce.number().min(0).max(100).optional().default(0),   // PPN % per baris
   pphPct: z.coerce.number().min(0).max(100).optional().default(0),   // PPh % per baris
   description: z.string().nullable().optional(),
+  // From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS.
+  deliveryOrderItemId: z.string().uuid().nullable().optional(),
 });
 
 export const CreateSalesInvoiceSchema = z.object({

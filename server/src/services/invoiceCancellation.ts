@@ -84,7 +84,10 @@ export async function cancelSalesInvoiceInTx(
     }
   }
 
-  // Reverse stock movements (restore item totals + per-warehouse stock)
+  // Reverse stock movements created BY this invoice (direct-sale path).
+  // From-DO lines don't create their own stockMovement here — those belong
+  // to the DO (referenceType='DeliveryOrder') and stay valid because the
+  // goods physically left the warehouse regardless of billing.
   const stockMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'SalesInvoice', referenceId: invoice.id, isCancelled: false },
   });
@@ -104,6 +107,13 @@ export async function cancelSalesInvoiceInTx(
       data: { isCancelled: true },
     });
   }
+
+  // Release linked Delivery Orders back to Submitted state so they can be
+  // billed by another invoice. Their stock movements remain valid.
+  await tx.deliveryOrder.updateMany({
+    where: { invoiceId: invoice.id },
+    data: { invoiceId: null, invoicedAt: null },
+  });
 
   await recalcPartyOutstanding(tx, invoice.partyId);
 

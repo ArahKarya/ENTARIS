@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Paperclip, FileText, Image as ImageIcon, Truck, ChevronRight } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
@@ -22,6 +22,28 @@ interface InvoiceItem {
   discount: number; // percent
   taxPct: number;   // PPN % per item
   pphPct: number;   // PPh % per item
+  deliveryOrderItemId?: string | null;
+  deliveryOrderNumber?: string;
+}
+
+interface PendingDOItem {
+  id: string;
+  deliveryOrderId: string;
+  inventoryItemId: string;
+  warehouseId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  description: string | null;
+  inventoryItem?: { id: string; name: string; code: string; unit: string } | null;
+  warehouse?: { id: string; code: string } | null;
+}
+
+interface PendingDO {
+  id: string;
+  number: string;
+  date: string;
+  items: PendingDOItem[];
 }
 
 const MAX_ATTACHMENTS = 5;
@@ -31,7 +53,7 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter', 'Jasa'];
 
 const defaultItem = (): InvoiceItem => ({
-  id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0
+  id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0, deliveryOrderItemId: null, deliveryOrderNumber: undefined,
 });
 
 const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -56,6 +78,9 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
+  const [fromDOMode, setFromDOMode] = useState(false);
+  const [selectedDOIds, setSelectedDOIds] = useState<string[]>([]);
+  const [expandedDOIds, setExpandedDOIds] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -82,6 +107,16 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       const res = await api.get('/service-items?isActive=true');
       return res.data.data ?? res.data;
     },
+  });
+
+  const { data: pendingDOs } = useQuery<PendingDO[]>({
+    queryKey: ['delivery-orders-pending', partyId],
+    queryFn: async () => {
+      if (!partyId) return [];
+      const res = await api.get(`/delivery-orders/pending?partyId=${partyId}`);
+      return res.data.data ?? res.data;
+    },
+    enabled: fromDOMode && !!partyId,
   });
 
   const selectedParty = parties?.find((p: any) => p.id === partyId);
@@ -145,13 +180,17 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       setAllowNegativeStock(false);
       setStagedFiles([]);
       setError('');
+      setFromDOMode(false);
+      setSelectedDOIds([]);
+      setExpandedDOIds([]);
+      queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-orders-pending'] });
       onClose();
     },
     onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan invoice.')
   });
 
   const addItem = () => setItems([...items, defaultItem()]);
-  const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof InvoiceItem, value: any) => {
     const next = [...items];
     next[i] = { ...next[i], [field]: value };
@@ -199,6 +238,74 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     setItems(next);
   };
 
+  const toggleDOSelection = (doId: string) => {
+    const doc = pendingDOs?.find((d) => d.id === doId);
+    if (!doc) return;
+
+    if (selectedDOIds.includes(doId)) {
+      // Deselect → remove all rows linked to this DO
+      setSelectedDOIds(selectedDOIds.filter((id) => id !== doId));
+      const itemIdsToRemove = new Set(doc.items.map((it) => it.id));
+      const remaining = items.filter(
+        (row) => !row.deliveryOrderItemId || !itemIdsToRemove.has(row.deliveryOrderItemId),
+      );
+      setItems(remaining.length > 0 ? remaining : [defaultItem()]);
+    } else {
+      // Select → push DO items as invoice rows
+      setSelectedDOIds([...selectedDOIds, doId]);
+      const newRows: InvoiceItem[] = doc.items.map((doi) => ({
+        id: crypto.randomUUID(),
+        itemName: doi.itemName || doi.inventoryItem?.name || '',
+        itemType: 'product',
+        inventoryItemId: doi.inventoryItemId,
+        warehouseId: doi.warehouseId,
+        serviceItemId: '',
+        accountId: '',
+        description: doi.description ?? '',
+        quantity: Number(doi.quantity) || 0,
+        unit: doi.unit,
+        rate: 0,
+        discount: 0,
+        taxPct: 0,
+        pphPct: 0,
+        deliveryOrderItemId: doi.id,
+        deliveryOrderNumber: doc.number,
+      }));
+      // Drop any default empty row when adding first DO
+      const base = items.filter(
+        (row) => row.deliveryOrderItemId || row.itemName || row.inventoryItemId || row.serviceItemId,
+      );
+      setItems([...base, ...newRows]);
+    }
+  };
+
+  const toggleDOExpanded = (doId: string) => {
+    setExpandedDOIds(
+      expandedDOIds.includes(doId)
+        ? expandedDOIds.filter((id) => id !== doId)
+        : [...expandedDOIds, doId],
+    );
+  };
+
+  const removeItemAt = (idx: number) => {
+    const target = items[idx];
+    if (target?.deliveryOrderItemId) {
+      // If this is the last row tied to its DO, also unselect the DO.
+      const targetDONumber = target.deliveryOrderNumber;
+      const remainingRowsForDO = items.filter(
+        (row, i) => i !== idx && row.deliveryOrderNumber === targetDONumber,
+      );
+      if (remainingRowsForDO.length === 0 && targetDONumber) {
+        const matchingDO = pendingDOs?.find((d) => d.number === targetDONumber);
+        if (matchingDO) {
+          setSelectedDOIds(selectedDOIds.filter((id) => id !== matchingDO.id));
+        }
+      }
+    }
+    const next = items.filter((_, i) => i !== idx);
+    setItems(next.length > 0 ? next : [defaultItem()]);
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const valid: File[] = [];
@@ -242,6 +349,8 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     const qtyByItem = new Map<string, number>();
     for (const it of items) {
       if (!it.inventoryItemId) continue;
+      // DO-linked rows already drained stock when the DO was created — skip them.
+      if (it.deliveryOrderItemId) continue;
       qtyByItem.set(it.inventoryItemId, (qtyByItem.get(it.inventoryItemId) ?? 0) + (Number(it.quantity) || 0));
     }
     const out: { id: string; name: string; unit: string; available: number; needed: number }[] = [];
@@ -257,8 +366,9 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   })();
   const hasShortage = stockShortages.length > 0;
   // Product line must have a warehouse — backend rejects when null & no default exists.
+  // DO-linked lines already carry a locked warehouse from the DO, so skip them.
   const hasMissingWarehouse = items.some(i =>
-    i.itemType === 'product' && i.inventoryItemId && !i.warehouseId,
+    !i.deliveryOrderItemId && i.itemType === 'product' && i.inventoryItemId && !i.warehouseId,
   );
 
   const canSubmit = partyId && items.some(i => i.itemName) && grandTotal >= 0 && !mutation.isPending
@@ -293,7 +403,15 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tagihkan Kepada</p>
               <select
                 value={partyId}
-                onChange={(e) => setPartyId(e.target.value)}
+                onChange={(e) => {
+                  setPartyId(e.target.value);
+                  // Switching customer → reset any DO selections (DOs are scoped to a party).
+                  if (selectedDOIds.length > 0 || items.some((i) => i.deliveryOrderItemId)) {
+                    setSelectedDOIds([]);
+                    setExpandedDOIds([]);
+                    setItems([defaultItem()]);
+                  }
+                }}
                 className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
               >
                 <option value="">— Pilih Pelanggan —</option>
@@ -346,8 +464,111 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             </div>
           </div>
 
+          {/* ── FROM-DO TOGGLE + PICKER ── */}
+          {partyId && (
+            <div className="px-6 pt-5 pb-2 border-b border-gray-100">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={fromDOMode}
+                  onChange={(e) => {
+                    setFromDOMode(e.target.checked);
+                    setItems([defaultItem()]);
+                    setSelectedDOIds([]);
+                    setExpandedDOIds([]);
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <Truck size={14} className="text-blue-600" />
+                <span className="font-medium">Dari Surat Jalan</span>
+                <span className="text-xs text-gray-400">(Surat Jalan sudah dikirim sebelumnya)</span>
+              </label>
+
+              {fromDOMode && (
+                <div className="mt-3 space-y-2">
+                  {(pendingDOs?.length ?? 0) === 0 ? (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 italic">
+                      Tidak ada surat jalan terbuka untuk pelanggan ini.
+                    </div>
+                  ) : (
+                    pendingDOs!.map((doc) => {
+                      const isSelected = selectedDOIds.includes(doc.id);
+                      const isExpanded = expandedDOIds.includes(doc.id);
+                      return (
+                        <div
+                          key={doc.id}
+                          className={`border rounded-lg transition-colors ${
+                            isSelected ? 'border-blue-300 bg-blue-50/40' : 'border-gray-200 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleDOSelection(doc.id)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <Truck size={14} className="text-blue-600 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-mono font-medium text-gray-900">{doc.number}</span>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(doc.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                                <span className="text-xs text-gray-500">• {doc.items.length} item</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleDOExpanded(doc.id)}
+                              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-0.5 shrink-0"
+                            >
+                              <ChevronRight
+                                size={12}
+                                className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              />
+                              {isExpanded ? 'Tutup' : 'Lihat detail'}
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div className="border-t border-gray-100 px-3 py-2 bg-gray-50/50">
+                              <ul className="space-y-1 text-xs text-gray-600">
+                                {doc.items.map((it) => (
+                                  <li key={it.id} className="flex items-baseline gap-2">
+                                    <span className="text-gray-400">•</span>
+                                    <span className="flex-1">
+                                      {it.itemName}
+                                      {it.warehouse?.code && (
+                                        <span className="text-gray-400"> · {it.warehouse.code}</span>
+                                      )}
+                                    </span>
+                                    <span className="font-mono tabular-nums text-gray-700">
+                                      {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {it.unit}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── ITEMS TABLE ── */}
           <div className="px-6 pt-5 pb-4">
+            {fromDOMode && items.some((i) => i.deliveryOrderItemId) && (
+              <div className="mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 flex items-start gap-2">
+                <Truck size={13} className="mt-0.5 shrink-0" />
+                <span>
+                  Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim — COGS pakai biaya per unit yang dikunci di Surat Jalan.
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Daftar Barang / Jasa</p>
               <button onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700">
@@ -373,9 +594,27 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                 </thead>
                 <tbody>
                   {items.map((item, idx) => (
-                    <tr key={item.id} className="group border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                    <tr key={item.id} className={`group border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors ${item.deliveryOrderItemId ? 'bg-blue-50/30' : ''}`}>
                       <td className="px-4 py-3 text-center text-xs text-gray-300 font-medium">{idx + 1}</td>
                       <td className="px-4 py-3">
+                        {item.deliveryOrderItemId ? (
+                          <>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-blue-100 text-blue-700">
+                                <Truck size={11} /> {item.deliveryOrderNumber || 'DO'}
+                              </span>
+                            </div>
+                            <div className="text-sm font-medium text-gray-800">{item.itemName}</div>
+                            <input
+                              type="text"
+                              value={item.description}
+                              onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                              placeholder="Keterangan baris (opsional)..."
+                              className="w-full mt-1 bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400"
+                            />
+                          </>
+                        ) : (
+                        <>
                         {/* Item type toggle */}
                         <div className="flex items-center gap-1 mb-1.5">
                           <button
@@ -449,6 +688,8 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                             )}
                           </>
                         )}
+                        </>
+                        )}
                       </td>
                       <td className="px-3 py-3">
                         <input
@@ -456,20 +697,27 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                           value={item.quantity}
                           onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
                           min={1}
-                          className="w-full bg-transparent text-sm text-gray-800 text-center font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          readOnly={!!item.deliveryOrderItemId}
+                          className={`w-full bg-transparent text-sm text-center font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            item.deliveryOrderItemId ? 'text-gray-500 cursor-not-allowed' : 'text-gray-800'
+                          }`}
                         />
                       </td>
                       <td className="px-3 py-3">
-                        <div className="relative">
-                          <select
-                            value={item.unit}
-                            onChange={e => updateItem(idx, 'unit', e.target.value)}
-                            className="w-full bg-transparent text-sm text-gray-600 border-none focus:ring-0 focus:outline-none p-0 appearance-none cursor-pointer pr-4"
-                          >
-                            {UNITS.map(u => <option key={u}>{u}</option>)}
-                          </select>
-                          <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-                        </div>
+                        {item.deliveryOrderItemId ? (
+                          <span className="text-sm text-gray-500">{item.unit}</span>
+                        ) : (
+                          <div className="relative">
+                            <select
+                              value={item.unit}
+                              onChange={e => updateItem(idx, 'unit', e.target.value)}
+                              className="w-full bg-transparent text-sm text-gray-600 border-none focus:ring-0 focus:outline-none p-0 appearance-none cursor-pointer pr-4"
+                            >
+                              {UNITS.map(u => <option key={u}>{u}</option>)}
+                            </select>
+                            <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-right">
                         <input
@@ -517,7 +765,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                       </td>
                       <td className="pr-3 py-3 text-center">
                         {items.length > 1 && (
-                          <button onClick={() => removeItem(idx)}
+                          <button onClick={() => removeItemAt(idx)}
                             className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                             <Trash2 size={13} />
                           </button>
@@ -726,6 +974,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   accountId: i.accountId || null,
                   taxPct: i.taxPct,
                   pphPct: i.pphPct,
+                  deliveryOrderItemId: i.deliveryOrderItemId ?? null,
                 })),
               })}
               disabled={!canSubmit}
