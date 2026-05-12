@@ -1,14 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, roleMiddleware } from '../middleware/auth';
-import { generateDocumentNumber } from '../utils/documentNumber';
-import { getOpenFiscalYear } from '../utils/fiscalYear';
-import { BusinessError, handleRouteError } from '../utils/errors';
+import { handleRouteError } from '../utils/errors';
 import { validateBody } from '../utils/validate';
-import { logger } from '../lib/logger';
+import { submitStockTransferInTx, cancelStockTransferInTx } from '../services/stockTransfer';
 
 const router = Router();
 
@@ -87,125 +84,10 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
   if (!body) return;
 
   try {
-    const date = new Date(body.date);
-    if (isNaN(date.getTime())) throw new BusinessError('Format tanggal tidak valid.');
-
-    const result = await prisma.$transaction(async (tx) => {
-      const fy = await getOpenFiscalYear(tx, date);
-      const transferNumber = await generateDocumentNumber(tx, 'ST', date, fy.id);
-
-      // Validate warehouses exist & active
-      const fromWh = await tx.warehouse.findUnique({ where: { id: body.fromWarehouseId } });
-      const toWh = await tx.warehouse.findUnique({ where: { id: body.toWarehouseId } });
-      if (!fromWh || !toWh) throw new BusinessError('Gudang tidak ditemukan.');
-      if (!fromWh.isActive || !toWh.isActive) throw new BusinessError('Gudang sumber/tujuan tidak aktif.');
-
-      // Validate items + stock availability at source warehouse
-      for (const it of body.items) {
-        const stockRow = await tx.inventoryStock.findUnique({
-          where: { itemId_warehouseId: { itemId: it.itemId, warehouseId: body.fromWarehouseId } },
-        });
-        const available = stockRow ? new Decimal(stockRow.currentStock.toString()) : new Decimal(0);
-        if (available.lt(it.quantity)) {
-          const item = await tx.inventoryItem.findUnique({ where: { id: it.itemId } });
-          throw new BusinessError(
-            `Stok item "${item?.name ?? it.itemId}" di ${fromWh.name} hanya ${available.toFixed(3)} ${item?.unit ?? ''}, tidak cukup untuk transfer ${it.quantity}.`,
-          );
-        }
-      }
-
-      // Create transfer header + items
-      const transfer = await tx.stockTransfer.create({
-        data: {
-          transferNumber,
-          date,
-          fromWarehouseId: body.fromWarehouseId,
-          toWarehouseId: body.toWarehouseId,
-          status: 'Submitted',
-          notes: body.notes || null,
-          fiscalYearId: fy.id,
-          createdBy: req.user!.userId,
-          submittedAt: new Date(),
-          items: {
-            create: body.items.map((it) => ({
-              itemId: it.itemId,
-              quantity: it.quantity,
-              description: it.description || null,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-
-      // For each item: create 2 movements + adjust 2 inventory_stock rows
-      for (const it of body.items) {
-        const item = await tx.inventoryItem.findUnique({ where: { id: it.itemId } });
-        if (!item) throw new BusinessError('Item tidak ditemukan.');
-        const qty = it.quantity;
-        const unitCost = Number(item.averageCost);
-        const totalValue = qty * unitCost;
-
-        // Decrement source warehouse stock
-        await tx.inventoryStock.upsert({
-          where: { itemId_warehouseId: { itemId: it.itemId, warehouseId: body.fromWarehouseId } },
-          create: { itemId: it.itemId, warehouseId: body.fromWarehouseId, currentStock: -qty },
-          update: { currentStock: { decrement: qty } },
-        });
-        // Increment destination warehouse stock
-        await tx.inventoryStock.upsert({
-          where: { itemId_warehouseId: { itemId: it.itemId, warehouseId: body.toWarehouseId } },
-          create: { itemId: it.itemId, warehouseId: body.toWarehouseId, currentStock: qty },
-          update: { currentStock: { increment: qty } },
-        });
-
-        // Create paired stock movements (no GL — same account, net zero)
-        const smOutNo = await generateDocumentNumber(tx, 'SM', date, fy.id);
-        const smOut = await tx.stockMovement.create({
-          data: {
-            movementNumber: smOutNo,
-            date,
-            itemId: it.itemId,
-            warehouseId: body.fromWarehouseId,
-            movementType: 'TransferOut',
-            quantity: qty,
-            unitCost,
-            totalValue,
-            notes: `Transfer ke ${toWh.name}`,
-            referenceType: 'StockTransfer',
-            referenceId: transfer.id,
-            referenceNumber: transferNumber,
-            fiscalYearId: fy.id,
-            createdById: req.user!.userId,
-          },
-        });
-        const smInNo = await generateDocumentNumber(tx, 'SM', date, fy.id);
-        await tx.stockMovement.create({
-          data: {
-            movementNumber: smInNo,
-            date,
-            itemId: it.itemId,
-            warehouseId: body.toWarehouseId,
-            movementType: 'TransferIn',
-            quantity: qty,
-            unitCost,
-            totalValue,
-            notes: `Transfer dari ${fromWh.name} (ref: ${smOut.movementNumber})`,
-            referenceType: 'StockTransfer',
-            referenceId: transfer.id,
-            referenceNumber: transferNumber,
-            fiscalYearId: fy.id,
-            createdById: req.user!.userId,
-          },
-        });
-
-        // Note: inventory_items.current_stock (total) does NOT change because
-        // total across warehouses is unchanged.
-      }
-
-      logger.info({ transferNumber, items: body.items.length }, 'Stock transfer submitted');
-      return transfer;
-    }, { timeout: 30000 });
-
+    const result = await prisma.$transaction(
+      (tx) => submitStockTransferInTx(tx, body, req.user!.userId),
+      { timeout: 30000 },
+    );
     return res.status(201).json(result);
   } catch (error) {
     return handleRouteError(res, error, 'POST /stock-transfers', 'Gagal membuat transfer stok.');
@@ -215,40 +97,9 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 // PATCH /:id/cancel — reverse the transfer
 router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const id = req.params.id as string;
-      const transfer = await tx.stockTransfer.findUnique({
-        where: { id },
-        include: { items: true },
-      });
-      if (!transfer) throw new BusinessError('Transfer tidak ditemukan.');
-      if (transfer.status === 'Cancelled') throw new BusinessError('Transfer sudah dibatalkan.');
-
-      // Reverse stock: source += qty, destination -= qty
-      for (const ti of transfer.items) {
-        const qty = Number(ti.quantity);
-        await tx.inventoryStock.update({
-          where: { itemId_warehouseId: { itemId: ti.itemId, warehouseId: transfer.fromWarehouseId } },
-          data: { currentStock: { increment: qty } },
-        });
-        await tx.inventoryStock.update({
-          where: { itemId_warehouseId: { itemId: ti.itemId, warehouseId: transfer.toWarehouseId } },
-          data: { currentStock: { decrement: qty } },
-        });
-      }
-
-      // Soft-cancel the paired stock movements
-      await tx.stockMovement.updateMany({
-        where: { referenceType: 'StockTransfer', referenceId: id },
-        data: { isCancelled: true },
-      });
-
-      return tx.stockTransfer.update({
-        where: { id },
-        data: { status: 'Cancelled', cancelledAt: new Date() },
-      });
-    });
-
+    const result = await prisma.$transaction(
+      (tx) => cancelStockTransferInTx(tx, req.params.id as string),
+    );
     return res.json(result);
   } catch (error) {
     return handleRouteError(res, error, 'PATCH /stock-transfers/:id/cancel', 'Gagal membatalkan transfer.');
