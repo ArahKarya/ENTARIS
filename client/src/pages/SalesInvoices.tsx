@@ -11,6 +11,7 @@ import { exportToExcel } from '../lib/exportExcel';
 import SalesInvoiceModal from '../components/SalesInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
+import { useDebounce } from '../hooks/useDebounce';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -23,6 +24,7 @@ const PAGE_SIZE = 20;
 
 export const SalesInvoices = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 200);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -38,12 +40,12 @@ export const SalesInvoices = () => {
     },
   });
 
-  // Client-side filtering
+  // Client-side filtering (uses debounced search to avoid re-filter on every keystroke)
   const filtered = useMemo(() => {
     if (!raw) return [];
     return raw.filter((inv: any) => {
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase();
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
         const match = inv.invoiceNumber?.toLowerCase().includes(q) || inv.customer?.name?.toLowerCase().includes(q);
         if (!match) return false;
       }
@@ -52,7 +54,7 @@ export const SalesInvoices = () => {
       if (dateTo && new Date(inv.date) > new Date(dateTo + 'T23:59:59')) return false;
       return true;
     });
-  }, [raw, searchTerm, statusFilter, dateFrom, dateTo]);
+  }, [raw, debouncedSearch, statusFilter, dateFrom, dateTo]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

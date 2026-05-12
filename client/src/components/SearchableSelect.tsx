@@ -15,9 +15,14 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Accessible label for the combobox. Falls back to the placeholder. */
+  'aria-label'?: string;
 }
 
-const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â€”', disabled = false, className = '' }: Props) => {
+// Stable IDs so aria-controls / aria-activedescendant point at real DOM ids.
+let comboboxIdSeq = 0;
+
+const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â€”', disabled = false, className = '', 'aria-label': ariaLabel }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightIdx, setHighlightIdx] = useState(-1);
@@ -25,6 +30,13 @@ const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const idRef = useRef<string>('');
+  if (!idRef.current) {
+    comboboxIdSeq += 1;
+    idRef.current = `cbx-${comboboxIdSeq}`;
+  }
+  const listboxId = `${idRef.current}-list`;
+  const optionId = (idx: number) => `${idRef.current}-opt-${idx}`;
 
   const selectedOption = useMemo(() => options.find((o) => o.value === value), [options, value]);
 
@@ -140,6 +152,11 @@ const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â
           type="button"
           onClick={open}
           disabled={disabled}
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded={false}
+          aria-controls={listboxId}
+          aria-label={ariaLabel ?? placeholder}
           className="w-full flex items-center justify-between border border-gray-200 rounded-lg py-2 px-3 text-sm text-left bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           <span className={selectedOption ? 'text-gray-900 truncate' : 'text-gray-400 truncate'}>
@@ -149,6 +166,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â
             {value && !disabled && (
               <span
                 role="button"
+                aria-label="Hapus pilihan"
                 onClick={(e) => { e.stopPropagation(); onChange(''); }}
                 className="p-0.5 hover:bg-gray-100 rounded"
               >
@@ -168,6 +186,13 @@ const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â
             onChange={(e) => { setSearch(e.target.value); setHighlightIdx(0); }}
             onKeyDown={handleKeyDown}
             placeholder="Ketik untuk mencari..."
+            role="combobox"
+            aria-haspopup="listbox"
+            aria-expanded={true}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={highlightIdx >= 0 ? optionId(highlightIdx) : undefined}
+            aria-label={ariaLabel ?? placeholder}
             className="w-full text-sm text-gray-900 outline-none bg-transparent"
           />
         </div>
@@ -177,6 +202,9 @@ const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â
       {isOpen && menuRect && createPortal(
         <div
           ref={listRef}
+          id={listboxId}
+          role="listbox"
+          aria-label={ariaLabel ?? placeholder}
           style={{
             position: 'fixed',
             top: menuRect.openUp ? undefined : menuRect.top,
@@ -204,7 +232,10 @@ const SearchableSelect = ({ options, value, onChange, placeholder = 'â€” Pilih â
                   return (
                     <div
                       key={opt.value}
+                      id={optionId(idx)}
                       data-idx={idx}
+                      role="option"
+                      aria-selected={isSelected}
                       onClick={() => select(opt.value)}
                       className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
                         isHighlighted ? 'bg-blue-50 text-blue-900' :

@@ -12,6 +12,7 @@ import { exportToExcel } from '../lib/exportExcel';
 import QuotationModal from '../components/QuotationModal';
 import QuotationDetailDrawer from '../components/QuotationDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
+import { useDebounce } from '../hooks/useDebounce';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -45,6 +46,7 @@ const PAGE_SIZE = 20;
 
 export const Quotations = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 200);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -91,8 +93,8 @@ export const Quotations = () => {
   const filtered = useMemo(() => {
     if (!raw) return [];
     return raw.filter((q: any) => {
-      if (searchTerm) {
-        const s = searchTerm.toLowerCase();
+      if (debouncedSearch) {
+        const s = debouncedSearch.toLowerCase();
         const match = q.quotationNumber?.toLowerCase().includes(s) || q.customer?.name?.toLowerCase().includes(s);
         if (!match) return false;
       }
@@ -101,7 +103,7 @@ export const Quotations = () => {
       if (dateTo && new Date(q.date) > new Date(dateTo + 'T23:59:59')) return false;
       return true;
     });
-  }, [raw, searchTerm, statusFilter, dateFrom, dateTo]);
+  }, [raw, debouncedSearch, statusFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

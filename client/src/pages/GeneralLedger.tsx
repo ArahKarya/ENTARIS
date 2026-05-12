@@ -9,6 +9,7 @@ import api from '../lib/api';
 import JournalEntryModal from '../components/JournalEntryModal';
 import ImportModal from '../components/ImportModal';
 import TableRowSkeleton from '../components/TableRowSkeleton';
+import { useDebounce } from '../hooks/useDebounce';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ export const GeneralLedger = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 200);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [cancelTarget, setCancelTarget] = useState<{ id: string; entryNumber: string } | null>(null);
@@ -196,9 +198,9 @@ export const GeneralLedger = () => {
             ) : (
               journals?.filter((j: any) =>
                 (!hideCancelled || j.status !== 'Cancelled') &&
-                (!searchTerm ||
-                  j.entryNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  j.narration?.toLowerCase().includes(searchTerm.toLowerCase()))
+                (!debouncedSearch ||
+                  j.entryNumber?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                  j.narration?.toLowerCase().includes(debouncedSearch.toLowerCase()))
               ).map((journal: any) => {
                 const totalDebit = journal.items.reduce((sum: number, item: any) => sum + Number(item.debit), 0);
                 const totalCredit = journal.items.reduce((sum: number, item: any) => sum + Number(item.credit), 0);

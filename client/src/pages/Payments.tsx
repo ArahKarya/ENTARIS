@@ -9,6 +9,7 @@ import { formatRupiah, formatDate } from '../lib/formatters';
 import PaymentModal from '../components/PaymentModal';
 import TransferModal from '../components/TransferModal';
 import TableRowSkeleton from '../components/TableRowSkeleton';
+import { useDebounce } from '../hooks/useDebounce';
 import ExpenseModal from '../components/ExpenseModal';
 import BulkExpenseModal from '../components/BulkExpenseModal';
 import { Layers } from 'lucide-react';
@@ -35,6 +36,7 @@ interface CashTransaction {
 
 export const Payments = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 200);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
   const [isPayOpen, setIsPayOpen] = useState(false);
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
@@ -243,9 +245,9 @@ export const Payments = () => {
               </tr>
             ) : (
               allTransactions.filter((t) =>
-                !searchTerm ||
-                t.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.partyName?.toLowerCase().includes(searchTerm.toLowerCase())
+                !debouncedSearch ||
+                t.number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                t.partyName?.toLowerCase().includes(debouncedSearch.toLowerCase())
               ).map((txn) => {
                 const isIncoming = txn.type === 'Receive';
                 const isDeposit = txn.type === 'VendorDeposit';

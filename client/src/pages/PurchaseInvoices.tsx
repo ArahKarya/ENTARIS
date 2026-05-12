@@ -12,6 +12,7 @@ import { exportToExcel } from '../lib/exportExcel';
 import PurchaseInvoiceModal from '../components/PurchaseInvoiceModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
+import { useDebounce } from '../hooks/useDebounce';
 import PaymentModal from '../components/PaymentModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
@@ -26,6 +27,7 @@ const PAGE_SIZE = 20;
 
 export const PurchaseInvoices = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 200);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -98,8 +100,8 @@ export const PurchaseInvoices = () => {
   const filtered = useMemo(() => {
     if (!raw) return [];
     return raw.filter((inv: any) => {
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase();
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
         const match = inv.invoiceNumber?.toLowerCase().includes(q) || inv.supplier?.name?.toLowerCase().includes(q);
         if (!match) return false;
       }
@@ -108,7 +110,7 @@ export const PurchaseInvoices = () => {
       if (dateTo && new Date(inv.date) > new Date(dateTo + 'T23:59:59')) return false;
       return true;
     });
-  }, [raw, searchTerm, statusFilter, dateFrom, dateTo]);
+  }, [raw, debouncedSearch, statusFilter, dateFrom, dateTo]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
