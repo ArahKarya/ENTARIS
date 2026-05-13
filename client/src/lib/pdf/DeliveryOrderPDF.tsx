@@ -18,7 +18,7 @@ const S = StyleSheet.create({
     fontSize: 10,
     color: C.black,
     paddingTop: 32,
-    paddingBottom: 48,
+    paddingBottom: 24,
     paddingHorizontal: 32,
     backgroundColor: C.white,
   },
@@ -104,8 +104,9 @@ const S = StyleSheet.create({
   sigLine: { height: 1, backgroundColor: C.black, marginTop: 40, marginBottom: 4, width: '100%' },
   sigLabel: { fontSize: 10, color: C.black, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
 
-  footer: { position: 'absolute', bottom: 12, left: 32, right: 32, flexDirection: 'row', justifyContent: 'space-between' },
-  footerText: { fontSize: 9, color: C.black },
+  // Print metadata moved to top because dot-matrix continuous form often
+  // crops the bottom margin. Placed under the title block, right-aligned.
+  printMeta: { fontSize: 8, color: C.black, textAlign: 'right', marginTop: 2 },
 });
 
 function fmtNum(n: number, dec = 3): string {
@@ -167,6 +168,13 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
         <View>
           <Text style={S.title}>SURAT JALAN</Text>
           <Text style={S.subtitle}>{doNumber}</Text>
+          <Text
+            style={S.printMeta}
+            render={({ pageNumber, totalPages }) =>
+              `Dicetak ${printDate}  •  Hal ${pageNumber}/${totalPages}`
+            }
+            fixed
+          />
         </View>
       </View>
       <View style={S.divider} fixed />
@@ -253,11 +261,6 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
         </View>
       </View>
 
-      {/* Footer */}
-      <View style={S.footer} fixed>
-        <Text style={S.footerText}>{doNumber}</Text>
-        <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Dicetak ${printDate}  •  Hal ${pageNumber}/${totalPages}`} />
-      </View>
       </Page>
     </Document>
   );
