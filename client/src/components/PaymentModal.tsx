@@ -89,22 +89,52 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     enabled: isOpen,
   });
 
-  // Source payment list — only for Refund types. Shows prior Pay/Receive to same party.
+  // Source payment list — only for Refund types. Combines TWO kinds of source:
+  //   1. Direct payments (Pay / Receive) — over-payment refund flow via /payments
+  //   2. Deposits (VendorDeposit / CustomerDeposit) — uang muka refund flow via
+  //      /vendor-deposits/:id/refund or /customer-deposits/:id/refund (cash leg).
+  // Each row carries a `kind` discriminator + remaining balance so the UI can
+  // route the submit to the correct endpoint and validate amount.
   const { data: sourcePayments } = useQuery({
     queryKey: ['payments-source-for-refund', partyId, paymentType],
     queryFn: async () => {
-      const expectedType = paymentType === 'VendorRefund' ? 'Pay' : 'Receive';
-      const res = await api.get('/payments', { params: { limit: 200 } });
-      const all: any[] = res.data.data ?? res.data;
-      return all.filter(
-        (p: any) =>
-          p.partyId === partyId &&
-          p.status === 'Submitted' &&
-          p.paymentType === expectedType,
-      );
+      const isVendor = paymentType === 'VendorRefund';
+      const directType = isVendor ? 'Pay' : 'Receive';
+      const depositEndpoint = isVendor ? '/vendor-deposits' : '/customer-deposits';
+
+      const [directRes, depositRes] = await Promise.all([
+        api.get('/payments', { params: { limit: 500 } }),
+        api.get(depositEndpoint, { params: { partyId } }),
+      ]);
+
+      const directs = (directRes.data.data ?? directRes.data)
+        .filter(
+          (p: any) =>
+            p.partyId === partyId &&
+            p.status === 'Submitted' &&
+            p.paymentType === directType,
+        )
+        .map((p: any) => ({
+          ...p,
+          kind: 'direct' as const,
+          remaining: Number(p.amount),
+        }));
+
+      const deposits = (depositRes.data.data ?? depositRes.data)
+        .filter((d: any) => d.status === 'Submitted' && Number(d.remaining ?? 0) > 0)
+        .map((d: any) => ({
+          ...d,
+          kind: 'deposit' as const,
+          remaining: Number(d.remaining),
+        }));
+
+      return [...deposits, ...directs];
     },
     enabled: isOpen && isRefund && !!partyId,
   });
+
+  const selectedSource = sourcePayments?.find((p: any) => p.id === refundSourcePaymentId);
+  const isDepositRefund = selectedSource?.kind === 'deposit';
 
   // Open invoices for selected party (for display only — server auto-allocates)
   const { data: openInvoices } = useQuery({
@@ -132,16 +162,39 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
   const nonInvoiceOutstanding = Math.max(0, partyOutstanding - totalInvoiceOutstanding);
 
   const mutation = useMutation({
-    mutationFn: (data: any) => api.post('/payments', data),
+    mutationFn: (data: any) => {
+      // Refund of a vendor/customer deposit goes through the dedicated
+      // /vendor-deposits/:id/refund (or /customer-deposits/:id/refund) endpoint
+      // — that's the canonical path that decrements depositBalance, posts the
+      // bank/deposit JV, and tracks refundedAmount. /payments would create the
+      // wrong journal for this flow.
+      if (data.__depositRefund) {
+        const path = data.__depositRefund.path;
+        return api.post(path, {
+          date: data.date,
+          cashAmount: data.amount,
+          offsetAmount: 0,
+          cashAccountId: data.accountId,
+          notes: data.notes,
+        });
+      }
+      return api.post('/payments', data);
+    },
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
       // Refresh 'Dari Pembayaran' section on any invoice detail drawer currently open.
       queryClient.invalidateQueries({ queryKey: ['invoice-related-attachments'] });
-      setSavedId(res.data?.id || res.data?.payment?.id);
+      // Deposit-refund response shape is { cashRefunded, applications, cashJournalId }
+      // — no top-level id. Fall back to cashJournalId so the success state shows.
+      // Attachment section is skipped for deposit refunds (no Payment row to
+      // attach to) — guarded below.
+      setSavedId(res.data?.id || res.data?.payment?.id || res.data?.cashJournalId || 'success');
     },
     onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan pembayaran.'),
   });
@@ -164,6 +217,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     (splitMode ? splitsValid : !!accountId);
 
   const handleSubmit = () => {
+    // Deposit refund path: send to /vendor-deposits/:id/refund or
+    // /customer-deposits/:id/refund. The mutation reads __depositRefund
+    // and rewrites the request body to the schema that endpoint expects.
+    if (isRefund && isDepositRefund && selectedSource) {
+      if (numAmount > selectedSource.remaining + 0.01) {
+        setError(
+          `Jumlah refund ${formatRupiah(numAmount)} melebihi sisa uang muka ${formatRupiah(selectedSource.remaining)}.`,
+        );
+        return;
+      }
+      const isVendor = paymentType === 'VendorRefund';
+      mutation.mutate({
+        date,
+        amount: numAmount,
+        accountId,
+        notes: notes || null,
+        __depositRefund: {
+          path: isVendor
+            ? `/vendor-deposits/${selectedSource.id}/refund`
+            : `/customer-deposits/${selectedSource.id}/refund`,
+        },
+      });
+      return;
+    }
+
     const payload: any = {
       date,
       partyId,
@@ -280,7 +358,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           {isRefund && partyId && (
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                Pembayaran Asal (opsional)
+                Pembayaran Asal {isDepositRefund ? '(Uang Muka)' : '(opsional)'}
               </label>
               <select
                 value={refundSourcePaymentId}
@@ -290,14 +368,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
                 <option value="">— Tanpa link (generic refund) —</option>
                 {(sourcePayments ?? []).map((p: any) => (
                   <option key={p.id} value={p.id}>
-                    {p.paymentNumber} • {formatDate(p.date)} • {formatRupiah(Number(p.amount))}
+                    {p.kind === 'deposit' ? '💰 UANG MUKA · ' : ''}
+                    {p.paymentNumber} • {formatDate(p.date)}
+                    {p.kind === 'deposit'
+                      ? ` • sisa ${formatRupiah(p.remaining)}`
+                      : ` • ${formatRupiah(Number(p.amount))}`}
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-gray-500 mt-1">
-                Pilih pembayaran {isVendorRefund ? 'Pay' : 'Receive'} yang sebagian dikembalikan.
-                Sistem otomatis kurangi alokasinya dan restore outstanding faktur terkait.
-              </p>
+              {isDepositRefund ? (
+                <p className="text-[11px] text-purple-600 mt-1">
+                  Refund uang muka — sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
+                  Sisa uang muka: <span className="font-semibold">{formatRupiah(selectedSource?.remaining ?? 0)}</span>.
+                  Saldo deposit otomatis turun, jurnal: DR Bank / CR Uang Muka.
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Pilih pembayaran {isVendorRefund ? 'Pay' : 'Receive'} yang sebagian dikembalikan, ATAU baris UANG MUKA untuk refund DP.
+                  Sistem otomatis kurangi alokasi & restore outstanding faktur.
+                </p>
+              )}
             </div>
           )}
 
@@ -526,8 +616,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
             </div>
           )}
 
-          {/* Attachment section — shown after save */}
-          {savedId && (
+          {/* Attachment section — shown after save. Skipped for deposit refunds
+              because the response is a JournalEntry, not a Payment row. */}
+          {savedId && !isDepositRefund && (
             <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={14} className="text-green-500" />
@@ -538,6 +629,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
               </div>
               <AttachmentPreview referenceType="payment" referenceId={savedId} />
               <AttachmentUpload referenceType="payment" referenceId={savedId} />
+            </div>
+          )}
+          {savedId && isDepositRefund && (
+            <div className="pt-2 border-t flex items-center gap-2" style={{ borderColor: 'var(--color-border)' }}>
+              <CheckCircle2 size={14} className="text-green-500" />
+              <span className="text-xs font-semibold text-green-600">
+                Refund uang muka tersimpan. Saldo deposit vendor sudah berkurang.
+              </span>
             </div>
           )}
         </div>
