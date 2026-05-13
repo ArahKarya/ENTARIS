@@ -590,3 +590,13 @@ export const CreateDeliveryOrderSchema = z.object({
   items: z.array(DeliveryOrderItemSchema).min(1, 'Minimal satu item.'),
   allowNegativeStock: z.boolean().optional().default(false),
 });
+
+// Body for the retroactive "DO dari Invoice" flow. Items are inherited from
+// the invoice, so the request only carries the physical-delivery metadata.
+export const CreateDOFromInvoiceSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  nomorMobil: z.string().max(50).nullable().optional(),
+  driverName: z.string().max(200).nullable().optional(),
+  recipientName: z.string().max(200).nullable().optional(),
+  notes: z.string().nullable().optional(),
+});

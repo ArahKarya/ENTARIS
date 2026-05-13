@@ -8,6 +8,8 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 import { submitDeliveryOrderInTx } from '../services/deliveryOrderSubmit';
 import { cancelDeliveryOrderInTx } from '../services/deliveryOrderCancel';
 import { editDeliveryOrderInTx } from '../services/deliveryOrderEdit';
+import { createDeliveryOrderFromInvoiceInTx } from '../services/deliveryOrderFromInvoice';
+import { CreateDOFromInvoiceSchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -144,6 +146,32 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
     return res.status(201).json(result);
   } catch (error) {
     return handleRouteError(res, error, 'POST /delivery-orders', 'Gagal membuat surat jalan.');
+  }
+});
+
+// ─── POST /from-invoice/:invoiceId — retroactive DO ────────────────────────
+// Used when an invoice was entered first (direct-sale) and the physical DO
+// paperwork comes later. No stock movements; links to invoice's existing SM.
+router.post('/from-invoice/:invoiceId', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+  const body = validateBody(CreateDOFromInvoiceSchema, req.body, res);
+  if (!body) return;
+
+  try {
+    const result = await prisma.$transaction(
+      (tx) => createDeliveryOrderFromInvoiceInTx(
+        tx,
+        { ...body, invoiceId: req.params.invoiceId as string },
+        req.user!.userId,
+      ),
+      { timeout: 15000 },
+    );
+    logger.info(
+      { doId: result.id, invoiceId: req.params.invoiceId, userId: req.user!.userId },
+      'Delivery order created from invoice',
+    );
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /delivery-orders/from-invoice/:invoiceId', 'Gagal membuat surat jalan dari invoice.');
   }
 });
 

@@ -14,6 +14,7 @@ import type { AttachmentRef } from '../lib/pdf/mergePdfWithAttachments';
 import { computeDeductions } from '../lib/invoiceDeductions';
 import ApplyDepositModal from './ApplyDepositModal';
 import ApplyCustomerDepositModal from './ApplyCustomerDepositModal';
+import DeliveryOrderFromInvoiceModal from './DeliveryOrderFromInvoiceModal';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface Props {
@@ -48,6 +49,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const [editNotes, setEditNotes] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
   const [editTerms, setEditTerms] = useState('');
+  const [createDOOpen, setCreateDOOpen] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const endpoint = isSales ? '/sales/invoices' : '/purchase/invoices';
   const canHaveAttachments = type === 'purchase' || type === 'sales';
@@ -611,22 +613,40 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                         .map((d: any) => [d.id, d]),
                     ).values(),
                   );
-                  if (linkedDOs.length === 0) return null;
-                  return (
-                    <div className="mb-3 p-2.5 bg-blue-50/60 border border-blue-100 rounded-lg flex items-start gap-2 text-xs">
-                      <Truck size={13} className="text-blue-600 mt-0.5 shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-blue-700 font-semibold mb-0.5">
-                          Ditagihkan dari {linkedDOs.length === 1 ? 'Surat Jalan' : `${linkedDOs.length} Surat Jalan`}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {linkedDOs.map((d: any) => (
-                            <span key={d.id} className="font-mono text-[11px] px-1.5 py-0.5 bg-white border border-blue-200 rounded text-blue-700">
-                              {d.doNumber}
-                            </span>
-                          ))}
+                  if (linkedDOs.length > 0) {
+                    return (
+                      <div className="mb-3 p-2.5 bg-blue-50/60 border border-blue-100 rounded-lg flex items-start gap-2 text-xs">
+                        <Truck size={13} className="text-blue-600 mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-blue-700 font-semibold mb-0.5">
+                            Ditagihkan dari {linkedDOs.length === 1 ? 'Surat Jalan' : `${linkedDOs.length} Surat Jalan`}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {linkedDOs.map((d: any) => (
+                              <span key={d.id} className="font-mono text-[11px] px-1.5 py-0.5 bg-white border border-blue-200 rounded text-blue-700">
+                                {d.doNumber}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
+                    );
+                  }
+                  // No DO yet. Offer to create one retroactively if invoice is
+                  // active and has at least one inventory line.
+                  const hasInventoryLine = items.some((it: any) => it.inventoryItemId);
+                  const canCreate = invoice && invoice.status !== 'Cancelled' && hasInventoryLine;
+                  if (!canCreate) return null;
+                  return (
+                    <div className="mb-3 p-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-2 text-xs">
+                      <Truck size={13} className="text-gray-400 shrink-0" />
+                      <span className="text-gray-500 flex-1">Invoice ini belum punya Surat Jalan.</span>
+                      <button
+                        onClick={() => setCreateDOOpen(true)}
+                        className="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1"
+                      >
+                        <Truck size={12} /> Buat Surat Jalan
+                      </button>
                     </div>
                   );
                 })()}
@@ -1057,6 +1077,23 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
           salesInvoiceId={invoiceId!}
           partyId={invoice.partyId ?? invoice.customer?.id ?? ''}
           invoiceOutstanding={outstanding}
+        />
+      )}
+
+      {/* Retroactive "Buat Surat Jalan" for sales invoices that don't have a DO yet. */}
+      {isSales && invoice && createDOOpen && (
+        <DeliveryOrderFromInvoiceModal
+          invoiceId={invoiceId!}
+          invoiceNumber={invoice.invoiceNumber}
+          customerName={party?.name ?? '—'}
+          items={items.map((it: any) => ({
+            id: it.id,
+            itemName: it.itemName,
+            quantity: Number(it.quantity),
+            unit: it.unit,
+            inventoryItemId: it.inventoryItemId ?? null,
+          }))}
+          onClose={() => setCreateDOOpen(false)}
         />
       )}
     </>
