@@ -19,10 +19,13 @@ router.get('/metrics', async (_req, res) => {
           date: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
         }
       }),
+      // Inventory module pakai nilai operasional (qty fisik × avg cost),
+      // bukan saldo GL. Dashboard utama (routes/dashboard.ts) tetap pakai
+      // GL — keduanya disengaja beda karena melayani audience berbeda.
       prisma.$queryRaw<[{ total: string | number }]>`
-        SELECT COALESCE(SUM(balance), 0) AS total
-        FROM accounts
-        WHERE "accountNumber" LIKE '1.4%' AND NOT "isGroup"
+        SELECT COALESCE(SUM(current_stock * average_cost), 0) AS total
+        FROM inventory_items
+        WHERE is_active = true
       `,
     ]);
 
