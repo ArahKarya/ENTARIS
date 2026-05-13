@@ -41,7 +41,9 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
 
   const userRole = useMemo(() => getUserRole(), []);
   const isAdmin = userRole === 'Admin';
-  const canEdit = userRole === 'Admin' || userRole === 'Accountant';
+  // Edit mengikuti WRITE_ROLES backend (Admin + Accountant + StaffProduksi).
+  // Cancel tetap Admin-only.
+  const canEdit = userRole === 'Admin' || userRole === 'Accountant' || userRole === 'StaffProduksi';
   const [editOpen, setEditOpen] = useState(false);
 
   const { data: doc, isLoading } = useQuery({

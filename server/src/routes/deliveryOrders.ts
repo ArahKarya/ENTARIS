@@ -15,7 +15,10 @@ import { logger } from '../lib/logger';
 const router = Router();
 
 const READ_ROLES = ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'];
-const WRITE_ROLES = ['Admin', 'Accountant'];
+// StaffProduksi diizinkan create + edit Surat Jalan (mereka yang fisik
+// nyetak & hand off ke supir). Cancel tetap Admin-only karena merupakan
+// destructive operation yang mengembalikan stok.
+const WRITE_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
 
 // ─── GET / list ───────────────────────────────────────────────────────────
 router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
