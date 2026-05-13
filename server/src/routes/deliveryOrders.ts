@@ -69,7 +69,8 @@ router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
           invoice: { select: { id: true, invoiceNumber: true } },
           _count: { select: { items: true } },
         },
-        orderBy: { date: 'desc' },
+        // Tanggal terbaru lalu DO number terbesar dalam tanggal yang sama.
+        orderBy: [{ date: 'desc' }, { doNumber: 'desc' }],
         skip,
         take,
       }),
