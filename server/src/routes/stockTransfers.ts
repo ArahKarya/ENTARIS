@@ -20,10 +20,22 @@ const CreateTransferSchema = z.object({
   fromWarehouseId: z.string().uuid('Gudang asal wajib dipilih.'),
   toWarehouseId: z.string().uuid('Gudang tujuan wajib dipilih.'),
   notes: z.string().nullable().optional(),
+  // SJG (Surat Jalan Antar Gudang) physical-delivery metadata. Stok tetap
+  // pindah instan, field ini hanya feed PDF cetakan untuk supir.
+  nomorMobil: z.string().max(50).nullable().optional(),
+  driverName: z.string().max(200).nullable().optional(),
+  recipientName: z.string().max(200).nullable().optional(),
   items: z.array(TransferItemSchema).min(1, 'Minimal satu item.'),
 }).refine((d) => d.fromWarehouseId !== d.toWarehouseId, {
   message: 'Gudang asal dan tujuan harus berbeda.',
   path: ['toWarehouseId'],
+});
+
+const UpdateHeaderSchema = z.object({
+  notes: z.string().nullable().optional(),
+  nomorMobil: z.string().max(50).nullable().optional(),
+  driverName: z.string().max(200).nullable().optional(),
+  recipientName: z.string().max(200).nullable().optional(),
 });
 
 // GET /api/stock-transfers
@@ -91,6 +103,45 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
     return res.status(201).json(result);
   } catch (error) {
     return handleRouteError(res, error, 'POST /stock-transfers', 'Gagal membuat transfer stok.');
+  }
+});
+
+// PATCH /:id — edit header fields only (notes, mobil, supir, penerima)
+router.patch('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+  const body = validateBody(UpdateHeaderSchema, req.body, res);
+  if (!body) return;
+  try {
+    const existing = await prisma.stockTransfer.findUnique({ where: { id: req.params.id as string } });
+    if (!existing) return res.status(404).json({ error: 'Transfer tidak ditemukan.' });
+    if (existing.status !== 'Submitted') {
+      return res.status(400).json({ error: 'Hanya transfer status Submitted yang bisa diedit.' });
+    }
+    const updated = await prisma.stockTransfer.update({
+      where: { id: req.params.id as string },
+      data: {
+        notes: body.notes ?? existing.notes,
+        nomorMobil: body.nomorMobil ?? existing.nomorMobil,
+        driverName: body.driverName ?? existing.driverName,
+        recipientName: body.recipientName ?? existing.recipientName,
+        updatedAt: new Date(),
+      },
+    });
+    return res.json(updated);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /stock-transfers/:id', 'Gagal edit transfer.');
+  }
+});
+
+// POST /:id/mark-printed — set printedAt timestamp (tracks when SJG dicetak)
+router.post('/:id/mark-printed', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+  try {
+    const updated = await prisma.stockTransfer.update({
+      where: { id: req.params.id as string },
+      data: { printedAt: new Date() },
+    });
+    return res.json(updated);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /stock-transfers/:id/mark-printed', 'Gagal update timestamp print.');
   }
 });
 

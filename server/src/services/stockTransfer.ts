@@ -12,6 +12,9 @@ export interface SubmitStockTransferInput {
   fromWarehouseId: string;
   toWarehouseId: string;
   notes?: string | null;
+  nomorMobil?: string | null;
+  driverName?: string | null;
+  recipientName?: string | null;
   items: Array<{ itemId: string; quantity: number; description?: string | null }>;
 }
 
@@ -67,6 +70,9 @@ export async function submitStockTransferInTx(
       toWarehouseId: body.toWarehouseId,
       status: 'Submitted',
       notes: body.notes || null,
+      nomorMobil: body.nomorMobil ?? null,
+      driverName: body.driverName ?? null,
+      recipientName: body.recipientName ?? null,
       fiscalYearId: fy.id,
       createdBy: userId,
       submittedAt: new Date(),

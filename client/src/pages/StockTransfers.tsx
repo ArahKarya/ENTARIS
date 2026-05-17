@@ -7,7 +7,7 @@ import { formatDate } from '../lib/formatters';
 import { cn } from '../lib/utils';
 import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import WarehouseTransferDrawer from '../components/WarehouseTransferDrawer';
 
 const STATUS_BADGE: Record<string, string> = {
   Draft: 'badge-gray',
@@ -25,9 +25,7 @@ interface TransferItemRow {
 
 export const StockTransfers = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cancelTarget, setCancelTarget] = useState<any>(null);
-
-  const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: raw, isLoading } = useQuery({
     queryKey: ['stock-transfers'],
@@ -37,24 +35,14 @@ export const StockTransfers = () => {
     },
   });
 
-  const cancelMut = useMutation({
-    mutationFn: (id: string) => api.patch(`/stock-transfers/${id}/cancel`),
-    onSuccess: () => {
-      toast.success('Transfer dibatalkan.');
-      queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-      setCancelTarget(null);
-    },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal cancel.'),
-  });
-
   return (
     <div className="space-y-5 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Transfer Stok</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Pindahkan stok item antar gudang. Tidak ada efek ke GL.</p>
+          <h1 className="text-xl font-semibold text-foreground">Transfer Stok / SJG</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Pindahkan stok antar gudang. Cetak Surat Jalan Antar Gudang (SJG) untuk supir. Stok pindah instan saat submit.
+          </p>
         </div>
         <button className="btn-primary self-start" onClick={() => setIsModalOpen(true)}>
           <Plus size={15} /> Buat Transfer
@@ -69,25 +57,26 @@ export const StockTransfers = () => {
                 <th>Tanggal</th>
                 <th>Nomor</th>
                 <th>Dari → Tujuan</th>
+                <th>No. Mobil</th>
+                <th>Supir</th>
                 <th className="text-right">Item</th>
                 <th className="text-center">Status</th>
-                <th>Catatan</th>
-                <th className="text-center">Aksi</th>
+                <th className="text-center">SJG</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="py-16 text-center text-muted-foreground">
+                <tr><td colSpan={8} className="py-16 text-center text-muted-foreground">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                 </td></tr>
               ) : !raw || raw.length === 0 ? (
-                <tr><td colSpan={7} className="py-16 text-center">
+                <tr><td colSpan={8} className="py-16 text-center">
                   <Repeat className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-40" />
                   <p className="text-sm text-muted-foreground">Belum ada transfer.</p>
                 </td></tr>
               ) : (
                 raw.map((t: any) => (
-                  <tr key={t.id}>
+                  <tr key={t.id} onClick={() => setSelectedId(t.id)} className="cursor-pointer hover:bg-accent">
                     <td className="text-muted-foreground whitespace-nowrap">{formatDate(t.date)}</td>
                     <td className="whitespace-nowrap">
                       <span className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">{t.transferNumber}</span>
@@ -99,22 +88,23 @@ export const StockTransfers = () => {
                         <span className="text-foreground font-medium">{t.toWarehouse?.name}</span>
                       </span>
                     </td>
+                    <td className="font-mono text-xs text-foreground uppercase whitespace-nowrap">
+                      {t.nomorMobil || <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                    <td className="text-xs text-foreground">
+                      {t.driverName || <span className="text-muted-foreground/40">—</span>}
+                    </td>
                     <td className="text-right text-xs text-muted-foreground">
                       {t.items?.length ?? 0} item
                     </td>
                     <td className="text-center">
                       <span className={cn('badge', STATUS_BADGE[t.status] ?? 'badge-gray')}>{t.status}</span>
                     </td>
-                    <td className="text-xs text-muted-foreground truncate max-w-xs">{t.notes ?? '—'}</td>
                     <td className="text-center">
-                      {t.status === 'Submitted' && (
-                        <button
-                          onClick={() => setCancelTarget(t)}
-                          className="p-1.5 hover:bg-red-50 rounded text-red-500 hover:text-red-600"
-                          aria-label="Batalkan transfer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      {t.printedAt ? (
+                        <span className="text-[10px] text-green-600">✓ {new Date(t.printedAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</span>
+                      ) : (
+                        <span className="text-muted-foreground/40 text-xs">—</span>
                       )}
                     </td>
                   </tr>
@@ -125,20 +115,8 @@ export const StockTransfers = () => {
         </div>
       </div>
 
-      <StockTransferModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-
-      <ConfirmDialog
-        open={cancelTarget !== null}
-        title="Batalkan Transfer"
-        message={`Batalkan transfer ${cancelTarget?.transferNumber}? Stok akan dikembalikan ke gudang asal.`}
-        confirmLabel="Ya, Batalkan"
-        variant="danger"
-        onCancel={() => setCancelTarget(null)}
-        onConfirm={() => { if (cancelTarget) cancelMut.mutate(cancelTarget.id); }}
-      />
+      {isModalOpen && <StockTransferModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
+      <WarehouseTransferDrawer transferId={selectedId} onClose={() => setSelectedId(null)} />
     </div>
   );
 };
@@ -158,6 +136,9 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
   const [date, setDate] = useState(today);
   const [fromWarehouseId, setFromWarehouseId] = useState('');
   const [toWarehouseId, setToWarehouseId] = useState('');
+  const [nomorMobil, setNomorMobil] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [recipientName, setRecipientName] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<TransferItemRow[]>([
     { id: crypto.randomUUID(), itemId: '', quantity: 0 },
@@ -198,17 +179,11 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/stock-transfers', data),
     onSuccess: () => {
-      toast.success('Transfer berhasil dibuat.');
+      toast.success('Transfer berhasil dibuat. Stok sudah pindah, SJG siap dicetak.');
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       onClose();
-      setDate(today);
-      setFromWarehouseId('');
-      setToWarehouseId('');
-      setNotes('');
-      setItems([{ id: crypto.randomUUID(), itemId: '', quantity: 0 }]);
-      setError('');
     },
     onError: (e: any) => setError(e.response?.data?.error ?? 'Gagal buat transfer.'),
   });
@@ -225,6 +200,9 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
       fromWarehouseId,
       toWarehouseId,
       notes: notes.trim() || null,
+      nomorMobil: nomorMobil.trim() || null,
+      driverName: driverName.trim() || null,
+      recipientName: recipientName.trim() || null,
       items: valid.map((it) => ({
         itemId: it.itemId,
         quantity: it.quantity,
@@ -238,10 +216,13 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}>
-      <div className="rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
+      <div className="rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
         style={{ backgroundColor: 'var(--color-bg-primary)' }}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h3 className="font-semibold text-foreground">Buat Transfer Stok</h3>
+          <div>
+            <h3 className="font-semibold text-foreground">Buat Transfer Stok</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Stok pindah antar gudang + cetak SJG untuk supir</p>
+          </div>
           <button onClick={onClose} className="p-1 hover:bg-accent rounded" aria-label="Tutup"><X size={18} /></button>
         </div>
 
@@ -262,6 +243,46 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
               <SearchableSelect options={whOptions.filter((o) => o.value !== fromWarehouseId)} value={toWarehouseId}
                 onChange={setToWarehouseId} placeholder="Pilih gudang tujuan..." />
             </div>
+          </div>
+
+          {/* SJG fields — physical delivery metadata untuk cetakan */}
+          <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-lg space-y-3">
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest">Info Pengiriman (untuk SJG)</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">No. Mobil</label>
+                <input
+                  type="text"
+                  value={nomorMobil}
+                  onChange={(e) => setNomorMobil(e.target.value)}
+                  placeholder="B 1234 ABC"
+                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Supir</label>
+                <input
+                  type="text"
+                  value={driverName}
+                  onChange={(e) => setDriverName(e.target.value)}
+                  placeholder="Nama supir"
+                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Penerima (Gudang Tujuan)</label>
+                <input
+                  type="text"
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  placeholder="Nama PIC penerima"
+                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-blue-700">
+              Field-field ini optional, tetapi muncul di cetakan SJG untuk verifikasi waktu serah-terima.
+            </p>
           </div>
 
           <div>
