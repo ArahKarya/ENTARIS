@@ -70,6 +70,7 @@ const allNavItems: NavItem[] = [
     roles: ['Admin', 'Accountant', 'StaffProduksi'],
     children: [
       { icon: Receipt, label: 'Invoice Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Receipt, label: 'BPB / STT (Penerimaan)', href: '/goods-receipts', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
       { icon: Wallet, label: 'Uang Muka Vendor', href: '/vendor-deposits', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
     ],
   },

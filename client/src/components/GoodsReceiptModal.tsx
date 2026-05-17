@@ -1,0 +1,333 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Plus, Trash2, Loader2, AlertCircle, PackageCheck } from 'lucide-react';
+import { toast } from 'sonner';
+import api from '../lib/api';
+import SearchableSelect, { type SelectOption } from './SearchableSelect';
+
+const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
+
+interface GRItem {
+  id: string;
+  inventoryItemId: string;
+  warehouseId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  lockedUnitCost: number;
+  description: string;
+}
+
+const defaultItem = (): GRItem => ({
+  id: crypto.randomUUID(),
+  inventoryItemId: '',
+  warehouseId: '',
+  itemName: '',
+  quantity: 0,
+  unit: 'Kg',
+  lockedUnitCost: 0,
+  description: '',
+});
+
+interface Props {
+  onClose: () => void;
+}
+
+const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
+  const queryClient = useQueryClient();
+  const today = new Date().toISOString().split('T')[0];
+
+  const [date, setDate] = useState(today);
+  const [partyId, setPartyId] = useState('');
+  const [purchaseOrderId, setPurchaseOrderId] = useState('');
+  const [nomorMobil, setNomorMobil] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [recipientName, setRecipientName] = useState('');
+  const [notes, setNotes] = useState('');
+  const [items, setItems] = useState<GRItem[]>([defaultItem()]);
+  const [error, setError] = useState('');
+
+  const { data: parties } = useQuery({
+    queryKey: ['parties-suppliers'],
+    queryFn: async () => {
+      const res = await api.get('/parties?type=Supplier');
+      return res.data.data ?? res.data;
+    },
+  });
+
+  const { data: inventoryItems } = useQuery({
+    queryKey: ['inventory-items-gr'],
+    queryFn: async () => {
+      const res = await api.get('/inventory/items?limit=500');
+      return res.data.data ?? res.data;
+    },
+  });
+
+  const { data: warehouses } = useQuery({
+    queryKey: ['warehouses-active'],
+    queryFn: async () => {
+      const res = await api.get('/warehouses');
+      const all = res.data.data ?? res.data;
+      return (all as any[]).filter((w: any) => w.isActive);
+    },
+  });
+
+  const { data: openPOs } = useQuery({
+    queryKey: ['purchase-orders-open', partyId],
+    queryFn: async () => {
+      // Phase 4 will implement /purchase-orders. For now empty.
+      try {
+        const res = await api.get('/purchase-orders?status=Submitted&limit=100');
+        const all = res.data.data ?? res.data;
+        return (all as any[]).filter((po: any) => !po.partyId || po.partyId === partyId);
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!partyId,
+  });
+
+  const supplierOptions: SelectOption[] = (parties ?? []).map((p: any) => ({ value: p.id, label: p.name }));
+
+  const poOptions: SelectOption[] = [
+    { value: '', label: '— Tanpa PO (Standalone) —' },
+    ...((openPOs ?? []).map((po: any) => ({
+      value: po.id,
+      label: `${po.poNumber}${po.partyId ? '' : ' (PO Umum)'}`,
+    })) as SelectOption[]),
+  ];
+
+  const itemOptions = (inventoryItems ?? []).map((i: any) => ({
+    value: i.id,
+    label: `${i.code} — ${i.name}`,
+    meta: { unit: i.unit, avgCost: Number(i.averageCost ?? 0), name: i.name },
+  }));
+
+  const warehouseOptions: SelectOption[] = (warehouses ?? []).map((w: any) => ({ value: w.id, label: w.name }));
+
+  const onItemPick = (idx: number, invId: string) => {
+    const meta = itemOptions.find((o: any) => o.value === invId)?.meta;
+    setItems((prev) =>
+      prev.map((it, i) =>
+        i === idx
+          ? {
+              ...it,
+              inventoryItemId: invId,
+              itemName: meta?.name ?? it.itemName,
+              unit: meta?.unit ?? it.unit,
+              // Pre-fill locked cost dengan averageCost saat ini (user bisa override)
+              lockedUnitCost: it.lockedUnitCost || (meta?.avgCost ?? 0),
+            }
+          : it,
+      ),
+    );
+  };
+
+  const updateItem = (idx: number, patch: Partial<GRItem>) => {
+    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  };
+
+  const addItem = () => setItems((prev) => [...prev, defaultItem()]);
+  const removeItem = (idx: number) =>
+    setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
+
+  const grandTotal = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.lockedUnitCost) || 0), 0);
+
+  const mutation = useMutation({
+    mutationFn: (data: any) => api.post('/goods-receipts', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      toast.success('STT/BPB tersimpan. Stok masuk ke gudang.');
+      onClose();
+    },
+    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan STT.'),
+  });
+
+  const handleSubmit = () => {
+    setError('');
+    if (!partyId) return setError('Supplier wajib dipilih.');
+    if (!date) return setError('Tanggal wajib diisi.');
+    const validItems = items.filter((it) => it.inventoryItemId && it.warehouseId && it.quantity > 0);
+    if (validItems.length === 0) return setError('Minimal satu item dengan qty > 0 dan gudang terpilih.');
+
+    mutation.mutate({
+      date,
+      partyId,
+      purchaseOrderId: purchaseOrderId || null,
+      nomorMobil: nomorMobil.trim() || null,
+      driverName: driverName.trim() || null,
+      recipientName: recipientName.trim() || null,
+      notes: notes.trim() || null,
+      items: validItems.map((it) => ({
+        inventoryItemId: it.inventoryItemId,
+        warehouseId: it.warehouseId,
+        itemName: it.itemName,
+        quantity: Number(it.quantity),
+        unit: it.unit,
+        lockedUnitCost: Number(it.lockedUnitCost),
+        description: it.description.trim() || null,
+      })),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-5xl bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <PackageCheck size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Buat BPB / Surat Tanda Terima</h2>
+              <p className="text-xs text-gray-400">Penerimaan barang dari supplier — stok masuk + accrual hutang</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Tanggal *</label>
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="input w-full" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Supplier *</label>
+              <SearchableSelect options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="— Pilih Supplier —" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">PO (opsional)</label>
+              <SearchableSelect options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">No. Mobil</label>
+              <input type="text" value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} placeholder="Mis. B 1234 ABC" className="input w-full font-mono uppercase" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Supir</label>
+              <input type="text" value={driverName} onChange={(e) => setDriverName(e.target.value)} className="input w-full" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Penerima (Internal)</label>
+              <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="Nama staff yang menerima" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Catatan</label>
+              <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="input w-full" />
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-widest flex items-center justify-between">
+              <span>Items diterima ({items.length})</span>
+              <span className="font-normal normal-case text-gray-400">
+                Total nilai: <span className="font-mono font-semibold text-gray-700">Rp {grandTotal.toLocaleString('id-ID')}</span>
+              </span>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">
+                <tr>
+                  <th className="text-left px-2 py-2 w-8">#</th>
+                  <th className="text-left px-2 py-2">Item</th>
+                  <th className="text-left px-2 py-2 w-36">Gudang</th>
+                  <th className="text-right px-2 py-2 w-24">Qty</th>
+                  <th className="text-center px-2 py-2 w-20">Satuan</th>
+                  <th className="text-right px-2 py-2 w-28">Harga/Unit</th>
+                  <th className="text-right px-2 py-2 w-28">Subtotal</th>
+                  <th className="px-2 py-2 w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, idx) => {
+                  const subtotal = (Number(it.quantity) || 0) * (Number(it.lockedUnitCost) || 0);
+                  return (
+                    <tr key={it.id} className="border-b border-gray-50 last:border-0">
+                      <td className="px-2 py-2 text-center text-xs text-gray-300">{idx + 1}</td>
+                      <td className="px-2 py-2">
+                        <SearchableSelect
+                          options={itemOptions}
+                          value={it.inventoryItemId}
+                          onChange={(v) => onItemPick(idx, v)}
+                          placeholder="Pilih item..."
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <SearchableSelect
+                          options={warehouseOptions}
+                          value={it.warehouseId}
+                          onChange={(v) => updateItem(idx, { warehouseId: v })}
+                          placeholder="Gudang..."
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input type="number" step="0.001" value={it.quantity || ''}
+                          onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                          className="input w-full text-right" />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select value={it.unit} onChange={(e) => updateItem(idx, { unit: e.target.value })} className="input w-full text-xs">
+                          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <input type="number" step="0.01" value={it.lockedUnitCost || ''}
+                          onChange={(e) => updateItem(idx, { lockedUnitCost: Number(e.target.value) })}
+                          className="input w-full text-right" />
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-xs text-gray-700">
+                        {subtotal > 0 ? `Rp ${subtotal.toLocaleString('id-ID')}` : '—'}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <button onClick={() => removeItem(idx)} disabled={items.length === 1}
+                          className="text-gray-300 hover:text-red-500 disabled:opacity-30">
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="px-4 py-2 border-t border-gray-100">
+              <button onClick={addItem} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                <Plus size={12} /> Tambah baris
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-start gap-2">
+              <AlertCircle size={14} className="mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="p-3 bg-amber-50/60 border border-amber-100 rounded-lg text-xs text-amber-800">
+            <strong>Catatan:</strong> Harga satuan yang dimasukkan di sini menjadi "locked cost" untuk averageCost item dan COGS.
+            Saat invoice pembelian dibuat dari STT ini, kalau harga berbeda → selisih masuk ke akun "Selisih Harga Pembelian".
+          </div>
+        </div>
+
+        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/40 flex items-center justify-end gap-2">
+          <button onClick={onClose} className="btn-secondary" disabled={mutation.isPending}>Batal</button>
+          <button onClick={handleSubmit} disabled={mutation.isPending} className="btn-primary flex items-center gap-1.5">
+            {mutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <PackageCheck size={14} />}
+            {mutation.isPending ? 'Menyimpan...' : 'Simpan STT'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GoodsReceiptModal;

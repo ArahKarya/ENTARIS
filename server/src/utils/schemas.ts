@@ -600,3 +600,50 @@ export const CreateDOFromInvoiceSchema = z.object({
   recipientName: z.string().max(200).nullable().optional(),
   notes: z.string().nullable().optional(),
 });
+
+// ─── Goods Receipt (STT / BPB - Bukti Penerimaan Barang) ─────────────────────
+// Posting stok masuk dari supplier. lockedUnitCost diisi saat STT submit dan
+// menjadi truth untuk averageCost. Variance ke PI rate posted ke "Selisih
+// Harga Pembelian" saat PI submit nanti.
+const GoodsReceiptItemSchema = z.object({
+  inventoryItemId: z.string().uuid('Item inventaris wajib dipilih.'),
+  warehouseId: z.string().uuid('Gudang wajib dipilih.'),
+  itemName: z.string().min(1, 'Nama item wajib diisi.'),
+  quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
+  unit: z.string().min(1, 'Satuan wajib diisi.'),
+  lockedUnitCost: z.coerce.number().min(0, 'Harga satuan tidak boleh negatif.'),
+  description: z.string().nullable().optional(),
+  purchaseOrderItemId: z.string().uuid().nullable().optional(),
+});
+
+export const CreateGoodsReceiptSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  partyId: z.string().uuid('Supplier wajib dipilih.'),
+  purchaseOrderId: z.string().uuid().nullable().optional(),
+  nomorMobil: z.string().max(50).nullable().optional(),
+  driverName: z.string().max(200).nullable().optional(),
+  recipientName: z.string().max(200).nullable().optional(),
+  notes: z.string().nullable().optional(),
+  items: z.array(GoodsReceiptItemSchema).min(1, 'Minimal satu item.'),
+});
+
+// "STT dari PO" — header meta saja, items diturunkan dari PO. lockedUnitCost
+// di setiap baris dipanggil dari estimatedRate PO item kecuali user override.
+export const CreateGRFromPOSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  nomorMobil: z.string().max(50).nullable().optional(),
+  driverName: z.string().max(200).nullable().optional(),
+  recipientName: z.string().max(200).nullable().optional(),
+  notes: z.string().nullable().optional(),
+  // Optional per-item qty + cost override (subset of PO items).
+  itemOverrides: z
+    .array(
+      z.object({
+        purchaseOrderItemId: z.string().uuid(),
+        warehouseId: z.string().uuid(),
+        quantity: z.coerce.number().positive(),
+        lockedUnitCost: z.coerce.number().min(0),
+      }),
+    )
+    .optional(),
+});
