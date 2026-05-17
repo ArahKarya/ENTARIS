@@ -313,6 +313,28 @@ export const SYSTEM_ACCOUNT_ROLES = {
     required: false,
     expectedRootType: 'EXPENSE' as const,
   },
+
+  // ── Pembelian (STT/PI flow) ────────────────────
+  ACCRUED_PAYABLE: {
+    key: 'ACCRUED_PAYABLE',
+    label: 'Hutang Belum Tagih',
+    description:
+      'Accrual: posted CR saat STT/BPB submit (barang sudah diterima, ' +
+      'invoice belum). Reversed DR saat PI submit.',
+    multiAccount: false,
+    required: false,
+    expectedRootType: 'LIABILITY' as const,
+  },
+  PURCHASE_PRICE_VARIANCE: {
+    key: 'PURCHASE_PRICE_VARIANCE',
+    label: 'Selisih Harga Pembelian',
+    description:
+      'Variance antara harga STT (locked) dan harga PI (aktual). DR kalau ' +
+      'PI lebih mahal, CR kalau lebih murah.',
+    multiAccount: false,
+    required: false,
+    expectedRootType: 'EXPENSE' as const,
+  },
 } as const;
 
 export type SystemAccountRole = keyof typeof SYSTEM_ACCOUNT_ROLES;
@@ -374,4 +396,7 @@ export const DEFAULT_ACCOUNT_NUMBERS: Record<SystemAccountRole, string | string[
   INVENTORY_VARIANCE: '6.38',
   // Pembulatan
   ROUNDING_ACCOUNT: '8.8',
+  // Pembelian — STT/PI flow
+  ACCRUED_PAYABLE: '2.1.5',
+  PURCHASE_PRICE_VARIANCE: '5.11',
 };

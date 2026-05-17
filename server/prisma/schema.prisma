@@ -80,6 +80,8 @@ model Party {
   quotations             Quotation[]             @relation("QuotationCustomer")
   inquiries              Inquiry[]               @relation("InquiryParty")
   deliveryOrders         DeliveryOrder[]         @relation("DeliveryOrderCustomer")
+  purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrderSupplier")
+  goodsReceipts          GoodsReceipt[]          @relation("GoodsReceiptSupplier")
   ledgerEntries          AccountingLedgerEntry[]
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
@@ -485,6 +487,15 @@ model PurchaseInvoice {
   user                User                       @relation(fields: [createdBy], references: [id])
   items               PurchaseInvoiceItem[]
   depositApplications VendorDepositApplication[] @relation("DepositApplied")
+  // PO linkage (header shortcut). Lines may still come from STT via per-line link.
+  purchaseOrderId     String?                    @map("purchase_order_id")
+  purchaseOrder       PurchaseOrder?             @relation("PIFromPO", fields: [purchaseOrderId], references: [id])
+  // STT (GoodsReceipt) header-level back-relation. PI created from STT.
+  // 1 STT → at most 1 active PI; many lines billed at once.
+  goodsReceipt        GoodsReceipt?              @relation("PIFromGR")
+  // Marks PIs migrated to the new "stock-from-STT" flow as legacy/backfilled
+  // (their JV still posts DR Persediaan / CR Hutang Usaha for historical truth).
+  isLegacyStockFlow   Boolean                    @default(false) @map("is_legacy_stock_flow")
   submittedAt         DateTime?                  @map("submitted_at")
   cancelledAt         DateTime?                  @map("cancelled_at")
   isDummy             Boolean                    @default(false) @map("is_dummy")
@@ -495,6 +506,7 @@ model PurchaseInvoice {
   @@index([status])
   @@index([date])
   @@index([fiscalYearId])
+  @@index([purchaseOrderId])
   @@map("purchase_invoices")
 }
 
@@ -523,6 +535,11 @@ model PurchaseInvoiceItem {
   accountId         String          @map("account_id")
   account           Account         @relation(fields: [accountId], references: [id])
   description       String?
+  // Link ke baris STT yang menyebabkan stok masuk. UNIQUE — tiap baris STT
+  // hanya bisa di-invoice sekali. Nullable untuk PI legacy / standalone (no
+  // STT existed when invoice was first created).
+  goodsReceiptItemId String?        @unique @map("goods_receipt_item_id")
+  goodsReceiptItem  GoodsReceiptItem? @relation("PILineFromGRLine", fields: [goodsReceiptItemId], references: [id])
 
   @@index([purchaseInvoiceId])
   @@index([inventoryItemId])
@@ -615,6 +632,8 @@ model FiscalYear {
   stockOpnames     StockOpname[]
   stockTransfers   StockTransfer[]         @relation("TransferFiscalYear")
   deliveryOrders   DeliveryOrder[]         @relation("DeliveryOrderFiscalYear")
+  purchaseOrders   PurchaseOrder[]         @relation("PurchaseOrderFY")
+  goodsReceipts    GoodsReceipt[]          @relation("GoodsReceiptFY")
   fixedAssets      FixedAsset[]
   cogsBackfills    CogsBackfillQueue[]     @relation("CogsBackfillFY")
   createdAt        DateTime                @default(now()) @map("created_at")
@@ -650,6 +669,8 @@ model User {
   stockOpnames                StockOpname[]                @relation("OpnameCreatedBy")
   stockTransfers              StockTransfer[]              @relation("TransferCreator")
   deliveryOrders              DeliveryOrder[]              @relation("DeliveryOrderCreator")
+  purchaseOrders              PurchaseOrder[]              @relation("PurchaseOrderCreator")
+  goodsReceipts               GoodsReceipt[]               @relation("GoodsReceiptCreator")
   fixedAssets                 FixedAsset[]                 @relation("AssetCreatedBy")
   approvalRequests            ApprovalRequest[]            @relation("ApprovalRequester")
   approvalApprovals           ApprovalRequest[]            @relation("ApprovalApprover")
@@ -786,6 +807,7 @@ model Warehouse {
   productionLines      ProductionRunItem[]   @relation("ProductionLineWarehouse")
   opnameLines          StockOpnameItem[]     @relation("OpnameLineWarehouse")
   deliveryOrderItems   DeliveryOrderItem[]   @relation("DOLineWarehouse")
+  goodsReceiptItems    GoodsReceiptItem[]    @relation("GRItemWarehouse")
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
 
@@ -837,6 +859,8 @@ model InventoryItem {
   cogsBackfills        CogsBackfillQueue[]   @relation("CogsBackfillItem")
   transferLines        StockTransferItem[]
   deliveryOrderItems   DeliveryOrderItem[]   @relation("DOLineInventory")
+  purchaseOrderItems   PurchaseOrderItem[]   @relation("POItemInventory")
+  goodsReceiptItems    GoodsReceiptItem[]    @relation("GRItemInventory")
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
 
@@ -860,6 +884,13 @@ model StockTransfer {
   status          DocumentStatus      @default(Draft)
   notes           String?
   items           StockTransferItem[]
+  // SJG (Surat Jalan Antar Gudang) physical-delivery metadata. Stock moves
+  // are still instant on submit (Phase-1 design choice). These fields only
+  // feed the printed PDF for the driver.
+  nomorMobil      String?             @map("nomor_mobil")
+  driverName      String?             @map("driver_name")
+  recipientName   String?             @map("recipient_name")
+  printedAt       DateTime?           @map("printed_at")
   fiscalYearId    String              @map("fiscal_year_id")
   fiscalYear      FiscalYear          @relation("TransferFiscalYear", fields: [fiscalYearId], references: [id])
   createdBy       String              @map("created_by")
@@ -918,6 +949,7 @@ model StockMovement {
   createdBy       User              @relation("MovementCreatedBy", fields: [createdById], references: [id])
   isCancelled     Boolean           @default(false) @map("is_cancelled")
   deliveryOrderItem DeliveryOrderItem? @relation("DOLineMovement")
+  goodsReceiptItem  GoodsReceiptItem?  @relation("GRLineMovement")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
@@ -1316,4 +1348,135 @@ model CogsBackfillSettlement {
   @@index([queueId])
   @@index([journalEntryId])
   @@map("cogs_backfill_settlements")
+}
+
+// ─── Purchase Order (PO) ────────────────────────────────────────────────────
+// Pemesanan ke supplier. Tidak ada GL impact, tidak ada stok impact.
+// partyId nullable → "PO Umum" (boleh dipenuhi supplier mana saja). Kalau
+// di-set → "PO Khusus" terikat ke supplier itu.
+model PurchaseOrder {
+  id                   String              @id @default(uuid())
+  poNumber             String              @unique @map("po_number")
+  date                 DateTime
+  partyId              String?             @map("party_id")
+  supplier             Party?              @relation("PurchaseOrderSupplier", fields: [partyId], references: [id])
+  status               DocumentStatus      @default(Submitted)
+  notes                String?
+  terms                String?
+  expectedDeliveryDate DateTime?           @map("expected_delivery_date")
+  totalEstimated       Decimal             @default(0) @map("total_estimated") @db.Decimal(15, 2)
+  items                PurchaseOrderItem[]
+  goodsReceipts        GoodsReceipt[]      @relation("GRFromPO")
+  purchaseInvoices     PurchaseInvoice[]   @relation("PIFromPO")
+  fiscalYearId         String              @map("fiscal_year_id")
+  fiscalYear           FiscalYear          @relation("PurchaseOrderFY", fields: [fiscalYearId], references: [id])
+  createdBy            String              @map("created_by")
+  user                 User                @relation("PurchaseOrderCreator", fields: [createdBy], references: [id])
+  submittedAt          DateTime?           @map("submitted_at")
+  cancelledAt          DateTime?           @map("cancelled_at")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id                String              @id @default(uuid())
+  purchaseOrderId   String              @map("purchase_order_id")
+  purchaseOrder     PurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId   String?             @map("inventory_item_id")
+  inventoryItem     InventoryItem?      @relation("POItemInventory", fields: [inventoryItemId], references: [id])
+  itemName          String              @map("item_name")
+  quantity          Decimal             @db.Decimal(15, 3)
+  unit              String
+  estimatedRate     Decimal             @default(0) @map("estimated_rate") @db.Decimal(15, 2)
+  estimatedAmount   Decimal             @default(0) @map("estimated_amount") @db.Decimal(15, 2)
+  // Denormalized counter — bumped when STT items reference this PO item.
+  qtyReceived       Decimal             @default(0) @map("qty_received") @db.Decimal(15, 3)
+  description       String?
+  goodsReceiptItems GoodsReceiptItem[]  @relation("GRItemFromPOItem")
+
+  @@index([purchaseOrderId])
+  @@index([inventoryItemId])
+  @@map("purchase_order_items")
+}
+
+// ─── Goods Receipt (STT / BPB) ──────────────────────────────────────────────
+// Bukti Penerimaan Barang. Tempat stok physically masuk gudang (bukan lagi
+// di PurchaseInvoice). Bisa standalone tanpa PO. Bisa di-invoice nanti via PI.
+model GoodsReceipt {
+  id               String             @id @default(uuid())
+  sttNumber        String             @unique @map("stt_number")
+  date             DateTime
+  partyId          String             @map("party_id")
+  supplier         Party              @relation("GoodsReceiptSupplier", fields: [partyId], references: [id])
+  // Optional link ke PO (kalau STT memang dipenuhi dari PO tertentu).
+  purchaseOrderId  String?            @map("purchase_order_id")
+  purchaseOrder    PurchaseOrder?     @relation("GRFromPO", fields: [purchaseOrderId], references: [id])
+  status           DocumentStatus     @default(Submitted)
+  notes            String?
+  // Physical-delivery metadata (untuk dicetak di BPB)
+  nomorMobil       String?            @map("nomor_mobil")
+  driverName       String?            @map("driver_name")
+  recipientName    String?            @map("recipient_name")
+  // PI linkage — set ketika items difold ke invoice. 1 STT → 1 PI aktif.
+  invoiceId        String?            @unique @map("invoice_id")
+  invoice          PurchaseInvoice?   @relation("PIFromGR", fields: [invoiceId], references: [id])
+  invoicedAt       DateTime?          @map("invoiced_at")
+  // True kalau record ini dibuat via backfill script untuk PI legacy.
+  // Bedakan dari STT real supaya audit + UI bisa kasih badge yang sesuai.
+  isLegacyBackfill Boolean            @default(false) @map("is_legacy_backfill")
+  items            GoodsReceiptItem[]
+  fiscalYearId     String             @map("fiscal_year_id")
+  fiscalYear       FiscalYear         @relation("GoodsReceiptFY", fields: [fiscalYearId], references: [id])
+  createdBy        String             @map("created_by")
+  user             User               @relation("GoodsReceiptCreator", fields: [createdBy], references: [id])
+  submittedAt      DateTime?          @map("submitted_at")
+  cancelledAt      DateTime?          @map("cancelled_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([purchaseOrderId])
+  @@index([fiscalYearId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id                  String              @id @default(uuid())
+  goodsReceiptId      String              @map("goods_receipt_id")
+  goodsReceipt        GoodsReceipt        @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  inventoryItemId     String              @map("inventory_item_id")
+  inventoryItem       InventoryItem       @relation("GRItemInventory", fields: [inventoryItemId], references: [id])
+  warehouseId         String              @map("warehouse_id")
+  warehouse           Warehouse           @relation("GRItemWarehouse", fields: [warehouseId], references: [id])
+  itemName            String              @map("item_name")
+  quantity            Decimal             @db.Decimal(15, 3)
+  unit                String
+  // Harga kontrak/estimasi saat barang diterima. Locked ke movement supaya
+  // average cost & COGS proper. PI nanti bisa kasih harga berbeda → variance
+  // posted ke "Selisih Harga Pembelian".
+  lockedUnitCost      Decimal             @default(0) @map("locked_unit_cost") @db.Decimal(20, 2)
+  description         String?
+  // Optional link ke baris PO yang dipenuhi.
+  purchaseOrderItemId String?             @map("purchase_order_item_id")
+  purchaseOrderItem   PurchaseOrderItem?  @relation("GRItemFromPOItem", fields: [purchaseOrderItemId], references: [id])
+  // Stock movement In yang dibuat saat STT submit. UNIQUE — tiap baris STT
+  // hanya boleh punya 1 SM aktif.
+  stockMovementId     String?             @unique @map("stock_movement_id")
+  stockMovement       StockMovement?      @relation("GRLineMovement", fields: [stockMovementId], references: [id])
+  // Back-relation: baris PI yang mengambil baris STT ini untuk di-invoice.
+  invoiceItem         PurchaseInvoiceItem? @relation("PILineFromGRLine")
+
+  @@index([goodsReceiptId])
+  @@index([inventoryItemId])
+  @@index([warehouseId])
+  @@index([purchaseOrderItemId])
+  @@map("goods_receipt_items")
 }
