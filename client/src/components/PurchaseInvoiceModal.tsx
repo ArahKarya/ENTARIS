@@ -27,6 +27,9 @@ interface InvoiceItem {
   pphPct: number;              // PPh % per item
   potonganItem: number;        // IDR per item
   nomorMobil: string;          // plat nomor mobil (material only, optional)
+  /** Link ke baris STT/BPB. Kalau di-set: stok tidak dibuat ulang oleh PI
+   *  (sudah diset saat STT submit). Diisi otomatis saat user pakai "Dari STT". */
+  goodsReceiptItemId?: string | null;
 }
 
 const MAX_ATTACHMENTS = 5;
@@ -50,6 +53,7 @@ const defaultItem = (type: ItemType = 'material'): InvoiceItem => ({
   pphPct: 0,
   potonganItem: 0,
   nomorMobil: '',
+  goodsReceiptItemId: null,
 });
 
 // Per-item calc — mirrors server/src/services/purchaseInvoiceCalc.ts
@@ -126,6 +130,49 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       return all.filter((i: any) => i.isActive !== false);
     },
   });
+
+  // Pending STTs (sudah submit, belum di-invoice, non-legacy) untuk supplier
+  // yang dipilih. Dipakai oleh toggle "Dari STT/BPB" untuk pre-fill items.
+  const { data: pendingSTTs } = useQuery({
+    queryKey: ['stt-pending', partyId],
+    queryFn: async () => {
+      if (!partyId) return [];
+      const res = await api.get(`/goods-receipts/pending?partyId=${partyId}`);
+      return res.data.data ?? res.data ?? [];
+    },
+    enabled: !!partyId,
+  });
+
+  const [fromSTTMode, setFromSTTMode] = useState(false);
+  const [selectedSTTId, setSelectedSTTId] = useState('');
+
+  // Apply STT → items: lock qty/name/warehouse, rate kosong untuk diisi user
+  const applySTT = (sttId: string) => {
+    setSelectedSTTId(sttId);
+    if (!sttId) return;
+    const stt = (pendingSTTs ?? []).find((s: any) => s.id === sttId);
+    if (!stt) return;
+    const newItems: InvoiceItem[] = (stt.items ?? []).map((line: any) => ({
+      id: crypto.randomUUID(),
+      itemType: 'material',
+      itemName: line.itemName,
+      inventoryItemId: line.inventoryItemId ?? '',
+      warehouseId: line.warehouseId ?? '',
+      description: line.description ?? '',
+      unit: line.unit ?? 'Kg',
+      kualitas: '',
+      refaksi: 0,
+      timbanganTruk: 0,
+      timbanganDiterima: Number(line.quantity),
+      rate: 0, // user fill harga aktual di sini
+      taxPct: 0,
+      pphPct: 0,
+      potonganItem: 0,
+      nomorMobil: stt.nomorMobil ?? '',
+      goodsReceiptItemId: line.id,
+    }));
+    if (newItems.length > 0) setItems(newItems);
+  };
 
   const selectedParty = parties?.find((p: any) => p.id === partyId);
 
@@ -282,6 +329,55 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                   {selectedParty.email && <p>{selectedParty.email}</p>}
                   {selectedParty.phone && <p>{selectedParty.phone}</p>}
                   {selectedParty.address && <p className="text-gray-400">{selectedParty.address}</p>}
+                </div>
+              )}
+
+              {/* "Dari STT/BPB" toggle — load items dari STT yang sudah submit
+                  tapi belum di-invoice. Saat di-pick, items diturunkan dari STT
+                  dengan qty + nama + gudang yang locked; user tinggal isi harga. */}
+              {partyId && (
+                <div className="mt-3 p-2.5 bg-blue-50/40 border border-blue-100 rounded-lg">
+                  <label className="flex items-center gap-2 text-xs font-medium text-blue-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={fromSTTMode}
+                      onChange={(e) => {
+                        setFromSTTMode(e.target.checked);
+                        if (!e.target.checked) {
+                          setSelectedSTTId('');
+                          setItems([defaultItem()]);
+                        }
+                      }}
+                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Buat dari STT / BPB (Bukti Penerimaan Barang)
+                  </label>
+                  {fromSTTMode && (
+                    <div className="mt-2">
+                      <select
+                        value={selectedSTTId}
+                        onChange={(e) => applySTT(e.target.value)}
+                        className="w-full border border-blue-200 rounded-lg py-1.5 px-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">— Pilih STT yang mau di-invoice —</option>
+                        {(pendingSTTs ?? []).map((s: any) => (
+                          <option key={s.id} value={s.id}>
+                            {s.sttNumber} • {new Date(s.date).toLocaleDateString('id-ID')} • {s.items?.length ?? 0} item
+                          </option>
+                        ))}
+                      </select>
+                      {(pendingSTTs ?? []).length === 0 && (
+                        <p className="text-[11px] text-blue-600 mt-1">
+                          Tidak ada STT pending untuk supplier ini. Buat STT/BPB dulu di menu Pembelian → BPB.
+                        </p>
+                      )}
+                      {selectedSTTId && (
+                        <p className="text-[11px] text-blue-700 mt-1.5">
+                          ✓ Items dari STT sudah di-load. Tinggal isi harga per baris. Stok tidak akan dibuat ulang oleh PI ini.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -646,6 +742,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                     timbanganTruk: i.timbanganTruk || null,
                     timbanganDiterima: i.timbanganDiterima || null,
                     nomorMobil: i.nomorMobil?.trim() || null,
+                    goodsReceiptItemId: i.goodsReceiptItemId || null,
                   })),
                 })
               }

@@ -151,6 +151,9 @@ const PurchaseInvoiceItemSchema = InvoiceItemSchema.extend({
   timbanganDiterima: z.coerce.number().positive().nullable().optional(),
   nomorMobil: z.string().nullable().optional(),
   potonganItem: z.coerce.number().min(0).optional().default(0),
+  // Link ke baris STT/BPB. Kalau di-set: stok TIDAK dibuat ulang oleh PI
+  // (STT yang sudah create). PI hanya post AP + variance harga.
+  goodsReceiptItemId: z.string().uuid().nullable().optional(),
 });
 
 export const CreatePurchaseInvoiceSchema = z.object({

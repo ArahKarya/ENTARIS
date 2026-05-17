@@ -92,7 +92,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 
 
 // PUT /api/purchase/invoices/:id — edit invoice (notes, dueDate)
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
   try {
     const invoice = await prisma.purchaseInvoice.findUnique({ where: { id: req.params.id as string } });
     if (!invoice) return res.status(404).json({ error: 'Invoice tidak ditemukan.' });

@@ -180,6 +180,9 @@ export async function cancelPurchaseInvoiceInTx(
 
   await recalcPartyOutstanding(tx, invoice.partyId);
 
+  // Reverse stock movements yang DIBUAT BY this PI (referenceType=PurchaseInvoice).
+  // For STT-linked lines, ada NO PI-owned movement (stok dari STT), jadi loop ini
+  // hanya menyentuh baris standalone/legacy.
   const stockMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'PurchaseInvoice', referenceId: invoice.id, isCancelled: false },
   });
@@ -199,6 +202,13 @@ export async function cancelPurchaseInvoiceInTx(
       data: { isCancelled: true },
     });
   }
+
+  // Release linked STT(s) back to "available for invoicing" state. STT items
+  // dan stockMovements milik STT tidak disentuh (goods physically diterima).
+  await tx.goodsReceipt.updateMany({
+    where: { invoiceId: invoice.id },
+    data: { invoiceId: null, invoicedAt: null },
+  });
 
   return { id: invoice.id, status: 'Cancelled' };
 }
