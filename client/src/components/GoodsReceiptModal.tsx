@@ -33,6 +33,18 @@ interface Props {
   onClose: () => void;
 }
 
+// Pull current logged-in user's full name from localStorage to auto-fill
+// "Penerima". Staff yang buat STT = orang yang menerima barang fisik —
+// tidak perlu ketik manual setiap kali.
+function getCurrentUserName(): string {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || 'null');
+    return u?.fullName ?? '';
+  } catch {
+    return '';
+  }
+}
+
 const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
@@ -42,7 +54,10 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
   const [purchaseOrderId, setPurchaseOrderId] = useState('');
   const [nomorMobil, setNomorMobil] = useState('');
   const [driverName, setDriverName] = useState('');
-  const [recipientName, setRecipientName] = useState('');
+  // Read-only — derived dari user login. setRecipientName tidak dipakai
+  // tapi tetap di-keep untuk konsistensi useState pattern.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [recipientName, _setRecipientName] = useState(() => getCurrentUserName());
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<GRItem[]>([defaultItem()]);
   const [error, setError] = useState('');
@@ -217,8 +232,15 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Penerima (Internal)</label>
-              <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="Nama staff yang menerima" className="input w-full" />
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Penerima (Internal) <span className="text-gray-400 font-normal">— otomatis dari akun login</span>
+              </label>
+              <input
+                type="text"
+                value={recipientName}
+                readOnly
+                className="input w-full bg-gray-50 text-gray-600 cursor-not-allowed"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Catatan</label>
@@ -239,11 +261,12 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
                 <tr>
                   <th className="text-left px-2 py-2 w-8">#</th>
                   <th className="text-left px-2 py-2">Item</th>
-                  <th className="text-left px-2 py-2 w-36">Gudang</th>
-                  <th className="text-right px-2 py-2 w-24">Qty</th>
-                  <th className="text-center px-2 py-2 w-20">Satuan</th>
-                  <th className="text-right px-2 py-2 w-28">Harga/Unit</th>
-                  <th className="text-right px-2 py-2 w-28">Subtotal</th>
+                  <th className="text-left px-2 py-2 w-32">Gudang</th>
+                  <th className="text-right px-2 py-2 w-20">Qty</th>
+                  <th className="text-center px-2 py-2 w-16">Sat</th>
+                  <th className="text-right px-2 py-2 w-24">Harga</th>
+                  <th className="text-right px-2 py-2 w-24">Subtotal</th>
+                  <th className="text-left px-2 py-2 w-40">Keterangan</th>
                   <th className="px-2 py-2 w-8"></th>
                 </tr>
               </thead>
@@ -286,6 +309,15 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
                       </td>
                       <td className="px-2 py-2 text-right font-mono text-xs text-gray-700">
                         {subtotal > 0 ? `Rp ${subtotal.toLocaleString('id-ID')}` : '—'}
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="text"
+                          value={it.description}
+                          onChange={(e) => updateItem(idx, { description: e.target.value })}
+                          placeholder="mis. mobil B 123 ABC, kualitas A, dll"
+                          className="input w-full text-xs"
+                        />
                       </td>
                       <td className="px-2 py-2 text-center">
                         <button onClick={() => removeItem(idx)} disabled={items.length === 1}
