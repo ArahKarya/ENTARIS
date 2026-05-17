@@ -14,7 +14,6 @@ interface GRItem {
   itemName: string;
   quantity: number;
   unit: string;
-  lockedUnitCost: number;
   description: string;
 }
 
@@ -25,7 +24,6 @@ const defaultItem = (): GRItem => ({
   itemName: '',
   quantity: 0,
   unit: 'Kg',
-  lockedUnitCost: 0,
   description: '',
 });
 
@@ -130,8 +128,6 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
               inventoryItemId: invId,
               itemName: meta?.name ?? it.itemName,
               unit: meta?.unit ?? it.unit,
-              // Pre-fill locked cost dengan averageCost saat ini (user bisa override)
-              lockedUnitCost: it.lockedUnitCost || (meta?.avgCost ?? 0),
             }
           : it,
       ),
@@ -145,8 +141,6 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
   const addItem = () => setItems((prev) => [...prev, defaultItem()]);
   const removeItem = (idx: number) =>
     setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
-
-  const grandTotal = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.lockedUnitCost) || 0), 0);
 
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/goods-receipts', data),
@@ -181,7 +175,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
         itemName: it.itemName,
         quantity: Number(it.quantity),
         unit: it.unit,
-        lockedUnitCost: Number(it.lockedUnitCost),
+        // Harga di-set di PI nanti. Backend pakai averageCost saat ini sebagai
+        // provisional cost untuk JE accrual + weighted average.
+        lockedUnitCost: 0,
         description: it.description.trim() || null,
       })),
     });
@@ -248,86 +244,82 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Items */}
+          {/* Items — harga & subtotal tidak ditampilkan di STT. Harga
+              akan diisi nanti saat invoice pembelian dibuat dari STT ini. */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-widest flex items-center justify-between">
-              <span>Items diterima ({items.length})</span>
-              <span className="font-normal normal-case text-gray-400">
-                Total nilai: <span className="font-mono font-semibold text-gray-700">Rp {grandTotal.toLocaleString('id-ID')}</span>
-              </span>
+            <div className="bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-widest">
+              Items diterima ({items.length})
             </div>
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">
                 <tr>
                   <th className="text-left px-2 py-2 w-8">#</th>
                   <th className="text-left px-2 py-2">Item</th>
-                  <th className="text-left px-2 py-2 w-32">Gudang</th>
-                  <th className="text-right px-2 py-2 w-20">Qty</th>
-                  <th className="text-center px-2 py-2 w-16">Sat</th>
-                  <th className="text-right px-2 py-2 w-24">Harga</th>
-                  <th className="text-right px-2 py-2 w-24">Subtotal</th>
-                  <th className="text-left px-2 py-2 w-40">Keterangan</th>
+                  <th className="text-left px-2 py-2 w-40">Gudang</th>
+                  <th className="text-right px-2 py-2 w-28">Qty</th>
+                  <th className="text-center px-2 py-2 w-20">Satuan</th>
+                  <th className="text-left px-2 py-2">Keterangan</th>
                   <th className="px-2 py-2 w-8"></th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((it, idx) => {
-                  const subtotal = (Number(it.quantity) || 0) * (Number(it.lockedUnitCost) || 0);
-                  return (
-                    <tr key={it.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-2 py-2 text-center text-xs text-gray-300">{idx + 1}</td>
-                      <td className="px-2 py-2">
-                        <SearchableSelect
-                          options={itemOptions}
-                          value={it.inventoryItemId}
-                          onChange={(v) => onItemPick(idx, v)}
-                          placeholder="Pilih item..."
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <SearchableSelect
-                          options={warehouseOptions}
-                          value={it.warehouseId}
-                          onChange={(v) => updateItem(idx, { warehouseId: v })}
-                          placeholder="Gudang..."
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <input type="number" step="0.001" value={it.quantity || ''}
-                          onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                          className="input w-full text-right" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <select value={it.unit} onChange={(e) => updateItem(idx, { unit: e.target.value })} className="input w-full text-xs">
-                          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-2 py-2">
-                        <input type="number" step="0.01" value={it.lockedUnitCost || ''}
-                          onChange={(e) => updateItem(idx, { lockedUnitCost: Number(e.target.value) })}
-                          className="input w-full text-right" />
-                      </td>
-                      <td className="px-2 py-2 text-right font-mono text-xs text-gray-700">
-                        {subtotal > 0 ? `Rp ${subtotal.toLocaleString('id-ID')}` : '—'}
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          type="text"
-                          value={it.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
-                          placeholder="mis. mobil B 123 ABC, kualitas A, dll"
-                          className="input w-full text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <button onClick={() => removeItem(idx)} disabled={items.length === 1}
-                          className="text-gray-300 hover:text-red-500 disabled:opacity-30">
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {items.map((it, idx) => (
+                  <tr key={it.id} className="border-b border-gray-50 last:border-0">
+                    <td className="px-2 py-2 text-center text-xs text-gray-300">{idx + 1}</td>
+                    <td className="px-2 py-2">
+                      <SearchableSelect
+                        options={itemOptions}
+                        value={it.inventoryItemId}
+                        onChange={(v) => onItemPick(idx, v)}
+                        placeholder="Pilih item..."
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <SearchableSelect
+                        options={warehouseOptions}
+                        value={it.warehouseId}
+                        onChange={(v) => updateItem(idx, { warehouseId: v })}
+                        placeholder="Gudang..."
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={it.quantity || ''}
+                        onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                        className="input w-full text-right"
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <select
+                        value={it.unit}
+                        onChange={(e) => updateItem(idx, { unit: e.target.value })}
+                        className="input w-full text-xs"
+                      >
+                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-2 py-2">
+                      <input
+                        type="text"
+                        value={it.description}
+                        onChange={(e) => updateItem(idx, { description: e.target.value })}
+                        placeholder="mis. mobil B 123 ABC, kualitas A, dll"
+                        className="input w-full text-xs"
+                      />
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        onClick={() => removeItem(idx)}
+                        disabled={items.length === 1}
+                        className="text-gray-300 hover:text-red-500 disabled:opacity-30"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
             <div className="px-4 py-2 border-t border-gray-100">
@@ -345,8 +337,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
           )}
 
           <div className="p-3 bg-amber-50/60 border border-amber-100 rounded-lg text-xs text-amber-800">
-            <strong>Catatan:</strong> Harga satuan yang dimasukkan di sini menjadi "locked cost" untuk averageCost item dan COGS.
-            Saat invoice pembelian dibuat dari STT ini, kalau harga berbeda → selisih masuk ke akun "Selisih Harga Pembelian".
+            <strong>Catatan:</strong> STT hanya mencatat qty barang yang diterima.
+            Harga aktual akan diinput saat invoice pembelian dibuat dari STT ini.
+            Sementara harga belum ada, sistem pakai averageCost item saat ini sebagai provisional cost.
           </div>
         </div>
 

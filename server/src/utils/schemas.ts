@@ -611,7 +611,11 @@ const GoodsReceiptItemSchema = z.object({
   itemName: z.string().min(1, 'Nama item wajib diisi.'),
   quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
   unit: z.string().min(1, 'Satuan wajib diisi.'),
-  lockedUnitCost: z.coerce.number().min(0, 'Harga satuan tidak boleh negatif.'),
+  // Optional — STT tidak punya harga di UI. Kalau dikirim 0/undefined,
+  // service akan pakai averageCost item saat ini sebagai provisional cost
+  // untuk JE accrual + weighted-avg. PI submit nanti yang kasih harga
+  // aktual, selisih posted ke "Selisih Harga Pembelian".
+  lockedUnitCost: z.coerce.number().min(0).default(0).optional(),
   description: z.string().nullable().optional(),
   purchaseOrderItemId: z.string().uuid().nullable().optional(),
 });

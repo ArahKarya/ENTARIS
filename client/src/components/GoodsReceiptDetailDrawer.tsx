@@ -69,11 +69,6 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
   const status: string = rawStatus === 'Submitted' && invoiceRef ? 'Invoiced' : rawStatus;
   const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.Submitted;
 
-  const totalValue = items.reduce(
-    (s: number, it: any) => s + Number(it.quantity) * Number(it.lockedUnitCost),
-    0,
-  );
-
   const pdfDoc = doc ? (
     <GoodsReceiptPDF
       sttNumber={doc.sttNumber}
@@ -204,7 +199,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
 
               <div className="px-6 py-4 border-b border-gray-100">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <Package size={10} /> Daftar Barang ({items.length} item) — Total: <span className="font-mono normal-case text-gray-700">Rp {totalValue.toLocaleString('id-ID')}</span>
+                  <Package size={10} /> Daftar Barang ({items.length} item)
                 </p>
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
@@ -214,10 +209,8 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
                         <th className="text-left px-3 py-2.5 w-20">Kode</th>
                         <th className="text-left px-3 py-2.5">Nama</th>
                         <th className="text-left px-3 py-2.5">Gudang</th>
-                        <th className="text-right px-3 py-2.5 w-20">Qty</th>
+                        <th className="text-right px-3 py-2.5 w-24">Qty</th>
                         <th className="text-center px-3 py-2.5 w-16">Sat</th>
-                        <th className="text-right px-3 py-2.5 w-24">Cost</th>
-                        <th className="text-right px-3 py-2.5 w-28">Subtotal</th>
                         <th className="text-left px-3 py-2.5">Keterangan</th>
                       </tr>
                     </thead>
@@ -232,12 +225,6 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
                             {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })}
                           </td>
                           <td className="px-3 py-2.5 text-center text-xs text-gray-500">{it.unit}</td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">
-                            Rp {Number(it.lockedUnitCost).toLocaleString('id-ID')}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-gray-800">
-                            Rp {(Number(it.quantity) * Number(it.lockedUnitCost)).toLocaleString('id-ID')}
-                          </td>
                           <td className="px-3 py-2.5 text-xs text-gray-500">
                             {it.description || <span className="text-gray-300">—</span>}
                           </td>

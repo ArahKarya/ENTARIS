@@ -25,7 +25,9 @@ export interface SubmitGoodsReceiptInput {
     itemName: string;
     quantity: number;
     unit: string;
-    lockedUnitCost: number;
+    /** Optional — kalau 0/undefined, service pakai averageCost item saat ini
+     * sebagai provisional cost. PI submit nanti yang fix harga aktual. */
+    lockedUnitCost?: number;
     description?: string | null;
     purchaseOrderItemId?: string | null;
   }>;
@@ -118,7 +120,13 @@ export async function submitGoodsReceiptInTx(
     if (!wh) throw new BusinessError(`Gudang tidak ditemukan untuk '${line.itemName}'.`);
 
     const qty = new Decimal(line.quantity);
-    const unitCost = new Decimal(line.lockedUnitCost);
+    // STT tidak punya harga di UI. Kalau lockedUnitCost 0/undefined, pakai
+    // averageCost item saat ini sebagai provisional. PI nanti yang fix
+    // harga aktual + post variance kalau beda.
+    const provided = Number(line.lockedUnitCost ?? 0);
+    const unitCost = provided > 0
+      ? new Decimal(provided)
+      : new Decimal(invItem.averageCost.toString());
     const totalValue = qty.times(unitCost).toDecimalPlaces(2);
 
     // Stock movement In
