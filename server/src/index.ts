@@ -44,6 +44,7 @@ import warehouseRoutes from './routes/warehouses';
 import stockTransferRoutes from './routes/stockTransfers';
 import deliveryOrderRoutes from './routes/deliveryOrders';
 import goodsReceiptRoutes from './routes/goodsReceipts';
+import purchaseOrderRoutes from './routes/purchaseOrders';
 import { startScheduler } from './jobs/scheduler';
 import healthCheckRoutes from './routes/healthCheck';
 import fixedAssetRoutes from './routes/fixedAssets';
@@ -184,6 +185,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/stock-transfers', stockTransferRoutes);
 app.use('/api/delivery-orders', deliveryOrderRoutes);
 app.use('/api/goods-receipts', goodsReceiptRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist

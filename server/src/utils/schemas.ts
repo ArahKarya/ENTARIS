@@ -654,3 +654,25 @@ export const CreateGRFromPOSchema = z.object({
     )
     .optional(),
 });
+
+// ─── Purchase Order (PO) ─────────────────────────────────────────────────────
+// PO bisa Umum (partyId null — boleh dipenuhi supplier mana saja) atau Khusus
+// (partyId terikat ke supplier tertentu). Tidak ada GL impact, tidak ada
+// stock impact. Hanya planning document.
+const PurchaseOrderItemSchema = z.object({
+  inventoryItemId: z.string().uuid().nullable().optional(),
+  itemName: z.string().min(1, 'Nama item wajib diisi.'),
+  quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
+  unit: z.string().min(1, 'Satuan wajib diisi.'),
+  estimatedRate: z.coerce.number().min(0).optional().default(0),
+  description: z.string().nullable().optional(),
+});
+
+export const CreatePurchaseOrderSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  partyId: z.string().uuid().nullable().optional(), // null = PO Umum
+  expectedDeliveryDate: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  terms: z.string().nullable().optional(),
+  items: z.array(PurchaseOrderItemSchema).min(1, 'Minimal satu item.'),
+});

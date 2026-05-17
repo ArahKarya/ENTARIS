@@ -69,8 +69,9 @@ const allNavItems: NavItem[] = [
     label: 'Pembelian',
     roles: ['Admin', 'Accountant', 'StaffProduksi'],
     children: [
-      { icon: Receipt, label: 'Invoice Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Receipt, label: 'Purchase Order (PO)', href: '/purchase-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
       { icon: Receipt, label: 'BPB / STT (Penerimaan)', href: '/goods-receipts', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
+      { icon: Receipt, label: 'Invoice Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
       { icon: Wallet, label: 'Uang Muka Vendor', href: '/vendor-deposits', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
     ],
   },

@@ -13,6 +13,7 @@ import WarehouseStockDashboard from './pages/WarehouseStockDashboard';
 import StockTransfers from './pages/StockTransfers';
 import DeliveryOrders from './pages/DeliveryOrders';
 import GoodsReceipts from './pages/GoodsReceipts';
+import PurchaseOrders from './pages/PurchaseOrders';
 import { Payments } from './pages/Payments';
 import { PartiesPage } from './pages/PartiesPage';
 import { InventoryPage } from './pages/InventoryPage';
@@ -102,6 +103,7 @@ function App() {
             <Route path="/stock-transfers" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><StockTransfers /></RoleRoute>} />
             <Route path="/delivery-orders" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><DeliveryOrders /></RoleRoute>} />
             <Route path="/goods-receipts" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><GoodsReceipts /></RoleRoute>} />
+            <Route path="/purchase-orders" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><PurchaseOrders /></RoleRoute>} />
 
             {/* Report Routes */}
             <Route path="/reports" element={<FinanceRoute><Reports /></FinanceRoute>} />
