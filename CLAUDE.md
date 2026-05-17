@@ -50,9 +50,11 @@ Akun-akun berikut digunakan untuk auto GL posting. Defined in `server/src/consta
 | 1.3 | Uang Muka Pembelian | Vendor deposit account |
 | 1.4.0 | Persediaan (Umum) | Inventory account |
 | 2.1.1 | Hutang Usaha (Dagang) | Auto-credit on purchase invoice |
+| 2.1.5 | Hutang Belum Tagih | Accrual saat STT/BPB submit, reversed saat PI submit |
 | 4.1 | Penjualan | Auto-credit on sales revenue |
 | 4.2 | Pendapatan Jasa | Service revenue |
 | 5 | Beban Pokok Penjualan | COGS |
+| 5.11 | Selisih Harga Pembelian | Variance harga STT (provisional) vs PI (aktual) |
 | 3.1 | Ekuitas Saldo Awal | Opening balance contra account (import/setup) |
 | 3.2 | Laba Ditahan | Retained earnings (year-end closing) |
 | 3.4 | Laba Tahun Berjalan | Computed current year profit |
@@ -60,13 +62,43 @@ Akun-akun berikut digunakan untuk auto GL posting. Defined in `server/src/consta
 ## Double-Entry Bookkeeping Rules
 
 Every transaction MUST produce balanced debit/credit GL entries:
-- **Sales Invoice submit**: DR Piutang (1.2.1) / CR Penjualan (4.1)
-- **Purchase Invoice submit**: DR Persediaan (1.4.0) / CR Hutang (2.1.1)
+- **Sales Invoice submit** (standalone): DR Piutang (1.2.1) / CR Penjualan (4.1)
+- **Purchase Invoice submit** (legacy/standalone): DR Persediaan (1.4.0) / CR Hutang (2.1.1)
+- **STT/BPB submit** (Phase 2+): DR Persediaan (1.4.0) / CR Hutang Belum Tagih (2.1.5) — accrual
+- **PI submit from STT** (Phase 3+): DR Hutang Belum Tagih (2.1.5) + DR/CR Selisih Harga Pembelian (5.11) / CR Hutang Usaha (2.1.1)
 - **Payment receive**: DR Kas/Bank (1.1.x) / CR Piutang (1.2.1)
 - **Payment pay**: DR Hutang (2.1.1) / CR Kas/Bank (1.1.x)
 - **Journal Entry**: Manual balanced entries
 
 Never create unbalanced GL entries. Always verify total debit === total credit.
+
+## Purchase Flow (Phase 4+)
+
+End-to-end procurement document chain:
+
+```
+PO (planning, no GL/stock)
+  ↓ optional link
+STT/BPB (stok masuk + accrual hutang)
+  ↓ optional link
+PI (harga aktual + variance + real AP)
+  ↓
+Payment Pay
+```
+
+Each step is **independent** — staff bisa skip PO, atau buat PI standalone
+(legacy mode, masih jalan). Untuk PI yang ter-link ke STT:
+- Stok TIDAK dibuat ulang (sudah dari STT)
+- JV reverse accrual + post variance
+- STT.invoiceId di-set
+
+Cancel cascade:
+- PO cancel → STT tetap valid
+- STT cancel → reverse stok + JV. Block kalau invoice link Paid.
+- PI cancel → release STT (clear invoiceId), STT-owned stok tidak terganggu
+
+Historical PI (sebelum refactor) di-backfill jadi virtual STT (`isLegacyBackfill=true`).
+JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 
 ## Coding Conventions
 
