@@ -6,10 +6,16 @@ import { toast } from 'sonner';
 import SearchableSelect from './SearchableSelect';
 import type { SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
+import BatchPicker from './BatchPicker';
+import type { Batch } from './BatchPicker';
 
 interface LineItem {
   itemId: string;
   quantity: string;
+  // Phase 2 batch tracking: when sourceMovementId is set, server locks the
+  // cost to batchUnitCost. Empty string = WAC fallback (legacy).
+  sourceMovementId: string;
+  batchUnitCost: string;
 }
 
 interface OutputLineItem {
@@ -34,7 +40,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const [warehouseId, setWarehouseId] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
-  const [inputs, setInputs] = useState<LineItem[]>([{ itemId: '', quantity: '' }]);
+  const [inputs, setInputs] = useState<LineItem[]>([{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
   const [outputs, setOutputs] = useState<OutputLineItem[]>([{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,8 +61,13 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         setReferenceNumber(editRun.referenceNumber ?? '');
         setNotes(editRun.notes ?? '');
         setInputs(inputItems.length > 0
-          ? inputItems.map((i: any) => ({ itemId: i.itemId ?? i.item?.id ?? '', quantity: String(Number(i.quantity)) }))
-          : [{ itemId: '', quantity: '' }]
+          ? inputItems.map((i: any) => ({
+              itemId: i.itemId ?? i.item?.id ?? '',
+              quantity: String(Number(i.quantity)),
+              sourceMovementId: i.sourceMovementId ?? '',
+              batchUnitCost: i.batchUnitCost != null ? String(Number(i.batchUnitCost)) : '',
+            }))
+          : [{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]
         );
         setOutputs(outputItems.length > 0
           ? outputItems.map((o: any) => ({
@@ -72,7 +83,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         setWarehouseId('');
         setReferenceNumber('');
         setNotes('');
-        setInputs([{ itemId: '', quantity: '' }]);
+        setInputs([{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
         setOutputs([{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
       }
       setAllowNegativeStock(false);
@@ -107,12 +118,30 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const getItemById = (id: string) => items.find(i => i.id === id);
 
   const updateInput = (idx: number, field: keyof LineItem, value: string) => {
-    setInputs(prev => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row));
+    setInputs(prev => prev.map((row, i) => {
+      if (i !== idx) return row;
+      // Changing the item resets the batch pick (different item = different batches).
+      if (field === 'itemId') {
+        return { ...row, itemId: value, sourceMovementId: '', batchUnitCost: '' };
+      }
+      return { ...row, [field]: value };
+    }));
+  };
+
+  const onPickBatch = (idx: number, batchId: string, batch: Batch | null) => {
+    setInputs(prev => prev.map((row, i) => i === idx
+      ? {
+          ...row,
+          sourceMovementId: batchId,
+          batchUnitCost: batch ? String(batch.unitCost) : '',
+        }
+      : row,
+    ));
   };
   const updateOutput = (idx: number, field: string, value: string | boolean) => {
     setOutputs(prev => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row));
   };
-  const addInput = () => setInputs(prev => [...prev, { itemId: '', quantity: '' }]);
+  const addInput = () => setInputs(prev => [...prev, { itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
   const removeInput = (idx: number) => setInputs(prev => prev.filter((_, i) => i !== idx));
   const addOutput = () => setOutputs(prev => [...prev, { itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
   const removeOutput = (idx: number) => setOutputs(prev => prev.filter((_, i) => i !== idx));
@@ -146,7 +175,12 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         warehouseId,
         notes: notes || null,
         referenceNumber: referenceNumber || null,
-        inputs: validInputs.map(i => ({ itemId: i.itemId, quantity: parseFloat(i.quantity) })),
+        inputs: validInputs.map(i => ({
+          itemId: i.itemId,
+          quantity: parseFloat(i.quantity),
+          sourceMovementId: i.sourceMovementId || null,
+          batchUnitCost: i.batchUnitCost ? parseFloat(i.batchUnitCost) : null,
+        })),
         outputs: validOutputs.map(o => ({
           itemId: o.itemId,
           quantity: parseFloat(o.quantity),
@@ -276,40 +310,53 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
                 {inputs.map((row, idx) => {
                   const item = getItemById(row.itemId);
                   return (
-                    <div key={idx} className="flex gap-2 items-start">
-                      <div className="flex-1">
-                        <SearchableSelect
-                          options={itemOptions}
-                          value={row.itemId}
-                          onChange={(v) => updateInput(idx, 'itemId', v)}
-                          placeholder="— Pilih Item —"
-                        />
-                        {item && (
-                          <p className="text-xs text-gray-400 mt-0.5 ml-1">
-                            Stok: {Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {item.unit}
-                          </p>
+                    <div key={idx} className="border border-gray-100 rounded-lg p-2.5 bg-gray-50/50 space-y-1.5">
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <SearchableSelect
+                            options={itemOptions}
+                            value={row.itemId}
+                            onChange={(v) => updateInput(idx, 'itemId', v)}
+                            placeholder="— Pilih Item —"
+                          />
+                          {item && (
+                            <p className="text-xs text-gray-400 mt-0.5 ml-1">
+                              Stok gudang: {Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {item.unit}
+                            </p>
+                          )}
+                        </div>
+                        <div className="w-36 flex gap-1 items-center">
+                          <input
+                            type="number"
+                            value={row.quantity}
+                            onChange={e => updateInput(idx, 'quantity', e.target.value)}
+                            placeholder="Qty"
+                            min="0.001"
+                            step="0.001"
+                            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          {item && <span className="text-xs text-gray-400 whitespace-nowrap">{item.unit}</span>}
+                        </div>
+                        {inputs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeInput(idx)}
+                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         )}
                       </div>
-                      <div className="w-36 flex gap-1 items-center">
-                        <input
-                          type="number"
-                          value={row.quantity}
-                          onChange={e => updateInput(idx, 'quantity', e.target.value)}
-                          placeholder="Qty"
-                          min="0.001"
-                          step="0.001"
-                          className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        {item && <span className="text-xs text-gray-400 whitespace-nowrap">{item.unit}</span>}
-                      </div>
-                      {inputs.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeInput(idx)}
-                          className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                      {row.itemId && (
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">Batch sumber</label>
+                          <BatchPicker
+                            itemId={row.itemId}
+                            warehouseId={warehouseId}
+                            value={row.sourceMovementId}
+                            onChange={(id, batch) => onPickBatch(idx, id, batch)}
+                          />
+                        </div>
                       )}
                     </div>
                   );

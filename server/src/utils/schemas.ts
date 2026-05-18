@@ -475,6 +475,13 @@ export const UpdateRecurringSchema = z.object({
 const ProductionInputLineSchema = z.object({
   itemId: z.string().min(1, 'Item wajib dipilih.'),
   quantity: z.coerce.number().positive('Kuantitas harus lebih dari 0.'),
+  // Phase 2: batch picker. When provided, this input line consumes a specific
+  // inbound stock movement (batch). batchUnitCost is captured from the picker
+  // so the production cost is locked even if WAC changes later. Both fields
+  // are optional for backward compatibility — callers that don't send them
+  // fall back to WAC-based costing (legacy behavior).
+  sourceMovementId: z.string().uuid().nullable().optional(),
+  batchUnitCost: z.coerce.number().min(0).nullable().optional(),
 });
 
 const ProductionOutputLineSchema = z.object({

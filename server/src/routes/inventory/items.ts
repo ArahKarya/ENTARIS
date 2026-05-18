@@ -59,6 +59,106 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/inventory/items/:id/batches?warehouseId=X
+// Returns the inbound stock movement batches for an item, with per-batch
+// remaining availability for production input batch picker.
+//
+// Batch = a non-cancelled inbound StockMovement (In / AdjustmentIn).
+//   qtyConsumedByProduction = SUM(production_run_items.quantity WHERE
+//                              sourceMovementId = batch.id AND parent run not cancelled)
+//   qtyAvailable = batch.quantity - qtyConsumedByProduction
+//
+// Caveat: other outbound (sales, transfer, material issue) is NOT yet batch-
+// tracked (Phase 5 will extend tracking). So SUM(qtyAvailable across batches)
+// may exceed currentStock for that item/warehouse — caller should compare with
+// the returned `currentStock` and warn if mismatch is material.
+router.get('/:id/batches', async (req, res) => {
+  try {
+    const itemId = req.params.id as string;
+    const warehouseId = typeof req.query.warehouseId === 'string' && req.query.warehouseId.length > 0
+      ? req.query.warehouseId
+      : null;
+
+    const item = await prisma.inventoryItem.findUnique({
+      where: { id: itemId },
+      select: { id: true, code: true, name: true, unit: true, currentStock: true },
+    });
+    if (!item) return res.status(404).json({ error: 'Item tidak ditemukan.' });
+
+    let currentStock: number = Number(item.currentStock);
+    if (warehouseId) {
+      const stockRow = await prisma.inventoryStock.findFirst({
+        where: { itemId, warehouseId },
+        select: { currentStock: true },
+      });
+      currentStock = Number(stockRow?.currentStock ?? 0);
+    }
+
+    // 1. All inbound movements (In / AdjustmentIn) for this item/warehouse, non-cancelled
+    const inboundFilter: any = {
+      itemId,
+      isCancelled: false,
+      movementType: { in: ['In', 'AdjustmentIn'] },
+    };
+    if (warehouseId) inboundFilter.warehouseId = warehouseId;
+
+    const inbound = await prisma.stockMovement.findMany({
+      where: inboundFilter,
+      orderBy: { date: 'asc' },
+      select: {
+        id: true, movementNumber: true, date: true, quantity: true, unitCost: true,
+        referenceType: true, referenceId: true, referenceNumber: true,
+        warehouseId: true,
+      },
+    });
+
+    if (inbound.length === 0) {
+      return res.json({ data: [], item, currentStock });
+    }
+
+    // 2. Production consumption tracked against these inbound movements
+    const consumed = await prisma.productionRunItem.groupBy({
+      by: ['sourceMovementId'],
+      where: {
+        sourceMovementId: { in: inbound.map((m) => m.id) },
+        productionRun: { isCancelled: false },
+      },
+      _sum: { quantity: true },
+    });
+    const consumedMap = new Map<string, number>();
+    for (const c of consumed) {
+      if (c.sourceMovementId) {
+        consumedMap.set(c.sourceMovementId, Number(c._sum.quantity ?? 0));
+      }
+    }
+
+    // 3. Compose response with qtyAvailable, drop batches with <=0 available
+    const batches = inbound
+      .map((m) => {
+        const qtyConsumed = consumedMap.get(m.id) ?? 0;
+        const qtyAvailable = Number(m.quantity) - qtyConsumed;
+        return {
+          id: m.id,
+          movementNumber: m.movementNumber,
+          date: m.date,
+          qtyInbound: Number(m.quantity),
+          unitCost: Number(m.unitCost),
+          qtyConsumed,
+          qtyAvailable,
+          sourceType: m.referenceType ?? 'Other',
+          sourceRef: m.referenceNumber ?? null,
+          sourceRefId: m.referenceId ?? null,
+        };
+      })
+      .filter((b) => b.qtyAvailable > 0.001);
+
+    return res.json({ data: batches, item, currentStock });
+  } catch (error) {
+    logger.error({ error }, 'GET /inventory/items/:id/batches error');
+    return res.status(500).json({ error: 'Gagal mengambil daftar batch stok.' });
+  }
+});
+
 // POST /api/inventory/items
 router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
   const body = validateBody(CreateInventoryItemSchema, req.body, res);

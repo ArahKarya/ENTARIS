@@ -170,13 +170,42 @@ export async function editProductionRunInTx(
     );
   }
 
+  // Phase 2: batch validation + cost snapshot (mirrors submit service).
+  const batchSnapshots = new Map<number, { sourceMovementId: string | null; batchUnitCost: number | null }>();
+  for (let i = 0; i < body.inputs.length; i++) {
+    const input = body.inputs[i]!;
+    if (!input.sourceMovementId) {
+      batchSnapshots.set(i, { sourceMovementId: null, batchUnitCost: null });
+      continue;
+    }
+    const batch = await tx.stockMovement.findUnique({
+      where: { id: input.sourceMovementId },
+      select: { id: true, itemId: true, isCancelled: true, movementType: true, unitCost: true },
+    });
+    if (!batch) throw new BusinessError(`Batch sumber tidak ditemukan untuk input ke-${i + 1}.`);
+    if (batch.itemId !== input.itemId) throw new BusinessError(`Batch sumber tidak cocok dengan item input ke-${i + 1}.`);
+    if (batch.isCancelled) throw new BusinessError(`Batch sumber sudah dibatalkan (input ke-${i + 1}).`);
+    if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn') {
+      throw new BusinessError(`Batch sumber bukan stok masuk (input ke-${i + 1}).`);
+    }
+    const snapshotCost = input.batchUnitCost != null && input.batchUnitCost >= 0
+      ? Number(input.batchUnitCost)
+      : Number(batch.unitCost);
+    batchSnapshots.set(i, { sourceMovementId: batch.id, batchUnitCost: snapshotCost });
+  }
+
   // Inputs
-  for (const input of body.inputs) {
+  let totalMaterialCost = new Decimal(0);
+  for (let i = 0; i < body.inputs.length; i++) {
+    const input = body.inputs[i]!;
     const item = itemMap.get(input.itemId);
     if (!item) continue;
-    const avgCost = Number(item.averageCost);
-    const inputUnitCost = avgCost > 0 ? avgCost : 0;
+    const snapshot = batchSnapshots.get(i)!;
+    const inputUnitCost = snapshot.batchUnitCost != null
+      ? snapshot.batchUnitCost
+      : (Number(item.averageCost) > 0 ? Number(item.averageCost) : 0);
     const inputTotalValue = new Decimal(input.quantity).mul(new Decimal(inputUnitCost)).toDecimalPlaces(2).toNumber();
+    totalMaterialCost = totalMaterialCost.plus(new Decimal(inputTotalValue));
 
     await tx.inventoryItem.update({
       where: { id: input.itemId },
@@ -262,11 +291,15 @@ export async function editProductionRunInTx(
   const journalItems: { accountId: string; debit: number; credit: number; description: string }[] = [];
 
   let totalInputCost = new Decimal(0);
-  for (const input of body.inputs) {
+  for (let i = 0; i < body.inputs.length; i++) {
+    const input = body.inputs[i]!;
     const item = itemMap.get(input.itemId);
     if (!item) continue;
-    const avgCost = Number(item.averageCost);
-    const val = new Decimal(input.quantity).mul(new Decimal(avgCost > 0 ? avgCost : 0)).toDecimalPlaces(2).toNumber();
+    const snapshot = batchSnapshots.get(i)!;
+    const inputUnitCost = snapshot.batchUnitCost != null
+      ? snapshot.batchUnitCost
+      : (Number(item.averageCost) > 0 ? Number(item.averageCost) : 0);
+    const val = new Decimal(input.quantity).mul(new Decimal(inputUnitCost)).toDecimalPlaces(2).toNumber();
     if (val <= 0) continue;
     totalInputCost = totalInputCost.plus(new Decimal(val));
     journalItems.push({
@@ -352,27 +385,36 @@ export async function editProductionRunInTx(
   }
 
   // ─ Persist new line items ──────────────────────────────────────
-  const lineItems = [
-    ...body.inputs.map((i) => ({
+  const inputLineItems = body.inputs.map((inp, idx) => {
+    const snapshot = batchSnapshots.get(idx)!;
+    return {
       productionRunId: runId,
-      itemId: i.itemId,
+      itemId: inp.itemId,
       lineType: 'Input',
-      quantity: i.quantity,
+      quantity: inp.quantity,
       unitPrice: null as number | null,
       yieldPct: null as number | null,
       isByProduct: false,
-    })),
-    ...body.outputs.map((o) => ({
-      productionRunId: runId,
-      itemId: o.itemId,
-      lineType: o.isByProduct ? 'ByProduct' : 'Output',
-      quantity: o.quantity,
-      unitPrice: o.unitPrice ?? null,
-      yieldPct: totalInputQty > 0 && !o.isByProduct ? (o.quantity / totalInputQty) * 100 : null,
-      isByProduct: o.isByProduct ?? false,
-    })),
-  ];
-  await tx.productionRunItem.createMany({ data: lineItems });
+      sourceMovementId: snapshot.sourceMovementId,
+      batchUnitCost: snapshot.batchUnitCost,
+    };
+  });
+  const outputLineItems = body.outputs.map((o) => ({
+    productionRunId: runId,
+    itemId: o.itemId,
+    lineType: o.isByProduct ? 'ByProduct' : 'Output',
+    quantity: o.quantity,
+    unitPrice: o.unitPrice ?? null,
+    yieldPct: totalInputQty > 0 && !o.isByProduct ? (o.quantity / totalInputQty) * 100 : null,
+    isByProduct: o.isByProduct ?? false,
+  }));
+  await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
+
+  // Update totalMaterialCost on the edited run (Phase 2 partial; full HPP in Phase 3).
+  await tx.productionRun.update({
+    where: { id: runId },
+    data: { totalMaterialCost: totalMaterialCost.toDecimalPlaces(4).toNumber() },
+  });
 
   return tx.productionRun.findUnique({
     where: { id: runId },
