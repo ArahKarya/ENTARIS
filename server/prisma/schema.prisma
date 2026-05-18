@@ -74,6 +74,10 @@ model Party {
   customerDepositBalance Decimal                 @default(0) @map("customer_deposit_balance") @db.Decimal(15, 2)
   isActive               Boolean                 @default(true) @map("is_active")
   isDummy                Boolean                 @default(false) @map("is_dummy")
+  // WAPU (Wajib Pungut) — pemerintah/BUMN tertentu (Bulog, Pertamina, dll)
+  // memungut PPN sendiri ke kas negara. Tagihan ke mereka TIDAK include
+  // PPN — frontend default tax_pct=0 untuk customer berlabel ini.
+  isWapu                 Boolean                 @default(false) @map("is_wapu")
   salesInvoices          SalesInvoice[]
   purchaseInvoices       PurchaseInvoice[]
   payments               Payment[]

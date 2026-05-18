@@ -261,6 +261,7 @@ export const CreatePartySchema = z.object({
   email: z.string().email('Format email tidak valid.').nullable().optional().or(z.literal('')),
   address: z.string().nullable().optional(),
   taxId: z.string().nullable().optional(),
+  isWapu: z.boolean().optional().default(false),
 });
 
 export const UpdatePartySchema = CreatePartySchema.partial().extend({

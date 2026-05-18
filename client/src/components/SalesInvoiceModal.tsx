@@ -120,6 +120,16 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   });
 
   const selectedParty = parties?.find((p: any) => p.id === partyId);
+  const isWapu = !!selectedParty?.isWapu;
+
+  // Auto-zero tax_pct for all lines when WAPU customer is picked.
+  // Pemerintah/BUMN WAPU memungut PPN sendiri ke kas negara — tagihan kita
+  // tidak include PPN. (Bulog Indramayu adalah contoh.)
+  React.useEffect(() => {
+    if (isWapu) {
+      setItems((prev) => prev.map((it) => (it.taxPct > 0 ? { ...it, taxPct: 0 } : it)));
+    }
+  }, [isWapu]);
 
   const inventoryOptions = useMemo<SelectOption[]>(
     () =>
@@ -424,6 +434,15 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   {selectedParty.email && <p>{selectedParty.email}</p>}
                   {selectedParty.phone && <p>{selectedParty.phone}</p>}
                   {selectedParty.address && <p className="text-gray-400">{selectedParty.address}</p>}
+                </div>
+              )}
+              {isWapu && (
+                <div className="mt-2 p-2 bg-amber-50/70 border border-amber-100 rounded-lg flex items-start gap-2">
+                  <span className="text-amber-700 font-semibold text-xs">⚠ WAPU</span>
+                  <p className="text-xs text-amber-700 leading-snug">
+                    Customer ini Wajib Pungut — PPN dipungut sendiri oleh customer ke kas negara.
+                    Semua baris item akan otomatis PPN 0%.
+                  </p>
                 </div>
               )}
             </div>

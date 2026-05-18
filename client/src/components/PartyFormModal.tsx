@@ -33,11 +33,12 @@ interface PartyFormData {
   npwp: string;
   website: string;
   contactPerson: string;
+  isWapu: boolean;
 }
 
 const defaultForm = (): PartyFormData => ({
   name: '', partyType: 'Customer', phone: '', email: '',
-  address: '', npwp: '', website: '', contactPerson: ''
+  address: '', npwp: '', website: '', contactPerson: '', isWapu: false,
 });
 
 interface PartyFormModalProps {
@@ -66,6 +67,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
         npwp: editParty.taxId || '',
         website: '',
         contactPerson: '',
+        isWapu: !!editParty.isWapu,
       });
       setError('');
     } else if (isOpen) {
@@ -99,8 +101,10 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
   const handleSubmit = () => {
     if (!form.name.trim()) { setError('Nama mitra wajib diisi.'); return; }
     const { npwp, website: _w, contactPerson: _cp, ...rest } = form;
-    mutation.mutate({ ...rest, taxId: npwp || undefined });
+    mutation.mutate({ ...rest, taxId: npwp || undefined, isWapu: form.isWapu });
   };
+
+  const setBool = (field: 'isWapu', val: boolean) => setForm(prev => ({ ...prev, [field]: val }));
 
   // Duplicate detection — fetch similar parties when typing name (only on create)
   const debouncedName = useDebounce(form.name.trim(), 400);
@@ -227,6 +231,26 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                   />
                 </div>
               </div>
+            </div>
+            {/* WAPU checkbox — kalau dicentang, tagihan ke party ini tidak include
+                PPN (Bulog, Pertamina, BUMN tertentu memungut PPN sendiri ke kas
+                negara). Invoice modal akan auto-set tax_pct=0 untuk customer ini. */}
+            <div className="mt-3 p-3 bg-amber-50/60 border border-amber-100 rounded-lg">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isWapu}
+                  onChange={e => setBool('isWapu', e.target.checked)}
+                  className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-amber-800">Wajib Pungut (WAPU)</span>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Customer memungut PPN sendiri ke kas negara (mis. Bulog, Pertamina, BUMN).
+                    Invoice ke pihak ini akan otomatis di-set tanpa PPN (tax_pct=0).
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
 

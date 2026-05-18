@@ -259,6 +259,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
         email: body.email || null,
         address: body.address || null,
         taxId: body.taxId || null,
+        isWapu: body.isWapu ?? false,
       },
     });
     return res.status(201).json(party);
@@ -285,6 +286,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
         address: body.address,
         taxId: body.taxId,
         isActive: body.isActive,
+        isWapu: body.isWapu,
       },
     });
     return res.json(party);
