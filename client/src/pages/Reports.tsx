@@ -64,6 +64,12 @@ const reports = [
     path: '/reports/hpp',
   },
   {
+    title: 'Profitability per SKU (Loaded)',
+    description: 'Margin side-by-side: Material WAC vs Loaded HPP (sudah include biaya produksi & NRV produk samping).',
+    icon: Package,
+    path: '/reports/profitability-per-sku',
+  },
+  {
     title: 'Jadwal Hutang',
     description: 'Daftar hutang berdasarkan jatuh tempo, status, dan prioritas pembayaran.',
     icon: CreditCard,

@@ -39,6 +39,7 @@ import TaxReport from './pages/reports/TaxReport';
 import LedgerBook from './pages/reports/LedgerBook';
 import HealthCheckPage from './pages/HealthCheckPage';
 import HppReport from './pages/reports/HppReport';
+import ProfitabilityPerSku from './pages/reports/ProfitabilityPerSku';
 import PayableSchedule from './pages/reports/PayableSchedule';
 import ReceivableSchedule from './pages/reports/ReceivableSchedule';
 import FixedAssetsPage from './pages/FixedAssetsPage';
@@ -117,6 +118,7 @@ function App() {
             <Route path="/reports/tax" element={<FinanceRoute><TaxReport /></FinanceRoute>} />
             <Route path="/reports/ledger-book" element={<FinanceRoute><LedgerBook /></FinanceRoute>} />
             <Route path="/reports/hpp" element={<FinanceRoute><HppReport /></FinanceRoute>} />
+            <Route path="/reports/profitability-per-sku" element={<FinanceRoute><ProfitabilityPerSku /></FinanceRoute>} />
             <Route path="/reports/payable-schedule" element={<FinanceRoute><PayableSchedule /></FinanceRoute>} />
             <Route path="/reports/receivable-schedule" element={<FinanceRoute><ReceivableSchedule /></FinanceRoute>} />
 

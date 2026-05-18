@@ -93,6 +93,13 @@ router.get('/:id', async (req, res) => {
         items: {
           include: {
             serviceItem: { select: { id: true, code: true, name: true } },
+            // Phase 6: inventoryItem.averageCost feeds the "Material WAC"
+            // basis in margin analysis; unitCostLoaded (already on the line)
+            // feeds the "Loaded HPP" basis.
+            inventoryItem: { select: { id: true, code: true, name: true, averageCost: true } },
+            sourceMovement: {
+              select: { id: true, movementNumber: true, date: true, referenceNumber: true },
+            },
             deliveryOrderItem: {
               select: {
                 id: true,

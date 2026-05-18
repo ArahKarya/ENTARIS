@@ -896,6 +896,78 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                 </div>
               </div>
 
+              {/* Phase 6: margin analysis (sales only). Shows side-by-side
+                  material WAC vs loaded HPP margin when at least one line has
+                  unitCostLoaded captured from a Phase 5 batch pick. */}
+              {isSales && (() => {
+                const productLines = items.filter((i: any) => i.inventoryItemId);
+                if (productLines.length === 0) return null;
+                const lineWithLoaded = productLines.filter((i: any) => i.unitCostLoaded != null);
+                if (lineWithLoaded.length === 0) return null;
+                const totalRev = productLines.reduce((s: number, i: any) => s + Number(i.amount), 0);
+                const materialCost = productLines.reduce(
+                  (s: number, i: any) =>
+                    s + Number(i.quantity) * Number(i.inventoryItem?.averageCost ?? 0),
+                  0,
+                );
+                const loadedCost = productLines.reduce(
+                  (s: number, i: any) =>
+                    s + Number(i.quantity) * Number(i.unitCostLoaded ?? i.inventoryItem?.averageCost ?? 0),
+                  0,
+                );
+                const matMargin = totalRev - materialCost;
+                const loadMargin = totalRev - loadedCost;
+                const matPct = totalRev > 0 ? (matMargin / totalRev) * 100 : 0;
+                const loadPct = totalRev > 0 ? (loadMargin / totalRev) * 100 : 0;
+                return (
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-3 flex items-center gap-1">
+                      Margin Analysis ({lineWithLoaded.length}/{productLines.length} line tracked)
+                    </p>
+                    <div className="border border-emerald-200 rounded-lg overflow-hidden bg-emerald-50/30">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-emerald-50 border-b border-emerald-200 text-emerald-800">
+                            <th className="text-left px-3 py-1.5 font-semibold">Basis</th>
+                            <th className="text-right px-3 py-1.5 font-semibold">Revenue (Produk)</th>
+                            <th className="text-right px-3 py-1.5 font-semibold">COGS</th>
+                            <th className="text-right px-3 py-1.5 font-semibold">Margin</th>
+                            <th className="text-right px-3 py-1.5 font-semibold">%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-emerald-100">
+                            <td className="px-3 py-1.5 text-gray-700">Material (WAC)</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(totalRev)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(materialCost)}</td>
+                            <td className={cn('px-3 py-1.5 text-right font-mono', matMargin >= 0 ? 'text-green-700' : 'text-red-600')}>
+                              {formatRupiah(matMargin)}
+                            </td>
+                            <td className="px-3 py-1.5 text-right font-mono">{matPct.toFixed(1)}%</td>
+                          </tr>
+                          <tr className="bg-emerald-50/50">
+                            <td className="px-3 py-1.5 text-emerald-900 font-medium">Loaded HPP</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(totalRev)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(loadedCost)}</td>
+                            <td className={cn('px-3 py-1.5 text-right font-mono font-semibold',
+                              loadMargin >= 0 ? 'text-emerald-700' : 'text-red-600')}>
+                              {formatRupiah(loadMargin)}
+                            </td>
+                            <td className="px-3 py-1.5 text-right font-mono font-semibold">
+                              {loadPct.toFixed(1)}%
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Material basis = pakai WAC saat ini. Loaded basis = pakai HPP per batch
+                      (Phase 3: include biaya produksi & by-product NRV).
+                    </p>
+                  </div>
+                );
+              })()}
+
               {/* Payment History */}
               {allocations.length > 0 && (
                 <div className="px-6 py-4 border-b border-gray-100">

@@ -87,6 +87,112 @@ router.get('/hpp', async (req, res) => {
   }
 });
 
+// GET /api/reports/profitability-per-sku — Phase 6 loaded-margin report
+// For each SKU, compare revenue vs material WAC vs loaded HPP (when sale lines
+// were linked to a specific batch via Phase 5 picker). Both basis shown side
+// by side so user can decide which is most representative.
+//
+// `material_cogs` = sum(qty × inventory_item.average_cost)  (WAC at query time)
+// `loaded_cogs`   = sum(qty × COALESCE(si.unit_cost_loaded, batch.unit_cost,
+//                                       inventory_item.average_cost))
+// loaded_cogs falls back gracefully when no batch pick / no loaded HPP, so
+// the report still produces a number even for legacy invoices.
+router.get('/profitability-per-sku', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const start = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), 0, 1);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const rows = await prisma.$queryRaw<Array<{
+      item_id: string;
+      item_code: string;
+      item_name: string;
+      unit: string;
+      category: string;
+      total_qty: number;
+      total_revenue: number;
+      material_cogs: number;
+      loaded_cogs: number;
+      lines_with_batch: number;
+      total_lines: number;
+    }>>`
+      SELECT
+        ii.id            AS item_id,
+        ii.code          AS item_code,
+        ii.name          AS item_name,
+        ii.unit          AS unit,
+        COALESCE(ii.category, 'Lainnya') AS category,
+        SUM(si.quantity) AS total_qty,
+        SUM(si.amount)   AS total_revenue,
+        SUM(si.quantity * ii.average_cost) AS material_cogs,
+        SUM(si.quantity * COALESCE(si.unit_cost_loaded, ii.average_cost)) AS loaded_cogs,
+        SUM(CASE WHEN si.unit_cost_loaded IS NOT NULL THEN 1 ELSE 0 END) AS lines_with_batch,
+        COUNT(*) AS total_lines
+      FROM sales_invoice_items si
+      JOIN sales_invoices s ON s.id = si.sales_invoice_id
+      LEFT JOIN inventory_items ii ON ii.id = si.inventory_item_id
+      WHERE s.status NOT IN ('Draft', 'Cancelled')
+        AND s.date >= ${start}
+        AND s.date <= ${end}
+        AND si.inventory_item_id IS NOT NULL
+      GROUP BY ii.id, ii.code, ii.name, ii.unit, ii.category
+      ORDER BY SUM(si.amount) DESC
+    `;
+
+    const items = rows.map((r) => {
+      const revenue = Number(r.total_revenue);
+      const materialCogs = Number(r.material_cogs);
+      const loadedCogs = Number(r.loaded_cogs);
+      return {
+        itemId: r.item_id,
+        itemCode: r.item_code,
+        itemName: r.item_name,
+        unit: r.unit,
+        category: r.category,
+        totalQty: Number(r.total_qty),
+        totalRevenue: revenue,
+        materialCogs,
+        loadedCogs,
+        materialMargin: revenue - materialCogs,
+        loadedMargin: revenue - loadedCogs,
+        materialMarginPct: revenue > 0 ? +(((revenue - materialCogs) / revenue) * 100).toFixed(1) : 0,
+        loadedMarginPct: revenue > 0 ? +(((revenue - loadedCogs) / revenue) * 100).toFixed(1) : 0,
+        linesWithBatch: Number(r.lines_with_batch),
+        totalLines: Number(r.total_lines),
+        coveragePct: Number(r.total_lines) > 0
+          ? +((Number(r.lines_with_batch) / Number(r.total_lines)) * 100).toFixed(0)
+          : 0,
+      };
+    });
+
+    const totalRevenue = items.reduce((s, i) => s + i.totalRevenue, 0);
+    const totalMaterialCogs = items.reduce((s, i) => s + i.materialCogs, 0);
+    const totalLoadedCogs = items.reduce((s, i) => s + i.loadedCogs, 0);
+
+    return res.json({
+      period: { start, end },
+      items,
+      summary: {
+        totalRevenue,
+        totalMaterialCogs,
+        totalLoadedCogs,
+        materialGrossProfit: totalRevenue - totalMaterialCogs,
+        loadedGrossProfit: totalRevenue - totalLoadedCogs,
+        materialMarginPct: totalRevenue > 0
+          ? +(((totalRevenue - totalMaterialCogs) / totalRevenue) * 100).toFixed(1)
+          : 0,
+        loadedMarginPct: totalRevenue > 0
+          ? +(((totalRevenue - totalLoadedCogs) / totalRevenue) * 100).toFixed(1)
+          : 0,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, 'GET /reports/profitability-per-sku error');
+    return res.status(500).json({ error: 'Gagal mengambil laporan profitability per SKU.' });
+  }
+});
+
 // GET /api/reports/payable-schedule — hutang jatuh tempo & jadwal pembayaran
 router.get('/payable-schedule', async (req, res) => {
   try {
