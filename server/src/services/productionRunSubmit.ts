@@ -102,8 +102,10 @@ export async function submitProductionRunInTx(
     const item = itemMap.get(output.itemId);
     if (!item) throw new BusinessError('Item output tidak ditemukan.');
     if (!item.isActive) throw new BusinessError(`Item output '${item.name}' tidak aktif.`);
-    if (!output.isByProduct && (!output.unitPrice || output.unitPrice <= 0)) {
-      throw new BusinessError(`Harga/HPP '${item.name}' wajib diisi dan lebih dari 0.`);
+    // Main output unitPrice is OPTIONAL — auto-filled from computed loaded
+    // HPP later in the flow. Only by-products still need explicit NRV.
+    if (output.isByProduct && (output.unitPrice == null || output.unitPrice < 0)) {
+      throw new BusinessError(`NRV '${item.name}' wajib diisi (minimal 0).`);
     }
   }
 
@@ -285,9 +287,16 @@ export async function submitProductionRunInTx(
 
   // Outputs: stock-in + StockMovement In + WAC recalc + COGS backfill settlement
   let totalOutputValue = new Decimal(0);
+  // Main outputs may omit unitPrice — when so, back-fill it with the loaded
+  // HPP we just computed so WAC + GL posting stay balanced. Byproducts
+  // always carry their explicit NRV via output.unitPrice.
+  const computedHppNum = computedHpp ? computedHpp.toNumber() : 0;
   for (const output of body.outputs) {
     const outputItem = await tx.inventoryItem.findUnique({ where: { id: output.itemId } });
-    const unitCost = output.unitPrice ?? 0;
+    const explicitPrice = output.unitPrice;
+    const unitCost = output.isByProduct
+      ? (explicitPrice ?? 0)
+      : (explicitPrice != null && explicitPrice > 0 ? explicitPrice : computedHppNum);
     const newAvgCost = outputItem && unitCost > 0
       ? calcWeightedAverage(outputItem.currentStock, outputItem.averageCost, output.quantity, unitCost)
       : undefined;
@@ -377,7 +386,12 @@ export async function submitProductionRunInTx(
 
   let totalOutputCost = new Decimal(0);
   for (const output of body.outputs) {
-    const unitCost = output.unitPrice ?? 0;
+    // Same back-fill rule as the stockMovement loop: main outputs without an
+    // explicit unitPrice borrow the loaded HPP so DR/CR stays balanced.
+    const explicitPrice = output.unitPrice;
+    const unitCost = output.isByProduct
+      ? (explicitPrice ?? 0)
+      : (explicitPrice != null && explicitPrice > 0 ? explicitPrice : computedHppNum);
     const val = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
     if (val <= 0) continue;
     totalOutputCost = totalOutputCost.plus(new Decimal(val));
@@ -476,12 +490,20 @@ export async function submitProductionRunInTx(
     const rPct = totalInputQty > 0 && !o.isByProduct
       ? (o.quantity / totalInputQty) * 100
       : null;
+    // Persist the resolved unitPrice (explicit or back-filled from loaded HPP)
+    // so downstream queries don't need to redo the math.
+    const explicitPrice = o.unitPrice;
+    const persistedUnitPrice = o.isByProduct
+      ? (explicitPrice ?? null)
+      : (explicitPrice != null && explicitPrice > 0
+          ? explicitPrice
+          : (computedHppNum > 0 ? computedHppNum : null));
     return {
       productionRunId: run.id,
       itemId: o.itemId,
       lineType: o.isByProduct ? 'ByProduct' : 'Output',
       quantity: o.quantity,
-      unitPrice: o.unitPrice ?? null,
+      unitPrice: persistedUnitPrice,
       yieldPct: rPct,
       isByProduct: o.isByProduct ?? false,
     };

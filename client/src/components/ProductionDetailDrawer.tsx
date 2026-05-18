@@ -4,6 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { cn } from '../lib/utils';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
+import PDFDownloadButton from './PDFDownloadButton';
+import ProductionRunPDF from '../lib/pdf/ProductionRunPDF';
+import type { ProductionRunPDFProps } from '../lib/pdf/ProductionRunPDF';
+import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 
 const fmtRupiah4 = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 4 });
 
@@ -23,6 +27,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
     queryFn: () => api.get(`/inventory/production-runs/${runId}`).then(r => r.data),
     enabled: !!runId,
   });
+  const company = useCompanyPDF();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -430,17 +435,103 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
         </div>
 
         {/* Footer */}
-        {run && !isCancelled && canCancel && onCancel && (
-          <div className="px-6 py-4 border-t border-gray-100">
-            <button
-              onClick={() => onCancel(run.id)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <XCircle size={16} /> Batalkan Proses Produksi
-            </button>
+        {run && (
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-2">
+            <PDFDownloadButton
+              document={<ProductionRunPDF {...buildPdfProps(run, company)} />}
+              fileName={`${run.runNumber}.pdf`}
+              label="Unduh PDF"
+            />
+            {!isCancelled && canCancel && onCancel && (
+              <button
+                onClick={() => onCancel(run.id)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <XCircle size={16} /> Batalkan
+              </button>
+            )}
           </div>
         )}
       </div>
     </>
   );
+}
+
+// ─── Helper: map run + company → PDF props ────────────────────────────────
+function buildPdfProps(run: any, company: ReturnType<typeof useCompanyPDF>): ProductionRunPDFProps {
+  const allItems: any[] = run.items ?? [];
+  const mapItem = (line: any) => {
+    const batchRef = line.sourceMovement
+      ? `${line.sourceMovement.referenceNumber || line.sourceMovement.movementNumber} (${new Date(line.sourceMovement.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })})`
+      : null;
+    const lineCost = line.batchUnitCost != null
+      ? Number(line.batchUnitCost)
+      : line.unitPrice != null
+        ? Number(line.unitPrice)
+        : Number(line.item?.averageCost ?? 0);
+    return {
+      code: line.item?.code ?? null,
+      name: line.item?.name ?? '',
+      qty: Number(line.quantity),
+      unit: line.item?.unit ?? '',
+      unitCost: lineCost,
+      isByProduct: line.isByProduct,
+      batchRef,
+    };
+  };
+
+  const inputLines = allItems.filter((i) => i.lineType === 'Input').map(mapItem);
+  const outputLines = allItems.filter((i) => i.lineType === 'Output').map(mapItem);
+  const byproductLines = allItems
+    .filter((i) => i.lineType === 'ByProduct' || i.isByProduct)
+    .filter((i) => i.lineType !== 'Output')
+    .map(mapItem);
+
+  const costs = (run.runCosts ?? []).map((c: any) => ({
+    description: c.description,
+    costSide: c.costSide,
+    basis: c.basis,
+    rate: Number(c.rate),
+    qtyBasis: Number(c.qtyBasis),
+    totalAmount: Number(c.totalAmount),
+    accountLabel: c.costAccount
+      ? `${c.costAccount.accountNumber} ${c.costAccount.name}`
+      : null,
+  }));
+
+  const totalMainQty = outputLines.reduce((s, o) => s + o.qty, 0);
+
+  // Resolve warehouse: prefer header (Phase-5 future) else first line
+  const firstWh = allItems[0]?.warehouse;
+
+  return {
+    runNumber: run.runNumber,
+    date: run.date,
+    warehouseName: firstWh ? `${firstWh.code} — ${firstWh.name}` : null,
+    referenceNumber: run.referenceNumber ?? null,
+    notes: run.notes ?? null,
+    yieldPct: run.yieldPct != null ? Number(run.yieldPct) : null,
+    inputs: inputLines,
+    outputs: outputLines,
+    byproducts: byproductLines,
+    costs,
+    totals: {
+      totalMaterialCost: Number(run.totalMaterialCost ?? 0),
+      totalCostInputSide: Number(run.totalCostInputSide ?? 0),
+      totalCostOutputSide: Number(run.totalCostOutputSide ?? 0),
+      totalByproductValue: Number(run.totalByproductValue ?? 0),
+      computedHpp: run.computedHpp != null ? Number(run.computedHpp) : null,
+      hppManualOverride: !!run.hppManualOverride,
+      mainOutputQty: totalMainQty,
+    },
+    company: {
+      name: company.name,
+      address: company.address,
+      phone: company.phone,
+      email: company.email,
+      taxId: company.taxId,
+      logoUrl: company.logoUrl,
+    },
+    createdByName: run.createdBy?.fullName ?? null,
+  };
 }

@@ -135,11 +135,18 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
     }
   }, [isOpen, editRun]);
 
-  // Phase 3: load master cost standards for the picker
+  // Phase 3: load master cost standards for the picker.
+  // Phase 3b: scope by warehouseId — staff hanya lihat standar yg match dengan
+  // gudang produksi terpilih atau yg berlaku semua (warehouseId null). Saat
+  // warehouse belum dipilih, list disembunyikan untuk menghindari false picks.
   const { data: standardsData } = useQuery({
-    queryKey: ['production-cost-standards', 'active'],
-    queryFn: () => api.get('/inventory/production-cost-standards', { params: { active: true } }).then(r => r.data),
-    enabled: isOpen,
+    queryKey: ['production-cost-standards', 'active', warehouseId],
+    queryFn: () => api
+      .get('/inventory/production-cost-standards', {
+        params: { active: true, ...(warehouseId ? { warehouseId } : {}) },
+      })
+      .then(r => r.data),
+    enabled: isOpen && !!warehouseId,
     staleTime: 60_000,
   });
   const standards: CostStandard[] = standardsData?.data ?? [];
@@ -297,6 +304,13 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
     const validOutputs = outputs.filter(o => o.itemId && o.quantity && parseFloat(o.quantity) > 0);
     if (validInputs.length === 0) errs.push('Minimal satu item input.');
     if (validOutputs.length === 0) errs.push('Minimal satu item output.');
+    // Byproducts require explicit NRV. Main outputs may omit unitPrice — the
+    // server back-fills it from loaded HPP.
+    validOutputs.forEach((o, i) => {
+      if (o.isByProduct && (!o.unitPrice || parseFloat(o.unitPrice) < 0)) {
+        errs.push(`Produk samping baris ke-${i + 1}: NRV wajib diisi.`);
+      }
+    });
     if (errs.length) { setErrors(errs); return; }
 
     setIsSubmitting(true);
@@ -575,20 +589,32 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
                       </div>
                       {/* HPP / Unit Price row + By-product toggle */}
                       <div className="flex items-center gap-2 pl-0.5">
-                        <label className="text-xs text-gray-400 font-medium whitespace-nowrap">HPP/kg (Rp)</label>
+                        <label className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                          {row.isByProduct ? 'NRV/kg (Rp)' : 'HPP/kg (Rp)'}
+                        </label>
                         <input
                           type="number"
                           value={row.unitPrice}
                           onChange={e => updateOutput(idx, 'unitPrice', e.target.value)}
-                          placeholder="Harga per unit"
+                          placeholder={
+                            row.isByProduct
+                              ? 'Nilai NRV per kg'
+                              : (autoHpp > 0
+                                  ? `auto: Rp ${autoHpp.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`
+                                  : 'kosongkan = ikut HPP loaded')
+                          }
                           min="0"
-                          className="w-36 border border-gray-200 rounded-lg py-1.5 px-2.5 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-44 border border-gray-200 rounded-lg py-1.5 px-2.5 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-emerald-500/70 placeholder:text-[10.5px]"
                         />
-                        {price > 0 && qty > 0 && (
+                        {price > 0 && qty > 0 ? (
                           <span className="text-xs text-gray-400 font-mono">
                             = Rp {(price * qty).toLocaleString('id-ID')}
                           </span>
-                        )}
+                        ) : !row.isByProduct && qty > 0 && autoHpp > 0 ? (
+                          <span className="text-[10.5px] text-emerald-600 font-mono whitespace-nowrap">
+                            = Rp {Math.round(autoHpp * qty).toLocaleString('id-ID')} (auto)
+                          </span>
+                        ) : null}
                         <label className="ml-auto flex items-center gap-1.5 cursor-pointer select-none">
                           <input
                             type="checkbox"

@@ -372,6 +372,9 @@ export const CreateProductionCostStandardSchema = z.object({
   defaultRate: z.coerce.number().min(0, 'Rate tidak boleh negatif.'),
   costAccountId: z.string().uuid().nullable().optional(),
   itemId: z.string().uuid().nullable().optional(),
+  // Optional warehouse scope — staff hanya lihat standar yang match dengan
+  // gudang produksi yg dipilih, atau yang berlaku semua gudang (null).
+  warehouseId: z.string().uuid().nullable().optional(),
 });
 
 export const UpdateProductionCostStandardSchema = CreateProductionCostStandardSchema
@@ -533,20 +536,15 @@ export const CreateProductionRunSchema = z.object({
   // Use case: backdated production input where sales already reduced stock.
   allowNegativeStock: z.boolean().optional().default(false),
 }).superRefine((data, ctx) => {
-  // Enforce unit_price > 0 for main Output lines (non-by-product).
-  // This prevents silent dumping of output value into HPP variance when cost is missing.
+  // Main output unitPrice is OPTIONAL (Phase 3+): when omitted, the server
+  // back-fills it with the computed loaded HPP (material + costs − byproduct
+  // NRV, divided by main qty). User can still supply a value to override.
+  // By-products keep the strict requirement so their NRV is always explicit.
   data.outputs.forEach((o, idx) => {
-    if (!o.isByProduct && (o.unitPrice == null || o.unitPrice <= 0)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Harga/HPP produk utama wajib diisi dan lebih dari 0.',
-        path: ['outputs', idx, 'unitPrice'],
-      });
-    }
     if (o.isByProduct && (o.unitPrice == null || o.unitPrice < 0)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Harga produk sampingan wajib diisi (minimal 0).',
+        message: 'NRV produk sampingan wajib diisi (minimal 0).',
         path: ['outputs', idx, 'unitPrice'],
       });
     }

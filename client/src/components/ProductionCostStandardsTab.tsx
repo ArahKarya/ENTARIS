@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, Plus, Edit2, Trash2, Calculator, X, FileText, Hash, Package,
-  Tag, AlertCircle, ArrowDownToLine, ArrowUpFromLine,
+  Tag, AlertCircle, ArrowDownToLine, ArrowUpFromLine, Warehouse as WarehouseIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -26,8 +26,17 @@ interface CostStandard {
   costAccount: { id: string; accountNumber: string; name: string } | null;
   itemId: string | null;
   item: { id: string; code: string; name: string; unit: string } | null;
+  warehouseId: string | null;
+  warehouse: { id: string; code: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface WarehouseOpt {
+  id: string;
+  code: string;
+  name: string;
+  isActive?: boolean;
 }
 
 interface Account {
@@ -54,6 +63,7 @@ interface FormState {
   defaultRate: string;
   costAccountId: string;
   itemId: string;
+  warehouseId: string;
 }
 
 const blankForm: FormState = {
@@ -64,6 +74,7 @@ const blankForm: FormState = {
   defaultRate: '',
   costAccountId: '',
   itemId: '',
+  warehouseId: '',
 };
 
 const basisLabel = (b: Basis) =>
@@ -87,10 +98,27 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<CostStandard | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Filter pemandu — saat dipilih, list hanya tampilkan standar yg match
+  // dengan gudang itu atau yg null (berlaku semua).
+  const [filterWarehouseId, setFilterWarehouseId] = useState<string>('');
+
+  // Warehouses for filter dropdown + form picker
+  const { data: warehousesRaw } = useQuery({
+    queryKey: ['warehouses-active'],
+    queryFn: () => api.get('/warehouses').then(r => r.data),
+  });
+  const warehouses: WarehouseOpt[] = useMemo(() => {
+    const arr = Array.isArray(warehousesRaw) ? warehousesRaw : (warehousesRaw?.data ?? []);
+    return arr.filter((w: any) => w.isActive !== false);
+  }, [warehousesRaw]);
 
   const { data: standardsRaw, isLoading } = useQuery({
-    queryKey: ['production-cost-standards'],
-    queryFn: () => api.get('/inventory/production-cost-standards').then(r => r.data),
+    queryKey: ['production-cost-standards', filterWarehouseId],
+    queryFn: () => api
+      .get('/inventory/production-cost-standards', {
+        params: filterWarehouseId ? { warehouseId: filterWarehouseId } : {},
+      })
+      .then(r => r.data),
   });
   const standards: CostStandard[] = standardsRaw?.data ?? [];
 
@@ -139,17 +167,35 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
-          {standards.length > 0 && (
-            <>
-              <span className="font-medium text-gray-700">{standards.length}</span> standar
-              {' · '}
-              <span className="text-blue-600">{inputStandards.length} input</span>
-              {' · '}
-              <span className="text-emerald-600">{outputStandards.length} output</span>
-            </>
-          )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Warehouse filter — null option = semua */}
+          <div className="flex items-center gap-1.5">
+            <WarehouseIcon size={13} className="text-gray-400" />
+            <select
+              value={filterWarehouseId}
+              onChange={e => setFilterWarehouseId(e.target.value)}
+              className="border border-gray-200 rounded-lg py-1.5 px-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Semua Gudang</option>
+              {warehouses.map(w => (
+                <option key={w.id} value={w.id}>
+                  {w.code} — {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="text-xs text-gray-500">
+            {standards.length > 0 && (
+              <>
+                <span className="font-medium text-gray-700">{standards.length}</span> standar
+                {' · '}
+                <span className="text-blue-600">{inputStandards.length} input</span>
+                {' · '}
+                <span className="text-emerald-600">{outputStandards.length} output</span>
+              </>
+            )}
+          </div>
         </div>
         {canEdit && (
           <button onClick={handleOpenAdd} className="btn-primary">
@@ -225,6 +271,7 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
       defaultRate: String(editTarget.defaultRate),
       costAccountId: editTarget.costAccountId ?? '',
       itemId: editTarget.itemId ?? '',
+      warehouseId: editTarget.warehouseId ?? '',
     };
   });
   const [saving, setSaving] = useState(false);
@@ -260,6 +307,17 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
       .filter(i => i.isActive !== false)
       .map(i => ({ value: i.id, label: `${i.code} — ${i.name} (${i.unit})` }));
   }, [itemsRaw]);
+
+  const { data: whRaw } = useQuery({
+    queryKey: ['warehouses-for-cost-standards'],
+    queryFn: () => api.get('/warehouses').then(r => r.data),
+  });
+  const warehouseOptions: SelectOption[] = useMemo(() => {
+    const arr: WarehouseOpt[] = Array.isArray(whRaw) ? whRaw : (whRaw?.data ?? []);
+    return arr
+      .filter(w => w.isActive !== false)
+      .map(w => ({ value: w.id, label: `${w.code} — ${w.name}` }));
+  }, [whRaw]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm(f => ({ ...f, [key]: value }));
@@ -298,6 +356,7 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
         defaultRate: rateNum,
         costAccountId: form.costAccountId || null,
         itemId: form.itemId || null,
+        warehouseId: form.warehouseId || null,
       };
       if (isEdit) {
         await api.put(`/inventory/production-cost-standards/${editTarget!.id}`, payload);
@@ -523,6 +582,21 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+                  <WarehouseIcon size={11} className="text-gray-400" /> Berlaku Untuk Gudang
+                </label>
+                <SearchableSelect
+                  options={warehouseOptions}
+                  value={form.warehouseId}
+                  onChange={v => set('warehouseId', v)}
+                  placeholder="— Semua gudang —"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Mis. "biaya mesin poles" hanya muncul di gudang poles. Kosongkan agar berlaku untuk semua gudang.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
                   <Tag size={11} className="text-gray-400" /> Akun Biaya (tag laporan)
                 </label>
                 <SearchableSelect
@@ -671,6 +745,12 @@ function StandardsList({ accent, icon, title, subtitle, standards, canEdit, onEd
                     <span>
                       <span className="text-gray-400">Basis:</span> {basisLabel(std.basis)}
                     </span>
+                    {std.warehouse && (
+                      <span className="inline-flex items-center gap-0.5">
+                        <WarehouseIcon size={10} className="text-gray-400" />
+                        {std.warehouse.code}
+                      </span>
+                    )}
                     {std.item && (
                       <span className="inline-flex items-center gap-0.5">
                         <Package size={10} className="text-gray-400" />

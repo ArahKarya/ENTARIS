@@ -12,26 +12,34 @@ import { logger } from '../../lib/logger';
 const router = Router();
 
 // GET /api/inventory/production-cost-standards
-// Filters: ?active=true|false, ?costSide=InputSide|OutputSide, ?itemId=<uuid>
+// Filters: ?active=true|false, ?costSide=InputSide|OutputSide,
+//          ?itemId=<uuid>, ?warehouseId=<uuid>
+// Scope filters (item / warehouse) apply inclusive-OR: a standard matches if
+// it targets the scope OR if the field is NULL (global). When both filters
+// supplied, the standard must match BOTH dimensions independently.
 router.get('/', async (req, res) => {
   try {
-    const where: any = {};
+    const where: any = { AND: [] as any[] };
     if (req.query.active !== undefined) {
-      where.isActive = req.query.active === 'true';
+      where.AND.push({ isActive: req.query.active === 'true' });
     }
     if (typeof req.query.costSide === 'string') {
-      where.costSide = req.query.costSide;
+      where.AND.push({ costSide: req.query.costSide });
     }
-    if (typeof req.query.itemId === 'string') {
-      // Items get standards specific to them OR global standards (itemId null)
-      where.OR = [{ itemId: req.query.itemId }, { itemId: null }];
+    if (typeof req.query.itemId === 'string' && req.query.itemId.length > 0) {
+      where.AND.push({ OR: [{ itemId: req.query.itemId }, { itemId: null }] });
     }
+    if (typeof req.query.warehouseId === 'string' && req.query.warehouseId.length > 0) {
+      where.AND.push({ OR: [{ warehouseId: req.query.warehouseId }, { warehouseId: null }] });
+    }
+    if (where.AND.length === 0) delete where.AND;
 
     const standards = await prisma.productionCostStandard.findMany({
       where,
       include: {
         costAccount: { select: { id: true, accountNumber: true, name: true } },
         item: { select: { id: true, code: true, name: true, unit: true } },
+        warehouse: { select: { id: true, code: true, name: true } },
       },
       orderBy: [{ costSide: 'asc' }, { name: 'asc' }],
     });
@@ -61,10 +69,12 @@ router.post(
           defaultRate: body.defaultRate,
           costAccountId: body.costAccountId ?? null,
           itemId: body.itemId ?? null,
+          warehouseId: body.warehouseId ?? null,
         },
         include: {
           costAccount: { select: { id: true, accountNumber: true, name: true } },
           item: { select: { id: true, code: true, name: true, unit: true } },
+          warehouse: { select: { id: true, code: true, name: true } },
         },
       });
       return res.status(201).json(standard);
@@ -98,11 +108,13 @@ router.put(
           ...(body.defaultRate !== undefined ? { defaultRate: body.defaultRate } : {}),
           ...(body.costAccountId !== undefined ? { costAccountId: body.costAccountId } : {}),
           ...(body.itemId !== undefined ? { itemId: body.itemId } : {}),
+          ...(body.warehouseId !== undefined ? { warehouseId: body.warehouseId } : {}),
           ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
         },
         include: {
           costAccount: { select: { id: true, accountNumber: true, name: true } },
           item: { select: { id: true, code: true, name: true, unit: true } },
+          warehouse: { select: { id: true, code: true, name: true } },
         },
       });
       return res.json(standard);

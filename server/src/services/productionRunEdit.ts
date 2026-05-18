@@ -281,11 +281,16 @@ export async function editProductionRunInTx(
       .minus(totalByproductValue);
     computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
   }
+  const computedHppNum = computedHpp ? computedHpp.toNumber() : 0;
 
   // Outputs
   for (const output of body.outputs) {
     const outputItem = await tx.inventoryItem.findUnique({ where: { id: output.itemId } });
-    const unitCost = output.unitPrice ?? 0;
+    // Back-fill main-output unitPrice from computed loaded HPP when omitted.
+    const explicitPrice = output.unitPrice;
+    const unitCost = output.isByProduct
+      ? (explicitPrice ?? 0)
+      : (explicitPrice != null && explicitPrice > 0 ? explicitPrice : computedHppNum);
     const newAvgCost = outputItem && unitCost > 0
       ? calcWeightedAverage(outputItem.currentStock, outputItem.averageCost, output.quantity, unitCost)
       : undefined;
@@ -365,7 +370,11 @@ export async function editProductionRunInTx(
 
   let totalOutputCost = new Decimal(0);
   for (const output of body.outputs) {
-    const unitCost = output.unitPrice ?? 0;
+    // Same back-fill rule as the stockMovement loop above.
+    const explicitPrice = output.unitPrice;
+    const unitCost = output.isByProduct
+      ? (explicitPrice ?? 0)
+      : (explicitPrice != null && explicitPrice > 0 ? explicitPrice : computedHppNum);
     const val = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
     if (val <= 0) continue;
     totalOutputCost = totalOutputCost.plus(new Decimal(val));
@@ -452,15 +461,23 @@ export async function editProductionRunInTx(
       batchUnitCost: snapshot.batchUnitCost,
     };
   });
-  const outputLineItems = body.outputs.map((o) => ({
+  const outputLineItems = body.outputs.map((o) => {
+    const explicitPrice = o.unitPrice;
+    const persistedUnitPrice = o.isByProduct
+      ? (explicitPrice ?? null)
+      : (explicitPrice != null && explicitPrice > 0
+          ? explicitPrice
+          : (computedHppNum > 0 ? computedHppNum : null));
+    return {
     productionRunId: runId,
     itemId: o.itemId,
     lineType: o.isByProduct ? 'ByProduct' : 'Output',
     quantity: o.quantity,
-    unitPrice: o.unitPrice ?? null,
+    unitPrice: persistedUnitPrice,
     yieldPct: totalInputQty > 0 && !o.isByProduct ? (o.quantity / totalInputQty) * 100 : null,
     isByProduct: o.isByProduct ?? false,
-  }));
+    };
+  });
   await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
 
   // Phase 3: persist cost component snapshots + HPP breakdown on the run.

@@ -821,6 +821,7 @@ model Warehouse {
   opnameLines          StockOpnameItem[]     @relation("OpnameLineWarehouse")
   deliveryOrderItems   DeliveryOrderItem[]   @relation("DOLineWarehouse")
   goodsReceiptItems    GoodsReceiptItem[]    @relation("GRItemWarehouse")
+  costStandards        ProductionCostStandard[] @relation("WarehouseCostStandards")
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
 
@@ -1085,6 +1086,11 @@ model ProductionCostStandard {
   // produce/consume the linked item. Null = applies to any run.
   itemId          String?        @map("item_id")
   item            InventoryItem? @relation("ItemCostStandards", fields: [itemId], references: [id])
+  // Optional warehouse scope — when set, this standard only appears in
+  // production runs at this warehouse (mis. "biaya mesin poles" hanya muncul
+  // di gudang poles). Null = berlaku semua gudang.
+  warehouseId     String?        @map("warehouse_id")
+  warehouse       Warehouse?     @relation("WarehouseCostStandards", fields: [warehouseId], references: [id])
   isActive        Boolean        @default(true) @map("is_active")
   runCosts        ProductionRunCost[]
   createdAt       DateTime       @default(now()) @map("created_at")
@@ -1093,6 +1099,7 @@ model ProductionCostStandard {
   @@index([isActive])
   @@index([costSide])
   @@index([itemId])
+  @@index([warehouseId])
   @@map("production_cost_standards")
 }
 
