@@ -1,9 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { X, Loader2, Package, ArrowRight, XCircle } from 'lucide-react';
+import { X, Loader2, Package, ArrowRight, XCircle, Calculator } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '../lib/utils';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
+
+const fmtRupiah4 = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 4 });
 
 interface Props {
   runId: string | null;
@@ -148,19 +150,39 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                   Bahan Input ({inputLines.length})
                 </h3>
                 <div className="space-y-1.5">
-                  {inputLines.map((line: any) => (
-                    <div key={line.id} className="flex items-center justify-between bg-blue-50/50 border border-blue-100 rounded-lg px-3 py-2">
-                      <div>
-                        <span className="text-sm font-medium text-gray-800">{line.item?.name}</span>
-                        <span className="text-xs text-gray-400 ml-1">{line.item?.code}</span>
+                  {inputLines.map((line: any) => {
+                    const lockedCost = line.batchUnitCost != null ? Number(line.batchUnitCost) : null;
+                    return (
+                      <div key={line.id} className="bg-blue-50/50 border border-blue-100 rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-medium text-gray-800">{line.item?.name}</span>
+                            <span className="text-xs text-gray-400 ml-1">{line.item?.code}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-blue-700 tabular-nums">
+                            {fmtNum(Number(line.quantity))} {line.item?.unit}
+                          </span>
+                        </div>
+                        {/* Phase 2: show batch info if linked */}
+                        {line.sourceMovement && (
+                          <div className="mt-1 text-[11px] text-gray-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                            <span>
+                              <span className="text-gray-400">Batch:</span>{' '}
+                              {line.sourceMovement.referenceNumber ?? line.sourceMovement.movementNumber}
+                              {' '}
+                              ({formatDate(line.sourceMovement.date)})
+                            </span>
+                            {lockedCost != null && (
+                              <span>
+                                <span className="text-gray-400">Cost terkunci:</span>{' '}
+                                <span className="font-mono">Rp {fmtRupiah4(lockedCost)}/{line.item?.unit}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-semibold text-blue-700 tabular-nums">
-                          {fmtNum(Number(line.quantity))} {line.item?.unit}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -245,9 +267,106 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 </div>
               )}
 
+              {/* Phase 3: Cost components — show snapshot */}
+              {Array.isArray(run.runCosts) && run.runCosts.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-500" />
+                    Komponen Biaya Produksi ({run.runCosts.length})
+                  </h3>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-gray-500">
+                          <th className="text-left px-2 py-1.5 font-medium">Keterangan</th>
+                          <th className="text-center px-2 py-1.5 font-medium">Sisi</th>
+                          <th className="text-right px-2 py-1.5 font-medium">Rate</th>
+                          <th className="text-right px-2 py-1.5 font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {run.runCosts.map((c: any) => (
+                          <tr key={c.id} className="border-b border-gray-100 last:border-b-0">
+                            <td className="px-2 py-1.5 text-gray-700">
+                              {c.description}
+                              {c.costAccount && (
+                                <span className="ml-1 text-[10px] text-gray-400">
+                                  ({c.costAccount.accountNumber})
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-center">
+                              <span className={cn(
+                                'text-[10px] px-1 rounded',
+                                c.costSide === 'InputSide' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700',
+                              )}>
+                                {c.costSide === 'InputSide' ? 'Input' : 'Output'}
+                              </span>
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-mono">
+                              Rp {fmtRupiah4(Number(c.rate))}
+                              {c.basis !== 'Fixed' && (
+                                <span className="text-[10px] text-gray-400">
+                                  /{c.basis === 'InputQty' ? 'in' : 'out'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-mono text-gray-800">
+                              Rp {formatRupiah(Number(c.totalAmount))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Phase 3: Loaded HPP breakdown */}
+              {run.computedHpp != null && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-1.5">
+                  <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <Calculator size={13} />
+                    HPP Loaded
+                    {run.hppManualOverride && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
+                        Override manual
+                      </span>
+                    )}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs">
+                    <span className="text-gray-600">Biaya Material</span>
+                    <span className="text-right font-mono text-gray-900">
+                      {formatRupiah(Number(run.totalMaterialCost ?? 0))}
+                    </span>
+                    <span className="text-gray-600">+ Biaya Sisi Input</span>
+                    <span className="text-right font-mono text-gray-900">
+                      {formatRupiah(Number(run.totalCostInputSide ?? 0))}
+                    </span>
+                    <span className="text-gray-600">+ Biaya Sisi Output</span>
+                    <span className="text-right font-mono text-gray-900">
+                      {formatRupiah(Number(run.totalCostOutputSide ?? 0))}
+                    </span>
+                    <span className="text-gray-600">− Nilai Produk Samping</span>
+                    <span className="text-right font-mono text-gray-900">
+                      {formatRupiah(Number(run.totalByproductValue ?? 0))}
+                    </span>
+                  </div>
+                  <div className="border-t border-emerald-200 pt-1.5 flex justify-between items-baseline">
+                    <span className="text-xs text-emerald-800">HPP per Kg main output:</span>
+                    <span className="text-base font-bold text-emerald-900 font-mono">
+                      Rp {fmtRupiah4(Number(run.computedHpp))}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-emerald-700 pt-1">
+                    Informational — tidak posting GL. Untuk analisis margin di laporan profitability.
+                  </p>
+                </div>
+              )}
+
               {/* Cost summary */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Ringkasan Biaya</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Ringkasan Biaya (GL)</h3>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Total Biaya Input</span>
                   <span className="font-mono font-medium text-gray-700">{formatRupiah(totalInputValue)}</span>

@@ -29,6 +29,16 @@ export interface SubmitProductionRunInput {
     batchUnitCost?: number | null;
   }>;
   outputs: Array<{ itemId: string; quantity: number; unitPrice?: number | null; isByProduct?: boolean }>;
+  // Phase 3: cost components + HPP loading
+  costs?: Array<{
+    standardId?: string | null;
+    description: string;
+    costSide: 'InputSide' | 'OutputSide';
+    basis: 'InputQty' | 'OutputQty' | 'Fixed';
+    rate: number;
+    costAccountId?: string | null;
+  }>;
+  hppOverride?: number | null;
   notes?: string | null;
   referenceType?: string | null;
   referenceId?: string | null;
@@ -218,6 +228,57 @@ export async function submitProductionRunInTx(
     });
   }
 
+  // ─── Phase 3: pre-compute loaded HPP (informational, no GL impact) ─────────
+  // Cost components are snapshots (rate × qtyBasis based on basis). Resolve
+  // qtyBasis BEFORE creating the output stock movements so the loaded HPP can
+  // be set as unit_cost_loaded for main outputs at insertion time.
+  const totalInputQtyDec = body.inputs.reduce(
+    (s, i) => s.plus(new Decimal(i.quantity)),
+    new Decimal(0),
+  );
+  const totalMainOutputQtyDec = body.outputs
+    .filter((o) => !o.isByProduct)
+    .reduce((s, o) => s.plus(new Decimal(o.quantity)), new Decimal(0));
+
+  const resolvedCosts = (body.costs ?? []).map((c) => {
+    let qtyBasis: Decimal;
+    if (c.basis === 'InputQty') qtyBasis = totalInputQtyDec;
+    else if (c.basis === 'OutputQty') qtyBasis = totalMainOutputQtyDec;
+    else qtyBasis = new Decimal(1); // Fixed: rate IS the total
+    const totalAmount = new Decimal(c.rate).mul(qtyBasis).toDecimalPlaces(4);
+    return { ...c, qtyBasis, totalAmount };
+  });
+
+  const totalCostInputSide = resolvedCosts
+    .filter((c) => c.costSide === 'InputSide')
+    .reduce((s, c) => s.plus(c.totalAmount), new Decimal(0));
+  const totalCostOutputSide = resolvedCosts
+    .filter((c) => c.costSide === 'OutputSide')
+    .reduce((s, c) => s.plus(c.totalAmount), new Decimal(0));
+
+  const totalByproductValue = body.outputs
+    .filter((o) => o.isByProduct)
+    .reduce(
+      (s, o) =>
+        s.plus(new Decimal(o.quantity).mul(new Decimal(o.unitPrice ?? 0))),
+      new Decimal(0),
+    );
+
+  // Loaded HPP per Kg of main output. When override supplied (≥0), use it
+  // verbatim; otherwise auto-compute. NaN-safe: returns null when no main
+  // output qty (defensive — schema requires at least one output).
+  let computedHpp: Decimal | null = null;
+  const hppOverridden = body.hppOverride != null && body.hppOverride >= 0;
+  if (hppOverridden) {
+    computedHpp = new Decimal(body.hppOverride!);
+  } else if (totalMainOutputQtyDec.gt(0)) {
+    const numerator = totalMaterialCost
+      .plus(totalCostInputSide)
+      .plus(totalCostOutputSide)
+      .minus(totalByproductValue);
+    computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
+  }
+
   // Outputs: stock-in + StockMovement In + WAC recalc + COGS backfill settlement
   let totalOutputValue = new Decimal(0);
   for (const output of body.outputs) {
@@ -238,6 +299,14 @@ export async function submitProductionRunInTx(
     const totalValue = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
     totalOutputValue = totalOutputValue.plus(new Decimal(totalValue));
 
+    // Loaded HPP per Kg: main outputs share the computedHpp; byproducts carry
+    // their unitPrice (NRV) which is also what was used to deduct from the
+    // main HPP. This way unit_cost_loaded is internally consistent across the
+    // run and downstream margin reports can read it directly.
+    const unitCostLoaded = output.isByProduct
+      ? unitCost
+      : (computedHpp ? computedHpp.toNumber() : null);
+
     const movNumber = await generateDocumentNumber(tx, 'SM', txDate, fiscalYear.id);
     await tx.stockMovement.create({
       data: {
@@ -249,6 +318,7 @@ export async function submitProductionRunInTx(
         quantity: output.quantity,
         unitCost,
         totalValue,
+        unitCostLoaded,
         referenceType: 'ProductionRun',
         referenceId: run.id,
         referenceNumber: runNumber,
@@ -414,12 +484,33 @@ export async function submitProductionRunInTx(
   });
   await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
 
-  // Persist the totalMaterialCost on the run for Phase-3 HPP breakdown.
-  // (totalCostInputSide / totalCostOutputSide / totalByproductValue / computedHpp
-  // come in Phase 3 — here we capture only the material-cost part.)
+  // Phase 3: persist cost component snapshots + HPP breakdown on the run.
+  if (resolvedCosts.length > 0) {
+    await tx.productionRunCost.createMany({
+      data: resolvedCosts.map((c) => ({
+        productionRunId: run.id,
+        standardId: c.standardId ?? null,
+        description: c.description,
+        costSide: c.costSide,
+        basis: c.basis,
+        rate: c.rate,
+        qtyBasis: c.qtyBasis.toDecimalPlaces(3).toNumber(),
+        totalAmount: c.totalAmount.toNumber(),
+        costAccountId: c.costAccountId ?? null,
+      })),
+    });
+  }
+
   await tx.productionRun.update({
     where: { id: run.id },
-    data: { totalMaterialCost: totalMaterialCost.toDecimalPlaces(4).toNumber() },
+    data: {
+      totalMaterialCost: totalMaterialCost.toDecimalPlaces(4).toNumber(),
+      totalCostInputSide: totalCostInputSide.toDecimalPlaces(4).toNumber(),
+      totalCostOutputSide: totalCostOutputSide.toDecimalPlaces(4).toNumber(),
+      totalByproductValue: totalByproductValue.toDecimalPlaces(4).toNumber(),
+      computedHpp: computedHpp ? computedHpp.toNumber() : null,
+      hppManualOverride: hppOverridden,
+    },
   });
 
   return tx.productionRun.findUnique({

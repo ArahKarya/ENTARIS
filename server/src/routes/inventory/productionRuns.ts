@@ -59,6 +59,18 @@ router.get('/:id', async (req, res) => {
         items: {
           include: {
             item: { select: { id: true, name: true, unit: true, code: true, averageCost: true } },
+            sourceMovement: {
+              select: {
+                id: true, movementNumber: true, date: true, quantity: true, unitCost: true,
+                referenceType: true, referenceNumber: true,
+              },
+            },
+          },
+        },
+        runCosts: {
+          include: {
+            costAccount: { select: { id: true, accountNumber: true, name: true } },
+            standard: { select: { id: true, name: true } },
           },
         },
         createdBy: { select: { id: true, fullName: true } },

@@ -106,8 +106,9 @@ export async function editProductionRunInTx(
   const oldJvNumber = `JV-${oldRun.runNumber}`;
   await cancelJournalsByPrefix(tx, oldJvNumber);
 
-  // ─ 5. Delete old line items ────────────────────────────────────
+  // ─ 5. Delete old line items + old cost components (Phase 3) ─────────────
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });
+  await tx.productionRunCost.deleteMany({ where: { productionRunId: runId } });
 
   // ─ 6. Re-apply with new data ───────────────────────────────────
   const txDate = new Date(body.date);
@@ -234,6 +235,52 @@ export async function editProductionRunInTx(
     });
   }
 
+  // ─── Phase 3: pre-compute loaded HPP for the revision ──────────────────────
+  // Mirrors productionRunSubmit. Cost snapshots use the edited inputs/outputs.
+  const totalInputQtyDec = body.inputs.reduce(
+    (s, i) => s.plus(new Decimal(i.quantity)),
+    new Decimal(0),
+  );
+  const totalMainOutputQtyDec = body.outputs
+    .filter((o) => !o.isByProduct)
+    .reduce((s, o) => s.plus(new Decimal(o.quantity)), new Decimal(0));
+
+  const resolvedCosts = (body.costs ?? []).map((c) => {
+    let qtyBasis: Decimal;
+    if (c.basis === 'InputQty') qtyBasis = totalInputQtyDec;
+    else if (c.basis === 'OutputQty') qtyBasis = totalMainOutputQtyDec;
+    else qtyBasis = new Decimal(1);
+    const totalAmount = new Decimal(c.rate).mul(qtyBasis).toDecimalPlaces(4);
+    return { ...c, qtyBasis, totalAmount };
+  });
+
+  const totalCostInputSide = resolvedCosts
+    .filter((c) => c.costSide === 'InputSide')
+    .reduce((s, c) => s.plus(c.totalAmount), new Decimal(0));
+  const totalCostOutputSide = resolvedCosts
+    .filter((c) => c.costSide === 'OutputSide')
+    .reduce((s, c) => s.plus(c.totalAmount), new Decimal(0));
+
+  const totalByproductValue = body.outputs
+    .filter((o) => o.isByProduct)
+    .reduce(
+      (s, o) =>
+        s.plus(new Decimal(o.quantity).mul(new Decimal(o.unitPrice ?? 0))),
+      new Decimal(0),
+    );
+
+  let computedHpp: Decimal | null = null;
+  const hppOverridden = body.hppOverride != null && body.hppOverride >= 0;
+  if (hppOverridden) {
+    computedHpp = new Decimal(body.hppOverride!);
+  } else if (totalMainOutputQtyDec.gt(0)) {
+    const numerator = totalMaterialCost
+      .plus(totalCostInputSide)
+      .plus(totalCostOutputSide)
+      .minus(totalByproductValue);
+    computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
+  }
+
   // Outputs
   for (const output of body.outputs) {
     const outputItem = await tx.inventoryItem.findUnique({ where: { id: output.itemId } });
@@ -252,6 +299,10 @@ export async function editProductionRunInTx(
     await adjustWarehouseStock(tx, output.itemId, productionWarehouseId, output.quantity);
     const totalValue = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
 
+    const unitCostLoaded = output.isByProduct
+      ? unitCost
+      : (computedHpp ? computedHpp.toNumber() : null);
+
     const movNumber = await generateDocumentNumber(tx, 'SM', txDate, fiscalYear.id);
     await tx.stockMovement.create({
       data: {
@@ -263,6 +314,7 @@ export async function editProductionRunInTx(
         quantity: output.quantity,
         unitCost,
         totalValue,
+        unitCostLoaded,
         referenceType: 'ProductionRun',
         referenceId: runId,
         referenceNumber: oldRun.runNumber,
@@ -410,10 +462,33 @@ export async function editProductionRunInTx(
   }));
   await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
 
-  // Update totalMaterialCost on the edited run (Phase 2 partial; full HPP in Phase 3).
+  // Phase 3: persist cost component snapshots + HPP breakdown on the run.
+  if (resolvedCosts.length > 0) {
+    await tx.productionRunCost.createMany({
+      data: resolvedCosts.map((c) => ({
+        productionRunId: runId,
+        standardId: c.standardId ?? null,
+        description: c.description,
+        costSide: c.costSide,
+        basis: c.basis,
+        rate: c.rate,
+        qtyBasis: c.qtyBasis.toDecimalPlaces(3).toNumber(),
+        totalAmount: c.totalAmount.toNumber(),
+        costAccountId: c.costAccountId ?? null,
+      })),
+    });
+  }
+
   await tx.productionRun.update({
     where: { id: runId },
-    data: { totalMaterialCost: totalMaterialCost.toDecimalPlaces(4).toNumber() },
+    data: {
+      totalMaterialCost: totalMaterialCost.toDecimalPlaces(4).toNumber(),
+      totalCostInputSide: totalCostInputSide.toDecimalPlaces(4).toNumber(),
+      totalCostOutputSide: totalCostOutputSide.toDecimalPlaces(4).toNumber(),
+      totalByproductValue: totalByproductValue.toDecimalPlaces(4).toNumber(),
+      computedHpp: computedHpp ? computedHpp.toNumber() : null,
+      hppManualOverride: hppOverridden,
+    },
   });
 
   return tx.productionRun.findUnique({

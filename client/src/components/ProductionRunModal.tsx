@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { X, Plus, Trash2, Calculator } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
 import SearchableSelect from './SearchableSelect';
@@ -17,6 +17,29 @@ interface LineItem {
   sourceMovementId: string;
   batchUnitCost: string;
 }
+
+// Phase 3: cost component row in the modal.
+interface CostLine {
+  standardId: string;        // '' = freetext
+  description: string;
+  costSide: 'InputSide' | 'OutputSide';
+  basis: 'InputQty' | 'OutputQty' | 'Fixed';
+  rate: string;              // user-editable; defaults from master standard
+  costAccountId: string;     // optional tag
+}
+
+interface CostStandard {
+  id: string;
+  name: string;
+  description: string | null;
+  costSide: 'InputSide' | 'OutputSide';
+  basis: 'InputQty' | 'OutputQty' | 'Fixed';
+  defaultRate: string | number;
+  costAccountId: string | null;
+  itemId: string | null;
+}
+
+const fmtRupiah = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 4 });
 
 interface OutputLineItem {
   itemId: string;
@@ -42,6 +65,8 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const [notes, setNotes] = useState('');
   const [inputs, setInputs] = useState<LineItem[]>([{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
   const [outputs, setOutputs] = useState<OutputLineItem[]>([{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
+  const [costs, setCosts] = useState<CostLine[]>([]);
+  const [hppOverride, setHppOverride] = useState<string>('');
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -86,11 +111,38 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         setInputs([{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
         setOutputs([{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
       }
+      // Phase 3: load existing cost components when editing
+      if (editRun && Array.isArray(editRun.runCosts)) {
+        setCosts(editRun.runCosts.map((c: any) => ({
+          standardId: c.standardId ?? '',
+          description: c.description ?? '',
+          costSide: c.costSide,
+          basis: c.basis,
+          rate: c.rate != null ? String(Number(c.rate)) : '',
+          costAccountId: c.costAccountId ?? '',
+        })));
+      } else {
+        setCosts([]);
+      }
+      setHppOverride(
+        editRun && editRun.hppManualOverride && editRun.computedHpp != null
+          ? String(Number(editRun.computedHpp))
+          : '',
+      );
       setAllowNegativeStock(false);
       setErrors([]);
       setIsSubmitting(false);
     }
   }, [isOpen, editRun]);
+
+  // Phase 3: load master cost standards for the picker
+  const { data: standardsData } = useQuery({
+    queryKey: ['production-cost-standards', 'active'],
+    queryFn: () => api.get('/inventory/production-cost-standards', { params: { active: true } }).then(r => r.data),
+    enabled: isOpen,
+    staleTime: 60_000,
+  });
+  const standards: CostStandard[] = standardsData?.data ?? [];
 
   // Escape key handler
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -146,6 +198,40 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const addOutput = () => setOutputs(prev => [...prev, { itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
   const removeOutput = (idx: number) => setOutputs(prev => prev.filter((_, i) => i !== idx));
 
+  // Phase 3: cost component helpers
+  const addCost = (side: 'InputSide' | 'OutputSide') => {
+    setCosts(prev => [
+      ...prev,
+      {
+        standardId: '',
+        description: '',
+        costSide: side,
+        basis: side === 'InputSide' ? 'InputQty' : 'OutputQty',
+        rate: '',
+        costAccountId: '',
+      },
+    ]);
+  };
+  const removeCost = (idx: number) => setCosts(prev => prev.filter((_, i) => i !== idx));
+  const updateCost = (idx: number, patch: Partial<CostLine>) => {
+    setCosts(prev => prev.map((row, i) => i === idx ? { ...row, ...patch } : row));
+  };
+  const applyStandardToCost = (idx: number, standardId: string) => {
+    const std = standards.find(s => s.id === standardId);
+    if (!std) {
+      updateCost(idx, { standardId: '' });
+      return;
+    }
+    updateCost(idx, {
+      standardId: std.id,
+      description: std.name,
+      costSide: std.costSide,
+      basis: std.basis,
+      rate: String(Number(std.defaultRate)),
+      costAccountId: std.costAccountId ?? '',
+    });
+  };
+
   // Yield calculation: total main output / total input
   const totalInputQty = inputs.reduce((s, r) => s + (parseFloat(r.quantity) || 0), 0);
   const totalMainOutputQty = outputs
@@ -154,6 +240,51 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const yieldPct = totalInputQty > 0 && totalMainOutputQty > 0
     ? ((totalMainOutputQty / totalInputQty) * 100).toFixed(1)
     : null;
+
+  // Phase 3: live HPP computation for preview. Mirrors server logic so user
+  // sees the loaded HPP before submitting. Server re-computes authoritatively.
+  const totalMaterialCostPreview = inputs.reduce((s, r) => {
+    const qty = parseFloat(r.quantity) || 0;
+    let unitCost = parseFloat(r.batchUnitCost) || 0;
+    if (!r.batchUnitCost) {
+      // Fallback to WAC if no batch picked
+      const item = getItemById(r.itemId);
+      unitCost = item ? Number(item.averageCost) : 0;
+    }
+    return s + qty * unitCost;
+  }, 0);
+
+  const computeCostTotal = (c: CostLine): number => {
+    const rate = parseFloat(c.rate) || 0;
+    if (c.basis === 'InputQty') return rate * totalInputQty;
+    if (c.basis === 'OutputQty') return rate * totalMainOutputQty;
+    return rate;
+  };
+
+  const totalCostInputSidePreview = costs
+    .filter(c => c.costSide === 'InputSide')
+    .reduce((s, c) => s + computeCostTotal(c), 0);
+  const totalCostOutputSidePreview = costs
+    .filter(c => c.costSide === 'OutputSide')
+    .reduce((s, c) => s + computeCostTotal(c), 0);
+  const totalByproductValuePreview = outputs
+    .filter(o => o.isByProduct)
+    .reduce((s, o) => s + (parseFloat(o.quantity) || 0) * (parseFloat(o.unitPrice) || 0), 0);
+
+  const overrideNum = parseFloat(hppOverride);
+  const hasOverride = !isNaN(overrideNum) && overrideNum >= 0;
+
+  const autoHpp = totalMainOutputQty > 0
+    ? (totalMaterialCostPreview + totalCostInputSidePreview + totalCostOutputSidePreview - totalByproductValuePreview) / totalMainOutputQty
+    : 0;
+  const previewHpp = hasOverride ? overrideNum : autoHpp;
+
+  const inputCostRows = costs
+    .map((c, idx) => ({ c, idx }))
+    .filter(({ c }) => c.costSide === 'InputSide');
+  const outputCostRows = costs
+    .map((c, idx) => ({ c, idx }))
+    .filter(({ c }) => c.costSide === 'OutputSide');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,10 +321,25 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         allowNegativeStock,
       };
 
+      const fullPayload: any = {
+        ...payload,
+        costs: costs
+          .filter(c => c.description.trim() && (parseFloat(c.rate) || 0) >= 0)
+          .map(c => ({
+            standardId: c.standardId || null,
+            description: c.description.trim(),
+            costSide: c.costSide,
+            basis: c.basis,
+            rate: parseFloat(c.rate) || 0,
+            costAccountId: c.costAccountId || null,
+          })),
+        hppOverride: hasOverride ? overrideNum : null,
+      };
+
       if (editRun) {
-        await api.put(`/inventory/production-runs/${editRun.id}`, payload);
+        await api.put(`/inventory/production-runs/${editRun.id}`, fullPayload);
       } else {
-        await api.post('/inventory/production-runs', payload);
+        await api.post('/inventory/production-runs', fullPayload);
       }
       queryClient.invalidateQueries({ queryKey: ['production-runs'] });
       queryClient.invalidateQueries({ queryKey: ['production-run-detail'] });
@@ -459,6 +605,91 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
               </div>
             </div>
 
+            {/* Phase 3: Cost components — Input side */}
+            <CostSectionUI
+              title="Biaya Produksi (Sisi Input)"
+              hint="Contoh: Listrik mesin giling per Kg gabah masuk. Tidak posting GL — informational saja."
+              rows={inputCostRows}
+              standards={standards.filter(s => s.costSide === 'InputSide')}
+              onAdd={() => addCost('InputSide')}
+              onRemove={removeCost}
+              onUpdate={updateCost}
+              onPickStandard={applyStandardToCost}
+              computeTotal={computeCostTotal}
+            />
+
+            {/* Phase 3: Cost components — Output side */}
+            <CostSectionUI
+              title="Biaya Produksi (Sisi Output)"
+              hint="Contoh: Biaya kirim hasil ke gudang per Kg beras."
+              rows={outputCostRows}
+              standards={standards.filter(s => s.costSide === 'OutputSide')}
+              onAdd={() => addCost('OutputSide')}
+              onRemove={removeCost}
+              onUpdate={updateCost}
+              onPickStandard={applyStandardToCost}
+              computeTotal={computeCostTotal}
+            />
+
+            {/* Phase 3: HPP summary */}
+            {(totalMainOutputQty > 0 || costs.length > 0) && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 space-y-1.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calculator size={14} className="text-emerald-700" />
+                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                    HPP Loaded (auto-calculated)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 text-xs">
+                  <span className="text-gray-600">Biaya Material</span>
+                  <span className="text-right font-mono text-gray-900">
+                    Rp {fmtRupiah(totalMaterialCostPreview)}
+                  </span>
+                  <span className="text-gray-600">+ Biaya Sisi Input</span>
+                  <span className="text-right font-mono text-gray-900">
+                    Rp {fmtRupiah(totalCostInputSidePreview)}
+                  </span>
+                  <span className="text-gray-600">+ Biaya Sisi Output</span>
+                  <span className="text-right font-mono text-gray-900">
+                    Rp {fmtRupiah(totalCostOutputSidePreview)}
+                  </span>
+                  <span className="text-gray-600">− Nilai Produk Samping (NRV)</span>
+                  <span className="text-right font-mono text-gray-900">
+                    Rp {fmtRupiah(totalByproductValuePreview)}
+                  </span>
+                </div>
+                <div className="border-t border-emerald-200 pt-1.5 flex items-baseline justify-between">
+                  <span className="text-xs text-emerald-800">
+                    HPP per Kg main output ({totalMainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })} Kg):
+                  </span>
+                  <span className="text-base font-bold text-emerald-900 font-mono">
+                    Rp {fmtRupiah(previewHpp)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasOverride}
+                      onChange={(e) => setHppOverride(e.target.checked ? String(autoHpp.toFixed(4)) : '')}
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                    />
+                    <span className="text-[11px] text-gray-600">Override manual HPP</span>
+                  </label>
+                  {hasOverride && (
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={hppOverride}
+                      onChange={(e) => setHppOverride(e.target.value)}
+                      placeholder="Override Rp/Kg"
+                      className="text-xs px-2 py-1 border border-gray-200 rounded font-mono w-32 bg-white"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Yield summary */}
             {yieldPct !== null && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-800">
@@ -516,6 +747,103 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ─── Sub-component: Cost section (input-side or output-side) ─────────────────
+interface CostSectionProps {
+  title: string;
+  hint: string;
+  rows: { c: CostLine; idx: number }[];
+  standards: CostStandard[];
+  onAdd: () => void;
+  onRemove: (idx: number) => void;
+  onUpdate: (idx: number, patch: Partial<CostLine>) => void;
+  onPickStandard: (idx: number, standardId: string) => void;
+  computeTotal: (c: CostLine) => number;
+}
+
+function CostSectionUI({
+  title, hint, rows, standards, onAdd, onRemove, onUpdate, onPickStandard, computeTotal,
+}: CostSectionProps) {
+  const sectionTotal = rows.reduce((s, { c }) => s + computeTotal(c), 0);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <div>
+          <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">{title}</h3>
+          <p className="text-[10px] text-gray-400 mt-0.5">{hint}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+        >
+          <Plus size={13} /> Tambah Biaya
+        </button>
+      </div>
+      {rows.length > 0 && (
+        <div className="space-y-2">
+          {rows.map(({ c, idx }) => (
+            <div key={idx} className="border border-gray-100 rounded-lg p-2 bg-gray-50/50 space-y-1.5">
+              <div className="flex gap-2 items-center">
+                <select
+                  value={c.standardId}
+                  onChange={(e) => onPickStandard(idx, e.target.value)}
+                  className="text-xs py-1 px-2 border border-gray-200 rounded bg-white flex-1 min-w-0"
+                >
+                  <option value="">— Manual (free input) —</option>
+                  {standards.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} (default Rp {Number(s.defaultRate)})
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={c.basis}
+                  onChange={(e) => onUpdate(idx, { basis: e.target.value as CostLine['basis'] })}
+                  className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
+                >
+                  <option value="InputQty">× qty input</option>
+                  <option value="OutputQty">× qty output</option>
+                  <option value="Fixed">Flat (run)</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => onRemove(idx)}
+                  className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={c.description}
+                  onChange={(e) => onUpdate(idx, { description: e.target.value, standardId: '' })}
+                  placeholder="Keterangan..."
+                  className="flex-1 text-xs py-1 px-2 border border-gray-200 rounded bg-white"
+                />
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={c.rate}
+                  onChange={(e) => onUpdate(idx, { rate: e.target.value, standardId: '' })}
+                  placeholder="Rate"
+                  className="w-24 text-xs py-1 px-2 border border-gray-200 rounded font-mono bg-white"
+                />
+                <span className="text-[10px] text-gray-400 whitespace-nowrap font-mono">
+                  = Rp {fmtRupiah(computeTotal(c))}
+                </span>
+              </div>
+            </div>
+          ))}
+          <div className="text-right text-xs text-gray-500 font-mono pr-1">
+            Subtotal: <span className="font-semibold text-gray-700">Rp {fmtRupiah(sectionTotal)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

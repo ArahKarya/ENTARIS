@@ -472,6 +472,18 @@ export const UpdateRecurringSchema = z.object({
 });
 
 // ─── Production Run ───────────────────────────────────────────────────────────
+// Cost component line used at production submit time. The client supplies the
+// rate (often prefilled from a master ProductionCostStandard); the server
+// computes qtyBasis + totalAmount based on `basis`.
+const ProductionRunCostInputSchema = z.object({
+  standardId: z.string().uuid().nullable().optional(),
+  description: z.string().min(1, 'Keterangan biaya wajib diisi.'),
+  costSide: z.enum(['InputSide', 'OutputSide']),
+  basis: z.enum(['InputQty', 'OutputQty', 'Fixed']),
+  rate: z.coerce.number().min(0, 'Rate tidak boleh negatif.'),
+  costAccountId: z.string().uuid().nullable().optional(),
+});
+
 const ProductionInputLineSchema = z.object({
   itemId: z.string().min(1, 'Item wajib dipilih.'),
   quantity: z.coerce.number().positive('Kuantitas harus lebih dari 0.'),
@@ -502,6 +514,14 @@ export const CreateProductionRunSchema = z.object({
   referenceNumber: z.string().nullable().optional(),
   inputs: z.array(ProductionInputLineSchema).min(1, 'Minimal satu item input.'),
   outputs: z.array(ProductionOutputLineSchema).min(1, 'Minimal satu item output.'),
+  // Phase 3: cost components for loaded HPP computation. Each cost entry is a
+  // snapshot at submit time — retroactive master edits don't affect history.
+  // GL is NOT posted from these — real expenses still flow via JV/invoice.
+  costs: z.array(ProductionRunCostInputSchema).optional().default([]),
+  // Phase 3: when set, computedHpp is locked to this value (user override the
+  // auto-computed loaded HPP). Otherwise the service computes it from
+  // material + costs - byproduct value.
+  hppOverride: z.coerce.number().min(0).nullable().optional(),
   // When true, production can consume more than current stock (stock goes negative).
   // Use case: backdated production input where sales already reduced stock.
   allowNegativeStock: z.boolean().optional().default(false),
