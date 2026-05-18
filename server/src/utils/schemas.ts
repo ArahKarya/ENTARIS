@@ -348,6 +348,29 @@ export const UpdateStockMovementSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
+// ─── Production Cost Standards (Phase 1 — master rate for cost components) ──
+// costSide: 'InputSide' = charged per input qty (e.g. listrik per kg input).
+//           'OutputSide' = charged per main output qty (e.g. kirim per kg output).
+// basis:    'InputQty'  = rate × sum(input qty)
+//           'OutputQty' = rate × main output qty
+//           'Fixed'     = flat per run (rate is the total)
+export const ProductionCostSideEnum = z.enum(['InputSide', 'OutputSide']);
+export const ProductionCostBasisEnum = z.enum(['InputQty', 'OutputQty', 'Fixed']);
+
+export const CreateProductionCostStandardSchema = z.object({
+  name: z.string().min(1, 'Nama standar biaya wajib diisi.'),
+  description: z.string().nullable().optional(),
+  costSide: ProductionCostSideEnum,
+  basis: ProductionCostBasisEnum,
+  defaultRate: z.coerce.number().min(0, 'Rate tidak boleh negatif.'),
+  costAccountId: z.string().uuid().nullable().optional(),
+  itemId: z.string().uuid().nullable().optional(),
+});
+
+export const UpdateProductionCostStandardSchema = CreateProductionCostStandardSchema
+  .partial()
+  .extend({ isActive: z.boolean().optional() });
+
 // ─── User Management ─────────────────────────────────────────────────────────
 const UserRoleEnum = z.enum(['Admin', 'Accountant', 'StaffProduksi', 'Viewer'], {
   message: "Role harus salah satu dari: Admin, Accountant, StaffProduksi, Viewer",

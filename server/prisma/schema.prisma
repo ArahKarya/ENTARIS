@@ -51,6 +51,8 @@ model Account {
   fixedAssetsAsAsset    FixedAsset[]            @relation("AssetAccount")
   fixedAssetsAsDepr     FixedAsset[]            @relation("DepreciationAccount")
   fixedAssetsAsAccDep   FixedAsset[]            @relation("AccumulatedDepAccount")
+  productionCostStandards ProductionCostStandard[] @relation("CostStandardAccount")
+  productionRunCosts    ProductionRunCost[]     @relation("RunCostAccount")
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
 
@@ -865,6 +867,7 @@ model InventoryItem {
   deliveryOrderItems   DeliveryOrderItem[]   @relation("DOLineInventory")
   purchaseOrderItems   PurchaseOrderItem[]   @relation("POItemInventory")
   goodsReceiptItems    GoodsReceiptItem[]    @relation("GRItemInventory")
+  costStandards        ProductionCostStandard[] @relation("ItemCostStandards")
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
 
@@ -952,8 +955,14 @@ model StockMovement {
   createdById     String            @map("created_by_id")
   createdBy       User              @relation("MovementCreatedBy", fields: [createdById], references: [id])
   isCancelled     Boolean           @default(false) @map("is_cancelled")
+  // Loaded HPP per Kg for production-output movements. Includes material +
+  // cost components (listrik, buruh, etc.) less by-product NRV. Material-only
+  // unit_cost is still used for GL/WAC. unitCostLoaded is informational and
+  // drives "loaded margin" reports.
+  unitCostLoaded  Decimal?          @map("unit_cost_loaded") @db.Decimal(20, 4)
   deliveryOrderItem DeliveryOrderItem? @relation("DOLineMovement")
   goodsReceiptItem  GoodsReceiptItem?  @relation("GRLineMovement")
+  productionInputBatchUsage ProductionRunItem[] @relation("ProductionInputBatch")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
@@ -974,7 +983,21 @@ model ProductionRun {
   referenceId     String?             @map("reference_id")
   referenceNumber String?             @map("reference_number")
   yieldPct        Decimal?            @map("yield_pct") @db.Decimal(5, 2)
+  // ─── Loaded HPP breakdown (informational, computed at submit) ─────────
+  // totalMaterialCost: sum(input.qty × batchUnitCost) — real from batches
+  // totalCostInputSide: sum of input-side cost components (listrik, dll)
+  // totalCostOutputSide: sum of output-side cost components (kirim, dll)
+  // totalByproductValue: sum(byproduct.qty × nrvUnitValue)
+  // computedHpp: (material + costs - byproductValue) / mainOutputQty
+  // hppManualOverride: when true, computedHpp was overridden by user
+  totalMaterialCost   Decimal?  @map("total_material_cost") @db.Decimal(20, 4)
+  totalCostInputSide  Decimal?  @map("total_cost_input_side") @db.Decimal(20, 4)
+  totalCostOutputSide Decimal?  @map("total_cost_output_side") @db.Decimal(20, 4)
+  totalByproductValue Decimal?  @map("total_byproduct_value") @db.Decimal(20, 4)
+  computedHpp         Decimal?  @map("computed_hpp") @db.Decimal(20, 4)
+  hppManualOverride   Boolean   @default(false) @map("hpp_manual_override")
   items           ProductionRunItem[]
+  runCosts        ProductionRunCost[]
   isCancelled     Boolean             @default(false) @map("is_cancelled")
   fiscalYearId    String              @map("fiscal_year_id")
   fiscalYear      FiscalYear          @relation(fields: [fiscalYearId], references: [id])
@@ -1001,12 +1024,77 @@ model ProductionRunItem {
   unitPrice       Decimal?      @map("unit_price") @db.Decimal(15, 2)
   yieldPct        Decimal?      @map("yield_pct") @db.Decimal(5, 2)
   isByProduct     Boolean       @default(false) @map("is_by_product")
+  // Batch tracking (input side): link to the inbound StockMovement (batch)
+  // that the staff picked. batchUnitCost is captured at pick time so the
+  // production cost is locked even if WAC changes later.
+  sourceMovementId String?      @map("source_movement_id")
+  sourceMovement   StockMovement? @relation("ProductionInputBatch", fields: [sourceMovementId], references: [id])
+  batchUnitCost    Decimal?     @map("batch_unit_cost") @db.Decimal(20, 4)
+  // NRV per Kg for by-product output. Used as unit_cost for the inbound
+  // stock movement of that by-product and to compute the loaded HPP of the
+  // main output.
+  nrvUnitValue     Decimal?     @map("nrv_unit_value") @db.Decimal(20, 4)
   createdAt       DateTime      @default(now()) @map("created_at")
 
   @@index([productionRunId])
   @@index([warehouseId])
   @@index([itemId])
+  @@index([sourceMovementId])
   @@map("production_run_items")
+}
+
+// Master rates for cost components used by production runs. Staff picks a
+// standard at run-time and the default rate is prefilled; they can override
+// per run if needed (e.g. abnormal electricity bill).
+model ProductionCostStandard {
+  id              String         @id @default(uuid())
+  name            String
+  description     String?
+  // InputSide: charged per unit of input qty. OutputSide: per unit of main output qty.
+  costSide        String         @map("cost_side")
+  // InputQty: rate × sum(input qty). OutputQty: rate × main output qty. Fixed: flat per run.
+  basis           String
+  defaultRate     Decimal        @map("default_rate") @db.Decimal(15, 4)
+  // Optional GL account tag (informational; production module does NOT post
+  // to this account — real expense still flows via JV / payment / invoice).
+  costAccountId   String?        @map("cost_account_id")
+  costAccount     Account?       @relation("CostStandardAccount", fields: [costAccountId], references: [id])
+  // Optional item scope — when set, this standard applies only to runs that
+  // produce/consume the linked item. Null = applies to any run.
+  itemId          String?        @map("item_id")
+  item            InventoryItem? @relation("ItemCostStandards", fields: [itemId], references: [id])
+  isActive        Boolean        @default(true) @map("is_active")
+  runCosts        ProductionRunCost[]
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([costSide])
+  @@index([itemId])
+  @@map("production_cost_standards")
+}
+
+// Cost component used in a specific production run. Snapshot of the master
+// rate at submit time (so retroactive master edits don't change historical HPP).
+model ProductionRunCost {
+  id              String         @id @default(uuid())
+  productionRunId String         @map("production_run_id")
+  productionRun   ProductionRun  @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  standardId      String?        @map("standard_id")
+  standard        ProductionCostStandard? @relation(fields: [standardId], references: [id])
+  description     String
+  costSide        String         @map("cost_side")
+  basis           String
+  rate            Decimal        @db.Decimal(15, 4)
+  qtyBasis        Decimal        @map("qty_basis") @db.Decimal(15, 3)
+  totalAmount     Decimal        @map("total_amount") @db.Decimal(20, 4)
+  costAccountId   String?        @map("cost_account_id")
+  costAccount     Account?       @relation("RunCostAccount", fields: [costAccountId], references: [id])
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([standardId])
+  @@map("production_run_costs")
 }
 
 enum StockOpnameStatus {
