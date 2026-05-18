@@ -225,6 +225,7 @@ export async function editProductionRunInTx(
         quantity: input.quantity,
         unitCost: inputUnitCost,
         totalValue: inputTotalValue,
+        sourceMovementId: snapshot.sourceMovementId,
         referenceType: 'ProductionRun',
         referenceId: runId,
         referenceNumber: oldRun.runNumber,

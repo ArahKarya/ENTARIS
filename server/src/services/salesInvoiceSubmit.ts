@@ -33,6 +33,9 @@ export interface SubmitSalesInvoiceInput {
     // (DO already did it); COGS uses the unitCost locked on the DO's
     // stockMovement (not the current averageCost).
     deliveryOrderItemId?: string | null;
+    // Phase 5: batch picker. When set, stock-out + sales line + COGS calc
+    // all lock to the unitCost of the linked inbound batch (vs WAC fallback).
+    sourceMovementId?: string | null;
   }>;
   dueDate?: string | null;
   notes?: string | null;
@@ -112,6 +115,7 @@ export async function submitSalesInvoiceInTx(
     rate: number; discount: number; amount: number; taxPct: number; pphPct: number;
     accountId: string; description: string | null;
     deliveryOrderItemId: string | null;
+    sourceMovementId: string | null;  // Phase 5: batch picker
   }> = [];
 
   for (const item of body.items) {
@@ -147,6 +151,7 @@ export async function submitSalesInvoiceInTx(
       accountId: lineAccountId,
       description: item.description || null,
       deliveryOrderItemId: item.deliveryOrderItemId || null,
+      sourceMovementId: item.sourceMovementId || null,
     });
   }
 
@@ -380,7 +385,33 @@ export async function submitSalesInvoiceInTx(
     // ── Direct-sale branch (existing behavior) ─────────────────────
     const stockBefore = Number(inventoryItem.currentStock);
     const avgCost = Number(inventoryItem.averageCost);
-    const cogsUnitCost = avgCost > 0 ? avgCost : 0;
+    // Phase 5: if a specific batch was picked for this line, use the batch's
+    // locked unit cost for COGS. Otherwise fall back to WAC.
+    let cogsUnitCost = avgCost > 0 ? avgCost : 0;
+    let lineUnitCostLoaded: number | null = null;
+    if (item.sourceMovementId) {
+      const batch = await tx.stockMovement.findUnique({
+        where: { id: item.sourceMovementId },
+        select: {
+          id: true, itemId: true, isCancelled: true, movementType: true,
+          unitCost: true, unitCostLoaded: true,
+        },
+      });
+      if (!batch) {
+        throw new BusinessError(`Batch sumber tidak ditemukan untuk item "${inventoryItem.name}".`);
+      }
+      if (batch.itemId !== inventoryItem.id) {
+        throw new BusinessError(`Batch sumber tidak cocok dengan item "${inventoryItem.name}".`);
+      }
+      if (batch.isCancelled) {
+        throw new BusinessError(`Batch sumber "${inventoryItem.name}" sudah dibatalkan.`);
+      }
+      if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn') {
+        throw new BusinessError(`Batch sumber untuk "${inventoryItem.name}" bukan stok masuk.`);
+      }
+      cogsUnitCost = Number(batch.unitCost);
+      lineUnitCostLoaded = batch.unitCostLoaded != null ? Number(batch.unitCostLoaded) : null;
+    }
     const cogsAmount = new Decimal(qty).times(new Decimal(cogsUnitCost)).toDecimalPlaces(2).toNumber();
 
     if (body.allowNegativeStock && stockBefore < qty) {
@@ -435,6 +466,8 @@ export async function submitSalesInvoiceInTx(
         quantity: qty,
         unitCost: cogsUnitCost,
         totalValue: cogsAmount,
+        // Phase 5: batch back-link for /items/:id/batches consumption tracking
+        sourceMovementId: item.sourceMovementId || null,
         referenceType: 'SalesInvoice',
         referenceId: invoice.id,
         notes: `Auto dari ${invoice.invoiceNumber}`,
@@ -442,6 +475,17 @@ export async function submitSalesInvoiceInTx(
         fiscalYearId: fiscalYear.id,
       },
     });
+
+    // Phase 5: persist the loaded HPP snapshot to the sales line for Phase 6
+    // "loaded margin" reports. lineUnitCostLoaded is null when no batch picked
+    // or when the batch had no loaded HPP (e.g. purchase batch, not from
+    // production output).
+    if (lineUnitCostLoaded != null) {
+      await tx.salesInvoiceItem.update({
+        where: { id: item.id },
+        data: { unitCostLoaded: lineUnitCostLoaded },
+      });
+    }
 
     totalCogs = totalCogs.plus(new Decimal(cogsAmount));
 

@@ -15,7 +15,15 @@ export interface SubmitStockTransferInput {
   nomorMobil?: string | null;
   driverName?: string | null;
   recipientName?: string | null;
-  items: Array<{ itemId: string; quantity: number; description?: string | null }>;
+  items: Array<{
+    itemId: string;
+    quantity: number;
+    description?: string | null;
+    // Phase 5: optional batch picker. When set, the source-warehouse
+    // TransferOut SM links back to this inbound batch + the line gets the
+    // unitCost locked to it.
+    sourceMovementId?: string | null;
+  }>;
 }
 
 /**
@@ -81,6 +89,7 @@ export async function submitStockTransferInTx(
           itemId: it.itemId,
           quantity: it.quantity,
           description: it.description || null,
+          sourceMovementId: it.sourceMovementId || null,
         })),
       },
     },
@@ -92,7 +101,22 @@ export async function submitStockTransferInTx(
     const item = await tx.inventoryItem.findUnique({ where: { id: it.itemId } });
     if (!item) throw new BusinessError('Item tidak ditemukan.');
     const qty = it.quantity;
-    const unitCost = Number(item.averageCost);
+    // Phase 5: when a batch is picked, lock unitCost to the batch's stored
+    // cost so per-batch consumption ledger remains internally consistent.
+    let unitCost = Number(item.averageCost);
+    if (it.sourceMovementId) {
+      const batch = await tx.stockMovement.findUnique({
+        where: { id: it.sourceMovementId },
+        select: { id: true, itemId: true, isCancelled: true, movementType: true, unitCost: true },
+      });
+      if (!batch) throw new BusinessError(`Batch sumber tidak ditemukan untuk item "${item.name}".`);
+      if (batch.itemId !== item.id) throw new BusinessError(`Batch sumber tidak cocok dengan item "${item.name}".`);
+      if (batch.isCancelled) throw new BusinessError(`Batch sumber "${item.name}" sudah dibatalkan.`);
+      if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn' && batch.movementType !== 'TransferIn') {
+        throw new BusinessError(`Batch sumber untuk "${item.name}" bukan stok masuk.`);
+      }
+      unitCost = Number(batch.unitCost);
+    }
     const totalValue = qty * unitCost;
 
     await tx.inventoryStock.upsert({
@@ -117,6 +141,8 @@ export async function submitStockTransferInTx(
         quantity: qty,
         unitCost,
         totalValue,
+        // Phase 5: batch back-link for batch consumption ledger
+        sourceMovementId: it.sourceMovementId || null,
         notes: `Transfer ke ${toWh.name}`,
         referenceType: 'StockTransfer',
         referenceId: transfer.id,

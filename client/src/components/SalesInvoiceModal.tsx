@@ -5,6 +5,7 @@ import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Paperclip, FileText
 import { formatRupiah } from '../lib/formatters';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
+import BatchPicker from './BatchPicker';
 
 
 interface InvoiceItem {
@@ -24,6 +25,9 @@ interface InvoiceItem {
   pphPct: number;   // PPh % per item
   deliveryOrderItemId?: string | null;
   deliveryOrderNumber?: string;
+  // Phase 5: optional batch picker. When set, the server locks COGS to the
+  // batch's unit cost (specific identification) instead of WAC.
+  sourceMovementId?: string;
 }
 
 interface PendingDOItem {
@@ -53,7 +57,7 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter', 'Jasa'];
 
 const defaultItem = (): InvoiceItem => ({
-  id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0, deliveryOrderItemId: null, deliveryOrderNumber: undefined,
+  id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0, deliveryOrderItemId: null, deliveryOrderNumber: undefined, sourceMovementId: '',
 });
 
 const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -686,6 +690,20 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                                 placeholder="Pilih gudang sumber..."
                               />
                             </div>
+                            {/* Phase 5: batch picker (optional, hybrid FIFO/specific-id) */}
+                            {item.inventoryItemId && item.warehouseId && !item.deliveryOrderItemId && (
+                              <div className="mt-1">
+                                <label className="text-[10px] text-gray-400 block mb-0.5">
+                                  Batch (opsional — default WAC)
+                                </label>
+                                <BatchPicker
+                                  itemId={item.inventoryItemId}
+                                  warehouseId={item.warehouseId}
+                                  value={item.sourceMovementId ?? ''}
+                                  onChange={(id) => updateItem(idx, 'sourceMovementId', id as any)}
+                                />
+                              </div>
+                            )}
                           </>
                         ) : (
                           <>
@@ -994,6 +1012,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   taxPct: i.taxPct,
                   pphPct: i.pphPct,
                   deliveryOrderItemId: i.deliveryOrderItemId ?? null,
+                  sourceMovementId: i.sourceMovementId || null,
                 })),
               })}
               disabled={!canSubmit}

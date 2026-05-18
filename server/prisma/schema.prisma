@@ -399,8 +399,15 @@ model SalesInvoiceItem {
   accountId           String              @map("account_id")
   account             Account             @relation(fields: [accountId], references: [id])
   description         String?
+  // Phase 5: batch picker for sales. When set, the stock-out movement created
+  // at invoice submit links back to this inbound batch. unitCostLoaded is the
+  // loaded HPP captured at submit (used for Phase 6 "loaded margin" reports).
+  sourceMovementId    String?             @map("source_movement_id")
+  sourceMovement      StockMovement?      @relation("SalesBatchSource", fields: [sourceMovementId], references: [id])
+  unitCostLoaded      Decimal?            @map("unit_cost_loaded") @db.Decimal(20, 4)
 
   @@index([salesInvoiceId])
+  @@index([sourceMovementId])
   @@index([inventoryItemId])
   @@index([serviceItemId])
   @@index([warehouseId])
@@ -923,10 +930,16 @@ model StockTransferItem {
   item        InventoryItem @relation(fields: [itemId], references: [id])
   quantity    Decimal       @db.Decimal(20, 3)
   description String?
+  // Phase 5: batch picker for transfers. When set, the source-warehouse Out
+  // movement created at submit links back to this inbound batch. The
+  // destination-warehouse In movement is a fresh inbound batch.
+  sourceMovementId String?       @map("source_movement_id")
+  sourceMovement   StockMovement? @relation("TransferBatchSource", fields: [sourceMovementId], references: [id])
   createdAt   DateTime      @default(now()) @map("created_at")
 
   @@index([transferId])
   @@index([itemId])
+  @@index([sourceMovementId])
   @@map("stock_transfer_items")
 }
 
@@ -960,9 +973,18 @@ model StockMovement {
   // unit_cost is still used for GL/WAC. unitCostLoaded is informational and
   // drives "loaded margin" reports.
   unitCostLoaded  Decimal?          @map("unit_cost_loaded") @db.Decimal(20, 4)
+  // Phase 5: universal batch tracking. For outbound movements (Out /
+  // AdjustmentOut) this links to the inbound StockMovement (batch) the qty
+  // was consumed from. The /items/:id/batches endpoint sums these to compute
+  // per-batch availability.
+  sourceMovementId  String?         @map("source_movement_id")
+  sourceMovement    StockMovement?  @relation("BatchSource", fields: [sourceMovementId], references: [id])
+  consumingMovements StockMovement[] @relation("BatchSource")
   deliveryOrderItem DeliveryOrderItem? @relation("DOLineMovement")
   goodsReceiptItem  GoodsReceiptItem?  @relation("GRLineMovement")
   productionInputBatchUsage ProductionRunItem[] @relation("ProductionInputBatch")
+  consumingSalesItems  SalesInvoiceItem[] @relation("SalesBatchSource")
+  consumingTransferItems StockTransferItem[] @relation("TransferBatchSource")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 

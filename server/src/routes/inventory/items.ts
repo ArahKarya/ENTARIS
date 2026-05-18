@@ -116,12 +116,16 @@ router.get('/:id/batches', async (req, res) => {
       return res.json({ data: [], item, currentStock });
     }
 
-    // 2. Production consumption tracked against these inbound movements
-    const consumed = await prisma.productionRunItem.groupBy({
+    // 2. Universal consumption: sum outbound stockMovements that link back to
+    // each inbound batch via stock_movements.source_movement_id. This covers
+    // production input, sales, transfer, and adjustment Out — anywhere the
+    // submit service sets the back-link.
+    const consumed = await prisma.stockMovement.groupBy({
       by: ['sourceMovementId'],
       where: {
         sourceMovementId: { in: inbound.map((m) => m.id) },
-        productionRun: { isCancelled: false },
+        isCancelled: false,
+        movementType: { in: ['Out', 'AdjustmentOut', 'TransferOut'] },
       },
       _sum: { quantity: true },
     });

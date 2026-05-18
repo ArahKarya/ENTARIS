@@ -236,6 +236,13 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           referenceId: body.referenceId || null,
           referenceNumber: body.referenceNumber || null,
           offsetAccountId: resolvedOffsetAccountId || body.offsetAccountId || null,
+          // Phase 5: for outbound adjustment movements, optionally link to a
+          // specific inbound batch so the batch consumption ledger stays
+          // accurate.
+          sourceMovementId:
+            (body.movementType === 'Out' || body.movementType === 'AdjustmentOut') && body.sourceMovementId
+              ? body.sourceMovementId
+              : null,
           journalEntryId,
           fiscalYearId: fiscalYear.id,
           createdById: req.user!.userId,

@@ -218,6 +218,10 @@ export async function submitProductionRunInTx(
         quantity: input.quantity,
         unitCost: inputUnitCost,
         totalValue: inputTotalValue,
+        // Phase 5: universal batch back-link, so /items/:id/batches can sum
+        // all outbound consumption regardless of source (production / sales /
+        // transfer / adjustment).
+        sourceMovementId: snapshot.sourceMovementId,
         referenceType: 'ProductionRun',
         referenceId: run.id,
         referenceNumber: runNumber,

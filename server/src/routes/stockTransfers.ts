@@ -13,6 +13,8 @@ const TransferItemSchema = z.object({
   itemId: z.string().uuid(),
   quantity: z.coerce.number().positive('Qty harus > 0.'),
   description: z.string().nullable().optional(),
+  // Phase 5: optional batch picker — lock unitCost to a specific inbound batch
+  sourceMovementId: z.string().uuid().nullable().optional(),
 });
 
 const CreateTransferSchema = z.object({

@@ -51,6 +51,11 @@ const InvoiceItemSchema = z.object({
   description: z.string().nullable().optional(),
   // From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS.
   deliveryOrderItemId: z.string().uuid().nullable().optional(),
+  // Phase 5: batch picker. When sourceMovementId is set, the SM Out generated
+  // at submit (or DO submit for from-DO lines) links back to this inbound
+  // batch and the unit_cost_loaded snapshot from the batch is copied onto
+  // the sales line for Phase 6 "loaded margin" reports.
+  sourceMovementId: z.string().uuid().nullable().optional(),
 });
 
 export const CreateSalesInvoiceSchema = z.object({
@@ -335,6 +340,8 @@ export const CreateStockMovementSchema = z.object({
   referenceId: z.string().nullable().optional(),
   referenceNumber: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  // Phase 5: batch picker for adjustment Out
+  sourceMovementId: z.string().uuid().nullable().optional(),
 });
 
 export const UpdateStockMovementSchema = z.object({

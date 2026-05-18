@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import WarehouseTransferDrawer from '../components/WarehouseTransferDrawer';
+import BatchPicker from '../components/BatchPicker';
 
 const STATUS_BADGE: Record<string, string> = {
   Draft: 'badge-gray',
@@ -21,6 +22,8 @@ interface TransferItemRow {
   quantity: number;
   unit?: string;
   description?: string;
+  // Phase 5: optional batch picker — locks unitCost to a specific inbound batch.
+  sourceMovementId?: string;
 }
 
 export const StockTransfers = () => {
@@ -207,6 +210,7 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
         itemId: it.itemId,
         quantity: it.quantity,
         description: it.description || null,
+        sourceMovementId: it.sourceMovementId || null,
       })),
     });
   };
@@ -296,18 +300,36 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
             </div>
             <div className="space-y-2">
               {items.map((it, idx) => (
-                <div key={it.id} className="grid grid-cols-12 gap-2 items-end p-2 border border-border rounded-lg bg-card/50">
+                <div key={it.id} className="grid grid-cols-12 gap-2 items-start p-2 border border-border rounded-lg bg-card/50">
                   <div className="col-span-12 md:col-span-7">
                     <label className="text-[11px] text-muted-foreground">Item</label>
                     <SearchableSelect options={itemOptions} value={it.itemId}
                       onChange={(v) => {
                         const next = [...items];
-                        next[idx] = { ...next[idx], itemId: v };
+                        next[idx] = { ...next[idx], itemId: v, sourceMovementId: '' };
                         const itemMeta = invItems?.find((i: any) => i.id === v);
                         if (itemMeta) next[idx].unit = itemMeta.unit;
                         setItems(next);
                       }}
                       placeholder="Pilih item..." />
+                    {/* Phase 5: batch picker (optional, locks unitCost to a specific inbound batch) */}
+                    {it.itemId && fromWarehouseId && (
+                      <div className="mt-1">
+                        <label className="text-[10px] text-muted-foreground block mb-0.5">
+                          Batch sumber (opsional)
+                        </label>
+                        <BatchPicker
+                          itemId={it.itemId}
+                          warehouseId={fromWarehouseId}
+                          value={it.sourceMovementId ?? ''}
+                          onChange={(id) => {
+                            const next = [...items];
+                            next[idx] = { ...next[idx], sourceMovementId: id };
+                            setItems(next);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-8 md:col-span-3">
                     <label className="text-[11px] text-muted-foreground">Qty {it.unit ? `(${it.unit})` : ''}</label>
