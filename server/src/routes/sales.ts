@@ -14,13 +14,30 @@ const router = Router();
 // GET /api/sales/invoices
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', status, partyId } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
+    const { page = '1', limit = '50', status, partyId, startDate, endDate, search } = req.query;
+    // Bumped max from 200 to 500 — was truncating older invoices once dataset
+    // grew past 200. Server-side date filter below is the proper long-term
+    // fix; raised cap meanwhile so list UI doesn't silently drop rows.
+    const take = Math.min(Number(limit) || 50, 500);
     const skip = (Number(page) - 1) * take;
 
     const where: Prisma.SalesInvoiceWhereInput = {};
     if (status) where.status = status as any;
     if (partyId) where.partyId = partyId as string;
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
+      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
+    }
+    if (search) {
+      const q = String(search).trim();
+      if (q.length > 0) {
+        where.OR = [
+          { invoiceNumber: { contains: q, mode: 'insensitive' } },
+          { customer: { name: { contains: q, mode: 'insensitive' } } },
+        ];
+      }
+    }
 
     const [invoices, total] = await Promise.all([
       prisma.salesInvoice.findMany({

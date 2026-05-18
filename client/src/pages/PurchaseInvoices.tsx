@@ -91,7 +91,7 @@ export const PurchaseInvoices = () => {
   const { data: raw, isLoading } = useQuery({
     queryKey: ['purchase-invoices'],
     queryFn: async () => {
-      const response = await api.get('/purchase/invoices?limit=200');
+      const response = await api.get('/purchase/invoices?limit=500');
       return response.data.data ?? response.data;
     },
   });

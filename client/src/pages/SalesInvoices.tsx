@@ -35,7 +35,7 @@ export const SalesInvoices = () => {
   const { data: raw, isLoading } = useQuery({
     queryKey: ['sales-invoices'],
     queryFn: async () => {
-      const response = await api.get('/sales/invoices?limit=200');
+      const response = await api.get('/sales/invoices?limit=500');
       return response.data.data ?? response.data;
     },
   });
