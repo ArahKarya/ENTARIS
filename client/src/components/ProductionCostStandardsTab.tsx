@@ -1,16 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Edit2, Trash2, Calculator } from 'lucide-react';
+import {
+  Loader2, Plus, Edit2, Trash2, Calculator, X, FileText, Hash, Package,
+  Tag, AlertCircle, ArrowDownToLine, ArrowUpFromLine,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import SearchableSelect, { type SelectOption } from './SearchableSelect';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type CostSide = 'InputSide' | 'OutputSide';
+type Basis = 'InputQty' | 'OutputQty' | 'Fixed';
 
 interface CostStandard {
   id: string;
   name: string;
   description: string | null;
-  costSide: 'InputSide' | 'OutputSide';
-  basis: 'InputQty' | 'OutputQty' | 'Fixed';
+  costSide: CostSide;
+  basis: Basis;
   defaultRate: string | number;
   isActive: boolean;
   costAccountId: string | null;
@@ -25,6 +34,7 @@ interface Account {
   id: string;
   accountNumber: string;
   name: string;
+  isGroup?: boolean;
   accountType?: string;
 }
 
@@ -33,13 +43,14 @@ interface Item {
   code: string;
   name: string;
   unit: string;
+  isActive?: boolean;
 }
 
 interface FormState {
   name: string;
   description: string;
-  costSide: 'InputSide' | 'OutputSide';
-  basis: 'InputQty' | 'OutputQty' | 'Fixed';
+  costSide: CostSide;
+  basis: Basis;
   defaultRate: string;
   costAccountId: string;
   itemId: string;
@@ -55,14 +66,16 @@ const blankForm: FormState = {
   itemId: '',
 };
 
-const costSideLabel = (s: string) =>
-  s === 'InputSide' ? 'Input (per Kg input)' : 'Output (per Kg output)';
+const basisLabel = (b: Basis) =>
+  b === 'InputQty' ? 'rate × qty input' : b === 'OutputQty' ? 'rate × qty main output' : 'flat per run';
 
-const basisLabel = (b: string) =>
-  b === 'InputQty' ? 'rate × qty input' : b === 'OutputQty' ? 'rate × qty main output' : 'Flat per run';
+const basisUnitHint = (b: Basis) =>
+  b === 'InputQty' ? 'Rp / Kg input' : b === 'OutputQty' ? 'Rp / Kg output' : 'Rp / run';
 
 const fmtRupiah = (val: string | number) =>
   Number(val).toLocaleString('id-ID', { maximumFractionDigits: 4 });
+
+// ─── Main Tab ────────────────────────────────────────────────────────────────
 
 interface Props {
   userRole: string;
@@ -72,9 +85,7 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
   const canEdit = userRole === 'Admin' || userRole === 'Accountant';
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(blankForm);
-  const [saving, setSaving] = useState(false);
+  const [editTarget, setEditTarget] = useState<CostStandard | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: standardsRaw, isLoading } = useQuery({
@@ -83,82 +94,14 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
   });
   const standards: CostStandard[] = standardsRaw?.data ?? [];
 
-  const { data: accountsRaw } = useQuery({
-    queryKey: ['accounts-expense'],
-    queryFn: () => api.get('/coa').then(r => r.data),
-    enabled: modalOpen,
-  });
-  const accounts: Account[] = useMemo(() => {
-    const arr = Array.isArray(accountsRaw) ? accountsRaw : (accountsRaw?.data ?? []);
-    return arr.filter((a: any) => !a.isGroup);
-  }, [accountsRaw]);
-
-  const { data: itemsRaw } = useQuery({
-    queryKey: ['inventory-items-for-cost-standards'],
-    queryFn: () => api.get('/inventory/items').then(r => r.data),
-    enabled: modalOpen,
-  });
-  const items: Item[] = useMemo(() => {
-    const arr = Array.isArray(itemsRaw) ? itemsRaw : (itemsRaw?.data ?? []);
-    return arr.filter((i: any) => i.isActive);
-  }, [itemsRaw]);
-
   const handleOpenAdd = () => {
-    setEditId(null);
-    setForm(blankForm);
+    setEditTarget(null);
     setModalOpen(true);
   };
 
   const handleOpenEdit = (std: CostStandard) => {
-    setEditId(std.id);
-    setForm({
-      name: std.name,
-      description: std.description ?? '',
-      costSide: std.costSide,
-      basis: std.basis,
-      defaultRate: String(std.defaultRate),
-      costAccountId: std.costAccountId ?? '',
-      itemId: std.itemId ?? '',
-    });
+    setEditTarget(std);
     setModalOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim()) {
-      toast.error('Nama wajib diisi.');
-      return;
-    }
-    const rateNum = Number(form.defaultRate);
-    if (!Number.isFinite(rateNum) || rateNum < 0) {
-      toast.error('Rate harus angka >= 0.');
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        costSide: form.costSide,
-        basis: form.basis,
-        defaultRate: rateNum,
-        costAccountId: form.costAccountId || null,
-        itemId: form.itemId || null,
-      };
-      if (editId) {
-        await api.put(`/inventory/production-cost-standards/${editId}`, payload);
-        toast.success('Standar biaya diperbarui.');
-      } else {
-        await api.post('/inventory/production-cost-standards', payload);
-        toast.success('Standar biaya dibuat.');
-      }
-      queryClient.invalidateQueries({ queryKey: ['production-cost-standards'] });
-      setModalOpen(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Gagal menyimpan standar biaya.');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleDelete = async (id: string) => {
@@ -180,20 +123,34 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-start gap-2">
-        <Calculator size={18} className="text-blue-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-900">
-          <p className="font-medium">Standar Biaya Produksi (Informational)</p>
-          <p className="text-blue-700 mt-1">
-            Rate di sini dipakai sebagai acuan saat hitung HPP per Kg di proses produksi.
-            <strong> Tidak posting GL</strong> — biaya real (PLN, gaji, dll) tetap masuk P&L lewat
-            tagihan/JV. Edit master tidak akan mengubah HPP produksi historis (snapshot disimpan
-            di setiap run).
+      {/* Info banner */}
+      <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 flex items-start gap-3">
+        <div className="shrink-0 p-1.5 rounded-lg bg-blue-100 text-blue-700">
+          <Calculator size={15} />
+        </div>
+        <div className="text-sm leading-relaxed">
+          <p className="font-semibold text-blue-900">Standar Biaya Produksi <span className="text-blue-500 font-normal">(informational)</span></p>
+          <p className="text-blue-800/80 mt-0.5">
+            Rate jadi acuan saat hitung HPP per Kg di proses produksi.
+            <span className="font-semibold"> Tidak posting GL</span> — biaya real (PLN, gaji, dll) tetap masuk P&L lewat
+            tagihan/JV. Edit master tidak mengubah HPP produksi historis (snapshot disimpan di setiap run).
           </p>
         </div>
       </div>
 
-      <div className="flex justify-end">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-gray-500">
+          {standards.length > 0 && (
+            <>
+              <span className="font-medium text-gray-700">{standards.length}</span> standar
+              {' · '}
+              <span className="text-blue-600">{inputStandards.length} input</span>
+              {' · '}
+              <span className="text-emerald-600">{outputStandards.length} output</span>
+            </>
+          )}
+        </div>
         {canEdit && (
           <button onClick={handleOpenAdd} className="btn-primary">
             <Plus size={15} /> Standar Baru
@@ -201,15 +158,18 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
         )}
       </div>
 
+      {/* Lists */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="animate-spin text-gray-400" />
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="animate-spin text-gray-300" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <StandardsList
+            accent="blue"
+            icon={<ArrowDownToLine size={14} />}
             title="Biaya Sisi Input"
-            subtitle="Contoh: Listrik mesin giling per Kg gabah masuk"
+            subtitle="Contoh: Listrik mesin giling, per Kg gabah masuk"
             standards={inputStandards}
             canEdit={canEdit}
             onEdit={handleOpenEdit}
@@ -217,8 +177,10 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
             deletingId={deletingId}
           />
           <StandardsList
+            accent="emerald"
+            icon={<ArrowUpFromLine size={14} />}
             title="Biaya Sisi Output"
-            subtitle="Contoh: Biaya kirim ke gudang per Kg beras siap"
+            subtitle="Contoh: Kirim hasil ke gudang, per Kg beras siap"
             standards={outputStandards}
             canEdit={canEdit}
             onEdit={handleOpenEdit}
@@ -228,158 +190,420 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
         </div>
       )}
 
+      {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">
-                {editId ? 'Edit Standar Biaya' : 'Standar Biaya Baru'}
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-              >×</button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nama *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Listrik Mesin Giling"
-                  className="form-input w-full"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-                <input
-                  type="text"
-                  value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Estimasi listrik per Kg input GKP"
-                  className="form-input w-full"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sisi *</label>
-                  <select
-                    value={form.costSide}
-                    onChange={e => {
-                      const cs = e.target.value as 'InputSide' | 'OutputSide';
-                      setForm(f => ({
-                        ...f,
-                        costSide: cs,
-                        basis: cs === 'InputSide' ? 'InputQty' : 'OutputQty',
-                      }));
-                    }}
-                    className="form-input w-full"
-                  >
-                    <option value="InputSide">Input</option>
-                    <option value="OutputSide">Output</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Basis *</label>
-                  <select
-                    value={form.basis}
-                    onChange={e => setForm(f => ({ ...f, basis: e.target.value as any }))}
-                    className="form-input w-full"
-                  >
-                    <option value="InputQty">Per Qty Input</option>
-                    <option value="OutputQty">Per Qty Output</option>
-                    <option value="Fixed">Flat per Run</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Default Rate (Rp) *
-                </label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={form.defaultRate}
-                  onChange={e => setForm(f => ({ ...f, defaultRate: e.target.value }))}
-                  placeholder="100"
-                  className="form-input w-full"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {form.basis === 'Fixed' ? 'Total Rp per produksi' : `Rp per ${form.basis === 'InputQty' ? 'kg input' : 'kg output'}`}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Akun Biaya (opsional, untuk tag laporan)
-                </label>
-                <select
-                  value={form.costAccountId}
-                  onChange={e => setForm(f => ({ ...f, costAccountId: e.target.value }))}
-                  className="form-input w-full"
-                >
-                  <option value="">— Tidak ditag —</option>
-                  {accounts.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.accountNumber} — {a.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Tidak ada posting GL ke akun ini. Tag hanya untuk grouping laporan.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Berlaku Untuk Item (opsional)
-                </label>
-                <select
-                  value={form.itemId}
-                  onChange={e => setForm(f => ({ ...f, itemId: e.target.value }))}
-                  className="form-input w-full"
-                >
-                  <option value="">— Semua item —</option>
-                  {items.map(i => (
-                    <option key={i.id} value={i.id}>
-                      {i.code} — {i.name} ({i.unit})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Kosongkan agar standar bisa dipakai untuk item apa pun.
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="btn-secondary"
-                  disabled={saving}
-                >
-                  Batal
-                </button>
-                <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-                  {editId ? 'Simpan' : 'Buat'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <CostStandardFormModal
+          editTarget={editTarget}
+          onClose={() => setModalOpen(false)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['production-cost-standards'] });
+            setModalOpen(false);
+          }}
+        />
       )}
     </div>
   );
 }
 
+// ─── Form Modal ──────────────────────────────────────────────────────────────
+
+interface FormModalProps {
+  editTarget: CostStandard | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps) {
+  const isEdit = !!editTarget;
+  const [form, setForm] = useState<FormState>(() => {
+    if (!editTarget) return blankForm;
+    return {
+      name: editTarget.name,
+      description: editTarget.description ?? '',
+      costSide: editTarget.costSide,
+      basis: editTarget.basis,
+      defaultRate: String(editTarget.defaultRate),
+      costAccountId: editTarget.costAccountId ?? '',
+      itemId: editTarget.itemId ?? '',
+    };
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ESC to close
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && !saving) onClose();
+  }, [saving, onClose]);
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  const { data: accountsRaw } = useQuery({
+    queryKey: ['accounts-flat-for-cost-standard'],
+    queryFn: () => api.get('/coa').then(r => r.data),
+  });
+  const accountOptions: SelectOption[] = useMemo(() => {
+    const arr: Account[] = Array.isArray(accountsRaw) ? accountsRaw : (accountsRaw?.data ?? []);
+    return arr
+      .filter(a => !a.isGroup)
+      .map(a => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` }));
+  }, [accountsRaw]);
+
+  const { data: itemsRaw } = useQuery({
+    queryKey: ['inventory-items-for-cost-standards'],
+    queryFn: () => api.get('/inventory/items?limit=200').then(r => r.data),
+  });
+  const itemOptions: SelectOption[] = useMemo(() => {
+    const arr: Item[] = Array.isArray(itemsRaw) ? itemsRaw : (itemsRaw?.data ?? []);
+    return arr
+      .filter(i => i.isActive !== false)
+      .map(i => ({ value: i.id, label: `${i.code} — ${i.name} (${i.unit})` }));
+  }, [itemsRaw]);
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(f => ({ ...f, [key]: value }));
+  };
+
+  const pickSide = (side: CostSide) => {
+    setForm(f => ({
+      ...f,
+      costSide: side,
+      // Auto-pair basis with side when user hasn't customized it
+      basis:
+        (side === 'InputSide' && f.basis === 'OutputQty') ? 'InputQty'
+        : (side === 'OutputSide' && f.basis === 'InputQty') ? 'OutputQty'
+        : f.basis,
+    }));
+  };
+
+  const handleSubmit = async () => {
+    setError(null);
+    if (!form.name.trim()) {
+      setError('Nama wajib diisi.');
+      return;
+    }
+    const rateNum = Number(form.defaultRate);
+    if (!Number.isFinite(rateNum) || rateNum < 0) {
+      setError('Rate harus angka ≥ 0.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        costSide: form.costSide,
+        basis: form.basis,
+        defaultRate: rateNum,
+        costAccountId: form.costAccountId || null,
+        itemId: form.itemId || null,
+      };
+      if (isEdit) {
+        await api.put(`/inventory/production-cost-standards/${editTarget!.id}`, payload);
+        toast.success('Standar biaya diperbarui.');
+      } else {
+        await api.post('/inventory/production-cost-standards', payload);
+        toast.success('Standar biaya dibuat.');
+      }
+      onSaved();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Gagal menyimpan standar biaya.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const previewTotal = (() => {
+    const r = Number(form.defaultRate);
+    if (!Number.isFinite(r) || r <= 0) return null;
+    return r;
+  })();
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cost-standard-modal-title"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}
+    >
+      <div
+        className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-md lg:max-w-xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
+        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              'p-2 rounded-lg',
+              form.costSide === 'InputSide' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600',
+            )}>
+              <Calculator size={16} />
+            </div>
+            <div>
+              <h2 id="cost-standard-modal-title" className="text-base font-semibold text-gray-900">
+                {isEdit ? 'Edit Standar Biaya' : 'Standar Biaya Baru'}
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {isEdit ? `Mengubah ${editTarget!.name}` : 'Rate acuan untuk hitung HPP loaded'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+            aria-label="Tutup"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Cost Side selector */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Sisi Biaya</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => pickSide('InputSide')}
+                className={cn(
+                  'flex items-center gap-2 p-3 rounded-lg border transition-all text-left',
+                  form.costSide === 'InputSide'
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                    : 'border-gray-200 hover:border-gray-300 bg-white',
+                )}
+              >
+                <div className={cn(
+                  'p-1.5 rounded',
+                  form.costSide === 'InputSide' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500',
+                )}>
+                  <ArrowDownToLine size={14} />
+                </div>
+                <div className="min-w-0">
+                  <div className={cn(
+                    'text-sm font-semibold',
+                    form.costSide === 'InputSide' ? 'text-blue-900' : 'text-gray-700',
+                  )}>
+                    Sisi Input
+                  </div>
+                  <div className="text-[10px] text-gray-500 leading-tight">
+                    biaya bahan baku masuk
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => pickSide('OutputSide')}
+                className={cn(
+                  'flex items-center gap-2 p-3 rounded-lg border transition-all text-left',
+                  form.costSide === 'OutputSide'
+                    ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200'
+                    : 'border-gray-200 hover:border-gray-300 bg-white',
+                )}
+              >
+                <div className={cn(
+                  'p-1.5 rounded',
+                  form.costSide === 'OutputSide' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500',
+                )}>
+                  <ArrowUpFromLine size={14} />
+                </div>
+                <div className="min-w-0">
+                  <div className={cn(
+                    'text-sm font-semibold',
+                    form.costSide === 'OutputSide' ? 'text-emerald-900' : 'text-gray-700',
+                  )}>
+                    Sisi Output
+                  </div>
+                  <div className="text-[10px] text-gray-500 leading-tight">
+                    biaya hasil produksi
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Identitas */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Identitas</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Nama Standar <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={e => set('name', e.target.value)}
+                    placeholder="Listrik Mesin Giling"
+                    className="w-full border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Keterangan</label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={e => set('description', e.target.value)}
+                  placeholder="Estimasi listrik per Kg input GKP"
+                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tarif */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Tarif & Basis</p>
+
+            {/* Basis as segmented buttons */}
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Basis Perhitungan</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {([
+                  { v: 'InputQty', label: 'Per Kg Input', hint: 'rate × qty input' },
+                  { v: 'OutputQty', label: 'Per Kg Output', hint: 'rate × qty output' },
+                  { v: 'Fixed', label: 'Flat per Run', hint: 'rate adalah total' },
+                ] as { v: Basis; label: string; hint: string }[]).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => set('basis', opt.v)}
+                    className={cn(
+                      'px-2 py-2 rounded-lg text-xs font-medium border transition-colors text-center',
+                      form.basis === opt.v
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                    )}
+                  >
+                    <div>{opt.label}</div>
+                    <div className="text-[10px] text-gray-400 font-normal mt-0.5">{opt.hint}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Default rate */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Default Rate <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">Rp</span>
+                <input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={form.defaultRate}
+                  onChange={e => set('defaultRate', e.target.value)}
+                  placeholder="100"
+                  className="w-full border border-gray-200 rounded-lg py-2 pl-10 pr-24 text-sm text-right font-mono text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-medium">
+                  {basisUnitHint(form.basis)}
+                </span>
+              </div>
+              {previewTotal !== null && form.basis !== 'Fixed' && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Contoh: 10.000 Kg × Rp {fmtRupiah(previewTotal)} = <span className="font-mono">Rp {fmtRupiah(previewTotal * 10000)}</span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Lingkup */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Lingkup (Opsional)</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+                  <Tag size={11} className="text-gray-400" /> Akun Biaya (tag laporan)
+                </label>
+                <SearchableSelect
+                  options={accountOptions}
+                  value={form.costAccountId}
+                  onChange={v => set('costAccountId', v)}
+                  placeholder="— Tidak ditag —"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Tidak ada posting GL ke akun ini. Tag hanya untuk grouping laporan.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+                  <Package size={11} className="text-gray-400" /> Berlaku Untuk Item
+                </label>
+                <SearchableSelect
+                  options={itemOptions}
+                  value={form.itemId}
+                  onChange={v => set('itemId', v)}
+                  placeholder="— Semua item —"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Kosongkan agar standar bisa dipakai untuk item apa pun.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
+              <AlertCircle size={15} /> <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-400 truncate">
+            <span className={form.costSide === 'InputSide' ? 'text-blue-600' : 'text-emerald-600'}>
+              {form.costSide === 'InputSide' ? 'Input' : 'Output'}
+            </span>
+            {' · '}
+            {basisLabel(form.basis)}
+            {form.defaultRate && (
+              <>
+                {' · '}<span className="font-mono">Rp {fmtRupiah(form.defaultRate)}</span>
+              </>
+            )}
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="btn-secondary"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!form.name.trim() || !form.defaultRate || saving}
+              className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? <Loader2 size={15} className="animate-spin" /> : null}
+              {isEdit ? 'Simpan Perubahan' : 'Simpan Standar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── List Card ───────────────────────────────────────────────────────────────
+
 interface ListProps {
+  accent: 'blue' | 'emerald';
+  icon: React.ReactNode;
   title: string;
   subtitle: string;
   standards: CostStandard[];
@@ -389,16 +613,33 @@ interface ListProps {
   deletingId: string | null;
 }
 
-function StandardsList({ title, subtitle, standards, canEdit, onEdit, onDelete, deletingId }: ListProps) {
+function StandardsList({ accent, icon, title, subtitle, standards, canEdit, onEdit, onDelete, deletingId }: ListProps) {
+  const headerCls = accent === 'blue'
+    ? 'bg-blue-50/60 border-blue-100'
+    : 'bg-emerald-50/60 border-emerald-100';
+  const accentText = accent === 'blue' ? 'text-blue-700' : 'text-emerald-700';
+  const accentIconBg = accent === 'blue' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600';
+
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-        <h4 className="font-semibold text-gray-900 text-sm">{title}</h4>
-        <p className="text-xs text-gray-500">{subtitle}</p>
+    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+      <div className={cn('px-4 py-3 border-b flex items-center gap-2.5', headerCls)}>
+        <div className={cn('p-1.5 rounded-lg', accentIconBg)}>
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h4 className={cn('font-semibold text-sm', accentText)}>{title}</h4>
+          <p className="text-[11px] text-gray-500 truncate">{subtitle}</p>
+        </div>
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-gray-500 border border-gray-200">
+          {standards.length}
+        </span>
       </div>
       {standards.length === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-gray-500">
-          Belum ada standar biaya untuk sisi ini.
+        <div className="px-4 py-10 text-center">
+          <div className="mx-auto w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2 text-gray-300">
+            <Hash size={16} />
+          </div>
+          <p className="text-xs text-gray-400">Belum ada standar biaya untuk sisi ini.</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-100">
@@ -406,38 +647,39 @@ function StandardsList({ title, subtitle, standards, canEdit, onEdit, onDelete, 
             <li
               key={std.id}
               className={cn(
-                'px-4 py-3 hover:bg-gray-50 transition-colors',
+                'px-4 py-3 hover:bg-gray-50/60 transition-colors',
                 !std.isActive && 'opacity-50',
               )}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-gray-900 text-sm truncate">{std.name}</span>
                     {!std.isActive && (
-                      <span className="badge badge-gray text-xs">Nonaktif</span>
+                      <span className="badge badge-gray text-[10px]">Nonaktif</span>
                     )}
                   </div>
                   {std.description && (
                     <p className="text-xs text-gray-500 mt-0.5 truncate">{std.description}</p>
                   )}
-                  <div className="text-xs text-gray-600 mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                    <span>
-                      <span className="text-gray-400">Rate:</span>{' '}
-                      <span className="font-medium">Rp {fmtRupiah(std.defaultRate)}</span>
+                  <div className="text-[11px] text-gray-600 mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="text-gray-400">Rate:</span>
+                      <span className="font-mono font-semibold text-gray-800">Rp {fmtRupiah(std.defaultRate)}</span>
+                      <span className="text-gray-400 text-[10px]">{basisUnitHint(std.basis)}</span>
                     </span>
                     <span>
-                      <span className="text-gray-400">Basis:</span>{' '}
-                      {basisLabel(std.basis)}
+                      <span className="text-gray-400">Basis:</span> {basisLabel(std.basis)}
                     </span>
                     {std.item && (
-                      <span>
-                        <span className="text-gray-400">Item:</span> {std.item.name}
+                      <span className="inline-flex items-center gap-0.5">
+                        <Package size={10} className="text-gray-400" />
+                        {std.item.name}
                       </span>
                     )}
                     {std.costAccount && (
-                      <span>
-                        <span className="text-gray-400">Akun:</span>{' '}
+                      <span className="inline-flex items-center gap-0.5">
+                        <Tag size={10} className="text-gray-400" />
                         {std.costAccount.accountNumber}
                       </span>
                     )}
@@ -447,7 +689,7 @@ function StandardsList({ title, subtitle, standards, canEdit, onEdit, onDelete, 
                   <div className="flex gap-1 shrink-0">
                     <button
                       onClick={() => onEdit(std)}
-                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                       title="Edit"
                     >
                       <Edit2 size={14} />
@@ -455,7 +697,7 @@ function StandardsList({ title, subtitle, standards, canEdit, onEdit, onDelete, 
                     <button
                       onClick={() => onDelete(std.id)}
                       disabled={deletingId === std.id}
-                      className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
                       title="Hapus"
                     >
                       {deletingId === std.id
@@ -472,6 +714,3 @@ function StandardsList({ title, subtitle, standards, canEdit, onEdit, onDelete, 
     </div>
   );
 }
-
-// avoid TS unused-var warning
-void costSideLabel;
