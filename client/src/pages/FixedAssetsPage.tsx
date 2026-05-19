@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Plus, ChevronDown, ChevronRight, Play, Trash2 } from 'lucide-react';
+import { Building2, Plus, ChevronDown, ChevronRight, Play, Trash2, CalendarClock, Loader2, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
@@ -40,11 +40,41 @@ interface CoaOption { id: string; accountNumber: string; name: string }
 const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 
+// Default ke bulan SEBELUMNYA (yg sudah selesai) untuk menghindari user
+// mem-post depresiasi bulan berjalan terlalu cepat.
+function defaultPrevMonth(): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+interface BulkPreviewItem {
+  assetNumber: string;
+  name: string;
+  category: string;
+  amount: number;
+  periodDate: string;
+}
+
+interface BulkResponse {
+  posted: number;
+  totalAmount: number;
+  jeNumbers?: string[];
+  skipped?: number;
+  message?: string;
+  dryRun?: boolean;
+  items?: BulkPreviewItem[];
+}
+
 export default function FixedAssetsPage() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [disposeTarget, setDisposeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMonth, setBulkMonth] = useState<string>(defaultPrevMonth());
+  const [bulkPreview, setBulkPreview] = useState<BulkResponse | null>(null);
 
   const { data: assets = [], isLoading } = useQuery<FixedAsset[]>({
     queryKey: ['fixed-assets'],
@@ -76,6 +106,43 @@ export default function FixedAssetsPage() {
     onError: () => toast.error('Gagal posting depresiasi'),
   });
 
+  // Bulk depreciation: preview (dry-run) lalu confirm post
+  const bulkPreviewMut = useMutation<BulkResponse, Error, { month: string }>({
+    mutationFn: async ({ month }) =>
+      (await api.post('/fixed-assets/depreciate-bulk', { month, dryRun: true })).data,
+    onSuccess: (d) => setBulkPreview(d),
+    onError: () => toast.error('Gagal mengambil preview depresiasi'),
+  });
+
+  const bulkPostMut = useMutation<BulkResponse, Error, { month: string }>({
+    mutationFn: async ({ month }) =>
+      (await api.post('/fixed-assets/depreciate-bulk', { month })).data,
+    onSuccess: (d) => {
+      toast.success(d.message ?? `Berhasil post ${d.posted} depresiasi (total Rp ${fmt(d.totalAmount)})`);
+      qc.invalidateQueries({ queryKey: ['fixed-assets'] });
+      qc.invalidateQueries({ queryKey: ['fixed-asset'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
+      qc.invalidateQueries({ queryKey: ['financial-ratios'] });
+      setBulkOpen(false);
+      setBulkPreview(null);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Gagal posting depresiasi bulk'),
+  });
+
+  const openBulkModal = () => {
+    const m = defaultPrevMonth();
+    setBulkMonth(m);
+    setBulkPreview(null);
+    setBulkOpen(true);
+    bulkPreviewMut.mutate({ month: m });
+  };
+
+  const onBulkMonthChange = (m: string) => {
+    setBulkMonth(m);
+    setBulkPreview(null);
+    if (/^\d{4}-\d{2}$/.test(m)) bulkPreviewMut.mutate({ month: m });
+  };
+
   const disposeMut = useMutation({
     mutationFn: async ({ assetId, disposalDate }: { assetId: string; disposalDate: string }) =>
       (await api.post(`/fixed-assets/${assetId}/dispose`, { disposalDate, disposalAmount: 0 })).data,
@@ -106,14 +173,19 @@ export default function FixedAssetsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Building2 size={24} className="text-blue-600" />
           <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Aset Tetap</h1>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          <Plus size={16} /> Tambah Aset
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={openBulkModal} className="btn-secondary">
+            <CalendarClock size={15} /> Posting Bulanan
+          </button>
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+            <Plus size={16} /> Tambah Aset
+          </button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -302,6 +374,172 @@ export default function FixedAssetsPage() {
           setDisposeTarget(null);
         }}
       />
+
+      {/* Bulk Depreciation Modal */}
+      {bulkOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget && !bulkPostMut.isPending) { setBulkOpen(false); setBulkPreview(null); } }}
+        >
+          <div className="rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+            style={{ backgroundColor: 'var(--color-bg-primary)' }}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600">
+                  <CalendarClock size={16} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                    Posting Depresiasi Bulanan
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                    Post semua jadwal depresiasi yg jatuh di bulan terpilih sekaligus
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { if (!bulkPostMut.isPending) { setBulkOpen(false); setBulkPreview(null); } }}
+                disabled={bulkPostMut.isPending}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 flex-1 overflow-y-auto space-y-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                  Bulan Periode
+                </label>
+                <input
+                  type="month"
+                  value={bulkMonth}
+                  onChange={(e) => onBulkMonthChange(e.target.value)}
+                  disabled={bulkPostMut.isPending}
+                  className="border rounded-lg px-3 py-2 text-sm"
+                  style={{ borderColor: 'var(--color-border)' }}
+                />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                  Default: bulan sebelumnya (yang sudah selesai). Bisa diubah untuk periode lain.
+                </p>
+              </div>
+
+              {bulkPreviewMut.isPending ? (
+                <div className="py-8 flex items-center justify-center gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  <Loader2 size={16} className="animate-spin" /> Memuat preview…
+                </div>
+              ) : !bulkPreview ? null : bulkPreview.posted === 0 && (!bulkPreview.items || bulkPreview.items.length === 0) ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:bg-amber-950/30 dark:border-amber-900 p-4 flex items-start gap-3">
+                  <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                      Tidak ada depresiasi untuk periode ini
+                    </p>
+                    <p className="text-xs text-amber-800 dark:text-amber-200 mt-0.5">
+                      {bulkPreview.message ?? 'Semua entry sudah di-post atau tidak ada aset di periode tersebut.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/60 dark:bg-blue-950/30 dark:border-blue-900 p-4">
+                    <p className="text-xs text-blue-700 dark:text-blue-300 uppercase tracking-wide font-medium">
+                      Preview Posting
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Aset yang akan di-post</p>
+                        <p className="text-lg font-bold tabular-nums text-blue-900 dark:text-blue-100">
+                          {bulkPreview.items?.length ?? 0}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Total beban depresiasi</p>
+                        <p className="text-lg font-bold tabular-nums text-blue-900 dark:text-blue-100">
+                          Rp {fmt(bulkPreview.totalAmount)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Breakdown per kategori */}
+                  {bulkPreview.items && bulkPreview.items.length > 0 && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide mb-1.5 font-medium"
+                        style={{ color: 'var(--color-text-muted)' }}>
+                        Breakdown per kategori
+                      </p>
+                      <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+                        {(() => {
+                          const grouped = bulkPreview.items!.reduce<Record<string, { count: number; total: number }>>(
+                            (acc, it) => {
+                              acc[it.category] = acc[it.category] ?? { count: 0, total: 0 };
+                              acc[it.category].count++;
+                              acc[it.category].total += it.amount;
+                              return acc;
+                            }, {});
+                          return Object.entries(grouped).map(([cat, d]) => (
+                            <div key={cat} className="flex items-center justify-between px-3 py-2 text-xs border-b last:border-b-0"
+                              style={{ borderColor: 'var(--color-border)' }}>
+                              <span style={{ color: 'var(--color-text-primary)' }}>
+                                <span className="font-medium">{cat}</span>
+                                <span className="ml-2" style={{ color: 'var(--color-text-muted)' }}>{d.count} aset</span>
+                              </span>
+                              <span className="font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
+                                Rp {fmt(d.total)}
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3 text-xs space-y-1"
+                    style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="font-semibold">JE yang akan dibuat:</p>
+                    <p className="font-mono">
+                      DR <span className="text-blue-600">6.21/6.23/6.35</span> Beban Penyusutan (per kategori)
+                    </p>
+                    <p className="font-mono">
+                      CR <span className="text-emerald-600">1.7.1/1.7.3/1.7.5</span> Akm Penyusutan
+                    </p>
+                    <p className="text-[11px] mt-2" style={{ color: 'var(--color-text-muted)' }}>
+                      Satu JE per aset ({bulkPreview.items?.length ?? 0} jurnal) supaya traceability per-aset terjaga.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t flex items-center justify-end gap-2"
+              style={{ borderColor: 'var(--color-border)' }}>
+              <button
+                onClick={() => { setBulkOpen(false); setBulkPreview(null); }}
+                disabled={bulkPostMut.isPending}
+                className="btn-secondary"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => bulkPostMut.mutate({ month: bulkMonth })}
+                disabled={
+                  bulkPostMut.isPending
+                  || bulkPreviewMut.isPending
+                  || !bulkPreview
+                  || !bulkPreview.items?.length
+                }
+                className="btn-primary disabled:opacity-40"
+              >
+                {bulkPostMut.isPending
+                  ? <><Loader2 size={14} className="animate-spin" /> Memposting…</>
+                  : <><Play size={14} /> Post {bulkPreview?.items?.length ?? 0} Depresiasi</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -29,6 +29,14 @@ const DepreciateSchema = z.object({
   entryId: z.string().uuid('entryId harus UUID valid.'),
 });
 
+// Bulk depreciate: body { month: 'YYYY-MM' } atau kosong (default bulan
+// berjalan). Post semua entry yg jatuh di bulan tsb dan belum ter-post,
+// untuk aset Active.
+const BulkDepreciateSchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, "Format month harus 'YYYY-MM'.").optional(),
+  dryRun: z.boolean().optional().default(false),
+});
+
 const DisposeSchema = z.object({
   disposalDate: z.string().min(1, 'Tanggal pelepasan wajib diisi.'),
   disposalAmount: z.coerce.number().min(0).optional().default(0),
@@ -258,6 +266,168 @@ router.post('/:id/depreciate', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error(error, 'POST /fixed-assets/:id/depreciate error');
     res.status(500).json({ error: 'Gagal posting depresiasi.' });
+  }
+});
+
+// POST /depreciate-bulk — post seluruh entry depresiasi yg jatuh di
+// bulan tertentu, untuk semua aset Active yg belum ter-post. Idempotent
+// di level entry (entries yg sudah is_posted di-skip).
+//
+// Body:
+//   { month?: 'YYYY-MM' (default: bulan berjalan), dryRun?: boolean }
+//
+// Response:
+//   { posted: N, totalAmount, jeNumbers, skipped, items: [...] }
+router.post('/depreciate-bulk', async (req: AuthRequest, res) => {
+  const body = validateBody(BulkDepreciateSchema, req.body, res);
+  if (!body) return;
+  try {
+    // Resolve month range
+    const now = new Date();
+    const [yy, mm] = body.month
+      ? body.month.split('-').map(Number)
+      : [now.getFullYear(), now.getMonth() + 1];
+    const periodStart = new Date(yy, mm - 1, 1);
+    const periodEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
+
+    // Pull due entries (fixed asset must be Active)
+    const dueEntries = await prisma.depreciationEntry.findMany({
+      where: {
+        periodDate: { gte: periodStart, lte: periodEnd },
+        isPosted: false,
+        fixedAsset: { status: 'Active' },
+      },
+      include: {
+        fixedAsset: {
+          select: {
+            id: true, assetNumber: true, name: true, category: true,
+            acquisitionCost: true, accumulatedDepreciation: true, bookValue: true,
+            depreciationAccountId: true, accumulatedDepAccountId: true,
+          },
+        },
+      },
+      orderBy: [{ periodDate: 'asc' }, { fixedAsset: { assetNumber: 'asc' } }],
+    });
+
+    if (dueEntries.length === 0) {
+      return res.json({
+        posted: 0,
+        totalAmount: 0,
+        jeNumbers: [],
+        skipped: 0,
+        message: `Tidak ada jadwal depresiasi belum ter-post di periode ${yy}-${String(mm).padStart(2, '0')}.`,
+      });
+    }
+
+    const totalAmount = dueEntries.reduce((s, e) => s + Number(e.amount), 0);
+
+    if (body.dryRun) {
+      return res.json({
+        posted: 0,
+        totalAmount,
+        jeNumbers: [],
+        skipped: 0,
+        dryRun: true,
+        items: dueEntries.map((e) => ({
+          assetNumber: e.fixedAsset.assetNumber,
+          name: e.fixedAsset.name,
+          category: e.fixedAsset.category,
+          amount: Number(e.amount),
+          periodDate: e.periodDate,
+        })),
+      });
+    }
+
+    // Resolve fiscal year covering periodStart
+    const fiscalYear = await prisma.fiscalYear.findFirst({
+      where: { startDate: { lte: periodStart }, endDate: { gte: periodEnd } },
+    });
+    if (!fiscalYear) {
+      return res.status(400).json({
+        error: `Tahun buku untuk ${yy}-${String(mm).padStart(2, '0')} tidak ditemukan.`,
+      });
+    }
+
+    const { updateAccountBalance } = await import('../utils/accountBalance');
+    const userId = req.user!.userId;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Pull starting JE number once, increment locally to avoid N round-trips
+      const startCount = await tx.journalEntry.count();
+      const jeNumbers: string[] = [];
+
+      for (let i = 0; i < dueEntries.length; i++) {
+        const entry = dueEntries[i];
+        const asset = entry.fixedAsset;
+        const amount = Number(entry.amount);
+        const entryNumber = `DEP-${String(startCount + 1 + i).padStart(6, '0')}`;
+
+        const je = await tx.journalEntry.create({
+          data: {
+            entryNumber,
+            date: entry.periodDate,
+            status: 'Submitted',
+            narration: `Depresiasi ${asset.name} - ${entry.periodDate.toISOString().substring(0, 7)}`,
+            fiscalYearId: fiscalYear.id,
+            createdBy: userId,
+            submittedAt: new Date(),
+            items: {
+              create: [
+                { accountId: asset.depreciationAccountId, debit: amount, credit: 0, description: `Beban depresiasi ${asset.name}` },
+                { accountId: asset.accumulatedDepAccountId, debit: 0, credit: amount, description: `Akm. depresiasi ${asset.name}` },
+              ],
+            },
+          },
+        });
+
+        await tx.accountingLedgerEntry.createMany({
+          data: [
+            { date: entry.periodDate, accountId: asset.depreciationAccountId, debit: amount, credit: 0,
+              referenceType: 'JournalEntry', referenceId: je.id,
+              description: `Beban depresiasi ${asset.name}`, fiscalYearId: fiscalYear.id },
+            { date: entry.periodDate, accountId: asset.accumulatedDepAccountId, debit: 0, credit: amount,
+              referenceType: 'JournalEntry', referenceId: je.id,
+              description: `Akm. depresiasi ${asset.name}`, fiscalYearId: fiscalYear.id },
+          ],
+        });
+
+        await updateAccountBalance(tx, asset.depreciationAccountId, amount, 0);
+        await updateAccountBalance(tx, asset.accumulatedDepAccountId, 0, amount);
+
+        await tx.depreciationEntry.update({
+          where: { id: entry.id },
+          data: { isPosted: true, journalEntryId: je.id },
+        });
+
+        const newAccDep = new Decimal(asset.accumulatedDepreciation.toString()).plus(amount.toString());
+        const newBookValue = new Decimal(asset.acquisitionCost.toString()).minus(newAccDep);
+        await tx.fixedAsset.update({
+          where: { id: asset.id },
+          data: {
+            accumulatedDepreciation: newAccDep.toNumber(),
+            bookValue: newBookValue.toNumber(),
+          },
+        });
+
+        jeNumbers.push(entryNumber);
+      }
+
+      return { posted: dueEntries.length, totalAmount, jeNumbers };
+    }, { timeout: 120_000 });
+
+    logger.info(
+      { month: `${yy}-${String(mm).padStart(2, '0')}`, posted: result.posted, totalAmount: result.totalAmount, userId },
+      'Bulk depreciation posted',
+    );
+
+    return res.json({
+      ...result,
+      skipped: 0,
+      message: `Berhasil post ${result.posted} entry depresiasi (${result.posted} jurnal) untuk periode ${yy}-${String(mm).padStart(2, '0')}.`,
+    });
+  } catch (error) {
+    logger.error(error, 'POST /fixed-assets/depreciate-bulk error');
+    return res.status(500).json({ error: 'Gagal posting depresiasi bulk.' });
   }
 });
 
