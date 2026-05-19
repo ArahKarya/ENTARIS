@@ -109,6 +109,7 @@ export async function editProductionRunInTx(
   // ─ 5. Delete old line items + old cost components (Phase 3) ─────────────
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunCost.deleteMany({ where: { productionRunId: runId } });
+  await tx.productionRunProcess.deleteMany({ where: { productionRunId: runId } });
 
   // ─ 6. Re-apply with new data ───────────────────────────────────
   const txDate = new Date(body.date);
@@ -508,6 +509,15 @@ export async function editProductionRunInTx(
       hppManualOverride: hppOverridden,
     },
   });
+
+  // Re-persist process selections (already cleared above).
+  if (body.processIds && body.processIds.length > 0) {
+    const uniqueIds = Array.from(new Set(body.processIds));
+    await tx.productionRunProcess.createMany({
+      data: uniqueIds.map(processId => ({ productionRunId: runId, processId })),
+      skipDuplicates: true,
+    });
+  }
 
   return tx.productionRun.findUnique({
     where: { id: runId },

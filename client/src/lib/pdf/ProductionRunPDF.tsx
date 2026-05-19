@@ -104,6 +104,7 @@ export interface ProductionRunPDFProps {
   referenceNumber?: string | null;
   notes?: string | null;
   yieldPct?: number | null;
+  processes?: string[];   // traceability tag names
   inputs: ProductionRunPDFItem[];
   outputs: ProductionRunPDFItem[];
   byproducts: ProductionRunPDFItem[];
@@ -125,7 +126,7 @@ const basisShort = (b: ProductionRunPDFCost['basis']) =>
   b === 'InputQty' ? 'per kg in' : b === 'OutputQty' ? 'per kg out' : 'flat';
 
 const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
-  runNumber, date, warehouseName, referenceNumber, notes, yieldPct,
+  runNumber, date, warehouseName, referenceNumber, notes, yieldPct, processes,
   inputs, outputs, byproducts, costs, totals, company, createdByName,
 }) => {
   const printDate = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -206,6 +207,14 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
             <Text style={S.metaValue}>{yieldPct != null ? `${Number(yieldPct).toFixed(1)}%` : '-'}</Text>
           </View>
         </View>
+
+        {/* Process trace */}
+        {processes && processes.length > 0 && (
+          <View style={{ marginBottom: 10 }}>
+            <Text style={S.metaLabel}>PROSES DIJALANKAN</Text>
+            <Text style={[S.metaValue, { marginBottom: 0 }]}>{processes.join('  →  ')}</Text>
+          </View>
+        )}
 
         {/* Inputs */}
         <Text style={S.sectionTitle}>Bahan Input ({inputs.length})</Text>

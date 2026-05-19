@@ -1021,6 +1021,7 @@ model ProductionRun {
   hppManualOverride   Boolean   @default(false) @map("hpp_manual_override")
   items           ProductionRunItem[]
   runCosts        ProductionRunCost[]
+  runProcesses    ProductionRunProcess[]
   isCancelled     Boolean             @default(false) @map("is_cancelled")
   fiscalYearId    String              @map("fiscal_year_id")
   fiscalYear      FiscalYear          @relation(fields: [fiscalYearId], references: [id])
@@ -1124,6 +1125,40 @@ model ProductionRunCost {
   @@index([productionRunId])
   @@index([standardId])
   @@map("production_run_costs")
+}
+
+// Master list of production processes (Drying, Huller, Polishing, Packing,
+// etc.). User-managed. Production runs reference these via the junction
+// table production_run_processes for traceability only — no cost or stock
+// behavior is tied to a process.
+model ProductionProcess {
+  id            String                 @id @default(uuid())
+  name          String                 @unique
+  description   String?
+  sortOrder     Int                    @default(0) @map("sort_order")
+  isActive      Boolean                @default(true) @map("is_active")
+  runProcesses  ProductionRunProcess[]
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("production_processes")
+}
+
+// Junction many-to-many: which processes were executed in a given run.
+// Backward-compat: rows missing = unspecified (legacy runs).
+model ProductionRunProcess {
+  id              String            @id @default(uuid())
+  productionRunId String            @map("production_run_id")
+  productionRun   ProductionRun     @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  processId       String            @map("process_id")
+  process         ProductionProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@unique([productionRunId, processId])
+  @@index([productionRunId])
+  @@index([processId])
+  @@map("production_run_processes")
 }
 
 enum StockOpnameStatus {

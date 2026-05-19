@@ -74,6 +74,10 @@ router.get('/:id', async (req, res) => {
             standard: { select: { id: true, name: true } },
           },
         },
+        runProcesses: {
+          include: { process: { select: { id: true, name: true } } },
+          orderBy: { process: { sortOrder: 'asc' } },
+        },
         createdBy: { select: { id: true, fullName: true } },
       },
     });

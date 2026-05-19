@@ -13,6 +13,7 @@ import InventoryDashboardTab from '../components/InventoryDashboardTab';
 import ProductionDetailDrawer from '../components/ProductionDetailDrawer';
 import ProductionDashboardTab from '../components/ProductionDashboardTab';
 import ProductionCostStandardsTab from '../components/ProductionCostStandardsTab';
+import ProductionProcessesTab from '../components/ProductionProcessesTab';
 import ImportModal from '../components/ImportModal';
 import WarehousePicker from '../components/WarehousePicker';
 import { exportToExcel } from '../lib/exportExcel';
@@ -53,7 +54,7 @@ export function InventoryPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // --- Production tab state ---
-  const [prodSubTab, setProdSubTab] = useState<'dashboard' | 'data' | 'costStandards'>('dashboard');
+  const [prodSubTab, setProdSubTab] = useState<'dashboard' | 'data' | 'costStandards' | 'processes'>('dashboard');
   const [productionModalOpen, setProductionModalOpen] = useState(false);
   const [editProdRun, setEditProdRun] = useState<any | null>(null);
   const [filterProdStartDate, setFilterProdStartDate] = useState('');
@@ -699,10 +700,20 @@ export function InventoryPage() {
             >
               Standar Biaya
             </button>
+            <button
+              onClick={() => setProdSubTab('processes')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                prodSubTab === 'processes' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              Master Proses
+            </button>
           </div>
 
           {prodSubTab === 'dashboard' && <ProductionDashboardTab items={items} />}
           {prodSubTab === 'costStandards' && <ProductionCostStandardsTab userRole={userRole} />}
+          {prodSubTab === 'processes' && <ProductionProcessesTab userRole={userRole} />}
 
           {prodSubTab === 'data' && (
           <>

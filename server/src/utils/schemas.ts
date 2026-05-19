@@ -381,6 +381,17 @@ export const UpdateProductionCostStandardSchema = CreateProductionCostStandardSc
   .partial()
   .extend({ isActive: z.boolean().optional() });
 
+// ─── Production Processes (master traceability list) ─────────────────────────
+export const CreateProductionProcessSchema = z.object({
+  name: z.string().min(1, 'Nama proses wajib diisi.').max(100),
+  description: z.string().nullable().optional(),
+  sortOrder: z.coerce.number().int().optional().default(0),
+});
+
+export const UpdateProductionProcessSchema = CreateProductionProcessSchema
+  .partial()
+  .extend({ isActive: z.boolean().optional() });
+
 // ─── User Management ─────────────────────────────────────────────────────────
 const UserRoleEnum = z.enum(['Admin', 'Accountant', 'StaffProduksi', 'Viewer'], {
   message: "Role harus salah satu dari: Admin, Accountant, StaffProduksi, Viewer",
@@ -532,6 +543,9 @@ export const CreateProductionRunSchema = z.object({
   // auto-computed loaded HPP). Otherwise the service computes it from
   // material + costs - byproduct value.
   hppOverride: z.coerce.number().min(0).nullable().optional(),
+  // Traceability: list of process master ids that this run went through.
+  // Optional + order-insensitive (multiselect). Empty array = unspecified.
+  processIds: z.array(z.string().uuid()).optional().default([]),
   // When true, production can consume more than current stock (stock goes negative).
   // Use case: backdated production input where sales already reduced stock.
   allowNegativeStock: z.boolean().optional().default(false),

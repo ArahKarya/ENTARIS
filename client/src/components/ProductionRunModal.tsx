@@ -67,6 +67,8 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   const [outputs, setOutputs] = useState<OutputLineItem[]>([{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
   const [costs, setCosts] = useState<CostLine[]>([]);
   const [hppOverride, setHppOverride] = useState<string>('');
+  // Traceability: selected master process IDs (multiselect, optional)
+  const [processIds, setProcessIds] = useState<string[]>([]);
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -129,6 +131,16 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
           ? String(Number(editRun.computedHpp))
           : '',
       );
+      // Process selections
+      if (editRun && Array.isArray(editRun.runProcesses)) {
+        setProcessIds(
+          editRun.runProcesses
+            .map((rp: any) => rp.processId ?? rp.process?.id)
+            .filter(Boolean),
+        );
+      } else {
+        setProcessIds([]);
+      }
       setAllowNegativeStock(false);
       setErrors([]);
       setIsSubmitting(false);
@@ -150,6 +162,22 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
     staleTime: 60_000,
   });
   const standards: CostStandard[] = standardsData?.data ?? [];
+
+  // Master proses produksi (multiselect untuk traceability)
+  const { data: processesData } = useQuery({
+    queryKey: ['production-processes-active'],
+    queryFn: () => api
+      .get('/inventory/production-processes', { params: { active: true } })
+      .then(r => r.data),
+    enabled: isOpen,
+    staleTime: 60_000,
+  });
+  const allProcesses: { id: string; name: string; description: string | null; sortOrder: number }[] =
+    processesData?.data ?? [];
+
+  const toggleProcess = (id: string) => {
+    setProcessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   // Escape key handler
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -348,6 +376,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
             costAccountId: c.costAccountId || null,
           })),
         hppOverride: hasOverride ? overrideNum : null,
+        processIds: processIds,
       };
 
       if (editRun) {
@@ -630,6 +659,47 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
                 })}
               </div>
             </div>
+
+            {/* Traceability: proses produksi yg dijalankan (multiselect, optional) */}
+            {allProcesses.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    Proses Yang Dijalankan
+                  </h3>
+                  <span className="text-[10px] text-gray-400">
+                    {processIds.length > 0
+                      ? `${processIds.length} dipilih`
+                      : 'opsional · traceability saja'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {allProcesses.map(p => {
+                    const active = processIds.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => toggleProcess(p.id)}
+                        title={p.description || undefined}
+                        className={
+                          active
+                            ? 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-purple-500 bg-purple-100 text-purple-800 transition-colors'
+                            : 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50 transition-colors'
+                        }
+                      >
+                        <span className={active ? 'inline-block w-1.5 h-1.5 rounded-full bg-purple-600' : 'inline-block w-1.5 h-1.5 rounded-full bg-gray-300'} />
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5">
+                  Klik untuk pilih/batal. Hanya untuk catatan traceability — tidak posting GL, tidak
+                  pengaruhi HPP. Master diatur di tab <span className="font-semibold">Master Proses</span>.
+                </p>
+              </div>
+            )}
 
             {/* Phase 3: Cost components — Input side.
                 usedStandardIds: standar yg sudah dipakai di baris lain SISI ini

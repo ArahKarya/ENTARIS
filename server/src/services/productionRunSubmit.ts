@@ -39,6 +39,8 @@ export interface SubmitProductionRunInput {
     costAccountId?: string | null;
   }>;
   hppOverride?: number | null;
+  // Traceability: which master processes were run (multi-select, optional).
+  processIds?: string[];
   notes?: string | null;
   referenceType?: string | null;
   referenceId?: string | null;
@@ -538,6 +540,15 @@ export async function submitProductionRunInTx(
       hppManualOverride: hppOverridden,
     },
   });
+
+  // Traceability: persist process selections (junction). Dedupe defensively.
+  if (body.processIds && body.processIds.length > 0) {
+    const uniqueIds = Array.from(new Set(body.processIds));
+    await tx.productionRunProcess.createMany({
+      data: uniqueIds.map(processId => ({ productionRunId: run.id, processId })),
+      skipDuplicates: true,
+    });
+  }
 
   return tx.productionRun.findUnique({
     where: { id: run.id },

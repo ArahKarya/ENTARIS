@@ -148,6 +148,26 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 </div>
               )}
 
+              {/* Traceability: process tags */}
+              {Array.isArray(run.runProcesses) && run.runProcesses.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                    Proses Dijalankan ({run.runProcesses.length})
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {run.runProcesses.map((rp: any) => (
+                      <span
+                        key={rp.id}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 text-xs"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-500" />
+                        {rp.process?.name ?? '(?)'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Input items */}
               <div>
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
@@ -511,6 +531,9 @@ function buildPdfProps(run: any, company: ReturnType<typeof useCompanyPDF>): Pro
     referenceNumber: run.referenceNumber ?? null,
     notes: run.notes ?? null,
     yieldPct: run.yieldPct != null ? Number(run.yieldPct) : null,
+    processes: Array.isArray(run.runProcesses)
+      ? run.runProcesses.map((rp: any) => rp.process?.name).filter(Boolean)
+      : [],
     inputs: inputLines,
     outputs: outputLines,
     byproducts: byproductLines,
