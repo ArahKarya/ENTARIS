@@ -212,26 +212,28 @@ export const PartiesPage = () => {
                   )}>
                     {party.name.charAt(0)}
                   </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 inline-flex items-center gap-1.5 flex-wrap">
-                      {party.name}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap leading-tight">
+                      <span className="truncate">{party.name}</span>
                       {party.isWapu && (
                         <span
-                          className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-100 text-amber-700 border border-amber-200"
+                          className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-100 text-amber-700 border border-amber-200"
                           title="Wajib Pungut — PPN dipungut sendiri oleh customer ke kas negara"
                         >
                           WAPU
                         </span>
                       )}
-                      {!party.isActive && <span className="ml-1.5 text-xs text-red-400 font-normal">(Nonaktif)</span>}
+                      {!party.isActive && (
+                        <span className="shrink-0 text-xs text-red-400 font-normal">(Nonaktif)</span>
+                      )}
                     </h3>
-                    <span className={cn(
-                      'text-xs font-medium uppercase tracking-wider',
+                    <p className={cn(
+                      'text-xs font-medium uppercase tracking-wider mt-0.5',
                       party.partyType === 'Customer' ? 'text-blue-500' :
                       party.partyType === 'Supplier' ? 'text-orange-500' : 'text-purple-500'
                     )}>
                       {party.partyType === 'Customer' ? 'Pelanggan' : party.partyType === 'Supplier' ? 'Vendor' : 'Pelanggan & Vendor'}
-                    </span>
+                    </p>
                   </div>
                 </div>
 
