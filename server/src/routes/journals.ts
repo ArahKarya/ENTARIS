@@ -17,9 +17,9 @@ const router = Router();
 // GET /api/journals — list all journal entries
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', startDate, endDate } = req.query;
-    const skip = (Number(page) - 1) * Math.min(Number(limit), 200);
+    const { page = '1', limit = '50', startDate, endDate, search, hideCancelled } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
+    const skip = (Math.max(1, Number(page)) - 1) * take;
 
     const where: Prisma.JournalEntryWhereInput = {};
     if (startDate || endDate) {
@@ -30,6 +30,18 @@ router.get('/', async (req, res) => {
         end.setHours(23, 59, 59, 999);
         (where.date as any).lte = end;
       }
+    }
+    // Server-side search supaya pagination tetap konsisten (kalau client-side
+    // filter, halaman lain bisa miss match).
+    if (typeof search === 'string' && search.trim().length > 0) {
+      const q = search.trim();
+      where.OR = [
+        { entryNumber: { contains: q, mode: 'insensitive' } },
+        { narration: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    if (hideCancelled === 'true') {
+      where.status = { not: 'Cancelled' };
     }
 
     const [entries, total] = await Promise.all([

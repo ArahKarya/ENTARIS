@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, Search, Calendar as CalendarIcon,
-  FileSpreadsheet, Upload, XCircle
+  FileSpreadsheet, Upload, XCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,12 +18,20 @@ export const GeneralLedger = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 200);
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [cancelTarget, setCancelTarget] = useState<{ id: string; entryNumber: string } | null>(null);
   const [hideCancelled, setHideCancelled] = useState(false);
+  // Pagination state (server-side)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const queryClient = useQueryClient();
+
+  // Reset ke page 1 setiap filter berubah supaya tidak landing di page kosong.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, startDate, endDate, hideCancelled, pageSize]);
 
   const fmt = (d: Date) => {
     const y = d.getFullYear();
@@ -62,16 +70,26 @@ export const GeneralLedger = () => {
     setEndDate('');
   };
 
-  const { data: journals, isLoading } = useQuery({
-    queryKey: ['journals', startDate, endDate],
+  const { data: journalsResp, isLoading, isFetching } = useQuery({
+    queryKey: ['journals', startDate, endDate, debouncedSearch, hideCancelled, page, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (hideCancelled) params.set('hideCancelled', 'true');
+      params.set('page', String(page));
+      params.set('limit', String(pageSize));
       const response = await api.get(`/journals?${params.toString()}`);
-      return response.data.data ?? response.data;
-    }
+      return response.data;
+    },
+    placeholderData: (prev) => prev,  // smooth transition saat ganti halaman
   });
+  const journals: any[] = journalsResp?.data ?? [];
+  const total: number = journalsResp?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const fromIdx = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const toIdx = Math.min(page * pageSize, total);
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/journals/${id}/cancel`),
@@ -188,20 +206,19 @@ export const GeneralLedger = () => {
           <tbody>
             {isLoading ? (
               <TableRowSkeleton columns={8} rows={6} />
-            ) : journals?.length === 0 ? (
+            ) : journals.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-16 text-center">
                   <FileSpreadsheet className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">Belum ada transaksi jurnal. Klik tombol di atas untuk memulai.</p>
+                  <p className="text-sm text-gray-400">
+                    {debouncedSearch || startDate || endDate
+                      ? 'Tidak ada jurnal yang cocok dengan filter.'
+                      : 'Belum ada transaksi jurnal. Klik tombol di atas untuk memulai.'}
+                  </p>
                 </td>
               </tr>
             ) : (
-              journals?.filter((j: any) =>
-                (!hideCancelled || j.status !== 'Cancelled') &&
-                (!debouncedSearch ||
-                  j.entryNumber?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                  j.narration?.toLowerCase().includes(debouncedSearch.toLowerCase()))
-              ).map((journal: any) => {
+              journals.map((journal: any) => {
                 const totalDebit = journal.items.reduce((sum: number, item: any) => sum + Number(item.debit), 0);
                 const totalCredit = journal.items.reduce((sum: number, item: any) => sum + Number(item.credit), 0);
                 const isCancelled = journal.status === 'Cancelled';
@@ -255,6 +272,75 @@ export const GeneralLedger = () => {
             )}
           </tbody>
         </table>
+       </div>
+
+       {/* Pagination footer */}
+       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+         <div className="text-xs text-gray-500">
+           {total === 0 ? (
+             <span>Tidak ada data</span>
+           ) : (
+             <>
+               Menampilkan <span className="font-semibold text-gray-700">{fromIdx.toLocaleString('id-ID')}</span>
+               –<span className="font-semibold text-gray-700">{toIdx.toLocaleString('id-ID')}</span>
+               {' '}dari <span className="font-semibold text-gray-700">{total.toLocaleString('id-ID')}</span> jurnal
+             </>
+           )}
+           {isFetching && !isLoading && (
+             <span className="ml-2 text-gray-400 text-[10px]">memuat ulang…</span>
+           )}
+         </div>
+         <div className="flex items-center gap-2">
+           <label className="flex items-center gap-1.5 text-xs text-gray-600">
+             Per halaman:
+             <select
+               value={pageSize}
+               onChange={(e) => setPageSize(Number(e.target.value))}
+               className="border border-gray-200 rounded py-1 px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+             >
+               {[25, 50, 100, 200].map((n) => (
+                 <option key={n} value={n}>{n}</option>
+               ))}
+             </select>
+           </label>
+           <div className="flex items-center gap-0.5">
+             <button
+               onClick={() => setPage(1)}
+               disabled={page <= 1 || isFetching}
+               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
+               title="Halaman pertama"
+             >
+               <ChevronsLeft size={14} />
+             </button>
+             <button
+               onClick={() => setPage((p) => Math.max(1, p - 1))}
+               disabled={page <= 1 || isFetching}
+               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
+               title="Sebelumnya"
+             >
+               <ChevronLeft size={14} />
+             </button>
+             <span className="px-2 text-xs text-gray-700 tabular-nums">
+               Hal <span className="font-semibold">{page}</span> / {totalPages}
+             </span>
+             <button
+               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+               disabled={page >= totalPages || isFetching}
+               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
+               title="Berikutnya"
+             >
+               <ChevronRight size={14} />
+             </button>
+             <button
+               onClick={() => setPage(totalPages)}
+               disabled={page >= totalPages || isFetching}
+               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
+               title="Halaman terakhir"
+             >
+               <ChevronsRight size={14} />
+             </button>
+           </div>
+         </div>
        </div>
       </div>
 
