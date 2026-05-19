@@ -42,6 +42,35 @@ const DisposeSchema = z.object({
   disposalAmount: z.coerce.number().min(0).optional().default(0),
 });
 
+// Edit hanya field "soft" (label / metadata) — sengaja TIDAK include nominal
+// (acquisitionCost, usefulLifeMonths, salvageValue, accounts) karena
+// perubahan field tsb butuh adjustment JE + re-generate schedule yang risiko
+// kebobolan double-posting. Untuk koreksi nominal: dispose + buat aset baru.
+const UpdateFixedAssetSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  category: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+});
+
+// Bulk-create endpoint untuk fitur Import CSV. Sengaja minimalis: create
+// asset + auto-generate depreciation schedule (default Phase 1 behavior).
+// TIDAK auto-post opening balance JE — itu manual decision via script
+// scripts/post-fa-opening-je.cjs supaya tidak terkontaminasi.
+const BulkCreateAssetSchema = z.object({
+  assets: z.array(z.object({
+    name: z.string().min(1).max(200),
+    category: z.string().min(1).max(100),
+    description: z.string().max(500).nullable().optional(),
+    acquisitionDate: z.string().min(1),
+    acquisitionCost: z.coerce.number().positive(),
+    usefulLifeMonths: z.coerce.number().int().positive().max(1200),
+    salvageValue: z.coerce.number().min(0).optional().default(0),
+    assetAccountId: z.string().uuid(),
+    depreciationAccountId: z.string().uuid(),
+    accumulatedDepAccountId: z.string().uuid(),
+  })).min(1).max(500),
+});
+
 // GET / — list all fixed assets
 router.get('/', async (req, res) => {
   try {
@@ -428,6 +457,127 @@ router.post('/depreciate-bulk', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error(error, 'POST /fixed-assets/depreciate-bulk error');
     return res.status(500).json({ error: 'Gagal posting depresiasi bulk.' });
+  }
+});
+
+// PUT /:id — edit metadata aset (label only). Lihat UpdateFixedAssetSchema
+// untuk daftar field yg dibolehkan. Nominal & akun TIDAK bisa diubah.
+router.put('/:id', async (req: AuthRequest, res) => {
+  const body = validateBody(UpdateFixedAssetSchema, req.body, res);
+  if (!body) return;
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.fixedAsset.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Aset tidak ditemukan.' });
+
+    const updated = await prisma.fixedAsset.update({
+      where: { id },
+      data: {
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.category !== undefined ? { category: body.category } : {}),
+        ...(body.description !== undefined ? { description: body.description } : {}),
+      },
+      include: {
+        assetAccount: { select: { id: true, accountNumber: true, name: true } },
+        depreciationAccount: { select: { id: true, accountNumber: true, name: true } },
+        accumulatedDepAccount: { select: { id: true, accountNumber: true, name: true } },
+        user: { select: { fullName: true } },
+      },
+    });
+    return res.json(updated);
+  } catch (error) {
+    logger.error(error, 'PUT /fixed-assets/:id error');
+    return res.status(500).json({ error: 'Gagal mengupdate aset.' });
+  }
+});
+
+// POST /import — bulk create dari Import CSV. Validasi schema per-row,
+// generate schedule otomatis. Tidak post opening JE — itu manual.
+router.post('/import', async (req: AuthRequest, res) => {
+  const body = validateBody(BulkCreateAssetSchema, req.body, res);
+  if (!body) return;
+  try {
+    const fiscalYears = await prisma.fiscalYear.findMany({
+      orderBy: { startDate: 'desc' },
+    });
+    if (fiscalYears.length === 0) {
+      return res.status(400).json({ error: 'Tidak ada Tahun Buku.' });
+    }
+    const fallbackFY = fiscalYears[0];
+
+    const result = await prisma.$transaction(async (tx) => {
+      const created: { assetNumber: string; name: string }[] = [];
+      let scheduleEntries = 0;
+      // Sequential supaya assetNumber unik
+      let count = await tx.fixedAsset.count();
+
+      for (const row of body.assets) {
+        // Resolve FY untuk acquisitionDate, fallback ke FY paling baru
+        const acqDate = new Date(row.acquisitionDate);
+        const fy = fiscalYears.find((f) => f.startDate <= acqDate && acqDate <= f.endDate) ?? fallbackFY;
+
+        count++;
+        const assetNumber = `FA-${String(count).padStart(4, '0')}`;
+
+        const cost = new Decimal(row.acquisitionCost);
+        const salvage = new Decimal(row.salvageValue ?? 0);
+
+        const asset = await tx.fixedAsset.create({
+          data: {
+            assetNumber,
+            name: row.name,
+            category: row.category,
+            description: row.description ?? null,
+            acquisitionDate: acqDate,
+            acquisitionCost: cost.toNumber(),
+            usefulLifeMonths: row.usefulLifeMonths,
+            salvageValue: salvage.toNumber(),
+            depreciationMethod: 'straight_line',
+            bookValue: cost.toNumber(),
+            assetAccountId: row.assetAccountId,
+            depreciationAccountId: row.depreciationAccountId,
+            accumulatedDepAccountId: row.accumulatedDepAccountId,
+            fiscalYearId: fy.id,
+            createdBy: req.user!.userId,
+          },
+        });
+
+        // Generate schedule (sama dgn POST /)
+        const monthlyDep = cost.minus(salvage).div(row.usefulLifeMonths);
+        const entries = [];
+        for (let i = 1; i <= row.usefulLifeMonths; i++) {
+          const periodDate = new Date(acqDate);
+          periodDate.setMonth(periodDate.getMonth() + i);
+          periodDate.setDate(1);
+          entries.push({
+            fixedAssetId: asset.id,
+            periodDate,
+            amount: i === row.usefulLifeMonths
+              ? cost.minus(salvage).minus(monthlyDep.times(row.usefulLifeMonths - 1)).toNumber()
+              : monthlyDep.toDecimalPlaces(2).toNumber(),
+          });
+        }
+        await tx.depreciationEntry.createMany({ data: entries });
+        scheduleEntries += entries.length;
+
+        created.push({ assetNumber, name: row.name });
+      }
+      return { created, scheduleEntries };
+    }, { timeout: 120_000 });
+
+    logger.info(
+      { count: result.created.length, scheduleEntries: result.scheduleEntries, userId: req.user!.userId },
+      'Fixed assets imported',
+    );
+    return res.json({
+      success: true,
+      count: result.created.length,
+      scheduleEntries: result.scheduleEntries,
+      created: result.created,
+    });
+  } catch (error) {
+    logger.error(error, 'POST /fixed-assets/import error');
+    return res.status(500).json({ error: 'Gagal import aset.' });
   }
 });
 
