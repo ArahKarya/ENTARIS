@@ -145,6 +145,17 @@ app.use('/api', apiRateLimit);
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
 
+// Build version stamped at process start — changes every container restart
+// (= every deploy). Used by VersionWatcher di client untuk deteksi update
+// dan prompt user reload, supaya tidak perlu Ctrl-Shift-R manual lagi.
+const BUILD_VERSION = `${Date.now()}`;
+logger.info({ buildVersion: BUILD_VERSION }, 'Build version stamped for this process');
+
+app.get('/api/version', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ version: BUILD_VERSION });
+});
+
 // ─── Protected Routes ──────────────────────────────────────────────────────────
 app.use('/api', authMiddleware);
 app.use('/api', auditTrailMiddleware);
@@ -188,12 +199,31 @@ app.use('/api/goods-receipts', goodsReceiptRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
-// In production, serve the built React client from ../client/dist
+// In production, serve the built React client from ../client/dist.
+//
+// Cache strategy:
+//   - /assets/*  → Vite content-hashes filenames; aman cache 1 tahun (immutable).
+//   - index.html → no-store; browser selalu fetch terbaru saat user
+//                  refresh/buka-tutup tab. Karena index.html merujuk asset
+//                  ber-hash, perubahan apa pun otomatis ter-pull saat HTML
+//                  baru diambil — tidak butuh Ctrl-Shift-R lagi.
 const clientDist = path.resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDist));
+app.use(express.static(clientDist, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      return;
+    }
+    // Vite chunks under /assets/* are content-hashed
+    if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 app.get('*path', (_req, res, next) => {
   // Only serve index.html for non-API routes (SPA fallback)
   if (_req.path.startsWith('/api')) return next();
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.sendFile(path.join(clientDist, 'index.html'), (err) => {
     if (err) next(); // If file doesn't exist, fall through
   });
