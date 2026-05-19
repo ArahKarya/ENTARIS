@@ -631,12 +631,15 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
               </div>
             </div>
 
-            {/* Phase 3: Cost components — Input side */}
+            {/* Phase 3: Cost components — Input side.
+                usedStandardIds: standar yg sudah dipakai di baris lain SISI ini
+                tidak muncul lagi di dropdown (cegah double-entry). */}
             <CostSectionUI
               title="Biaya Produksi (Sisi Input)"
               hint="Contoh: Listrik mesin giling per Kg gabah masuk. Tidak posting GL — informational saja."
               rows={inputCostRows}
               standards={standards.filter(s => s.costSide === 'InputSide')}
+              usedStandardIds={new Set(inputCostRows.map(r => r.c.standardId).filter(Boolean))}
               onAdd={() => addCost('InputSide')}
               onRemove={removeCost}
               onUpdate={updateCost}
@@ -650,6 +653,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
               hint="Contoh: Biaya kirim hasil ke gudang per Kg beras."
               rows={outputCostRows}
               standards={standards.filter(s => s.costSide === 'OutputSide')}
+              usedStandardIds={new Set(outputCostRows.map(r => r.c.standardId).filter(Boolean))}
               onAdd={() => addCost('OutputSide')}
               onRemove={removeCost}
               onUpdate={updateCost}
@@ -783,6 +787,7 @@ interface CostSectionProps {
   hint: string;
   rows: { c: CostLine; idx: number }[];
   standards: CostStandard[];
+  usedStandardIds: Set<string>;
   onAdd: () => void;
   onRemove: (idx: number) => void;
   onUpdate: (idx: number, patch: Partial<CostLine>) => void;
@@ -791,9 +796,12 @@ interface CostSectionProps {
 }
 
 function CostSectionUI({
-  title, hint, rows, standards, onAdd, onRemove, onUpdate, onPickStandard, computeTotal,
+  title, hint, rows, standards, usedStandardIds, onAdd, onRemove, onUpdate, onPickStandard, computeTotal,
 }: CostSectionProps) {
   const sectionTotal = rows.reduce((s, { c }) => s + computeTotal(c), 0);
+  // Tombol "Tambah Biaya" tetap aktif walau semua standar terpakai — staff
+  // masih bisa input manual (standardId = '').
+  const hasMoreStandards = standards.length > usedStandardIds.size;
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -811,7 +819,13 @@ function CostSectionUI({
       </div>
       {rows.length > 0 && (
         <div className="space-y-2">
-          {rows.map(({ c, idx }) => (
+          {rows.map(({ c, idx }) => {
+            // Standar yg sudah dipakai di baris lain disembunyikan; baris ini
+            // tetap bisa lihat pilihannya sendiri.
+            const availableStandards = standards.filter(
+              s => !usedStandardIds.has(s.id) || s.id === c.standardId,
+            );
+            return (
             <div key={idx} className="border border-gray-100 rounded-lg p-2 bg-gray-50/50 space-y-1.5">
               <div className="flex gap-2 items-center">
                 <select
@@ -820,7 +834,7 @@ function CostSectionUI({
                   className="text-xs py-1 px-2 border border-gray-200 rounded bg-white flex-1 min-w-0"
                 >
                   <option value="">— Manual (free input) —</option>
-                  {standards.map(s => (
+                  {availableStandards.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.name} (default Rp {Number(s.defaultRate)})
                     </option>
@@ -864,11 +878,17 @@ function CostSectionUI({
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="text-right text-xs text-gray-500 font-mono pr-1">
             Subtotal: <span className="font-semibold text-gray-700">Rp {fmtRupiah(sectionTotal)}</span>
           </div>
         </div>
+      )}
+      {!hasMoreStandards && standards.length > 0 && rows.length > 0 && (
+        <p className="text-[10px] text-gray-400 mt-1.5">
+          Semua master standar di sisi ini sudah dipakai. Tambah baris berikutnya hanya bisa pakai mode manual (free input).
+        </p>
       )}
     </div>
   );
