@@ -379,6 +379,97 @@ router.get('/production', async (req, res) => {
       take: 10,
     });
 
+    // 8. Loaded HPP analytics (Phase 3+): pull totals + per-product avg HPP
+    //    untuk run dalam periode yang punya computedHpp non-null. Tujuan:
+    //    dashboard "Production Deep Dive" tampilkan rata-rata HPP per produk
+    //    utama + breakdown komponen biaya periode.
+    const runsWithHpp = periodRunIds.length > 0
+      ? await prisma.productionRun.findMany({
+          where: {
+            id: { in: periodRunIds },
+            computedHpp: { not: null },
+          },
+          select: {
+            id: true,
+            computedHpp: true,
+            totalMaterialCost: true,
+            totalCostInputSide: true,
+            totalCostOutputSide: true,
+            totalByproductValue: true,
+            items: {
+              where: { lineType: 'Output' },
+              select: {
+                itemId: true,
+                quantity: true,
+                item: { select: { code: true, name: true, unit: true } },
+              },
+            },
+          },
+        })
+      : [];
+
+    const totalMaterialCost = runsWithHpp.reduce((s, r) => s + Number(r.totalMaterialCost ?? 0), 0);
+    const totalCostInputSide = runsWithHpp.reduce((s, r) => s + Number(r.totalCostInputSide ?? 0), 0);
+    const totalCostOutputSide = runsWithHpp.reduce((s, r) => s + Number(r.totalCostOutputSide ?? 0), 0);
+    const totalByproductValue = runsWithHpp.reduce((s, r) => s + Number(r.totalByproductValue ?? 0), 0);
+    const totalLoadedHppNumerator = totalMaterialCost + totalCostInputSide + totalCostOutputSide - totalByproductValue;
+
+    // Per-product weighted average computedHpp (weighted by main output qty).
+    const perProductMap = new Map<string, {
+      itemId: string;
+      code: string;
+      name: string;
+      unit: string;
+      runs: number;
+      totalQty: number;
+      sumQtyTimesHpp: number;
+      latestHpp: number;
+      latestRunId: string;
+    }>();
+    for (const r of runsWithHpp) {
+      const hpp = Number(r.computedHpp);
+      for (const outLine of r.items) {
+        const mainQty = Number(outLine.quantity);
+        if (mainQty <= 0) continue;
+        const key = outLine.itemId;
+        const entry = perProductMap.get(key) ?? {
+          itemId: key,
+          code: outLine.item.code,
+          name: outLine.item.name,
+          unit: outLine.item.unit,
+          runs: 0,
+          totalQty: 0,
+          sumQtyTimesHpp: 0,
+          latestHpp: hpp,
+          latestRunId: r.id,
+        };
+        entry.runs += 1;
+        entry.totalQty += mainQty;
+        entry.sumQtyTimesHpp += mainQty * hpp;
+        // last r in iteration = the run loaded most recently (no date order
+        // guaranteed by Prisma, but order in periodRunIds reflects insertion)
+        entry.latestHpp = hpp;
+        entry.latestRunId = r.id;
+        perProductMap.set(key, entry);
+      }
+    }
+    const perProduct = Array.from(perProductMap.values())
+      .map((p) => ({
+        itemId: p.itemId,
+        itemCode: p.code,
+        itemName: p.name,
+        unit: p.unit,
+        runs: p.runs,
+        totalQty: p.totalQty,
+        avgComputedHpp: p.totalQty > 0 ? +(p.sumQtyTimesHpp / p.totalQty).toFixed(2) : 0,
+        latestComputedHpp: +p.latestHpp.toFixed(2),
+      }))
+      .sort((a, b) => b.totalQty - a.totalQty)
+      .slice(0, 5);
+
+    const totalMainQty = perProduct.reduce((s, p) => s + p.totalQty, 0);
+    const avgLoadedHppPerKg = totalMainQty > 0 ? totalLoadedHppNumerator / totalMainQty : 0;
+
     return res.json({
       summary: {
         totalRuns,
@@ -410,6 +501,16 @@ router.get('/production', async (req, res) => {
           outputSummary: outputs.map(i => `${i.item.name} ${Number(i.quantity).toLocaleString('id-ID')} ${i.item.unit}`).join(', '),
         };
       }),
+      loadedHpp: {
+        perProduct,
+        totalMaterialCost: +totalMaterialCost.toFixed(2),
+        totalCostInputSide: +totalCostInputSide.toFixed(2),
+        totalCostOutputSide: +totalCostOutputSide.toFixed(2),
+        totalByproductValue: +totalByproductValue.toFixed(2),
+        totalLoadedHpp: +totalLoadedHppNumerator.toFixed(2),
+        avgLoadedHppPerKg: +avgLoadedHppPerKg.toFixed(2),
+        runsWithHppCount: runsWithHpp.length,
+      },
     });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/dashboard/production error');

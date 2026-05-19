@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, BarChart3, Clock, Users, AlertTriangle, PieChart, PackageX, Package, ArrowLeftRight, Layers, Factory, TrendingUp, Wallet, Scale, Truck, Percent } from 'lucide-react';
+import { X, BarChart3, Clock, Users, AlertTriangle, PieChart, PackageX, Package, ArrowLeftRight, Layers, Factory, TrendingUp, Wallet, Scale, Truck, Percent, Building2, CalendarClock, Trophy, Calculator } from 'lucide-react';
 
 export interface WidgetConfig {
   id: string;
@@ -30,6 +30,15 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'top-vendors', name: 'Vendor Teratas', description: 'Top 5 vendor berdasarkan total pembelian', icon: Truck, enabled: true },
   { id: 'yield-trend', name: 'Tren Yield', description: 'Rata-rata yield produksi 6 bulan terakhir', icon: Percent, enabled: true },
   { id: 'cogs-backfill', name: 'COGS Pending Settle', description: 'Sales stok minus yang menunggu auto-koreksi COGS', icon: AlertTriangle, enabled: true },
+  // ─── Aset Tetap ───
+  { id: 'fixed-assets-kpi', name: 'KPI Aset Tetap', description: 'Total aset, harga perolehan, akumulasi penyusutan, nilai buku', icon: Building2, enabled: true },
+  { id: 'fixed-assets-by-category', name: 'Aset per Kategori', description: 'Distribusi nilai buku aset tetap per kategori (pie chart)', icon: PieChart, enabled: true },
+  { id: 'depreciation-due', name: 'Penyusutan Mendatang', description: 'Jadwal depresiasi bulan ini + 5 entry upcoming', icon: CalendarClock, enabled: true },
+  { id: 'top-assets', name: 'Top 10 Aset', description: 'Aset tetap dengan nilai buku tertinggi', icon: Trophy, enabled: true },
+  // ─── Sales lanjutan ───
+  { id: 'profitability-per-sku', name: 'Profitabilitas per SKU', description: 'Top 10 SKU dengan margin material vs loaded HPP', icon: Calculator, enabled: true },
+  // ─── Produksi lanjutan ───
+  { id: 'production-deep-dive', name: 'Production Deep Dive', description: 'KPI run + tren yield + top input/output + best/worst + loaded HPP', icon: Factory, enabled: true },
 ];
 
 interface DashboardSettingsProps {

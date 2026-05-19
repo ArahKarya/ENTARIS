@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Settings2, LayoutDashboard, DollarSign, TrendingUp, Package, Factory } from 'lucide-react';
+import { Settings2, LayoutDashboard, DollarSign, TrendingUp, Package, Factory, Building2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
@@ -18,6 +18,12 @@ import CategoryDistribution from '../components/widgets/CategoryDistribution';
 import TopItemsByStock from '../components/widgets/TopItemsByStock';
 import RecentMovements from '../components/widgets/RecentMovements';
 import ProductionStatsWidget from '../components/widgets/ProductionStatsWidget';
+import ProductionDeepDive from '../components/widgets/ProductionDeepDive';
+import FixedAssetsKPI from '../components/widgets/FixedAssetsKPI';
+import FixedAssetsByCategory from '../components/widgets/FixedAssetsByCategory';
+import DepreciationDue from '../components/widgets/DepreciationDue';
+import TopAssetsByValue from '../components/widgets/TopAssetsByValue';
+import ProfitabilityPerSku from '../components/widgets/ProfitabilityPerSku';
 import FinancialRatios from '../components/widgets/FinancialRatios';
 import MonthlyProfitChart from '../components/widgets/MonthlyProfitChart';
 import CashFlowChart from '../components/widgets/CashFlowChart';
@@ -36,12 +42,16 @@ const FINANCE_WIDGET_IDS = new Set([
   'overdue-invoices', 'expense-breakdown',
   'financial-ratios', 'monthly-profit', 'cash-flow-summary', 'aging-summary',
   'cash-position', 'top-vendors',
+  // Aset & profitability sensitive — finance only
+  'fixed-assets-kpi', 'fixed-assets-by-category', 'depreciation-due', 'top-assets',
+  'profitability-per-sku',
 ]);
 
 const KEUANGAN_WIDGETS = ['revenue-chart', 'monthly-profit', 'cash-flow-summary', 'financial-ratios', 'expense-breakdown', 'aging-summary', 'overdue-invoices', 'top-vendors'];
-const SALES_WIDGETS = ['top-customers', 'recent-activities'];
+const SALES_WIDGETS = ['top-customers', 'recent-activities', 'profitability-per-sku'];
 const STOK_WIDGETS = ['warehouse-kpi', 'stock-alert', 'movement-trend', 'category-distribution', 'top-items', 'recent-movements', 'cogs-backfill'];
-const PRODUKSI_WIDGETS = ['production-stats', 'yield-trend'];
+const PRODUKSI_WIDGETS = ['production-stats', 'yield-trend', 'production-deep-dive'];
+const ASET_WIDGETS = ['fixed-assets-kpi', 'fixed-assets-by-category', 'depreciation-due', 'top-assets'];
 
 const STORAGE_KEY = 'dashboard-widgets';
 
@@ -190,6 +200,7 @@ export const Dashboard = () => {
   const showSales = !isStaffProduksi && anyEnabled(SALES_WIDGETS);
   const showStok = anyEnabled(STOK_WIDGETS);
   const showProduksi = anyEnabled(PRODUKSI_WIDGETS);
+  const showAset = !isStaffProduksi && anyEnabled(ASET_WIDGETS);
 
   const sections: SectionDef[] = useMemo(() => {
     const list: SectionDef[] = [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }];
@@ -197,8 +208,9 @@ export const Dashboard = () => {
     if (showSales) list.push({ id: 'sales', label: 'Sales', icon: TrendingUp });
     if (showStok) list.push({ id: 'stok', label: 'Stok', icon: Package });
     if (showProduksi) list.push({ id: 'produksi', label: 'Produksi', icon: Factory });
+    if (showAset) list.push({ id: 'aset', label: 'Aset', icon: Building2 });
     return list;
-  }, [showKeuangan, showSales, showStok, showProduksi]);
+  }, [showKeuangan, showSales, showStok, showProduksi, showAset]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -303,6 +315,10 @@ export const Dashboard = () => {
               <RecentActivities data={recentActivities || null} />
             )}
           </div>
+
+          {isEnabled('profitability-per-sku') && (
+            <ProfitabilityPerSku startDate={period.startDate} endDate={period.endDate} />
+          )}
         </section>
       )}
 
@@ -365,6 +381,32 @@ export const Dashboard = () => {
               <YieldTrendChart />
             </div>
           )}
+
+          {isEnabled('production-deep-dive') && (
+            <ProductionDeepDive startDate={period.startDate} endDate={period.endDate} />
+          )}
+        </section>
+      )}
+
+      {/* ─────────── SECTION: ASET TETAP ─────────── */}
+      {showAset && (
+        <section id="aset" className="space-y-4 scroll-mt-20">
+          <SectionHeader
+            icon={Building2}
+            title="Aset Tetap"
+            subtitle="Nilai aset, distribusi, dan jadwal penyusutan"
+          />
+
+          {isEnabled('fixed-assets-kpi') && <FixedAssetsKPI />}
+
+          {(isEnabled('fixed-assets-by-category') || isEnabled('depreciation-due')) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {isEnabled('fixed-assets-by-category') && <FixedAssetsByCategory />}
+              {isEnabled('depreciation-due') && <DepreciationDue />}
+            </div>
+          )}
+
+          {isEnabled('top-assets') && <TopAssetsByValue />}
         </section>
       )}
 

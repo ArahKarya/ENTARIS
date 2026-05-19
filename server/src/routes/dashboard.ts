@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { roleMiddleware } from '../middleware/auth';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
+import fixedAssetsRouter from './dashboard/fixedAssets';
 
 const router = Router();
 
@@ -23,6 +24,9 @@ function parseRange(
 
 // All dashboard endpoints require at least Viewer role
 router.use(roleMiddleware(['Admin', 'Accountant', 'Viewer']));
+
+// Sub-router untuk widget Aset Tetap (single comprehensive endpoint).
+router.use('/fixed-assets', fixedAssetsRouter);
 
 // GET /api/dashboard/metrics
 router.get('/metrics', async (req, res) => {
