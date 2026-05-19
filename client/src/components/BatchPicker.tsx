@@ -57,7 +57,6 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
   });
 
   const batches: Batch[] = useMemo(() => data?.data ?? [], [data]);
-  const currentStock: number = data?.currentStock ?? 0;
 
   if (!enabled) {
     return (
@@ -86,7 +85,6 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
   }
 
   const sumAvailable = batches.reduce((s, b) => s + b.qtyAvailable, 0);
-  const mismatch = Math.abs(sumAvailable - currentStock) > 0.001;
 
   return (
     <div className={className}>
@@ -107,16 +105,11 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
           </option>
         ))}
       </select>
-      {isFetching && !isLoading && (
-        <p className="text-[10px] text-gray-400 mt-0.5">Memuat ulang…</p>
-      )}
-      {mismatch && (
-        <p className="text-[10px] text-amber-600 mt-0.5 flex items-center gap-1">
-          <Package size={10} />
-          Tersedia per batch ({fmtNum(sumAvailable)}) ≠ stok gudang ({fmtNum(currentStock)}).
-          Selisih kemungkinan karena keluar via sales/transfer (belum ada batch-tracking di sana).
-        </p>
-      )}
+      <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+        <Package size={10} />
+        {batches.length} batch · total {fmtNum(sumAvailable)} Kg tersedia (FIFO sudah serap outbound legacy)
+        {isFetching && !isLoading && <span className="ml-1 text-gray-300">memuat ulang…</span>}
+      </p>
     </div>
   );
 }

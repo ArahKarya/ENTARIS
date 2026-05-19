@@ -136,22 +136,55 @@ router.get('/:id/batches', async (req, res) => {
       }
     }
 
-    // 3. Compose response with qtyAvailable, drop batches with <=0 available
-    const batches = inbound
-      .map((m) => {
-        const qtyConsumed = consumedMap.get(m.id) ?? 0;
-        const qtyAvailable = Number(m.quantity) - qtyConsumed;
+    // 3. Compose raw per-batch availability from EXPLICIT tracking only.
+    const rawBatches = inbound.map((m) => {
+      const qtyConsumedTracked = consumedMap.get(m.id) ?? 0;
+      return {
+        id: m.id,
+        movementNumber: m.movementNumber,
+        date: m.date,
+        qtyInbound: Number(m.quantity),
+        unitCost: Number(m.unitCost),
+        qtyConsumedTracked,
+        qtyAvailableTracked: Number(m.quantity) - qtyConsumedTracked,
+        sourceType: m.referenceType ?? 'Other',
+        sourceRef: m.referenceNumber ?? null,
+        sourceRefId: m.referenceId ?? null,
+      };
+    });
+
+    // 4. FIFO-absorb untracked outbound (legacy sales/transfers before batch
+    // picker existed) so the picker never shows more than physically present.
+    //
+    // untrackedConsumption = max(0, sum(qtyAvailableTracked) - currentStock)
+    // — the excess of explicit availability over actual warehouse stock is
+    // the historical untracked consumption. Allocate it FIFO from the oldest
+    // batches (rawBatches is already sorted asc by date) so the remaining
+    // visible batches accurately reflect what's still on the floor.
+    const totalAvailableTracked = rawBatches.reduce((s, b) => s + b.qtyAvailableTracked, 0);
+    let untrackedRemaining = Math.max(0, totalAvailableTracked - currentStock);
+
+    const batches = rawBatches
+      .map((b) => {
+        let qtyAvailable = b.qtyAvailableTracked;
+        let qtyConsumedUntracked = 0;
+        if (untrackedRemaining > 0 && qtyAvailable > 0) {
+          const absorb = Math.min(qtyAvailable, untrackedRemaining);
+          qtyAvailable -= absorb;
+          qtyConsumedUntracked = absorb;
+          untrackedRemaining -= absorb;
+        }
         return {
-          id: m.id,
-          movementNumber: m.movementNumber,
-          date: m.date,
-          qtyInbound: Number(m.quantity),
-          unitCost: Number(m.unitCost),
-          qtyConsumed,
+          id: b.id,
+          movementNumber: b.movementNumber,
+          date: b.date,
+          qtyInbound: b.qtyInbound,
+          unitCost: b.unitCost,
+          qtyConsumed: b.qtyConsumedTracked + qtyConsumedUntracked,
           qtyAvailable,
-          sourceType: m.referenceType ?? 'Other',
-          sourceRef: m.referenceNumber ?? null,
-          sourceRefId: m.referenceId ?? null,
+          sourceType: b.sourceType,
+          sourceRef: b.sourceRef,
+          sourceRefId: b.sourceRefId,
         };
       })
       .filter((b) => b.qtyAvailable > 0.001);
