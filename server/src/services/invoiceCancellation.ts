@@ -115,6 +115,16 @@ export async function cancelSalesInvoiceInTx(
     data: { invoiceId: null, invoicedAt: null },
   });
 
+  // Clear DO link di sales_invoice_items karena kolom
+  // delivery_order_item_id punya @unique constraint. Tanpa ini, invoice
+  // baru yg coba bind DO yg sama akan ditolak Prisma "data duplikat
+  // terdeteksi" meskipun invoice lama statusnya sudah Cancelled. Tetap
+  // simpan baris-nya untuk audit trail — cuma FK ke DO yg di-null-kan.
+  await tx.salesInvoiceItem.updateMany({
+    where: { salesInvoiceId: invoice.id, deliveryOrderItemId: { not: null } },
+    data: { deliveryOrderItemId: null },
+  });
+
   await recalcPartyOutstanding(tx, invoice.partyId);
 
   return { id: invoice.id, status: 'Cancelled' };
