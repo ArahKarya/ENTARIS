@@ -69,6 +69,25 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoices' : 'purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoice-detail' : 'purchase-invoice-detail', invoiceId] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
+      // Cancel sales invoice melepas DO link (invoiceCancellation.ts:113-116)
+      // sehingga DO yg dulu di-link masuk lagi ke pending list — invalidate
+      // cache supaya modal invoice baru langsung lihat DO yg ter-release.
+      if (isSales) {
+        queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['delivery-orders-pending'] });
+      } else {
+        // Mirror untuk STT/GR (purchase side)
+        queryClient.invalidateQueries({ queryKey: ['stt-pending'] });
+        queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-aging-summary'] });
+      // Cancel bisa reverse stock + COGS JV — refresh stok list & ledger.
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+      // Allocations released → refresh payment list & customer/vendor deposits
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       toast.success('Invoice berhasil dibatalkan.');
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan invoice.'),
