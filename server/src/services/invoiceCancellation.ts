@@ -220,5 +220,13 @@ export async function cancelPurchaseInvoiceInTx(
     data: { invoiceId: null, invoicedAt: null },
   });
 
+  // Clear STT link di purchase_invoice_items — kolom goods_receipt_item_id
+  // punya @unique. Tanpa null-kan, invoice baru yg coba bind STT yg sama
+  // akan ditolak "data duplikat terdeteksi" (mirror dari sales fix).
+  await tx.purchaseInvoiceItem.updateMany({
+    where: { purchaseInvoiceId: invoice.id, goodsReceiptItemId: { not: null } },
+    data: { goodsReceiptItemId: null },
+  });
+
   return { id: invoice.id, status: 'Cancelled' };
 }

@@ -107,6 +107,36 @@ export async function submitPurchaseInvoiceInTx(
     }
   }
 
+  // ─── Policy (2026-05): barang masuk HANYA via STT/BPB ─────────────────
+  // Setiap line dengan inventoryItemId WAJIB link ke goodsReceiptItemId
+  // (line dari STT yg sudah submit). Direct-purchase ditutup supaya:
+  //   1. Tidak ada dobel-tambah stok antara STT dan invoice.
+  //   2. Audit fisik gampang: arus barang murni via STT; invoice = tagihan.
+  //   3. Variance harga (STT provisional vs PI aktual) tertangani lewat
+  //      jalur STT-linked yg sudah ada (5.11 Selisih Harga Pembelian).
+  // Service items / line akun bebas (tanpa inventoryItemId) tetap bisa.
+  const orphanInventoryLines = body.items.filter(
+    (it) => it.inventoryItemId && !it.goodsReceiptItemId,
+  );
+  if (orphanInventoryLines.length > 0) {
+    const orphanIds = orphanInventoryLines
+      .map((l) => l.inventoryItemId)
+      .filter((id): id is string => !!id);
+    const offenders = await tx.inventoryItem.findMany({
+      where: { id: { in: orphanIds } },
+      select: { id: true, name: true },
+    });
+    const names = orphanInventoryLines
+      .map((l) => offenders.find((o) => o.id === l.inventoryItemId)?.name ?? l.itemName)
+      .filter((n, i, arr) => arr.indexOf(n) === i)
+      .join(', ');
+    throw new BusinessError(
+      `Item inventori "${names}" tidak bisa di-invoice langsung. ` +
+      `Buat STT / BPB (Bukti Penerimaan Barang) terlebih dahulu — invoice hanya bisa di-generate dari STT yang sudah submit. ` +
+      `Stok masuk lewat STT, bukan invoice.`,
+    );
+  }
+
   const itemsWithAmount = body.items.map((item) => {
     const calc = computePurchaseItem(item);
     return {
@@ -358,88 +388,11 @@ export async function submitPurchaseInvoiceInTx(
     });
   }
 
-  // Stock movements + WAC recalc + COGS backfill settlement.
-  // SKIP lines yang STT-linked — stok + averageCost sudah update di STT submit.
-  for (const item of invoice.items) {
-    const invItemId = item.inventoryItemId;
-    if (!invItemId) continue;
-    if (item.goodsReceiptItemId) continue;
-
-    const inventoryItem = await tx.inventoryItem.findUnique({ where: { id: invItemId } });
-    if (!inventoryItem || !inventoryItem.isActive) continue;
-
-    const movementNumber = await generateDocumentNumber(tx, 'SM', parsedDate, fiscalYear.id);
-    const effectiveAmount = effectiveAmountMap.get(item.id) ?? new Decimal(item.amount.toString());
-    const qty = new Decimal(item.quantity.toString());
-    const unitCost = qty.gt(0)
-      ? effectiveAmount.div(qty).toDecimalPlaces(2).toNumber()
-      : 0;
-    const totalValue = effectiveAmount.toNumber();
-
-    const newAvgCost = calcWeightedAverage(
-      inventoryItem.currentStock,
-      inventoryItem.averageCost,
-      Number(item.quantity),
-      unitCost,
-    );
-
-    let lineWarehouseId: string | null = item.warehouseId ?? null;
-    if (!lineWarehouseId) {
-      const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
-      lineWarehouseId = defaultWh?.id ?? null;
-    }
-    if (!lineWarehouseId) {
-      throw new BusinessError(
-        `Item "${inventoryItem.name}" perlu dipilihkan gudang tujuan. Tidak ada gudang default — pilih manual di baris item.`,
-      );
-    }
-
-    await tx.inventoryItem.update({
-      where: { id: inventoryItem.id },
-      data: {
-        currentStock: { increment: Number(item.quantity) },
-        averageCost: newAvgCost,
-      },
-    });
-    await tx.inventoryStock.upsert({
-      where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
-      create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: Number(item.quantity) },
-      update: { currentStock: { increment: Number(item.quantity) } },
-    });
-
-    await tx.stockMovement.create({
-      data: {
-        movementNumber,
-        date: parsedDate,
-        itemId: inventoryItem.id,
-        warehouseId: lineWarehouseId,
-        movementType: 'In',
-        quantity: Number(item.quantity),
-        unitCost,
-        totalValue,
-        referenceType: 'PurchaseInvoice',
-        referenceId: invoice.id,
-        notes: `Auto dari ${invoice.invoiceNumber}`,
-        createdById: userId,
-        fiscalYearId: fiscalYear.id,
-      },
-    });
-
-    logger.info(
-      { invoiceId: invoice.id, itemId: inventoryItem.id, qty: Number(item.quantity) },
-      'Auto stock movement from purchase',
-    );
-
-    await settleCogsBackfillForItem(tx, {
-      itemId: inventoryItem.id,
-      qtyAvailable: Number(item.quantity),
-      unitCostNow: unitCost,
-      fiscalYearId: fiscalYear.id,
-      userId,
-      settleDate: parsedDate,
-      source: { type: 'PurchaseInvoice', refId: invoice.id, refNo: invoice.invoiceNumber },
-    });
-  }
+  // Direct-purchase path (line tanpa goodsReceiptItemId) sudah di-tolak
+  // di validation awal (orphanInventoryLines guard). STT-linked lines:
+  // stok + averageCost sudah ter-update di STT submit, jadi tidak ada
+  // pekerjaan lagi di sini. Variance harga STT vs PI sudah dihandle di
+  // accrual reversal block sebelumnya.
 
   return invoice;
 }

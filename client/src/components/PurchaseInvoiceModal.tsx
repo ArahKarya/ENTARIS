@@ -284,15 +284,20 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const allRowsValid = items.every(
     (i) => i.itemName.trim().length > 0 && i.rate !== 0 && i.timbanganDiterima > 0,
   );
-  // Bahan-baku line must have a destination warehouse — backend rejects otherwise.
-  const hasMissingWarehouse = items.some(
-    (i) => i.itemType === 'material' && i.inventoryItemId && !i.warehouseId,
+  // Policy (2026-05): inventory item HARUS via STT/BPB (mirror dari sales).
+  // Direct-purchase ditutup di backend, cegah submit dari client supaya
+  // staff dapat guidance jelas sebelum dilempar error.
+  const orphanInventoryLines = items.filter(
+    (i) => i.itemType === 'material' && i.inventoryItemId && !i.goodsReceiptItemId,
   );
+  const hasOrphanInventory = orphanInventoryLines.length > 0;
+  // Legacy guard: warehouse picker validation (relevan saat direct-purchase
+  // masih aktif). Sekarang STT yg handle warehouse, jadi tidak ke-trigger.
   const canSubmit =
     partyId &&
     items.length > 0 &&
     allRowsValid &&
-    !hasMissingWarehouse &&
+    !hasOrphanInventory &&
     grandTotal > 0 &&
     !mutation.isPending;
 
@@ -699,6 +704,34 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
             </div>
           </div>
 
+          {/* Policy 2026-05: barang masuk HANYA via STT/BPB */}
+          {hasOrphanInventory && (
+            <div className="mx-4 sm:mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Bahan baku harus via STT / BPB</p>
+                  <p className="text-xs text-red-700 mt-0.5">
+                    Sejak 20 Mei 2026, stok masuk wajib lewat STT (Surat Tanda Terima / Bukti Penerimaan Barang).
+                    Invoice = tagihan saja. Berikut item yg masih direct-purchase di invoice ini:
+                  </p>
+                  <ul className="mt-1.5 ml-1 list-disc list-inside text-xs space-y-0.5">
+                    {orphanInventoryLines.map((l) => (
+                      <li key={l.id}>
+                        <span className="font-medium">{l.itemName}</span>
+                        <span className="text-red-600"> — belum link ke STT</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs mt-2">
+                    <strong>Solusi:</strong> buat <span className="font-semibold">STT/BPB</span> dulu di menu Pembelian → STT,
+                    lalu kembali ke sini dan pilih dari daftar <span className="font-semibold">STT Tertunda</span> di atas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mx-4 sm:mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
               <AlertCircle size={15} /> <span>{error}</span>
@@ -711,8 +744,8 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
           <p className="text-xs text-gray-400 hidden sm:block">
             {canSubmit
               ? `Total: ${formatRupiah(grandTotal)}`
-              : hasMissingWarehouse
-                ? 'Pilih gudang tujuan untuk setiap baris bahan baku.'
+              : hasOrphanInventory
+                ? 'Bahan baku harus via STT — lihat peringatan di atas.'
                 : 'Lengkapi supplier & minimal 1 item'}
           </p>
           <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
