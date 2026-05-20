@@ -1,5 +1,64 @@
 # Changelog
 
+## [3.1.0] - 2026-05-20
+
+### Modul Produksi — Loaded HPP & Traceability
+- **Phase 1**: master Standar Biaya Produksi (per kategori cost: listrik, buruh, kirim, dll) — rate Rp/Kg input atau output. Tidak posting GL, snapshot dipakai oleh production run untuk hitung HPP loaded.
+- **Phase 2**: batch picker untuk bahan baku input produksi — pilih batch tertentu dari inbound stock movement, lock COGS ke harga batch (bukan WAC), simpan `sourceMovementId` + `batchUnitCost` snapshot.
+- **Phase 3**: cost components per run + auto-calc HPP loaded = (material + cost input side + cost output side − by-product NRV) / qty main output. Optional override manual. Persistent `production_runs.computedHpp` + `unitCostLoaded` di output stockMovement.
+- **Phase 5**: batch picker meluas — SalesInvoice (default WAC fallback, opsional specific identification), StockTransfer (lock cost dari batch source), StockMovement adjustment Out. Schema baru `stock_movements.source_movement_id` (universal back-link).
+- **Phase 6**: laporan **Profitability per SKU** (Material WAC vs Loaded HPP margin side-by-side + coverage %), drawer invoice menampilkan loaded vs material margin.
+- **Master Proses Produksi**: list proses (Drying, Huller, Polishing, Packing, dll) sebagai multiselect chip di production modal — traceability murni, tidak posting GL.
+- **PDF Production Run**: layout A4 dengan header company, input/output/byproduct table (dengan batch ref), komponen biaya, HPP loaded breakdown, signature 3 kolom (Staff/Supervisor/Manajer).
+- **Cost standard per gudang**: rate bisa di-scope per gudang (mis. Listrik Mesin Giling hanya muncul di gudang GILING, Polisher hanya di POLES).
+- **HPP main output optional**: kalau staff biarkan kosong, server auto-fill dari loaded HPP yang terhitung.
+- **Dedup cost standard di modal**: standar yang sudah dipakai di baris lain (di sisi yang sama) disembunyikan dari dropdown baris berikutnya.
+
+### Aset Tetap — Import Massal + Lifecycle Lengkap
+- **Import 79 aset PMD** via script `scripts/import-fixed-assets.cjs` (Tanah, Bangunan, Mesin, Peralatan) dengan opening accumulated depreciation per kategori (snapshot per Mei 2026), generate 4.864 jadwal depresiasi (mulai Juni 2026 → akhir umur 2043).
+- **Opening Balance JE** via `scripts/post-fa-opening-je.cjs`: DR akun aset (1.6.x) Rp 16.359M / CR akm penyusutan (1.7.x) Rp 5.040M + ekuitas saldo awal (3.1) Rp 11.319M. Sebelum ini, rasio keuangan ngaco karena aset tetap belum masuk neraca.
+- **Bulk depreciation posting**: tombol "Posting Bulanan" di halaman Aset Tetap — 1 klik post 77 JE depresiasi sekaligus per bulan (vs 77 klik manual). Preview modal: count, total Rp, breakdown per kategori. Idempotent (entry sudah-post di-skip).
+- **Confirm dialog single posting**: tombol "Posting" per entry sekarang buka modal konfirmasi dengan detail (asset, periode, jumlah, JE yg akan dibuat) supaya tidak ke-klik tidak sengaja.
+- **Edit metadata aset**: tombol pencil per row, edit name/category/description. Field nominal (cost, masa manfaat, akun) immutable supaya JE historis tetap konsisten.
+- **Export CSV** semua aset tetap dengan label akun lengkap.
+- **Import CSV** dengan dropzone, preview validasi per-row (akun unknown / nominal invalid → ditandai merah), max 500 baris/import, auto-generate jadwal depresiasi. Tidak auto-post opening JE (manual via script).
+
+### Dashboard Enrichment
+- **Section baru "Aset"** di Dashboard utama (Admin/Accountant/Viewer) — 4 widget: KPI (count/cost/akumulasi/nilai buku), distribusi per kategori (pie chart), penyusutan due bulan ini + 5 upcoming, top 10 aset by nilai buku.
+- **Widget Profitability per SKU** di section Sales — table top 10 SKU dengan margin Material vs Loaded side-by-side + coverage % (% line yang link ke batch).
+- **Widget Production Deep Dive** di section Produksi — 4 mini-KPI (run periode, total input/output, avg loaded HPP per Kg), yield trend line chart, top input/output bars, best/worst yield rank, loaded HPP breakdown.
+- **Endpoint backend**: `/api/dashboard/fixed-assets` (comprehensive), extend `/api/inventory/dashboard/production` dengan `loadedHpp` block (per-product weighted avg HPP).
+- 4 widget Aset share 1 fetch via TanStack Query (queryKey `dashboard-fixed-assets`).
+
+### Stok Wajib via Surat Jalan / STT
+- **Direct-sale invoice ditutup**: Sales Invoice dengan inventory line WAJIB link ke DeliveryOrder yang sudah submit. Stok keluar hanya via DO. Invoice = tagihan saja, tidak gerakkan stok.
+- **Direct-purchase invoice ditutup**: Purchase Invoice dengan inventory line WAJIB link ke STT/BPB yang sudah submit. Stok masuk hanya via STT. Mirror dari sales.
+- Frontend warning banner merah di SalesInvoiceModal & PurchaseInvoiceModal dengan list item yang masih orphan + petunjuk solusi.
+- Service items / line akun bebas (tanpa inventoryItemId) **tetap bisa** direct via invoice.
+- Backward compat: existing direct-sale/direct-purchase invoices tetap valid, cancel/payment workflow normal. Hanya CREATE baru yang di-block.
+
+### Buku Besar (General Ledger) — Pagination
+- Footer paginasi: First / Prev / Next / Last + selector per-halaman (25/50/100/200) + info "Menampilkan X–Y dari Z jurnal".
+- Filter (search + hideCancelled) sekarang **server-side** supaya konsisten antar halaman (sebelumnya cuma filter 50 hasil pertama).
+- Auto-reset ke page 1 saat filter berubah, indikator "memuat ulang…" saat ganti page, `placeholderData(prev)` untuk transisi mulus.
+
+### VersionWatcher (Auto-Reload)
+- Setiap deploy baru: VersionWatcher di-mount global, polling `/api/version` setiap 2 menit + sekali setiap tab kembali fokus. Versi berubah → toast persistent "Versi terbaru tersedia — Muat Ulang".
+- `index.html` di-serve dengan `Cache-Control: no-store`, `/assets/*` immutable 1 tahun (Vite content-hash). Tidak perlu Ctrl-Shift-R manual lagi.
+
+### Bug Fixes Penting
+- **"Data duplikat terdeteksi" saat reuse DO/STT setelah invoice cancel**: invoice cancellation sekarang clear `delivery_order_item_id` / `goods_receipt_item_id` di sales_invoice_items / purchase_invoice_items (kolom `@unique` constraint). Plus backfill 1 record orphan SI-202605-0066.
+- **DO pending tidak refresh setelah cancel invoice**: frontend invalidate cache `delivery-orders`, `delivery-orders-pending`, `stock-movements`, `journals`, `payments`, `dashboard-metrics`, `aging-summary` saat cancel.
+- **Batch picker overshoot stok**: FIFO auto-absorb konsumsi legacy outbound (sales/transfer pre-Phase 5) supaya list batch di picker tidak melebihi stok gudang sebenarnya. GKP-IR yang dulu muncul 65+ batch sekarang muncul 1 batch sesuai stok real.
+- **List Pelanggan/Vendor**: nama panjang dan label "Pelanggan/Vendor" tabrakan/overlay (h3 inline-flex → flex; nama panjang truncate dengan ellipsis; badge shrink-0).
+- **Rasio Keuangan dashboard**: setelah opening balance JE Aset Tetap, Total Aset naik dari Rp 4.59M → Rp 15.91M, Current Ratio 0.15x → 0.50x, D/A 6.87x → 1.98x.
+
+### Schema Migrations
+- `20260518_add_production_loaded_hpp_phase1.sql`: tabel `production_cost_standards`, `production_run_costs`; kolom totals + `computedHpp` di `production_runs`, `sourceMovementId` + `batchUnitCost` + `nrvUnitValue` di `production_run_items`, `unitCostLoaded` di `stock_movements`.
+- `20260518b_stock_movement_batch_source.sql`: `source_movement_id` universal di `stock_movements`, `sales_invoice_items`, `stock_transfer_items` + `unit_cost_loaded` di `sales_invoice_items`.
+- `20260518c_cost_standard_warehouse_scope.sql`: `warehouse_id` di `production_cost_standards`.
+- `20260519_add_production_processes.sql`: tabel `production_processes` + junction `production_run_processes`.
+
 ## [3.0.0] - 2026-05-10
 
 ### Rebrand

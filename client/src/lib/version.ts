@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.0.0';
-export const APP_BUILD_DATE = '2026-05-10';
+export const APP_VERSION = '3.1.0';
+export const APP_BUILD_DATE = '2026-05-20';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,33 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.1.0',
+    date: '2026-05-20',
+    title: 'Modul Produksi Loaded HPP, Aset Tetap Lengkap, Stok Wajib via SJ/STT',
+    changes: [
+      'Modul Produksi (6 phase): batch picker bahan baku, komponen biaya produksi (listrik/buruh/dll) sebagai standar, auto-calc HPP loaded (material + cost components − NRV by-product), traceability proses (Drying/Huller/Polishing), PDF surat produksi, dan laporan Profitability per SKU (Material vs Loaded margin)',
+      'Master Standar Biaya Produksi per gudang: cost rate bisa di-scope per gudang (Listrik Poles hanya muncul di gudang Poles)',
+      'Batch picker universal: production input, sales (default WAC, opsional pick batch), transfer antar gudang, stock adjustment Out. Bukan cuma WAC — bisa specific identification per batch',
+      'Cap batch availability: FIFO auto-absorb konsumsi legacy outbound, jadi list batch di picker tidak overshoot stok gudang sebenarnya',
+      'Dashboard enrichment: section baru "Aset" (KPI nilai aset, distribusi per kategori, jadwal penyusutan, top 10 aset), widget Profitability per SKU di Sales, dan Production Deep Dive (KPI run, yield trend, top input/output, best/worst yield, loaded HPP breakdown) di Produksi',
+      'Aset Tetap lengkap: import 79 aset PMD via script, opening balance JE (16.3M cost + 5M akm penyusutan + 11.3M ekuitas saldo awal), bulk depreciation posting per bulan (1 klik vs 77 klik), confirm dialog single posting, edit metadata aset, export/import CSV',
+      'Dashboard menampilkan: total aset Rp 16.3M, akum penyusutan Rp 5.0M, nilai buku Rp 11.3M (4 kategori: Tanah/Bangunan/Peralatan/Mesin)',
+      'Buku Besar: pagination footer dengan tombol First/Prev/Next/Last + selector per-halaman (25/50/100/200) + indikator "X–Y dari Z jurnal", server-side filter (search + hideCancelled) supaya konsisten antar halaman',
+      'Master Proses Produksi: daftar proses (Drying, Huller, Polishing, dll) yang dipilih saat input produksi sebagai traceability — tidak posting GL, hanya catatan',
+      'Stok keluar wajib via Surat Jalan: invoice penjualan dengan item inventory HARUS link ke DO yg sudah submit. Direct-sale ditutup supaya tidak ada dobel-pengurangan stok antara DO dan invoice',
+      'Stok masuk wajib via STT/BPB: invoice pembelian dengan item inventory HARUS link ke STT yg sudah submit. Direct-purchase ditutup. Service items tetap bisa langsung',
+      'Fix bug "data duplikat terdeteksi" saat reuse DO/STT setelah invoice di-cancel — backend clear FK ke DO/STT di sales_invoice_items / purchase_invoice_items saat cancel',
+      'Fix bug DO pending tidak refresh setelah cancel invoice — frontend invalidate cache delivery-orders, stock-movements, journals, payments, dashboard',
+      'Fix UI list pelanggan/vendor: nama panjang dan label "Pelanggan/Vendor" tabrakan/overlay (h3 inline-flex → flex)',
+      'VersionWatcher: setiap deploy baru otomatis kasih toast "Versi terbaru tersedia → Muat Ulang" ke user yang sedang login, tidak perlu Ctrl-Shift-R manual',
+      'Cache strategy: index.html no-store, /assets/* immutable 1 tahun (Vite content-hash), /api/version endpoint untuk polling',
+      'Production runs: NRV by-product, validasi konsistensi batch ↔ item, sourceMovementId di stock movements (batch back-link), unit_cost_loaded snapshot di sales_invoice_items untuk loaded margin',
+      'Production cost standards: cegah double-entry — standar yg sudah dipakai di baris lain disembunyikan di dropdown baris berikutnya',
+      'HPP main output produksi optional: auto-fill dari computed HPP loaded kalau staff biarkan kosong',
+      'PDF Production Run: layout A4 dengan header company, input/output/byproduct dengan batch ref, table komponen biaya, HPP loaded breakdown, signature 3 kolom',
+    ],
+  },
   {
     version: '3.0.0',
     date: '2026-05-10',
