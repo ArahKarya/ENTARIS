@@ -155,35 +155,32 @@ export async function submitSalesInvoiceInTx(
     });
   }
 
-  // Stock availability check: aggregate qty per inventoryItemId. Skip
-  // from-DO lines (those decrements already happened at DO submit; we'd
-  // double-count current stock).
-  const qtyByItem = new Map<string, number>();
-  for (const it of resolvedItems) {
-    if (!it.inventoryItemId) continue;
-    if (it.deliveryOrderItemId) continue;
-    qtyByItem.set(it.inventoryItemId, (qtyByItem.get(it.inventoryItemId) ?? 0) + it.quantity);
-  }
-  if (qtyByItem.size > 0) {
-    const invItems = await tx.inventoryItem.findMany({
-      where: { id: { in: Array.from(qtyByItem.keys()) } },
-      select: { id: true, name: true, unit: true, currentStock: true, isActive: true },
+  // ─── Policy (2026-05): barang keluar HANYA via Surat Jalan ─────────────
+  // Setiap line dengan inventoryItemId WAJIB link ke deliveryOrderItemId
+  // (line dari DO yg sudah submit). Direct-sale (decrement stok langsung
+  // saat invoice di-submit) di-tolak supaya:
+  //   1. Tidak ada double-pengurangan stok antara DO dan invoice.
+  //   2. Audit fisik gampang: arus barang murni via DO; invoice = tagihan.
+  //   3. Mendukung kasus invoice dibuat setelah barang sudah dikirim.
+  // Service items dan lini akun bebas (tanpa inventoryItemId) tetap bisa.
+  const orphanInventoryLines = resolvedItems.filter(
+    (it) => it.inventoryItemId && !it.deliveryOrderItemId,
+  );
+  if (orphanInventoryLines.length > 0) {
+    // Ambil nama item supaya pesan errornya jelas — staff tahu line mana.
+    const offenders = await tx.inventoryItem.findMany({
+      where: { id: { in: orphanInventoryLines.map((l) => l.inventoryItemId!) } },
+      select: { id: true, name: true },
     });
-    for (const inv of invItems) {
-      const needed = qtyByItem.get(inv.id) ?? 0;
-      if (!inv.isActive) throw new BusinessError(`Item '${inv.name}' tidak aktif.`);
-      if (Number(inv.currentStock) < needed) {
-        if (!body.allowNegativeStock) {
-          throw new BusinessError(
-            `Stok '${inv.name}' tidak cukup. Tersedia: ${Number(inv.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}, dibutuhkan: ${needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}.`
-          );
-        }
-        logger.warn(
-          { itemId: inv.id, itemName: inv.name, available: Number(inv.currentStock), needed, partyId: body.partyId },
-          'Sales invoice posted with insufficient stock (allowNegativeStock=true)',
-        );
-      }
-    }
+    const names = orphanInventoryLines
+      .map((l) => offenders.find((o) => o.id === l.inventoryItemId)?.name ?? l.itemName)
+      .filter((n, i, arr) => arr.indexOf(n) === i)
+      .join(', ');
+    throw new BusinessError(
+      `Item inventori "${names}" tidak bisa di-invoice langsung. ` +
+      `Buat Surat Jalan (Delivery Order) terlebih dahulu — invoice hanya bisa di-generate dari DO yang sudah submit. ` +
+      `Stok keluar lewat DO, bukan invoice.`,
+    );
   }
 
   const subtotal = resolvedItems.reduce((sum, item) => sum.plus(new Decimal(item.amount)), new Decimal(0));
@@ -382,123 +379,14 @@ export async function submitSalesInvoiceInTx(
       continue; // skip the direct-sale path
     }
 
-    // ── Direct-sale branch (existing behavior) ─────────────────────
-    const stockBefore = Number(inventoryItem.currentStock);
-    const avgCost = Number(inventoryItem.averageCost);
-    // Phase 5: if a specific batch was picked for this line, use the batch's
-    // locked unit cost for COGS. Otherwise fall back to WAC.
-    let cogsUnitCost = avgCost > 0 ? avgCost : 0;
-    let lineUnitCostLoaded: number | null = null;
-    if (item.sourceMovementId) {
-      const batch = await tx.stockMovement.findUnique({
-        where: { id: item.sourceMovementId },
-        select: {
-          id: true, itemId: true, isCancelled: true, movementType: true,
-          unitCost: true, unitCostLoaded: true,
-        },
-      });
-      if (!batch) {
-        throw new BusinessError(`Batch sumber tidak ditemukan untuk item "${inventoryItem.name}".`);
-      }
-      if (batch.itemId !== inventoryItem.id) {
-        throw new BusinessError(`Batch sumber tidak cocok dengan item "${inventoryItem.name}".`);
-      }
-      if (batch.isCancelled) {
-        throw new BusinessError(`Batch sumber "${inventoryItem.name}" sudah dibatalkan.`);
-      }
-      if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn') {
-        throw new BusinessError(`Batch sumber untuk "${inventoryItem.name}" bukan stok masuk.`);
-      }
-      cogsUnitCost = Number(batch.unitCost);
-      lineUnitCostLoaded = batch.unitCostLoaded != null ? Number(batch.unitCostLoaded) : null;
-    }
-    const cogsAmount = new Decimal(qty).times(new Decimal(cogsUnitCost)).toDecimalPlaces(2).toNumber();
-
-    if (body.allowNegativeStock && stockBefore < qty) {
-      const deficitQty = qty - Math.max(0, stockBefore);
-      await tx.cogsBackfillQueue.create({
-        data: {
-          salesInvoiceId: invoice.id,
-          salesInvoiceItemId: item.id,
-          inventoryItemId: inventoryItem.id,
-          qtyPending: deficitQty,
-          qtyOriginal: deficitQty,
-          costAtSale: cogsUnitCost,
-          fiscalYearId: fiscalYear.id,
-          status: 'Pending',
-        },
-      });
-      logger.info(
-        { invoiceId: invoice.id, itemId: inventoryItem.id, deficitQty, costAtSale: cogsUnitCost },
-        'COGS backfill queued (negative stock sale)',
-      );
-    }
-
-    let lineWarehouseId: string | null = item.warehouseId ?? null;
-    if (!lineWarehouseId) {
-      const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
-      lineWarehouseId = defaultWh?.id ?? null;
-    }
-    if (!lineWarehouseId) {
-      throw new BusinessError(
-        `Item "${inventoryItem.name}" perlu dipilihkan gudang sumber. Tidak ada gudang default — pilih manual di baris item.`,
-      );
-    }
-
-    await tx.inventoryItem.update({
-      where: { id: inventoryItem.id },
-      data: { currentStock: { decrement: qty } },
-    });
-    await tx.inventoryStock.upsert({
-      where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId: lineWarehouseId } },
-      create: { itemId: inventoryItem.id, warehouseId: lineWarehouseId, currentStock: -qty },
-      update: { currentStock: { decrement: qty } },
-    });
-
-    const movementNumber = await generateDocumentNumber(tx, 'SM', parsedDate, fiscalYear.id);
-    await tx.stockMovement.create({
-      data: {
-        movementNumber,
-        date: parsedDate,
-        itemId: inventoryItem.id,
-        warehouseId: lineWarehouseId,
-        movementType: 'Out',
-        quantity: qty,
-        unitCost: cogsUnitCost,
-        totalValue: cogsAmount,
-        // Phase 5: batch back-link for /items/:id/batches consumption tracking
-        sourceMovementId: item.sourceMovementId || null,
-        referenceType: 'SalesInvoice',
-        referenceId: invoice.id,
-        notes: `Auto dari ${invoice.invoiceNumber}`,
-        createdById: userId,
-        fiscalYearId: fiscalYear.id,
-      },
-    });
-
-    // Phase 5: persist the loaded HPP snapshot to the sales line for Phase 6
-    // "loaded margin" reports. lineUnitCostLoaded is null when no batch picked
-    // or when the batch had no loaded HPP (e.g. purchase batch, not from
-    // production output).
-    if (lineUnitCostLoaded != null) {
-      await tx.salesInvoiceItem.update({
-        where: { id: item.id },
-        data: { unitCostLoaded: lineUnitCostLoaded },
-      });
-    }
-
-    totalCogs = totalCogs.plus(new Decimal(cogsAmount));
-
-    const invAcctId = inventoryItem.accountId || inventoryAccount.id;
-    const existing = cogsByAccount.get(invAcctId);
-    if (existing) {
-      existing.amount += cogsAmount;
-      existing.names.push(item.itemName);
-    } else {
-      cogsByAccount.set(invAcctId, { amount: cogsAmount, names: [item.itemName] });
-    }
-
-    logger.info({ invoiceId: invoice.id, itemId: inventoryItem.id, qty }, 'Auto stock deduction from sales');
+    // ── Direct-sale path closed (per policy 2026-05) ──────────────────
+    // Kalau sampai sini line punya inventoryItemId tapi tidak ada
+    // deliveryOrderItemId → seharusnya sudah ke-reject di validation awal
+    // (orphanInventoryLines guard). Defensive throw kalau bypass.
+    throw new BusinessError(
+      `Item "${inventoryItem.name}" harus di-kirim via Surat Jalan terlebih dahulu. ` +
+      `Direct-sale dari invoice sudah ditutup.`,
+    );
   }
 
   // Mark every touched DO as Invoiced (link back to this invoice).

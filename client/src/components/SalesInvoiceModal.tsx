@@ -359,35 +359,16 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     return acc;
   }, {});
 
-  const stockShortages = (() => {
-    const qtyByItem = new Map<string, number>();
-    for (const it of items) {
-      if (!it.inventoryItemId) continue;
-      // DO-linked rows already drained stock when the DO was created — skip them.
-      if (it.deliveryOrderItemId) continue;
-      qtyByItem.set(it.inventoryItemId, (qtyByItem.get(it.inventoryItemId) ?? 0) + (Number(it.quantity) || 0));
-    }
-    const out: { id: string; name: string; unit: string; available: number; needed: number }[] = [];
-    qtyByItem.forEach((needed, id) => {
-      const inv = inventoryItems?.find((i: any) => i.id === id);
-      if (!inv) return;
-      const available = Number(inv.currentStock);
-      if (available < needed) {
-        out.push({ id, name: inv.name, unit: inv.unit || '', available, needed });
-      }
-    });
-    return out;
-  })();
-  const hasShortage = stockShortages.length > 0;
-  // Product line must have a warehouse — backend rejects when null & no default exists.
-  // DO-linked lines already carry a locked warehouse from the DO, so skip them.
-  const hasMissingWarehouse = items.some(i =>
-    !i.deliveryOrderItemId && i.itemType === 'product' && i.inventoryItemId && !i.warehouseId,
+  // Policy (2026-05): inventory item HARUS via Surat Jalan. Direct-sale
+  // dari invoice di-tolak backend, jadi lebih baik kasih guidance + cegah
+  // submit dari client supaya tidak ke-throw error pertama kali.
+  const orphanInventoryLines = items.filter(
+    (i) => i.itemType === 'product' && i.inventoryItemId && !i.deliveryOrderItemId,
   );
+  const hasOrphanInventory = orphanInventoryLines.length > 0;
 
   const canSubmit = partyId && items.some(i => i.itemName) && grandTotal >= 0 && !mutation.isPending
-    && !hasMissingWarehouse
-    && (!hasShortage || allowNegativeStock);
+    && !hasOrphanInventory;
 
   if (!isOpen) return null;
 
@@ -918,34 +899,32 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             </div>
           </div>
 
-          {hasShortage && (
-            <div className="mx-6 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
-              <div className="flex items-start gap-2 mb-2">
+          {/* Policy 2026-05: barang keluar HANYA via Surat Jalan */}
+          {hasOrphanInventory && (
+            <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+              <div className="flex items-start gap-2 mb-1.5">
                 <AlertCircle size={15} className="mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-medium">Stok tidak mencukupi untuk:</p>
-                  <ul className="mt-1 ml-1 list-disc list-inside text-xs space-y-0.5">
-                    {stockShortages.map(s => (
-                      <li key={s.id}>
-                        <span className="font-medium">{s.name}</span>: tersedia {s.available.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}, dibutuhkan {s.needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}
-                        <span className="text-amber-600"> (kurang {(s.needed - s.available).toLocaleString('id-ID', { maximumFractionDigits: 3 })})</span>
+                  <p className="font-medium">Item inventori harus via Surat Jalan</p>
+                  <p className="text-xs text-red-700 mt-0.5">
+                    Sejak 20 Mei 2026, stok keluar wajib lewat Surat Jalan (DO). Invoice = tagihan saja.
+                    Berikut item yg masih direct-sale di invoice ini:
+                  </p>
+                  <ul className="mt-1.5 ml-1 list-disc list-inside text-xs space-y-0.5">
+                    {orphanInventoryLines.map((l) => (
+                      <li key={l.id}>
+                        <span className="font-medium">{l.itemName}</span>
+                        <span className="text-red-600"> — belum link ke Surat Jalan</span>
                       </li>
                     ))}
                   </ul>
+                  <p className="text-xs mt-2">
+                    <strong>Solusi:</strong> buat <span className="font-semibold">Surat Jalan</span> dulu di menu Penjualan → Surat Jalan,
+                    lalu kembali ke sini dan pilih dari daftar <span className="font-semibold">Pending Surat Jalan</span> di atas.
+                    Atau hapus baris item inventory di sini dan ganti dengan service / akun bebas.
+                  </p>
                 </div>
               </div>
-              <label className="flex items-start gap-2 mt-2 pl-5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allowNegativeStock}
-                  onChange={e => setAllowNegativeStock(e.target.checked)}
-                  className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                />
-                <span className="text-xs">
-                  Izinkan stok minus — produksi/pembelian menyusul.
-                  <span className="block text-amber-600 mt-0.5">COGS akan dihitung pakai harga rata-rata saat ini; bila stok 0, COGS = 0 dan perlu JV koreksi setelah barang masuk.</span>
-                </span>
-              </label>
             </div>
           )}
 
@@ -990,8 +969,8 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
           <p className="text-xs text-gray-400">
             {canSubmit
               ? `Total: ${formatRupiah(grandTotal)}`
-              : hasMissingWarehouse
-                ? 'Pilih gudang sumber untuk setiap baris barang.'
+              : hasOrphanInventory
+                ? 'Item inventori harus via Surat Jalan — lihat peringatan di atas.'
                 : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
           </p>
           <div className="flex gap-3">
