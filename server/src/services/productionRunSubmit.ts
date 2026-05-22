@@ -87,16 +87,11 @@ export async function submitProductionRunInTx(
     if (!item) throw new BusinessError('Item input tidak ditemukan.');
     if (!item.isActive) throw new BusinessError(`Item '${item.name}' tidak aktif.`);
     if (Number(item.currentStock) < input.quantity) {
-      if (body.allowNegativeStock) {
-        logger.warn(
-          { itemId: item.id, itemName: item.name, currentStock: Number(item.currentStock), requested: input.quantity },
-          'Production input with insufficient stock (allowNegativeStock=true)',
-        );
-      } else {
-        throw new BusinessError(
-          `Stok '${item.name}' tidak cukup. Stok saat ini: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`,
-        );
-      }
+      // Strict mode: tidak ada lagi bypass via allowNegativeStock. Stok
+      // minus menyebabkan WAC corrupt + COGS inflated (incident 2026-05).
+      throw new BusinessError(
+        `Stok '${item.name}' tidak cukup. Tersedia: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}, dibutuhkan: ${input.quantity.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}. Buat penerimaan/transfer dulu.`,
+      );
     }
   }
 

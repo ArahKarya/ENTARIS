@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.1.2';
+export const APP_VERSION = '3.1.3';
 export const APP_BUILD_DATE = '2026-05-22';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.1.3',
+    date: '2026-05-22',
+    title: 'Strict Mode: Stok Tidak Boleh Minus (Hapus Bypass)',
+    changes: [
+      'Stok minus DILARANG di semua jalan transaksi: Surat Jalan, Produksi (submit/edit/cancel), Stock Transfer, Inventory Movement. Submit ditolak dengan pesan "Stok tidak cukup, buat penerimaan/transfer dulu"',
+      'Flag bypass "Izinkan stok minus" di Surat Jalan dan Produksi dihapus dari UI. Tidak ada lagi cara override — kalau stok kurang, harus produksi/transfer/penerimaan dulu',
+      'Mencegah corruption WAC (weighted average cost) yang dulu terjadi saat stok negatif × harga inbound = avg cost absurd (jutaan/Kg)',
+      'Stock Transfer sudah punya validasi per-warehouse (tidak diubah)',
+      'Cancel/edit production yang reverse In (output) juga divalidasi: kalau output sudah dipakai produksi/sales lain, cancel ditolak — batalkan transaksi hilir dulu',
+    ],
+  },
   {
     version: '3.1.2',
     date: '2026-05-22',

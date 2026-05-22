@@ -93,7 +93,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
         where: { itemId_warehouseId: { itemId: item.id, warehouseId } },
       });
       const stockAtWarehouse = Number(stockRow?.currentStock ?? 0);
-      if (body.movementType === 'Out' && stockAtWarehouse < qty) {
+      if (isOut && stockAtWarehouse < qty) {
         const wh = await tx.warehouse.findUnique({ where: { id: warehouseId } });
         throw new BusinessError(
           `Stok di ${wh?.name ?? 'gudang'} tidak cukup. Tersedia: ${stockAtWarehouse.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}`,

@@ -812,21 +812,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-100">
-            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer max-w-md">
-              <input
-                type="checkbox"
-                checked={allowNegativeStock}
-                onChange={(e) => setAllowNegativeStock(e.target.checked)}
-                className="rounded mt-0.5"
-              />
-              <span>
-                Izinkan stok minus
-                <span className="block text-[11px] text-gray-400">
-                  Untuk input/edit produksi backdate saat stok bahan baku sudah habis karena sales/produksi lain.
-                </span>
-              </span>
-            </label>
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
             <div className="flex gap-3">
             <button
               type="button"

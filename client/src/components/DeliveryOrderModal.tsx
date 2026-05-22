@@ -76,7 +76,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
         }))
       : [defaultItem()],
   );
-  const [allowNegativeStock, setAllowNegativeStock] = useState(false);
+  const allowNegativeStock = false;
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();
@@ -471,15 +471,10 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                   </ul>
                 </div>
               </div>
-              <label className="flex items-start gap-2 mt-2 pl-5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allowNegativeStock}
-                  onChange={(e) => setAllowNegativeStock(e.target.checked)}
-                  className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                />
-                <span className="text-xs">Izinkan stok minus — produksi/pembelian menyusul.</span>
-              </label>
+              <p className="text-xs text-amber-700 mt-2 pl-5">
+                Submit akan ditolak — buat produksi/transfer/penerimaan untuk
+                item ini dulu, atau kurangi qty di Surat Jalan.
+              </p>
             </div>
           )}
 

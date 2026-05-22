@@ -49,16 +49,10 @@ export async function cancelProductionRunInTx(
 
     // Reversing an `In` movement subtracts from stock — guard against negative.
     if (isIn && Number(mov.item.currentStock) < qty) {
-      if (opts.allowNegativeStock) {
-        logger.warn(
-          { itemId: mov.itemId, itemName: mov.item.name, currentStock: Number(mov.item.currentStock), reverseQty: qty },
-          'Production cancel reverse with insufficient stock (allowNegativeStock=true)',
-        );
-      } else {
-        throw new BusinessError(
-          `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan.`,
-        );
-      }
+      // Strict mode: no allowNegativeStock bypass.
+      throw new BusinessError(
+        `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya — batalkan transaksi tersebut dulu.`,
+      );
     }
 
     if (isIn) outputItemIds.add(mov.itemId);

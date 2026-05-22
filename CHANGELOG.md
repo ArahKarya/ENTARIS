@@ -1,5 +1,33 @@
 # Changelog
 
+## [3.1.3] - 2026-05-22
+
+### Strict Mode: Stok Tidak Boleh Minus (Hapus Bypass)
+
+Lapis pelindung tambahan setelah patch v3.1.2: **stok minus DILARANG total**. Flag `allowNegativeStock` di server diabaikan, checkbox UI dihapus.
+
+**Files patched (server)**:
+- `services/deliveryOrderSubmit.ts` — hard block, hapus flag bypass
+- `services/deliveryOrderEdit.ts` — sama
+- `services/productionRunSubmit.ts` — hard block input qty > stok
+- `services/productionRunEdit.ts` — block reverse In (kalau output sudah dipakai) + block new input oversold
+- `services/productionRunCancel.ts` — block cancel kalau output sudah dipakai (output sudah jadi stok yg di-konsumsi hilir)
+- `routes/inventory/movements.ts` — extend Out validation ke AdjustmentOut juga
+
+**Files patched (client)**:
+- `DeliveryOrderModal.tsx` — hapus checkbox "Izinkan stok minus", ganti dengan pesan jelas
+- `ProductionRunModal.tsx` — hapus checkbox
+
+**Stock Transfer**: sudah punya validasi per-warehouse di `services/stockTransfer.ts:60-71` (tidak diubah).
+
+### Rationale
+
+Insiden 2026-05: stok BRS-PGC-25KG sudah negatif sejak 18 April (oversold). Setiap In berikutnya trigger bug WAC karena formula `(cQty × cCost + iQty × iCost) / (cQty + iQty)` dengan cQty negatif menghasilkan angka liar. Compound antara produksi cascading + DO submit yang lock avg corrupt → COGS SI-0072/0073 jadi Rp 80.911/Kg untuk barang yg modal sebenarnya Rp 14.000/Kg.
+
+Hapus bypass = tidak mungkin lagi stok negatif = tidak mungkin lagi WAC corruption ini terulang.
+
+---
+
 ## [3.1.2] - 2026-05-22
 
 ### Fix WAC Korup Saat Stok Negatif
