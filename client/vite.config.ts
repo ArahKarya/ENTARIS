@@ -9,7 +9,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: [
+        'favicon.ico', 'favicon.png', 'favicon-16.png', 'favicon-32.png',
+        'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png',
+        'app-icon-master.svg',
+      ],
       manifest: {
         name: 'ERP PMD',
         short_name: 'ERP PMD',

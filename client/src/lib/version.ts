@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.1';
+export const APP_VERSION = '3.2.2';
 export const APP_BUILD_DATE = '2026-05-22';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.2',
+    date: '2026-05-22',
+    title: 'Icon Aplikasi Baru — Monogram "P" PMD',
+    changes: [
+      'Icon aplikasi (browser tab + mobile/PWA) di-redesign: monogram huruf "P" putih bold di rounded square steel blue, dengan aksen golden dot di dalam loop sebagai hint pangan',
+      'Vector-based dari SVG master tunggal → generate semua ukuran (16, 32, 64, 180, 192, 512). Konsisten di favicon, Apple Touch, Android PWA',
+      'Logo perusahaan (untuk invoice, dokumen, surat jalan) tidak berubah — tetap pakai logo PT PMD yang lama. Icon aplikasi ini terpisah, khusus identitas digital app',
+      'Theme color updated: #1e40af → #2c4d78 (selaras dengan icon background)',
+    ],
+  },
   {
     version: '3.2.1',
     date: '2026-05-22',
