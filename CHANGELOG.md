@@ -1,5 +1,33 @@
 # Changelog
 
+## [3.1.1] - 2026-05-20
+
+### Landed Cost Pembelian (Material + Refaksi → Persediaan)
+
+Selisih harga PI ↔ STT tidak lagi di-post ke akun **5.11 Selisih Harga Pembelian** sebagai expense terpisah. Sekarang seluruh komponen line PI (material + line tambahan seperti "RESIKO MACAN") **diserap masuk ke nilai Persediaan** sebagai landed cost adjustment. Ini sesuai prinsip akuntansi: biaya tambahan yang *attributable* ke perolehan barang adalah bagian dari harga pokok, bukan expense periode.
+
+**Rumus harga akhir per Kg** (saat refaksi berbeda dengan qty fisik STT):
+```
+unitCost = total invoice PI / qty STT (qty fisik diterima)
+```
+
+Contoh kasus PMD: GKP-IR 10.426 Kg fisik diterima di STT, PI total Rp 86.411.520 (10.386 Kg × 8.100 + 10.386 × 220 refaksi). Sebelum fix: stockMovement @ Rp 8.096/Kg (provisional STT). Setelah fix: stockMovement @ Rp 8.288/Kg (landed = 86.411.520 / 10.426).
+
+### Implementation
+
+- **Backend** (`purchaseInvoiceSubmit.ts`):
+  - Hapus posting variance ke 5.11. Delta `effectiveAmount − provisionalTotal` di-DR ke akun Persediaan (per-item account kalau ada, fallback ke 1.4.0).
+  - Negative delta otomatis ter-normalisasi ke credit side.
+  - Update `stockMovement.unit_cost` dan `total_value` di akhir transaction (sumber kebenaran untuk batch picker).
+  - Recalc `inventory_items.averageCost` proporsional: `(stok × avgLama + delta) / stok` dibulatkan 2 desimal.
+- **Frontend**: tidak ada perubahan UI — batch picker, modal sales, dan PDF otomatis pakai unit_cost terbaru.
+
+### Migration
+
+Tidak ada perubahan schema. PI lama yang sudah Submitted tidak ditarik ulang (data historis tetap apa adanya). Untuk STT yang menunggu PI (status Submitted, invoice_id null), submit PI baru akan otomatis pakai logic landed cost.
+
+---
+
 ## [3.1.0] - 2026-05-20
 
 ### Modul Produksi — Loaded HPP & Traceability

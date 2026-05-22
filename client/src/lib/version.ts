@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.1.0';
+export const APP_VERSION = '3.1.1';
 export const APP_BUILD_DATE = '2026-05-20';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.1.1',
+    date: '2026-05-20',
+    title: 'Landed Cost Pembelian (Material + Refaksi → Persediaan)',
+    changes: [
+      'Selisih harga PI ↔ STT tidak lagi posting ke akun "Selisih Harga Pembelian" (5.11) — sekarang masuk langsung ke Persediaan sebagai landed cost adjustment (sesuai prinsip akuntansi: biaya tambahan yg attributable ke barang dibebankan ke nilai stok)',
+      'Rumus harga akhir per Kg saat ada refaksi: total invoice PI ÷ qty STT (qty fisik). Contoh: GKP-IR 10.426 Kg fisik, PI total Rp 86.411.520 → harga modal Rp 8.288/Kg (bukan Rp 8.096 provisional)',
+      'StockMovement dari STT otomatis ter-update unit_cost + total_value setelah PI submit, sehingga batch picker produksi & sales menunjukkan harga modal aktual (bukan provisional)',
+      'InventoryItem.averageCost ter-recalculate proporsional dengan stok yg masih ada saat PI submit',
+      'Komponen line PI seperti "RESIKO MACAN" (refaksi) ikut diserap ke nilai persediaan, bukan jadi expense terpisah',
+    ],
+  },
   {
     version: '3.1.0',
     date: '2026-05-20',

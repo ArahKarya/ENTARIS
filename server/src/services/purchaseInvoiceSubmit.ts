@@ -76,7 +76,6 @@ export async function submitPurchaseInvoiceInTx(
   const inventoryAccount = await systemAccounts.getAccount('INVENTORY');
   // Phase 3: lazy-load only when needed (STT-linked path)
   let accruedAccount: { id: string; name: string } | null = null;
-  let varianceAccount: { id: string; name: string } | null = null;
 
   // Pre-validate any STT-linked items. Reject early if STT cancelled,
   // already invoiced, or supplier mismatch.
@@ -239,26 +238,67 @@ export async function submitPurchaseInvoiceInTx(
 
   // Build DR (Persediaan) entries grouped by per-item-account — only for
   // lines yang TIDAK linked ke STT. Untuk yang linked, akrual sudah dibooking
-  // di STT submit; PI hanya reverse accrual + posting variance harga.
+  // di STT submit; PI hanya reverse accrual + landed cost adjustment ke
+  // Persediaan (bukan 5.11 — sesuai policy 2026-05-20: harga per unit di
+  // stockMovement HARUS reflect total biaya PI termasuk "Resiko Macan"
+  // dan biaya_lain header. Variance diserap ke inventory, bukan expense).
   const debitByAccount = new Map<string, { amount: number; names: string[] }>();
-  // Track accrual reversal & variance untuk STT-linked lines
   let accruedReversal = new Decimal(0); // DR Hutang Belum Tagih (provisional total)
-  let variance = new Decimal(0);        // delta = actual - provisional (positive = lebih mahal)
+
+  // Track landed cost adjustment per STT-linked line untuk update
+  // stockMovement + averageCost + GL DR Persediaan.
+  const landedAdjustments: {
+    invItem: typeof invoice.items[number];
+    grItem: any;
+    qty: Decimal;
+    provisionalTotal: Decimal;
+    effectiveAmount: Decimal;
+    delta: Decimal;  // effective - provisional (positive = landed cost lebih tinggi)
+  }[] = [];
 
   for (const invItem of invoice.items) {
     const effective = effectiveAmountMap.get(invItem.id);
     const amt = effective ? effective.toNumber() : Number(invItem.amount);
 
     if (invItem.goodsReceiptItemId) {
-      // STT-linked line: stock + Persediaan sudah dibooking saat STT submit.
-      // Reverse accrual @ provisional cost, hitung variance.
+      // STT-linked line: stock + Persediaan sudah dibooking saat STT submit
+      // pakai sttQty (qty fisik diterima sebelum refaksi). Saat refaksi
+      // diterapkan di PI, qty efektif yg dibayar (invItem.quantity) bisa
+      // lebih kecil dari sttQty — tapi qty di stockMovement TETAP sttQty
+      // (stok fisik tidak berubah). Rumus user (2026-05-20):
+      //   harga akhir per Kg = total invoice PI / qty STT (qty fisik)
+      // Provisional yg sudah ter-DR Persediaan = sttQty × provisionalCost.
+      // Landed cost adjustment = effectiveAmount - provisionalTotal.
       const grItem = sttItemMap.get(invItem.goodsReceiptItemId);
       if (!grItem) continue; // shouldn't happen (pre-validated)
-      const qty = new Decimal(invItem.quantity.toString());
+      const sttQty = new Decimal(grItem.quantity.toString());
       const provisionalCost = new Decimal(grItem.lockedUnitCost.toString());
-      const provisionalTotal = qty.times(provisionalCost).toDecimalPlaces(2);
+      const provisionalTotal = sttQty.times(provisionalCost).toDecimalPlaces(2);
+      const effectiveAmount = new Decimal(amt);
+      const delta = effectiveAmount.minus(provisionalTotal);
       accruedReversal = accruedReversal.plus(provisionalTotal);
-      variance = variance.plus(new Decimal(amt).minus(provisionalTotal));
+      landedAdjustments.push({ invItem, grItem, qty: sttQty, provisionalTotal, effectiveAmount, delta });
+
+      // DR/CR Persediaan @ delta ke akun item terkait (1.4.x kalau ada,
+      // fallback ke INVENTORY default). Diserap ke debitByAccount supaya
+      // ter-aggregate per-akun seperti line non-linked.
+      if (!delta.isZero()) {
+        let drAccountId = inventoryAccount.id;
+        if (invItem.inventoryItemId) {
+          const linkedItem = invItemMap.get(invItem.inventoryItemId);
+          if (linkedItem?.accountId) drAccountId = linkedItem.accountId;
+        }
+        const deltaNum = delta.toDecimalPlaces(2).toNumber();
+        const existing = debitByAccount.get(drAccountId);
+        // delta positif = DR (inventory naik). Negatif = CR (inventory turun)
+        // dihandle nanti di journal-build by negative debit conversion.
+        if (existing) {
+          existing.amount += deltaNum;
+          existing.names.push(`adj-landed ${invItem.itemName}`);
+        } else {
+          debitByAccount.set(drAccountId, { amount: deltaNum, names: [`adj-landed ${invItem.itemName}`] });
+        }
+      }
       continue;
     }
 
@@ -285,11 +325,27 @@ export async function submitPurchaseInvoiceInTx(
     else debitByAccount.set(inventoryAccount.id, { amount: adjNum, names: ['Biaya tambahan'] });
   }
 
-  // Lazy-load accrual/variance accounts kalau ada STT-linked line.
+  // Lazy-load accrual account kalau ada STT-linked line. Variance account
+  // (5.11) tidak lagi diperlukan — landed cost adjustment masuk Persediaan.
   if (!accruedReversal.isZero()) {
     accruedAccount = await systemAccounts.getAccount('ACCRUED_PAYABLE');
-    if (!variance.isZero()) {
-      varianceAccount = await systemAccounts.getAccount('PURCHASE_PRICE_VARIANCE');
+  }
+
+  // Per policy 2026-05-20: landed cost diserap ke Persediaan (lihat block
+  // STT-linked di atas). Tidak ada lagi posting ke 5.11 Selisih Harga.
+  // Normalisasi: kalau ada akun Persediaan dgn delta negatif (landed cost
+  // LEBIH RENDAH dari provisional → inventory turun), pindah ke
+  // creditJournalItems supaya JE tetap balanced.
+  const creditJournalItems: { accountId: string; partyId?: string | null; debit: number; credit: number; description: string }[] = [];
+  for (const [accountId, data] of Array.from(debitByAccount.entries())) {
+    if (data.amount < 0) {
+      creditJournalItems.push({
+        accountId,
+        debit: 0,
+        credit: Math.abs(data.amount),
+        description: `Persediaan adj. landed cost ${data.names.join(', ')}: ${invoice.invoiceNumber}`,
+      });
+      debitByAccount.delete(accountId);
     }
   }
 
@@ -311,28 +367,6 @@ export async function submitPurchaseInvoiceInTx(
       credit: 0,
       description: `Reverse accrual STT: ${invoice.invoiceNumber}`,
     });
-  }
-
-  // Variance posting. Positive variance (actual > provisional) → DR Selisih
-  // Harga (expense up). Negative → CR Selisih Harga.
-  const creditJournalItems: { accountId: string; partyId?: string | null; debit: number; credit: number; description: string }[] = [];
-  if (!variance.isZero() && varianceAccount) {
-    const varianceNum = variance.toDecimalPlaces(2).toNumber();
-    if (varianceNum > 0) {
-      debitJournalItems.push({
-        accountId: varianceAccount.id,
-        debit: varianceNum,
-        credit: 0,
-        description: `Selisih harga (PI > STT): ${invoice.invoiceNumber}`,
-      });
-    } else {
-      creditJournalItems.push({
-        accountId: varianceAccount.id,
-        debit: 0,
-        credit: Math.abs(varianceNum),
-        description: `Selisih harga (PI < STT): ${invoice.invoiceNumber}`,
-      });
-    }
   }
 
   // Always: CR Hutang Usaha @ grand total.
@@ -386,6 +420,49 @@ export async function submitPurchaseInvoiceInTx(
       where: { id: { in: grIds }, invoiceId: null },
       data: { invoiceId: invoice.id, invoicedAt: parsedDate },
     });
+  }
+
+  // ─── Landed cost: update stockMovement + averageCost per STT-linked item ─
+  // Policy 2026-05-20: setelah PI submit, stockMovement.unit_cost +
+  // total_value disetel ke effective amount (provisional + landed cost
+  // share). inventoryItem.averageCost ikut di-recalc supaya WAC + COGS
+  // future konsisten. Stock fisik (qty) tidak berubah.
+  for (const adj of landedAdjustments) {
+    if (adj.delta.isZero()) continue;
+    if (!adj.grItem?.stockMovementId) continue;
+
+    // Effective unit_cost = effectiveAmount / qty
+    const newUnitCost = adj.qty.gt(0)
+      ? adj.effectiveAmount.div(adj.qty).toDecimalPlaces(4).toNumber()
+      : 0;
+
+    await tx.stockMovement.update({
+      where: { id: adj.grItem.stockMovementId },
+      data: {
+        unitCost: newUnitCost,
+        totalValue: adj.effectiveAmount.toDecimalPlaces(2).toNumber(),
+      },
+    });
+
+    // Adjust averageCost. delta sudah ter-DR ke Persediaan via JE di atas,
+    // jadi total inventory value naik delta. WAC = (oldStock * oldAvg + delta)
+    // / oldStock. Kalau currentStock = 0 (item baru atau habis), skip
+    // recalc — itu skenario aneh tapi defensive.
+    if (adj.invItem.inventoryItemId) {
+      const fresh = await tx.inventoryItem.findUnique({
+        where: { id: adj.invItem.inventoryItemId },
+        select: { currentStock: true, averageCost: true },
+      });
+      if (fresh && Number(fresh.currentStock) !== 0) {
+        const stock = new Decimal(fresh.currentStock.toString());
+        const oldAvg = new Decimal(fresh.averageCost.toString());
+        const newAvg = stock.times(oldAvg).plus(adj.delta).div(stock).toDecimalPlaces(2);
+        await tx.inventoryItem.update({
+          where: { id: adj.invItem.inventoryItemId },
+          data: { averageCost: newAvg.toNumber() },
+        });
+      }
+    }
   }
 
   // Direct-purchase path (line tanpa goodsReceiptItemId) sudah di-tolak
