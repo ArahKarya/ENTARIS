@@ -83,7 +83,10 @@ router.get('/metrics', async (req, res) => {
       accountsReceivable: Math.max(0, Number(arAcc?.balance || 0)),
       accountsPayable: Math.max(0, Number(totalLiabilities._sum?.balance || 0)),
       vendorDeposit: Math.max(0, Number(vendorDepositSum._sum?.depositBalance || 0)),
-      inventoryValue: Math.max(0, Number(inventoryValueResult._sum?.balance || 0)),
+      // Real saldo (boleh negatif) — kalau negatif berarti ada anomali di
+      // pencatatan stok dan harus muncul di dashboard supaya pemilik tahu,
+      // bukan disembunyikan jadi 0.
+      inventoryValue: Number(inventoryValueResult._sum?.balance || 0),
       netProfit,
     });
   } catch (error) {

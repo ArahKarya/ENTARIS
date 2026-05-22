@@ -1,5 +1,61 @@
 # Changelog
 
+## [3.1.2] - 2026-05-22
+
+### Fix WAC Korup Saat Stok Negatif
+
+Bug kritis di `server/src/utils/weightedAverage.ts`: formula WAC `(cQty × cCost + iQty × iCost) / (cQty + iQty)` menghasilkan angka absurd saat `currentStock < 0` (oversold). Empirik trace:
+
+- `calcWeightedAverage(-9.863, 8.842, 7.825, 14.050)` returns **-11.153** (negative)
+- Di runtime, multiple production cancel/edit cycles meng-compound nilai sampai BRS-PGC-25KG average_cost = **Rp 1.706.336/Kg**
+- Akibat: SI-0072 (PT GARUDA SENTRA) + SI-0073 (Baehaqi) di 20 Mei 2026, jual 10.000 Kg @ Rp 14.100 (revenue Rp 141jt each), tapi COGS dibukukan Rp 80.911/Kg = Rp 809jt each → akun 1.4.20 Cruise jadi **−Rp 1,38 Miliar**
+
+**Fix**: kalau `currentQty ≤ 0`, fallback pakai `inUnitCost` (anchor avg cost ke harga inbound) — jangan pakai formula yang punya pembagian dengan angka anomali. Pathological case `totalQty ≤ 0` juga di-handle sama.
+
+### Block Oversold di Surat Jalan
+
+`server/src/services/deliveryOrderSubmit.ts`: validasi qty kirim ≤ stok per-gudang **sebelum** decrement. Kalau tidak cukup, lempar `BusinessError`:
+
+```
+Stok 'Beras Cruise 25Kg' di gudang POLES kurang.
+Tersedia 0 Kg, diminta 10000 Kg.
+Buat produksi/transfer/penerimaan dulu sebelum kirim.
+```
+
+Tanpa block ini, oversold meleluasa → stok fisik jadi negatif → trigger bug WAC di atas → COGS rusak total.
+
+### Dashboard Hapus Clamp Math.max(0, ...)
+
+`server/src/routes/dashboard.ts:86` dan `server/src/routes/inventory/dashboard.ts:39`:
+
+Sebelum: `inventoryValue: Math.max(0, sum)` — menyembunyikan saldo persediaan negatif sebagai 0 di widget Dashboard.
+Sesudah: `inventoryValue: sum` — tampil apa adanya supaya pemilik langsung tahu kalau ada anomali.
+
+### Data Fix: Rekonsiliasi Stok POLES (ADJ-2605-POLES)
+
+Adjustment fisik dijalankan via script `scripts/inventory-adjustment-poles.cjs` untuk 7 item di gudang POLES:
+
+| Item | Old qty × avg | New qty × avg | Δ value |
+|---|---|---|---|
+| PK-IRBO | 1.813 × 12.230,53 | 1.830 × 12.231 | +208.779 |
+| BRS-PGC-25KG | −850 × 1.706.336 | 300 × 14.200 | +1.454.645.932 |
+| BRS-WLM-5KG | −15 × 0 | 750 × 14.100 | +10.575.000 |
+| BRS-HGL-50KG | −3.015 × 13.294 | 6.150 × 13.294 | +121.840.987 |
+| BRS-MCL-50KG | 4.077 × 15.032,91 | 4.050 × 15.032,91 | −405.888 |
+| BRS-PGJ-5KG | 30 × 0 | 30 × 14.500 | +435.000 |
+| BRS-PGC-5KG | −10 × 0 | 0 × 0 | 0 |
+| **TOTAL** | | | **+Rp 1.587.299.810** |
+
+JE `JV-ADJ-2605-POLES`: DR Persediaan masing-masing / CR 8.8 Pembulatan & Selisih total Rp 1,58M. Net saldo akun 1.4.x sebelum: −Rp 416jt → sesudah: +Rp 1,17M.
+
+### Catatan Outstanding
+
+- **1.4.26 (Pagi Jaya)**: masih −Rp 71jt karena ada kebocoran historis di luar 7 item yang di-fix
+- **BRS-WLM-50KG**: average_cost masih corrupt Rp 176.669/Kg — perlu input fisik terpisah
+- **SI-202605-0072 & SI-202605-0073**: tidak di-cancel, dibiarkan apa adanya (COGS-nya yang inflated sudah ter-offset oleh adjustment ke 8.8 di periode yang sama)
+
+---
+
 ## [3.1.1] - 2026-05-20
 
 ### Landed Cost Pembelian (Material + Refaksi → Persediaan)

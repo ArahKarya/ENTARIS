@@ -129,6 +129,23 @@ export async function submitDeliveryOrderInTx(
       const unitCost = Number(inventoryItem.averageCost);
       const totalValue = new Decimal(qty).times(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
 
+      // Block oversold: per-warehouse stock must be enough. Selling more than
+      // physically available cascades into negative inventory, which then
+      // corrupts WAC formula and produces absurd COGS (see incident 2026-05).
+      const warehouseStock = await tx.inventoryStock.findUnique({
+        where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId } },
+        select: { currentStock: true },
+      });
+      const availableQty = warehouseStock ? Number(warehouseStock.currentStock) : 0;
+      if (availableQty < qty) {
+        const wh = await tx.warehouse.findUnique({ where: { id: warehouseId }, select: { code: true, name: true } });
+        throw new BusinessError(
+          `Stok '${inventoryItem.name}' di gudang ${wh?.code ?? warehouseId} kurang. ` +
+            `Tersedia ${availableQty} ${inventoryItem.unit}, diminta ${qty} ${inventoryItem.unit}. ` +
+            `Buat produksi/transfer/penerimaan dulu sebelum kirim.`,
+        );
+      }
+
       await tx.inventoryItem.update({
         where: { id: inventoryItem.id },
         data: { currentStock: { decrement: qty } },

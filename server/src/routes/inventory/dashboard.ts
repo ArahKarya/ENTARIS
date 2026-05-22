@@ -36,7 +36,7 @@ router.get('/metrics', async (_req, res) => {
       activeItems,
       lowStockCount,
       movementsThisMonth: movements,
-      inventoryValue: Math.max(0, Number(inventoryValueResult[0]?.total || 0)),
+      inventoryValue: Number(inventoryValueResult[0]?.total || 0),
     });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/dashboard/metrics error');

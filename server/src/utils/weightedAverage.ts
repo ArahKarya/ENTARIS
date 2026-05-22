@@ -23,8 +23,22 @@ export function calcWeightedAverage(
   const iQty = new Decimal(inQty.toString());
   const iCost = new Decimal(inUnitCost.toString());
 
+  // Guard: if current stock is negative or zero (oversold), WAC formula
+  // produces absurd values (sometimes negative, sometimes inflated). The
+  // sensible fallback is to anchor the average to the incoming cost itself —
+  // treat the inbound as the new reference price since the previous "stock"
+  // was already invalid. Otherwise small inbound qty + huge negative balance
+  // can push avg cost to millions, corrupting downstream COGS.
+  if (cQty.lte(0)) {
+    return iCost.toDecimalPlaces(2).toNumber();
+  }
+
   const totalQty = cQty.plus(iQty);
-  if (totalQty.isZero()) return 0;
+  if (totalQty.lte(0)) {
+    // Pathological: incoming qty smaller than (negative of) current. Anchor
+    // to inCost as well — there's no meaningful weighted value.
+    return iCost.toDecimalPlaces(2).toNumber();
+  }
 
   const totalValue = cQty.times(cCost).plus(iQty.times(iCost));
   return totalValue.div(totalQty).toDecimalPlaces(2).toNumber();

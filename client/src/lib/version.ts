@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.1.1';
-export const APP_BUILD_DATE = '2026-05-20';
+export const APP_VERSION = '3.1.2';
+export const APP_BUILD_DATE = '2026-05-22';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.1.2',
+    date: '2026-05-22',
+    title: 'Fix WAC Korup Saat Stok Negatif + Block Oversold di Surat Jalan',
+    changes: [
+      'Bug fix kritis: rumus WAC (weighted average cost) sekarang aman saat stok negatif — sebelumnya menghasilkan harga modal absurd (jutaan/Kg) yang ter-lock ke Surat Jalan berikutnya dan menyebabkan COGS booking lebih besar dari penjualan',
+      'Block oversold di Surat Jalan: tidak bisa lagi kirim qty > stok gudang. Sistem akan tolak dengan pesan "Stok kurang, tersedia X Kg, diminta Y Kg" dan minta produksi/transfer/penerimaan dulu',
+      'Dashboard "Nilai Persediaan" hapus clamp Math.max(0,...) — kalau saldo persediaan negatif tampil apa adanya supaya pemilik tahu ada anomali (bukan disembunyikan jadi 0)',
+      'Reset stok + modal gudang POLES (rekonsiliasi fisik 22 Mei): 7 item di-update via ADJ-2605-POLES, total adjustment +Rp 1,58M dibukukan ke 8.8 Pembulatan & Selisih, akun persediaan dari net −Rp 416jt jadi net +Rp 1,17M',
+    ],
+  },
   {
     version: '3.1.1',
     date: '2026-05-20',
