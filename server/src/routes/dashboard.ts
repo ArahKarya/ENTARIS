@@ -311,6 +311,57 @@ router.get('/stock-alerts', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/negative-stock — items dengan stok < 0 (item-level atau
+// per-gudang). Plus latest movement utk konteks "siapa & kapan & kenapa".
+// Widget Dashboard ini dipake monitor bypass admin (sejak v3.2.1).
+router.get('/negative-stock', async (_req, res) => {
+  try {
+    const items = await prisma.$queryRaw<any[]>`
+      SELECT
+        ii.id, ii.code, ii.name, ii.unit, ii.current_stock AS "currentStock",
+        (
+          SELECT json_agg(json_build_object(
+            'warehouseCode', w.code,
+            'warehouseName', w.name,
+            'currentStock', invs.current_stock
+          ))
+          FROM inventory_stocks invs
+          JOIN warehouses w ON w.id = invs.warehouse_id
+          WHERE invs.item_id = ii.id AND invs.current_stock < 0
+        ) AS "negativeWarehouses",
+        (
+          SELECT sm.created_at FROM stock_movements sm
+          WHERE sm.item_id = ii.id AND sm.is_cancelled = false
+          ORDER BY sm.created_at DESC LIMIT 1
+        ) AS "lastMovementAt"
+      FROM inventory_items ii
+      WHERE ii.is_active = true
+        AND (
+          ii.current_stock < 0
+          OR EXISTS (
+            SELECT 1 FROM inventory_stocks invs
+            WHERE invs.item_id = ii.id AND invs.current_stock < 0
+          )
+        )
+      ORDER BY ii.current_stock ASC
+      LIMIT 50
+    `;
+    const result = items.map((i) => ({
+      id: i.id,
+      code: i.code,
+      name: i.name,
+      unit: i.unit,
+      currentStock: Number(i.currentStock),
+      negativeWarehouses: i.negativeWarehouses || [],
+      lastMovementAt: i.lastMovementAt,
+    }));
+    return res.json(result);
+  } catch (error) {
+    logger.error({ error }, 'GET /dashboard/negative-stock error');
+    return res.status(500).json({ error: 'Gagal mengambil data stok minus.' });
+  }
+});
+
 // GET /api/dashboard/cash-flow — daily cash in/out for period (default current month)
 router.get('/cash-flow', async (req, res) => {
   try {

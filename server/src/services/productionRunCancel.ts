@@ -12,6 +12,7 @@ interface CancelOptions {
   /** When true, skip the "stock cukup untuk dibalikin" guard. Used by Admin
    *  override route — logs a warning instead of throwing. */
   allowNegativeStock?: boolean;
+  negativeStockReason?: string | null;
 }
 
 /**
@@ -49,9 +50,20 @@ export async function cancelProductionRunInTx(
 
     // Reversing an `In` movement subtracts from stock — guard against negative.
     if (isIn && Number(mov.item.currentStock) < qty) {
-      // Strict mode: no allowNegativeStock bypass.
-      throw new BusinessError(
-        `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya — batalkan transaksi tersebut dulu.`,
+      if (!opts.allowNegativeStock) {
+        throw new BusinessError(
+          `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya — batalkan transaksi tersebut dulu.`,
+        );
+      }
+      logger.warn(
+        {
+          itemId: mov.itemId,
+          itemName: mov.item.name,
+          currentStock: Number(mov.item.currentStock),
+          reverseQty: qty,
+          reason: opts.negativeStockReason,
+        },
+        'Production cancel reverse with negative stock bypass',
       );
     }
 

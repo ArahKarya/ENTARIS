@@ -12,6 +12,7 @@ import TopCustomers from '../components/widgets/TopCustomers';
 import OverdueInvoices from '../components/widgets/OverdueInvoices';
 import ExpenseBreakdown from '../components/widgets/ExpenseBreakdown';
 import StockAlert from '../components/widgets/StockAlert';
+import NegativeStockWidget from '../components/widgets/NegativeStockWidget';
 import WarehouseKPICards from '../components/widgets/WarehouseKPICards';
 import MovementTrendChart from '../components/widgets/MovementTrendChart';
 import CategoryDistribution from '../components/widgets/CategoryDistribution';
@@ -354,6 +355,7 @@ export const Dashboard = () => {
           {isEnabled('stock-alert') && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <StockAlert />
+              <NegativeStockWidget />
             </div>
           )}
 

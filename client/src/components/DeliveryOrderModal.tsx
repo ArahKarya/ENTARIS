@@ -76,7 +76,11 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
         }))
       : [defaultItem()],
   );
-  const allowNegativeStock = false;
+  const [allowNegativeStock, setAllowNegativeStock] = useState(false);
+  const [negativeStockReason, setNegativeStockReason] = useState('');
+  const isAdmin = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'Admin'; } catch { return false; }
+  })();
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();
@@ -201,6 +205,10 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     if (!partyId) { setError('Pilih pelanggan.'); return; }
     if (validItems.length === 0) { setError('Tambahkan minimal satu item dengan qty > 0.'); return; }
     if (hasMissingWarehouse) { setError('Pilih gudang sumber untuk setiap baris barang dari stok.'); return; }
+    if (allowNegativeStock && negativeStockReason.trim().length < 10) {
+      setError('Alasan bypass stok minus wajib diisi (minimal 10 karakter).');
+      return;
+    }
 
     mutation.mutate({
       date,
@@ -210,6 +218,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       recipientName: recipientName.trim() || null,
       notes: notes.trim() || null,
       allowNegativeStock,
+      negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
       items: validItems.map((i) => ({
         inventoryItemId: i.inventoryItemId || null,
         warehouseId: i.warehouseId || null,
@@ -471,10 +480,37 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                   </ul>
                 </div>
               </div>
-              <p className="text-xs text-amber-700 mt-2 pl-5">
-                Submit akan ditolak — buat produksi/transfer/penerimaan untuk
-                item ini dulu, atau kurangi qty di Surat Jalan.
-              </p>
+              {!isAdmin && (
+                <p className="text-xs text-amber-700 mt-2 pl-5">
+                  Submit akan ditolak — buat produksi/transfer/penerimaan untuk
+                  item ini dulu, atau kurangi qty di Surat Jalan.
+                </p>
+              )}
+              {isAdmin && (
+                <div className="mt-2 pl-5 space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer text-xs">
+                    <input
+                      type="checkbox"
+                      checked={allowNegativeStock}
+                      onChange={(e) => setAllowNegativeStock(e.target.checked)}
+                      className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-amber-900">
+                      <strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan akan menyusul). Audit log akan dicatat.
+                    </span>
+                  </label>
+                  {allowNegativeStock && (
+                    <textarea
+                      value={negativeStockReason}
+                      onChange={(e) => setNegativeStockReason(e.target.value)}
+                      placeholder="Alasan bypass (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'"
+                      className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      rows={2}
+                      required
+                    />
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -589,9 +589,20 @@ export const CreateProductionRunSchema = z.object({
   // Optional + order-insensitive (multiselect). Empty array = unspecified.
   processIds: z.array(z.string().uuid()).optional().default([]),
   // When true, production can consume more than current stock (stock goes negative).
+  // ADMIN ONLY (enforced di route handler). Wajib isi `negativeStockReason`.
   // Use case: backdated production input where sales already reduced stock.
   allowNegativeStock: z.boolean().optional().default(false),
+  // Alasan bypass — wajib min 10 karakter kalau allowNegativeStock=true.
+  // Disimpan ke audit log + ditampilkan di Dashboard "Stok Minus Aktif".
+  negativeStockReason: z.string().max(500).nullable().optional(),
 }).superRefine((data, ctx) => {
+  if (data.allowNegativeStock && (!data.negativeStockReason || data.negativeStockReason.trim().length < 10)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Alasan bypass stok minus wajib diisi (minimal 10 karakter).',
+      path: ['negativeStockReason'],
+    });
+  }
   // Main output unitPrice is OPTIONAL (Phase 3+): when omitted, the server
   // back-fills it with the computed loaded HPP (material + costs − byproduct
   // NRV, divided by main qty). User can still supply a value to override.
@@ -703,7 +714,17 @@ export const CreateDeliveryOrderSchema = z.object({
   recipientName: z.string().max(200).nullable().optional(),
   notes: z.string().nullable().optional(),
   items: z.array(DeliveryOrderItemSchema).min(1, 'Minimal satu item.'),
+  // ADMIN ONLY bypass — wajib isi negativeStockReason. Enforced di route handler.
   allowNegativeStock: z.boolean().optional().default(false),
+  negativeStockReason: z.string().max(500).nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.allowNegativeStock && (!data.negativeStockReason || data.negativeStockReason.trim().length < 10)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Alasan bypass stok minus wajib diisi (minimal 10 karakter).',
+      path: ['negativeStockReason'],
+    });
+  }
 });
 
 // Body for the retroactive "DO dari Invoice" flow. Items are inherited from

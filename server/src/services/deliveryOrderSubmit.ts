@@ -24,6 +24,7 @@ export interface SubmitDeliveryOrderInput {
     description?: string | null;
   }>;
   allowNegativeStock?: boolean;
+  negativeStockReason?: string | null;
 }
 
 /**
@@ -76,10 +77,25 @@ export async function submitDeliveryOrderInTx(
       const needed = qtyByItem.get(inv.id) ?? 0;
       if (!inv.isActive) throw new BusinessError(`Item '${inv.name}' tidak aktif.`);
       if (Number(inv.currentStock) < needed) {
-        // Strict mode: tidak ada lagi bypass via allowNegativeStock. Stok
-        // minus menyebabkan WAC corrupt + COGS inflated (incident 2026-05).
-        throw new BusinessError(
-          `Stok '${inv.name}' tidak cukup. Tersedia: ${Number(inv.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}, dibutuhkan: ${needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}. Buat produksi/transfer/penerimaan dulu.`,
+        if (!body.allowNegativeStock) {
+          throw new BusinessError(
+            `Stok '${inv.name}' tidak cukup. Tersedia: ${Number(inv.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}, dibutuhkan: ${needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}. Buat produksi/transfer/penerimaan dulu.`,
+          );
+        }
+        // Bypass mode (Admin only, enforced di route). WAC formula sudah safe
+        // sejak 3.1.2 (anchor ke inCost saat stok ≤ 0), tapi tetap log buat
+        // audit trail + monitoring Dashboard.
+        logger.warn(
+          {
+            itemId: inv.id,
+            itemName: inv.name,
+            available: Number(inv.currentStock),
+            needed,
+            partyId: body.partyId,
+            reason: body.negativeStockReason,
+            userId,
+          },
+          'DO submitted with negative stock bypass',
         );
       }
     }

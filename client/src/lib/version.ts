@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.0';
+export const APP_VERSION = '3.2.1';
 export const APP_BUILD_DATE = '2026-05-22';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.1',
+    date: '2026-05-22',
+    title: 'Admin Override "Izinkan Stok Minus" + Audit Trail',
+    changes: [
+      'Admin role bisa bypass validasi stok minus di Surat Jalan & Produksi — wajib isi alasan minimal 10 karakter, audit log otomatis dicatat ke logger + server',
+      'Checkbox "Izinkan stok minus" + textarea alasan hanya tampil untuk role Admin. StaffProduksi / Accountant / Viewer tetap kena strict block',
+      'Use case: produksi 50 ton sedang berjalan, barang fisik mau dikirim duluan; Admin bypass dengan alasan, lalu input produksi belakangan',
+      'WAC formula sudah safe (sejak 3.1.2 anchor ke inCost saat stok ≤ 0), jadi bypass tidak corrupt avg cost lagi',
+      'Widget Dashboard baru "Stok Minus Aktif" di section Stok — list item dengan stok < 0 (item-level atau per-gudang), age terakhir movement, indikator untuk monitor bypass',
+      'Server enforce role: kalau non-Admin coba pass allowNegativeStock=true → HTTP 403 "Hanya Admin yang dapat bypass validasi stok"',
+    ],
+  },
   {
     version: '3.2.0',
     date: '2026-05-22',

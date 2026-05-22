@@ -70,6 +70,10 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   // Traceability: selected master process IDs (multiselect, optional)
   const [processIds, setProcessIds] = useState<string[]>([]);
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
+  const [negativeStockReason, setNegativeStockReason] = useState('');
+  const isAdmin = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'Admin'; } catch { return false; }
+  })();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -339,6 +343,9 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
         errs.push(`Produk samping baris ke-${i + 1}: NRV wajib diisi.`);
       }
     });
+    if (allowNegativeStock && negativeStockReason.trim().length < 10) {
+      errs.push('Alasan bypass stok minus wajib diisi (minimal 10 karakter).');
+    }
     if (errs.length) { setErrors(errs); return; }
 
     setIsSubmitting(true);
@@ -361,6 +368,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
           isByProduct: o.isByProduct,
         })),
         allowNegativeStock,
+        negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
       };
 
       const fullPayload: any = {
@@ -810,6 +818,36 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
               </div>
             )}
           </div>
+
+          {/* Admin override: izinkan stok minus */}
+          {isAdmin && (
+            <div className="mx-6 mt-2 mb-0 p-3 border border-amber-200 bg-amber-50/40 rounded-lg space-y-2">
+              <label className="flex items-start gap-2 cursor-pointer text-xs text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={allowNegativeStock}
+                  onChange={(e) => setAllowNegativeStock(e.target.checked)}
+                  className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                <span>
+                  <strong>Admin override:</strong> izinkan stok bahan baku minus
+                  <span className="block text-[11px] text-amber-700 mt-0.5">
+                    Pakai saat produksi backdate / barang fisik sudah keluar tapi system belum tahu. Audit log dicatat.
+                  </span>
+                </span>
+              </label>
+              {allowNegativeStock && (
+                <textarea
+                  value={negativeStockReason}
+                  onChange={(e) => setNegativeStockReason(e.target.value)}
+                  placeholder="Alasan bypass (min 10 karakter): contoh 'Output 50 ton sudah dikirim ke customer Garuda + Walemu, input produksi menyusul'"
+                  className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  rows={2}
+                  required
+                />
+              )}
+            </div>
+          )}
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">

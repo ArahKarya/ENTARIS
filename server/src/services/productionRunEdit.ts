@@ -58,9 +58,20 @@ export async function editProductionRunInTx(
     const qty = Number(mov.quantity);
 
     if (isIn && Number(mov.item.currentStock) < qty) {
-      // Strict mode: no allowNegativeStock bypass.
-      throw new BusinessError(
-        `Tidak dapat mengedit: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya.`,
+      if (!body.allowNegativeStock) {
+        throw new BusinessError(
+          `Tidak dapat mengedit: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya.`,
+        );
+      }
+      logger.warn(
+        {
+          itemId: mov.itemId,
+          itemName: mov.item.name,
+          currentStock: Number(mov.item.currentStock),
+          reverseQty: qty,
+          reason: body.negativeStockReason,
+        },
+        'Production edit reverse with negative stock bypass',
       );
     }
     if (isIn) outputItemIds.add(mov.itemId);
@@ -121,9 +132,20 @@ export async function editProductionRunInTx(
     if (!item) throw new BusinessError('Item input tidak ditemukan.');
     if (!item.isActive) throw new BusinessError(`Item '${item.name}' tidak aktif.`);
     if (Number(item.currentStock) < input.quantity) {
-      // Strict mode: no allowNegativeStock bypass.
-      throw new BusinessError(
-        `Stok '${item.name}' tidak cukup. Tersedia: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}, dibutuhkan: ${input.quantity.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}. Buat penerimaan/transfer dulu.`,
+      if (!body.allowNegativeStock) {
+        throw new BusinessError(
+          `Stok '${item.name}' tidak cukup. Tersedia: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}, dibutuhkan: ${input.quantity.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit}. Buat penerimaan/transfer dulu.`,
+        );
+      }
+      logger.warn(
+        {
+          itemId: item.id,
+          itemName: item.name,
+          currentStock: Number(item.currentStock),
+          requested: input.quantity,
+          reason: body.negativeStockReason,
+        },
+        'Production edit input with negative stock bypass',
       );
     }
   }

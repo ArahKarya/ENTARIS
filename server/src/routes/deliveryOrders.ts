@@ -140,12 +140,17 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
   const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
   if (!body) return;
 
+  // Strict mode + Admin-only bypass: cuma Admin yang boleh allowNegativeStock.
+  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  }
+
   try {
     const result = await prisma.$transaction(
       (tx) => submitDeliveryOrderInTx(tx, body, req.user!.userId),
       { timeout: 15000 },
     );
-    logger.info({ doId: result?.id, userId: req.user!.userId }, 'Delivery order submitted');
+    logger.info({ doId: result?.id, userId: req.user!.userId, negativeBypass: body.allowNegativeStock }, 'Delivery order submitted');
     return res.status(201).json(result);
   } catch (error) {
     return handleRouteError(res, error, 'POST /delivery-orders', 'Gagal membuat surat jalan.');
@@ -213,12 +218,15 @@ router.patch('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) 
 router.put('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
   const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
   if (!body) return;
+  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  }
   try {
     const result = await prisma.$transaction(
       (tx) => editDeliveryOrderInTx(tx, req.params.id as string, body, req.user!.userId),
       { timeout: 15000 },
     );
-    logger.info({ doId: req.params.id, userId: req.user!.userId }, 'Delivery order edited');
+    logger.info({ doId: req.params.id, userId: req.user!.userId, negativeBypass: body.allowNegativeStock }, 'Delivery order edited');
     return res.json(result);
   } catch (error) {
     return handleRouteError(res, error, 'PUT /delivery-orders/:id', 'Gagal mengedit surat jalan.');

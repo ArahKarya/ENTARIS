@@ -107,6 +107,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
   const body = validateBody(CreateProductionRunSchema, req.body, res);
   if (!body) return;
+  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  }
 
   try {
     const result = await prisma.$transaction(
@@ -128,6 +131,9 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
   const id = req.params.id as string;
   const body = validateBody(UpdateProductionRunSchema, req.body, res);
   if (!body) return;
+  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  }
 
   try {
     const result = await prisma.$transaction(
@@ -144,11 +150,15 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
 // PUT /api/inventory/production-runs/:id/cancel
 router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
-  const allowNegativeStock = req.query.allowNegativeStock === 'true';
+  const allowNegativeStock = req.query.allowNegativeStock === 'true' || req.body?.allowNegativeStock === true;
+  const negativeStockReason = typeof req.body?.negativeStockReason === 'string' ? req.body.negativeStockReason : null;
+  if (allowNegativeStock && (!negativeStockReason || negativeStockReason.trim().length < 10)) {
+    return res.status(400).json({ error: 'Alasan bypass stok minus wajib diisi (minimal 10 karakter).' });
+  }
 
   try {
     await prisma.$transaction(
-      (tx) => cancelProductionRunInTx(tx, id, { allowNegativeStock }),
+      (tx) => cancelProductionRunInTx(tx, id, { allowNegativeStock, negativeStockReason }),
       { timeout: 15000 },
     );
     return res.json({ message: 'Proses produksi berhasil dibatalkan.' });
