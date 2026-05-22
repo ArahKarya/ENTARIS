@@ -64,6 +64,34 @@ export async function cancelDeliveryOrderInTx(
     });
   }
 
+  // Revert deliveredQty di SO items + recompute SO status (kalau DO link ke SO).
+  if (deliveryOrder.salesOrderId) {
+    for (const line of deliveryOrder.items) {
+      if (line.salesOrderItemId) {
+        await tx.salesOrderItem.update({
+          where: { id: line.salesOrderItemId },
+          data: { deliveredQty: { decrement: Number(line.quantity) } },
+        });
+      }
+    }
+    // Recompute SO status.
+    const so = await tx.salesOrder.findUnique({
+      where: { id: deliveryOrder.salesOrderId },
+      include: { items: true },
+    });
+    if (so && so.status !== 'Cancelled' && so.status !== 'Draft') {
+      const items = so.items;
+      const allFully = items.every((it) =>
+        Number(it.deliveredQty) >= Number(it.quantity),
+      );
+      const anyDelivered = items.some((it) => Number(it.deliveredQty) > 0);
+      const newStatus = allFully ? 'FullyDelivered' : anyDelivered ? 'PartiallyDelivered' : 'Submitted';
+      if (newStatus !== so.status) {
+        await tx.salesOrder.update({ where: { id: so.id }, data: { status: newStatus } });
+      }
+    }
+  }
+
   await tx.deliveryOrder.update({
     where: { id: doId },
     data: { status: 'Cancelled', cancelledAt: new Date() },

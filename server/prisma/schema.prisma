@@ -23,38 +23,38 @@ enum RootType {
 }
 
 model Account {
-  id                    String                  @id @default(uuid())
-  name                  String
-  accountNumber         String                  @unique
-  accountType           AccountType
-  rootType              RootType
-  isGroup               Boolean                 @default(false)
-  isActive              Boolean                 @default(true)
-  balance               Decimal                 @default(0) @db.Decimal(15, 2)
-  currency              String                  @default("IDR")
-  description           String?
-  parentId              String?
-  parent                Account?                @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children              Account[]               @relation("AccountHierarchy")
-  ledgerEntries         AccountingLedgerEntry[]
-  journalItems          JournalItem[]
-  salesItems            SalesInvoiceItem[]
-  purchaseItems         PurchaseInvoiceItem[]
-  quotationItems        QuotationItem[]         @relation("QuotationItemAccount")
-  payments              Payment[]               @relation("PaymentAccount")
-  paymentSplits         PaymentSplit[]          @relation("PaymentSplitAccount")
-  inventoryItems        InventoryItem[]         @relation("ItemAccount")
-  movementsAsOffset     StockMovement[]         @relation("MovementOffset")
-  reconciliations       BankReconciliation[]    @relation("ReconciliationAccount")
-  serviceItems          ServiceItem[]           @relation("ServiceItemAccount")
-  systemAccountMappings SystemAccountMapping[]  @relation("MappedAccount")
-  fixedAssetsAsAsset    FixedAsset[]            @relation("AssetAccount")
-  fixedAssetsAsDepr     FixedAsset[]            @relation("DepreciationAccount")
-  fixedAssetsAsAccDep   FixedAsset[]            @relation("AccumulatedDepAccount")
+  id                      String                   @id @default(uuid())
+  name                    String
+  accountNumber           String                   @unique
+  accountType             AccountType
+  rootType                RootType
+  isGroup                 Boolean                  @default(false)
+  isActive                Boolean                  @default(true)
+  balance                 Decimal                  @default(0) @db.Decimal(15, 2)
+  currency                String                   @default("IDR")
+  description             String?
+  parentId                String?
+  parent                  Account?                 @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children                Account[]                @relation("AccountHierarchy")
+  ledgerEntries           AccountingLedgerEntry[]
+  journalItems            JournalItem[]
+  salesItems              SalesInvoiceItem[]
+  purchaseItems           PurchaseInvoiceItem[]
+  quotationItems          QuotationItem[]          @relation("QuotationItemAccount")
+  payments                Payment[]                @relation("PaymentAccount")
+  paymentSplits           PaymentSplit[]           @relation("PaymentSplitAccount")
+  inventoryItems          InventoryItem[]          @relation("ItemAccount")
+  movementsAsOffset       StockMovement[]          @relation("MovementOffset")
+  reconciliations         BankReconciliation[]     @relation("ReconciliationAccount")
+  serviceItems            ServiceItem[]            @relation("ServiceItemAccount")
+  systemAccountMappings   SystemAccountMapping[]   @relation("MappedAccount")
+  fixedAssetsAsAsset      FixedAsset[]             @relation("AssetAccount")
+  fixedAssetsAsDepr       FixedAsset[]             @relation("DepreciationAccount")
+  fixedAssetsAsAccDep     FixedAsset[]             @relation("AccumulatedDepAccount")
   productionCostStandards ProductionCostStandard[] @relation("CostStandardAccount")
-  productionRunCosts    ProductionRunCost[]     @relation("RunCostAccount")
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
+  productionRunCosts      ProductionRunCost[]      @relation("RunCostAccount")
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
   @@index([rootType])
   @@index([accountNumber])
@@ -86,6 +86,7 @@ model Party {
   quotations             Quotation[]             @relation("QuotationCustomer")
   inquiries              Inquiry[]               @relation("InquiryParty")
   deliveryOrders         DeliveryOrder[]         @relation("DeliveryOrderCustomer")
+  salesOrders            SalesOrder[]            @relation("SalesOrderCustomer")
   purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrderSupplier")
   goodsReceipts          GoodsReceipt[]          @relation("GoodsReceiptSupplier")
   ledgerEntries          AccountingLedgerEntry[]
@@ -220,6 +221,74 @@ enum QuotationStatus {
   Cancelled
 }
 
+enum SalesOrderStatus {
+  Draft
+  Submitted
+  PartiallyDelivered
+  FullyDelivered
+  Cancelled
+}
+
+model SalesOrder {
+  id               String           @id @default(uuid())
+  soNumber         String           @unique @map("so_number")
+  date             DateTime
+  expectedDelivery DateTime?        @map("expected_delivery")
+  partyId          String           @map("party_id")
+  customer         Party            @relation("SalesOrderCustomer", fields: [partyId], references: [id])
+  customerRefNo    String?          @map("customer_ref_no")
+  // Optional link kalau SO digenerate dari Quotation yang Accepted.
+  quotationId      String?          @map("quotation_id")
+  quotation        Quotation?       @relation("SalesOrderFromQuotation", fields: [quotationId], references: [id])
+  status           SalesOrderStatus @default(Draft)
+  notes            String?
+  subtotal         Decimal          @db.Decimal(15, 2)
+  taxPct           Decimal          @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan         Decimal          @default(0) @db.Decimal(15, 2)
+  biayaLain        Decimal          @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  grandTotal       Decimal          @map("grand_total") @db.Decimal(15, 2)
+  fiscalYearId     String           @map("fiscal_year_id")
+  fiscalYear       FiscalYear       @relation("SalesOrderFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy        String           @map("created_by")
+  user             User             @relation("SalesOrderCreator", fields: [createdBy], references: [id])
+  items            SalesOrderItem[]
+  deliveryOrders   DeliveryOrder[]  @relation("DOFromSO")
+  submittedAt      DateTime?        @map("submitted_at")
+  cancelledAt      DateTime?        @map("cancelled_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([quotationId])
+  @@index([fiscalYearId])
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id                 String              @id @default(uuid())
+  salesOrderId       String              @map("sales_order_id")
+  salesOrder         SalesOrder          @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId    String?             @map("inventory_item_id")
+  inventoryItem      InventoryItem?      @relation("SOItemInventory", fields: [inventoryItemId], references: [id])
+  itemName           String              @map("item_name")
+  quantity           Decimal             @db.Decimal(15, 3)
+  unit               String
+  rate               Decimal             @db.Decimal(15, 2)
+  discount           Decimal             @default(0) @db.Decimal(5, 2)
+  amount             Decimal             @db.Decimal(15, 2)
+  description        String?
+  // Akumulasi qty yang sudah dikirim via DO (multiple DO bisa link ke 1 SO item).
+  deliveredQty       Decimal             @default(0) @map("delivered_qty") @db.Decimal(15, 3)
+  deliveryOrderItems DeliveryOrderItem[] @relation("DOLineFromSO")
+  createdAt          DateTime            @default(now()) @map("created_at")
+
+  @@index([salesOrderId])
+  @@index([inventoryItemId])
+  @@map("sales_order_items")
+}
+
 model Quotation {
   id               String          @id @default(uuid())
   quotationNumber  String          @unique @map("quotation_number")
@@ -240,6 +309,7 @@ model Quotation {
   rejectReason     String?         @map("reject_reason")
   salesInvoiceId   String?         @unique @map("sales_invoice_id")
   salesInvoice     SalesInvoice?   @relation("QuotationConvertedTo", fields: [salesInvoiceId], references: [id])
+  salesOrders      SalesOrder[]    @relation("SalesOrderFromQuotation")
   inquiry          Inquiry?        @relation("QuotationFromInquiry")
   fiscalYearId     String          @map("fiscal_year_id")
   fiscalYear       FiscalYear      @relation("QuotationFiscalYear", fields: [fiscalYearId], references: [id])
@@ -420,63 +490,71 @@ model SalesInvoiceItem {
 // SalesInvoiceItem). DO stockMovements lock the unitCost at delivery time
 // so COGS posted at invoice matches the goods that physically left.
 model DeliveryOrder {
-  id             String              @id @default(uuid())
-  doNumber       String              @unique @map("do_number")
-  date           DateTime
-  partyId        String              @map("party_id")
-  customer       Party               @relation("DeliveryOrderCustomer", fields: [partyId], references: [id])
-  status         DocumentStatus      @default(Submitted)
-  notes          String?
+  id            String              @id @default(uuid())
+  doNumber      String              @unique @map("do_number")
+  date          DateTime
+  partyId       String              @map("party_id")
+  customer      Party               @relation("DeliveryOrderCustomer", fields: [partyId], references: [id])
+  status        DocumentStatus      @default(Submitted)
+  notes         String?
   // Pengiriman fisik
-  nomorMobil     String?             @map("nomor_mobil")
-  driverName     String?             @map("driver_name")
-  recipientName  String?             @map("recipient_name")
+  nomorMobil    String?             @map("nomor_mobil")
+  driverName    String?             @map("driver_name")
+  recipientName String?             @map("recipient_name")
   // Billing linkage — set once items are folded into an invoice.
-  invoiceId      String?             @map("invoice_id")
-  invoice        SalesInvoice?       @relation("DeliveryOrderInvoice", fields: [invoiceId], references: [id])
-  invoicedAt     DateTime?           @map("invoiced_at")
-  fiscalYearId   String              @map("fiscal_year_id")
-  fiscalYear     FiscalYear          @relation("DeliveryOrderFiscalYear", fields: [fiscalYearId], references: [id])
-  createdBy      String              @map("created_by")
-  user           User                @relation("DeliveryOrderCreator", fields: [createdBy], references: [id])
-  items          DeliveryOrderItem[]
-  submittedAt    DateTime?           @map("submitted_at")
-  cancelledAt    DateTime?           @map("cancelled_at")
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @updatedAt @map("updated_at")
+  invoiceId     String?             @map("invoice_id")
+  invoice       SalesInvoice?       @relation("DeliveryOrderInvoice", fields: [invoiceId], references: [id])
+  invoicedAt    DateTime?           @map("invoiced_at")
+  // Sales order linkage (optional): kalau DO digenerate dari SO.
+  salesOrderId  String?             @map("sales_order_id")
+  salesOrder    SalesOrder?         @relation("DOFromSO", fields: [salesOrderId], references: [id])
+  fiscalYearId  String              @map("fiscal_year_id")
+  fiscalYear    FiscalYear          @relation("DeliveryOrderFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy     String              @map("created_by")
+  user          User                @relation("DeliveryOrderCreator", fields: [createdBy], references: [id])
+  items         DeliveryOrderItem[]
+  submittedAt   DateTime?           @map("submitted_at")
+  cancelledAt   DateTime?           @map("cancelled_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
 
   @@index([date])
   @@index([partyId])
   @@index([status])
   @@index([invoiceId])
+  @@index([salesOrderId])
   @@index([fiscalYearId])
   @@map("delivery_orders")
 }
 
 model DeliveryOrderItem {
-  id              String            @id @default(uuid())
-  deliveryOrderId String            @map("delivery_order_id")
-  deliveryOrder   DeliveryOrder     @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
-  inventoryItemId String?           @map("inventory_item_id")
-  inventoryItem   InventoryItem?    @relation("DOLineInventory", fields: [inventoryItemId], references: [id])
-  warehouseId     String?           @map("warehouse_id")
-  warehouse       Warehouse?        @relation("DOLineWarehouse", fields: [warehouseId], references: [id])
-  itemName        String            @map("item_name")
-  quantity        Decimal           @db.Decimal(15, 3)
-  unit            String
-  description     String?
+  id               String            @id @default(uuid())
+  deliveryOrderId  String            @map("delivery_order_id")
+  deliveryOrder    DeliveryOrder     @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId  String?           @map("inventory_item_id")
+  inventoryItem    InventoryItem?    @relation("DOLineInventory", fields: [inventoryItemId], references: [id])
+  warehouseId      String?           @map("warehouse_id")
+  warehouse        Warehouse?        @relation("DOLineWarehouse", fields: [warehouseId], references: [id])
+  itemName         String            @map("item_name")
+  quantity         Decimal           @db.Decimal(15, 3)
+  unit             String
+  description      String?
   // Link to the stockMovement Out row created when this DO was submitted.
   // unitCost is locked there so COGS at invoice time matches the goods'
   // actual cost at delivery.
-  stockMovementId String?           @unique @map("stock_movement_id")
-  stockMovement   StockMovement?    @relation("DOLineMovement", fields: [stockMovementId], references: [id])
+  stockMovementId  String?           @unique @map("stock_movement_id")
+  stockMovement    StockMovement?    @relation("DOLineMovement", fields: [stockMovementId], references: [id])
+  // Link back to source SO line (for partial-delivery tracking).
+  salesOrderItemId String?           @map("sales_order_item_id")
+  salesOrderItem   SalesOrderItem?   @relation("DOLineFromSO", fields: [salesOrderItemId], references: [id])
   // Back-relation: which sales invoice line picked this DO item up.
-  invoiceItem     SalesInvoiceItem?
-  createdAt       DateTime          @default(now()) @map("created_at")
+  invoiceItem      SalesInvoiceItem?
+  createdAt        DateTime          @default(now()) @map("created_at")
 
   @@index([deliveryOrderId])
   @@index([inventoryItemId])
   @@index([warehouseId])
+  @@index([salesOrderItemId])
   @@map("delivery_order_items")
 }
 
@@ -524,35 +602,35 @@ model PurchaseInvoice {
 }
 
 model PurchaseInvoiceItem {
-  id                String          @id @default(uuid())
-  purchaseInvoiceId String          @map("purchase_invoice_id")
-  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
-  inventoryItemId   String?         @map("inventory_item_id")
-  inventoryItem     InventoryItem?  @relation("PurchaseInvoiceInventory", fields: [inventoryItemId], references: [id])
-  warehouseId       String?         @map("warehouse_id")
-  warehouse         Warehouse?      @relation("PurchaseInvoiceItemWarehouse", fields: [warehouseId], references: [id])
-  itemName          String          @map("item_name")
-  quantity          Decimal         @db.Decimal(15, 3)
-  unit              String
-  rate              Decimal         @db.Decimal(15, 2)
-  discount          Decimal         @default(0) @db.Decimal(5, 2)
-  amount            Decimal         @db.Decimal(15, 2)
-  taxPct            Decimal         @default(0) @map("tax_pct") @db.Decimal(5, 2)
-  pphPct            Decimal         @default(0) @map("pph_pct") @db.Decimal(5, 2)
-  potonganItem      Decimal         @default(0) @map("potongan_item") @db.Decimal(15, 2)
-  kualitas          String?
-  refaksi           Decimal?        @db.Decimal(15, 3)
-  timbanganTruk     Decimal?        @map("timbangan_truk") @db.Decimal(15, 3)
-  timbanganDiterima Decimal?        @map("timbangan_diterima") @db.Decimal(15, 3)
-  nomorMobil        String?         @map("nomor_mobil")
-  accountId         String          @map("account_id")
-  account           Account         @relation(fields: [accountId], references: [id])
-  description       String?
+  id                 String            @id @default(uuid())
+  purchaseInvoiceId  String            @map("purchase_invoice_id")
+  purchaseInvoice    PurchaseInvoice   @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  inventoryItemId    String?           @map("inventory_item_id")
+  inventoryItem      InventoryItem?    @relation("PurchaseInvoiceInventory", fields: [inventoryItemId], references: [id])
+  warehouseId        String?           @map("warehouse_id")
+  warehouse          Warehouse?        @relation("PurchaseInvoiceItemWarehouse", fields: [warehouseId], references: [id])
+  itemName           String            @map("item_name")
+  quantity           Decimal           @db.Decimal(15, 3)
+  unit               String
+  rate               Decimal           @db.Decimal(15, 2)
+  discount           Decimal           @default(0) @db.Decimal(5, 2)
+  amount             Decimal           @db.Decimal(15, 2)
+  taxPct             Decimal           @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  pphPct             Decimal           @default(0) @map("pph_pct") @db.Decimal(5, 2)
+  potonganItem       Decimal           @default(0) @map("potongan_item") @db.Decimal(15, 2)
+  kualitas           String?
+  refaksi            Decimal?          @db.Decimal(15, 3)
+  timbanganTruk      Decimal?          @map("timbangan_truk") @db.Decimal(15, 3)
+  timbanganDiterima  Decimal?          @map("timbangan_diterima") @db.Decimal(15, 3)
+  nomorMobil         String?           @map("nomor_mobil")
+  accountId          String            @map("account_id")
+  account            Account           @relation(fields: [accountId], references: [id])
+  description        String?
   // Link ke baris STT yang menyebabkan stok masuk. UNIQUE — tiap baris STT
   // hanya bisa di-invoice sekali. Nullable untuk PI legacy / standalone (no
   // STT existed when invoice was first created).
-  goodsReceiptItemId String?        @unique @map("goods_receipt_item_id")
-  goodsReceiptItem  GoodsReceiptItem? @relation("PILineFromGRLine", fields: [goodsReceiptItemId], references: [id])
+  goodsReceiptItemId String?           @unique @map("goods_receipt_item_id")
+  goodsReceiptItem   GoodsReceiptItem? @relation("PILineFromGRLine", fields: [goodsReceiptItemId], references: [id])
 
   @@index([purchaseInvoiceId])
   @@index([inventoryItemId])
@@ -645,6 +723,7 @@ model FiscalYear {
   stockOpnames     StockOpname[]
   stockTransfers   StockTransfer[]         @relation("TransferFiscalYear")
   deliveryOrders   DeliveryOrder[]         @relation("DeliveryOrderFiscalYear")
+  salesOrders      SalesOrder[]            @relation("SalesOrderFiscalYear")
   purchaseOrders   PurchaseOrder[]         @relation("PurchaseOrderFY")
   goodsReceipts    GoodsReceipt[]          @relation("GoodsReceiptFY")
   fixedAssets      FixedAsset[]
@@ -682,6 +761,7 @@ model User {
   stockOpnames                StockOpname[]                @relation("OpnameCreatedBy")
   stockTransfers              StockTransfer[]              @relation("TransferCreator")
   deliveryOrders              DeliveryOrder[]              @relation("DeliveryOrderCreator")
+  salesOrders                 SalesOrder[]                 @relation("SalesOrderCreator")
   purchaseOrders              PurchaseOrder[]              @relation("PurchaseOrderCreator")
   goodsReceipts               GoodsReceipt[]               @relation("GoodsReceiptCreator")
   fixedAssets                 FixedAsset[]                 @relation("AssetCreatedBy")
@@ -803,27 +883,27 @@ enum StockMovementType {
 // keeping the model simpler for use cases where cost doesn't materially
 // differ by location.
 model Warehouse {
-  id                   String                @id @default(uuid())
-  code                 String                @unique
+  id                   String                   @id @default(uuid())
+  code                 String                   @unique
   name                 String
   location             String?
   description          String?
-  isActive             Boolean               @default(true) @map("is_active")
-  isDefault            Boolean               @default(false) @map("is_default")
-  sortOrder            Int                   @default(0) @map("sort_order")
+  isActive             Boolean                  @default(true) @map("is_active")
+  isDefault            Boolean                  @default(false) @map("is_default")
+  sortOrder            Int                      @default(0) @map("sort_order")
   stocks               InventoryStock[]
   movements            StockMovement[]
-  transfersFrom        StockTransfer[]       @relation("TransferFrom")
-  transfersTo          StockTransfer[]       @relation("TransferTo")
-  purchaseInvoiceItems PurchaseInvoiceItem[] @relation("PurchaseInvoiceItemWarehouse")
-  salesInvoiceItems    SalesInvoiceItem[]    @relation("SalesInvoiceItemWarehouse")
-  productionLines      ProductionRunItem[]   @relation("ProductionLineWarehouse")
-  opnameLines          StockOpnameItem[]     @relation("OpnameLineWarehouse")
-  deliveryOrderItems   DeliveryOrderItem[]   @relation("DOLineWarehouse")
-  goodsReceiptItems    GoodsReceiptItem[]    @relation("GRItemWarehouse")
+  transfersFrom        StockTransfer[]          @relation("TransferFrom")
+  transfersTo          StockTransfer[]          @relation("TransferTo")
+  purchaseInvoiceItems PurchaseInvoiceItem[]    @relation("PurchaseInvoiceItemWarehouse")
+  salesInvoiceItems    SalesInvoiceItem[]       @relation("SalesInvoiceItemWarehouse")
+  productionLines      ProductionRunItem[]      @relation("ProductionLineWarehouse")
+  opnameLines          StockOpnameItem[]        @relation("OpnameLineWarehouse")
+  deliveryOrderItems   DeliveryOrderItem[]      @relation("DOLineWarehouse")
+  goodsReceiptItems    GoodsReceiptItem[]       @relation("GRItemWarehouse")
   costStandards        ProductionCostStandard[] @relation("WarehouseCostStandards")
-  createdAt            DateTime              @default(now()) @map("created_at")
-  updatedAt            DateTime              @updatedAt @map("updated_at")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@map("warehouses")
@@ -850,34 +930,35 @@ model InventoryStock {
 }
 
 model InventoryItem {
-  id                   String                @id @default(uuid())
-  code                 String                @unique
+  id                   String                   @id @default(uuid())
+  code                 String                   @unique
   name                 String
   unit                 String
   category             String?
   description          String?
-  currentStock         Decimal               @default(0) @map("current_stock") @db.Decimal(15, 3)
-  averageCost          Decimal               @default(0) @map("average_cost") @db.Decimal(20, 2)
-  minimumStock         Decimal               @default(0) @map("minimum_stock") @db.Decimal(15, 3)
-  isActive             Boolean               @default(true) @map("is_active")
-  isDummy              Boolean               @default(false) @map("is_dummy")
-  accountId            String?               @map("account_id")
-  account              Account?              @relation("ItemAccount", fields: [accountId], references: [id])
+  currentStock         Decimal                  @default(0) @map("current_stock") @db.Decimal(15, 3)
+  averageCost          Decimal                  @default(0) @map("average_cost") @db.Decimal(20, 2)
+  minimumStock         Decimal                  @default(0) @map("minimum_stock") @db.Decimal(15, 3)
+  isActive             Boolean                  @default(true) @map("is_active")
+  isDummy              Boolean                  @default(false) @map("is_dummy")
+  accountId            String?                  @map("account_id")
+  account              Account?                 @relation("ItemAccount", fields: [accountId], references: [id])
   stocks               InventoryStock[]
   movements            StockMovement[]
-  productionLines      ProductionRunItem[]   @relation("ProductionLines")
-  salesInvoiceItems    SalesInvoiceItem[]    @relation("SalesInvoiceInventory")
-  purchaseInvoiceItems PurchaseInvoiceItem[] @relation("PurchaseInvoiceInventory")
-  quotationItems       QuotationItem[]       @relation("QuotationItemInventory")
-  opnameLines          StockOpnameItem[]     @relation("OpnameLines")
-  cogsBackfills        CogsBackfillQueue[]   @relation("CogsBackfillItem")
+  productionLines      ProductionRunItem[]      @relation("ProductionLines")
+  salesInvoiceItems    SalesInvoiceItem[]       @relation("SalesInvoiceInventory")
+  purchaseInvoiceItems PurchaseInvoiceItem[]    @relation("PurchaseInvoiceInventory")
+  quotationItems       QuotationItem[]          @relation("QuotationItemInventory")
+  opnameLines          StockOpnameItem[]        @relation("OpnameLines")
+  cogsBackfills        CogsBackfillQueue[]      @relation("CogsBackfillItem")
   transferLines        StockTransferItem[]
-  deliveryOrderItems   DeliveryOrderItem[]   @relation("DOLineInventory")
-  purchaseOrderItems   PurchaseOrderItem[]   @relation("POItemInventory")
-  goodsReceiptItems    GoodsReceiptItem[]    @relation("GRItemInventory")
+  deliveryOrderItems   DeliveryOrderItem[]      @relation("DOLineInventory")
+  salesOrderItems      SalesOrderItem[]         @relation("SOItemInventory")
+  purchaseOrderItems   PurchaseOrderItem[]      @relation("POItemInventory")
+  goodsReceiptItems    GoodsReceiptItem[]       @relation("GRItemInventory")
   costStandards        ProductionCostStandard[] @relation("ItemCostStandards")
-  createdAt            DateTime              @default(now()) @map("created_at")
-  updatedAt            DateTime              @updatedAt @map("updated_at")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@index([accountId])
@@ -924,19 +1005,19 @@ model StockTransfer {
 }
 
 model StockTransferItem {
-  id          String        @id @default(uuid())
-  transferId  String        @map("transfer_id")
-  transfer    StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  itemId      String        @map("item_id")
-  item        InventoryItem @relation(fields: [itemId], references: [id])
-  quantity    Decimal       @db.Decimal(20, 3)
-  description String?
+  id               String         @id @default(uuid())
+  transferId       String         @map("transfer_id")
+  transfer         StockTransfer  @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  itemId           String         @map("item_id")
+  item             InventoryItem  @relation(fields: [itemId], references: [id])
+  quantity         Decimal        @db.Decimal(20, 3)
+  description      String?
   // Phase 5: batch picker for transfers. When set, the source-warehouse Out
   // movement created at submit links back to this inbound batch. The
   // destination-warehouse In movement is a fresh inbound batch.
-  sourceMovementId String?       @map("source_movement_id")
+  sourceMovementId String?        @map("source_movement_id")
   sourceMovement   StockMovement? @relation("TransferBatchSource", fields: [sourceMovementId], references: [id])
-  createdAt   DateTime      @default(now()) @map("created_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
 
   @@index([transferId])
   @@index([itemId])
@@ -945,49 +1026,49 @@ model StockTransferItem {
 }
 
 model StockMovement {
-  id              String            @id @default(uuid())
-  movementNumber  String            @unique @map("movement_number")
-  date            DateTime
-  itemId          String            @map("item_id")
-  item            InventoryItem     @relation(fields: [itemId], references: [id])
-  warehouseId     String?           @map("warehouse_id")
-  warehouse       Warehouse?        @relation(fields: [warehouseId], references: [id])
-  movementType    StockMovementType @map("movement_type")
-  quantity        Decimal           @db.Decimal(20, 3)
-  unitCost        Decimal           @default(0) @map("unit_cost") @db.Decimal(20, 2)
-  totalValue      Decimal           @default(0) @map("total_value") @db.Decimal(20, 2)
-  notes           String?
-  referenceType   String?           @map("reference_type")
-  referenceId     String?           @map("reference_id")
-  referenceNumber String?           @map("reference_number")
-  offsetAccountId String?           @map("offset_account_id")
-  offsetAccount   Account?          @relation("MovementOffset", fields: [offsetAccountId], references: [id])
-  journalEntryId  String?           @unique @map("journal_entry_id")
-  journalEntry    JournalEntry?     @relation(fields: [journalEntryId], references: [id])
-  fiscalYearId    String            @map("fiscal_year_id")
-  fiscalYear      FiscalYear        @relation(fields: [fiscalYearId], references: [id])
-  createdById     String            @map("created_by_id")
-  createdBy       User              @relation("MovementCreatedBy", fields: [createdById], references: [id])
-  isCancelled     Boolean           @default(false) @map("is_cancelled")
+  id                        String              @id @default(uuid())
+  movementNumber            String              @unique @map("movement_number")
+  date                      DateTime
+  itemId                    String              @map("item_id")
+  item                      InventoryItem       @relation(fields: [itemId], references: [id])
+  warehouseId               String?             @map("warehouse_id")
+  warehouse                 Warehouse?          @relation(fields: [warehouseId], references: [id])
+  movementType              StockMovementType   @map("movement_type")
+  quantity                  Decimal             @db.Decimal(20, 3)
+  unitCost                  Decimal             @default(0) @map("unit_cost") @db.Decimal(20, 2)
+  totalValue                Decimal             @default(0) @map("total_value") @db.Decimal(20, 2)
+  notes                     String?
+  referenceType             String?             @map("reference_type")
+  referenceId               String?             @map("reference_id")
+  referenceNumber           String?             @map("reference_number")
+  offsetAccountId           String?             @map("offset_account_id")
+  offsetAccount             Account?            @relation("MovementOffset", fields: [offsetAccountId], references: [id])
+  journalEntryId            String?             @unique @map("journal_entry_id")
+  journalEntry              JournalEntry?       @relation(fields: [journalEntryId], references: [id])
+  fiscalYearId              String              @map("fiscal_year_id")
+  fiscalYear                FiscalYear          @relation(fields: [fiscalYearId], references: [id])
+  createdById               String              @map("created_by_id")
+  createdBy                 User                @relation("MovementCreatedBy", fields: [createdById], references: [id])
+  isCancelled               Boolean             @default(false) @map("is_cancelled")
   // Loaded HPP per Kg for production-output movements. Includes material +
   // cost components (listrik, buruh, etc.) less by-product NRV. Material-only
   // unit_cost is still used for GL/WAC. unitCostLoaded is informational and
   // drives "loaded margin" reports.
-  unitCostLoaded  Decimal?          @map("unit_cost_loaded") @db.Decimal(20, 4)
+  unitCostLoaded            Decimal?            @map("unit_cost_loaded") @db.Decimal(20, 4)
   // Phase 5: universal batch tracking. For outbound movements (Out /
   // AdjustmentOut) this links to the inbound StockMovement (batch) the qty
   // was consumed from. The /items/:id/batches endpoint sums these to compute
   // per-batch availability.
-  sourceMovementId  String?         @map("source_movement_id")
-  sourceMovement    StockMovement?  @relation("BatchSource", fields: [sourceMovementId], references: [id])
-  consumingMovements StockMovement[] @relation("BatchSource")
-  deliveryOrderItem DeliveryOrderItem? @relation("DOLineMovement")
-  goodsReceiptItem  GoodsReceiptItem?  @relation("GRLineMovement")
+  sourceMovementId          String?             @map("source_movement_id")
+  sourceMovement            StockMovement?      @relation("BatchSource", fields: [sourceMovementId], references: [id])
+  consumingMovements        StockMovement[]     @relation("BatchSource")
+  deliveryOrderItem         DeliveryOrderItem?  @relation("DOLineMovement")
+  goodsReceiptItem          GoodsReceiptItem?   @relation("GRLineMovement")
   productionInputBatchUsage ProductionRunItem[] @relation("ProductionInputBatch")
-  consumingSalesItems  SalesInvoiceItem[] @relation("SalesBatchSource")
-  consumingTransferItems StockTransferItem[] @relation("TransferBatchSource")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  consumingSalesItems       SalesInvoiceItem[]  @relation("SalesBatchSource")
+  consumingTransferItems    StockTransferItem[] @relation("TransferBatchSource")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
 
   @@index([itemId])
   @@index([warehouseId])
@@ -998,14 +1079,14 @@ model StockMovement {
 }
 
 model ProductionRun {
-  id              String              @id @default(uuid())
-  runNumber       String              @unique @map("run_number")
-  date            DateTime
-  notes           String?
-  referenceType   String?             @map("reference_type")
-  referenceId     String?             @map("reference_id")
-  referenceNumber String?             @map("reference_number")
-  yieldPct        Decimal?            @map("yield_pct") @db.Decimal(5, 2)
+  id                  String                 @id @default(uuid())
+  runNumber           String                 @unique @map("run_number")
+  date                DateTime
+  notes               String?
+  referenceType       String?                @map("reference_type")
+  referenceId         String?                @map("reference_id")
+  referenceNumber     String?                @map("reference_number")
+  yieldPct            Decimal?               @map("yield_pct") @db.Decimal(5, 2)
   // ─── Loaded HPP breakdown (informational, computed at submit) ─────────
   // totalMaterialCost: sum(input.qty × batchUnitCost) — real from batches
   // totalCostInputSide: sum of input-side cost components (listrik, dll)
@@ -1013,22 +1094,22 @@ model ProductionRun {
   // totalByproductValue: sum(byproduct.qty × nrvUnitValue)
   // computedHpp: (material + costs - byproductValue) / mainOutputQty
   // hppManualOverride: when true, computedHpp was overridden by user
-  totalMaterialCost   Decimal?  @map("total_material_cost") @db.Decimal(20, 4)
-  totalCostInputSide  Decimal?  @map("total_cost_input_side") @db.Decimal(20, 4)
-  totalCostOutputSide Decimal?  @map("total_cost_output_side") @db.Decimal(20, 4)
-  totalByproductValue Decimal?  @map("total_byproduct_value") @db.Decimal(20, 4)
-  computedHpp         Decimal?  @map("computed_hpp") @db.Decimal(20, 4)
-  hppManualOverride   Boolean   @default(false) @map("hpp_manual_override")
-  items           ProductionRunItem[]
-  runCosts        ProductionRunCost[]
-  runProcesses    ProductionRunProcess[]
-  isCancelled     Boolean             @default(false) @map("is_cancelled")
-  fiscalYearId    String              @map("fiscal_year_id")
-  fiscalYear      FiscalYear          @relation(fields: [fiscalYearId], references: [id])
-  createdById     String              @map("created_by_id")
-  createdBy       User                @relation("ProductionCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  totalMaterialCost   Decimal?               @map("total_material_cost") @db.Decimal(20, 4)
+  totalCostInputSide  Decimal?               @map("total_cost_input_side") @db.Decimal(20, 4)
+  totalCostOutputSide Decimal?               @map("total_cost_output_side") @db.Decimal(20, 4)
+  totalByproductValue Decimal?               @map("total_byproduct_value") @db.Decimal(20, 4)
+  computedHpp         Decimal?               @map("computed_hpp") @db.Decimal(20, 4)
+  hppManualOverride   Boolean                @default(false) @map("hpp_manual_override")
+  items               ProductionRunItem[]
+  runCosts            ProductionRunCost[]
+  runProcesses        ProductionRunProcess[]
+  isCancelled         Boolean                @default(false) @map("is_cancelled")
+  fiscalYearId        String                 @map("fiscal_year_id")
+  fiscalYear          FiscalYear             @relation(fields: [fiscalYearId], references: [id])
+  createdById         String                 @map("created_by_id")
+  createdBy           User                   @relation("ProductionCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
 
   @@index([date])
   @@index([fiscalYearId])
@@ -1036,29 +1117,29 @@ model ProductionRun {
 }
 
 model ProductionRunItem {
-  id              String        @id @default(uuid())
-  productionRunId String        @map("production_run_id")
-  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
-  itemId          String        @map("item_id")
-  item            InventoryItem @relation("ProductionLines", fields: [itemId], references: [id])
-  warehouseId     String?       @map("warehouse_id")
-  warehouse       Warehouse?    @relation("ProductionLineWarehouse", fields: [warehouseId], references: [id])
-  lineType        String        @map("line_type")
-  quantity        Decimal       @db.Decimal(15, 3)
-  unitPrice       Decimal?      @map("unit_price") @db.Decimal(15, 2)
-  yieldPct        Decimal?      @map("yield_pct") @db.Decimal(5, 2)
-  isByProduct     Boolean       @default(false) @map("is_by_product")
+  id               String         @id @default(uuid())
+  productionRunId  String         @map("production_run_id")
+  productionRun    ProductionRun  @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  itemId           String         @map("item_id")
+  item             InventoryItem  @relation("ProductionLines", fields: [itemId], references: [id])
+  warehouseId      String?        @map("warehouse_id")
+  warehouse        Warehouse?     @relation("ProductionLineWarehouse", fields: [warehouseId], references: [id])
+  lineType         String         @map("line_type")
+  quantity         Decimal        @db.Decimal(15, 3)
+  unitPrice        Decimal?       @map("unit_price") @db.Decimal(15, 2)
+  yieldPct         Decimal?       @map("yield_pct") @db.Decimal(5, 2)
+  isByProduct      Boolean        @default(false) @map("is_by_product")
   // Batch tracking (input side): link to the inbound StockMovement (batch)
   // that the staff picked. batchUnitCost is captured at pick time so the
   // production cost is locked even if WAC changes later.
-  sourceMovementId String?      @map("source_movement_id")
+  sourceMovementId String?        @map("source_movement_id")
   sourceMovement   StockMovement? @relation("ProductionInputBatch", fields: [sourceMovementId], references: [id])
-  batchUnitCost    Decimal?     @map("batch_unit_cost") @db.Decimal(20, 4)
+  batchUnitCost    Decimal?       @map("batch_unit_cost") @db.Decimal(20, 4)
   // NRV per Kg for by-product output. Used as unit_cost for the inbound
   // stock movement of that by-product and to compute the loaded HPP of the
   // main output.
-  nrvUnitValue     Decimal?     @map("nrv_unit_value") @db.Decimal(20, 4)
-  createdAt       DateTime      @default(now()) @map("created_at")
+  nrvUnitValue     Decimal?       @map("nrv_unit_value") @db.Decimal(20, 4)
+  createdAt        DateTime       @default(now()) @map("created_at")
 
   @@index([productionRunId])
   @@index([warehouseId])
@@ -1071,31 +1152,31 @@ model ProductionRunItem {
 // standard at run-time and the default rate is prefilled; they can override
 // per run if needed (e.g. abnormal electricity bill).
 model ProductionCostStandard {
-  id              String         @id @default(uuid())
-  name            String
-  description     String?
+  id            String              @id @default(uuid())
+  name          String
+  description   String?
   // InputSide: charged per unit of input qty. OutputSide: per unit of main output qty.
-  costSide        String         @map("cost_side")
+  costSide      String              @map("cost_side")
   // InputQty: rate × sum(input qty). OutputQty: rate × main output qty. Fixed: flat per run.
-  basis           String
-  defaultRate     Decimal        @map("default_rate") @db.Decimal(15, 4)
+  basis         String
+  defaultRate   Decimal             @map("default_rate") @db.Decimal(15, 4)
   // Optional GL account tag (informational; production module does NOT post
   // to this account — real expense still flows via JV / payment / invoice).
-  costAccountId   String?        @map("cost_account_id")
-  costAccount     Account?       @relation("CostStandardAccount", fields: [costAccountId], references: [id])
+  costAccountId String?             @map("cost_account_id")
+  costAccount   Account?            @relation("CostStandardAccount", fields: [costAccountId], references: [id])
   // Optional item scope — when set, this standard applies only to runs that
   // produce/consume the linked item. Null = applies to any run.
-  itemId          String?        @map("item_id")
-  item            InventoryItem? @relation("ItemCostStandards", fields: [itemId], references: [id])
+  itemId        String?             @map("item_id")
+  item          InventoryItem?      @relation("ItemCostStandards", fields: [itemId], references: [id])
   // Optional warehouse scope — when set, this standard only appears in
   // production runs at this warehouse (mis. "biaya mesin poles" hanya muncul
   // di gudang poles). Null = berlaku semua gudang.
-  warehouseId     String?        @map("warehouse_id")
-  warehouse       Warehouse?     @relation("WarehouseCostStandards", fields: [warehouseId], references: [id])
-  isActive        Boolean        @default(true) @map("is_active")
-  runCosts        ProductionRunCost[]
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  warehouseId   String?             @map("warehouse_id")
+  warehouse     Warehouse?          @relation("WarehouseCostStandards", fields: [warehouseId], references: [id])
+  isActive      Boolean             @default(true) @map("is_active")
+  runCosts      ProductionRunCost[]
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@index([costSide])
@@ -1107,20 +1188,20 @@ model ProductionCostStandard {
 // Cost component used in a specific production run. Snapshot of the master
 // rate at submit time (so retroactive master edits don't change historical HPP).
 model ProductionRunCost {
-  id              String         @id @default(uuid())
-  productionRunId String         @map("production_run_id")
-  productionRun   ProductionRun  @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
-  standardId      String?        @map("standard_id")
+  id              String                  @id @default(uuid())
+  productionRunId String                  @map("production_run_id")
+  productionRun   ProductionRun           @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  standardId      String?                 @map("standard_id")
   standard        ProductionCostStandard? @relation(fields: [standardId], references: [id])
   description     String
-  costSide        String         @map("cost_side")
+  costSide        String                  @map("cost_side")
   basis           String
-  rate            Decimal        @db.Decimal(15, 4)
-  qtyBasis        Decimal        @map("qty_basis") @db.Decimal(15, 3)
-  totalAmount     Decimal        @map("total_amount") @db.Decimal(20, 4)
-  costAccountId   String?        @map("cost_account_id")
-  costAccount     Account?       @relation("RunCostAccount", fields: [costAccountId], references: [id])
-  createdAt       DateTime       @default(now()) @map("created_at")
+  rate            Decimal                 @db.Decimal(15, 4)
+  qtyBasis        Decimal                 @map("qty_basis") @db.Decimal(15, 3)
+  totalAmount     Decimal                 @map("total_amount") @db.Decimal(20, 4)
+  costAccountId   String?                 @map("cost_account_id")
+  costAccount     Account?                @relation("RunCostAccount", fields: [costAccountId], references: [id])
+  createdAt       DateTime                @default(now()) @map("created_at")
 
   @@index([productionRunId])
   @@index([standardId])
@@ -1132,14 +1213,14 @@ model ProductionRunCost {
 // table production_run_processes for traceability only — no cost or stock
 // behavior is tied to a process.
 model ProductionProcess {
-  id            String                 @id @default(uuid())
-  name          String                 @unique
-  description   String?
-  sortOrder     Int                    @default(0) @map("sort_order")
-  isActive      Boolean                @default(true) @map("is_active")
-  runProcesses  ProductionRunProcess[]
-  createdAt     DateTime               @default(now()) @map("created_at")
-  updatedAt     DateTime               @updatedAt @map("updated_at")
+  id           String                 @id @default(uuid())
+  name         String                 @unique
+  description  String?
+  sortOrder    Int                    @default(0) @map("sort_order")
+  isActive     Boolean                @default(true) @map("is_active")
+  runProcesses ProductionRunProcess[]
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@map("production_processes")
@@ -1541,20 +1622,20 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id                String              @id @default(uuid())
-  purchaseOrderId   String              @map("purchase_order_id")
-  purchaseOrder     PurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  inventoryItemId   String?             @map("inventory_item_id")
-  inventoryItem     InventoryItem?      @relation("POItemInventory", fields: [inventoryItemId], references: [id])
-  itemName          String              @map("item_name")
-  quantity          Decimal             @db.Decimal(15, 3)
+  id                String             @id @default(uuid())
+  purchaseOrderId   String             @map("purchase_order_id")
+  purchaseOrder     PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId   String?            @map("inventory_item_id")
+  inventoryItem     InventoryItem?     @relation("POItemInventory", fields: [inventoryItemId], references: [id])
+  itemName          String             @map("item_name")
+  quantity          Decimal            @db.Decimal(15, 3)
   unit              String
-  estimatedRate     Decimal             @default(0) @map("estimated_rate") @db.Decimal(15, 2)
-  estimatedAmount   Decimal             @default(0) @map("estimated_amount") @db.Decimal(15, 2)
+  estimatedRate     Decimal            @default(0) @map("estimated_rate") @db.Decimal(15, 2)
+  estimatedAmount   Decimal            @default(0) @map("estimated_amount") @db.Decimal(15, 2)
   // Denormalized counter — bumped when STT items reference this PO item.
-  qtyReceived       Decimal             @default(0) @map("qty_received") @db.Decimal(15, 3)
+  qtyReceived       Decimal            @default(0) @map("qty_received") @db.Decimal(15, 3)
   description       String?
-  goodsReceiptItems GoodsReceiptItem[]  @relation("GRItemFromPOItem")
+  goodsReceiptItems GoodsReceiptItem[] @relation("GRItemFromPOItem")
 
   @@index([purchaseOrderId])
   @@index([inventoryItemId])
@@ -1605,28 +1686,28 @@ model GoodsReceipt {
 }
 
 model GoodsReceiptItem {
-  id                  String              @id @default(uuid())
-  goodsReceiptId      String              @map("goods_receipt_id")
-  goodsReceipt        GoodsReceipt        @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
-  inventoryItemId     String              @map("inventory_item_id")
-  inventoryItem       InventoryItem       @relation("GRItemInventory", fields: [inventoryItemId], references: [id])
-  warehouseId         String              @map("warehouse_id")
-  warehouse           Warehouse           @relation("GRItemWarehouse", fields: [warehouseId], references: [id])
-  itemName            String              @map("item_name")
-  quantity            Decimal             @db.Decimal(15, 3)
+  id                  String               @id @default(uuid())
+  goodsReceiptId      String               @map("goods_receipt_id")
+  goodsReceipt        GoodsReceipt         @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  inventoryItemId     String               @map("inventory_item_id")
+  inventoryItem       InventoryItem        @relation("GRItemInventory", fields: [inventoryItemId], references: [id])
+  warehouseId         String               @map("warehouse_id")
+  warehouse           Warehouse            @relation("GRItemWarehouse", fields: [warehouseId], references: [id])
+  itemName            String               @map("item_name")
+  quantity            Decimal              @db.Decimal(15, 3)
   unit                String
   // Harga kontrak/estimasi saat barang diterima. Locked ke movement supaya
   // average cost & COGS proper. PI nanti bisa kasih harga berbeda → variance
   // posted ke "Selisih Harga Pembelian".
-  lockedUnitCost      Decimal             @default(0) @map("locked_unit_cost") @db.Decimal(20, 2)
+  lockedUnitCost      Decimal              @default(0) @map("locked_unit_cost") @db.Decimal(20, 2)
   description         String?
   // Optional link ke baris PO yang dipenuhi.
-  purchaseOrderItemId String?             @map("purchase_order_item_id")
-  purchaseOrderItem   PurchaseOrderItem?  @relation("GRItemFromPOItem", fields: [purchaseOrderItemId], references: [id])
+  purchaseOrderItemId String?              @map("purchase_order_item_id")
+  purchaseOrderItem   PurchaseOrderItem?   @relation("GRItemFromPOItem", fields: [purchaseOrderItemId], references: [id])
   // Stock movement In yang dibuat saat STT submit. UNIQUE — tiap baris STT
   // hanya boleh punya 1 SM aktif.
-  stockMovementId     String?             @unique @map("stock_movement_id")
-  stockMovement       StockMovement?      @relation("GRLineMovement", fields: [stockMovementId], references: [id])
+  stockMovementId     String?              @unique @map("stock_movement_id")
+  stockMovement       StockMovement?       @relation("GRLineMovement", fields: [stockMovementId], references: [id])
   // Back-relation: baris PI yang mengambil baris STT ini untuk di-invoice.
   invoiceItem         PurchaseInvoiceItem? @relation("PILineFromGRLine")
 

@@ -95,6 +95,48 @@ export const CreateQuotationSchema = z.object({
 
 export const UpdateQuotationSchema = CreateQuotationSchema;
 
+// Sales Order — komitmen jual sebelum DO+Invoice. Schema mirror Quotation
+// tapi tanpa validUntil/terms (yang specific ke penawaran). Inventory/service
+// line dibedakan via inventoryItemId (null = non-inventory misc charge).
+const SOItemSchema = z.object({
+  inventoryItemId: z.string().nullable().optional(),
+  itemName: z.string().min(1),
+  quantity: z.coerce.number().positive(),
+  unit: z.string().min(1),
+  rate: z.coerce.number().min(0),
+  discount: z.coerce.number().min(0).max(100).default(0),
+  amount: z.coerce.number().min(0),
+  description: z.string().nullable().optional(),
+});
+
+export const CreateSalesOrderSchema = z.object({
+  date: z.string().min(1),
+  expectedDelivery: z.string().nullable().optional(),
+  partyId: z.string().min(1),
+  customerRefNo: z.string().nullable().optional(),
+  quotationId: z.string().nullable().optional(),
+  items: z.array(SOItemSchema).min(1),
+  notes: z.string().nullable().optional(),
+  potongan: z.coerce.number().min(0).optional().default(0),
+  biayaLain: z.coerce.number().optional().default(0),
+  taxPct: z.coerce.number().min(0).max(100).optional().default(0),
+});
+
+export const UpdateSalesOrderSchema = CreateSalesOrderSchema;
+
+export const GenerateDOFromSOSchema = z.object({
+  date: z.string().min(1),
+  nomorMobil: z.string().nullable().optional(),
+  driverName: z.string().nullable().optional(),
+  recipientName: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  items: z.array(z.object({
+    salesOrderItemId: z.string().min(1),
+    quantity: z.coerce.number().positive(),
+    warehouseId: z.string().nullable().optional(),
+  })).min(1),
+});
+
 export const RejectQuotationSchema = z.object({
   reason: z.string().min(5, 'Alasan minimal 5 karakter.').max(500),
 });
