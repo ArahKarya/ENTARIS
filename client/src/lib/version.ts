@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.1.3';
+export const APP_VERSION = '3.2.0';
 export const APP_BUILD_DATE = '2026-05-22';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.0',
+    date: '2026-05-22',
+    title: 'Modul Pesanan Penjualan (Sales Order)',
+    changes: [
+      'Modul baru "Pesanan (SO)" untuk komitmen jual sebelum Surat Jalan + Invoice. Cocok untuk skema "invoice dulu, kirim barang nanti" — customer punya komitmen tertulis sebelum barang siap kirim',
+      'Flow: Penawaran (opsional) → Sales Order → Surat Jalan → Invoice. SO submit TIDAK gerakkan stok, TIDAK posting JE (murni komitmen)',
+      'Status SO: Draft, Disubmit, Sebagian Terkirim, Selesai Dikirim, Dibatalkan. Auto-update status sesuai partial delivery',
+      'Generate Surat Jalan dari SO: pilih item + qty + gudang, sistem track delivered_qty per baris',
+      'Multiple Surat Jalan bisa dari 1 SO (partial delivery). Cancel Surat Jalan otomatis revert delivered_qty + recompute status SO',
+      'Penomoran: PSN-YYYYMM-NNNN (Pesanan)',
+      'Menu sidebar baru "Pesanan (SO)" di bawah Penawaran',
+    ],
+  },
   {
     version: '3.1.3',
     date: '2026-05-22',

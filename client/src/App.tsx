@@ -7,6 +7,7 @@ import { COAPage } from './pages/COAPage';
 import { SalesInvoices } from './pages/SalesInvoices';
 import { PurchaseInvoices } from './pages/PurchaseInvoices';
 import Quotations from './pages/Quotations';
+import SalesOrders from './pages/SalesOrders';
 import Inquiries from './pages/Inquiries';
 import Warehouses from './pages/Warehouses';
 import WarehouseStockDashboard from './pages/WarehouseStockDashboard';
@@ -92,6 +93,7 @@ function App() {
             <Route path="/sales" element={<FinanceRoute><SalesInvoices /></FinanceRoute>} />
             <Route path="/inquiries" element={<FinanceRoute><Inquiries /></FinanceRoute>} />
             <Route path="/quotations" element={<FinanceRoute><Quotations /></FinanceRoute>} />
+            <Route path="/sales-orders" element={<FinanceRoute><SalesOrders /></FinanceRoute>} />
             <Route path="/purchase" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><PurchaseInvoices /></RoleRoute>} />
             <Route path="/payments" element={<FinanceRoute><Payments /></FinanceRoute>} />
             <Route path="/vendor-deposits" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><VendorDeposits /></RoleRoute>} />
