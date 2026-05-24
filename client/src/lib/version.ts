@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.3';
+export const APP_VERSION = '3.2.4';
 export const APP_BUILD_DATE = '2026-05-24';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.4',
+    date: '2026-05-24',
+    title: 'Buku Besar — Default Filter Bulan Berjalan',
+    changes: [
+      'Bug fix lanjutan: Buku Besar tanpa filter date tampilkan SEMUA periode → JV bulan ini bisa tenggelam di halaman dalam (real case JV 4 Mei ada di baris ke-1.335, halaman ke-27 dari 30 kalau pakai 50/halaman). User wajar menganggap "tidak ada"',
+      'Sekarang default Buku Besar otomatis filter ke bulan berjalan saat dibuka. User langsung lihat data bulan ini, baris paling baru di atas',
+      'Tetap bisa ubah ke periode lain via preset (Hari ini / Minggu / Bulan lalu / Tahun) atau pilih tanggal manual',
+    ],
+  },
   {
     version: '3.2.3',
     date: '2026-05-24',

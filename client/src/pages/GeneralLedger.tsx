@@ -19,8 +19,24 @@ export const GeneralLedger = () => {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Default filter ke bulan berjalan supaya JV bulan lama tidak tenggelam di
+  // pagination dalam. Sebelumnya default kosong = semua periode → JV 4 Mei
+  // bisa ada di halaman ke-27 dari 30 (real case 2026-05-24).
+  const initialMonth = (() => {
+    const now = new Date();
+    const fmtFn = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    return {
+      start: fmtFn(new Date(now.getFullYear(), now.getMonth(), 1)),
+      end: fmtFn(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    };
+  })();
+  const [startDate, setStartDate] = useState(initialMonth.start);
+  const [endDate, setEndDate] = useState(initialMonth.end);
   const [cancelTarget, setCancelTarget] = useState<{ id: string; entryNumber: string } | null>(null);
   const [hideCancelled, setHideCancelled] = useState(false);
   // Pagination state (server-side)
