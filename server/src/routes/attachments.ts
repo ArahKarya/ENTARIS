@@ -61,15 +61,18 @@ router.post(
         return res.status(400).json({ error: 'referenceType dan referenceId wajib diisi.' });
       }
 
-      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice'];
+      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt'];
       if (!ALLOWED_REF_TYPES.includes(referenceType)) {
         return res.status(400).json({
           error: `referenceType harus salah satu dari: ${ALLOWED_REF_TYPES.join(', ')}.`,
         });
       }
 
-      // StaffProduksi hanya boleh upload lampiran untuk invoice pembelian
-      if (req.user?.role === 'StaffProduksi' && !['purchase_invoice', 'sales_invoice'].includes(referenceType)) {
+      // StaffProduksi boleh upload lampiran untuk dokumen yang mereka pegang
+      // fisik: invoice pembelian, Surat Jalan, dan STT (incl. bukti jembatan
+      // timbang). Tidak boleh untuk payment/journal/sales_invoice murni.
+      if (req.user?.role === 'StaffProduksi'
+          && !['purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt'].includes(referenceType)) {
         return res.status(403).json({ error: 'Akses ditolak untuk tipe referensi ini.' });
       }
 
@@ -86,6 +89,12 @@ router.post(
       } else if (referenceType === 'sales_invoice') {
         const si = await prisma.salesInvoice.findUnique({ where: { id: referenceId } });
         if (!si) return res.status(404).json({ error: 'Invoice penjualan tidak ditemukan.' });
+      } else if (referenceType === 'delivery_order') {
+        const dord = await prisma.deliveryOrder.findUnique({ where: { id: referenceId } });
+        if (!dord) return res.status(404).json({ error: 'Surat Jalan tidak ditemukan.' });
+      } else if (referenceType === 'goods_receipt') {
+        const stt = await prisma.goodsReceipt.findUnique({ where: { id: referenceId } });
+        if (!stt) return res.status(404).json({ error: 'STT/BPB tidak ditemukan.' });
       }
 
       // Check existing count
@@ -166,7 +175,7 @@ router.get('/file/:id', async (req: AuthRequest, res: Response) => {
     // navigation, so the UUID-guess attack surface is reduced to admin/account.
     const role = req.user?.role;
     if (role === 'StaffProduksi' &&
-        !['purchase_invoice', 'sales_invoice'].includes(attachment.referenceType)) {
+        !['purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt'].includes(attachment.referenceType)) {
       return res.status(403).json({ error: 'Akses ditolak untuk file ini.' });
     }
 

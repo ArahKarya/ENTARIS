@@ -10,6 +10,8 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { formatDate } from '../lib/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
+import AttachmentUpload from './AttachmentUpload';
+import AttachmentPreview from './AttachmentPreview';
 import DeliveryOrderPDF from '../lib/pdf/DeliveryOrderPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import DeliveryOrderModal from './DeliveryOrderModal';
@@ -277,6 +279,19 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                 <p className="text-sm text-gray-600 whitespace-pre-wrap">
                   {doc.notes || <span className="text-gray-300 italic">Tidak ada catatan</span>}
                 </p>
+              </div>
+
+              {/* Attachments — bukti jembatan timbang / foto kendaraan / dll */}
+              <div className="px-6 py-4 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                  Lampiran (Bukti Timbang / Foto)
+                </p>
+                <AttachmentPreview referenceType="delivery_order" referenceId={doc.id} />
+                {status !== 'Cancelled' && (
+                  <div className="mt-2">
+                    <AttachmentUpload referenceType="delivery_order" referenceId={doc.id} />
+                  </div>
+                )}
               </div>
 
               {status === 'Cancelled' && (

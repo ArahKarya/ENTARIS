@@ -11,6 +11,8 @@ import { formatDate } from '../lib/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
 import GoodsReceiptPDF from '../lib/pdf/GoodsReceiptPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
+import AttachmentUpload from './AttachmentUpload';
+import AttachmentPreview from './AttachmentPreview';
 
 interface Props {
   sttId: string | null;
@@ -240,6 +242,19 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
                 <p className="text-sm text-gray-600 whitespace-pre-wrap">
                   {doc.notes || <span className="text-gray-300 italic">Tidak ada catatan</span>}
                 </p>
+              </div>
+
+              {/* Attachments — bukti jembatan timbang STT */}
+              <div className="px-6 py-4 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                  Lampiran (Bukti Jembatan Timbang / Foto)
+                </p>
+                <AttachmentPreview referenceType="goods_receipt" referenceId={doc.id} />
+                {status !== 'Cancelled' && (
+                  <div className="mt-2">
+                    <AttachmentUpload referenceType="goods_receipt" referenceId={doc.id} />
+                  </div>
+                )}
               </div>
 
               {status === 'Cancelled' && (

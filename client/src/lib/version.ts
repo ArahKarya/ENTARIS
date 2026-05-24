@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.5';
+export const APP_VERSION = '3.2.6';
 export const APP_BUILD_DATE = '2026-05-24';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.6',
+    date: '2026-05-24',
+    title: 'Lampiran di Surat Jalan & STT/BPB — Bukti Jembatan Timbang',
+    changes: [
+      'Tambah section "Lampiran" di drawer Surat Jalan dan STT/BPB — upload foto/PDF bukti jembatan timbang, foto kendaraan, dll',
+      'Format didukung: JPG, PNG, WebP, PDF (max 5 MB/file, max 10 file per dokumen)',
+      'StaffProduksi bisa upload (mereka yang fisik handle dokumen di gudang); semua role bisa view & download',
+      'Backend: extend referenceType allowed = delivery_order, goods_receipt + validasi referensi exist',
+      'Plus link SI-202605-0059 (BGN Viva) ke DO-202605-0034 sebagai data fix retroaktif — cancel SM duplikat dari direct-sale lama',
+    ],
+  },
   {
     version: '3.2.5',
     date: '2026-05-24',

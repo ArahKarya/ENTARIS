@@ -5,7 +5,7 @@ import api from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface AttachmentPreviewProps {
-  referenceType: 'payment' | 'journal';
+  referenceType: 'payment' | 'journal' | 'purchase_invoice' | 'sales_invoice' | 'delivery_order' | 'goods_receipt';
   referenceId: string;
   canDelete?: boolean;
 }
