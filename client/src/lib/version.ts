@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.2';
-export const APP_BUILD_DATE = '2026-05-22';
+export const APP_VERSION = '3.2.3';
+export const APP_BUILD_DATE = '2026-05-24';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.3',
+    date: '2026-05-24',
+    title: 'Fix Search Buku Besar — Cari Lewat Nama Akun + Line Description',
+    changes: [
+      'Bug fix: search di Buku Besar dulu hanya match nomor jurnal & narration header — tidak match nama akun atau description per-baris. Akibat: cari "Piutang Karyawan" tidak ketemu JV "Terima Pembayaran Kasbon Karyawan" yang punya baris ke akun 1.2.2 Piutang Karyawan',
+      'Sekarang search Buku Besar match juga ke: nama akun di baris JE, nomor akun (mis. "1.2.2"), dan description per-baris (mis. "Kasbon Ulin")',
+      'Hasil: search "piutang karyawan" di Buku Besar tampilkan JV-202605-0225 (4 Mei) seperti yang muncul di Laporan Buku Besar',
+    ],
+  },
   {
     version: '3.2.2',
     date: '2026-05-22',

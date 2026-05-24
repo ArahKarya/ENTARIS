@@ -32,12 +32,20 @@ router.get('/', async (req, res) => {
       }
     }
     // Server-side search supaya pagination tetap konsisten (kalau client-side
-    // filter, halaman lain bisa miss match).
+    // filter, halaman lain bisa miss match). Match di:
+    //   - JE header: entryNumber, narration
+    //   - Line items: account name / accountNumber, line description
+    // Bug fix 2026-05-24: dulu hanya match header → user search "piutang
+    // karyawan" miss JV yg narration-nya "Kasbon Karyawan" meskipun ada
+    // baris ke akun 1.2.2 Piutang Karyawan.
     if (typeof search === 'string' && search.trim().length > 0) {
       const q = search.trim();
       where.OR = [
         { entryNumber: { contains: q, mode: 'insensitive' } },
         { narration: { contains: q, mode: 'insensitive' } },
+        { items: { some: { description: { contains: q, mode: 'insensitive' } } } },
+        { items: { some: { account: { name: { contains: q, mode: 'insensitive' } } } } },
+        { items: { some: { account: { accountNumber: { contains: q, mode: 'insensitive' } } } } },
       ];
     }
     if (hideCancelled === 'true') {
