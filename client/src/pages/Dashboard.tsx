@@ -10,6 +10,7 @@ import RevenueChart from '../components/widgets/RevenueChart';
 import RecentActivities from '../components/widgets/RecentActivities';
 import TopCustomers from '../components/widgets/TopCustomers';
 import OverdueInvoices from '../components/widgets/OverdueInvoices';
+import PendingDOWidget from '../components/widgets/PendingDOWidget';
 import ExpenseBreakdown from '../components/widgets/ExpenseBreakdown';
 import StockAlert from '../components/widgets/StockAlert';
 import NegativeStockWidget from '../components/widgets/NegativeStockWidget';
@@ -315,6 +316,10 @@ export const Dashboard = () => {
             {isEnabled('recent-activities') && (
               <RecentActivities data={recentActivities || null} />
             )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <PendingDOWidget />
           </div>
 
           {isEnabled('profitability-per-sku') && (

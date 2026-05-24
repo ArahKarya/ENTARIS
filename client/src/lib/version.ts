@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.4';
+export const APP_VERSION = '3.2.5';
 export const APP_BUILD_DATE = '2026-05-24';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.5',
+    date: '2026-05-24',
+    title: 'Widget Dashboard "Surat Jalan Belum di-Invoice"',
+    changes: [
+      'Widget baru di Dashboard section Sales: list semua DO status Submitted yang belum di-invoice, sort umur lama → baru',
+      'Badge umur: ≥10 hari merah (kritis), ≥5 hari amber (warning), <5 hari netral. Banner amber muncul kalau ada DO ≥ 5 hari',
+      'Auto-refresh 60 detik. Klik baris navigate ke halaman Surat Jalan',
+      'Mencegah kasus seperti DO BGN Viva 17 Mei yang nyangkut 7 hari tanpa diinvoice — sekarang langsung kelihatan di Dashboard',
+      'Endpoint backend GET /api/dashboard/pending-do (limit 50, sort oldest first)',
+    ],
+  },
   {
     version: '3.2.4',
     date: '2026-05-24',

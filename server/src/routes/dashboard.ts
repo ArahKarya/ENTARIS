@@ -311,6 +311,46 @@ router.get('/stock-alerts', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/pending-do — Surat Jalan Submitted yang belum jadi
+// invoice. Dipakai widget Dashboard supaya DO lama tidak terlupa diinvoice
+// (kasus user 24 Mei: DO BGN Viva 17 Mei nyangkut 7 hari).
+router.get('/pending-do', async (_req, res) => {
+  try {
+    const rows = await prisma.deliveryOrder.findMany({
+      where: { status: 'Submitted', invoiceId: null },
+      include: {
+        customer: { select: { id: true, name: true } },
+        items: { select: { quantity: true, unit: true } },
+      },
+      orderBy: { date: 'asc' },
+      take: 50,
+    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const result = rows.map((d) => {
+      const doDate = new Date(d.date);
+      doDate.setHours(0, 0, 0, 0);
+      const ageDays = Math.max(0, Math.floor((today.getTime() - doDate.getTime()) / 86400000));
+      const totalQty = d.items.reduce((s, it) => s + Number(it.quantity), 0);
+      const unit = d.items[0]?.unit ?? '';
+      return {
+        id: d.id,
+        doNumber: d.doNumber,
+        date: d.date,
+        customer: d.customer,
+        itemCount: d.items.length,
+        totalQty,
+        unit,
+        ageDays,
+      };
+    });
+    return res.json(result);
+  } catch (error) {
+    logger.error({ error }, 'GET /dashboard/pending-do error');
+    return res.status(500).json({ error: 'Gagal mengambil DO pending.' });
+  }
+});
+
 // GET /api/dashboard/negative-stock — items dengan stok < 0 (item-level atau
 // per-gudang). Plus latest movement utk konteks "siapa & kapan & kenapa".
 // Widget Dashboard ini dipake monitor bypass admin (sejak v3.2.1).
