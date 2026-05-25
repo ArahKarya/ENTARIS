@@ -226,13 +226,36 @@ router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
       return res.status(400).json({ error: 'Tidak dapat menghapus akun yang masih memiliki sub-akun. Hapus sub-akun terlebih dahulu.' });
     }
 
-    // 2. Check no ledger entries
+    // 2. Check not used as a system account (role mapping)
+    const sysMappings = await prisma.systemAccountMapping.findMany({ where: { accountId: id }, select: { role: true } });
+    if (sysMappings.length > 0) {
+      const roles = sysMappings.map((m) => m.role).join(', ');
+      return res.status(400).json({
+        error: `Tidak dapat menghapus akun ini karena dipakai sebagai Akun Sistem (${roles}). Lepaskan dulu pemetaannya di Pengaturan → Akun Sistem.`,
+      });
+    }
+
+    // 3. Check not linked to inventory items / service items
+    const [itemCount, serviceCount] = await Promise.all([
+      prisma.inventoryItem.count({ where: { accountId: id } }),
+      prisma.serviceItem.count({ where: { accountId: id } }),
+    ]);
+    if (itemCount > 0 || serviceCount > 0) {
+      const parts: string[] = [];
+      if (itemCount > 0) parts.push(`${itemCount} item persediaan`);
+      if (serviceCount > 0) parts.push(`${serviceCount} item jasa`);
+      return res.status(400).json({
+        error: `Tidak dapat menghapus akun ini karena masih ditautkan ke ${parts.join(' & ')}. Ubah akun pada item tersebut terlebih dahulu.`,
+      });
+    }
+
+    // 4. Check no ledger entries (posted transactions)
     const ledgerCount = await prisma.accountingLedgerEntry.count({ where: { accountId: id, isCancelled: false } });
     if (ledgerCount > 0) {
       return res.status(400).json({ error: 'Tidak dapat menghapus akun yang sudah memiliki transaksi.' });
     }
 
-    // 3. Check zero balance
+    // 5. Check zero balance
     const account = await prisma.account.findUnique({ where: { id }, select: { balance: true, name: true } });
     if (!account) return res.status(404).json({ error: 'Akun tidak ditemukan.' });
     if (Number(account.balance) !== 0) {
@@ -244,6 +267,13 @@ router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
   } catch (error: any) {
     logger.error({ error }, 'DELETE /coa/:id error');
     if (error.code === 'P2025') return res.status(404).json({ error: 'Akun tidak ditemukan.' });
+    // Foreign-key violation: account still referenced by other data
+    // (jurnal manual, pembayaran, dokumen, aset tetap, biaya produksi, dll.)
+    if (error.code === 'P2003') {
+      return res.status(400).json({
+        error: 'Tidak dapat menghapus akun ini karena masih dipakai oleh data lain (transaksi, dokumen, aset tetap, atau biaya produksi). Batalkan atau alihkan data terkait terlebih dahulu.',
+      });
+    }
     return res.status(500).json({ error: 'Gagal menghapus akun.' });
   }
 });
