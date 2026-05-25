@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.6';
+export const APP_VERSION = '3.2.7';
 export const APP_BUILD_DATE = '2026-05-24';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.7',
+    date: '2026-05-24',
+    title: 'Invoice Pembelian Tampilkan STT/BPB Asal',
+    changes: [
+      'Bug fix: detail Invoice Pembelian sekarang tampilkan STT/BPB asal barang. Sebelumnya link cuma satu arah (dari STT tahu PI nomor berapa, tapi dari PI tidak tahu STT)',
+      'Badge STT hijau per baris item (mirip badge Surat Jalan di sales)',
+      'Banner ringkasan "Barang diterima dari STT/BPB" di atas daftar barang — list semua STT yang dipakai PI ini',
+      'Backend: endpoint GET /purchase/invoices/:id include goodsReceiptItem → goodsReceipt (sttNumber + date)',
+    ],
+  },
   {
     version: '3.2.6',
     date: '2026-05-24',

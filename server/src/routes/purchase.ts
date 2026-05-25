@@ -63,7 +63,18 @@ router.get('/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         supplier: true,
-        items: true,
+        items: {
+          include: {
+            // Surface STT/BPB asal per baris — supaya dari PI bisa langsung
+            // tahu barang ini diterima lewat STT nomor berapa (bug fix 2026-05).
+            goodsReceiptItem: {
+              select: {
+                id: true,
+                goodsReceipt: { select: { id: true, sttNumber: true, date: true } },
+              },
+            },
+          },
+        },
         user: { select: { id: true, fullName: true } },
         depositApplications: {
           where: { isCancelled: false },

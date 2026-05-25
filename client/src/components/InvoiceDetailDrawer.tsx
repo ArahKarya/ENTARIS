@@ -669,6 +669,35 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     </div>
                   );
                 })()}
+                {/* Purchase side: tampilkan STT/BPB asal barang. */}
+                {!isSales && (() => {
+                  const linkedSTTs = Array.from(
+                    new Map(
+                      items
+                        .map((it: any) => it.goodsReceiptItem?.goodsReceipt)
+                        .filter((g: any) => g)
+                        .map((g: any) => [g.id, g]),
+                    ).values(),
+                  );
+                  if (linkedSTTs.length === 0) return null;
+                  return (
+                    <div className="mb-3 p-2.5 bg-emerald-50/60 border border-emerald-100 rounded-lg flex items-start gap-2 text-xs">
+                      <Truck size={13} className="text-emerald-600 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-emerald-700 font-semibold mb-0.5">
+                          Barang diterima dari {linkedSTTs.length === 1 ? 'STT/BPB' : `${linkedSTTs.length} STT/BPB`}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {linkedSTTs.map((g: any) => (
+                            <span key={g.id} className="font-mono text-[11px] px-1.5 py-0.5 bg-white border border-emerald-200 rounded text-emerald-700">
+                              {g.sttNumber}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
                   <Package size={10} /> Daftar Barang / Jasa ({items.length} item)
                 </p>
@@ -700,6 +729,13 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                               {item.deliveryOrderItem?.deliveryOrder?.doNumber && (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-blue-100 text-blue-700">
                                   <Truck size={8} /> {item.deliveryOrderItem.deliveryOrder.doNumber}
+                                </span>
+                              )}
+                              {/* STT/BPB asal (purchase side) — supaya dari PI tahu
+                                  barang ini diterima lewat STT nomor berapa. */}
+                              {item.goodsReceiptItem?.goodsReceipt?.sttNumber && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-emerald-100 text-emerald-700">
+                                  <Truck size={8} /> {item.goodsReceiptItem.goodsReceipt.sttNumber}
                                 </span>
                               )}
                             </div>
