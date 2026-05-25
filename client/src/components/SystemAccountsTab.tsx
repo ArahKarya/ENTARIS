@@ -168,13 +168,23 @@ export const SystemAccountsTab: React.FC = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const mappings: { role: string; accountId: string; sortOrder: number }[] = [];
+      const clearRoles: string[] = [];
       for (const [role, accountIds] of Object.entries(editState)) {
-        accountIds.forEach((accountId, idx) => {
-          mappings.push({ role, accountId, sortOrder: idx });
-        });
+        if (accountIds.length === 0) {
+          // Role dikosongkan → minta backend lepas. Role wajib tidak boleh dikosongkan.
+          const meta = getRoleMeta(role);
+          if (meta?.required) {
+            throw new Error(`Role "${meta.label}" wajib — pilih akun lain, tidak boleh dikosongkan.`);
+          }
+          clearRoles.push(role);
+        } else {
+          accountIds.forEach((accountId, idx) => {
+            mappings.push({ role, accountId, sortOrder: idx });
+          });
+        }
       }
-      if (mappings.length === 0) return;
-      await api.put('/system-accounts', { mappings });
+      if (mappings.length === 0 && clearRoles.length === 0) return;
+      await api.put('/system-accounts', { mappings, clearRoles });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-accounts'] });
@@ -183,7 +193,7 @@ export const SystemAccountsTab: React.FC = () => {
       toast.success('Konfigurasi akun sistem berhasil disimpan.');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Gagal menyimpan konfigurasi.');
+      toast.error(error.response?.data?.error || error.message || 'Gagal menyimpan konfigurasi.');
     },
   });
 
@@ -457,28 +467,40 @@ export const SystemAccountsTab: React.FC = () => {
                             </div>
                           ) : (
                             // Single account selector
-                            <div className="relative">
-                              <select
-                                value={selectedIds[0] ?? ''}
-                                onChange={(e) => {
-                                  updateRole(roleKey, e.target.value ? [e.target.value] : []);
-                                }}
-                                className={cn(
-                                  'w-full text-xs border rounded-md px-2 py-1.5 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none',
-                                  isMissing ? 'border-amber-300 bg-amber-50' : 'border-gray-300',
-                                )}
-                              >
-                                <option value="">-- Pilih Akun --</option>
-                                {filteredAccounts.map((acc) => (
-                                  <option key={acc.id} value={acc.id}>
-                                    {acc.accountNumber} - {acc.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown
-                                size={14}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                              />
+                            <div className="space-y-1">
+                              <div className="relative">
+                                <select
+                                  value={selectedIds[0] ?? ''}
+                                  onChange={(e) => {
+                                    updateRole(roleKey, e.target.value ? [e.target.value] : []);
+                                  }}
+                                  className={cn(
+                                    'w-full text-xs border rounded-md px-2 py-1.5 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none',
+                                    isMissing ? 'border-amber-300 bg-amber-50' : 'border-gray-300',
+                                  )}
+                                >
+                                  <option value="">-- Pilih Akun --</option>
+                                  {filteredAccounts.map((acc) => (
+                                    <option key={acc.id} value={acc.id}>
+                                      {acc.accountNumber} - {acc.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown
+                                  size={14}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                                />
+                              </div>
+                              {isConfigured && !meta.required && (
+                                <button
+                                  onClick={() => updateRole(roleKey, [])}
+                                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                  title="Lepas akun dari role ini"
+                                >
+                                  <X size={12} />
+                                  Lepas
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>

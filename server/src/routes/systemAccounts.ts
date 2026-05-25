@@ -69,7 +69,11 @@ const updateSchema = z.object({
       accountId: z.string().uuid(),
       sortOrder: z.number().int().min(0).default(0),
     }),
-  ).min(1),
+  ).default([]),
+  // Roles yang ingin dilepas total (set ke kosong). Tidak boleh role wajib.
+  clearRoles: z.array(z.string()).default([]),
+}).refine((d) => d.mappings.length > 0 || d.clearRoles.length > 0, {
+  message: 'Tidak ada perubahan untuk disimpan.',
 });
 
 router.put('/', async (req: AuthRequest, res: Response) => {
@@ -82,13 +86,26 @@ router.put('/', async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'Data tidak valid.', details: parsed.error.format() });
   }
 
-  const { mappings: inputMappings } = parsed.data;
+  const { mappings: inputMappings, clearRoles } = parsed.data;
 
   // Validate roles
   const validRoles = new Set<string>(ALL_SYSTEM_ROLES);
   for (const m of inputMappings) {
     if (!validRoles.has(m.role)) {
       return res.status(400).json({ error: `Role "${m.role}" tidak valid.` });
+    }
+  }
+
+  // Validate clearRoles: harus valid & tidak wajib
+  for (const role of clearRoles) {
+    if (!validRoles.has(role)) {
+      return res.status(400).json({ error: `Role "${role}" tidak valid.` });
+    }
+    const meta = SYSTEM_ACCOUNT_ROLES[role as SystemAccountRole];
+    if (meta?.required) {
+      return res.status(400).json({
+        error: `Role "${meta.label}" wajib dan tidak dapat dilepas. Ganti ke akun lain, bukan dikosongkan.`,
+      });
     }
   }
 
@@ -125,8 +142,8 @@ router.put('/', async (req: AuthRequest, res: Response) => {
     }
   }
 
-  // Determine which roles are being updated
-  const rolesToUpdate = [...new Set(inputMappings.map((m) => m.role))];
+  // Determine which roles are being updated (mapped + dilepas)
+  const rolesToUpdate = [...new Set([...inputMappings.map((m) => m.role), ...clearRoles])];
 
   await prisma.$transaction(async (tx) => {
     // Delete existing mappings for the submitted roles
