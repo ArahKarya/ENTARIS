@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.7';
-export const APP_BUILD_DATE = '2026-05-24';
+export const APP_VERSION = '3.2.8';
+export const APP_BUILD_DATE = '2026-05-25';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.2.8',
+    date: '2026-05-25',
+    title: 'Fix: Admin Bypass Stok Minus di Surat Jalan Tembus Sampai Tuntas',
+    changes: [
+      'Bug fix: Admin centang "Izinkan stok minus" di Surat Jalan tapi tetap ditolak. Penyebab: ada 2 lapis cek stok — cek agregat (respect bypass) + cek per-gudang (hard block, lupa di-update saat fitur bypass ditambah v3.2.1)',
+      'Sekarang cek per-gudang juga menghormati allowNegativeStock — bypass Admin benar-benar tembus sampai stok ter-decrement',
+      'Edit Surat Jalan & Produksi tidak terdampak (hanya satu lapis cek, sudah benar)',
+    ],
+  },
   {
     version: '3.2.7',
     date: '2026-05-24',

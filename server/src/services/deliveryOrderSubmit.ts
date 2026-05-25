@@ -144,12 +144,15 @@ export async function submitDeliveryOrderInTx(
       // Block oversold: per-warehouse stock must be enough. Selling more than
       // physically available cascades into negative inventory, which then
       // corrupts WAC formula and produces absurd COGS (see incident 2026-05).
+      // Admin override (allowNegativeStock) tetap dihormati di sini — sama
+      // dengan pre-check agregat di atas — supaya bypass benar-benar tembus
+      // (bug fix 2026-05: dulu per-gudang ini hard-block walau bypass aktif).
       const warehouseStock = await tx.inventoryStock.findUnique({
         where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId } },
         select: { currentStock: true },
       });
       const availableQty = warehouseStock ? Number(warehouseStock.currentStock) : 0;
-      if (availableQty < qty) {
+      if (availableQty < qty && !body.allowNegativeStock) {
         const wh = await tx.warehouse.findUnique({ where: { id: warehouseId }, select: { code: true, name: true } });
         throw new BusinessError(
           `Stok '${inventoryItem.name}' di gudang ${wh?.code ?? warehouseId} kurang. ` +
