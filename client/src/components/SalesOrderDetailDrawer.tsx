@@ -38,6 +38,13 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const [genNomorMobil, setGenNomorMobil] = useState('');
   const [genDriver, setGenDriver] = useState('');
   const [genError, setGenError] = useState('');
+  // Uang muka (DP)
+  const [dpOpen, setDpOpen] = useState(false);
+  const [dpDate, setDpDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dpAmount, setDpAmount] = useState(0);
+  const [dpAccountId, setDpAccountId] = useState('');
+  const [dpNotes, setDpNotes] = useState('');
+  const [dpError, setDpError] = useState('');
 
   useBodyScrollLock(Boolean(soId));
 
@@ -57,6 +64,44 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
       const all: any[] = res.data.data ?? res.data;
       return all.filter((w: any) => w.isActive !== false);
     },
+  });
+
+  // Akun kas/bank untuk terima uang muka.
+  const { data: cashAccounts } = useQuery({
+    queryKey: ['cash-bank-accounts'],
+    queryFn: async () => {
+      const res = await api.get('/coa?type=ASSET');
+      const all: any[] = res.data.data ?? res.data;
+      return all.filter((a: any) => !a.isGroup && /^1\.1\./.test(a.accountNumber));
+    },
+  });
+
+  const depositMut = useMutation({
+    mutationFn: async () => {
+      if (dpAmount <= 0) throw new Error('Jumlah uang muka harus > 0.');
+      if (!dpAccountId) throw new Error('Pilih akun kas/bank.');
+      const res = await api.post('/payments', {
+        date: dpDate,
+        partyId: so.partyId,
+        amount: dpAmount,
+        paymentType: 'CustomerDeposit',
+        accountId: dpAccountId,
+        salesOrderId: soId,
+        notes: dpNotes || `Uang muka ${so.soNumber}`,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales-order', soId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast.success('Uang muka diterima.');
+      setDpOpen(false);
+      setDpAmount(0);
+      setDpNotes('');
+      setDpError('');
+    },
+    onError: (err: any) => setDpError(err?.response?.data?.error || err?.message || 'Gagal terima uang muka.'),
   });
 
   useEffect(() => {
@@ -236,6 +281,82 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                 </tfoot>
               </table>
             </div>
+
+            {/* Panel Uang Muka (DP) */}
+            {so.depositSummary && so.status !== 'Cancelled' && (
+              <div className="border border-emerald-200 bg-emerald-50/40 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-emerald-800">Uang Muka (DP)</h3>
+                  {so.depositSummary.pct > 0 && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                      {so.depositSummary.pct}% dari total
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">DP Diterima</p>
+                    <p className="font-mono font-semibold text-emerald-700">{formatRupiah(so.depositSummary.received)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Grand Total</p>
+                    <p className="font-mono">{formatRupiah(so.depositSummary.grandTotal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Sisa</p>
+                    <p className="font-mono font-semibold">{formatRupiah(so.depositSummary.remaining)}</p>
+                  </div>
+                </div>
+                {so.depositPayments?.length > 0 && (
+                  <ul className="text-xs space-y-0.5 border-t border-emerald-100 pt-1.5">
+                    {so.depositPayments.map((p: any) => (
+                      <li key={p.id} className="flex items-center justify-between">
+                        <span className="font-mono text-muted-foreground">{p.paymentNumber} • {formatDate(p.date)}</span>
+                        <span className="font-mono">{formatRupiah(Number(p.amount) - Number(p.refundedAmount))}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {so.status !== 'Draft' && !dpOpen && (
+                  <button onClick={() => { setDpOpen(true); setDpError(''); }} className="btn-secondary text-xs">
+                    + Terima Uang Muka
+                  </button>
+                )}
+                {dpOpen && (
+                  <div className="border-t border-emerald-100 pt-2 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-muted-foreground">Tanggal</label>
+                        <input type="date" value={dpDate} onChange={(e) => setDpDate(e.target.value)} className="input w-full mt-0.5" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-muted-foreground">Jumlah</label>
+                        <input type="number" value={dpAmount} onChange={(e) => setDpAmount(Number(e.target.value))} className="input w-full mt-0.5 text-right" min={0} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground">Terima ke Kas/Bank</label>
+                      <select value={dpAccountId} onChange={(e) => setDpAccountId(e.target.value)} className="input w-full mt-0.5">
+                        <option value="">— Pilih akun —</option>
+                        {cashAccounts?.map((a: any) => <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>)}
+                      </select>
+                    </div>
+                    {dpError && (
+                      <div className="bg-red-50 border border-red-200 rounded px-2 py-1.5 flex items-center gap-2 text-red-700 text-xs">
+                        <AlertCircle size={13} /> {dpError}
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => { setDpOpen(false); setDpError(''); }} className="btn-secondary text-xs">Batal</button>
+                      <button onClick={() => depositMut.mutate()} disabled={depositMut.isPending} className="btn-primary text-xs">
+                        {depositMut.isPending && <Loader2 size={13} className="animate-spin" />}
+                        Simpan DP
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {so.deliveryOrders?.length > 0 && (
               <div>

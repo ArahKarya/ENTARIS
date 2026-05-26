@@ -34,6 +34,7 @@ export interface SubmitPaymentInput {
   notes?: string | null;
   isOpeningBalance?: boolean;
   refundSourcePaymentId?: string | null;
+  salesOrderId?: string | null;
 }
 
 /**
@@ -96,6 +97,8 @@ export async function submitPaymentInTx(
       status: 'Submitted',
       referenceNo: body.referenceNo || null,
       notes: body.notes || null,
+      // Tag SO hanya untuk CustomerDeposit (uang muka pesanan).
+      salesOrderId: body.paymentType === 'CustomerDeposit' ? (body.salesOrderId ?? null) : null,
       fiscalYearId: fiscalYear.id,
       createdBy: userId,
       submittedAt: new Date(),

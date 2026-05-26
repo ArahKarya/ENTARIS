@@ -243,6 +243,9 @@ export const CreatePaymentSchema = z.object({
   // Refund-only: reference to the original Pay/Receive payment being partially reversed.
   // When provided, server restores invoice outstanding proportionally.
   refundSourcePaymentId: z.string().min(1).nullable().optional(),
+  // CustomerDeposit-only: tag uang muka ini ke Sales Order tertentu, supaya
+  // dari layar SO kelihatan DP yang sudah diterima untuk pesanan itu.
+  salesOrderId: z.string().uuid().nullable().optional(),
 });
 
 // ─── Vendor Deposit Application ───────────────────────────────────────────────

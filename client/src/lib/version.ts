@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.2.8';
-export const APP_BUILD_DATE = '2026-05-25';
+export const APP_VERSION = '3.3.0';
+export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.3.0',
+    date: '2026-05-26',
+    title: 'Uang Muka (DP) Ter-link ke Pesanan (SO)',
+    changes: [
+      'Pembayaran uang muka (CustomerDeposit) sekarang bisa ditag ke Sales Order tertentu — dulu pool per-customer, tidak tahu DP untuk pesanan mana',
+      'Panel "Uang Muka (DP)" di detail Pesanan: DP diterima / Grand Total / Sisa / % dari total + daftar pembayaran DP',
+      'Tombol "Terima Uang Muka" langsung dari layar Pesanan — pilih tanggal, jumlah, akun kas/bank. JE otomatis: DR Kas/Bank / CR 2.1.2 Uang Muka Penjualan',
+      'Alur lengkap: PO customer → SO → terima DP (ter-link SO) → kirim (DO) → invoice → apply DP → lunas',
+      'Plus: link DO-202605-0068 manual ke SO AB Chicken (data fix); fix Admin bypass stok minus tembus cek per-gudang (v3.2.8)',
+    ],
+  },
   {
     version: '3.2.8',
     date: '2026-05-25',

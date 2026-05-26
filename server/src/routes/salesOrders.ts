@@ -117,10 +117,30 @@ router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
         deliveryOrders: { select: { id: true, doNumber: true, date: true, status: true } },
         quotation: { select: { id: true, quotationNumber: true } },
         user: { select: { id: true, fullName: true } },
+        depositPayments: {
+          where: { status: { not: 'Cancelled' }, paymentType: 'CustomerDeposit' },
+          select: { id: true, paymentNumber: true, date: true, amount: true, refundedAmount: true },
+          orderBy: { date: 'desc' },
+        },
       },
     });
     if (!so) throw new BusinessError('Sales Order tidak ditemukan.');
-    res.json(so);
+    // Ringkasan uang muka: total DP diterima (net refund) untuk SO ini + sisa
+    // tagihan vs grand total. Helper untuk panel progress di UI.
+    const depositReceived = so.depositPayments.reduce(
+      (sum, p) => sum + (Number(p.amount) - Number(p.refundedAmount)),
+      0,
+    );
+    const grandTotal = Number(so.grandTotal);
+    res.json({
+      ...so,
+      depositSummary: {
+        received: depositReceived,
+        grandTotal,
+        remaining: Math.max(0, grandTotal - depositReceived),
+        pct: grandTotal > 0 ? Math.round((depositReceived / grandTotal) * 100) : 0,
+      },
+    });
   } catch (error) {
     return handleRouteError(res, error, 'GET /sales-orders/:id', 'Gagal mengambil Sales Order.');
   }

@@ -253,6 +253,7 @@ model SalesOrder {
   user             User             @relation("SalesOrderCreator", fields: [createdBy], references: [id])
   items            SalesOrderItem[]
   deliveryOrders   DeliveryOrder[]  @relation("DOFromSO")
+  depositPayments  Payment[]        @relation("SalesOrderDeposits")
   submittedAt      DateTime?        @map("submitted_at")
   cancelledAt      DateTime?        @map("cancelled_at")
   createdAt        DateTime         @default(now()) @map("created_at")
@@ -660,6 +661,9 @@ model Payment {
   customerDepositApplications CustomerDepositApplication[] @relation("CustomerDepositApplications")
   journalEntryId              String?                      @unique @map("journal_entry_id")
   journalEntry                JournalEntry?                @relation(fields: [journalEntryId], references: [id])
+  // Optional: kalau pembayaran ini uang muka (CustomerDeposit) untuk SO tertentu.
+  salesOrderId                String?                      @map("sales_order_id")
+  salesOrder                  SalesOrder?                  @relation("SalesOrderDeposits", fields: [salesOrderId], references: [id])
   fiscalYearId                String                       @map("fiscal_year_id")
   fiscalYear                  FiscalYear                   @relation(fields: [fiscalYearId], references: [id])
   submittedAt                 DateTime?                    @map("submitted_at")
