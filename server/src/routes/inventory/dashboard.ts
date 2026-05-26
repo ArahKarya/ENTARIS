@@ -573,4 +573,205 @@ router.get('/yield-trend', async (_req, res) => {
   }
 });
 
+// GET /api/inventory/dashboard/oee — OEE period report
+//   Query: startDate, endDate (ISO date). Default = current month.
+//   Run-level pcts dipakai untuk summary/trend/perShift (sudah dihitung saat
+//   submit, di-label "rata-rata" di UI). perMachine dari ProductionRunMachine,
+//   downtimeByCategory dari ProductionDowntime (Pareto).
+router.get('/oee', async (req, res) => {
+  try {
+    const now = new Date();
+
+    const filterStartDate = typeof req.query.startDate === 'string' && req.query.startDate
+      ? new Date(req.query.startDate)
+      : undefined;
+    const filterEndDate = typeof req.query.endDate === 'string' && req.query.endDate
+      ? new Date(req.query.endDate + 'T23:59:59.999')
+      : undefined;
+
+    const periodStart = filterStartDate && !isNaN(filterStartDate.getTime())
+      ? filterStartDate
+      : new Date(now.getFullYear(), now.getMonth(), 1);
+    const periodEnd = filterEndDate && !isNaN(filterEndDate.getTime())
+      ? filterEndDate
+      : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const round1 = (n: number) => Math.round(n * 10) / 10;
+    const avgOf = (vals: number[]) => (vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0);
+
+    // 1. Run-level data dalam periode
+    const runs = await prisma.productionRun.findMany({
+      where: { isCancelled: false, date: { gte: periodStart, lte: periodEnd } },
+      select: {
+        id: true,
+        date: true,
+        shift: true,
+        downtimeMin: true,
+        availabilityPct: true,
+        performancePct: true,
+        qualityPct: true,
+        oeePct: true,
+      },
+    });
+
+    const runIds = runs.map((r) => r.id);
+    const toNum = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+    // 2. Per-machine rows (join run agar filter date + isCancelled)
+    const machineRows = runIds.length > 0
+      ? await prisma.productionRunMachine.findMany({
+          where: { productionRunId: { in: runIds } },
+          select: {
+            machineId: true,
+            runMin: true,
+            downtimeMin: true,
+            allocatedQty: true,
+            availabilityPct: true,
+            performancePct: true,
+            qualityPct: true,
+            oeePct: true,
+            machine: { select: { code: true, name: true } },
+          },
+        })
+      : [];
+
+    // 3. Downtime events (join run untuk filter date)
+    const downtimeRows = runIds.length > 0
+      ? await prisma.productionDowntime.findMany({
+          where: { productionRunId: { in: runIds } },
+          select: { category: true, durationMin: true },
+        })
+      : [];
+
+    // ─── Summary ─────────────────────────────────────────────────────────
+    const oeeVals = runs.map((r) => toNum(r.oeePct)).filter((v): v is number => v !== null);
+    const availVals = runs.map((r) => toNum(r.availabilityPct)).filter((v): v is number => v !== null);
+    const perfVals = runs.map((r) => toNum(r.performancePct)).filter((v): v is number => v !== null);
+    const qualVals = runs.map((r) => toNum(r.qualityPct)).filter((v): v is number => v !== null);
+    const totalDowntimeMin = runs.reduce((s, r) => s + (toNum(r.downtimeMin) ?? 0), 0);
+    const machinesUsed = new Set(machineRows.map((m) => m.machineId)).size;
+
+    const summary = {
+      totalRuns: runs.length,
+      runsWithOee: oeeVals.length,
+      avgOee: round1(avgOf(oeeVals)),
+      avgAvailability: round1(avgOf(availVals)),
+      avgPerformance: round1(avgOf(perfVals)),
+      avgQuality: round1(avgOf(qualVals)),
+      totalDowntimeMin: round1(totalDowntimeMin),
+      machinesUsed,
+    };
+
+    // ─── Trend (grouped by day, ascending) ───────────────────────────────
+    const dayMap = new Map<string, { oee: number[]; avail: number[]; perf: number[]; qual: number[]; runs: number }>();
+    for (const r of runs) {
+      const day = new Date(r.date).toISOString().split('T')[0];
+      const entry = dayMap.get(day) ?? { oee: [], avail: [], perf: [], qual: [], runs: 0 };
+      entry.runs += 1;
+      const o = toNum(r.oeePct); if (o !== null) entry.oee.push(o);
+      const a = toNum(r.availabilityPct); if (a !== null) entry.avail.push(a);
+      const p = toNum(r.performancePct); if (p !== null) entry.perf.push(p);
+      const q = toNum(r.qualityPct); if (q !== null) entry.qual.push(q);
+      dayMap.set(day, entry);
+    }
+    const trend = Array.from(dayMap.entries())
+      .map(([date, v]) => ({
+        date,
+        runs: v.runs,
+        avgOee: round1(avgOf(v.oee)),
+        avgAvailability: round1(avgOf(v.avail)),
+        avgPerformance: round1(avgOf(v.perf)),
+        avgQuality: round1(avgOf(v.qual)),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // ─── Per Machine ─────────────────────────────────────────────────────
+    const machineMap = new Map<string, {
+      machineId: string; code: string; name: string;
+      oee: number[]; avail: number[]; perf: number[]; qual: number[];
+      runs: number; totalRunMin: number; totalDowntimeMin: number; totalAllocatedQty: number;
+    }>();
+    for (const m of machineRows) {
+      const entry = machineMap.get(m.machineId) ?? {
+        machineId: m.machineId,
+        code: m.machine?.code ?? '',
+        name: m.machine?.name ?? '',
+        oee: [], avail: [], perf: [], qual: [],
+        runs: 0, totalRunMin: 0, totalDowntimeMin: 0, totalAllocatedQty: 0,
+      };
+      entry.runs += 1;
+      entry.totalRunMin += toNum(m.runMin) ?? 0;
+      entry.totalDowntimeMin += toNum(m.downtimeMin) ?? 0;
+      entry.totalAllocatedQty += toNum(m.allocatedQty) ?? 0;
+      const o = toNum(m.oeePct); if (o !== null) entry.oee.push(o);
+      const a = toNum(m.availabilityPct); if (a !== null) entry.avail.push(a);
+      const p = toNum(m.performancePct); if (p !== null) entry.perf.push(p);
+      const q = toNum(m.qualityPct); if (q !== null) entry.qual.push(q);
+      machineMap.set(m.machineId, entry);
+    }
+    const perMachine = Array.from(machineMap.values())
+      .map((m) => ({
+        machineId: m.machineId,
+        code: m.code,
+        name: m.name,
+        runs: m.runs,
+        avgOee: round1(avgOf(m.oee)),
+        avgAvailability: round1(avgOf(m.avail)),
+        avgPerformance: round1(avgOf(m.perf)),
+        avgQuality: round1(avgOf(m.qual)),
+        totalRunMin: round1(m.totalRunMin),
+        totalDowntimeMin: round1(m.totalDowntimeMin),
+        totalAllocatedQty: round1(m.totalAllocatedQty),
+      }))
+      .sort((a, b) => b.avgOee - a.avgOee);
+
+    // ─── Per Shift ───────────────────────────────────────────────────────
+    const shiftMap = new Map<string, { oee: number[]; avail: number[]; perf: number[]; qual: number[]; runs: number }>();
+    for (const r of runs) {
+      const shift = r.shift && r.shift.trim() ? r.shift : '(Tanpa Shift)';
+      const entry = shiftMap.get(shift) ?? { oee: [], avail: [], perf: [], qual: [], runs: 0 };
+      entry.runs += 1;
+      const o = toNum(r.oeePct); if (o !== null) entry.oee.push(o);
+      const a = toNum(r.availabilityPct); if (a !== null) entry.avail.push(a);
+      const p = toNum(r.performancePct); if (p !== null) entry.perf.push(p);
+      const q = toNum(r.qualityPct); if (q !== null) entry.qual.push(q);
+      shiftMap.set(shift, entry);
+    }
+    const perShift = Array.from(shiftMap.entries())
+      .map(([shift, v]) => ({
+        shift,
+        runs: v.runs,
+        avgOee: round1(avgOf(v.oee)),
+        avgAvailability: round1(avgOf(v.avail)),
+        avgPerformance: round1(avgOf(v.perf)),
+        avgQuality: round1(avgOf(v.qual)),
+      }))
+      .sort((a, b) => a.shift.localeCompare(b.shift, 'id'));
+
+    // ─── Downtime by Category (Pareto, sorted by totalMin desc) ──────────
+    const dtMap = new Map<string, { totalMin: number; count: number }>();
+    for (const d of downtimeRows) {
+      const cat = d.category && d.category.trim() ? d.category : 'Lain';
+      const entry = dtMap.get(cat) ?? { totalMin: 0, count: 0 };
+      entry.totalMin += toNum(d.durationMin) ?? 0;
+      entry.count += 1;
+      dtMap.set(cat, entry);
+    }
+    const downtimeByCategory = Array.from(dtMap.entries())
+      .map(([category, v]) => ({ category, totalMin: round1(v.totalMin), count: v.count }))
+      .sort((a, b) => b.totalMin - a.totalMin);
+
+    return res.json({
+      summary,
+      trend,
+      perMachine,
+      perShift,
+      downtimeByCategory,
+    });
+  } catch (error) {
+    logger.error({ error }, 'GET /inventory/dashboard/oee error');
+    return res.status(500).json({ error: 'Gagal mengambil laporan OEE.' });
+  }
+});
+
 export default router;

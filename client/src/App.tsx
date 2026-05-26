@@ -46,6 +46,7 @@ import ReceivableSchedule from './pages/reports/ReceivableSchedule';
 import FixedAssetsPage from './pages/FixedAssetsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import DailyReport from './pages/reports/DailyReport';
+import OeeReport from './pages/reports/OeeReport';
 
 
 const ProtectedRoute = () => {
@@ -121,6 +122,7 @@ function App() {
             <Route path="/reports/ledger-book" element={<FinanceRoute><LedgerBook /></FinanceRoute>} />
             <Route path="/reports/hpp" element={<FinanceRoute><HppReport /></FinanceRoute>} />
             <Route path="/reports/profitability-per-sku" element={<FinanceRoute><ProfitabilityPerSku /></FinanceRoute>} />
+            <Route path="/reports/oee" element={<FinanceRoute><OeeReport /></FinanceRoute>} />
             <Route path="/reports/payable-schedule" element={<FinanceRoute><PayableSchedule /></FinanceRoute>} />
             <Route path="/reports/receivable-schedule" element={<FinanceRoute><ReceivableSchedule /></FinanceRoute>} />
 

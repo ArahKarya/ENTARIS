@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Scale, Clock, ClipboardList, Banknote, ChevronRight, Receipt, BookOpen, Package, CreditCard, FileText, CalendarDays } from 'lucide-react';
+import { BarChart3, Scale, Clock, ClipboardList, Banknote, ChevronRight, Receipt, BookOpen, Package, CreditCard, FileText, CalendarDays, Gauge } from 'lucide-react';
 
 const reports = [
   {
@@ -68,6 +68,12 @@ const reports = [
     description: 'Margin side-by-side: Material WAC vs Loaded HPP (sudah include biaya produksi & NRV produk samping).',
     icon: Package,
     path: '/reports/profitability-per-sku',
+  },
+  {
+    title: 'Laporan OEE',
+    description: 'Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime.',
+    icon: Gauge,
+    path: '/reports/oee',
   },
   {
     title: 'Jadwal Hutang',
