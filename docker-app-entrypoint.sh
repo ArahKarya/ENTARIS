@@ -23,6 +23,18 @@ echo "[APP] Running database migrations..."
 npx prisma migrate deploy
 echo "[APP] Migrations complete."
 
+# ── 2b. Apply loose SQL migrations ──────────────────────────────────────────
+# Sebagian migration di repo ini berupa file .sql lepas (bukan folder Prisma),
+# yang TIDAK di-apply oleh `prisma migrate deploy`. File-file ini idempotent
+# (IF NOT EXISTS / DO-block), jadi aman dijalankan setiap startup.
+echo "[APP] Applying loose SQL migrations..."
+for f in $(ls prisma/migrations/*.sql 2>/dev/null | sort); do
+  echo "[APP]  - $(basename "$f")"
+  npx prisma db execute --file "$f" --schema prisma/schema.prisma 2>/dev/null \
+    || echo "[APP]    (skip: $(basename "$f") — sudah ter-apply atau perlu cek manual)"
+done
+echo "[APP] Loose SQL migrations done."
+
 # ── 3. Auto-seed jika database kosong ───────────────────────────────────────
 USER_COUNT=$(node -e "
   const { Pool } = require('pg');

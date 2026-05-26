@@ -4,6 +4,7 @@ import movementsRouter from './movements';
 import productionRunsRouter from './productionRuns';
 import productionCostStandardsRouter from './productionCostStandards';
 import productionProcessesRouter from './productionProcesses';
+import machinesRouter from './machines';
 import dashboardRouter from './dashboard';
 
 const router = Router();
@@ -13,6 +14,7 @@ router.use('/movements', movementsRouter);
 router.use('/production-runs', productionRunsRouter);
 router.use('/production-cost-standards', productionCostStandardsRouter);
 router.use('/production-processes', productionProcessesRouter);
+router.use('/machines', machinesRouter);
 router.use('/dashboard', dashboardRouter);
 
 export default router;

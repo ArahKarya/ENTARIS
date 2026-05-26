@@ -400,6 +400,19 @@ async function main() {
   });
   console.log('- Created default Company Settings');
 
+  // Seed sample Machine (OEE tracking). Kapasitas ideal kg/jam.
+  await prisma.machine.upsert({
+    where: { code: 'MESIN-01' },
+    update: {},
+    create: {
+      code: 'MESIN-01',
+      name: 'Mesin Produksi 1',
+      idealRatePerHour: 1000,
+      unit: 'kg',
+    },
+  });
+  console.log('- Machine: MESIN-01 (Mesin Produksi 1)');
+
   // 6. Seed Vendors & Customers (only if no parties exist yet)
   const partyCount = await prisma.party.count();
   if (partyCount === 0) {

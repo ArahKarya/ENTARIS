@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { X, Loader2, Package, ArrowRight, XCircle, Calculator } from 'lucide-react';
+import { X, Loader2, Package, ArrowRight, XCircle, Calculator, Gauge, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '../lib/utils';
 import api from '../lib/api';
@@ -20,6 +20,20 @@ interface Props {
 
 const fmtNum = (val: number | string, decimals = 3) =>
   Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
+
+const fmtDateTime = (iso: string | null | undefined): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+};
+
+const fmtPct = (v: number | string | null | undefined): string =>
+  v == null ? '—' : `${Number(v).toFixed(2)}%`;
+
+const SHIFT_LABEL: Record<string, string> = { '1': 'Shift 1', '2': 'Shift 2', '3': 'Shift 3' };
 
 export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCancel }: Props) {
   const { data: run, isLoading } = useQuery({
@@ -48,6 +62,15 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
 
   const totalInputQty = inputLines.reduce((s: number, i: any) => s + Number(i.quantity), 0);
   const totalOutputQty = outputLines.reduce((s: number, o: any) => s + Number(o.quantity), 0);
+
+  // OEE output is DERIVED from the run's item lines (no manual good/reject):
+  //   produk  = Σ main Output, samping = Σ ByProduct, loss = max(input − produk − samping, 0).
+  const produkQty = totalOutputQty;
+  const sampingQty = byProductLines.reduce((s: number, b: any) => s + Number(b.quantity), 0);
+  const lossQty = Math.max(totalInputQty - produkQty - sampingQty, 0);
+  const oeeYieldPct = totalInputQty > 0
+    ? Math.max(0, Math.min(1, (produkQty + sampingQty) / totalInputQty)) * 100
+    : null;
   const totalInputValue = inputLines.reduce((s: number, i: any) => {
     const avg = Number(i.item?.averageCost ?? 0);
     return s + Number(i.quantity) * avg;
@@ -58,6 +81,18 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
 
   const isCancelled = run?.isCancelled;
   const journal = run?.journal;
+
+  const downtimeList: any[] = Array.isArray(run?.downtimes) ? run.downtimes : [];
+  const runMachineList: any[] = Array.isArray(run?.runMachines) ? run.runMachines : [];
+  const hasOeeData = !!(run && (
+    runMachineList.length > 0 ||
+    run.machine || run.machineId || run.shift || run.shiftLead ||
+    run.manpowerCount != null || run.plannedStart || run.plannedEnd ||
+    run.startAt || run.endAt ||
+    run.oeePct != null || run.availabilityPct != null ||
+    run.performancePct != null || run.qualityPct != null ||
+    downtimeList.length > 0
+  ));
 
   return (
     <>
@@ -143,6 +178,172 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     <div className="text-sm">
                       <span className="text-gray-400 text-xs font-medium">Catatan:</span>
                       <p className="text-gray-700 mt-0.5">{run.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* OEE: captured production data + metrics (B2 multi-machine) */}
+              {hasOeeData && (
+                <div className="space-y-3">
+                  {/* Line-level (aggregate) OEE metric panel */}
+                  <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
+                    <h3 className="text-xs font-bold text-sky-800 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <Gauge size={13} /> OEE Line (agregat)
+                    </h3>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div className="px-1.5 py-2">
+                        <p className="text-[9px] font-semibold text-sky-600 uppercase tracking-wide">Availability</p>
+                        <p className="text-sm font-semibold text-sky-800 font-mono">{fmtPct(run.availabilityPct)}</p>
+                      </div>
+                      <div className="px-1.5 py-2">
+                        <p className="text-[9px] font-semibold text-sky-600 uppercase tracking-wide">Performance</p>
+                        <p className="text-sm font-semibold text-sky-800 font-mono">{fmtPct(run.performancePct)}</p>
+                      </div>
+                      <div className="px-1.5 py-2">
+                        <p className="text-[9px] font-semibold text-sky-600 uppercase tracking-wide">Quality</p>
+                        <p className="text-sm font-semibold text-sky-800 font-mono">{fmtPct(run.qualityPct)}</p>
+                      </div>
+                      <div className="rounded-lg bg-sky-100 px-1.5 py-2">
+                        <p className="text-[9px] font-semibold text-sky-600 uppercase tracking-wide">OEE</p>
+                        <p className="text-base font-bold text-sky-900 font-mono">{fmtPct(run.oeePct)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Captured production data (shift window + break + output) */}
+                  <div className="border border-gray-200 rounded-lg p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    <div>
+                      <span className="text-gray-400 block">Shift</span>
+                      <span className="text-gray-800 font-medium">
+                        {run.shift ? (SHIFT_LABEL[run.shift] ?? run.shift) : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Kepala Shift</span>
+                      <span className="text-gray-800 font-medium">{run.shiftLead || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Jam Shift Mulai</span>
+                      <span className="text-gray-800 font-medium">{fmtDateTime(run.plannedStart)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Jam Shift Selesai</span>
+                      <span className="text-gray-800 font-medium">{fmtDateTime(run.plannedEnd)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Istirahat Mulai</span>
+                      <span className="text-gray-800 font-medium">{fmtDateTime(run.breakStart)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Istirahat Selesai</span>
+                      <span className="text-gray-800 font-medium">{fmtDateTime(run.breakEnd)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Jumlah MP</span>
+                      <span className="text-gray-800 font-medium">
+                        {run.manpowerCount != null ? `${run.manpowerCount} orang` : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Total Downtime</span>
+                      <span className="text-gray-800 font-medium">
+                        {run.downtimeMin != null ? `${fmtNum(Number(run.downtimeMin), 2)} menit` : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Produk (output utama)</span>
+                      <span className="text-gray-800 font-medium">{fmtNum(produkQty)} kg</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Produk Samping</span>
+                      <span className="text-gray-800 font-medium">{fmtNum(sampingQty)} kg</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Loss / Susut</span>
+                      <span className="text-rose-700 font-medium">{fmtNum(lossQty)} kg</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Yield (Quality)</span>
+                      <span className="text-emerald-700 font-medium">
+                        {oeeYieldPct != null ? `${oeeYieldPct.toFixed(1)}%` : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Per-machine OEE table (B2) */}
+                  {runMachineList.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+                        <Gauge size={12} /> OEE per Mesin ({runMachineList.length})
+                      </h4>
+                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table className="w-full text-[11px]">
+                          <thead className="bg-gray-50 text-gray-500 text-left">
+                            <tr>
+                              <th className="font-semibold py-2 px-2">Mesin</th>
+                              <th className="font-semibold py-2 px-1 whitespace-nowrap">Mulai</th>
+                              <th className="font-semibold py-2 px-1 whitespace-nowrap">Selesai</th>
+                              <th className="font-semibold py-2 px-1 text-right">Jam jalan</th>
+                              <th className="font-semibold py-2 px-1 text-right">Output alokasi</th>
+                              <th className="font-semibold py-2 px-1 text-right">A</th>
+                              <th className="font-semibold py-2 px-1 text-right">P</th>
+                              <th className="font-semibold py-2 px-1 text-right">Q</th>
+                              <th className="font-semibold py-2 px-2 text-right">OEE</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {runMachineList.map((rm: any) => (
+                              <tr key={rm.id} className="border-t border-gray-100 text-gray-800">
+                                <td className="py-2 px-2 whitespace-nowrap">
+                                  {rm.machine ? `${rm.machine.code} — ${rm.machine.name}` : '—'}
+                                </td>
+                                <td className="py-2 px-1 whitespace-nowrap text-gray-500">{fmtDateTime(rm.startAt)}</td>
+                                <td className="py-2 px-1 whitespace-nowrap text-gray-500">{fmtDateTime(rm.endAt)}</td>
+                                <td className="py-2 px-1 text-right font-mono">
+                                  {rm.runMin != null ? `${fmtNum(Number(rm.runMin), 1)} m` : '—'}
+                                </td>
+                                <td className="py-2 px-1 text-right font-mono">
+                                  {rm.allocatedQty != null ? fmtNum(Number(rm.allocatedQty), 1) : '—'}
+                                </td>
+                                <td className="py-2 px-1 text-right font-mono">{fmtPct(rm.availabilityPct)}</td>
+                                <td className="py-2 px-1 text-right font-mono">{fmtPct(rm.performancePct)}</td>
+                                <td className="py-2 px-1 text-right font-mono">{fmtPct(rm.qualityPct)}</td>
+                                <td className="py-2 px-2 text-right font-mono font-bold text-sky-900">{fmtPct(rm.oeePct)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Downtime list */}
+                  {downtimeList.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+                        <Clock size={12} /> Downtime ({downtimeList.length})
+                      </h4>
+                      <div className="space-y-1.5">
+                        {downtimeList.map((d: any) => (
+                          <div key={d.id} className="bg-rose-50/50 border border-rose-100 rounded-lg px-3 py-2 flex items-center justify-between">
+                            <div className="min-w-0">
+                              <span className="text-xs font-medium text-rose-800">{d.category}</span>
+                              {d.machine && (
+                                <span className="text-[10px] font-medium text-rose-500 ml-2">
+                                  [{d.machine.code}]
+                                </span>
+                              )}
+                              {d.reason && (
+                                <span className="text-[11px] text-gray-500 ml-2">{d.reason}</span>
+                              )}
+                            </div>
+                            <span className="text-xs font-semibold text-rose-700 tabular-nums whitespace-nowrap ml-2">
+                              {fmtNum(Number(d.durationMin), 2)} mnt
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

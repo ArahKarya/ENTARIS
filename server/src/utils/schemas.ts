@@ -437,6 +437,19 @@ export const UpdateProductionProcessSchema = CreateProductionProcessSchema
   .partial()
   .extend({ isActive: z.boolean().optional() });
 
+// ─── Machine (master mesin untuk OEE tracking) ───────────────────────────────
+// idealRatePerHour = kapasitas ideal (kg/jam) untuk komponen Performance OEE.
+export const CreateMachineSchema = z.object({
+  code: z.string().min(1, 'Kode mesin wajib diisi.').max(50),
+  name: z.string().min(1, 'Nama mesin wajib diisi.').max(150),
+  idealRatePerHour: z.coerce.number().min(0, 'Kapasitas ideal tidak boleh negatif.').nullable().optional(),
+  unit: z.string().max(20).optional().default('kg'),
+  isActive: z.boolean().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export const UpdateMachineSchema = CreateMachineSchema.partial();
+
 // ─── User Management ─────────────────────────────────────────────────────────
 const UserRoleEnum = z.enum(['Admin', 'Accountant', 'StaffProduksi', 'Viewer'], {
   message: "Role harus salah satu dari: Admin, Accountant, StaffProduksi, Viewer",
@@ -569,6 +582,24 @@ const ProductionOutputLineSchema = z.object({
   isByProduct: z.boolean().optional().default(false),
 });
 
+// OEE: downtime row captured per run. category bebas (UI batasi ke
+// Breakdown/Setup/Material/Lain), durasi dalam menit. machineId opsional —
+// bila diisi, downtime diatribusikan ke mesin tsb (utk kalkulasi per-mesin).
+const ProductionDowntimeLineSchema = z.object({
+  machineId: z.string().uuid('Mesin downtime tidak valid.').nullable().optional(),
+  category: z.string().min(1, 'Kategori downtime wajib diisi.').max(50),
+  reason: z.string().max(500).nullable().optional(),
+  durationMin: z.coerce.number().min(0, 'Durasi tidak boleh negatif.'),
+});
+
+// B2 multi-mesin: satu baris mesin yang dipakai dalam run (paralel, on/off
+// sendiri). OEE dihitung per mesin; output dialokasi proporsional run-time.
+const ProductionRunMachineLineSchema = z.object({
+  machineId: z.string().uuid('Mesin tidak valid.'),
+  startAt: z.coerce.date().nullable().optional(),
+  endAt: z.coerce.date().nullable().optional(),
+});
+
 export const CreateProductionRunSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
   // Warehouse where inputs are consumed AND outputs deposited. Preferred over
@@ -591,6 +622,30 @@ export const CreateProductionRunSchema = z.object({
   // Traceability: list of process master ids that this run went through.
   // Optional + order-insensitive (multiselect). Empty array = unspecified.
   processIds: z.array(z.string().uuid()).optional().default([]),
+  // ─── OEE tracking (semua opsional, backward-compatible) ──────────────────
+  // B2 multi-mesin: jendela shift standar (planned production time) & istirahat.
+  plannedStart: z.coerce.date().nullable().optional(),
+  plannedEnd: z.coerce.date().nullable().optional(),
+  breakStart: z.coerce.date().nullable().optional(),
+  breakEnd: z.coerce.date().nullable().optional(),
+  // Mesin paralel dalam run; OEE dihitung per mesin + agregat line.
+  runMachines: z.array(ProductionRunMachineLineSchema).optional().default([]),
+  shift: z.string().max(20).nullable().optional(),               // "1" | "2" | "3"
+  shiftLead: z.string().max(150).nullable().optional(),          // kepala shift (teks bebas)
+  manpowerCount: z.coerce.number().int().min(0).nullable().optional(),
+  // OEE Quality/output is DERIVED dari baris Input/Output run (bukan manual
+  // good/reject). goodQty/rejectQty tidak lagi dipakai — frontend berhenti
+  // mengirimnya. Field dibiarkan ignored-optional supaya payload lama tetap
+  // diterima tanpa error.
+  goodQty: z.coerce.number().min(0).nullable().optional(),       // LEGACY — diabaikan
+  rejectQty: z.coerce.number().min(0).nullable().optional(),     // LEGACY — diabaikan
+  downtimes: z.array(ProductionDowntimeLineSchema).optional().default([]),
+  // ─── LEGACY (single-machine, diabaikan untuk perhitungan B2) ─────────────
+  // Tetap opsional supaya payload lama tidak ditolak. machineId/startAt/endAt
+  // tidak lagi dipakai untuk compute OEE.
+  machineId: z.string().uuid('Mesin tidak valid.').nullable().optional(),
+  startAt: z.coerce.date().nullable().optional(),
+  endAt: z.coerce.date().nullable().optional(),
   // When true, production can consume more than current stock (stock goes negative).
   // ADMIN ONLY (enforced di route handler). Wajib isi `negativeStockReason`.
   // Use case: backdated production input where sales already reduced stock.

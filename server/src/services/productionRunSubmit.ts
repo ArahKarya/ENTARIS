@@ -7,6 +7,7 @@ import { calcWeightedAverage } from '../utils/weightedAverage';
 import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStock';
 import { systemAccounts } from './systemAccounts';
 import { settleCogsBackfillForItem } from './cogsBackfillService';
+import { persistOeeInTx } from './oee';
 import { logger } from '../lib/logger';
 
 type Tx = Prisma.TransactionClient;
@@ -47,6 +48,23 @@ export interface SubmitProductionRunInput {
   referenceNumber?: string | null;
   allowNegativeStock?: boolean;
   negativeStockReason?: string | null;
+  // ─── OEE tracking (all optional, additive) — B2 multi-machine ─────────────
+  // Run-level shift window + break (planned production time).
+  plannedStart?: Date | string | null;
+  plannedEnd?: Date | string | null;
+  breakStart?: Date | string | null;
+  breakEnd?: Date | string | null;
+  // Machines running in parallel; OEE computed per machine + line aggregate.
+  runMachines?: Array<{ machineId: string; startAt?: Date | string | null; endAt?: Date | string | null }>;
+  shift?: string | null;
+  shiftLead?: string | null;
+  manpowerCount?: number | null;
+  // OEE output is DERIVED from inputs/outputs item lines (no manual good/reject).
+  downtimes?: Array<{ machineId?: string | null; category: string; reason?: string | null; durationMin: number }>;
+  // ─── LEGACY single-machine fields (ignored for B2 compute, kept nullable) ──
+  machineId?: string | null;
+  startAt?: Date | string | null;
+  endAt?: Date | string | null;
 }
 
 /**
@@ -134,6 +152,21 @@ export async function submitProductionRunInTx(
       referenceId: body.referenceId || null,
       referenceNumber: body.referenceNumber || null,
       yieldPct: yieldPct !== null ? yieldPct : null,
+      // OEE capture fields (all optional/additive) — B2 multi-machine.
+      // Legacy single machineId/startAt/endAt persisted for backward compat but
+      // not used in the B2 OEE compute below.
+      machineId: body.machineId ?? null,
+      shift: body.shift ?? null,
+      shiftLead: body.shiftLead ?? null,
+      manpowerCount: body.manpowerCount ?? null,
+      startAt: body.startAt ? new Date(body.startAt) : null,
+      endAt: body.endAt ? new Date(body.endAt) : null,
+      plannedStart: body.plannedStart ? new Date(body.plannedStart) : null,
+      plannedEnd: body.plannedEnd ? new Date(body.plannedEnd) : null,
+      breakStart: body.breakStart ? new Date(body.breakStart) : null,
+      breakEnd: body.breakEnd ? new Date(body.breakEnd) : null,
+      // good_qty/reject_qty columns are LEGACY (unused). OEE Quality/output is
+      // now derived from the run's item lines — see persistOeeInTx below.
       fiscalYearId: fiscalYear.id,
       createdById: userId,
     },
@@ -534,6 +567,27 @@ export async function submitProductionRunInTx(
       })),
     });
   }
+
+  // ─── OEE (B2 multi-machine): persist downtime + machine rows, compute ─────
+  // Quality/output is DERIVED from the run's item lines (no manual good/reject):
+  //   inputQty   = Σ Input quantities
+  //   produkQty  = Σ main Output quantities (NOT by-product)
+  //   sampingQty = Σ ByProduct quantities
+  // Additive — runs without machines/time yield null metrics.
+  const oeeSampingQty = body.outputs
+    .filter((o) => o.isByProduct)
+    .reduce((s, o) => s + o.quantity, 0);
+  await persistOeeInTx(tx, run.id, {
+    plannedStart: body.plannedStart,
+    plannedEnd: body.plannedEnd,
+    breakStart: body.breakStart,
+    breakEnd: body.breakEnd,
+    runMachines: body.runMachines,
+    downtimes: body.downtimes,
+    inputQty: totalInputQty,
+    produkQty: totalMainOutputQty,
+    sampingQty: oeeSampingQty,
+  });
 
   await tx.productionRun.update({
     where: { id: run.id },

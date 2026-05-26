@@ -1104,6 +1104,30 @@ model ProductionRun {
   totalByproductValue Decimal?               @map("total_byproduct_value") @db.Decimal(20, 4)
   computedHpp         Decimal?               @map("computed_hpp") @db.Decimal(20, 4)
   hppManualOverride   Boolean                @default(false) @map("hpp_manual_override")
+  // ─── OEE tracking (Overall Equipment Effectiveness) ───────────────────
+  // Semua opsional: run lama / tanpa data OEE tetap valid.
+  machineId           String?                @map("machine_id")
+  machine             Machine?               @relation("RunMachine", fields: [machineId], references: [id])
+  shift               String?                // "1" | "2" | "3" (atau Pagi/Siang/Malam)
+  shiftLead           String?                @map("shift_lead")        // kepala shift (teks bebas)
+  manpowerCount       Int?                   @map("manpower_count")    // jumlah MP (orang)
+  startAt             DateTime?              @map("start_at")          // mulai produksi
+  endAt               DateTime?              @map("end_at")            // selesai produksi
+  goodQty             Decimal?               @map("good_qty") @db.Decimal(15, 3)   // output good (utk Quality)
+  rejectQty           Decimal?               @map("reject_qty") @db.Decimal(15, 3) // afkir/reject
+  downtimeMin         Decimal?               @map("downtime_min") @db.Decimal(10, 2) // total downtime (menit)
+  availabilityPct     Decimal?               @map("availability_pct") @db.Decimal(5, 2)
+  performancePct      Decimal?               @map("performance_pct") @db.Decimal(5, 2)
+  qualityPct          Decimal?               @map("quality_pct") @db.Decimal(5, 2)
+  oeePct              Decimal?               @map("oee_pct") @db.Decimal(5, 2)
+  // B2 multi-mesin: jendela shift standar (planned production time) & istirahat.
+  // plannedMin = (plannedEnd − plannedStart) − (breakEnd − breakStart).
+  plannedStart        DateTime?              @map("planned_start")
+  plannedEnd          DateTime?              @map("planned_end")
+  breakStart          DateTime?              @map("break_start")
+  breakEnd            DateTime?              @map("break_end")
+  runMachines         ProductionRunMachine[]
+  downtimes           ProductionDowntime[]
   items               ProductionRunItem[]
   runCosts            ProductionRunCost[]
   runProcesses        ProductionRunProcess[]
@@ -1117,7 +1141,68 @@ model ProductionRun {
 
   @@index([date])
   @@index([fiscalYearId])
+  @@index([machineId])
   @@map("production_runs")
+}
+
+// Master mesin produksi — dipakai untuk OEE (kapasitas ideal utk Performance).
+model Machine {
+  id               String               @id @default(uuid())
+  code             String               @unique
+  name             String
+  idealRatePerHour Decimal?             @map("ideal_rate_per_hour") @db.Decimal(15, 3) // kapasitas ideal (kg/jam)
+  unit             String               @default("kg")
+  isActive         Boolean              @default(true) @map("is_active")
+  notes            String?
+  productionRuns   ProductionRun[]        @relation("RunMachine")
+  runMachines      ProductionRunMachine[]
+  downtimes        ProductionDowntime[]
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("machines")
+}
+
+// Event downtime per production run (utk komponen Availability OEE).
+model ProductionDowntime {
+  id              String        @id @default(uuid())
+  productionRunId String        @map("production_run_id")
+  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  machineId       String?       @map("machine_id")
+  machine         Machine?      @relation(fields: [machineId], references: [id])
+  category        String        // Breakdown | Setup | Material | Lain
+  reason          String?
+  durationMin     Decimal       @map("duration_min") @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([machineId])
+  @@map("production_downtimes")
+}
+
+// B2: mesin yang dipakai dalam satu production run (paralel, start/stop sendiri).
+// OEE dihitung PER mesin; nilai tersimpan saat submit/edit.
+model ProductionRunMachine {
+  id              String        @id @default(uuid())
+  productionRunId String        @map("production_run_id")
+  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  machineId       String        @map("machine_id")
+  machine         Machine       @relation(fields: [machineId], references: [id])
+  startAt         DateTime?     @map("start_at")
+  endAt           DateTime?     @map("end_at")
+  runMin          Decimal?      @map("run_min") @db.Decimal(10, 2)        // jam jalan efektif (on − istirahat − downtime)
+  downtimeMin     Decimal?      @map("downtime_min") @db.Decimal(10, 2)
+  allocatedQty    Decimal?      @map("allocated_qty") @db.Decimal(15, 3)  // output dialokasi proporsional runMin
+  availabilityPct Decimal?      @map("availability_pct") @db.Decimal(5, 2)
+  performancePct  Decimal?      @map("performance_pct") @db.Decimal(5, 2)
+  qualityPct      Decimal?      @map("quality_pct") @db.Decimal(5, 2)
+  oeePct          Decimal?      @map("oee_pct") @db.Decimal(5, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([machineId])
+  @@map("production_run_machines")
 }
 
 model ProductionRunItem {

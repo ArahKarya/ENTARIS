@@ -9,6 +9,7 @@ import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStoc
 import { systemAccounts } from './systemAccounts';
 import { settleCogsBackfillForItem } from './cogsBackfillService';
 import type { SubmitProductionRunInput } from './productionRunSubmit';
+import { persistOeeInTx } from './oee';
 import { logger } from '../lib/logger';
 
 type Tx = Prisma.TransactionClient;
@@ -115,6 +116,9 @@ export async function editProductionRunInTx(
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunCost.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunProcess.deleteMany({ where: { productionRunId: runId } });
+  // OEE: clear old downtime + per-machine rows; recreated from the new payload below.
+  await tx.productionDowntime.deleteMany({ where: { productionRunId: runId } });
+  await tx.productionRunMachine.deleteMany({ where: { productionRunId: runId } });
 
   // ─ 6. Re-apply with new data ───────────────────────────────────
   const txDate = new Date(body.date);
@@ -171,6 +175,20 @@ export async function editProductionRunInTx(
       referenceId: body.referenceId || null,
       referenceNumber: body.referenceNumber || null,
       yieldPct: yieldPct !== null ? yieldPct : null,
+      // OEE capture fields (additive) — B2 multi-machine. Cleared when omitted.
+      // Legacy single machineId/startAt/endAt kept for backward compat only.
+      machineId: body.machineId ?? null,
+      shift: body.shift ?? null,
+      shiftLead: body.shiftLead ?? null,
+      manpowerCount: body.manpowerCount ?? null,
+      startAt: body.startAt ? new Date(body.startAt) : null,
+      endAt: body.endAt ? new Date(body.endAt) : null,
+      plannedStart: body.plannedStart ? new Date(body.plannedStart) : null,
+      plannedEnd: body.plannedEnd ? new Date(body.plannedEnd) : null,
+      breakStart: body.breakStart ? new Date(body.breakStart) : null,
+      breakEnd: body.breakEnd ? new Date(body.breakEnd) : null,
+      // good_qty/reject_qty columns are LEGACY (unused). OEE Quality/output is
+      // now derived from the run's item lines — see persistOeeInTx below.
       fiscalYearId: fiscalYear.id,
     },
   });
@@ -507,6 +525,24 @@ export async function editProductionRunInTx(
       })),
     });
   }
+
+  // ─── OEE (B2 multi-machine): recreate downtime + machine rows, recompute ──
+  // Quality/output DERIVED from the run's item lines (no manual good/reject).
+  // Old rows already cleared in step 5 above.
+  const oeeSampingQty = body.outputs
+    .filter((o) => o.isByProduct)
+    .reduce((s, o) => s + o.quantity, 0);
+  await persistOeeInTx(tx, runId, {
+    plannedStart: body.plannedStart,
+    plannedEnd: body.plannedEnd,
+    breakStart: body.breakStart,
+    breakEnd: body.breakEnd,
+    runMachines: body.runMachines,
+    downtimes: body.downtimes,
+    inputQty: totalInputQty,
+    produkQty: totalMainOutputQty,
+    sampingQty: oeeSampingQty,
+  });
 
   await tx.productionRun.update({
     where: { id: runId },

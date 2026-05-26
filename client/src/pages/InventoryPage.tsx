@@ -14,6 +14,7 @@ import ProductionDetailDrawer from '../components/ProductionDetailDrawer';
 import ProductionDashboardTab from '../components/ProductionDashboardTab';
 import ProductionCostStandardsTab from '../components/ProductionCostStandardsTab';
 import ProductionProcessesTab from '../components/ProductionProcessesTab';
+import MachinesTab from '../components/MachinesTab';
 import ImportModal from '../components/ImportModal';
 import WarehousePicker from '../components/WarehousePicker';
 import { exportToExcel } from '../lib/exportExcel';
@@ -54,7 +55,7 @@ export function InventoryPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // --- Production tab state ---
-  const [prodSubTab, setProdSubTab] = useState<'dashboard' | 'data' | 'costStandards' | 'processes'>('dashboard');
+  const [prodSubTab, setProdSubTab] = useState<'dashboard' | 'data' | 'costStandards' | 'processes' | 'machines'>('dashboard');
   const [productionModalOpen, setProductionModalOpen] = useState(false);
   const [editProdRun, setEditProdRun] = useState<any | null>(null);
   const [filterProdStartDate, setFilterProdStartDate] = useState('');
@@ -709,11 +710,21 @@ export function InventoryPage() {
             >
               Master Proses
             </button>
+            <button
+              onClick={() => setProdSubTab('machines')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                prodSubTab === 'machines' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              Mesin
+            </button>
           </div>
 
           {prodSubTab === 'dashboard' && <ProductionDashboardTab items={items} />}
           {prodSubTab === 'costStandards' && <ProductionCostStandardsTab userRole={userRole} />}
           {prodSubTab === 'processes' && <ProductionProcessesTab userRole={userRole} />}
+          {prodSubTab === 'machines' && <MachinesTab userRole={userRole} />}
 
           {prodSubTab === 'data' && (
           <>

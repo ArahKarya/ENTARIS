@@ -34,6 +34,8 @@ router.get('/', async (req, res) => {
               item: { select: { id: true, name: true, unit: true, code: true } },
             },
           },
+          // OEE: lightweight machine label for the list view.
+          machine: { select: { id: true, code: true, name: true } },
           createdBy: { select: { id: true, fullName: true } },
         },
         orderBy: { date: 'desc' },
@@ -77,6 +79,19 @@ router.get('/:id', async (req, res) => {
         runProcesses: {
           include: { process: { select: { id: true, name: true } } },
           orderBy: { process: { sortOrder: 'asc' } },
+        },
+        // OEE: legacy single-machine master (backward compat) + B2 multi-machine
+        // rows (per-machine A/P/Q/OEE) + downtime breakdown for the detail drawer.
+        machine: { select: { id: true, code: true, name: true, unit: true, idealRatePerHour: true } },
+        runMachines: {
+          include: {
+            machine: { select: { id: true, code: true, name: true, unit: true, idealRatePerHour: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+        downtimes: {
+          include: { machine: { select: { id: true, code: true, name: true } } },
+          orderBy: { createdAt: 'asc' },
         },
         createdBy: { select: { id: true, fullName: true } },
       },
