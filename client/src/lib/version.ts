@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.3.0';
+export const APP_VERSION = '3.4.0';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.0',
+    date: '2026-05-26',
+    title: 'OEE Tracking Produksi — Mesin, Shift, Downtime',
+    changes: [
+      'Master Mesin: tab baru di Stok untuk daftar mesin produksi + kapasitas ideal (CRUD via /api/inventory/machines)',
+      'Data Produksi & OEE di modal Proses Produksi: jendela shift (start/stop), pilih mesin (multi-mesin), catat downtime per mesin dengan alasan',
+      'Hitung OEE otomatis: Availability (runtime vs planned) × Performance (output vs ideal × runtime) × Quality (good vs total dari baris item) = OEE%',
+      'Panel OEE + tabel per-mesin di detail Proses Produksi: lihat availability/performance/quality breakdown + total downtime',
+      'Entrypoint Docker auto-apply migrasi .sql loose setelah migrate deploy (untuk fresh install)',
+      'Buku manual lengkap (12 bab markdown + PDF 30 halaman) di docs/manual/',
+    ],
+  },
   {
     version: '3.3.0',
     date: '2026-05-26',
