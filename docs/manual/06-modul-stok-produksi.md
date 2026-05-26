@@ -86,6 +86,44 @@ Menu **Stok & Produksi** (modal Proses Produksi). Inti penggilingan: gabah → b
 - Saat keluar (jual/produksi/transfer), bisa pilih batch spesifik atau pakai WAC.
 - **Loaded HPP** = harga pokok lengkap termasuk biaya produksi (listrik/buruh) — beda dengan harga material saja. Dipakai di laporan **Profitabilitas per SKU** (margin loaded vs material).
 
+## 6.8 OEE — Overall Equipment Effectiveness
+
+**OEE** mengukur efektivitas mesin produksi: seberapa optimal mesin dipakai. Skor 0–100%, gabungan 3 faktor: **Availability × Performance × Quality**. Standar dunia: OEE 85% = kelas dunia, 60% lumayan, <40% perlu perbaikan.
+
+### a) Master Mesin
+Menu **Stok & Produksi → Stok & Gudang → tab Mesin** (atau halaman Inventory).
+- **Tambah mesin:** kode (mis. `MESIN-01`), nama (mis. "Huller #1"), **kapasitas ideal** (kg/jam — kemampuan maksimal mesin dalam kondisi sempurna), satuan.
+- Kapasitas ideal jadi dasar hitung **Performance**. Isi realistis (kapasitas spesifikasi pabrik / hasil terbaik yang pernah dicapai).
+
+### b) Input Data OEE saat Produksi
+Di modal **Proses Produksi**, ada section **"Data Produksi & OEE"** (opsional — produksi tanpa data OEE tetap valid):
+- **Shift:** 1/2/3 atau Pagi/Siang/Malam + kepala shift + jumlah orang (manpower).
+- **Jendela shift (planned time):** jam mulai–selesai shift + jam istirahat (break). Ini "waktu produksi terencana".
+- **Mesin dipakai:** pilih satu/beberapa mesin + jam start/stop per mesin.
+- **Downtime:** catat berhenti per mesin — kategori (Breakdown/Setup/Material/Lain) + durasi (menit) + alasan.
+
+### c) Rumus OEE (dihitung otomatis)
+
+| Faktor | Rumus | Arti |
+|---|---|---|
+| **Availability** | runMin ÷ plannedMin | % waktu mesin benar-benar jalan vs waktu terencana. (runMin = waktu on − istirahat − downtime) |
+| **Performance** | output produk ÷ (kapasitas ideal × runMin) | % kecepatan aktual vs kapasitas ideal mesin |
+| **Quality** | (produk + by-product) ÷ input | % bahan jadi produk (bukan susut/loss). Hanya loss yang menurunkan |
+| **OEE** | A × P × Q | Skor gabungan |
+
+- **Planned time** = (jam selesai − mulai) − (istirahat).
+- **Performance** pakai **produk utama saja** (beras), dialokasi proporsional per mesin berdasarkan jam jalan.
+- **Quality** level-run: kalau 10 ton gabah → 6,5 ton beras + 3,4 ton by-product = 9,9 ton (susut 0,1 ton), Quality = 9,9/10 = 99%.
+- Dihitung **per mesin** + **agregat 1 run** (level lini).
+
+### d) Lihat Hasil OEE
+Di **detail Proses Produksi** muncul **panel OEE**: A/P/Q/OEE% level-run + **tabel per-mesin** (runtime, downtime, A/P/Q/OEE masing-masing). Untuk identifikasi mesin mana yang jadi bottleneck.
+
+> **Tips baca OEE:**
+> - Availability rendah → banyak downtime (mesin rusak, nunggu material, setup lama).
+> - Performance rendah → mesin jalan pelan (di bawah kapasitas — aus, setting, operator).
+> - Quality rendah → susut/loss tinggi (gabah jelek, setting giling, ceceran).
+
 ---
 
 ## Contoh Kasus: Produksi Beras dari Gabah
@@ -102,6 +140,22 @@ Giling 10.000 Kg Gabah IR jadi beras + by-product:
    - Stok GKP-IR −10.000, Beras IR +6.500, by-product +.
    - HPP loaded beras = (nilai gabah + listrik + buruh − nilai by-product) ÷ 6.500.
    - Rendemen beras = 6.500/10.000 = 65%.
+
+## Contoh Kasus: Hitung OEE Mesin Huller
+Produksi di atas, isi data OEE:
+1. **Master Mesin** (sekali setup): tambah "Huller #1" (`MESIN-01`), kapasitas ideal 2.000 kg/jam.
+2. Di Proses Produksi → section **Data Produksi & OEE**:
+   - Shift 1 (Pagi), kepala shift "Slamet", 4 orang.
+   - Jendela shift: 07:00–15:00 (8 jam), istirahat 12:00–13:00 (1 jam) → **planned = 7 jam = 420 menit**.
+   - Mesin: Huller #1, start 07:30, stop 14:30.
+   - Downtime Huller #1: Breakdown 30 menit (V-belt putus) + Setup 15 menit.
+3. Submit → OEE terhitung:
+   - **runMin** = (07:30→14:30 = 420) − istirahat 60 − downtime 45 = **315 menit**.
+   - **Availability** = 315/420 = **75%**.
+   - **Performance** = 6.500 kg ÷ (2.000/60 × 315) = 6.500 ÷ 10.500 = **61,9%**.
+   - **Quality** = (6.500 + 3.300 by-product) ÷ 10.000 = **98%**.
+   - **OEE** = 75% × 61,9% × 98% = **≈45,5%**.
+4. Panel OEE di detail produksi tampilkan breakdown → terlihat Performance rendah (mesin jalan di bawah kapasitas) + ada downtime → fokus perbaikan ke situ.
 
 ---
 

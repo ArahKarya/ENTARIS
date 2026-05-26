@@ -26,7 +26,7 @@ Panduan lengkap penggunaan aplikasi **ERP PMD** — sistem keuangan & operasiona
 5. [Modul Pembelian](05-modul-pembelian.md)
    - Purchase Order → BPB/STT (Penerimaan) → Invoice Pembelian → Uang Muka Vendor → Landed Cost
 6. [Modul Stok & Produksi](06-modul-stok-produksi.md)
-   - Stok & Gudang, Transfer, Opname, Produksi (loaded HPP), batch tracking
+   - Stok & Gudang, Transfer, Opname, Produksi (loaded HPP), batch tracking, **OEE** (efektivitas mesin)
 7. [Modul Bank & Kas](07-modul-bank-kas.md)
    - Penerimaan/Pembayaran, Pindah Buku, Rekonsiliasi Bank, Transaksi Berulang
 
