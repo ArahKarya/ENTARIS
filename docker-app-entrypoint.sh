@@ -28,10 +28,12 @@ echo "[APP] Migrations complete."
 # yang TIDAK di-apply oleh `prisma migrate deploy`. File-file ini idempotent
 # (IF NOT EXISTS / DO-block), jadi aman dijalankan setiap startup.
 echo "[APP] Applying loose SQL migrations..."
+# Prisma 7: `db execute` baca datasource dari prisma.config.ts — JANGAN pakai
+# --schema (opsi itu invalid di Prisma 7 dan bikin SEMUA file gagal di-skip).
 for f in $(ls prisma/migrations/*.sql 2>/dev/null | sort); do
   echo "[APP]  - $(basename "$f")"
-  npx prisma db execute --file "$f" --schema prisma/schema.prisma 2>/dev/null \
-    || echo "[APP]    (skip: $(basename "$f") — sudah ter-apply atau perlu cek manual)"
+  npx prisma db execute --file "$f" 2>/dev/null \
+    || echo "[APP]    (skip: $(basename "$f") — sudah ter-apply / non-idempotent)"
 done
 echo "[APP] Loose SQL migrations done."
 
