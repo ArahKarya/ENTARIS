@@ -306,6 +306,9 @@ router.post('/:id/cancel', roleMiddleware(CANCEL_ROLES), async (req: AuthRequest
 router.post('/:id/generate-do', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
   const body = validateBody(GenerateDOFromSOSchema, req.body, res);
   if (!body) return;
+  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  }
   try {
     const result = await prisma.$transaction(async (tx) => {
       const so = await tx.salesOrder.findUnique({
@@ -337,6 +340,8 @@ router.post('/:id/generate-do', roleMiddleware(['Admin', 'Accountant', 'StaffPro
         driverName: body.driverName ?? null,
         recipientName: body.recipientName ?? null,
         notes: body.notes ?? `Auto dari SO ${so.soNumber}`,
+        allowNegativeStock: body.allowNegativeStock,
+        negativeStockReason: body.negativeStockReason ?? null,
         items: body.items.map((bIt) => {
           const soItem = soItemMap.get(bIt.salesOrderItemId)!;
           return {

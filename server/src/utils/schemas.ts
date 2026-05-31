@@ -130,6 +130,8 @@ export const GenerateDOFromSOSchema = z.object({
   driverName: z.string().nullable().optional(),
   recipientName: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  allowNegativeStock: z.boolean().optional().default(false),
+  negativeStockReason: z.string().max(500).nullable().optional(),
   items: z.array(z.object({
     salesOrderItemId: z.string().min(1),
     quantity: z.coerce.number().positive(),

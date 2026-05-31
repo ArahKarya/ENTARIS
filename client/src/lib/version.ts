@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.2';
+export const APP_VERSION = '3.4.3';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.3',
+    date: '2026-05-31',
+    title: 'Buat Surat Jalan dari SO Lebih Lengkap',
+    changes: [
+      'Panel Buat Surat Jalan dari Pesanan (SO) kini selengkap modul Surat Jalan: tambah field Penerima & Catatan',
+      'Admin override "izinkan stok minus" + alasan kini tersedia juga saat Buat Surat Jalan dari SO (bukan cuma di modul Surat Jalan)',
+      'Catatan otomatis "Auto dari SO" tetap dipakai kalau field Catatan dikosongkan',
+    ],
+  },
   {
     version: '3.4.2',
     date: '2026-05-31',

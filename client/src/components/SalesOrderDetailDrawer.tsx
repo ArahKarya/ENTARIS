@@ -37,7 +37,12 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const [genDate, setGenDate] = useState(new Date().toISOString().split('T')[0]);
   const [genNomorMobil, setGenNomorMobil] = useState('');
   const [genDriver, setGenDriver] = useState('');
+  const [genRecipient, setGenRecipient] = useState('');
+  const [genNotes, setGenNotes] = useState('');
+  const [genAllowNeg, setGenAllowNeg] = useState(false);
+  const [genNegReason, setGenNegReason] = useState('');
   const [genError, setGenError] = useState('');
+  const isAdmin = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'Admin'; } catch { return false; } })();
   // Uang muka (DP)
   const [dpOpen, setDpOpen] = useState(false);
   const [dpDate, setDpDate] = useState(new Date().toISOString().split('T')[0]);
@@ -154,11 +159,15 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
         }));
       if (items.length === 0) throw new Error('Pilih minimal 1 item dengan qty > 0.');
       if (!genWarehouseId) throw new Error('Pilih gudang sumber.');
+      if (genAllowNeg && genNegReason.trim().length < 10) throw new Error('Alasan bypass stok minus wajib diisi (min 10 karakter).');
       const res = await api.post(`/sales-orders/${soId}/generate-do`, {
         date: genDate,
         nomorMobil: genNomorMobil || null,
         driverName: genDriver || null,
-        notes: null,
+        recipientName: genRecipient || null,
+        notes: genNotes || null,
+        allowNegativeStock: genAllowNeg,
+        negativeStockReason: genAllowNeg ? genNegReason.trim() : null,
         items,
       });
       return res.data;
@@ -399,6 +408,14 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                   <label className="text-xs font-medium text-muted-foreground">Sopir</label>
                   <input type="text" value={genDriver} onChange={(e) => setGenDriver(e.target.value)} className="input w-full mt-1" />
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Penerima</label>
+                  <input type="text" value={genRecipient} onChange={(e) => setGenRecipient(e.target.value)} className="input w-full mt-1" placeholder="Nama penerima barang" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Catatan</label>
+                  <input type="text" value={genNotes} onChange={(e) => setGenNotes(e.target.value)} className="input w-full mt-1" placeholder="Opsional" />
+                </div>
                 <div className="border border-border rounded">
                   <table className="min-w-full text-sm">
                     <thead className="bg-muted/40">
@@ -434,6 +451,17 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     </tbody>
                   </table>
                 </div>
+                {isAdmin && (
+                  <div className="border border-amber-200 bg-amber-50/40 rounded p-2 space-y-1.5">
+                    <label className="flex items-start gap-2 cursor-pointer text-xs text-amber-900">
+                      <input type="checkbox" checked={genAllowNeg} onChange={(e) => setGenAllowNeg(e.target.checked)} className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
+                      <span><strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan menyusul). Audit dicatat.</span>
+                    </label>
+                    {genAllowNeg && (
+                      <textarea value={genNegReason} onChange={(e) => setGenNegReason(e.target.value)} placeholder="Alasan bypass (min 10 karakter)" className="w-full text-xs border border-amber-300 rounded p-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500" rows={2} />
+                    )}
+                  </div>
+                )}
                 {genError && (
                   <div className="bg-red-50 border border-red-200 rounded px-2 py-1.5 flex items-center gap-2 text-red-700 text-sm">
                     <AlertCircle size={14} /> {genError}
