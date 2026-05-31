@@ -419,7 +419,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                             <td className="px-2 py-1.5">
                               <input
                                 type="number"
-                                value={genItems[it.id] ? genItems[it.id] : ''}
+                                value={genItems[it.id] ? String(genItems[it.id]) : ''}
                                 onChange={(e) => setGenItems((prev) => ({ ...prev, [it.id]: Number(e.target.value) }))}
                                 className="input w-full text-right"
                                 min={0}
