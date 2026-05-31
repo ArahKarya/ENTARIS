@@ -59,7 +59,7 @@ const allNavItems: NavItem[] = [
     children: [
       { icon: Inbox, label: 'Inquiry', href: '/inquiries', roles: ['Admin', 'Accountant', 'Viewer'] },
       { icon: FileSignature, label: 'Penawaran', href: '/quotations', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: ClipboardList, label: 'Pesanan (SO)', href: '/sales-orders', roles: ['Admin', 'Accountant', 'Viewer'] },
+      { icon: ClipboardList, label: 'Pesanan (SO)', href: '/sales-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
       { icon: Truck, label: 'Surat Jalan', href: '/delivery-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
       { icon: Receipt, label: 'Invoice Penjualan', href: '/sales', roles: ['Admin', 'Accountant', 'Viewer'] },
       { icon: Wallet, label: 'Uang Muka Pelanggan', href: '/customer-deposits', roles: ['Admin', 'Accountant'] },

@@ -18,8 +18,10 @@ import Decimal from 'decimal.js';
 const router = Router();
 
 const READ_ROLES = ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'];
-const WRITE_ROLES = ['Admin', 'Accountant'];
-const CANCEL_ROLES = ['Admin'];
+// StaffProduksi punya akses penuh SO (buat/edit/submit/cancel) — pesanan
+// langsung relevan dgn kerja mereka (siapkan & kirim barang).
+const WRITE_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
+const CANCEL_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function computeTotals(input: {

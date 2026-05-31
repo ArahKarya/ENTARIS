@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.0';
+export const APP_VERSION = '3.4.1';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.1',
+    date: '2026-05-26',
+    title: 'StaffProduksi Akses Penuh Pesanan (SO)',
+    changes: [
+      'Role StaffProduksi sekarang punya akses penuh modul Pesanan (Sales Order): lihat, buat, edit, submit, generate Surat Jalan, cancel — sama seperti Admin/Accountant',
+      'Sebelumnya hanya bisa lihat sidebar Surat Jalan; sekarang Pesanan (SO) juga muncul di sidebar mereka',
+      'Mendukung alur fisik: staff pabrik bisa langsung input pesanan customer + siapkan/kirim barang tanpa nunggu staff keuangan',
+      'Plus: rekonsiliasi uang muka Bulog Indramayu PAY-202604-0049 (GL-neutral, fix tampilan phantom Rp 643jt)',
+    ],
+  },
   {
     version: '3.4.0',
     date: '2026-05-26',
