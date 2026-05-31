@@ -110,7 +110,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
       const init: Record<string, number> = {};
       so.items.forEach((it: any) => {
         const remaining = Number(it.quantity) - Number(it.deliveredQty);
-        init[it.id] = Math.max(0, remaining);
+        init[it.id] = 0; // default 0 — user isi qty kirim sendiri (partial), jangan auto-penuh
       });
       setGenItems(init);
     }
@@ -419,12 +419,13 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                             <td className="px-2 py-1.5">
                               <input
                                 type="number"
-                                value={genItems[it.id] ?? 0}
+                                value={genItems[it.id] ? genItems[it.id] : ''}
                                 onChange={(e) => setGenItems((prev) => ({ ...prev, [it.id]: Number(e.target.value) }))}
                                 className="input w-full text-right"
                                 min={0}
                                 max={remaining}
                                 step="0.001"
+                                placeholder={`maks ${remaining}`}
                               />
                             </td>
                           </tr>

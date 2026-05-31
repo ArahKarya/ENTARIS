@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.1';
+export const APP_VERSION = '3.4.2';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.2',
+    date: '2026-05-31',
+    title: 'Fix UX Buat Surat Jalan dari SO — Qty Tidak Auto-Penuh',
+    changes: [
+      'Saat Buat Surat Jalan dari Pesanan (SO), kolom Qty Kirim sekarang KOSONG (default) — user tinggal ketik berapa yg mau dikirim (mis. 10 ton). Sebelumnya auto-terisi penuh (mis. 209 ton) jadi sulit kirim sebagian',
+      'Placeholder menampilkan sisa maksimal yg boleh dikirim per item ("maks X")',
+    ],
+  },
   {
     version: '3.4.1',
     date: '2026-05-26',
