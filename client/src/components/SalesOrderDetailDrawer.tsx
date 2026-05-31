@@ -108,9 +108,9 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
     if (so?.items) {
       // Initialize gen items to remaining qty per line
       const init: Record<string, number> = {};
+      // Default qty kirim 0 — user isi sendiri (partial), jangan auto-penuh.
       so.items.forEach((it: any) => {
-        const remaining = Number(it.quantity) - Number(it.deliveredQty);
-        init[it.id] = 0; // default 0 — user isi qty kirim sendiri (partial), jangan auto-penuh
+        init[it.id] = 0;
       });
       setGenItems(init);
     }
