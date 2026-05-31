@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.3';
+export const APP_VERSION = '3.4.4';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.4',
+    date: '2026-05-31',
+    title: 'Halaman Login Diperbarui — Tampilan Lebih Hidup',
+    changes: [
+      'Halaman login dirombak: panel kiri dengan gradient bergerak (emerald-teal-amber), floating icon ERP, particle drift, dan animasi sonar pada logo',
+      'Stats animasi (Akun COA, Modul, Role) + feature pills (Audit RBAC, Multi-gudang, Loaded HPP)',
+      'Form kanan: card rounded dengan shadow, tombol "Masuk" gradient dengan efek shine on hover + arrow animasi',
+      'Tetap responsif (mobile tampil panel form saja), dark mode dukung, branding (logo + nama perusahaan) tetap dinamis',
+    ],
+  },
   {
     version: '3.4.3',
     date: '2026-05-31',
