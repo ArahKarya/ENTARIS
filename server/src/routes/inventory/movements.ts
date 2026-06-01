@@ -104,9 +104,9 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
       const movementDate = new Date(body.date);
       const movementNumber = await generateDocumentNumber(tx, 'SM', movementDate, fiscalYear.id);
 
-      // 5. Calculate total value
+      // 5. Calculate total value (Decimal — avoid float tail in GL amounts)
       const unitCost = body.unitCost ?? 0;
-      const totalValue = qty * unitCost;
+      const totalValue = new Decimal(qty).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
 
       // 6. Update inventory_stocks (per-warehouse) AND inventory_items.current_stock (total denorm).
       const stockDelta = isIn ? qty : -qty;
@@ -374,7 +374,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 
       // 5. Create new GL entries if needed
       const newUnitCost = body.unitCost ?? 0;
-      const newTotalValue = newQty * newUnitCost;
+      const newTotalValue = new Decimal(newQty).mul(new Decimal(newUnitCost)).toDecimalPlaces(2).toNumber();
       let newJournalEntryId: string | null = null;
       let resolvedEditOffsetAccountId = body.offsetAccountId || null;
 
@@ -478,6 +478,24 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
           item: { select: { id: true, name: true, code: true, unit: true } },
         },
       });
+
+      // 7. Recompute averageCost from all active In movements (H3). The POST
+      // path updates WAC on receipt; an edit changes qty/cost of an In, so WAC
+      // must be re-derived. Recompute from the authoritative set of active
+      // inbound movements (same pattern as production/GR cancel).
+      const activeIns = await tx.stockMovement.findMany({
+        where: { itemId: oldMov.itemId, movementType: { in: ['In', 'AdjustmentIn', 'TransferIn'] }, isCancelled: false },
+        select: { quantity: true, unitCost: true },
+      });
+      let waQty = new Decimal(0);
+      let waValue = new Decimal(0);
+      for (const m of activeIns) {
+        const q = new Decimal(m.quantity.toString());
+        waQty = waQty.plus(q);
+        waValue = waValue.plus(q.mul(new Decimal(m.unitCost.toString())));
+      }
+      const recomputedAvg = waQty.gt(0) ? waValue.div(waQty).toDecimalPlaces(2).toNumber() : 0;
+      await tx.inventoryItem.update({ where: { id: oldMov.itemId }, data: { averageCost: recomputedAvg } });
 
       return updated;
     }, { timeout: 15000 });

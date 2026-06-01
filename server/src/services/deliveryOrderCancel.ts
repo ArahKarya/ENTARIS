@@ -36,6 +36,12 @@ export async function cancelDeliveryOrderInTx(
     throw new BusinessError('Batalkan invoice terkait dulu sebelum batalkan surat jalan.');
   }
 
+  // Track which lines actually had their stock reversed, so we only revert
+  // deliveredQty for those (M2: a line whose movement was independently
+  // cancelled is skipped here AND must not have deliveredQty decremented,
+  // else SO fulfillment diverges from real stock).
+  const reversedLineIds = new Set<string>();
+
   for (const line of deliveryOrder.items) {
     if (!line.stockMovementId) continue;
 
@@ -62,12 +68,14 @@ export async function cancelDeliveryOrderInTx(
       where: { id: sm.id },
       data: { isCancelled: true },
     });
+    reversedLineIds.add(line.id);
   }
 
   // Revert deliveredQty di SO items + recompute SO status (kalau DO link ke SO).
   if (deliveryOrder.salesOrderId) {
     for (const line of deliveryOrder.items) {
-      if (line.salesOrderItemId) {
+      // Only revert lines whose stock reversal actually happened (M2).
+      if (line.salesOrderItemId && reversedLineIds.has(line.id)) {
         await tx.salesOrderItem.update({
           where: { id: line.salesOrderItemId },
           data: { deliveredQty: { decrement: Number(line.quantity) } },

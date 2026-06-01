@@ -453,7 +453,15 @@ export async function submitPurchaseInvoiceInTx(
         where: { id: adj.invItem.inventoryItemId },
         select: { currentStock: true, averageCost: true },
       });
-      if (fresh && Number(fresh.currentStock) !== 0) {
+      // Guard M1: only realign WAC when stock is POSITIVE. If stock is ≤ 0
+      // (item fully sold/consumed before PI submit, or oversold), dividing the
+      // landed-cost delta by a zero/negative base produces an absurd or
+      // negative WAC. In that case the landed cost belongs to goods already
+      // shipped (a COGS timing difference) — leave WAC untouched and log so it
+      // can be reviewed. NOTE: the full delta is still DR'd to Persediaan in
+      // the JE above; for fully-depleted stock this is a known limitation
+      // (landed cost on already-sold goods is not retroactively moved to COGS).
+      if (fresh && Number(fresh.currentStock) > 0) {
         const stock = new Decimal(fresh.currentStock.toString());
         const oldAvg = new Decimal(fresh.averageCost.toString());
         const newAvg = stock.times(oldAvg).plus(adj.delta).div(stock).toDecimalPlaces(2);
@@ -461,6 +469,16 @@ export async function submitPurchaseInvoiceInTx(
           where: { id: adj.invItem.inventoryItemId },
           data: { averageCost: newAvg.toNumber() },
         });
+      } else if (fresh) {
+        logger.warn(
+          {
+            invoiceNumber: invoice.invoiceNumber,
+            itemId: adj.invItem.inventoryItemId,
+            currentStock: Number(fresh.currentStock),
+            delta: adj.delta.toString(),
+          },
+          'Landed cost: stok ≤ 0 saat realign WAC — WAC tidak diubah (landed cost untuk barang yang sudah keluar)',
+        );
       }
     }
   }

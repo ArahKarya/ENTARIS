@@ -155,8 +155,13 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
 // ─── POST /:id/cancel ─────────────────────────────────────────────────────
 router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
   try {
+    const allowNegativeStock = req.body?.allowNegativeStock === true;
+    const negativeStockReason = typeof req.body?.negativeStockReason === 'string' ? req.body.negativeStockReason : null;
+    if (allowNegativeStock && (!negativeStockReason || negativeStockReason.trim().length < 10)) {
+      return res.status(400).json({ error: 'Alasan bypass stok minus wajib diisi (minimal 10 karakter).' });
+    }
     const result = await prisma.$transaction(
-      (tx) => cancelGoodsReceiptInTx(tx, req.params.id as string, req.user!.userId),
+      (tx) => cancelGoodsReceiptInTx(tx, req.params.id as string, req.user!.userId, { allowNegativeStock, negativeStockReason }),
       { timeout: 30000 },
     );
     logger.info({ sttId: result.id, userId: req.user!.userId }, 'Goods receipt cancelled via API');

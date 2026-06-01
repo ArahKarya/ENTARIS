@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.5';
+export const APP_VERSION = '3.4.6';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.6',
+    date: '2026-06-01',
+    title: 'Perbaikan Hasil Audit Sistem (7 bug laten)',
+    changes: [
+      'Cancel STT: guard stok minus (tidak bisa cancel jika barang sudah keluar; Admin bisa override dgn alasan) + WAC di-recompute + blokir jika batch sudah dipakai produksi/penjualan',
+      'Produksi: HPP loaded di-clamp ≥ 0 (cegah HPP negatif saat NRV by-product > biaya)',
+      'Edit gerakan stok: averageCost (WAC) kini di-recompute setelah edit qty/harga',
+      'Surat Jalan cancel: deliveredQty SO hanya dikurangi untuk baris yg stoknya benar-benar dikembalikan',
+      'Landed cost: WAC tidak diubah jika stok ≤ 0 (cegah WAC absurd untuk barang yg sudah keluar)',
+      'Posting GL gerakan stok pakai Decimal (hilangkan ekor floating-point)',
+      'Lampiran: listing/count diberi role guard eksplisit',
+    ],
+  },
   {
     version: '3.4.5',
     date: '2026-06-01',

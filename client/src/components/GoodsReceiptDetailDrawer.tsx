@@ -51,7 +51,8 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => api.post(`/goods-receipts/${sttId}/cancel`),
+    mutationFn: (override?: { allowNegativeStock: boolean; negativeStockReason: string }) =>
+      api.post(`/goods-receipts/${sttId}/cancel`, override ?? {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['goods-receipt-detail', sttId] });
@@ -59,7 +60,23 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       toast.success('STT dibatalkan. Stok dikembalikan + JV di-reverse.');
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan STT.'),
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Gagal membatalkan STT.';
+      // Jika gagal karena stok tidak cukup (barang sudah keluar), Admin boleh
+      // override dengan alasan. Tawarkan retry override.
+      if (/tidak mencukupi|stok/i.test(msg) && /tidak dapat membatalkan/i.test(msg)) {
+        const reason = window.prompt(
+          `${msg}\n\nUntuk MEMAKSA pembatalan (stok bisa jadi minus), isi alasan (min 10 karakter):`,
+        );
+        if (reason && reason.trim().length >= 10) {
+          cancelMutation.mutate({ allowNegativeStock: true, negativeStockReason: reason.trim() });
+          return;
+        }
+        if (reason !== null) toast.error('Alasan minimal 10 karakter — pembatalan dibatalkan.');
+        return;
+      }
+      toast.error(msg);
+    },
   });
 
   if (!sttId) return null;
@@ -312,7 +329,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
         confirmLabel="Ya, Batalkan"
         variant="danger"
         onCancel={() => setConfirmCancel(false)}
-        onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
+        onConfirm={() => { cancelMutation.mutate(undefined); setConfirmCancel(false); }}
       />
     </>
   );

@@ -323,7 +323,25 @@ export async function submitProductionRunInTx(
       .plus(totalCostInputSide)
       .plus(totalCostOutputSide)
       .minus(totalByproductValue);
-    computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
+    // Guard H1: if by-product NRV exceeds total cost, the numerator goes
+    // negative → HPP would be negative, which corrupts WAC/GL for the main
+    // output. Clamp to 0 (main output effectively free) and warn — the
+    // operator should review by-product NRV which is likely overstated.
+    if (numerator.lt(0)) {
+      logger.warn(
+        {
+          runNumber,
+          totalMaterialCost: totalMaterialCost.toString(),
+          totalCostInputSide: totalCostInputSide.toString(),
+          totalCostOutputSide: totalCostOutputSide.toString(),
+          totalByproductValue: totalByproductValue.toString(),
+        },
+        'Loaded HPP numerator negative (by-product NRV > total cost) — clamped to 0',
+      );
+      computedHpp = new Decimal(0);
+    } else {
+      computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
+    }
   }
 
   // Outputs: stock-in + StockMovement In + WAC recalc + COGS backfill settlement

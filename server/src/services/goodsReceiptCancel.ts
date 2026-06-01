@@ -1,10 +1,17 @@
 import type { Prisma } from '@prisma/client';
+import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
 import { updateAccountBalance } from '../utils/accountBalance';
 import { logger } from '../lib/logger';
 
 type Tx = Prisma.TransactionClient;
+
+interface CancelOptions {
+  /** When true, skip the "stock cukup untuk dibalikin" guard. Admin override. */
+  allowNegativeStock?: boolean;
+  negativeStockReason?: string | null;
+}
 
 /**
  * Cancel a Bukti Penerimaan Barang (STT).
@@ -25,11 +32,16 @@ type Tx = Prisma.TransactionClient;
  *   - Decrement PO item qtyReceived if STT was linked to PO.
  *   - Mark STT cancelledAt + status Cancelled.
  */
-export async function cancelGoodsReceiptInTx(tx: Tx, sttId: string, userId: string) {
+export async function cancelGoodsReceiptInTx(
+  tx: Tx,
+  sttId: string,
+  userId: string,
+  opts: CancelOptions = {},
+) {
   const stt = await tx.goodsReceipt.findUnique({
     where: { id: sttId },
     include: {
-      items: { include: { stockMovement: true } },
+      items: { include: { stockMovement: true, inventoryItem: { select: { name: true } } } },
       invoice: { select: { id: true, invoiceNumber: true, status: true, outstanding: true } },
     },
   });
@@ -58,7 +70,58 @@ export async function cancelGoodsReceiptInTx(tx: Tx, sttId: string, userId: stri
     }
   }
 
+  // ── Guard C2: block if any inbound batch from this STT has been consumed ──
+  // Outbound movements (sale/production/transfer) link back to the inbound
+  // batch via sourceMovementId. If a consumer exists, the batch's cost basis
+  // is already referenced downstream — cancelling would orphan it.
+  const batchMovementIds = stt.items
+    .map((it) => it.stockMovement?.id)
+    .filter((id): id is string => !!id);
+  if (batchMovementIds.length > 0) {
+    const consumers = await tx.stockMovement.findMany({
+      where: { sourceMovementId: { in: batchMovementIds }, isCancelled: false },
+      select: { movementNumber: true, referenceType: true, referenceNumber: true },
+      take: 5,
+    });
+    if (consumers.length > 0) {
+      const ref = consumers
+        .map((c) => c.referenceNumber || c.movementNumber)
+        .join(', ');
+      throw new BusinessError(
+        `Tidak dapat membatalkan STT ${stt.sttNumber}: barang dari penerimaan ini sudah dipakai di transaksi lain (${ref}). ` +
+          'Batalkan transaksi tersebut terlebih dahulu.',
+      );
+    }
+  }
+
+  // ── Guard C1: don't drive stock negative when reversing an inbound ──
+  // (the received goods may already have been sold/consumed). Admin override
+  // logs a warning instead of throwing.
+  for (const grItem of stt.items) {
+    const sm = grItem.stockMovement;
+    if (!sm || sm.isCancelled) continue;
+    const qty = Number(sm.quantity);
+    const itemRow = await tx.inventoryItem.findUnique({
+      where: { id: grItem.inventoryItemId },
+      select: { currentStock: true },
+    });
+    const available = Number(itemRow?.currentStock ?? 0);
+    if (available < qty) {
+      if (!opts.allowNegativeStock) {
+        throw new BusinessError(
+          `Tidak dapat membatalkan STT ${stt.sttNumber}: stok '${grItem.inventoryItem?.name ?? grItem.inventoryItemId}' tidak mencukupi untuk pembalikan (tersedia ${available}, perlu ${qty}). ` +
+            'Barang sudah keluar (terjual/produksi) — batalkan transaksi tersebut dulu.',
+        );
+      }
+      logger.warn(
+        { sttId, itemId: grItem.inventoryItemId, available, reverseQty: qty, reason: opts.negativeStockReason },
+        'STT cancel reverse with negative stock bypass',
+      );
+    }
+  }
+
   // Reverse each stock movement
+  const affectedItemIds = new Set<string>();
   for (const grItem of stt.items) {
     const sm = grItem.stockMovement;
     if (!sm || sm.isCancelled) continue;
@@ -69,14 +132,13 @@ export async function cancelGoodsReceiptInTx(tx: Tx, sttId: string, userId: stri
     });
 
     const qty = Number(sm.quantity);
-    // Decrement inventory_items.currentStock (averageCost not recomputed —
-    // historical avg cost movement is complex to reverse, accept minor drift)
     await tx.inventoryItem.update({
       where: { id: grItem.inventoryItemId },
       data: { currentStock: { decrement: qty }, updatedAt: new Date() },
     });
     // Decrement per-warehouse stock
     await adjustWarehouseStock(tx, grItem.inventoryItemId, grItem.warehouseId, -qty);
+    affectedItemIds.add(grItem.inventoryItemId);
 
     // Decrement PO item qtyReceived if linked
     if (grItem.purchaseOrderItemId) {
@@ -85,6 +147,25 @@ export async function cancelGoodsReceiptInTx(tx: Tx, sttId: string, userId: stri
         data: { qtyReceived: { decrement: qty } },
       });
     }
+  }
+
+  // Recompute averageCost for each affected item from remaining active In
+  // movements (the cancelled receipt no longer contributes). Mirrors the
+  // production-cancel pattern — prevents WAC staying inflated after cancel.
+  for (const itemId of affectedItemIds) {
+    const activeIns = await tx.stockMovement.findMany({
+      where: { itemId, movementType: { in: ['In', 'AdjustmentIn', 'TransferIn'] }, isCancelled: false },
+      select: { quantity: true, unitCost: true },
+    });
+    let totalQty = new Decimal(0);
+    let totalValue = new Decimal(0);
+    for (const m of activeIns) {
+      const q = new Decimal(m.quantity.toString());
+      totalQty = totalQty.plus(q);
+      totalValue = totalValue.plus(q.mul(new Decimal(m.unitCost.toString())));
+    }
+    const newAvg = totalQty.gt(0) ? totalValue.div(totalQty).toDecimalPlaces(2).toNumber() : 0;
+    await tx.inventoryItem.update({ where: { id: itemId }, data: { averageCost: newAvg } });
   }
 
   // Cancel JV: find original JV, post reverse JV, mark original Cancelled
