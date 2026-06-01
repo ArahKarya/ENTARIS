@@ -3,10 +3,11 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, roleMiddleware } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
-import { CreatePurchaseInvoiceSchema } from '../utils/schemas';
+import { CreatePurchaseInvoiceSchema, RevisePurchaseInvoiceSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
 import { cancelPurchaseInvoiceInTx } from '../services/invoiceCancellation';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
+import { revisePurchaseInvoiceInTx } from '../services/purchaseInvoiceRevise';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -134,6 +135,23 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
     return res.json(updated);
   } catch (error: any) {
     return handleRouteError(res, error, 'PUT /purchase/invoices/:id', 'Gagal memperbarui invoice.');
+  }
+});
+
+// POST /api/purchase/invoices/:id/revise-price — revisi harga (supplier koreksi)
+// Delta di-split: porsi stok → Persediaan+WAC, porsi sudah-keluar → 5.11.
+router.post('/:id/revise-price', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+  const body = validateBody(RevisePurchaseInvoiceSchema, req.body, res);
+  if (!body) return;
+  try {
+    const result = await prisma.$transaction(
+      (tx) => revisePurchaseInvoiceInTx(tx, { invoiceId: req.params.id as string, lines: body.lines, reason: body.reason }, req.user!.userId),
+      { timeout: 30000 },
+    );
+    logger.info({ invoiceId: req.params.id, userId: req.user!.userId }, 'Purchase invoice price revised via API');
+    return res.json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /purchase/invoices/:id/revise-price', 'Gagal merevisi harga invoice.');
   }
 });
 

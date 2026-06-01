@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.6';
+export const APP_VERSION = '3.4.7';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.7',
+    date: '2026-06-01',
+    title: 'Fitur Revisi Harga Invoice Pembelian',
+    changes: [
+      'Tombol "Revisi Harga" di detail Invoice Pembelian (Admin/Accountant) — untuk kasus supplier koreksi harga setelah PI submit, bahkan setelah barang diproduksi/dijual',
+      'Selisih dipecah otomatis: porsi barang masih di stok → sesuaikan Persediaan + harga rata-rata (WAC); porsi sudah keluar → akun 5.11 Selisih Harga Pembelian',
+      'Hutang ke supplier ikut disesuaikan; jurnal selisih diposting otomatis & tercatat di audit. Bisa untuk PI Submitted maupun Paid',
+    ],
+  },
   {
     version: '3.4.6',
     date: '2026-06-01',

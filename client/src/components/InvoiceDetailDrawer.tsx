@@ -51,6 +51,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const [editTerms, setEditTerms] = useState('');
   const [createDOOpen, setCreateDOOpen] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
+  const [reviseOpen, setReviseOpen] = useState(false);
+  const [reviseRates, setReviseRates] = useState<Record<string, string>>({});
+  const [reviseReason, setReviseReason] = useState('');
   const endpoint = isSales ? '/sales/invoices' : '/purchase/invoices';
   const canHaveAttachments = type === 'purchase' || type === 'sales';
 
@@ -119,6 +122,44 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal memperbarui invoice.'),
   });
+
+  const reviseMutation = useMutation({
+    mutationFn: (payload: { lines: { itemId: string; newRate: number }[]; reason: string }) =>
+      api.post(`${endpoint}/${invoiceId}/revise-price`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-invoice-detail', invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      toast.success('Harga invoice berhasil direvisi. Jurnal selisih sudah diposting.');
+      setReviseOpen(false);
+      setReviseRates({});
+      setReviseReason('');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal merevisi harga invoice.'),
+  });
+
+  const submitRevise = () => {
+    const lines = items
+      .map((it: any) => {
+        const raw = reviseRates[it.id];
+        if (raw === undefined || raw === '') return null;
+        const newRate = Number(raw);
+        if (!Number.isFinite(newRate) || newRate < 0) return null;
+        if (newRate === Number(it.rate)) return null; // tak berubah
+        return { itemId: it.id, newRate };
+      })
+      .filter(Boolean) as { itemId: string; newRate: number }[];
+    if (lines.length === 0) {
+      toast.error('Tidak ada harga yang diubah.');
+      return;
+    }
+    if (reviseReason.trim().length < 10) {
+      toast.error('Alasan revisi minimal 10 karakter.');
+      return;
+    }
+    reviseMutation.mutate({ lines, reason: reviseReason.trim() });
+  };
 
   const attachmentRefType = isSales ? 'sales_invoice' : 'purchase_invoice';
   const { data: attachments = [] } = useQuery({
@@ -407,6 +448,22 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                 title="Batalkan dan buat ulang invoice ini"
               >
                 Edit Lengkap
+              </button>
+            )}
+            {!isSales && invoice && invoice.status !== 'Cancelled' && invoice.status !== 'Draft' && (
+              <button
+                onClick={() => {
+                  // Prefill dengan harga sekarang.
+                  const init: Record<string, string> = {};
+                  items.forEach((it: any) => { init[it.id] = String(Number(it.rate)); });
+                  setReviseRates(init);
+                  setReviseReason('');
+                  setReviseOpen(true);
+                }}
+                className="px-2 py-1 rounded-lg hover:bg-blue-50 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 transition-colors"
+                title="Revisi harga dari supplier (selisih diposting otomatis)"
+              >
+                Revisi Harga
               </button>
             )}
             {canCancel && (
@@ -1172,6 +1229,81 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
         onCancel={() => setConfirmCancel(false)}
       />
+
+      {/* Revisi Harga Modal (Purchase only) */}
+      {!isSales && reviseOpen && invoice && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !reviseMutation.isPending && setReviseOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Revisi Harga Invoice</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{invoice.invoiceNumber} — {invoice.supplier?.name}</p>
+              </div>
+              <button onClick={() => setReviseOpen(false)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-lg p-2.5">
+                Selisih harga diposting otomatis: porsi barang yang <strong>masih di stok</strong> menyesuaikan nilai Persediaan + harga rata-rata; porsi yang <strong>sudah keluar</strong> (produksi/jual) masuk akun <strong>5.11 Selisih Harga Pembelian</strong>. Hutang ke supplier ikut disesuaikan.
+              </p>
+              <div className="space-y-2">
+                {items.map((it: any) => {
+                  const oldRate = Number(it.rate);
+                  const qty = Number(it.quantity);
+                  const raw = reviseRates[it.id] ?? String(oldRate);
+                  const newRate = Number(raw);
+                  const delta = Number.isFinite(newRate) ? (newRate - oldRate) * qty : 0;
+                  return (
+                    <div key={it.id} className="border border-gray-100 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-medium text-gray-800">{it.itemName}</span>
+                        <span className="text-[11px] text-gray-400">{qty.toLocaleString('id-ID')} {it.unit}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-400">Lama: {oldRate.toLocaleString('id-ID')}</span>
+                        <span className="text-gray-300">→</span>
+                        <input
+                          type="number"
+                          value={raw}
+                          min={0}
+                          onChange={(e) => setReviseRates((p) => ({ ...p, [it.id]: e.target.value }))}
+                          className="w-32 border border-gray-200 rounded px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                          placeholder="harga baru"
+                        />
+                        {delta !== 0 && (
+                          <span className={`ml-auto tabular-nums font-medium ${delta > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {delta > 0 ? '+' : ''}{delta.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Alasan revisi (min 10 karakter) *</label>
+                <textarea
+                  value={reviseReason}
+                  onChange={(e) => setReviseReason(e.target.value)}
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  placeholder="contoh: Supplier koreksi harga gabah dari Rp 5.000 → 5.200 sesuai kesepakatan akhir"
+                />
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 sticky bottom-0 bg-white">
+              <button onClick={() => setReviseOpen(false)} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
+              <button
+                onClick={submitRevise}
+                disabled={reviseMutation.isPending}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+              >
+                {reviseMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                Simpan Revisi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancel Deposit Application Confirm */}
       <ConfirmDialog

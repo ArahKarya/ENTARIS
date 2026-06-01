@@ -869,3 +869,13 @@ export const CreatePurchaseOrderSchema = z.object({
   terms: z.string().nullable().optional(),
   items: z.array(PurchaseOrderItemSchema).min(1, 'Minimal satu item.'),
 });
+
+// ─── Revisi Harga Purchase Invoice ───────────────────────────────────────────
+// Supplier mengoreksi harga setelah PI submit (barang bisa sudah diproduksi).
+export const RevisePurchaseInvoiceSchema = z.object({
+  lines: z.array(z.object({
+    itemId: z.string().uuid('ID baris tidak valid.'),
+    newRate: z.coerce.number().min(0, 'Harga baru tidak boleh negatif.'),
+  })).min(1, 'Minimal satu baris untuk direvisi.'),
+  reason: z.string().min(10, 'Alasan revisi minimal 10 karakter.').max(500),
+});
