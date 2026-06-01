@@ -55,13 +55,14 @@ const ERP_ICONS = [
   Factory, Warehouse, Package, Truck, Receipt, FileText, Wallet,
   ClipboardList, BarChart3, Coins, Boxes,
 ];
-const ICON_TINTS = ['text-white/8', 'text-white/12', 'text-zinc-300/15', 'text-slate-300/12', 'text-neutral-200/14'];
+// Palet selaras favicon: steel blue + sedikit aksen gold (grain) + putih.
+const ICON_TINTS = ['text-white/10', 'text-white/15', 'text-blue-200/18', 'text-sky-200/14', 'text-amber-200/12'];
 const FLOAT_ANIMS = ['login-float-slow', 'login-float-medium', 'login-float-fast', 'login-bob'];
 const PARTICLE_COLORS = [
   'rgba(255,255,255,0.35)',
-  'rgba(228,228,231,0.32)', // zinc-200
-  'rgba(212,212,216,0.28)', // zinc-300
-  'rgba(244,244,245,0.30)', // zinc-100
+  'rgba(219,234,254,0.34)', // blue-100
+  'rgba(186,230,253,0.30)', // sky-200
+  'rgba(252,211,77,0.28)',  // amber-300 (grain accent)
 ];
 
 type Particle = { id: number; left: number; size: number; duration: number; delay: number; color: string; ring: boolean };
@@ -111,9 +112,10 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
     <aside
       className="hidden lg:flex lg:flex-col lg:justify-between relative overflow-hidden text-white px-12 py-12"
       style={{
-        // Industrial abu-abu: zinc/neutral gelap → slate.
+        // Selaras favicon: steel blue → deep navy.
+        // #3a5d8f (steel) → #1e3a5f (deep navy) sebagai dua titik utama, +shade.
         backgroundImage:
-          'linear-gradient(135deg, #18181b 0%, #27272a 25%, #3f3f46 50%, #475569 75%, #1e293b 100%)',
+          'linear-gradient(135deg, #16284a 0%, #1e3a5f 25%, #2a4a7a 50%, #3a5d8f 75%, #1e3a5f 100%)',
         backgroundSize: '300% 300%',
         animation: 'login-gradient-flow 14s ease infinite',
       }}
@@ -209,8 +211,8 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
         <h1
           className="mt-3 text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight"
           style={{
-            // Putih → abu-abu terang → putih, tetap shimmer tapi netral.
-            backgroundImage: 'linear-gradient(120deg, #ffffff 0%, #e4e4e7 40%, #f4f4f5 70%, #ffffff 100%)',
+            // Selaras favicon: putih → light blue → gold (grain) → putih.
+            backgroundImage: 'linear-gradient(120deg, #ffffff 0%, #dbeafe 35%, #fbd271 65%, #ffffff 100%)',
             backgroundSize: '200% 100%',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
@@ -230,8 +232,8 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
       <div className="relative mt-6 flex flex-wrap gap-2" style={{ animation: 'login-fade-up 0.7s ease 0.2s both' }}>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium ring-1 ring-white/15 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zinc-200 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-zinc-100" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-300" />
           </span>
           Live · Data tersinkron
         </span>
@@ -356,7 +358,7 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl shadow-neutral-900/10 p-7 md:p-8">
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl shadow-[#1e3a5f]/10 p-7 md:p-8">
               <div className="mb-6">
                 <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500 mb-1.5">Masuk</div>
                 <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
@@ -400,8 +402,8 @@ const LoginPage: React.FC = () => {
                         text-neutral-900 dark:text-neutral-100
                         placeholder:text-neutral-400 dark:placeholder:text-neutral-600
                         border-neutral-300 dark:border-neutral-800
-                        focus:border-neutral-500 dark:focus:border-neutral-300
-                        focus:ring-2 focus:ring-neutral-500/20
+                        focus:border-[#3a5d8f] dark:focus:border-[#5a7daf]
+                        focus:ring-2 focus:ring-[#3a5d8f]/20
                         disabled:opacity-60"
                     />
                   </div>
@@ -414,7 +416,7 @@ const LoginPage: React.FC = () => {
                     </label>
                     <button
                       type="button"
-                      className="text-[11px] font-medium text-neutral-700 dark:text-neutral-300 hover:underline underline-offset-2"
+                      className="text-[11px] font-medium text-[#3a5d8f] dark:text-[#7a9dcf] hover:underline underline-offset-2"
                       onClick={() => alert('Hubungi administrator untuk reset password.')}
                     >
                       Lupa?
@@ -436,8 +438,8 @@ const LoginPage: React.FC = () => {
                         text-neutral-900 dark:text-neutral-100
                         placeholder:text-neutral-400 dark:placeholder:text-neutral-600
                         border-neutral-300 dark:border-neutral-800
-                        focus:border-neutral-500 dark:focus:border-neutral-300
-                        focus:ring-2 focus:ring-neutral-500/20
+                        focus:border-[#3a5d8f] dark:focus:border-[#5a7daf]
+                        focus:ring-2 focus:ring-[#3a5d8f]/20
                         disabled:opacity-60"
                     />
                     <button
@@ -455,14 +457,12 @@ const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative w-full h-11 overflow-hidden rounded-md text-sm font-semibold transition-transform hover:-translate-y-0.5 active:translate-y-0
-                    bg-gradient-to-r from-neutral-800 to-zinc-700 text-white
-                    hover:from-neutral-700 hover:to-zinc-600
-                    dark:from-neutral-100 dark:to-zinc-200 dark:text-neutral-900
-                    dark:hover:from-white dark:hover:to-zinc-100
-                    shadow-lg shadow-neutral-900/20
+                  className="group relative w-full h-11 overflow-hidden rounded-md text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0
+                    bg-gradient-to-r from-[#3a5d8f] to-[#1e3a5f]
+                    hover:from-[#4a6d9f] hover:to-[#2a4a7a]
+                    shadow-lg shadow-[#1e3a5f]/30
                     disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0
-                    focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
+                    focus:outline-none focus:ring-2 focus:ring-[#3a5d8f] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
                 >
                   <span
                     aria-hidden
