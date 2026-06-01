@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { roleMiddleware } from '../../middleware/auth';
 import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
+import { buildStockSnapshot } from '../../services/stockSnapshot';
 
 const router = Router();
 
@@ -551,6 +552,36 @@ router.get('/daily', async (req, res) => {
     };
     vendorDeposits.summary.totalRemaining = vendorDeposits.deposits.reduce((s, d) => s + d.remaining, 0);
 
+    // ── 8. Kondisi stok (snapshot per gudang as-of akhir tanggal) ──
+    const snapshot = await buildStockSnapshot(dateStr);
+    const stock = {
+      asOfDate: snapshot.asOfDate,
+      valuationNote: snapshot.valuationNote,
+      warehouses: snapshot.warehouses.map((w) => ({
+        code: w.code,
+        name: w.name,
+        location: w.location,
+        isDefault: w.isDefault,
+        itemCount: w.itemCount,
+        totalValue: w.totalValue,
+        items: w.items.map((it) => ({
+          code: it.code,
+          name: it.name,
+          unit: it.unit,
+          qty: it.qty,
+          averageCost: it.averageCost,
+          value: it.value,
+        })),
+      })),
+      summary: {
+        totalWarehouses: snapshot.warehouses.length,
+        totalItemLines: snapshot.warehouses.reduce((s, w) => s + w.itemCount, 0),
+        totalNegative: snapshot.warehouses.reduce(
+          (s, w) => s + w.items.filter((i) => i.qty < 0).length, 0),
+        grandTotalValue: snapshot.grandTotalValue,
+      },
+    };
+
     return res.json({
       date: dateStr,
       sales,
@@ -560,6 +591,7 @@ router.get('/daily', async (req, res) => {
       receivables,
       payables,
       vendorDeposits,
+      stock,
     });
   } catch (error) {
     logger.error({ error }, 'GET /reports/daily error');

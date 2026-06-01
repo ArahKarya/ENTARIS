@@ -219,6 +219,54 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         <View style={S.empty}><Text style={S.emptyText}>Tidak ada produksi hari ini</Text></View>
       )}
 
+      {/* 3b. KONDISI STOK (snapshot posisi akhir tanggal) */}
+      {data.stock && (
+        <>
+          <SectionTitle title="KONDISI STOK" />
+          <SummaryRow items={[
+            { label: 'Jumlah Gudang', value: String(data.stock.summary.totalWarehouses) },
+            { label: 'Total Baris Item', value: String(data.stock.summary.totalItemLines) },
+            { label: 'Item Stok Negatif', value: String(data.stock.summary.totalNegative) },
+            { label: 'Total Nilai Stok', value: idr(data.stock.summary.grandTotalValue) },
+          ]} />
+          <Text style={{ fontSize: 6.5, color: C.faint, fontStyle: 'italic', marginTop: 3, marginBottom: 2, paddingHorizontal: 2 }}>
+            {data.stock.valuationNote}
+          </Text>
+          {data.stock.warehouses.filter((w: any) => w.items.length > 0).length === 0 ? (
+            <View style={S.empty}><Text style={S.emptyText}>Tidak ada stok pada tanggal ini</Text></View>
+          ) : (
+            data.stock.warehouses.filter((w: any) => w.items.length > 0).map((w: any, wi: number) => (
+              <View key={wi} wrap={false}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.bgLight, paddingVertical: 3, paddingHorizontal: 6, marginTop: 6 }}>
+                  <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.dark }}>
+                    {w.code} — {w.name}{w.isDefault ? ' (default)' : ''} · {w.itemCount} item
+                  </Text>
+                  <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.dark }}>{idr(w.totalValue)}</Text>
+                </View>
+                <View style={S.thRow} wrap={false}>
+                  <Text style={[S.th, { width: 80 }]}>Kode</Text>
+                  <Text style={[S.th, { flex: 1 }]}>Nama Item</Text>
+                  <Text style={[S.th, { width: 30, textAlign: 'center' }]}>Sat.</Text>
+                  <Text style={[S.th, { width: 65, textAlign: 'right' }]}>Stok</Text>
+                  <Text style={[S.th, { width: 60, textAlign: 'right' }]}>Avg Cost</Text>
+                  <Text style={[S.th, { width: 80, textAlign: 'right' }]}>Nilai</Text>
+                </View>
+                {w.items.map((it: any, ii: number) => (
+                  <View key={ii} style={[S.row, ii % 2 === 1 ? S.rowAlt : {}]} wrap={false}>
+                    <Text style={[S.cell, { width: 80, fontSize: 7 }]}>{it.code}</Text>
+                    <Text style={[S.cell, { flex: 1 }]}>{it.name}</Text>
+                    <Text style={[S.cell, { width: 30, textAlign: 'center', color: C.muted }]}>{it.unit}</Text>
+                    <Text style={[S.cellRight, { width: 65, color: it.qty < 0 ? C.red : C.dark }]}>{num(it.qty)}</Text>
+                    <Text style={[S.cellRight, { width: 60, color: C.muted }]}>{it.averageCost > 0 ? Math.round(it.averageCost).toLocaleString('id-ID') : '—'}</Text>
+                    <Text style={[S.cellRight, { width: 80, color: it.value < 0 ? C.red : C.dark }]}>{it.value !== 0 ? idr(it.value) : '—'}</Text>
+                  </View>
+                ))}
+              </View>
+            ))
+          )}
+        </>
+      )}
+
       {/* 4. KEUANGAN */}
       <SectionTitle title="KEUANGAN" />
       <SummaryRow items={[

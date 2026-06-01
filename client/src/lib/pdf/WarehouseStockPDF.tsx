@@ -88,9 +88,13 @@ export interface WarehouseStockPDFProps {
   warehouses: WarehouseBlock[];
   generatedAt: Date;
   company: { name: string; address?: string | null };
+  // Optional: ketika diisi, laporan dianggap snapshot "stok per tanggal" —
+  // judul subtitle pakai tanggal ini, bukan waktu cetak.
+  asOfDate?: string | null;
+  valuationNote?: string | null;
 }
 
-const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, generatedAt, company }) => {
+const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, generatedAt, company, asOfDate, valuationNote }) => {
   const totalItems = warehouses.reduce((s, w) => s + w.items.length, 0);
   const totalNegative = warehouses.reduce(
     (s, w) => s + w.items.filter((i) => i.currentStock < 0).length,
@@ -103,6 +107,9 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
   const printDate = generatedAt.toLocaleString('id-ID', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+  const asOfLabel = asOfDate
+    ? new Date(asOfDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+    : null;
 
   return (
     <Document>
@@ -115,10 +122,22 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
           </View>
           <View>
             <Text style={S.title}>LAPORAN STOK PER GUDANG</Text>
-            <Text style={S.subtitle}>Per {printDate}</Text>
+            {asOfLabel ? (
+              <>
+                <Text style={S.subtitle}>Posisi per {asOfLabel}</Text>
+                <Text style={S.subtitle}>Dicetak {printDate}</Text>
+              </>
+            ) : (
+              <Text style={S.subtitle}>Per {printDate}</Text>
+            )}
           </View>
         </View>
         <View style={S.divider} fixed />
+        {valuationNote && (
+          <Text style={{ fontSize: 7, color: C.faint, fontStyle: 'italic', marginBottom: 8 }}>
+            {valuationNote}
+          </Text>
+        )}
 
         {/* Summary */}
         <View style={S.summaryRow}>

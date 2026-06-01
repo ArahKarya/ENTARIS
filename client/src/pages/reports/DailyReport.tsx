@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   ShoppingCart, Truck, Factory, Wallet,
-  Users, CreditCard, Package,
+  Users, CreditCard, Package, Warehouse as WhIcon,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '../../lib/formatters';
@@ -165,6 +165,60 @@ const DailyReport = () => {
               </table>
             </div>
           </section>
+
+          {/* 3b. KONDISI STOK (snapshot per gudang, posisi akhir tanggal) */}
+          {data.stock && (
+            <section className="bg-white border border-gray-200 rounded-xl p-5">
+              <SectionHeader icon={WhIcon} title="Kondisi Stok" count={data.stock.summary.totalWarehouses} />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+                <SummaryCard label="Jumlah Gudang" value={String(data.stock.summary.totalWarehouses)} />
+                <SummaryCard label="Total Baris Item" value={String(data.stock.summary.totalItemLines)} />
+                <SummaryCard label="Item Stok Negatif" value={String(data.stock.summary.totalNegative)} />
+                <SummaryCard label="Total Nilai Stok" value={formatRupiah(data.stock.summary.grandTotalValue)} />
+              </div>
+              <p className="text-[11px] text-gray-400 italic mb-4">{data.stock.valuationNote}</p>
+              {data.stock.warehouses.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">Tidak ada stok pada tanggal ini.</p>
+              ) : (
+                <div className="space-y-4">
+                  {data.stock.warehouses.filter((w: any) => w.items.length > 0).map((w: any) => (
+                    <div key={w.code}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-xs font-semibold text-gray-700">
+                          {w.code} — {w.name}{w.isDefault ? ' (default)' : ''}
+                          <span className="text-gray-400 font-normal"> · {w.itemCount} item</span>
+                        </p>
+                        <p className="text-xs font-semibold text-gray-700">{formatRupiah(w.totalValue)}</p>
+                      </div>
+                      <div className="table-responsive">
+                        <table className="data-table text-xs">
+                          <thead><tr><th>Kode</th><th>Nama Item</th><th>Sat.</th><th className="text-right">Stok</th><th className="text-right">Avg Cost</th><th className="text-right">Nilai</th></tr></thead>
+                          <tbody>
+                            {w.items.map((it: any) => (
+                              <tr key={`${w.code}-${it.code}`}>
+                                <td className="font-mono">{it.code}</td>
+                                <td>{it.name}</td>
+                                <td className="text-gray-500">{it.unit}</td>
+                                <td className={`text-right tabular-nums font-semibold ${it.qty < 0 ? 'text-red-600' : ''}`}>
+                                  {it.qty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+                                </td>
+                                <td className="text-right tabular-nums text-gray-500">
+                                  {it.averageCost > 0 ? it.averageCost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
+                                </td>
+                                <td className={`text-right tabular-nums ${it.value < 0 ? 'text-red-600' : ''}`}>
+                                  {it.value !== 0 ? formatRupiah(it.value) : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* 4. KEUANGAN */}
           <section className="bg-white border border-gray-200 rounded-xl p-5">

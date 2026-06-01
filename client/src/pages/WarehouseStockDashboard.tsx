@@ -149,10 +149,27 @@ function StockSection({ warehouse, search }: { warehouse: Warehouse; search: str
   );
 }
 
+const today = () => new Date().toISOString().slice(0, 10);
+
+interface SnapshotItem {
+  code: string; name: string; unit: string;
+  qty: number; averageCost: number; value: number;
+}
+interface SnapshotWarehouse {
+  code: string; name: string; location: string | null;
+  isDefault: boolean; items: SnapshotItem[];
+}
+interface StockSnapshotResponse {
+  asOfDate: string;
+  valuationNote: string;
+  warehouses: SnapshotWarehouse[];
+}
+
 export const WarehouseStockDashboard = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [asOfDate, setAsOfDate] = useState(today());
   const company = useCompanySettings();
 
   const { data: warehouses, isLoading } = useQuery({
@@ -163,36 +180,35 @@ export const WarehouseStockDashboard = () => {
     },
   });
 
+  // Unduh PDF posisi stok "as of" tanggal terpilih. Selalu pakai snapshot
+  // endpoint (riwayat pergerakan) — utk tanggal hari ini, hasilnya sama dgn
+  // stok live, tapi konsisten satu jalur.
   const handleDownloadPDF = async () => {
-    if (!warehouses || warehouses.length === 0) return;
     setIsDownloading(true);
     try {
-      // Fetch detail (with non-zero stocks) for every warehouse in parallel.
-      const details = await Promise.all(
-        warehouses.map((w) =>
-          api.get(`/warehouses/${w.id}`).then((r) => r.data as WarehouseDetail),
-        ),
-      );
-      const blocks: WarehouseBlock[] = details.map((d) => ({
-        code: d.code,
-        name: d.name,
-        location: d.location,
-        isDefault: d.isDefault,
-        items: d.stocks
-          .map((s) => ({
-            code: s.item.code,
-            name: s.item.name,
-            unit: s.item.unit,
-            currentStock: Number(s.currentStock),
-            averageCost: Number(s.item.averageCost ?? 0),
-          }))
-          .sort((a, b) => b.currentStock - a.currentStock),
+      const res = await api.get('/warehouses/stock-snapshot', { params: { date: asOfDate } });
+      const snap = res.data as StockSnapshotResponse;
+
+      const blocks: WarehouseBlock[] = snap.warehouses.map((w) => ({
+        code: w.code,
+        name: w.name,
+        location: w.location,
+        isDefault: w.isDefault,
+        items: w.items.map((s) => ({
+          code: s.code,
+          name: s.name,
+          unit: s.unit,
+          currentStock: s.qty,
+          averageCost: s.averageCost,
+        })),
       }));
 
       const blob = await pdf(
         <WarehouseStockPDF
           warehouses={blocks}
           generatedAt={new Date()}
+          asOfDate={snap.asOfDate}
+          valuationNote={snap.valuationNote}
           company={{ name: company?.companyName ?? 'Perusahaan', address: company?.address }}
         />,
       ).toBlob();
@@ -200,8 +216,7 @@ export const WarehouseStockDashboard = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const stamp = new Date().toISOString().slice(0, 10);
-      a.download = `Stok-Per-Gudang_${stamp}.pdf`;
+      a.download = `Stok-Per-Gudang_${asOfDate}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -228,16 +243,28 @@ export const WarehouseStockDashboard = () => {
         <div>
           <h1 className="text-xl font-semibold text-foreground">Dashboard Stok per Gudang</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
+            Tabel menampilkan stok terkini. Unduh PDF mengambil posisi stok per tanggal terpilih.
             Item dengan stok 0 disembunyikan. Stok negatif ditandai merah.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button onClick={expandAll} className="btn-secondary text-xs">Buka semua</button>
           <button onClick={collapseAll} className="btn-secondary text-xs">Tutup semua</button>
+          <div className="flex items-center gap-1.5 border border-border rounded-lg px-2 py-1 bg-card">
+            <span className="text-xs text-muted-foreground">Posisi tgl:</span>
+            <input
+              type="date"
+              value={asOfDate}
+              max={today()}
+              onChange={(e) => setAsOfDate(e.target.value || today())}
+              className="bg-transparent text-xs focus:outline-none text-foreground"
+            />
+          </div>
           <button
             onClick={handleDownloadPDF}
             disabled={isDownloading || !warehouses || warehouses.length === 0}
             className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            title="Unduh stok posisi per tanggal terpilih"
           >
             {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
             Unduh PDF

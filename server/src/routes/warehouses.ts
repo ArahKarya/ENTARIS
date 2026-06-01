@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { AuthRequest, roleMiddleware } from '../middleware/auth';
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { validateBody } from '../utils/validate';
+import { buildStockSnapshot } from '../services/stockSnapshot';
 
 const router = Router();
 
@@ -56,6 +57,27 @@ router.get('/', async (req, res) => {
     return res.json({ data });
   } catch (error) {
     return handleRouteError(res, error, 'GET /warehouses', 'Gagal mengambil daftar gudang.');
+  }
+});
+
+// GET /api/warehouses/stock-snapshot?date=YYYY-MM-DD[&warehouseIds=a,b]
+// Stok per gudang "as of" akhir tanggal tsb, direkonstruksi dari riwayat
+// pergerakan stok. Dipakai untuk unduh stok terakhir per tanggal.
+// NOTE: harus didefinisikan SEBELUM '/:id' agar tidak ketangkap route param.
+router.get('/stock-snapshot', async (req, res) => {
+  try {
+    const { date, warehouseIds } = req.query;
+    const dateStr = typeof date === 'string' && date ? date : new Date().toISOString().slice(0, 10);
+    if (isNaN(new Date(dateStr).getTime())) {
+      return res.status(400).json({ error: 'Parameter date tidak valid.' });
+    }
+    const ids = typeof warehouseIds === 'string' && warehouseIds
+      ? warehouseIds.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined;
+    const snapshot = await buildStockSnapshot(dateStr, ids);
+    return res.json(snapshot);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /warehouses/stock-snapshot', 'Gagal membuat snapshot stok.');
   }
 });
 

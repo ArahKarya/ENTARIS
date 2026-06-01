@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.4';
+export const APP_VERSION = '3.4.5';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.4.5',
+    date: '2026-06-01',
+    title: 'Stok Per Tanggal + Kondisi Stok di Laporan Harian',
+    changes: [
+      'Dashboard Stok per Gudang: tambah filter tanggal — unduh PDF posisi stok TERAKHIR per tanggal tertentu (bukan hanya stok hari ini)',
+      'Posisi stok direkonstruksi tepat dari riwayat pergerakan stok (kuantitas eksak; nilai pakai avg cost terkini sebagai estimasi)',
+      'Laporan Harian: tambah section "Kondisi Stok" — posisi stok per gudang pada akhir tanggal laporan (qty, avg cost, nilai), tampil di layar & PDF',
+      'Section Produksi di Laporan Harian tetap (input/output/yield per run)',
+    ],
+  },
   {
     version: '3.4.4',
     date: '2026-05-31',
