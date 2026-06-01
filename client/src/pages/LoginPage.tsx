@@ -263,9 +263,14 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
       </div>
 
       {/* Footer */}
-      <p className="relative mt-6 text-[11px] text-white/60" style={{ animation: 'login-fade-up 1s ease 0.5s both' }}>
-        © {year} {displayName} · Data terenkripsi &amp; tunduk kebijakan privasi perusahaan.
-      </p>
+      <div className="relative mt-6 space-y-1" style={{ animation: 'login-fade-up 1s ease 0.5s both' }}>
+        <p className="text-[11px] text-white/60">
+          © {year} {displayName} · Data terenkripsi &amp; tunduk kebijakan privasi perusahaan.
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-white/50">
+          Arah Karya Sinergi&trade; · by Yayang Setya Nugroho
+        </p>
+      </div>
     </aside>
   );
 };
@@ -489,6 +494,9 @@ const LoginPage: React.FC = () => {
                 v{APP_VERSION} · {APP_BUILD_DATE}
               </span>
             </div>
+            <p className="mt-3 text-center text-[10px] uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-600">
+              Arah Karya Sinergi&trade; · by Yayang Setya Nugroho
+            </p>
           </div>
         </main>
       </div>
