@@ -55,13 +55,13 @@ const ERP_ICONS = [
   Factory, Warehouse, Package, Truck, Receipt, FileText, Wallet,
   ClipboardList, BarChart3, Coins, Boxes,
 ];
-const ICON_TINTS = ['text-white/10', 'text-white/15', 'text-emerald-200/20', 'text-amber-200/15', 'text-teal-200/20'];
+const ICON_TINTS = ['text-white/8', 'text-white/12', 'text-zinc-300/15', 'text-slate-300/12', 'text-neutral-200/14'];
 const FLOAT_ANIMS = ['login-float-slow', 'login-float-medium', 'login-float-fast', 'login-bob'];
 const PARTICLE_COLORS = [
   'rgba(255,255,255,0.35)',
-  'rgba(167,243,208,0.40)', // emerald-200
-  'rgba(252,211,77,0.30)',  // amber-300
-  'rgba(165,243,252,0.35)', // cyan-200
+  'rgba(228,228,231,0.32)', // zinc-200
+  'rgba(212,212,216,0.28)', // zinc-300
+  'rgba(244,244,245,0.30)', // zinc-100
 ];
 
 type Particle = { id: number; left: number; size: number; duration: number; delay: number; color: string; ring: boolean };
@@ -111,8 +111,9 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
     <aside
       className="hidden lg:flex lg:flex-col lg:justify-between relative overflow-hidden text-white px-12 py-12"
       style={{
+        // Industrial abu-abu: zinc/neutral gelap → slate.
         backgroundImage:
-          'linear-gradient(135deg, #062c2a 0%, #0e6e5e 25%, #117c5e 50%, #1d8a52 75%, #b45309 100%)',
+          'linear-gradient(135deg, #18181b 0%, #27272a 25%, #3f3f46 50%, #475569 75%, #1e293b 100%)',
         backgroundSize: '300% 300%',
         animation: 'login-gradient-flow 14s ease infinite',
       }}
@@ -208,7 +209,8 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
         <h1
           className="mt-3 text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight"
           style={{
-            backgroundImage: 'linear-gradient(120deg, #ffffff 0%, #d1fae5 40%, #fde68a 70%, #ffffff 100%)',
+            // Putih → abu-abu terang → putih, tetap shimmer tapi netral.
+            backgroundImage: 'linear-gradient(120deg, #ffffff 0%, #e4e4e7 40%, #f4f4f5 70%, #ffffff 100%)',
             backgroundSize: '200% 100%',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
@@ -228,8 +230,8 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
       <div className="relative mt-6 flex flex-wrap gap-2" style={{ animation: 'login-fade-up 0.7s ease 0.2s both' }}>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium ring-1 ring-white/15 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zinc-200 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-zinc-100" />
           </span>
           Live · Data tersinkron
         </span>
@@ -349,7 +351,7 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl shadow-emerald-900/5 p-7 md:p-8">
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl shadow-neutral-900/10 p-7 md:p-8">
               <div className="mb-6">
                 <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500 mb-1.5">Masuk</div>
                 <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
@@ -393,8 +395,8 @@ const LoginPage: React.FC = () => {
                         text-neutral-900 dark:text-neutral-100
                         placeholder:text-neutral-400 dark:placeholder:text-neutral-600
                         border-neutral-300 dark:border-neutral-800
-                        focus:border-emerald-500 dark:focus:border-emerald-400
-                        focus:ring-2 focus:ring-emerald-500/20
+                        focus:border-neutral-500 dark:focus:border-neutral-300
+                        focus:ring-2 focus:ring-neutral-500/20
                         disabled:opacity-60"
                     />
                   </div>
@@ -407,7 +409,7 @@ const LoginPage: React.FC = () => {
                     </label>
                     <button
                       type="button"
-                      className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline underline-offset-2"
+                      className="text-[11px] font-medium text-neutral-700 dark:text-neutral-300 hover:underline underline-offset-2"
                       onClick={() => alert('Hubungi administrator untuk reset password.')}
                     >
                       Lupa?
@@ -429,8 +431,8 @@ const LoginPage: React.FC = () => {
                         text-neutral-900 dark:text-neutral-100
                         placeholder:text-neutral-400 dark:placeholder:text-neutral-600
                         border-neutral-300 dark:border-neutral-800
-                        focus:border-emerald-500 dark:focus:border-emerald-400
-                        focus:ring-2 focus:ring-emerald-500/20
+                        focus:border-neutral-500 dark:focus:border-neutral-300
+                        focus:ring-2 focus:ring-neutral-500/20
                         disabled:opacity-60"
                     />
                     <button
@@ -449,11 +451,13 @@ const LoginPage: React.FC = () => {
                   type="submit"
                   disabled={loading}
                   className="group relative w-full h-11 overflow-hidden rounded-md text-sm font-semibold transition-transform hover:-translate-y-0.5 active:translate-y-0
-                    bg-gradient-to-r from-emerald-600 to-teal-600 text-white
-                    hover:from-emerald-500 hover:to-teal-500
-                    shadow-lg shadow-emerald-900/20
+                    bg-gradient-to-r from-neutral-800 to-zinc-700 text-white
+                    hover:from-neutral-700 hover:to-zinc-600
+                    dark:from-neutral-100 dark:to-zinc-200 dark:text-neutral-900
+                    dark:hover:from-white dark:hover:to-zinc-100
+                    shadow-lg shadow-neutral-900/20
                     disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0
-                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
+                    focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
                 >
                   <span
                     aria-hidden
