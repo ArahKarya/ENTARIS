@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.5.1';
+export const APP_VERSION = '3.5.2';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.5.2',
+    date: '2026-06-02',
+    title: 'Detail Pengajuan Data Produksi (Approval)',
+    changes: [
+      'Tombol "Detail" di tiap antrian approval produksi — buka modal berisi rincian lengkap: info shift, bahan baku (input), hasil produksi (output + by-product), dan komponen biaya',
+      'Nama item ditampilkan (bukan ID), sehingga manajer bisa double-check sebelum menyetujui',
+      'Admin bisa Setuju/Tolak langsung dari modal detail',
+    ],
+  },
   {
     version: '3.5.1',
     date: '2026-06-02',
