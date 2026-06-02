@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { exportToExcel } from '../../lib/exportExcel';
 import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, endOfMonth } from 'date-fns';
 import { formatRupiah } from '../../lib/formatters';
 import { ProfitLossPDF } from '../../lib/pdf/ReportPDF';
 import { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
@@ -13,8 +13,11 @@ import type { SummaryCard } from '../../components/reports';
 import LedgerDetailDrawer from '../../components/reports/LedgerDetailDrawer';
 
 const ProfitLoss: React.FC = () => {
+  // Default ke satu bulan penuh (bukan month-to-date) supaya entri akhir-bulan
+  // seperti penyusutan & jurnal penyesuaian (diposting tgl 30/31) langsung
+  // muncul. Konsisten dgn CashFlow yang memakai endOfMonth.
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const company = useCompanyPDF();
   const companySettings = useCompanySettings();
 

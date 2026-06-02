@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.6.3';
+export const APP_VERSION = '3.6.4';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.6.4',
+    date: '2026-06-02',
+    title: 'Laba Rugi & Neraca Saldo Default Satu Bulan Penuh',
+    changes: [
+      'Default rentang tanggal Laba Rugi & Neraca Saldo kini sampai akhir bulan (endOfMonth), bukan hanya sampai hari ini',
+      'Entri akhir-bulan seperti beban penyusutan & jurnal penyesuaian (diposting tgl 30/31) kini langsung terlihat tanpa perlu set tanggal manual',
+    ],
+  },
   {
     version: '3.6.3',
     date: '2026-06-02',
