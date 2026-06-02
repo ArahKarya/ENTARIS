@@ -748,6 +748,7 @@ export function InventoryPage() {
                 setProdResubmitId(req.id);
                 setProductionModalOpen(true);
               }}
+              onViewDocument={(req: ApprovalRequest) => { if (req.documentId) setSelectedProdRunId(req.documentId); }}
             />
           )}
 

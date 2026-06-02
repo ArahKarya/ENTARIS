@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.6.0';
+export const APP_VERSION = '3.6.1';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.6.1',
+    date: '2026-06-02',
+    title: 'Detail Pengajuan Approval Lebih Lengkap',
+    changes: [
+      'Detail pengajuan kini menampilkan info lengkap: PI (supplier, jatuh tempo, syarat, qualitas/timbangan/refaksi/diskon/PPN/PPh/potongan per item) + estimasi Grand Total',
+      'Produksi: gudang, jendela shift, mesin, downtime, proses, biaya per akun, batch terkunci + estimasi HPP/kg',
+      'Tombol "Lihat Dokumen" pada pengajuan yang sudah Disetujui → buka dokumen final (total/HPP/jurnal resmi)',
+    ],
+  },
   {
     version: '3.6.0',
     date: '2026-06-02',

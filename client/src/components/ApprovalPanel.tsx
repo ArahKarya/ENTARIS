@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Clock, Check, X, Loader2, Eye, Pencil } from 'lucide-react';
+import { Clock, Check, X, Loader2, Eye, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { formatRupiah } from '../lib/formatters';
@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 export interface ApprovalRequest {
   id: string;
   documentType: string;
+  documentId: string | null;
   documentNumber: string | null;
   status: string;
   amount: number | null;
@@ -45,6 +46,49 @@ interface Props {
   documentType?: 'PurchaseInvoice' | 'ProductionRun'; // undefined = semua tipe
   userRole: string | undefined;
   onResubmit?: (req: ApprovalRequest) => void;
+  onViewDocument?: (req: ApprovalRequest) => void;
+}
+
+// Hitung estimasi total PI dari payload (mirror server purchaseInvoiceCalc).
+// hargaAkhir per item = qty×rate×(1−disc%) + PPN − PPh − potonganItem.
+function piTotals(payload: any): { subtotal: number; grandTotal: number } {
+  const items: any[] = payload?.items ?? [];
+  let subtotal = 0;
+  for (const it of items) {
+    const qty = Number(it.timbanganDiterima ?? it.quantity ?? 0);
+    const base = qty * Number(it.rate ?? 0);
+    const afterDisc = base - base * (Number(it.discount ?? 0) / 100);
+    const ppn = afterDisc * (Number(it.taxPct ?? 0) / 100);
+    const pph = afterDisc * (Number(it.pphPct ?? 0) / 100);
+    subtotal += afterDisc + ppn - pph - Number(it.potonganItem ?? 0);
+  }
+  const grandTotal = subtotal - Number(payload?.potongan ?? 0) + Number(payload?.biayaLain ?? 0);
+  return { subtotal: Math.round(subtotal), grandTotal: Math.round(grandTotal) };
+}
+
+// Estimasi HPP/Kg produksi dari payload. Material hanya pasti bila batchUnitCost
+// terisi; jika tidak, material tak diketahui (return knownMaterial=false).
+function prodHppEstimate(payload: any): { hpp: number | null; knownMaterial: boolean; byproductValue: number; costTotal: number; mainQty: number } {
+  const inputs: any[] = payload?.inputs ?? [];
+  const outputs: any[] = payload?.outputs ?? [];
+  const costs: any[] = payload?.costs ?? [];
+  const mainQty = outputs.filter((o) => !o.isByProduct).reduce((s, o) => s + Number(o.quantity ?? 0), 0);
+  const inputQty = inputs.reduce((s, i) => s + Number(i.quantity ?? 0), 0);
+  const byproductValue = outputs.filter((o) => o.isByProduct).reduce((s, o) => s + Number(o.quantity ?? 0) * Number(o.unitPrice ?? 0), 0);
+  // Material: hanya jika SEMUA input punya batchUnitCost > 0.
+  const allHaveBatch = inputs.length > 0 && inputs.every((i) => Number(i.batchUnitCost ?? 0) > 0);
+  const material = allHaveBatch ? inputs.reduce((s, i) => s + Number(i.quantity ?? 0) * Number(i.batchUnitCost ?? 0), 0) : 0;
+  // Biaya: rate × basisQty (InputQty/OutputQty/Fixed).
+  let costTotal = 0;
+  for (const c of costs) {
+    const rate = Number(c.rate ?? 0);
+    if (c.basis === 'InputQty') costTotal += rate * inputQty;
+    else if (c.basis === 'OutputQty') costTotal += rate * mainQty;
+    else costTotal += rate; // Fixed
+  }
+  if (!allHaveBatch || mainQty <= 0) return { hpp: null, knownMaterial: allHaveBatch, byproductValue, costTotal: Math.round(costTotal), mainQty };
+  const hpp = (material + costTotal - byproductValue) / mainQty;
+  return { hpp: Math.round(hpp), knownMaterial: true, byproductValue, costTotal: Math.round(costTotal), mainQty };
 }
 
 /**
@@ -52,7 +96,7 @@ interface Props {
  * Revisi), detail modal, aksi Admin (Setuju/Tolak/Minta Edit), dan tombol
  * "Edit & Ajukan Ulang" untuk staff pemilik pengajuan berstatus Perlu Revisi.
  */
-export default function ApprovalPanel({ documentType, userRole, onResubmit }: Props) {
+export default function ApprovalPanel({ documentType, userRole, onResubmit, onViewDocument }: Props) {
   const qc = useQueryClient();
   const isAdmin = userRole === 'Admin';
   const currentUserId = useMemo(() => {
@@ -88,6 +132,41 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
   });
   const itemName = (id: string) => itemMap[id]?.name ?? `(item ${id?.slice?.(0, 8) ?? '?'})`;
   const itemUnit = (id: string) => itemMap[id]?.unit ?? 'kg';
+
+  // Name maps untuk perkaya detail (supplier, gudang, mesin) — payload simpan id.
+  const { data: partyMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ['parties-namemap'],
+    queryFn: async () => {
+      const raw = (await api.get('/parties')).data;
+      const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+      const m: Record<string, string> = {};
+      for (const p of list) m[p.id] = p.name;
+      return m;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: warehouseMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ['warehouses-namemap'],
+    queryFn: async () => {
+      const raw = (await api.get('/warehouses')).data;
+      const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+      const m: Record<string, string> = {};
+      for (const w of list) m[w.id] = w.code ? `${w.code} — ${w.name}` : w.name;
+      return m;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: machineMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ['machines-namemap'],
+    queryFn: async () => {
+      const raw = (await api.get('/inventory/machines')).data;
+      const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+      const m: Record<string, string> = {};
+      for (const mc of list) m[mc.id] = mc.code ? `${mc.code} — ${mc.name}` : mc.name;
+      return m;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ['approval-requests'] });
@@ -210,6 +289,12 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
                       <Pencil size={13} /> Edit & Ajukan Ulang
                     </button>
                   )}
+                  {req.status === 'Approved' && req.documentId && onViewDocument && (
+                    <button onClick={() => onViewDocument(req)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 rounded-lg">
+                      <FileText size={13} /> Lihat Dokumen
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -258,16 +343,23 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
         const inputs: any[] = p.inputs ?? [];
         const outputs: any[] = p.outputs ?? [];
         const costs: any[] = p.costs ?? [];
+        const runMachines: any[] = p.runMachines ?? [];
+        const downtimes: any[] = p.downtimes ?? [];
+        const processIds: string[] = p.processIds ?? [];
         const basisLabel: Record<string, string> = { InputQty: 'per kg input', OutputQty: 'per kg output', Fixed: 'tetap' };
+        const fmtT = (v: any) => v ? new Date(v).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+        const pi = isProd ? null : piTotals(p);
+        const hppEst = isProd ? prodHppEstimate(p) : null;
         return (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailReq(null)}>
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Detail Pengajuan {docTypeLabel[detailReq.documentType] ?? ''}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">
                     <span className={cn('badge', badgeOf(detailReq.status))}>{labelOf(detailReq.status)}</span>
                     {' '}oleh {detailReq.requester.fullName} ({detailReq.requester.role}) • {fmtDate(detailReq.createdAt)}
+                    {detailReq.documentNumber && detailReq.status === 'Approved' && <span className="ml-2 font-mono text-gray-400">{detailReq.documentNumber}</span>}
                   </p>
                 </div>
                 <button onClick={() => setDetailReq(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
@@ -281,9 +373,16 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
                 {/* Info umum */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                   {p.date && <div><span className="text-gray-400">Tanggal:</span> <span className="text-gray-800">{p.date}</span></div>}
+                  {!isProd && p.partyId && <div><span className="text-gray-400">Supplier:</span> <span className="text-gray-800">{partyMap[p.partyId] ?? '—'}</span></div>}
+                  {!isProd && p.dueDate && <div><span className="text-gray-400">Jatuh Tempo:</span> <span className="text-gray-800">{p.dueDate}</span></div>}
+                  {!isProd && p.terms && <div><span className="text-gray-400">Syarat:</span> <span className="text-gray-800">{p.terms}</span></div>}
+                  {!isProd && p.customerRefNo && <div><span className="text-gray-400">No. Ref:</span> <span className="text-gray-800">{p.customerRefNo}</span></div>}
+                  {isProd && p.warehouseId && <div><span className="text-gray-400">Gudang:</span> <span className="text-gray-800">{warehouseMap[p.warehouseId] ?? '—'}</span></div>}
                   {isProd && p.shift && <div><span className="text-gray-400">Shift:</span> <span className="text-gray-800">{p.shift}</span></div>}
                   {isProd && p.shiftLead && <div><span className="text-gray-400">Kepala Shift:</span> <span className="text-gray-800">{p.shiftLead}</span></div>}
                   {isProd && p.manpowerCount != null && <div><span className="text-gray-400">Jml Orang:</span> <span className="text-gray-800">{p.manpowerCount}</span></div>}
+                  {isProd && (p.plannedStart || p.plannedEnd) && <div className="col-span-2"><span className="text-gray-400">Jendela Shift:</span> <span className="text-gray-800">{fmtT(p.plannedStart)} – {fmtT(p.plannedEnd)}</span></div>}
+                  {isProd && (p.breakStart || p.breakEnd) && <div className="col-span-2"><span className="text-gray-400">Istirahat:</span> <span className="text-gray-800">{fmtT(p.breakStart)} – {fmtT(p.breakEnd)}</span></div>}
                   {p.notes && <div className="col-span-2"><span className="text-gray-400">Catatan:</span> <span className="text-gray-800">{p.notes}</span></div>}
                 </div>
 
@@ -295,7 +394,10 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
                         {inputs.length === 0 ? <p className="px-3 py-2 text-xs text-gray-400">—</p> :
                           inputs.map((it, i) => (
                             <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
-                              <span className="text-gray-800">{itemName(it.itemId)}</span>
+                              <span className="text-gray-800">
+                                {itemName(it.itemId)}
+                                {Number(it.batchUnitCost ?? 0) > 0 && <span className="ml-1.5 text-[9px] px-1 py-0.5 bg-blue-50 text-blue-600 rounded">batch @{formatRupiah(Number(it.batchUnitCost))}</span>}
+                              </span>
                               <span className="font-mono tabular-nums text-gray-600">{fmtNum(Number(it.quantity ?? 0))} {itemUnit(it.itemId)}</span>
                             </div>
                           ))}
@@ -325,7 +427,7 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
                         <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
                           {costs.map((c, i) => (
                             <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
-                              <span className="text-gray-800">{c.description ?? '—'}</span>
+                              <span className="text-gray-800">{c.description ?? '—'} <span className="text-gray-400">({c.costSide === 'OutputSide' ? 'output' : 'input'})</span></span>
                               <span className="font-mono tabular-nums text-gray-600">
                                 {formatRupiah(Number(c.rate ?? 0))} <span className="text-gray-400">{basisLabel[c.basis] ?? c.basis ?? ''}</span>
                               </span>
@@ -334,28 +436,93 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
                         </div>
                       </div>
                     )}
-                  </>
-                ) : (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700 mb-1.5">Item Invoice</p>
-                    <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
-                      {piItems.length === 0 ? <p className="px-3 py-2 text-xs text-gray-400">—</p> :
-                        piItems.map((it, i) => (
-                          <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
-                            <span className="text-gray-800">{it.itemName ?? '—'}</span>
-                            <span className="font-mono tabular-nums text-gray-600">
-                              {fmtNum(Number(it.quantity ?? it.timbanganDiterima ?? 0))} {it.unit ?? ''} × {formatRupiah(Number(it.rate ?? 0))} = {formatRupiah(Number(it.amount ?? 0))}
-                            </span>
-                          </div>
-                        ))}
-                      {Number(p.biayaLain ?? 0) > 0 && (
-                        <div className="px-3 py-2 flex items-center justify-between text-xs">
-                          <span className="text-gray-500">Biaya Lain</span>
-                          <span className="font-mono tabular-nums text-gray-600">{formatRupiah(Number(p.biayaLain))}</span>
+                    {runMachines.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-1.5">Mesin</p>
+                        <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
+                          {runMachines.map((m, i) => (
+                            <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
+                              <span className="text-gray-800">{machineMap[m.machineId] ?? '(mesin)'}</span>
+                              <span className="font-mono text-gray-500">{fmtT(m.startAt)} – {fmtT(m.endAt)}</span>
+                            </div>
+                          ))}
                         </div>
+                      </div>
+                    )}
+                    {downtimes.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-1.5">Downtime</p>
+                        <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
+                          {downtimes.map((d, i) => (
+                            <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
+                              <span className="text-gray-800">{d.category}{d.machineId ? ` • ${machineMap[d.machineId] ?? 'mesin'}` : ''}{d.reason ? ` — ${d.reason}` : ''}</span>
+                              <span className="font-mono tabular-nums text-gray-600">{fmtNum(Number(d.durationMin ?? 0))} mnt</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {processIds.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-1.5">Proses</p>
+                        <p className="text-xs text-gray-500">{processIds.length} proses tercatat</p>
+                      </div>
+                    )}
+                    {/* Estimasi HPP */}
+                    <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-gray-700 mb-1">Estimasi HPP</p>
+                      {hppEst && hppEst.hpp != null ? (
+                        <p className="text-sm font-semibold text-gray-900">{formatRupiah(hppEst.hpp)} <span className="text-xs font-normal text-gray-400">/ kg produk utama (estimasi)</span></p>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          Biaya: {formatRupiah(hppEst?.costTotal ?? 0)} · Nilai by-product: {formatRupiah(hppEst?.byproductValue ?? 0)}
+                          <br /><span className="text-amber-600">HPP final (termasuk biaya material) dihitung saat disetujui.</span>
+                        </p>
                       )}
                     </div>
-                  </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-1.5">Item Invoice</p>
+                      <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
+                        {piItems.length === 0 ? <p className="px-3 py-2 text-xs text-gray-400">—</p> :
+                          piItems.map((it, i) => {
+                            const qty = Number(it.timbanganDiterima ?? it.quantity ?? 0);
+                            const meta: string[] = [];
+                            if (it.kualitas) meta.push(`kualitas: ${it.kualitas}`);
+                            if (Number(it.timbanganTruk ?? 0) > 0) meta.push(`truk: ${fmtNum(Number(it.timbanganTruk))}`);
+                            if (Number(it.refaksi ?? 0) > 0) meta.push(`refaksi: ${fmtNum(Number(it.refaksi))}`);
+                            if (Number(it.discount ?? 0) > 0) meta.push(`disk ${it.discount}%`);
+                            if (Number(it.taxPct ?? 0) > 0) meta.push(`PPN ${it.taxPct}%`);
+                            if (Number(it.pphPct ?? 0) > 0) meta.push(`PPh ${it.pphPct}%`);
+                            if (Number(it.potonganItem ?? 0) > 0) meta.push(`potongan ${formatRupiah(Number(it.potonganItem))}`);
+                            if (it.nomorMobil) meta.push(`mobil: ${it.nomorMobil}`);
+                            return (
+                              <div key={i} className="px-3 py-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-800 font-medium">{it.itemName ?? '—'}</span>
+                                  <span className="font-mono tabular-nums text-gray-600">
+                                    {fmtNum(qty)} {it.unit ?? ''} × {formatRupiah(Number(it.rate ?? 0))} = {formatRupiah(Number(it.amount ?? 0))}
+                                  </span>
+                                </div>
+                                {meta.length > 0 && <div className="text-[10px] text-gray-400 mt-0.5">{meta.join(' · ')}</div>}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                    {/* Totals (estimasi) */}
+                    <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-1 text-xs">
+                      <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-mono tabular-nums">{formatRupiah(pi?.subtotal ?? 0)}</span></div>
+                      {Number(p.potongan ?? 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">Potongan</span><span className="font-mono tabular-nums text-red-600">− {formatRupiah(Number(p.potongan))}</span></div>}
+                      {Number(p.biayaLain ?? 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">Biaya Lain</span><span className="font-mono tabular-nums">{formatRupiah(Number(p.biayaLain))}</span></div>}
+                      <div className="flex justify-between pt-1 border-t border-gray-200 font-semibold text-gray-900">
+                        <span>Grand Total <span className="text-[10px] font-normal text-gray-400">(estimasi)</span></span>
+                        <span className="font-mono tabular-nums">{formatRupiah(pi?.grandTotal ?? 0)}</span>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
               <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 sticky bottom-0 bg-white">
@@ -375,6 +542,12 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit }: Pr
                   <button onClick={() => { onResubmit(detailReq); setDetailReq(null); }}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
                     <Pencil size={13} /> Edit & Ajukan Ulang
+                  </button>
+                )}
+                {detailReq.status === 'Approved' && detailReq.documentId && onViewDocument && (
+                  <button onClick={() => { onViewDocument(detailReq); setDetailReq(null); }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
+                    <FileText size={13} /> Lihat Dokumen
                   </button>
                 )}
                 <button onClick={() => setDetailReq(null)} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Tutup</button>

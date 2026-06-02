@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import ApprovalPanel from '../components/ApprovalPanel';
+import ApprovalPanel, { type ApprovalRequest } from '../components/ApprovalPanel';
+import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
+import ProductionDetailDrawer from '../components/ProductionDetailDrawer';
 
 interface ApprovalRule {
   id: string;
@@ -32,6 +34,8 @@ export default function ApprovalsPage() {
   const [tab, setTab] = useState<'requests' | 'rules'>('requests');
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
+  const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
+  const [viewRunId, setViewRunId] = useState<string | null>(null);
   const userRole = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null')?.role; } catch { return undefined; }
   }, []);
@@ -91,7 +95,14 @@ export default function ApprovalsPage() {
 
       {/* Requests Tab — pakai ApprovalPanel (semua tipe, sub-tab status) */}
       {tab === 'requests' && (
-        <ApprovalPanel userRole={userRole} />
+        <ApprovalPanel
+          userRole={userRole}
+          onViewDocument={(req: ApprovalRequest) => {
+            if (!req.documentId) return;
+            if (req.documentType === 'PurchaseInvoice') setViewInvoiceId(req.documentId);
+            else if (req.documentType === 'ProductionRun') setViewRunId(req.documentId);
+          }}
+        />
       )}
 
       {/* Rules Tab */}
@@ -173,6 +184,10 @@ export default function ApprovalsPage() {
           setDeleteRuleId(null);
         }}
       />
+
+      {/* Drawer dokumen final (dari tombol "Lihat Dokumen") */}
+      <InvoiceDetailDrawer type="purchase" invoiceId={viewInvoiceId} onClose={() => setViewInvoiceId(null)} />
+      <ProductionDetailDrawer runId={viewRunId} onClose={() => setViewRunId(null)} />
     </div>
   );
 }

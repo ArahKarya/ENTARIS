@@ -266,7 +266,12 @@ export const PurchaseInvoices = () => {
       </div>
 
       {piTab === 'approval' && (
-        <ApprovalPanel documentType="PurchaseInvoice" userRole={userRole} onResubmit={handlePIResubmit} />
+        <ApprovalPanel
+          documentType="PurchaseInvoice"
+          userRole={userRole}
+          onResubmit={handlePIResubmit}
+          onViewDocument={(req) => { if (req.documentId) setSelectedId(req.documentId); }}
+        />
       )}
 
       {piTab === 'list' && (<>
