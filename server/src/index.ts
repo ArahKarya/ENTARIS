@@ -44,6 +44,7 @@ import warehouseRoutes from './routes/warehouses';
 import stockTransferRoutes from './routes/stockTransfers';
 import deliveryOrderRoutes from './routes/deliveryOrders';
 import salesOrderRoutes from './routes/salesOrders';
+import salesReturnRoutes from './routes/salesReturns';
 import goodsReceiptRoutes from './routes/goodsReceipts';
 import purchaseOrderRoutes from './routes/purchaseOrders';
 import { startScheduler } from './jobs/scheduler';
@@ -197,6 +198,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/stock-transfers', stockTransferRoutes);
 app.use('/api/delivery-orders', deliveryOrderRoutes);
 app.use('/api/sales-orders', salesOrderRoutes);
+app.use('/api/sales-returns', salesReturnRoutes);
 app.use('/api/goods-receipts', goodsReceiptRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 

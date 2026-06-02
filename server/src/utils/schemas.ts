@@ -74,6 +74,26 @@ export const CreateSalesInvoiceSchema = z.object({
   allowNegativeStock: z.boolean().optional().default(false),
 });
 
+// ─── Retur Penjualan (Sales Return) ──────────────────────────────────────────
+// Klien hanya mengirim baris invoice yang diretur + qty + flag restock. Harga,
+// cost HPP, dan akun diturunkan server dari baris invoice asal (tidak dipercaya
+// dari klien) untuk mencegah manipulasi nilai.
+export const SalesReturnItemSchema = z.object({
+  salesInvoiceItemId: z.string().min(1, 'Baris invoice wajib dipilih.'),
+  quantity: z.coerce.number().positive('Qty retur harus > 0.'),
+  restock: z.boolean().optional().default(true),
+  // Opsional override gudang tujuan masuk-stok; default = gudang baris invoice.
+  warehouseId: z.string().nullable().optional(),
+});
+
+export const CreateSalesReturnSchema = z.object({
+  salesInvoiceId: z.string().min(1, 'Invoice penjualan wajib dipilih.'),
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  items: z.array(SalesReturnItemSchema).min(1, 'Minimal satu baris retur.'),
+  reason: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
 // ─── Quotation ───────────────────────────────────────────────────────────────
 // Non-binding offer document. No GL impact until converted to a Sales Invoice.
 // Items mirror InvoiceItemSchema (product/service, qty, rate, discount, tax/pph).

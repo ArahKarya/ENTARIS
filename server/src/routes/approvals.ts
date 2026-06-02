@@ -4,7 +4,8 @@ import { roleMiddleware, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
 import { submitProductionRunInTx } from '../services/productionRunSubmit';
-import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
+import { submitSalesReturnInTx } from '../services/salesReturnSubmit';
+import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema } from '../utils/schemas';
 import { notifyUsers } from '../services/notificationService';
 
 const router = Router();
@@ -163,6 +164,13 @@ router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: Auth
           const run = await submitProductionRunInTx(tx, parsed.data as any, creator);
           if (!run) throw new Error('Gagal membuat data produksi.');
           return { id: run.id, number: run.runNumber };
+        }
+        if (request.documentType === 'SalesReturn') {
+          const parsed = CreateSalesReturnSchema.safeParse(request.payload);
+          if (!parsed.success) throw new Error('Payload retur tidak valid: ' + parsed.error.issues[0]?.message);
+          const ret = await submitSalesReturnInTx(tx, parsed.data as any, creator);
+          if (!ret) throw new Error('Gagal membuat retur penjualan.');
+          return { id: ret.id, number: ret.returnNumber };
         }
         throw new Error('Tipe dokumen tidak didukung untuk eksekusi: ' + request.documentType);
       }, { timeout: 30000 });

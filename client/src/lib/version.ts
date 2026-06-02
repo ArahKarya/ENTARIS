@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.6.4';
+export const APP_VERSION = '3.7.0';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.7.0',
+    date: '2026-06-02',
+    title: 'Fitur Retur Penjualan (Sales Return / Credit Note)',
+    changes: [
+      'Retur penjualan dari invoice: pilih item & qty yang diretur (partial), per baris bisa pilih masuk stok kembali (layak jual) atau tidak (rusak)',
+      'Otomatis posting jurnal kontra-revenue (4.3 Retur Penjualan) + balik PPN + balik HPP untuk barang yang masuk stok',
+      'Nilai retur mengurangi piutang invoice; sisanya jadi kredit/uang muka pelanggan untuk invoice berikutnya',
+      'Mendukung approval gate (staff mengajukan, admin menyetujui) dan pembatalan retur (membalik stok & jurnal)',
+    ],
+  },
   {
     version: '3.6.4',
     date: '2026-06-02',

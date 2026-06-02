@@ -89,6 +89,7 @@ model Party {
   salesOrders            SalesOrder[]            @relation("SalesOrderCustomer")
   purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrderSupplier")
   goodsReceipts          GoodsReceipt[]          @relation("GoodsReceiptSupplier")
+  salesReturns           SalesReturn[]
   ledgerEntries          AccountingLedgerEntry[]
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
@@ -199,6 +200,7 @@ model SalesInvoice {
   depositApplications CustomerDepositApplication[] @relation("CustomerDepositApplied")
   quotation           Quotation?                   @relation("QuotationConvertedTo")
   deliveryOrders      DeliveryOrder[]              @relation("DeliveryOrderInvoice")
+  returns             SalesReturn[]
   submittedAt         DateTime?                    @map("submitted_at")
   cancelledAt         DateTime?                    @map("cancelled_at")
   isDummy             Boolean                      @default(false) @map("is_dummy")
@@ -459,6 +461,7 @@ model SalesInvoiceItem {
   deliveryOrderItemId String?             @unique @map("delivery_order_item_id")
   deliveryOrderItem   DeliveryOrderItem?  @relation(fields: [deliveryOrderItemId], references: [id])
   cogsBackfills       CogsBackfillQueue[]
+  returnItems         SalesReturnItem[]
   itemName            String              @map("item_name")
   quantity            Decimal             @db.Decimal(15, 3)
   unit                String
@@ -1808,4 +1811,75 @@ model GoodsReceiptItem {
   @@index([warehouseId])
   @@index([purchaseOrderItemId])
   @@map("goods_receipt_items")
+}
+
+// ─── Retur Penjualan (Sales Return / Credit Note) ──────────────────────────
+// Dokumen retur yang me-refer ke satu SalesInvoice. Submit memposting:
+//   - JE kontra-revenue (DR 4.3 Retur Penjualan + DR PPN Keluaran / CR Piutang
+//     + CR Uang Muka Pelanggan utk sisa kredit)
+//   - opsional stok masuk balik + balik HPP (DR Persediaan / CR HPP) per baris
+//     yang restock=true
+// Bukan mengubah InvoiceStatus — status retur dilacak di dokumen ini sendiri.
+model SalesReturn {
+  id                  String            @id @default(uuid())
+  returnNumber        String            @unique @map("return_number")
+  date                DateTime
+  partyId             String            @map("party_id")
+  customer            Party             @relation(fields: [partyId], references: [id])
+  salesInvoiceId      String            @map("sales_invoice_id")
+  salesInvoice        SalesInvoice      @relation(fields: [salesInvoiceId], references: [id])
+  status              String            @default("Submitted")
+  subtotal            Decimal           @db.Decimal(15, 2)
+  taxAmount           Decimal           @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalReturn         Decimal           @map("total_return") @db.Decimal(15, 2)
+  // Split: berapa yang mengurangi piutang vs jadi kredit (uang muka) pelanggan.
+  arReducedAmount     Decimal           @default(0) @map("ar_reduced_amount") @db.Decimal(15, 2)
+  creditCreatedAmount Decimal           @default(0) @map("credit_created_amount") @db.Decimal(15, 2)
+  // Payment (CustomerDeposit) yang dibuat untuk porsi kredit. Plain scalar.
+  customerDepositId   String?           @map("customer_deposit_id")
+  reason              String?
+  notes               String?
+  fiscalYearId        String            @map("fiscal_year_id")
+  createdBy           String            @map("created_by")
+  items               SalesReturnItem[]
+  submittedAt         DateTime?         @map("submitted_at")
+  cancelledAt         DateTime?         @map("cancelled_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([salesInvoiceId])
+  @@index([status])
+  @@index([date])
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id                 String           @id @default(uuid())
+  salesReturnId      String           @map("sales_return_id")
+  salesReturn        SalesReturn      @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  // Baris invoice asal — sumber harga & guard anti over-retur.
+  salesInvoiceItemId String           @map("sales_invoice_item_id")
+  salesInvoiceItem   SalesInvoiceItem @relation(fields: [salesInvoiceItemId], references: [id])
+  // Scalar (tanpa relation) supaya tak menambah back-relation di banyak model.
+  inventoryItemId    String?          @map("inventory_item_id")
+  warehouseId        String?          @map("warehouse_id")
+  accountId          String           @map("account_id")
+  itemName           String           @map("item_name")
+  quantity           Decimal          @db.Decimal(15, 3)
+  unit               String
+  rate               Decimal          @db.Decimal(15, 2)
+  discount           Decimal          @default(0) @db.Decimal(5, 2)
+  amount             Decimal          @db.Decimal(15, 2)
+  taxPct             Decimal          @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  // true = barang masuk stok kembali (layak jual) + balik HPP; false = rusak.
+  restock            Boolean          @default(true)
+  // Cost HPP asli (dari DO stockMovement / unitCostLoaded / averageCost).
+  unitCostLoaded     Decimal?         @map("unit_cost_loaded") @db.Decimal(20, 4)
+  // StockMovement In yang dibuat bila restock. Plain scalar.
+  stockMovementId    String?          @map("stock_movement_id")
+
+  @@index([salesReturnId])
+  @@index([salesInvoiceItemId])
+  @@map("sales_return_items")
 }

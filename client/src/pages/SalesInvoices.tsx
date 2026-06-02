@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Plus, Search, FileText, ChevronLeft, ChevronRight,
-  DollarSign, AlertTriangle, CheckCircle2, Receipt, Download,
+  DollarSign, AlertTriangle, CheckCircle2, Receipt, Download, Undo2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import SalesInvoiceModal from '../components/SalesInvoiceModal';
+import SalesReturnModal from '../components/SalesReturnModal';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
 import { useDebounce } from '../hooks/useDebounce';
@@ -30,6 +31,7 @@ export const SalesInvoices = () => {
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: raw, isLoading } = useQuery({
@@ -128,6 +130,9 @@ export const SalesInvoices = () => {
             title="Ekspor daftar invoice (sesuai filter) ke Excel"
           >
             <Download size={15} /> Ekspor Excel
+          </button>
+          <button className="btn-secondary" onClick={() => setReturnModalOpen(true)} title="Buat retur penjualan dari invoice">
+            <Undo2 size={15} /> Retur
           </button>
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={15} /> Buat Invoice Baru
@@ -356,6 +361,11 @@ export const SalesInvoices = () => {
       <SalesInvoiceModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      <SalesReturnModal
+        open={returnModalOpen}
+        onClose={() => setReturnModalOpen(false)}
       />
 
       <InvoiceDetailDrawer
