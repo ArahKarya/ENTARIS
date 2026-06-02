@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.5.0';
+export const APP_VERSION = '3.5.1';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.5.1',
+    date: '2026-06-02',
+    title: 'Antrian Approval Produksi Tampil di Tab Proses Produksi',
+    changes: [
+      'Data produksi yang menunggu persetujuan kini tampil sebagai panel kuning di Stok & Gudang → Proses Produksi → Data Produksi',
+      'Admin & staff sama-sama bisa melihat proses mana yang sedang menunggu approval (lengkap dgn input/output)',
+      'Admin bisa Setuju/Tolak langsung dari panel ini tanpa harus ke menu Sistem → Approval',
+    ],
+  },
   {
     version: '3.5.0',
     date: '2026-06-02',

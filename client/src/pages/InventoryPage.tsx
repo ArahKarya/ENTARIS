@@ -15,6 +15,7 @@ import ProductionDashboardTab from '../components/ProductionDashboardTab';
 import ProductionCostStandardsTab from '../components/ProductionCostStandardsTab';
 import ProductionProcessesTab from '../components/ProductionProcessesTab';
 import MachinesTab from '../components/MachinesTab';
+import ProductionApprovalQueue from '../components/ProductionApprovalQueue';
 import ImportModal from '../components/ImportModal';
 import WarehousePicker from '../components/WarehousePicker';
 import { exportToExcel } from '../lib/exportExcel';
@@ -728,6 +729,9 @@ export function InventoryPage() {
 
           {prodSubTab === 'data' && (
           <>
+          {/* Antrian menunggu approval — admin & staff sama-sama lihat */}
+          <ProductionApprovalQueue userRole={userRole} />
+
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-end">
             <div>
