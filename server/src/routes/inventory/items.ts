@@ -94,11 +94,16 @@ router.get('/:id/batches', async (req, res) => {
       currentStock = Number(stockRow?.currentStock ?? 0);
     }
 
-    // 1. All inbound movements (In / AdjustmentIn) for this item/warehouse, non-cancelled
+    // 1. All inbound movements for this item/warehouse, non-cancelled.
+    // TransferIn disertakan: stok yang dipindah antar-gudang membawa cost-nya
+    // (unit_cost = WAC saat transfer) dan layak jadi batch yang bisa dipilih di
+    // gudang tujuan — mis. PK/Glosor diproduksi di GILING lalu ditransfer ke
+    // POLES untuk diproduksi lagi. Konsumsi & FIFO-absorb di bawah sudah
+    // memperhitungkan TransferOut + currentStock per gudang, jadi aman.
     const inboundFilter: any = {
       itemId,
       isCancelled: false,
-      movementType: { in: ['In', 'AdjustmentIn'] },
+      movementType: { in: ['In', 'AdjustmentIn', 'TransferIn'] },
     };
     if (warehouseId) inboundFilter.warehouseId = warehouseId;
 

@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.6.2';
+export const APP_VERSION = '3.6.3';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.6.3',
+    date: '2026-06-02',
+    title: 'Batch Picker Kenali Stok Hasil Transfer Antar-Gudang',
+    changes: [
+      'Batch picker (produksi & penjualan) kini menampilkan stok yang masuk via transfer antar-gudang (TransferIn), lengkap dengan cost-nya',
+      'Sebelumnya: bahan PK/Glosor yang diproduksi di GILING lalu ditransfer ke POLES tidak memunculkan batch/WAC saat dipakai produksi di POLES',
+    ],
+  },
   {
     version: '3.6.2',
     date: '2026-06-02',
