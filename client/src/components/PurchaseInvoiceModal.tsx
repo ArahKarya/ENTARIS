@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { toast } from 'sonner';
 import { X, Plus, Trash2, Loader2, AlertCircle, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
 import WarehousePicker from './WarehousePicker';
@@ -180,6 +181,8 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
     mutationFn: async (data: any) => {
       const res = await api.post('/purchase/invoices', data);
       const invoice = res.data;
+      // Pending approval (non-Admin): dokumen belum dibuat, jangan upload lampiran.
+      if (invoice?.pendingApproval) return invoice;
       // Upload staged attachments (best-effort; failures logged but not rolled back)
       if (stagedFiles.length > 0 && invoice?.id) {
         const fd = new FormData();
@@ -196,8 +199,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       }
       return invoice;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      if (result?.pendingApproval) {
+        toast.success('Invoice dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
+      }
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });

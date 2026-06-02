@@ -17,9 +17,10 @@ interface ApprovalRule {
 interface ApprovalRequest {
   id: string;
   documentType: string;
-  documentId: string;
-  documentNumber: string;
-  amount: number;
+  documentId: string | null;
+  documentNumber: string | null;
+  amount: number | null;
+  payload?: unknown;
   status: string;
   requestedBy: string;
   requester: { fullName: string; role: string };
@@ -35,10 +36,30 @@ const fmtDate = (d: string) => new Date(d).toLocaleDateString('id-ID', { day: '2
 
 const docTypes = [
   { value: 'PurchaseInvoice', label: 'Invoice Pembelian' },
+  { value: 'ProductionRun', label: 'Data Produksi' },
   { value: 'SalesInvoice', label: 'Invoice Penjualan' },
   { value: 'Payment', label: 'Pembayaran' },
   { value: 'JournalEntry', label: 'Jurnal Umum' },
 ];
+
+// Ringkas isi payload submit jadi teks supaya manajer bisa double-check.
+function summarizePayload(documentType: string, payload: any): string[] {
+  if (!payload || typeof payload !== 'object') return [];
+  const lines: string[] = [];
+  if (documentType === 'PurchaseInvoice') {
+    if (payload.date) lines.push(`Tanggal: ${payload.date}`);
+    if (payload.invoiceNumber) lines.push(`No: ${payload.invoiceNumber}`);
+    (payload.items ?? []).forEach((it: any) => {
+      lines.push(`• ${it.itemName ?? '-'} — ${Number(it.quantity ?? 0).toLocaleString('id-ID')} ${it.unit ?? ''} × ${Number(it.rate ?? 0).toLocaleString('id-ID')} = ${Number(it.amount ?? 0).toLocaleString('id-ID')}`);
+    });
+    if (payload.biayaLain) lines.push(`Biaya lain: ${Number(payload.biayaLain).toLocaleString('id-ID')}`);
+  } else if (documentType === 'ProductionRun') {
+    if (payload.date) lines.push(`Tanggal: ${payload.date}`);
+    (payload.inputs ?? []).forEach((it: any) => lines.push(`Input: ${Number(it.quantity ?? 0).toLocaleString('id-ID')} kg (item ${it.itemId?.slice?.(0, 8) ?? '-'})`));
+    (payload.outputs ?? []).forEach((it: any) => lines.push(`Output: ${Number(it.quantity ?? 0).toLocaleString('id-ID')} kg${it.isByProduct ? ' (by-product)' : ''}`));
+  }
+  return lines;
+}
 
 const roles = ['Admin', 'Accountant'];
 
@@ -61,14 +82,22 @@ export default function ApprovalsPage() {
 
   const approveMut = useMutation({
     mutationFn: async (id: string) => (await api.post(`/approvals/requests/${id}/approve`, { notes: '' })).data,
-    onSuccess: () => { toast.success('Request disetujui'); qc.invalidateQueries({ queryKey: ['approval-requests'] }); },
-    onError: () => toast.error('Gagal approve'),
+    onSuccess: (data: any) => {
+      toast.success(data?.createdDocument ? `Disetujui — dokumen ${data.createdDocument.number} dibuat.` : 'Request disetujui');
+      qc.invalidateQueries({ queryKey: ['approval-requests'] });
+      // Dokumen baru dibuat saat approve → refresh daftar terkait.
+      qc.invalidateQueries({ queryKey: ['purchase-invoices'] });
+      qc.invalidateQueries({ queryKey: ['production-runs'] });
+      qc.invalidateQueries({ queryKey: ['inventory-items'] });
+      qc.invalidateQueries({ queryKey: ['stock-movements'] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal approve'),
   });
 
   const rejectMut = useMutation({
     mutationFn: async (id: string) => (await api.post(`/approvals/requests/${id}/reject`, { notes: '' })).data,
     onSuccess: () => { toast.success('Request ditolak'); qc.invalidateQueries({ queryKey: ['approval-requests'] }); },
-    onError: () => toast.error('Gagal reject'),
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal reject'),
   });
 
   const createRuleMut = useMutation({
@@ -139,10 +168,21 @@ export default function ApprovalsPage() {
                     )}>{req.status}</span>
                   </div>
                   <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                    Rp {fmt(Number(req.amount))} | Oleh: {req.requester.fullName} | {fmtDate(req.createdAt)}
+                    {req.documentType === 'ProductionRun' ? `${fmt(Number(req.amount ?? 0))} kg input` : `Rp ${fmt(Number(req.amount ?? 0))}`} | Oleh: {req.requester.fullName} ({req.requester.role}) | {fmtDate(req.createdAt)}
                     {req.approver && ` | Disetujui: ${req.approver.fullName}`}
                     {req.rejecter && ` | Ditolak: ${req.rejecter.fullName}`}
                   </p>
+                  {req.status === 'Pending' && req.payload != null && (() => {
+                    const lines = summarizePayload(req.documentType, req.payload);
+                    return lines.length > 0 ? (
+                      <details className="mt-2 text-xs">
+                        <summary className="cursor-pointer select-none" style={{ color: 'var(--color-text-secondary)' }}>Lihat detail input ({lines.length} baris)</summary>
+                        <div className="mt-1 pl-2 border-l-2 space-y-0.5" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>
+                          {lines.map((l, i) => <div key={i}>{l}</div>)}
+                        </div>
+                      </details>
+                    ) : null;
+                  })()}
                 </div>
                 {req.status === 'Pending' && (
                   <div className="flex gap-2 flex-shrink-0">

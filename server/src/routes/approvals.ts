@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { roleMiddleware, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
+import { submitProductionRunInTx } from '../services/productionRunSubmit';
+import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
 
 const router = Router();
 
@@ -62,11 +65,14 @@ router.delete('/rules/:id', roleMiddleware(['Admin']), async (req, res) => {
 // ── Approval Requests ────────────────────────────────────────────────────────
 
 // GET /requests — list approval requests (pending first)
-router.get('/requests', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.get('/requests', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
   try {
     const { status } = req.query;
     const where: any = {};
     if (status) where.status = status;
+    // Non-Admin hanya lihat request yang mereka ajukan sendiri (transparansi
+    // status); Admin lihat semua antrian untuk di-review.
+    if (req.user!.role !== 'Admin') where.requestedBy = req.user!.userId;
 
     const requests = await prisma.approvalRequest.findMany({
       where,
@@ -129,12 +135,37 @@ router.post('/requests', roleMiddleware(['Admin', 'Accountant']), async (req: Au
   }
 });
 
-// POST /requests/:id/approve
+// POST /requests/:id/approve — eksekusi dokumen dari payload, lalu tandai Approved.
+// Dokumen baru DIBUAT di sini (gate "approve-before-effect"). Submit asli
+// dijalankan dgn requester sbg pembuat dokumen (audit menunjuk si penginput).
 router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
   try {
     const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
     if (!request) return res.status(404).json({ error: 'Request tidak ditemukan.' });
     if (request.status !== 'Pending') return res.status(400).json({ error: 'Request sudah diproses.' });
+
+    let createdDoc: { id: string; number: string } | null = null;
+
+    // Kalau ada payload (gate approve-before-effect) → eksekusi submit asli.
+    if (request.payload != null) {
+      const creator = request.requestedBy;
+      createdDoc = await prisma.$transaction(async (tx) => {
+        if (request.documentType === 'PurchaseInvoice') {
+          const parsed = CreatePurchaseInvoiceSchema.safeParse(request.payload);
+          if (!parsed.success) throw new Error('Payload invoice tidak valid: ' + parsed.error.issues[0]?.message);
+          const inv = await submitPurchaseInvoiceInTx(tx, parsed.data as any, creator);
+          return { id: inv.id, number: inv.invoiceNumber };
+        }
+        if (request.documentType === 'ProductionRun') {
+          const parsed = CreateProductionRunSchema.safeParse(request.payload);
+          if (!parsed.success) throw new Error('Payload produksi tidak valid: ' + parsed.error.issues[0]?.message);
+          const run = await submitProductionRunInTx(tx, parsed.data as any, creator);
+          if (!run) throw new Error('Gagal membuat data produksi.');
+          return { id: run.id, number: run.runNumber };
+        }
+        throw new Error('Tipe dokumen tidak didukung untuk eksekusi: ' + request.documentType);
+      }, { timeout: 30000 });
+    }
 
     const updated = await prisma.approvalRequest.update({
       where: { id: request.id },
@@ -143,13 +174,15 @@ router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: Auth
         approvedBy: req.user!.userId,
         notes: req.body.notes,
         decidedAt: new Date(),
+        ...(createdDoc ? { documentId: createdDoc.id, documentNumber: createdDoc.number } : {}),
       },
     });
 
-    res.json(updated);
-  } catch (error) {
+    logger.info({ requestId: request.id, documentType: request.documentType, createdDoc, approvedBy: req.user!.userId }, 'Approval approved + document executed');
+    res.json({ ...updated, createdDocument: createdDoc });
+  } catch (error: any) {
     logger.error(error, 'POST /approvals/requests/:id/approve error');
-    res.status(500).json({ error: 'Gagal approve request.' });
+    res.status(400).json({ error: error?.message || 'Gagal approve request.' });
   }
 });
 

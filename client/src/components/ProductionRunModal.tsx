@@ -685,16 +685,23 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
           })),
       };
 
+      let pendingApproval = false;
       if (editRun) {
         await api.put(`/inventory/production-runs/${editRun.id}`, fullPayload);
       } else {
-        await api.post('/inventory/production-runs', fullPayload);
+        const res = await api.post('/inventory/production-runs', fullPayload);
+        pendingApproval = res.data?.pendingApproval === true;
       }
       queryClient.invalidateQueries({ queryKey: ['production-runs'] });
       queryClient.invalidateQueries({ queryKey: ['production-run-detail'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success(editRun ? 'Proses produksi berhasil diperbarui.' : 'Proses produksi berhasil dicatat.');
+      queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+      if (pendingApproval) {
+        toast.success('Data produksi dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
+      } else {
+        toast.success(editRun ? 'Proses produksi berhasil diperbarui.' : 'Proses produksi berhasil dicatat.');
+      }
       onClose();
     } catch (err: any) {
       toast.error(err.response?.data?.error || (editRun ? 'Gagal mengedit proses produksi.' : 'Gagal mencatat proses produksi.'));

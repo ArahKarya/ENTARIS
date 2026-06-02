@@ -8,6 +8,7 @@ import { handleRouteError } from '../utils/errors';
 import { cancelPurchaseInvoiceInTx } from '../services/invoiceCancellation';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
 import { revisePurchaseInvoiceInTx } from '../services/purchaseInvoiceRevise';
+import { needsApproval, queueApproval } from '../services/approvalGate';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -108,6 +109,20 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
   if (!body) return;
 
   try {
+    // Approval gate: non-Admin → masuk antrian, dokumen baru dibuat saat approve.
+    if (needsApproval(req.user!.role)) {
+      const amount = (body.items ?? []).reduce((s: number, it: any) => s + Number(it.amount ?? 0), 0) + Number(body.biayaLain ?? 0);
+      const request = await prisma.$transaction((tx) =>
+        queueApproval(tx, {
+          documentType: 'PurchaseInvoice',
+          payload: req.body,
+          amount,
+          requestedBy: req.user!.userId,
+          label: 'Invoice Pembelian (menunggu approval)',
+        }),
+      );
+      return res.status(202).json({ pendingApproval: true, request, message: 'Invoice menunggu persetujuan manajer sebelum diproses.' });
+    }
     const result = await prisma.$transaction(
       (tx) => submitPurchaseInvoiceInTx(tx, body, req.user!.userId),
       { timeout: 15000 },

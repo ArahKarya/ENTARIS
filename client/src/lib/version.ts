@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.4.7';
+export const APP_VERSION = '3.5.0';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.5.0',
+    date: '2026-06-02',
+    title: 'Approval Manajer untuk Invoice Pembelian & Data Produksi',
+    changes: [
+      'Invoice Pembelian & Data Produksi yang diinput oleh non-Admin (StaffProduksi/Accountant) kini MENUNGGU persetujuan Admin sebelum diproses',
+      'Dokumen baru dibuat HANYA setelah disetujui — sebelum approve, GL/stok/HPP belum bergerak (data laporan tidak terkontaminasi input yang belum dicek)',
+      'Halaman Sistem → Approval: lihat antrian, buka detail input (item/qty/harga), Setujui atau Tolak. Reject = dibuang tanpa jejak GL',
+      'Admin input langsung jadi tanpa approval; staff bisa lihat status pengajuan mereka sendiri',
+    ],
+  },
   {
     version: '3.4.7',
     date: '2026-06-01',

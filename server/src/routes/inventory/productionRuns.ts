@@ -7,6 +7,7 @@ import { handleRouteError } from '../../utils/errors';
 import { cancelProductionRunInTx } from '../../services/productionRunCancel';
 import { submitProductionRunInTx } from '../../services/productionRunSubmit';
 import { editProductionRunInTx } from '../../services/productionRunEdit';
+import { needsApproval, queueApproval } from '../../services/approvalGate';
 import { logger } from '../../lib/logger';
 
 const router = Router();
@@ -127,6 +128,20 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
   }
 
   try {
+    // Approval gate: non-Admin → masuk antrian, dokumen baru dibuat saat approve.
+    if (needsApproval(req.user!.role)) {
+      const amount = (body.inputs ?? []).reduce((s: number, it: any) => s + Number(it.quantity ?? 0), 0);
+      const request = await prisma.$transaction((tx) =>
+        queueApproval(tx, {
+          documentType: 'ProductionRun',
+          payload: req.body,
+          amount,
+          requestedBy: req.user!.userId,
+          label: 'Data Produksi (Input bahan baku)',
+        }),
+      );
+      return res.status(202).json({ pendingApproval: true, request, message: 'Data produksi menunggu persetujuan manajer sebelum diproses.' });
+    }
     const result = await prisma.$transaction(
       (tx) => submitProductionRunInTx(tx, body, req.user!.userId),
       { timeout: 30000 },

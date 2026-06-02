@@ -1609,9 +1609,12 @@ model ApprovalRule {
 model ApprovalRequest {
   id             String    @id @default(uuid())
   documentType   String    @map("document_type")
-  documentId     String    @map("document_id")
-  documentNumber String    @map("document_number")
-  amount         Decimal   @db.Decimal(20, 2)
+  // Null sampai disetujui — utk gate "approve-before-effect", dokumen baru
+  // dibuat saat approve. payload menyimpan body submit asli.
+  documentId     String?   @map("document_id")
+  documentNumber String?   @map("document_number")
+  amount         Decimal?  @db.Decimal(20, 2)
+  payload        Json?
   status         String    @default("Pending")
   requestedBy    String    @map("requested_by")
   requester      User      @relation("ApprovalRequester", fields: [requestedBy], references: [id])
