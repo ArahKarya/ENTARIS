@@ -9,6 +9,7 @@ import { cancelPurchaseInvoiceInTx } from '../services/invoiceCancellation';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
 import { revisePurchaseInvoiceInTx } from '../services/purchaseInvoiceRevise';
 import { needsApproval, queueApproval } from '../services/approvalGate';
+import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -121,6 +122,13 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           label: 'Invoice Pembelian (menunggu approval)',
         }),
       );
+      await notifyAdmins({
+        type: 'approval_pending',
+        title: 'Pengajuan menunggu persetujuan',
+        message: `Invoice Pembelian (Rp ${amount.toLocaleString('id-ID')}) menunggu persetujuan Anda.`,
+        metadata: { kind: 'approval', requestId: request.id, documentType: 'PurchaseInvoice' },
+        excludeUserId: req.user!.userId,
+      });
       return res.status(202).json({ pendingApproval: true, request, message: 'Invoice menunggu persetujuan manajer sebelum diproses.' });
     }
     const result = await prisma.$transaction(

@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.6.1';
+export const APP_VERSION = '3.6.2';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.6.2',
+    date: '2026-06-02',
+    title: 'Notifikasi Aktif — Approval & Cek Terjadwal',
+    changes: [
+      'Notifikasi approval otomatis: staff ajukan → Admin diberitahu; disetujui/ditolak/minta-edit → staff pengaju diberitahu',
+      'Cek terjadwal harian (07:00) otomatis kirim notifikasi invoice jatuh tempo + stok rendah (sebelumnya tidak pernah jalan)',
+      'Klik notifikasi langsung diarahkan ke halaman terkait (sesuai role), + menu Notifikasi di sidebar',
+    ],
+  },
   {
     version: '3.6.1',
     date: '2026-06-02',

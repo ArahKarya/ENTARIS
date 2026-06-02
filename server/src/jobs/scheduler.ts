@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { runQuotationSweeper } from './quotationSweeper';
 import { runDueRecurringTemplates } from '../services/recurringRunner';
+import { runNotificationChecks } from '../services/notificationService';
 
 /**
  * Postgres advisory lock helper. Returns true if THIS connection acquired the
@@ -86,6 +87,21 @@ export function startScheduler(): void {
           }
         } catch (err) {
           logger.error({ err }, 'Recurring templates daily run failed');
+        }
+      });
+    }, { timezone: 'Asia/Jakarta' }),
+  );
+
+  // Daily 07:00 Asia/Jakarta: cek invoice jatuh tempo + stok rendah → notifikasi.
+  // Dedup 24h di dalam runNotificationChecks bikin self-healing kalau terlewat.
+  tasks.push(
+    cron.schedule('0 7 * * *', () => {
+      void withAdvisoryLock(BigInt('123456789003'), async () => {
+        try {
+          const { created } = await runNotificationChecks();
+          if (created > 0) logger.info({ created }, 'Notification checks daily run');
+        } catch (err) {
+          logger.error({ err }, 'Notification checks daily run failed');
         }
       });
     }, { timezone: 'Asia/Jakarta' }),

@@ -8,6 +8,7 @@ import { cancelProductionRunInTx } from '../../services/productionRunCancel';
 import { submitProductionRunInTx } from '../../services/productionRunSubmit';
 import { editProductionRunInTx } from '../../services/productionRunEdit';
 import { needsApproval, queueApproval } from '../../services/approvalGate';
+import { notifyAdmins } from '../../services/notificationService';
 import { logger } from '../../lib/logger';
 
 const router = Router();
@@ -140,6 +141,13 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           label: 'Data Produksi (Input bahan baku)',
         }),
       );
+      await notifyAdmins({
+        type: 'approval_pending',
+        title: 'Pengajuan menunggu persetujuan',
+        message: `Data Produksi (${amount.toLocaleString('id-ID')} kg input) menunggu persetujuan Anda.`,
+        metadata: { kind: 'approval', requestId: request.id, documentType: 'ProductionRun' },
+        excludeUserId: req.user!.userId,
+      });
       return res.status(202).json({ pendingApproval: true, request, message: 'Data produksi menunggu persetujuan manajer sebelum diproses.' });
     }
     const result = await prisma.$transaction(

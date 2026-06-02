@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
 import { submitProductionRunInTx } from '../services/productionRunSubmit';
 import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
+import { notifyUsers } from '../services/notificationService';
 
 const router = Router();
 
@@ -178,6 +179,15 @@ router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: Auth
       },
     });
 
+    await notifyUsers(prisma, {
+      userIds: [request.requestedBy],
+      type: 'approval_approved',
+      title: 'Pengajuan Anda disetujui',
+      message: createdDoc
+        ? `Pengajuan disetujui — dokumen ${createdDoc.number} telah dibuat.`
+        : 'Pengajuan Anda telah disetujui.',
+      metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType, documentId: createdDoc?.id },
+    });
     logger.info({ requestId: request.id, documentType: request.documentType, createdDoc, approvedBy: req.user!.userId }, 'Approval approved + document executed');
     res.json({ ...updated, createdDocument: createdDoc });
   } catch (error: any) {
@@ -203,6 +213,13 @@ router.post('/requests/:id/reject', roleMiddleware(['Admin']), async (req: AuthR
       },
     });
 
+    await notifyUsers(prisma, {
+      userIds: [request.requestedBy],
+      type: 'approval_rejected',
+      title: 'Pengajuan ditolak',
+      message: `Pengajuan ditolak: ${req.body.notes ?? '-'}`,
+      metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType },
+    });
     res.json(updated);
   } catch (error) {
     logger.error(error, 'POST /approvals/requests/:id/reject error');
@@ -229,6 +246,13 @@ router.post('/requests/:id/request-revision', roleMiddleware(['Admin']), async (
         notes,
         decidedAt: new Date(),
       },
+    });
+    await notifyUsers(prisma, {
+      userIds: [request.requestedBy],
+      type: 'approval_revision',
+      title: 'Pengajuan perlu revisi',
+      message: `Pengajuan perlu revisi: ${notes}`,
+      metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType },
     });
     logger.info({ requestId: request.id, by: req.user!.userId }, 'Approval request-revision');
     res.json(updated);

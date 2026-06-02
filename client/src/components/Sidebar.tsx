@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Bell,
   LayoutDashboard,
   Receipt,
   ShoppingCart,
@@ -51,6 +52,7 @@ interface NavItem {
 // and group — we treat it as group only (children take precedence).
 const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+  { icon: Bell, label: 'Notifikasi', href: '/notifications' },
 
   {
     icon: ShoppingCart,

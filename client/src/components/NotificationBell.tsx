@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, FileWarning, CreditCard, Package, Info, CheckCheck, X } from 'lucide-react';
+import { Bell, FileWarning, CreditCard, Package, Info, CheckCheck, X, ClipboardCheck, Ban } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { notificationLink, currentUserRole } from '../lib/notificationNav';
 
 interface Notification {
   id: string;
@@ -37,6 +38,14 @@ function notificationIcon(type: string) {
       return <CreditCard size={14} className="text-green-500" />;
     case 'low_stock':
       return <Package size={14} className="text-amber-500" />;
+    case 'approval_pending':
+      return <ClipboardCheck size={14} className="text-amber-500" />;
+    case 'approval_approved':
+      return <CheckCheck size={14} className="text-green-500" />;
+    case 'approval_rejected':
+      return <Ban size={14} className="text-red-500" />;
+    case 'approval_revision':
+      return <FileWarning size={14} className="text-amber-500" />;
     default:
       return <Info size={14} className="text-blue-500" />;
   }
@@ -46,6 +55,7 @@ export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Unread count — poll every 60s
   const { data: unreadData } = useQuery({
@@ -165,6 +175,8 @@ export const NotificationBell = () => {
                   key={notif.id}
                   onClick={() => {
                     if (!notif.isRead) markReadMutation.mutate(notif.id);
+                    const to = notificationLink(notif, currentUserRole());
+                    if (to) { setIsOpen(false); navigate(to); }
                   }}
                   className={cn(
                     'w-full flex items-start gap-2.5 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50',

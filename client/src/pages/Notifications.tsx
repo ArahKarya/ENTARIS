@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import {
   Bell, FileWarning, CreditCard, Package, Info,
-  CheckCheck, Loader2, Filter
+  CheckCheck, Loader2, Filter, ClipboardCheck, Ban
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { notificationLink, currentUserRole } from '../lib/notificationNav';
 
 interface Notification {
   id: string;
@@ -49,6 +51,14 @@ function notificationIcon(type: string) {
       return <CreditCard size={16} className="text-green-500" />;
     case 'low_stock':
       return <Package size={16} className="text-amber-500" />;
+    case 'approval_pending':
+      return <ClipboardCheck size={16} className="text-amber-500" />;
+    case 'approval_approved':
+      return <CheckCheck size={16} className="text-green-500" />;
+    case 'approval_rejected':
+      return <Ban size={16} className="text-red-500" />;
+    case 'approval_revision':
+      return <FileWarning size={16} className="text-amber-500" />;
     default:
       return <Info size={16} className="text-blue-500" />;
   }
@@ -59,6 +69,11 @@ function typeBadge(type: string) {
     invoice_overdue: { label: 'Jatuh Tempo', color: 'badge-red' },
     payment_received: { label: 'Pembayaran', color: 'badge-green' },
     low_stock: { label: 'Stok Rendah', color: 'badge-amber' },
+    approval_pending: { label: 'Approval', color: 'badge-amber' },
+    approval_approved: { label: 'Disetujui', color: 'badge-green' },
+    approval_rejected: { label: 'Ditolak', color: 'badge-red' },
+    approval_revision: { label: 'Revisi', color: 'badge-amber' },
+    quotation_expiring: { label: 'Penawaran', color: 'badge-amber' },
     system: { label: 'Sistem', color: 'badge-gray' },
   };
   const info = labels[type] || labels.system;
@@ -72,6 +87,7 @@ function typeBadge(type: string) {
 export const Notifications = () => {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ['notifications-all'],
@@ -175,6 +191,8 @@ export const Notifications = () => {
               key={notif.id}
               onClick={() => {
                 if (!notif.isRead) markReadMutation.mutate(notif.id);
+                const to = notificationLink(notif, currentUserRole());
+                if (to) navigate(to);
               }}
               className={cn(
                 'flex items-start gap-3 px-5 py-4 cursor-pointer transition-colors',
