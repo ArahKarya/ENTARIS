@@ -15,7 +15,7 @@ import ProductionDashboardTab from '../components/ProductionDashboardTab';
 import ProductionCostStandardsTab from '../components/ProductionCostStandardsTab';
 import ProductionProcessesTab from '../components/ProductionProcessesTab';
 import MachinesTab from '../components/MachinesTab';
-import ProductionApprovalQueue from '../components/ProductionApprovalQueue';
+import ApprovalPanel, { type ApprovalRequest } from '../components/ApprovalPanel';
 import ImportModal from '../components/ImportModal';
 import WarehousePicker from '../components/WarehousePicker';
 import { exportToExcel } from '../lib/exportExcel';
@@ -56,9 +56,11 @@ export function InventoryPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // --- Production tab state ---
-  const [prodSubTab, setProdSubTab] = useState<'dashboard' | 'data' | 'costStandards' | 'processes' | 'machines'>('dashboard');
+  const [prodSubTab, setProdSubTab] = useState<'dashboard' | 'data' | 'approval' | 'costStandards' | 'processes' | 'machines'>('dashboard');
   const [productionModalOpen, setProductionModalOpen] = useState(false);
   const [editProdRun, setEditProdRun] = useState<any | null>(null);
+  const [prodPrefillPayload, setProdPrefillPayload] = useState<any | null>(null);
+  const [prodResubmitId, setProdResubmitId] = useState<string | null>(null);
   const [filterProdStartDate, setFilterProdStartDate] = useState('');
   const [filterProdEndDate, setFilterProdEndDate] = useState('');
   const [cancelProdTarget, setCancelProdTarget] = useState<string | null>(null);
@@ -694,6 +696,15 @@ export function InventoryPage() {
               Data Produksi
             </button>
             <button
+              onClick={() => setProdSubTab('approval')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                prodSubTab === 'approval' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              Approval &amp; Pengajuan
+            </button>
+            <button
               onClick={() => setProdSubTab('costStandards')}
               className={cn(
                 'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
@@ -727,11 +738,21 @@ export function InventoryPage() {
           {prodSubTab === 'processes' && <ProductionProcessesTab userRole={userRole} />}
           {prodSubTab === 'machines' && <MachinesTab userRole={userRole} />}
 
+          {prodSubTab === 'approval' && (
+            <ApprovalPanel
+              documentType="ProductionRun"
+              userRole={userRole}
+              onResubmit={(req: ApprovalRequest) => {
+                setEditProdRun(null);
+                setProdPrefillPayload(req.payload);
+                setProdResubmitId(req.id);
+                setProductionModalOpen(true);
+              }}
+            />
+          )}
+
           {prodSubTab === 'data' && (
           <>
-          {/* Antrian menunggu approval — admin & staff sama-sama lihat */}
-          <ProductionApprovalQueue userRole={userRole} />
-
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-end">
             <div>
@@ -1045,9 +1066,11 @@ export function InventoryPage() {
 
       <ProductionRunModal
         isOpen={productionModalOpen}
-        onClose={() => { setProductionModalOpen(false); setEditProdRun(null); }}
+        onClose={() => { setProductionModalOpen(false); setEditProdRun(null); setProdPrefillPayload(null); setProdResubmitId(null); }}
         items={items}
         editRun={editProdRun}
+        prefillPayload={prodPrefillPayload}
+        resubmitRequestId={prodResubmitId}
       />
 
       <ProductionDetailDrawer

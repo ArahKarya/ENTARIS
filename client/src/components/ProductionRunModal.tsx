@@ -113,11 +113,15 @@ interface Props {
   onClose: () => void;
   items: any[];
   editRun?: any | null;
+  // Resubmit mode: hydrate dari create-body payload (bukan run-record) +
+  // submit ke endpoint resubmit alih-alih create.
+  prefillPayload?: any | null;
+  resubmitRequestId?: string | null;
 }
 
 const today = () => new Date().toISOString().split('T')[0];
 
-export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
+export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPayload, resubmitRequestId }: Props) {
   const queryClient = useQueryClient();
   const [date, setDate] = useState(today());
   const [warehouseId, setWarehouseId] = useState('');
@@ -152,6 +156,55 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
   // Reset form when opened (prefill if editing)
   useEffect(() => {
     if (isOpen) {
+      // ── Resubmit mode: hydrate langsung dari create-body payload ──
+      if (prefillPayload) {
+        const p = prefillPayload;
+        setDate(p.date ? new Date(p.date).toISOString().split('T')[0] : today());
+        setWarehouseId(p.warehouseId ?? '');
+        setReferenceNumber(p.referenceNumber ?? '');
+        setNotes(p.notes ?? '');
+        setInputs(Array.isArray(p.inputs) && p.inputs.length > 0
+          ? p.inputs.map((i: any) => ({
+              itemId: i.itemId ?? '', quantity: String(Number(i.quantity ?? 0)),
+              sourceMovementId: i.sourceMovementId ?? '',
+              batchUnitCost: i.batchUnitCost != null ? String(Number(i.batchUnitCost)) : '',
+            }))
+          : [{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
+        setOutputs(Array.isArray(p.outputs) && p.outputs.length > 0
+          ? p.outputs.map((o: any) => ({
+              itemId: o.itemId ?? '', quantity: String(Number(o.quantity ?? 0)),
+              unitPrice: o.unitPrice != null && Number(o.unitPrice) > 0 ? String(Number(o.unitPrice)) : '',
+              isByProduct: !!o.isByProduct,
+            }))
+          : [{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
+        setCosts(Array.isArray(p.costs)
+          ? p.costs.map((c: any) => ({
+              standardId: c.standardId ?? '', description: c.description ?? '',
+              costSide: c.costSide, basis: c.basis,
+              rate: c.rate != null ? String(Number(c.rate)) : '', costAccountId: c.costAccountId ?? '',
+            }))
+          : []);
+        setHppOverride(p.hppOverride != null ? String(Number(p.hppOverride)) : '');
+        setProcessIds(Array.isArray(p.processIds) ? p.processIds : []);
+        setShift(p.shift ?? '');
+        setShiftLead(p.shiftLead ?? '');
+        setManpowerCount(p.manpowerCount != null ? String(p.manpowerCount) : '');
+        setPlannedStart(p.plannedStart ? toLocalInput(p.plannedStart) : '');
+        setPlannedEnd(p.plannedEnd ? toLocalInput(p.plannedEnd) : '');
+        setBreakStart(p.breakStart ? toLocalInput(p.breakStart) : '');
+        setBreakEnd(p.breakEnd ? toLocalInput(p.breakEnd) : '');
+        setRunMachines(Array.isArray(p.runMachines)
+          ? p.runMachines.map((m: any) => ({ machineId: m.machineId ?? '', startAt: toLocalInput(m.startAt), endAt: toLocalInput(m.endAt) }))
+          : []);
+        setDowntimes(Array.isArray(p.downtimes)
+          ? p.downtimes.map((d: any) => ({ machineId: d.machineId ?? '', category: d.category ?? 'Lain', durationMin: d.durationMin != null ? String(Number(d.durationMin)) : '', reason: d.reason ?? '' }))
+          : []);
+        setOeeOpen(!!(p.shift || p.plannedStart || (Array.isArray(p.runMachines) && p.runMachines.length > 0) || (Array.isArray(p.downtimes) && p.downtimes.length > 0)));
+        setAllowNegativeStock(false);
+        setNegativeStockReason('');
+        setErrors([]);
+        return;
+      }
       if (editRun) {
         const runItems = editRun.items ?? [];
         const inputItems = runItems.filter((i: any) => i.lineType === 'Input');
@@ -272,7 +325,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
       setErrors([]);
       setIsSubmitting(false);
     }
-  }, [isOpen, editRun]);
+  }, [isOpen, editRun, prefillPayload]);
 
   // Phase 3: load master cost standards for the picker.
   // Phase 3b: scope by warehouseId — staff hanya lihat standar yg match dengan
@@ -686,7 +739,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
       };
 
       let pendingApproval = false;
-      if (editRun) {
+      let resubmitted = false;
+      if (resubmitRequestId) {
+        await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: fullPayload });
+        resubmitted = true;
+      } else if (editRun) {
         await api.put(`/inventory/production-runs/${editRun.id}`, fullPayload);
       } else {
         const res = await api.post('/inventory/production-runs', fullPayload);
@@ -697,7 +754,9 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun }: Props) {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
-      if (pendingApproval) {
+      if (resubmitted) {
+        toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');
+      } else if (pendingApproval) {
         toast.success('Data produksi dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
       } else {
         toast.success(editRun ? 'Proses produksi berhasil diperbarui.' : 'Proses produksi berhasil dicatat.');

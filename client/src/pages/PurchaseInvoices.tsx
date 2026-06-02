@@ -10,6 +10,7 @@ import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import PurchaseInvoiceModal from '../components/PurchaseInvoiceModal';
+import ApprovalPanel, { type ApprovalRequest } from '../components/ApprovalPanel';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
 import { useDebounce } from '../hooks/useDebounce';
@@ -37,6 +38,48 @@ export const PurchaseInvoices = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editPrefill, setEditPrefill] = useState<any>(null);
   const [editConfirmTarget, setEditConfirmTarget] = useState<any>(null);
+  const [piTab, setPiTab] = useState<'list' | 'approval'>('list');
+  const [resubmitId, setResubmitId] = useState<string | null>(null);
+  const userRole = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role; } catch { return undefined; }
+  }, []);
+
+  // Resubmit: payload (raw create-body) → modal prefill shape.
+  const handlePIResubmit = (req: ApprovalRequest) => {
+    const p = req.payload ?? {};
+    const prefillItems = (p.items ?? []).map((it: any) => {
+      const isService = !it.inventoryItemId && Number(it.timbanganDiterima ?? 0) === 0;
+      return {
+        id: crypto.randomUUID(),
+        itemType: isService ? 'service' : 'material',
+        itemName: it.itemName ?? '',
+        inventoryItemId: it.inventoryItemId ?? '',
+        warehouseId: it.warehouseId ?? '',
+        description: it.description ?? '',
+        unit: it.unit ?? (isService ? 'pcs' : 'Kg'),
+        kualitas: it.kualitas ?? '',
+        refaksi: Number(it.refaksi ?? 0),
+        timbanganTruk: Number(it.timbanganTruk ?? 0),
+        timbanganDiterima: Number(it.timbanganDiterima ?? it.quantity ?? 0),
+        rate: Number(it.rate ?? 0),
+        taxPct: Number(it.taxPct ?? 0),
+        pphPct: Number(it.pphPct ?? 0),
+        potonganItem: Number(it.potonganItem ?? 0),
+        nomorMobil: it.nomorMobil ?? '',
+        goodsReceiptItemId: it.goodsReceiptItemId ?? null,
+      };
+    });
+    setEditPrefill({
+      date: p.date ? new Date(p.date).toISOString().split('T')[0] : undefined,
+      dueDate: p.dueDate ? new Date(p.dueDate).toISOString().split('T')[0] : undefined,
+      partyId: p.partyId,
+      notes: p.notes ?? '',
+      biayaLain: Number(p.biayaLain ?? 0),
+      items: prefillItems,
+    });
+    setResubmitId(req.id);
+    setIsModalOpen(true);
+  };
   const queryClient = useQueryClient();
 
   // "Edit Lengkap" workflow: cancel old invoice, then open modal prefilled with its data
@@ -202,6 +245,31 @@ export const PurchaseInvoices = () => {
         </div>
       </div>
 
+      {/* Tab: Daftar Invoice | Approval & Pengajuan */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setPiTab('list')}
+          className={piTab === 'list'
+            ? 'px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white'
+            : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200'}
+        >
+          Daftar Invoice
+        </button>
+        <button
+          onClick={() => setPiTab('approval')}
+          className={piTab === 'approval'
+            ? 'px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white'
+            : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200'}
+        >
+          Approval &amp; Pengajuan
+        </button>
+      </div>
+
+      {piTab === 'approval' && (
+        <ApprovalPanel documentType="PurchaseInvoice" userRole={userRole} onResubmit={handlePIResubmit} />
+      )}
+
+      {piTab === 'list' && (<>
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="card px-4 py-3">
@@ -412,11 +480,13 @@ export const PurchaseInvoices = () => {
           </div>
         )}
       </div>
+      </>)}
 
       <PurchaseInvoiceModal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditPrefill(null); }}
+        onClose={() => { setIsModalOpen(false); setEditPrefill(null); setResubmitId(null); }}
         prefill={editPrefill}
+        resubmitRequestId={resubmitId}
       />
 
       <InvoiceDetailDrawer

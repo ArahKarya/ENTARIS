@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.5.2';
+export const APP_VERSION = '3.6.0';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.6.0',
+    date: '2026-06-02',
+    title: 'Tab Approval & Pengajuan + Alur Minta Edit (Revisi)',
+    changes: [
+      'Tab "Approval & Pengajuan" dgn sub-tab status (Menunggu/Disetujui/Ditolak/Perlu Revisi) di halaman Invoice Pembelian, sub-tab Proses Produksi, & halaman Sistem→Approval',
+      'Admin punya 3 aksi: Setuju, Tolak (+alasan), dan Minta Edit (+alasan) yang mengembalikan pengajuan ke staff utk diperbaiki',
+      'Staff melihat riwayat pengajuan miliknya; untuk yg Perlu Revisi bisa "Edit & Ajukan Ulang" (form terisi lengkap) → kembali ke antrian Menunggu',
+      'Detail pengajuan lengkap (input/output/biaya, nama item) sebelum diputuskan',
+    ],
+  },
   {
     version: '3.5.2',
     date: '2026-06-02',

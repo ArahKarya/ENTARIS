@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck, Plus, Check, X, Settings2 } from 'lucide-react';
+import { ShieldCheck, Plus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import ApprovalPanel from '../components/ApprovalPanel';
 
 interface ApprovalRule {
   id: string;
@@ -14,25 +15,7 @@ interface ApprovalRule {
   isActive: boolean;
 }
 
-interface ApprovalRequest {
-  id: string;
-  documentType: string;
-  documentId: string | null;
-  documentNumber: string | null;
-  amount: number | null;
-  payload?: unknown;
-  status: string;
-  requestedBy: string;
-  requester: { fullName: string; role: string };
-  approver?: { fullName: string } | null;
-  rejecter?: { fullName: string } | null;
-  notes: string | null;
-  decidedAt: string | null;
-  createdAt: string;
-}
-
 const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
-const fmtDate = (d: string) => new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const docTypes = [
   { value: 'PurchaseInvoice', label: 'Invoice Pembelian' },
@@ -42,25 +25,6 @@ const docTypes = [
   { value: 'JournalEntry', label: 'Jurnal Umum' },
 ];
 
-// Ringkas isi payload submit jadi teks supaya manajer bisa double-check.
-function summarizePayload(documentType: string, payload: any): string[] {
-  if (!payload || typeof payload !== 'object') return [];
-  const lines: string[] = [];
-  if (documentType === 'PurchaseInvoice') {
-    if (payload.date) lines.push(`Tanggal: ${payload.date}`);
-    if (payload.invoiceNumber) lines.push(`No: ${payload.invoiceNumber}`);
-    (payload.items ?? []).forEach((it: any) => {
-      lines.push(`• ${it.itemName ?? '-'} — ${Number(it.quantity ?? 0).toLocaleString('id-ID')} ${it.unit ?? ''} × ${Number(it.rate ?? 0).toLocaleString('id-ID')} = ${Number(it.amount ?? 0).toLocaleString('id-ID')}`);
-    });
-    if (payload.biayaLain) lines.push(`Biaya lain: ${Number(payload.biayaLain).toLocaleString('id-ID')}`);
-  } else if (documentType === 'ProductionRun') {
-    if (payload.date) lines.push(`Tanggal: ${payload.date}`);
-    (payload.inputs ?? []).forEach((it: any) => lines.push(`Input: ${Number(it.quantity ?? 0).toLocaleString('id-ID')} kg (item ${it.itemId?.slice?.(0, 8) ?? '-'})`));
-    (payload.outputs ?? []).forEach((it: any) => lines.push(`Output: ${Number(it.quantity ?? 0).toLocaleString('id-ID')} kg${it.isByProduct ? ' (by-product)' : ''}`));
-  }
-  return lines;
-}
-
 const roles = ['Admin', 'Accountant'];
 
 export default function ApprovalsPage() {
@@ -68,36 +32,14 @@ export default function ApprovalsPage() {
   const [tab, setTab] = useState<'requests' | 'rules'>('requests');
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
-
-  const { data: requests = [] } = useQuery<ApprovalRequest[]>({
-    queryKey: ['approval-requests'],
-    queryFn: async () => (await api.get('/approvals/requests')).data,
-  });
+  const userRole = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role; } catch { return undefined; }
+  }, []);
 
   const { data: rules = [] } = useQuery<ApprovalRule[]>({
     queryKey: ['approval-rules'],
     queryFn: async () => (await api.get('/approvals/rules')).data,
     enabled: tab === 'rules',
-  });
-
-  const approveMut = useMutation({
-    mutationFn: async (id: string) => (await api.post(`/approvals/requests/${id}/approve`, { notes: '' })).data,
-    onSuccess: (data: any) => {
-      toast.success(data?.createdDocument ? `Disetujui — dokumen ${data.createdDocument.number} dibuat.` : 'Request disetujui');
-      qc.invalidateQueries({ queryKey: ['approval-requests'] });
-      // Dokumen baru dibuat saat approve → refresh daftar terkait.
-      qc.invalidateQueries({ queryKey: ['purchase-invoices'] });
-      qc.invalidateQueries({ queryKey: ['production-runs'] });
-      qc.invalidateQueries({ queryKey: ['inventory-items'] });
-      qc.invalidateQueries({ queryKey: ['stock-movements'] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal approve'),
-  });
-
-  const rejectMut = useMutation({
-    mutationFn: async (id: string) => (await api.post(`/approvals/requests/${id}/reject`, { notes: '' })).data,
-    onSuccess: () => { toast.success('Request ditolak'); qc.invalidateQueries({ queryKey: ['approval-requests'] }); },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal reject'),
   });
 
   const createRuleMut = useMutation({
@@ -121,14 +63,11 @@ export default function ApprovalsPage() {
     });
   };
 
-  const pending = requests.filter((r) => r.status === 'Pending');
-
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <ShieldCheck size={24} className="text-blue-600" />
         <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Approval Workflow</h1>
-        {pending.length > 0 && <span className="badge badge-yellow">{pending.length} pending</span>}
       </div>
 
       {/* Tabs */}
@@ -150,54 +89,9 @@ export default function ApprovalsPage() {
         ))}
       </div>
 
-      {/* Requests Tab */}
+      {/* Requests Tab — pakai ApprovalPanel (semua tipe, sub-tab status) */}
       {tab === 'requests' && (
-        <div className="space-y-2">
-          {requests.length === 0 ? (
-            <div className="card p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Belum ada request approval.</div>
-          ) : requests.map((req) => (
-            <div key={req.id} className="card p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{req.documentNumber}</span>
-                    <span className="badge badge-blue">{docTypes.find((d) => d.value === req.documentType)?.label || req.documentType}</span>
-                    <span className={cn('badge',
-                      req.status === 'Pending' ? 'badge-yellow' :
-                      req.status === 'Approved' ? 'badge-green' : 'badge-red'
-                    )}>{req.status}</span>
-                  </div>
-                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                    {req.documentType === 'ProductionRun' ? `${fmt(Number(req.amount ?? 0))} kg input` : `Rp ${fmt(Number(req.amount ?? 0))}`} | Oleh: {req.requester.fullName} ({req.requester.role}) | {fmtDate(req.createdAt)}
-                    {req.approver && ` | Disetujui: ${req.approver.fullName}`}
-                    {req.rejecter && ` | Ditolak: ${req.rejecter.fullName}`}
-                  </p>
-                  {req.status === 'Pending' && req.payload != null && (() => {
-                    const lines = summarizePayload(req.documentType, req.payload);
-                    return lines.length > 0 ? (
-                      <details className="mt-2 text-xs">
-                        <summary className="cursor-pointer select-none" style={{ color: 'var(--color-text-secondary)' }}>Lihat detail input ({lines.length} baris)</summary>
-                        <div className="mt-1 pl-2 border-l-2 space-y-0.5" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>
-                          {lines.map((l, i) => <div key={i}>{l}</div>)}
-                        </div>
-                      </details>
-                    ) : null;
-                  })()}
-                </div>
-                {req.status === 'Pending' && (
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button onClick={() => approveMut.mutate(req.id)} className="btn-primary text-xs py-1.5 px-3" disabled={approveMut.isPending}>
-                      <Check size={14} /> Setuju
-                    </button>
-                    <button onClick={() => rejectMut.mutate(req.id)} className="btn-secondary text-xs py-1.5 px-3 text-red-600" disabled={rejectMut.isPending}>
-                      <X size={14} /> Tolak
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ApprovalPanel userRole={userRole} />
       )}
 
       {/* Rules Tab */}

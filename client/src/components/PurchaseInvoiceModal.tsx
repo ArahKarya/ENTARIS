@@ -88,9 +88,11 @@ interface PurchaseInvoiceModalProps {
     biayaLain?: number;
     items?: InvoiceItem[];
   } | null;
+  /** Resubmit mode: submit ke endpoint resubmit alih-alih create. */
+  resubmitRequestId?: string | null;
 }
 
-const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onClose, prefill }) => {
+const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onClose, prefill, resubmitRequestId }) => {
   const [invoiceDate, setInvoiceDate] = useState(() => prefill?.date ?? new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(() => prefill?.dueDate ?? new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
   const [partyId, setPartyId] = useState(prefill?.partyId ?? '');
@@ -179,6 +181,11 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      // Resubmit mode: perbarui payload pengajuan & kirim ulang (status → Pending).
+      if (resubmitRequestId) {
+        const res = await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: data });
+        return { ...res.data, resubmitted: true };
+      }
       const res = await api.post('/purchase/invoices', data);
       const invoice = res.data;
       // Pending approval (non-Admin): dokumen belum dibuat, jangan upload lampiran.
@@ -200,7 +207,9 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       return invoice;
     },
     onSuccess: (result: any) => {
-      if (result?.pendingApproval) {
+      if (result?.resubmitted) {
+        toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');
+      } else if (result?.pendingApproval) {
         toast.success('Invoice dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
       }
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
