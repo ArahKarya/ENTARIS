@@ -30,6 +30,8 @@ const movementTypeConfig: Record<string, { label: string; className: string }> =
   Out: { label: 'Keluar', className: 'badge badge-red' },
   AdjustmentIn: { label: 'Penyesuaian +', className: 'badge badge-blue' },
   AdjustmentOut: { label: 'Penyesuaian −', className: 'badge badge-orange' },
+  TransferIn: { label: 'Transfer Masuk', className: 'badge badge-green' },
+  TransferOut: { label: 'Transfer Keluar', className: 'badge badge-orange' },
 };
 
 export function InventoryPage() {
@@ -49,6 +51,7 @@ export function InventoryPage() {
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [editMovement, setEditMovement] = useState<any | null>(null);
   const [filterItemId, setFilterItemId] = useState('');
+  const [filterWarehouseId, setFilterWarehouseId] = useState('');
   const [filterMovementType, setFilterMovementType] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
@@ -97,10 +100,11 @@ export function InventoryPage() {
   const movementFilters = useMemo(() => ({
     limit: 200,
     ...(filterItemId ? { itemId: filterItemId } : {}),
+    ...(filterWarehouseId ? { warehouseId: filterWarehouseId } : {}),
     ...(filterMovementType ? { movementType: filterMovementType } : {}),
     ...(filterStartDate ? { startDate: filterStartDate } : {}),
     ...(filterEndDate ? { endDate: filterEndDate } : {}),
-  }), [filterItemId, filterMovementType, filterStartDate, filterEndDate]);
+  }), [filterItemId, filterWarehouseId, filterMovementType, filterStartDate, filterEndDate]);
 
   const { data: movementsRaw, isLoading: movementsLoading } = useQuery({
     queryKey: ['stock-movements', movementFilters],
@@ -531,7 +535,21 @@ export function InventoryPage() {
                 <option value="Out">Keluar</option>
                 <option value="AdjustmentIn">Penyesuaian +</option>
                 <option value="AdjustmentOut">Penyesuaian −</option>
+                <option value="TransferIn">Transfer Masuk</option>
+                <option value="TransferOut">Transfer Keluar</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Gudang</label>
+              <div className="w-52">
+                <WarehousePicker
+                  value={filterWarehouseId}
+                  onChange={setFilterWarehouseId}
+                  autoDefault={false}
+                  placeholder="— Semua gudang —"
+                  size="sm"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Dari Tanggal</label>
@@ -562,6 +580,7 @@ export function InventoryPage() {
                   <th scope="col">Tanggal</th>
                   <th scope="col">No. Gerakan</th>
                   <th scope="col">Item</th>
+                  <th scope="col">Gudang</th>
                   <th scope="col" className="text-center">Tipe</th>
                   <th scope="col" className="text-right">Kuantitas</th>
                   <th scope="col">Satuan</th>
@@ -574,14 +593,14 @@ export function InventoryPage() {
               <tbody>
                 {movementsLoading ? (
                   <tr>
-                    <td colSpan={10} className="py-16 text-center text-gray-400">
+                    <td colSpan={11} className="py-16 text-center text-gray-400">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
                       Memuat riwayat gerakan stok...
                     </td>
                   </tr>
                 ) : movements.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-16 text-center">
+                    <td colSpan={11} className="py-16 text-center">
                       <PackageSearch className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                       <p className="text-sm text-gray-400">Belum ada riwayat gerakan stok.</p>
                     </td>
@@ -610,6 +629,9 @@ export function InventoryPage() {
                           {mov.item?.code && (
                             <span className="text-xs text-gray-400 uppercase ml-1.5">{mov.item.code}</span>
                           )}
+                        </td>
+                        <td className={cn('text-gray-600 whitespace-nowrap', isCancelled && 'line-through')}>
+                          {mov.warehouse?.name ?? '—'}
                         </td>
                         <td className="text-center">
                           {isCancelled ? (

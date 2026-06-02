@@ -18,12 +18,13 @@ const router = Router();
 // GET /api/inventory/movements
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', itemId, movementType, startDate, endDate } = req.query;
+    const { page = '1', limit = '50', itemId, warehouseId, movementType, startDate, endDate } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
     const skip = (Number(page) - 1) * take;
 
     const where: any = {};
     if (itemId) where.itemId = itemId;
+    if (warehouseId) where.warehouseId = warehouseId;
     if (movementType) where.movementType = movementType;
     if (startDate || endDate) {
       where.date = {};
@@ -36,6 +37,7 @@ router.get('/', async (req, res) => {
         where,
         include: {
           item: { select: { id: true, name: true, code: true, unit: true } },
+          warehouse: { select: { id: true, name: true, code: true } },
           offsetAccount: { select: { id: true, name: true, accountNumber: true } },
         },
         orderBy: [{ movementNumber: 'desc' }],

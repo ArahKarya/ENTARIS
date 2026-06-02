@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.7.0';
+export const APP_VERSION = '3.7.1';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.7.1',
+    date: '2026-06-02',
+    title: 'Filter Gudang di Riwayat Gerakan Stok',
+    changes: [
+      'Riwayat gerakan stok kini bisa difilter per gudang + kolom Gudang ditambahkan',
+      'Tipe gerakan Transfer Masuk/Keluar kini muncul di filter & label',
+    ],
+  },
   {
     version: '3.7.0',
     date: '2026-06-02',
