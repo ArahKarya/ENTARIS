@@ -173,7 +173,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
           </div>
 
           {/* Type + Frequency Row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                 Tipe Transaksi *
@@ -207,7 +207,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
           </div>
 
           {/* Day of Month + Next Run Date */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {(frequency === 'monthly' || frequency === 'quarterly') && (
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>

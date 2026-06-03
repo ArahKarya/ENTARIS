@@ -257,7 +257,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
           {/* Kontak */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Kontak</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Telepon / WhatsApp</label>
                 <div className="relative">

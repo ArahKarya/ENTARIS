@@ -164,7 +164,7 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="recon-date" className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                 Tanggal Statement *

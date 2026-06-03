@@ -83,7 +83,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose }) => {
             <div className="flex items-center justify-center h-64 text-gray-400 text-sm">PO tidak ditemukan.</div>
           ) : (
             <>
-              <div className="px-6 py-5 grid grid-cols-2 gap-6 border-b border-gray-100">
+              <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                     <User size={10} /> Supplier
@@ -101,7 +101,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose }) => {
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                     <Calendar size={10} /> Tanggal
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-gray-400">Tgl PO</p>
                       <p className="text-xs font-medium text-gray-800">{formatDate(doc.date)}</p>

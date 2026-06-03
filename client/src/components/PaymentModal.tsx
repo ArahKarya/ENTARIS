@@ -327,7 +327,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           {/* Payment Type Toggle */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tipe Transaksi</label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {([
                 { t: 'Receive' as PaymentType, label: 'Penerimaan', icon: <TrendingDown size={14} />, activeCls: 'bg-green-600 text-white' },
                 { t: 'Pay' as PaymentType, label: 'Pengeluaran', icon: <TrendingUp size={14} />, activeCls: 'bg-orange-500 text-white' },
@@ -392,7 +392,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           )}
 
           {/* Date & Party */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
               <input
@@ -576,7 +576,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           )}
 
           {/* Reference & Notes */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi</label>
               <input

@@ -53,8 +53,8 @@ export default function SalesReturnsPage() {
         </button>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border border-border rounded-lg overflow-x-auto">
+        <table className="w-full text-sm min-w-[760px]">
           <thead className="bg-muted/50 text-left">
             <tr>
               <th className="px-3 py-2">No. Retur</th>

@@ -156,7 +156,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
             </div>
 
             {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoItem icon={<Calendar size={14} />} label="Tanggal" value={formatDate(payment.date)} />
               <InfoItem icon={<User size={14} />} label="Pihak Terkait" value={payment.party?.name ?? '—'} />
               <InfoItem icon={<CreditCard size={14} />} label="Akun Kas/Bank" value={payment.account?.name ?? '—'} />

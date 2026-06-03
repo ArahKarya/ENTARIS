@@ -271,7 +271,7 @@ const LedgerBook: React.FC = () => {
 
               {/* Expanded detail */}
               {isExpanded && (
-                <div className="border-t border-gray-100">
+                <div className="border-t border-gray-100 table-responsive">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">

@@ -614,11 +614,12 @@
   .card { overflow: hidden; }
   .card .text-lg { font-size: 0.8rem; line-height: 1.15rem; }
   .card .text-xl { font-size: 0.9rem; line-height: 1.25rem; }
+  /* Angka di kartu: biar UTUH terbaca di HP — turun baris bila panjang,
+     JANGAN dipotong dgn ellipsis (sumber keluhan "terpotong"). */
   .card .font-mono,
   .card .tabular-nums {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
     max-width: 100%;
     display: block;
   }
@@ -628,9 +629,8 @@
   .border.rounded-xl .text-2xl {
     font-size: 1.1rem;
     line-height: 1.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .modal-overlay > div {
     max-width: 100% !important;

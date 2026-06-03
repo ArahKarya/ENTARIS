@@ -130,7 +130,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Date & Customer */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
               <input
@@ -195,7 +195,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
           )}
 
           {/* Amount & Account */}
-          <div className={isOpeningBalance ? '' : 'grid grid-cols-2 gap-4'}>
+          <div className={isOpeningBalance ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'}>
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jumlah (Rp)</label>
               <RupiahInput
@@ -224,7 +224,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
           </div>
 
           {/* Reference & Notes */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi</label>
               <input

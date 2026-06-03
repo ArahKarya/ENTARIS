@@ -282,7 +282,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
             </div>
 
             {/* RIGHT — DO meta */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
                 <input

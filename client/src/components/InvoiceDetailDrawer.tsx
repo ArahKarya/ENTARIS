@@ -605,7 +605,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
               </div>
 
               {/* Info Grid */}
-              <div className="px-6 py-4 grid grid-cols-2 gap-6 border-b border-gray-100">
+              <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
                 {/* Party info */}
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
@@ -646,7 +646,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <p className="text-xs text-gray-400">Tanggal</p>
                         <p className="text-xs font-medium text-gray-800">{formatDate(invoice.date)}</p>

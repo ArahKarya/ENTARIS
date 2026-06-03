@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.7.5';
+export const APP_VERSION = '3.7.6';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.7.6',
+    date: '2026-06-03',
+    title: 'Optimasi Tampilan Mobile / PWA',
+    changes: [
+      'Angka di kartu (mis. nilai Rupiah) tidak lagi terpotong di HP — kini turun baris utuh, bukan dipotong "..."',
+      'Form/modal (uang muka, penerimaan, pelanggan, surat jalan, pembayaran, dll) menumpuk rapi 1 kolom di HP (sebelumnya 2-3 kolom sempit)',
+      'Tabel retur penjualan & detail buku besar bisa di-scroll horizontal di HP (tidak terpotong)',
+      'Tampilan desktop tidak berubah',
+    ],
+  },
   {
     version: '3.7.5',
     date: '2026-06-03',

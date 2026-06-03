@@ -200,7 +200,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Tanggal *</label>
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="input w-full" />
@@ -211,7 +211,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PO (opsional)</label>
               <SearchableSelect options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
@@ -226,7 +226,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">
                 Penerima (Internal) <span className="text-gray-400 font-normal">— otomatis dari akun login</span>
