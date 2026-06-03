@@ -215,7 +215,9 @@ export async function editProductionRunInTx(
     if (!batch) throw new BusinessError(`Batch sumber tidak ditemukan untuk input ke-${i + 1}.`);
     if (batch.itemId !== input.itemId) throw new BusinessError(`Batch sumber tidak cocok dengan item input ke-${i + 1}.`);
     if (batch.isCancelled) throw new BusinessError(`Batch sumber sudah dibatalkan (input ke-${i + 1}).`);
-    if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn') {
+    // TransferIn juga sah (lihat productionRunSubmit) — stok hasil transfer
+    // antar-gudang adalah batch input yang valid.
+    if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn' && batch.movementType !== 'TransferIn') {
       throw new BusinessError(`Batch sumber bukan stok masuk (input ke-${i + 1}).`);
     }
     const snapshotCost = input.batchUnitCost != null && input.batchUnitCost >= 0

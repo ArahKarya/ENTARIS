@@ -213,7 +213,10 @@ export async function submitProductionRunInTx(
     if (batch.isCancelled) {
       throw new BusinessError(`Batch sumber sudah dibatalkan (input ke-${i + 1}).`);
     }
-    if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn') {
+    // TransferIn juga sah: stok yang dipindah antar-gudang (mis. PK/Glosor
+    // digiling lalu ditransfer ke Poles) membawa cost-nya & layak jadi batch
+    // input — konsisten dgn batch picker (/items/:id/batches) & stockTransfer.
+    if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn' && batch.movementType !== 'TransferIn') {
       throw new BusinessError(`Batch sumber bukan stok masuk (input ke-${i + 1}).`);
     }
     // Prefer client-supplied batchUnitCost (captured at pick time); fall back

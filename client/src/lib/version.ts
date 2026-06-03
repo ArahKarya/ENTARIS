@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.7.4';
+export const APP_VERSION = '3.7.5';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.7.5',
+    date: '2026-06-03',
+    title: 'Fix: Batch Hasil Transfer Bisa Dipakai Input Produksi',
+    changes: [
+      'Submit/approve & edit produksi kini menerima batch sumber bertipe TransferIn (stok hasil transfer antar-gudang), konsisten dengan batch picker',
+      'Sebelumnya approve produksi yang memakai batch PK/Glosor transfer ke Poles gagal: "Batch sumber bukan stok masuk"',
+    ],
+  },
   {
     version: '3.7.4',
     date: '2026-06-03',
