@@ -89,7 +89,7 @@ router.get('/:id', async (req, res) => {
       include: {
         stocks: {
           where: { currentStock: { not: 0 } },
-          include: { item: { select: { id: true, code: true, name: true, unit: true, averageCost: true } } },
+          include: { item: { select: { id: true, code: true, name: true, unit: true, averageCost: true, category: true } } },
           orderBy: { currentStock: 'desc' },
         },
       },

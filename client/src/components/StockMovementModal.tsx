@@ -5,6 +5,7 @@ import { X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import SearchableSelect from './SearchableSelect';
 import type { SelectOption } from './SearchableSelect';
+import WarehousePicker from './WarehousePicker';
 
 interface StockMovementModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ const today = () => new Date().toISOString().split('T')[0];
 const defaultForm = {
   date: today(),
   itemId: '',
+  warehouseId: '',
   movementType: 'In' as 'In' | 'Out' | 'AdjustmentIn' | 'AdjustmentOut',
   quantity: '',
   unitCost: '',
@@ -39,6 +41,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
         setForm({
           date: editMovement.date ? new Date(editMovement.date).toISOString().split('T')[0] : today(),
           itemId: editMovement.itemId || '',
+          warehouseId: editMovement.warehouseId || '',
           movementType: editMovement.movementType || 'In',
           quantity: editMovement.quantity != null ? String(Number(editMovement.quantity)) : '',
           unitCost: editMovement.unitCost != null ? String(Number(editMovement.unitCost)) : '',
@@ -63,10 +66,14 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
+  // Sertakan warehouseId supaya currentStock tiap item = stok di gudang yang
+  // dipilih (bukan total). Tanpa gudang terpilih → tampil total seperti biasa.
   const { data: itemsRaw } = useQuery({
-    queryKey: ['inventory-items-active'],
+    queryKey: ['inventory-items-active', form.warehouseId],
     queryFn: () =>
-      api.get('/inventory/items', { params: { isActive: 'true' } }).then(r => r.data.data ?? r.data),
+      api.get('/inventory/items', {
+        params: { isActive: 'true', ...(form.warehouseId ? { warehouseId: form.warehouseId } : {}) },
+      }).then(r => r.data.data ?? r.data),
     enabled: isOpen,
   });
   const items: any[] = itemsRaw ?? [];
@@ -149,6 +156,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
 
     if (!isEdit) {
       payload.itemId = form.itemId;
+      payload.warehouseId = form.warehouseId || undefined;
     }
 
     mutation.mutate(payload);
@@ -230,6 +238,27 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               )}
             </div>
 
+            {/* Gudang — read-only saat edit (gudang tidak bisa dipindah lewat edit) */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                Gudang
+              </label>
+              {isEdit ? (
+                <input
+                  type="text"
+                  readOnly
+                  value={editMovement?.warehouse?.name ?? '—'}
+                  className="w-full border border-gray-100 rounded-lg py-2 px-3 text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
+                />
+              ) : (
+                <WarehousePicker
+                  value={form.warehouseId}
+                  onChange={(v) => setForm(f => ({ ...f, warehouseId: v }))}
+                  autoDefault
+                />
+              )}
+            </div>
+
             {/* Tipe Gerakan */}
             <div>
               <label htmlFor="mov-type" className="block text-xs font-semibold text-gray-500 mb-1.5">
@@ -269,7 +298,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               />
               {(selectedItem || editMovement?.item) && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Stok saat ini: {Number((selectedItem || editMovement?.item)?.currentStock ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {(selectedItem || editMovement?.item)?.unit}
+                  {!isEdit && form.warehouseId ? 'Stok di gudang ini' : 'Stok saat ini'}: {Number((selectedItem || editMovement?.item)?.currentStock ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {(selectedItem || editMovement?.item)?.unit}
                 </p>
               )}
             </div>

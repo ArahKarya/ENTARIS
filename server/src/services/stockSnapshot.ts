@@ -35,6 +35,7 @@ export interface SnapshotItem {
   code: string;
   name: string;
   unit: string;
+  category: string | null;  // klasifikasi: Bahan Baku / Produk Jadi / dll
   qty: number;          // stock as-of end-of-date (exact)
   averageCost: number;  // current avg cost (see valuation note)
   value: number;        // qty * averageCost
@@ -84,17 +85,18 @@ export async function buildStockSnapshot(
   // 1. Anchor: live per-warehouse stock (source of truth).
   const liveStocks = await prisma.inventoryStock.findMany({
     where: { warehouseId: { in: whIds } },
-    include: { item: { select: { id: true, code: true, name: true, unit: true, averageCost: true } } },
+    include: { item: { select: { id: true, code: true, name: true, unit: true, averageCost: true, category: true } } },
   });
 
   // key = `${warehouseId}|${itemId}` → qty as-of (Decimal). Seed with live.
   const qtyMap = new Map<string, Decimal>();
-  const itemMap = new Map<string, { id: string; code: string; name: string; unit: string; averageCost: Decimal }>();
+  const itemMap = new Map<string, { id: string; code: string; name: string; unit: string; category: string | null; averageCost: Decimal }>();
   for (const ls of liveStocks) {
     const k = `${ls.warehouseId}|${ls.itemId}`;
     qtyMap.set(k, new Decimal(ls.currentStock.toString()));
     itemMap.set(ls.itemId, {
       id: ls.item.id, code: ls.item.code, name: ls.item.name, unit: ls.item.unit,
+      category: (ls.item as any).category ?? null,
       averageCost: new Decimal((ls.item.averageCost ?? 0).toString()),
     });
   }
@@ -136,11 +138,12 @@ export async function buildStockSnapshot(
   if (missingItemIds.length > 0) {
     const extra = await prisma.inventoryItem.findMany({
       where: { id: { in: missingItemIds } },
-      select: { id: true, code: true, name: true, unit: true, averageCost: true },
+      select: { id: true, code: true, name: true, unit: true, averageCost: true, category: true },
     });
     for (const it of extra) {
       itemMap.set(it.id, {
         id: it.id, code: it.code, name: it.name, unit: it.unit,
+        category: it.category ?? null,
         averageCost: new Decimal((it.averageCost ?? 0).toString()),
       });
     }
@@ -161,6 +164,7 @@ export async function buildStockSnapshot(
         code: meta.code,
         name: meta.name,
         unit: meta.unit,
+        category: meta.category,
         qty,
         averageCost: avg.toDecimalPlaces(2).toNumber(),
         value: qtyDec.mul(avg).toDecimalPlaces(2).toNumber(),

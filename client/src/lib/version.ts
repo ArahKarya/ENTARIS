@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.7.1';
+export const APP_VERSION = '3.7.4';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,32 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.7.4',
+    date: '2026-06-03',
+    title: 'Dashboard Per Gudang Dikelompokkan per Kategori',
+    changes: [
+      'Stok per gudang kini dikelompokkan: Bahan Baku, Barang Setengah Jadi, Produk Jadi, Produk Samping, Perlengkapan/Lainnya, dengan subtotal nilai per kelompok',
+      'Export PDF stok per gudang ikut dikelompokkan per kategori + subtotal',
+    ],
+  },
+  {
+    version: '3.7.3',
+    date: '2026-06-02',
+    title: 'Catat Gerakan: Stok Item Ikut Gudang Terpilih',
+    changes: [
+      'Di form catat gerakan stok, info stok item kini mengikuti gudang yang dipilih (stok per gudang), bukan stok total',
+    ],
+  },
+  {
+    version: '3.7.2',
+    date: '2026-06-02',
+    title: 'Pilih Gudang saat Catat Gerakan Stok',
+    changes: [
+      'Form catat gerakan stok kini punya pilihan gudang (default ke gudang utama, bisa diganti)',
+      'Saat edit, gudang asal ditampilkan read-only',
+    ],
+  },
   {
     version: '3.7.1',
     date: '2026-06-02',

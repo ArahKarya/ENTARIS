@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { groupByCategory } from '../stockCategories';
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -50,6 +51,10 @@ const S = StyleSheet.create({
 
   emptyText: { fontSize: 8, fontStyle: 'italic', color: C.faint, paddingVertical: 6, paddingHorizontal: 6 },
 
+  catHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, paddingHorizontal: 6, backgroundColor: '#eef2f7', borderBottomWidth: 0.5, borderBottomColor: C.border },
+  catHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.mid, letterSpacing: 0.3 },
+  catSubtotal: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.dark },
+
   subtotalRow: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderTopWidth: 0.5, borderTopColor: C.border, backgroundColor: C.bgLight },
   subtotalLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.dark, flex: 1, textAlign: 'right', paddingRight: 6 },
   subtotalValue: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark, width: 90, textAlign: 'right' },
@@ -72,6 +77,7 @@ export interface WarehouseStockItem {
   code: string;
   name: string;
   unit: string;
+  category?: string | null;
   currentStock: number;
   averageCost: number;
 }
@@ -185,26 +191,39 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
                     <Text style={[S.tableHeaderText, S.colCost]}>Avg Cost</Text>
                     <Text style={[S.tableHeaderText, S.colVal]}>Nilai</Text>
                   </View>
-                  {w.items.map((it, idx) => {
-                    const qty = it.currentStock;
-                    const cost = it.averageCost;
-                    const val = qty * cost;
-                    const isNeg = qty < 0;
+                  {groupByCategory(w.items, (it) => it.category).map((group) => {
+                    const groupVal = group.rows.reduce((s, i) => s + i.currentStock * i.averageCost, 0);
                     return (
-                      <View key={`${w.code}-${it.code}`} style={[S.row, idx % 2 === 1 ? S.rowAlt : {}]} wrap={false}>
-                        <Text style={[S.cell, S.colNo, { color: C.faint }]}>{idx + 1}</Text>
-                        <Text style={[S.cell, S.colCode, { fontFamily: 'Helvetica', fontSize: 7.5 }]}>{it.code}</Text>
-                        <Text style={[S.cell, S.colName]}>{it.name}</Text>
-                        <Text style={[S.cell, S.colUnit, { color: C.muted }]}>{it.unit}</Text>
-                        <Text style={[S.cell, S.colNum, { fontFamily: 'Helvetica-Bold', color: isNeg ? C.red : C.dark }]}>
-                          {fmtNum(qty)}
-                        </Text>
-                        <Text style={[S.cell, S.colCost, { color: C.muted }]}>
-                          {cost > 0 ? cost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
-                        </Text>
-                        <Text style={[S.cell, S.colVal, { color: val < 0 ? C.red : C.dark }]}>
-                          {val !== 0 ? idr(val) : '—'}
-                        </Text>
+                      <View key={`${w.code}-${group.label}`}>
+                        <View style={S.catHeaderRow} wrap={false}>
+                          <Text style={S.catHeaderText}>
+                            {group.label.toUpperCase()}  ({group.rows.length} item)
+                          </Text>
+                          <Text style={[S.catSubtotal, { color: groupVal < 0 ? C.red : C.dark }]}>{idr(groupVal)}</Text>
+                        </View>
+                        {group.rows.map((it, idx) => {
+                          const qty = it.currentStock;
+                          const cost = it.averageCost;
+                          const val = qty * cost;
+                          const isNeg = qty < 0;
+                          return (
+                            <View key={`${w.code}-${it.code}`} style={[S.row, idx % 2 === 1 ? S.rowAlt : {}]} wrap={false}>
+                              <Text style={[S.cell, S.colNo, { color: C.faint }]}>{idx + 1}</Text>
+                              <Text style={[S.cell, S.colCode, { fontFamily: 'Helvetica', fontSize: 7.5 }]}>{it.code}</Text>
+                              <Text style={[S.cell, S.colName]}>{it.name}</Text>
+                              <Text style={[S.cell, S.colUnit, { color: C.muted }]}>{it.unit}</Text>
+                              <Text style={[S.cell, S.colNum, { fontFamily: 'Helvetica-Bold', color: isNeg ? C.red : C.dark }]}>
+                                {fmtNum(qty)}
+                              </Text>
+                              <Text style={[S.cell, S.colCost, { color: C.muted }]}>
+                                {cost > 0 ? cost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
+                              </Text>
+                              <Text style={[S.cell, S.colVal, { color: val < 0 ? C.red : C.dark }]}>
+                                {val !== 0 ? idr(val) : '—'}
+                              </Text>
+                            </View>
+                          );
+                        })}
                       </View>
                     );
                   })}

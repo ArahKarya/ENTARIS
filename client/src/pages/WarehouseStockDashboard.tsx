@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { pdf } from '@react-pdf/renderer';
 import { ChevronDown, ChevronRight, Loader2, Warehouse as WhIcon, Star, AlertTriangle, Search, FileDown } from 'lucide-react';
@@ -7,6 +7,7 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
 import WarehouseStockPDF, { type WarehouseBlock } from '../lib/pdf/WarehouseStockPDF';
+import { groupByCategory } from '../lib/stockCategories';
 
 interface Warehouse {
   id: string;
@@ -31,6 +32,7 @@ interface InventoryStockRow {
     name: string;
     unit: string;
     averageCost: number | string;
+    category?: string | null;
   };
 }
 
@@ -110,36 +112,58 @@ function StockSection({ warehouse, search }: { warehouse: Warehouse; search: str
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s) => {
-              const qty = Number(s.currentStock);
-              const cost = Number(s.item.averageCost ?? 0);
-              const value = qty * cost;
-              const isNegative = qty < 0;
+            {groupByCategory(filtered, (s) => s.item.category).map((group) => {
+              const groupValue = group.rows.reduce(
+                (sum, s) => sum + Number(s.currentStock) * Number(s.item.averageCost ?? 0),
+                0,
+              );
               return (
-                <tr key={s.id}>
-                  <td>
-                    <span className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {s.item.code}
-                    </span>
-                  </td>
-                  <td className="font-medium text-foreground">{s.item.name}</td>
-                  <td className="text-xs text-muted-foreground">{s.item.unit}</td>
-                  <td className={cn(
-                    'text-right font-mono tabular-nums',
-                    isNegative ? 'text-red-600 font-semibold' : 'text-foreground',
-                  )}>
-                    {qty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                  </td>
-                  <td className="text-right font-mono tabular-nums text-muted-foreground">
-                    {cost > 0 ? cost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
-                  </td>
-                  <td className={cn(
-                    'text-right font-mono tabular-nums',
-                    isNegative ? 'text-red-600' : 'text-foreground',
-                  )}>
-                    {value !== 0 ? `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` : '—'}
-                  </td>
-                </tr>
+                <Fragment key={group.label}>
+                  {/* Header kategori */}
+                  <tr className="bg-muted/60">
+                    <td colSpan={5} className="font-semibold uppercase tracking-wider text-[11px] text-muted-foreground">
+                      {group.label}
+                      <span className="ml-2 normal-case font-normal text-muted-foreground/70">
+                        ({group.rows.length} item)
+                      </span>
+                    </td>
+                    <td className="text-right font-mono tabular-nums font-semibold text-foreground">
+                      Rp {groupValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                    </td>
+                  </tr>
+                  {group.rows.map((s) => {
+                    const qty = Number(s.currentStock);
+                    const cost = Number(s.item.averageCost ?? 0);
+                    const value = qty * cost;
+                    const isNegative = qty < 0;
+                    return (
+                      <tr key={s.id}>
+                        <td>
+                          <span className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {s.item.code}
+                          </span>
+                        </td>
+                        <td className="font-medium text-foreground">{s.item.name}</td>
+                        <td className="text-xs text-muted-foreground">{s.item.unit}</td>
+                        <td className={cn(
+                          'text-right font-mono tabular-nums',
+                          isNegative ? 'text-red-600 font-semibold' : 'text-foreground',
+                        )}>
+                          {qty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+                        </td>
+                        <td className="text-right font-mono tabular-nums text-muted-foreground">
+                          {cost > 0 ? cost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
+                        </td>
+                        <td className={cn(
+                          'text-right font-mono tabular-nums',
+                          isNegative ? 'text-red-600' : 'text-foreground',
+                        )}>
+                          {value !== 0 ? `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
               );
             })}
           </tbody>
@@ -152,7 +176,7 @@ function StockSection({ warehouse, search }: { warehouse: Warehouse; search: str
 const today = () => new Date().toISOString().slice(0, 10);
 
 interface SnapshotItem {
-  code: string; name: string; unit: string;
+  code: string; name: string; unit: string; category?: string | null;
   qty: number; averageCost: number; value: number;
 }
 interface SnapshotWarehouse {
@@ -198,6 +222,7 @@ export const WarehouseStockDashboard = () => {
           code: s.code,
           name: s.name,
           unit: s.unit,
+          category: s.category,
           currentStock: s.qty,
           averageCost: s.averageCost,
         })),
