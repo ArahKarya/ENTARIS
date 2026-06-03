@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.7.6';
+export const APP_VERSION = '3.7.7';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.7.7',
+    date: '2026-06-03',
+    title: 'Lampiran (Attachment) di Pesanan (SO)',
+    changes: [
+      'Pesanan (SO) kini bisa dilampiri file (PO pelanggan, kontrak, bukti) di drawer detail — sama seperti Surat Jalan & invoice',
+      'Surat Jalan sudah mendukung lampiran sebelumnya (tetap)',
+    ],
+  },
   {
     version: '3.7.6',
     date: '2026-06-03',

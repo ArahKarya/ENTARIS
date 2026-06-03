@@ -6,6 +6,8 @@ import { cn } from '../lib/utils';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
+import AttachmentUpload from './AttachmentUpload';
+import AttachmentPreview from './AttachmentPreview';
 
 interface Props {
   soId: string | null;
@@ -380,6 +382,19 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                 </ul>
               </div>
             )}
+
+            {/* Lampiran — PO pelanggan, kontrak, bukti, dll */}
+            <div className="border-t border-border pt-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                Lampiran (PO Pelanggan / Dokumen)
+              </p>
+              <AttachmentPreview referenceType="sales_order" referenceId={so.id} />
+              {so.status !== 'Cancelled' && (
+                <div className="mt-2">
+                  <AttachmentUpload referenceType="sales_order" referenceId={so.id} />
+                </div>
+              )}
+            </div>
 
             {/* Generate DO inline panel */}
             {genDOOpen && (so.status === 'Submitted' || so.status === 'PartiallyDelivered') && (

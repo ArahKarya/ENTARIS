@@ -61,7 +61,7 @@ router.post(
         return res.status(400).json({ error: 'referenceType dan referenceId wajib diisi.' });
       }
 
-      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt'];
+      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt'];
       if (!ALLOWED_REF_TYPES.includes(referenceType)) {
         return res.status(400).json({
           error: `referenceType harus salah satu dari: ${ALLOWED_REF_TYPES.join(', ')}.`,
@@ -72,7 +72,7 @@ router.post(
       // fisik: invoice pembelian, Surat Jalan, dan STT (incl. bukti jembatan
       // timbang). Tidak boleh untuk payment/journal/sales_invoice murni.
       if (req.user?.role === 'StaffProduksi'
-          && !['purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt'].includes(referenceType)) {
+          && !['purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt'].includes(referenceType)) {
         return res.status(403).json({ error: 'Akses ditolak untuk tipe referensi ini.' });
       }
 
@@ -89,6 +89,9 @@ router.post(
       } else if (referenceType === 'sales_invoice') {
         const si = await prisma.salesInvoice.findUnique({ where: { id: referenceId } });
         if (!si) return res.status(404).json({ error: 'Invoice penjualan tidak ditemukan.' });
+      } else if (referenceType === 'sales_order') {
+        const so = await prisma.salesOrder.findUnique({ where: { id: referenceId } });
+        if (!so) return res.status(404).json({ error: 'Pesanan (SO) tidak ditemukan.' });
       } else if (referenceType === 'delivery_order') {
         const dord = await prisma.deliveryOrder.findUnique({ where: { id: referenceId } });
         if (!dord) return res.status(404).json({ error: 'Surat Jalan tidak ditemukan.' });

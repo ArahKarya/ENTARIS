@@ -4,7 +4,7 @@ import { Upload, Loader2, AlertCircle, X } from 'lucide-react';
 import api from '../lib/api';
 
 interface AttachmentUploadProps {
-  referenceType: 'payment' | 'journal' | 'purchase_invoice' | 'sales_invoice' | 'delivery_order' | 'goods_receipt';
+  referenceType: 'payment' | 'journal' | 'purchase_invoice' | 'sales_invoice' | 'sales_order' | 'delivery_order' | 'goods_receipt';
   referenceId: string;
 }
 
