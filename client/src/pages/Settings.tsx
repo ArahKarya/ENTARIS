@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield,
+  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FiscalYearsTab } from './settings/FiscalYearsTab';
@@ -9,14 +9,16 @@ import { SystemAccountsTab } from '../components/SystemAccountsTab';
 import { TaxConfigTab } from './settings/TaxConfigTab';
 import { BackupTab } from './settings/BackupTab';
 import { AboutTab } from './settings/AboutTab';
+import { NotificationsTab } from './settings/NotificationsTab';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'backup' | 'about'>('fiscal');
+  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'backup' | 'about'>('fiscal');
   const tabs = [
     { id: 'fiscal', label: 'Tahun Buku', icon: Calendar },
     { id: 'company', label: 'Profil Perusahaan', icon: Building2 },
     { id: 'accounts', label: 'Akun Sistem', icon: Shield },
     { id: 'tax', label: 'Pajak', icon: Receipt },
+    { id: 'notifications', label: 'Notifikasi', icon: Send },
     { id: 'backup', label: 'Backup', icon: HardDrive },
     { id: 'about', label: 'Tentang Aplikasi', icon: Info },
   ];
@@ -55,6 +57,7 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'company' && <CompanySettingsTab />}
       {activeTab === 'accounts' && <SystemAccountsTab />}
       {activeTab === 'tax' && <TaxConfigTab />}
+      {activeTab === 'notifications' && <NotificationsTab />}
       {activeTab === 'backup' && <BackupTab />}
       {activeTab === 'about' && <AboutTab />}
     </div>

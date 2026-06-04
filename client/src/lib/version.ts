@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.7.7';
+export const APP_VERSION = '3.8.0';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.8.0',
+    date: '2026-06-04',
+    title: 'Notifikasi Telegram + Menu Konfigurasi',
+    changes: [
+      'Notifikasi sistem (approval, invoice jatuh tempo, stok rendah) bisa dikirim ke grup Telegram',
+      'Menu Pengaturan -> Notifikasi: isi Bot Token & Chat ID, toggle per jenis, tombol Tes Koneksi',
+      'Bot token disimpan aman (write-only, tak pernah ditampilkan kembali); Admin-only',
+    ],
+  },
   {
     version: '3.7.7',
     date: '2026-06-03',

@@ -9,8 +9,15 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import { pushTelegram } from './telegramService';
 
 type Db = Prisma.TransactionClient | typeof prisma;
+
+interface NotifyOpts {
+  // Saat true, jangan kirim ke Telegram di sini (notifyRole mengirim sekali
+  // sendiri agar fan-out ke banyak user tidak jadi banyak pesan grup).
+  skipTelegram?: boolean;
+}
 
 interface NotifyInput {
   userIds: string[];
@@ -21,7 +28,7 @@ interface NotifyInput {
 }
 
 /** Buat notifikasi utk daftar user. Never throws — return jumlah yang dibuat. */
-export async function notifyUsers(db: Db, input: NotifyInput): Promise<number> {
+export async function notifyUsers(db: Db, input: NotifyInput, opts?: NotifyOpts): Promise<number> {
   if (!input.userIds || input.userIds.length === 0) return 0;
   try {
     const res = await db.notification.createMany({
@@ -33,6 +40,11 @@ export async function notifyUsers(db: Db, input: NotifyInput): Promise<number> {
         metadata: input.metadata ?? {},
       })),
     });
+    // Echo ke Telegram (fire-and-forget). notifyRole menyetel skipTelegram agar
+    // fan-out role hanya jadi 1 pesan grup.
+    if (!opts?.skipTelegram) {
+      void pushTelegram({ type: input.type, title: input.title, message: input.message });
+    }
     return res.count;
   } catch (err) {
     logger.error({ err, type: input.type }, 'notifyUsers gagal (diabaikan)');
@@ -54,13 +66,14 @@ export async function notifyRole(
     const userIds = users
       .map((u) => u.id)
       .filter((id) => id !== input.excludeUserId);
-    return await notifyUsers(prisma, {
-      userIds,
-      type: input.type,
-      title: input.title,
-      message: input.message,
-      metadata: input.metadata,
-    });
+    const count = await notifyUsers(
+      prisma,
+      { userIds, type: input.type, title: input.title, message: input.message, metadata: input.metadata },
+      { skipTelegram: true },
+    );
+    // Satu pesan grup utk seluruh fan-out role (bukan per-user).
+    void pushTelegram({ type: input.type, title: input.title, message: input.message });
+    return count;
   } catch (err) {
     logger.error({ err, type: input.type }, 'notifyRole gagal (diabaikan)');
     return 0;

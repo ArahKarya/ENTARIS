@@ -899,3 +899,19 @@ export const RevisePurchaseInvoiceSchema = z.object({
   })).min(1, 'Minimal satu baris untuk direvisi.'),
   reason: z.string().min(10, 'Alasan revisi minimal 10 karakter.').max(500),
 });
+
+// ─── Telegram Notifikasi ─────────────────────────────────────────────────────
+// botToken opsional saat update (kosong/undefined = pertahankan yang tersimpan).
+export const UpdateTelegramConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  botToken: z.string().nullable().optional(),
+  chatId: z.string().nullable().optional(),
+  notifyApproval: z.boolean().optional(),
+  notifyInvoiceOverdue: z.boolean().optional(),
+  notifyLowStock: z.boolean().optional(),
+});
+
+export const TestTelegramSchema = z.object({
+  botToken: z.string().nullable().optional(),
+  chatId: z.string().nullable().optional(),
+});

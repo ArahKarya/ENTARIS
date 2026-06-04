@@ -1883,3 +1883,22 @@ model SalesReturnItem {
   @@index([salesInvoiceItemId])
   @@map("sales_return_items")
 }
+
+// ─── Konfigurasi Notifikasi Telegram (singleton) ───────────────────────────
+// Diisi lewat UI Settings (Admin). bot_token = secret: write-only dari UI
+// (GET tak pernah mengembalikannya). Pengiriman pesan: services/telegramService.
+model TelegramConfig {
+  id                   String   @id @default(uuid())
+  slug                 String   @unique @default("default")
+  enabled              Boolean  @default(false)
+  botToken             String?  @map("bot_token")
+  chatId               String?  @map("chat_id")
+  notifyApproval       Boolean  @default(true) @map("notify_approval")
+  notifyInvoiceOverdue Boolean  @default(true) @map("notify_invoice_overdue")
+  notifyLowStock       Boolean  @default(true) @map("notify_low_stock")
+  updatedBy            String?  @map("updated_by")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("telegram_config")
+}
