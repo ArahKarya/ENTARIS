@@ -5,6 +5,7 @@ import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Paperclip, FileText
 import { formatRupiah } from '../lib/formatters';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
+import Select from './Select';
 import BatchPicker from './BatchPicker';
 
 
@@ -484,12 +485,12 @@ const SalesInvoiceModal: React.FC<{
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Termin Pembayaran</label>
-                <select value={terms} onChange={e => { setTerms(e.target.value); setDueDate(calcDueDate(invoiceDate, e.target.value)); }}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <Select value={terms} onChange={e => { setTerms(e.target.value); setDueDate(calcDueDate(invoiceDate, e.target.value)); }}
+                  className="w-full">
                   {['Cash', 'Net 7', 'Net 14', 'Net 30', 'Net 60'].map(t => (
                     <option key={t}>{t}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi PO / Penawaran (opsional)</label>

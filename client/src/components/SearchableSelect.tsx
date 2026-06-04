@@ -15,6 +15,10 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Tampilkan kotak pencarian. 'auto' = hanya bila opsi banyak (>7). */
+  searchable?: boolean | 'auto';
+  /** Tampilkan tombol clear (X). Mati untuk select wajib (tanpa opsi kosong). */
+  allowClear?: boolean;
   /** Accessible label for the combobox. Falls back to the placeholder. */
   'aria-label'?: string;
 }
@@ -22,7 +26,8 @@ interface Props {
 // Stable IDs so aria-controls / aria-activedescendant point at real DOM ids.
 let comboboxIdSeq = 0;
 
-const SearchableSelect = ({ options, value, onChange, placeholder = '— Pilih —', disabled = false, className = '', 'aria-label': ariaLabel }: Props) => {
+const SearchableSelect = ({ options, value, onChange, placeholder = '— Pilih —', disabled = false, className = '', searchable = 'auto', allowClear = true, 'aria-label': ariaLabel }: Props) => {
+  const showSearch = searchable === 'auto' ? options.length > 7 : searchable;
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightIdx, setHighlightIdx] = useState(-1);
@@ -147,23 +152,23 @@ const SearchableSelect = ({ options, value, onChange, placeholder = '— Pilih �
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Trigger */}
-      {!isOpen ? (
+      {(!isOpen || !showSearch) ? (
         <button
           type="button"
-          onClick={open}
+          onClick={() => (isOpen ? close() : open())}
           disabled={disabled}
           role="combobox"
           aria-haspopup="listbox"
-          aria-expanded={false}
+          aria-expanded={isOpen}
           aria-controls={listboxId}
           aria-label={ariaLabel ?? placeholder}
-          className="w-full flex items-center justify-between border border-gray-200 rounded-lg py-2 px-3 text-sm text-left bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className={`w-full flex items-center justify-between border rounded-lg py-2 px-3 text-sm text-left bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${isOpen ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200'}`}
         >
           <span className={selectedOption ? 'text-gray-900 truncate' : 'text-gray-400 truncate'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-            {value && !disabled && (
+            {allowClear && value && !disabled && (
               <span
                 role="button"
                 aria-label="Hapus pilihan"
@@ -173,7 +178,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder = '— Pilih �
                 <X size={12} className="text-gray-400" />
               </span>
             )}
-            <ChevronDown size={14} className="text-gray-400" />
+            <ChevronDown size={14} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </button>
       ) : (

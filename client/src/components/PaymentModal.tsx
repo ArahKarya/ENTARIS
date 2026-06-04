@@ -5,6 +5,7 @@ import { X, Loader2, AlertCircle, TrendingDown, TrendingUp, CheckCircle2, Paperc
 import { formatRupiah, formatDate } from '../lib/formatters';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
+import Select from './Select';
 
 type PaymentType = 'Receive' | 'Pay' | 'VendorRefund' | 'CustomerRefund';
 
@@ -360,10 +361,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
                 Pembayaran Asal {isDepositRefund ? '(Uang Muka)' : '(opsional)'}
               </label>
-              <select
+              <Select
                 value={refundSourcePaymentId}
                 onChange={e => setRefundSourcePaymentId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full"
               >
                 <option value="">— Tanpa link (generic refund) —</option>
                 {(sourcePayments ?? []).map((p: any) => (
@@ -375,7 +376,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
                       : ` • ${formatRupiah(Number(p.amount))}`}
                   </option>
                 ))}
-              </select>
+              </Select>
               {isDepositRefund ? (
                 <p className="text-[11px] text-purple-600 mt-1">
                   Refund uang muka — sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
@@ -406,16 +407,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
                 {isReceive ? 'Pelanggan' : 'Supplier'}
               </label>
-              <select
+              <Select
                 value={partyId}
                 onChange={e => setPartyId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               >
                 <option value="">— Pilih —</option>
                 {parties?.map((p: any) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -499,16 +500,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           {!splitMode ? (
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Akun Kas/Bank</label>
-              <select
+              <Select
                 value={accountId}
                 onChange={e => setAccountId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               >
                 <option value="">— Pilih Akun —</option>
                 {cashAccounts?.map((a: any) => (
                   <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           ) : (
             <div className="space-y-2 border border-gray-200 rounded-lg p-3">
@@ -517,16 +518,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
               </p>
               {splits.map((sp, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
-                  <select
+                  <Select
                     value={sp.accountId}
                     onChange={(e) => updateSplit(idx, { accountId: e.target.value })}
-                    className="col-span-6 border border-gray-200 rounded-md py-1.5 px-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="col-span-6"
                   >
                     <option value="">— Pilih Akun —</option>
                     {allAccounts?.map((a: any) => (
                       <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
                     ))}
-                  </select>
+                  </Select>
                   <input
                     type="number"
                     value={sp.amount}

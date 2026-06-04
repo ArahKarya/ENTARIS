@@ -3,6 +3,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { X, Copy, Download, Share2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import Select from './Select';
 
 interface Props {
   isOpen: boolean;
@@ -109,15 +110,15 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* Tracking source */}
           <div>
             <label className="text-xs font-medium text-muted-foreground">Tracking sumber (opsional)</label>
-            <select
+            <Select
               value={src}
               onChange={(e) => setSrc(e.target.value)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full mt-1"
             >
               {SRC_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </select>
+            </Select>
             <p className="text-[11px] text-muted-foreground mt-1">
               Setiap inquiry yang masuk dari QR ini akan otomatis di-tag dengan channel terkait.
             </p>

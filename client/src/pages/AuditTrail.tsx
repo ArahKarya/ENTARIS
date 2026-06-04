@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { formatDate, formatTime } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
+import Select from '../components/Select';
 
 interface AuditLogEntry {
   id: string;
@@ -113,7 +114,7 @@ export const AuditTrail = () => {
           {/* User filter */}
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>Pengguna</label>
-            <select
+            <Select
               value={filterUserId}
               onChange={(e) => { setFilterUserId(e.target.value); setPage(1); }}
               className={cn(selectCls, 'w-full')}
@@ -123,13 +124,13 @@ export const AuditTrail = () => {
               {(usersData ?? []).map((u: any) => (
                 <option key={u.id} value={u.id}>{u.fullName}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/* Action filter */}
           <div className="min-w-[140px]">
             <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>Aksi</label>
-            <select
+            <Select
               value={filterAction}
               onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
               className={cn(selectCls, 'w-full')}
@@ -138,7 +139,7 @@ export const AuditTrail = () => {
               {ACTION_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/* Entity type filter */}

@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import Select from './Select';
 
 interface JournalLine {
   accountId: string;
@@ -178,31 +179,31 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
               <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                 Tipe Transaksi *
               </label>
-              <select
+              <Select
                 value={templateType}
                 onChange={(e) => setTemplateType(e.target.value)}
-                className="input-field"
+                className="w-full"
               >
                 <option value="journal">Jurnal Umum</option>
                 <option value="sales_invoice">Invoice Penjualan</option>
                 <option value="purchase_invoice">Invoice Pembelian</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                 Frekuensi *
               </label>
-              <select
+              <Select
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
-                className="input-field"
+                className="w-full"
               >
                 <option value="daily">Harian</option>
                 <option value="weekly">Mingguan</option>
                 <option value="monthly">Bulanan</option>
                 <option value="quarterly">Triwulan</option>
                 <option value="yearly">Tahunan</option>
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -261,10 +262,10 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
               <div className="space-y-2">
                 {lines.map((line, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <select
+                    <Select
                       value={line.accountId}
                       onChange={(e) => updateLine(idx, 'accountId', e.target.value)}
-                      className="input-field flex-1 text-xs"
+                      className="flex-1"
                     >
                       <option value="">Pilih Akun...</option>
                       {accounts.map((acc: any) => (
@@ -272,7 +273,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
                           {acc.accountNumber} - {acc.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <input
                       type="number"
                       min={0}

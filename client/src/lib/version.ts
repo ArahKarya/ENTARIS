@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.8.3';
+export const APP_VERSION = '3.8.5';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,25 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.8.5',
+    date: '2026-06-04',
+    title: 'Dropdown Seragam (Batch 2): Hampir Semua Select',
+    changes: [
+      'Hampir semua dropdown di app (modal transaksi: pembayaran, invoice pembelian, produksi, transfer, uang muka; halaman: SO/PO/penawaran/surat jalan/penerimaan/buku besar/COA/audit/laporan) kini dropdown custom seragam + cari otomatis bila opsi banyak',
+      'Dikecualikan: form aset tetap & aturan approval (pakai form native), serta pemilih satuan inline di baris item',
+    ],
+  },
+  {
+    version: '3.8.4',
+    date: '2026-06-04',
+    title: 'Dropdown Seragam (Batch 1): Gudang, Termin, Filter List',
+    changes: [
+      'Semua pemilih Gudang kini dropdown custom yang rapi + bisa dicari (berlaku di semua form)',
+      'Termin pembayaran & filter status (Invoice Penjualan/Pembelian) + filter Item/Tipe gerakan stok kini dropdown seragam',
+      'Komponen Select baru (pengganti drop-in <select>) untuk konsistensi; sweep dropdown berlanjut bertahap',
+    ],
+  },
   {
     version: '3.8.3',
     date: '2026-06-04',

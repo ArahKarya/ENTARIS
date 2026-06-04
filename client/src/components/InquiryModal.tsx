@@ -5,6 +5,7 @@ import { X, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
+import Select from './Select';
 
 interface InquiryItem {
   id: string;
@@ -205,10 +206,10 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Channel</label>
-              <select value={channel} onChange={(e) => setChannel(e.target.value)}
-                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <Select value={channel} onChange={(e) => setChannel(e.target.value)}
+                className="w-full mt-1">
                 {CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Tindak Lanjut (opsional)</label>
@@ -290,10 +291,10 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                     </div>
                     <div className="col-span-4 md:col-span-2">
                       <label className="text-[11px] text-muted-foreground">Unit</label>
-                      <select value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                        className="w-full mt-1 px-2 py-1.5 text-xs border border-border rounded bg-card">
+                      <Select value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)}
+                        className="w-full mt-1">
                         {UNITS.map((u) => <option key={u}>{u}</option>)}
-                      </select>
+                      </Select>
                     </div>
                     <div className="col-span-4 md:col-span-3">
                       <label className="text-[11px] text-muted-foreground">Est. Harga</label>

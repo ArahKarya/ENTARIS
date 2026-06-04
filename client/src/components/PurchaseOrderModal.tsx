@@ -4,6 +4,7 @@ import { X, Plus, Trash2, Loader2, AlertCircle, ClipboardList } from 'lucide-rea
 import { toast } from 'sonner';
 import api from '../lib/api';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import Select from './Select';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -229,9 +230,9 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose }) => {
                           className="input w-full text-right" />
                       </td>
                       <td className="px-2 py-2">
-                        <select value={it.unit} onChange={(e) => updateItem(idx, { unit: e.target.value })} className="input w-full text-xs">
+                        <Select value={it.unit} onChange={(e) => updateItem(idx, { unit: e.target.value })} className="w-full">
                           {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                        </select>
+                        </Select>
                       </td>
                       <td className="px-2 py-2">
                         <input type="number" step="0.01" value={it.estimatedRate || ''}

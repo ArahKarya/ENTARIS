@@ -4,6 +4,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, Calculator, Info } from 'lucide-re
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
+import Select from '../../components/Select';
 
 interface ItemRow {
   itemId: string;
@@ -97,12 +98,12 @@ export default function ProfitabilityPerSku() {
         </div>
         <div>
           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Basis Margin</label>
-          <select value={basis} onChange={(e) => setBasis(e.target.value as MarginBasis)}
-            className="border rounded-lg px-3 py-2 text-sm" style={{ borderColor: 'var(--color-border)' }}>
+          <Select value={basis} onChange={(e) => setBasis(e.target.value as MarginBasis)}
+            className="w-full" style={{ borderColor: 'var(--color-border)' }}>
             <option value="both">Material + Loaded (side-by-side)</option>
             <option value="material">Material only</option>
             <option value="loaded">Loaded only</option>
-          </select>
+          </Select>
         </div>
       </div>
 

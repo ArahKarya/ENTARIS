@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { X, Plus, Trash2, Loader2, AlertCircle, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
 import WarehousePicker from './WarehousePicker';
+import Select from './Select';
 
 // Rice-mill purchase invoice item.
 // Flow: timbanganTruk (info only) → refaksi (kg deducted) → timbanganDiterima (net received)
@@ -339,12 +340,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
           <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 border-b border-gray-100">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Supplier / Pemasok</p>
-              <select value={partyId} onChange={(e) => setPartyId(e.target.value)} className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2">
+              <Select value={partyId} onChange={(e) => setPartyId(e.target.value)} className="w-full mb-2">
                 <option value="">— Pilih Supplier —</option>
                 {parties?.map((p: any) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
+              </Select>
               {selectedParty && (
                 <div className="text-xs text-gray-500 space-y-0.5 mt-1 pl-1">
                   {selectedParty.email && <p>{selectedParty.email}</p>}
@@ -375,10 +376,10 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                   </label>
                   {fromSTTMode && (
                     <div className="mt-2">
-                      <select
+                      <Select
                         value={selectedSTTId}
                         onChange={(e) => applySTT(e.target.value)}
-                        className="w-full border border-blue-200 rounded-lg py-1.5 px-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full"
                       >
                         <option value="">— Pilih STT yang mau di-invoice —</option>
                         {(pendingSTTs ?? []).map((s: any) => (
@@ -386,7 +387,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                             {s.sttNumber} • {new Date(s.date).toLocaleDateString('id-ID')} • {s.items?.length ?? 0} item
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       {(pendingSTTs ?? []).length === 0 && (
                         <p className="text-[11px] text-blue-600 mt-1">
                           Tidak ada STT pending untuk supplier ini. Buat STT/BPB dulu di menu Pembelian → BPB.
@@ -464,12 +465,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                             <input type="text" value={item.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)} placeholder="Biaya angkutan, jasa giling..." className="w-full bg-transparent text-xs text-gray-800 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400" />
                           ) : (
                             <>
-                              <select value={item.inventoryItemId} onChange={(e) => selectInventoryItem(idx, e.target.value)} className="w-full bg-transparent text-xs text-gray-800 border-none focus:ring-0 focus:outline-none p-0 cursor-pointer">
+                              <Select value={item.inventoryItemId} onChange={(e) => selectInventoryItem(idx, e.target.value)} className="w-full">
                                 <option value="">— Pilih dari Stok —</option>
                                 {inventoryItems?.map((inv: any) => (
                                   <option key={inv.id} value={inv.id}>{inv.code} — {inv.name}</option>
                                 ))}
-                              </select>
+                              </Select>
                               {!item.inventoryItemId && (
                                 <input type="text" value={item.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)} placeholder="atau manual..." className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400" />
                               )}
@@ -563,12 +564,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                         <input type="text" value={item.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)} placeholder="Biaya angkutan, jasa giling..." className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm" />
                       ) : (
                         <>
-                          <select value={item.inventoryItemId} onChange={(e) => selectInventoryItem(idx, e.target.value)} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm">
+                          <Select value={item.inventoryItemId} onChange={(e) => selectInventoryItem(idx, e.target.value)} className="w-full">
                             <option value="">— Pilih dari Stok —</option>
                             {inventoryItems?.map((inv: any) => (
                               <option key={inv.id} value={inv.id}>{inv.name}</option>
                             ))}
-                          </select>
+                          </Select>
                           {!item.inventoryItemId && (
                             <input type="text" value={item.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)} placeholder="Nama manual..." className="w-full mt-1 border border-gray-200 rounded-lg py-2 px-2 text-sm" />
                           )}

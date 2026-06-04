@@ -6,6 +6,7 @@ import { formatRupiah } from '../lib/formatters';
 import RupiahInput from './RupiahInput';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
+import Select from './Select';
 
 interface VendorDepositModalProps {
   isOpen: boolean;
@@ -143,16 +144,16 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Supplier</label>
-              <select
+              <Select
                 value={partyId}
                 onChange={e => setPartyId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               >
                 <option value="">— Pilih Supplier —</option>
                 {suppliers?.map((p: any) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -210,16 +211,16 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
             {!isOpeningBalance && (
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Akun Kas/Bank</label>
-                <select
+                <Select
                   value={accountId}
                   onChange={e => setAccountId(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full"
                 >
                   <option value="">— Pilih Akun —</option>
                   {cashAccounts?.map((a: any) => (
                     <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             )}
           </div>

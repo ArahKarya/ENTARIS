@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { X, Loader2, AlertCircle, User, Mail, Lock, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
+import Select from './Select';
 
 type UserRole = 'Admin' | 'Accountant' | 'StaffProduksi' | 'Viewer';
 
@@ -191,7 +192,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, editUser
             </label>
             <div className="relative">
               <Shield size={14} className={iconCls} style={{ color: 'var(--color-text-muted)' }} />
-              <select
+              <Select
                 value={form.role}
                 onChange={e => set('role', e.target.value)}
                 className={cn(inputCls, 'appearance-none')}
@@ -205,7 +206,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, editUser
                 <option value="Accountant">Accountant</option>
                 <option value="StaffProduksi">Staff Produksi</option>
                 <option value="Viewer">Viewer</option>
-              </select>
+              </Select>
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import Select from '../../components/Select';
 
 interface TaxConfig {
   id: string;
@@ -255,10 +256,10 @@ export const TaxConfigTab: React.FC = () => {
                   <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                     Tipe *
                   </label>
-                  <select
+                  <Select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none"
+                    className="w-full"
                     style={{
                       backgroundColor: 'var(--color-bg-primary)',
                       borderColor: 'var(--color-border)',
@@ -268,7 +269,7 @@ export const TaxConfigTab: React.FC = () => {
                     <option value="sales">Penjualan (PPN Keluaran)</option>
                     <option value="purchase">Pembelian (PPN Masukan)</option>
                     <option value="withholding">Pemotongan (PPh)</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
             </div>

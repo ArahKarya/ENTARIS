@@ -8,6 +8,7 @@ import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
+import Select from './Select';
 
 interface Props {
   soId: string | null;
@@ -347,10 +348,10 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     </div>
                     <div>
                       <label className="text-[11px] text-muted-foreground">Terima ke Kas/Bank</label>
-                      <select value={dpAccountId} onChange={(e) => setDpAccountId(e.target.value)} className="input w-full mt-0.5">
+                      <Select value={dpAccountId} onChange={(e) => setDpAccountId(e.target.value)} className="w-full mt-0.5">
                         <option value="">— Pilih akun —</option>
                         {cashAccounts?.map((a: any) => <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>)}
-                      </select>
+                      </Select>
                     </div>
                     {dpError && (
                       <div className="bg-red-50 border border-red-200 rounded px-2 py-1.5 flex items-center gap-2 text-red-700 text-xs">
@@ -409,10 +410,10 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Gudang Sumber *</label>
-                    <select value={genWarehouseId} onChange={(e) => setGenWarehouseId(e.target.value)} className="input w-full mt-1">
+                    <Select value={genWarehouseId} onChange={(e) => setGenWarehouseId(e.target.value)} className="w-full mt-1">
                       <option value="">— Pilih gudang —</option>
                       {warehouses?.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">No. Mobil</label>

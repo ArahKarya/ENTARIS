@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
+import Select from './Select';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -392,13 +393,13 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                       </td>
                       <td className="px-3 py-3">
                         <div className="relative">
-                          <select
+                          <Select
                             value={item.unit}
                             onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                            className="w-full bg-transparent text-sm text-gray-600 border-none focus:ring-0 focus:outline-none p-0 appearance-none cursor-pointer pr-4"
+                            className="w-full"
                           >
                             {UNITS.map((u) => <option key={u}>{u}</option>)}
-                          </select>
+                          </Select>
                           <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
                         </div>
                       </td>

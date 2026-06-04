@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Package } from 'lucide-react';
 import api from '../lib/api';
+import Select from './Select';
 
 export interface Batch {
   id: string;
@@ -88,7 +89,7 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
 
   return (
     <div className={className}>
-      <select
+      <Select
         value={value}
         onChange={(e) => {
           const id = e.target.value;
@@ -96,7 +97,7 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
           onChange(id, batch);
         }}
         disabled={disabled}
-        className="w-full border border-gray-200 rounded-lg py-1.5 px-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+        className="w-full"
       >
         <option value="">— Pakai WAC (tidak pilih batch) —</option>
         {batches.map((b) => (
@@ -104,7 +105,7 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
             {fmtDate(b.date)} — {fmtNum(b.qtyAvailable)} Kg tersedia (@ Rp {fmtRupiah(b.unitCost)}/Kg) — {b.sourceRef ?? b.movementNumber}
           </option>
         ))}
-      </select>
+      </Select>
       <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
         <Package size={10} />
         {batches.length} batch · total {fmtNum(sumAvailable)} Kg tersedia (FIFO sudah serap outbound legacy)

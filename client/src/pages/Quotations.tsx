@@ -13,6 +13,7 @@ import QuotationModal from '../components/QuotationModal';
 import QuotationDetailDrawer from '../components/QuotationDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
 import { useDebounce } from '../hooks/useDebounce';
+import Select from '../components/Select';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -250,15 +251,15 @@ export const Quotations = () => {
             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <select
+        <Select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-border rounded-lg py-2 px-3 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-44"
         >
           {STATUS_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
-        </select>
+        </Select>
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <span className="text-xs">Dari</span>
           <input

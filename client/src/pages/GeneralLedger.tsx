@@ -13,6 +13,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { toast } from 'sonner';
+import Select from '../components/Select';
 
 export const GeneralLedger = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -309,15 +310,15 @@ export const GeneralLedger = () => {
          <div className="flex items-center gap-2">
            <label className="flex items-center gap-1.5 text-xs text-gray-600">
              Per halaman:
-             <select
+             <Select
                value={pageSize}
                onChange={(e) => setPageSize(Number(e.target.value))}
-               className="border border-gray-200 rounded py-1 px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+               className="w-20"
              >
                {[25, 50, 100, 200].map((n) => (
                  <option key={n} value={n}>{n}</option>
                ))}
-             </select>
+             </Select>
            </label>
            <div className="flex items-center gap-0.5">
              <button

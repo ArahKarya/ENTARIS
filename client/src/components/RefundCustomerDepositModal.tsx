@@ -4,6 +4,7 @@ import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { formatRupiah } from '../lib/formatters';
+import Select from './Select';
 
 interface Deposit {
   id: string;
@@ -147,13 +148,13 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
               className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="0" />
             {Number(cashAmount) > 0 && (
-              <select value={cashAccountId} onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full mt-2 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <Select value={cashAccountId} onChange={(e) => setCashAccountId(e.target.value)}
+                className="w-full mt-2">
                 <option value="">— Pilih akun kas/bank —</option>
                 {(cashAccounts || []).map((a: any) => (
                   <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
                 ))}
-              </select>
+              </Select>
             )}
           </div>
 

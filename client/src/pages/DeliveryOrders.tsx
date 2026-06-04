@@ -11,6 +11,7 @@ import SearchableSelect, { type SelectOption } from '../components/SearchableSel
 import TableRowSkeleton from '../components/TableRowSkeleton';
 import DeliveryOrderModal from '../components/DeliveryOrderModal';
 import DeliveryOrderDetailDrawer from '../components/DeliveryOrderDetailDrawer';
+import Select from '../components/Select';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -129,15 +130,15 @@ export const DeliveryOrders = () => {
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <select
+        <Select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-44"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
-        </select>
+        </Select>
         <div className="w-56">
           <SearchableSelect
             options={partyOptions}

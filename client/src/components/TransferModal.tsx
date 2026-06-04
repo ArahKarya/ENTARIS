@@ -5,6 +5,7 @@ import { X, Loader2, AlertCircle, ArrowRightLeft, CheckCircle2, Paperclip } from
 import { formatRupiah } from '../lib/formatters';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
+import Select from './Select';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -151,10 +152,10 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Akun Asal (Transfer Dari)</label>
-              <select
+              <Select
                 value={sourceAccountId}
                 onChange={e => setSourceAccountId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               >
                 <option value="">— Pilih Akun Asal —</option>
                 {cashAccounts?.map((a: any) => (
@@ -162,7 +163,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
                     {a.accountNumber} — {a.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {/* Arrow indicator */}
@@ -177,10 +178,10 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Akun Tujuan (Transfer Ke)</label>
-              <select
+              <Select
                 value={destAccountId}
                 onChange={e => setDestAccountId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               >
                 <option value="">— Pilih Akun Tujuan —</option>
                 {cashAccounts?.map((a: any) => (
@@ -188,7 +189,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
                     {a.accountNumber} — {a.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 

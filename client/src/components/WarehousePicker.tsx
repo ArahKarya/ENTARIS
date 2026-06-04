@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
+import SearchableSelect from './SearchableSelect';
 
 interface Warehouse {
   id: string;
@@ -32,7 +33,6 @@ export const WarehousePicker: React.FC<Props> = ({
   onChange,
   autoDefault = true,
   className = '',
-  size = 'sm',
   disabled = false,
   placeholder = 'Pilih gudang...',
 }) => {
@@ -56,22 +56,18 @@ export const WarehousePicker: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultWh?.id, autoDefault]);
 
-  const sizeClass = size === 'sm' ? 'text-xs py-1.5 px-2' : 'text-sm py-2 px-3';
-
   return (
-    <select
+    <SearchableSelect
+      options={warehouses.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={onChange}
       disabled={disabled}
-      className={`w-full border border-border rounded bg-card focus:outline-none focus:ring-1 focus:ring-blue-500 ${sizeClass} ${className}`}
-    >
-      <option value="">{placeholder}</option>
-      {warehouses.map((w) => (
-        <option key={w.id} value={w.id}>
-          {w.code} — {w.name}
-        </option>
-      ))}
-    </select>
+      placeholder={placeholder}
+      className={className}
+      searchable="auto"
+      allowClear={!autoDefault}
+      aria-label={placeholder}
+    />
   );
 };
 

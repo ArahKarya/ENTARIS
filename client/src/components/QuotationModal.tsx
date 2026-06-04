@@ -6,6 +6,7 @@ import { formatRupiah } from '../lib/formatters';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
+import Select from './Select';
 
 interface QuotationItem {
   id: string;
@@ -396,10 +397,10 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
                     </div>
                     <div className="col-span-4 md:col-span-2">
                       <label className="text-[11px] text-muted-foreground">Unit</label>
-                      <select value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                        className="w-full mt-1 px-2 py-1.5 text-xs border border-border rounded bg-card focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <Select value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)}
+                        className="w-full mt-1">
                         {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </select>
+                      </Select>
                     </div>
                     <div className="col-span-4 md:col-span-3">
                       <label className="text-[11px] text-muted-foreground">Harga Satuan</label>

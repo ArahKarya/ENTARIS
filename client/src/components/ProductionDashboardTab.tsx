@@ -4,6 +4,7 @@ import { Loader2, Factory, TrendingUp, TrendingDown, Package, ArrowDown, ArrowUp
 import { cn } from '../lib/utils';
 import api from '../lib/api';
 import { formatDate } from '../lib/formatters';
+import Select from './Select';
 
 const fmtNum = (val: number, decimals = 0) =>
   Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
@@ -84,16 +85,16 @@ export default function ProductionDashboardTab({ items = [] }: Props) {
           </div>
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Produk</label>
-            <select
+            <Select
               value={itemId}
               onChange={e => setItemId(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full"
             >
               <option value="">Semua Produk</option>
               {items.filter((i: any) => i.isActive !== false).map((i: any) => (
                 <option key={i.id} value={i.id}>{i.code} — {i.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
           {(startDate !== thisMonthStr() || endDate !== todayStr() || itemId) && (
             <button

@@ -18,6 +18,7 @@ import MachinesTab from '../components/MachinesTab';
 import ApprovalPanel, { type ApprovalRequest } from '../components/ApprovalPanel';
 import ImportModal from '../components/ImportModal';
 import WarehousePicker from '../components/WarehousePicker';
+import Select from '../components/Select';
 import { exportToExcel } from '../lib/exportExcel';
 
 type TabType = 'dashboard' | 'items' | 'movements' | 'production' | 'services';
@@ -510,34 +511,38 @@ export function InventoryPage() {
           <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Item</label>
-              <select
-                value={filterItemId}
-                onChange={e => setFilterItemId(e.target.value)}
-                className="border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Semua Item</option>
-                {items.map((item: any) => (
-                  <option key={item.id} value={item.id}>
-                    {item.code} — {item.name}
-                  </option>
-                ))}
-              </select>
+              <div className="w-64">
+                <Select
+                  value={filterItemId}
+                  onChange={e => setFilterItemId(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="">Semua Item</option>
+                  {items.map((item: any) => (
+                    <option key={item.id} value={item.id}>
+                      {item.code} — {item.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Tipe</label>
-              <select
-                value={filterMovementType}
-                onChange={e => setFilterMovementType(e.target.value)}
-                className="border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Semua Tipe</option>
-                <option value="In">Masuk</option>
-                <option value="Out">Keluar</option>
-                <option value="AdjustmentIn">Penyesuaian +</option>
-                <option value="AdjustmentOut">Penyesuaian −</option>
-                <option value="TransferIn">Transfer Masuk</option>
-                <option value="TransferOut">Transfer Keluar</option>
-              </select>
+              <div className="w-44">
+                <Select
+                  value={filterMovementType}
+                  onChange={e => setFilterMovementType(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="">Semua Tipe</option>
+                  <option value="In">Masuk</option>
+                  <option value="Out">Keluar</option>
+                  <option value="AdjustmentIn">Penyesuaian +</option>
+                  <option value="AdjustmentOut">Penyesuaian −</option>
+                  <option value="TransferIn">Transfer Masuk</option>
+                  <option value="TransferOut">Transfer Keluar</option>
+                </Select>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Gudang</label>
@@ -1050,13 +1055,13 @@ export function InventoryPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Akun Pendapatan</label>
-                <select value={serviceForm.accountId} onChange={e => setServiceForm({ ...serviceForm, accountId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <Select value={serviceForm.accountId} onChange={e => setServiceForm({ ...serviceForm, accountId: e.target.value })}
+                  className="w-full">
                   <option value="">— Pilih Akun —</option>
                   {revenueAccounts?.map((acc: any) => (
                     <option key={acc.id} value={acc.id}>{acc.accountNumber} — {acc.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Deskripsi</label>

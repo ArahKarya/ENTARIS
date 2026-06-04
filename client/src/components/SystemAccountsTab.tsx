@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { Save, Loader2, AlertTriangle, Plus, X, ChevronDown, ChevronRight, CheckCircle2, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
+import Select from './Select';
 
 interface RoleMeta {
   key: string;
@@ -416,14 +417,14 @@ export const SystemAccountsTab: React.FC = () => {
                                 const acc = accounts?.find((a) => a.id === accId);
                                 return (
                                   <div key={`${accId}-${idx}`} className="flex items-center gap-1">
-                                    <select
+                                    <Select
                                       value={accId}
                                       onChange={(e) => {
                                         const newIds = [...selectedIds];
                                         newIds[idx] = e.target.value;
                                         updateRole(roleKey, newIds);
                                       }}
-                                      className="flex-1 text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                      className="flex-1"
                                     >
                                       <option value={accId}>
                                         {acc ? `${acc.accountNumber} - ${acc.name}` : accId}
@@ -435,7 +436,7 @@ export const SystemAccountsTab: React.FC = () => {
                                             {a.accountNumber} - {a.name}
                                           </option>
                                         ))}
-                                    </select>
+                                    </Select>
                                     <button
                                       onClick={() => {
                                         updateRole(roleKey, selectedIds.filter((_, i) => i !== idx));
@@ -469,7 +470,7 @@ export const SystemAccountsTab: React.FC = () => {
                             // Single account selector
                             <div className="space-y-1">
                               <div className="relative">
-                                <select
+                                <Select
                                   value={selectedIds[0] ?? ''}
                                   onChange={(e) => {
                                     updateRole(roleKey, e.target.value ? [e.target.value] : []);
@@ -485,7 +486,7 @@ export const SystemAccountsTab: React.FC = () => {
                                       {acc.accountNumber} - {acc.name}
                                     </option>
                                   ))}
-                                </select>
+                                </Select>
                                 <ChevronDown
                                   size={14}
                                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"

@@ -10,6 +10,7 @@ import { formatDate } from '../lib/formatters';
 import InquiryModal from '../components/InquiryModal';
 import InquiryDetailDrawer from '../components/InquiryDetailDrawer';
 import InquiryQRModal from '../components/InquiryQRModal';
+import Select from '../components/Select';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Semua Status' },
@@ -150,15 +151,15 @@ export const Inquiries = () => {
             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-border rounded-lg py-2 px-3 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="w-full">
           {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <select value={channelFilter} onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
-          className="border border-border rounded-lg py-2 px-3 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </Select>
+        <Select value={channelFilter} onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
+          className="w-full">
           <option value="">Semua Channel</option>
           {Object.entries(CHANNEL_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
+        </Select>
         {(searchTerm || statusFilter || channelFilter) && (
           <button onClick={() => { setSearchTerm(''); setStatusFilter(''); setChannelFilter(''); setPage(1); }}
             className="text-xs text-blue-600 hover:text-blue-700 font-medium">

@@ -8,6 +8,7 @@ import type { SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
 import BatchPicker from './BatchPicker';
 import type { Batch } from './BatchPicker';
+import Select from './Select';
 
 interface LineItem {
   itemId: string;
@@ -1093,16 +1094,16 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">Shift</label>
-                      <select
+                      <Select
                         value={shift}
                         onChange={e => setShift(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="w-full"
                       >
                         <option value="">— Pilih shift —</option>
                         <option value="1">Shift 1</option>
                         <option value="2">Shift 2</option>
                         <option value="3">Shift 3</option>
-                      </select>
+                      </Select>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">Kepala Shift</label>
@@ -1151,10 +1152,10 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                           return (
                             <div key={idx} className="border border-gray-100 rounded-lg p-2.5 bg-gray-50/50 space-y-2">
                               <div className="flex gap-2 items-center">
-                                <select
+                                <Select
                                   value={m.machineId}
                                   onChange={e => updateMachine(idx, { machineId: e.target.value })}
-                                  className="flex-1 min-w-0 text-sm py-2 px-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="flex-1 min-w-0"
                                 >
                                   <option value="">— Pilih mesin —</option>
                                   {machines.map(opt => (
@@ -1163,7 +1164,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                                       {opt.idealRatePerHour != null ? ` (${Number(opt.idealRatePerHour).toLocaleString('id-ID')} ${opt.unit}/jam)` : ''}
                                     </option>
                                   ))}
-                                </select>
+                                </Select>
                                 <button
                                   type="button"
                                   onClick={() => removeMachine(idx)}
@@ -1246,10 +1247,10 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                       <div className="space-y-2">
                         {downtimes.map((d, idx) => (
                           <div key={idx} className="border border-gray-100 rounded-lg p-2 bg-gray-50/50 flex flex-wrap gap-2 items-center">
-                            <select
+                            <Select
                               value={d.machineId}
                               onChange={e => updateDowntime(idx, { machineId: e.target.value })}
-                              className="text-xs py-1.5 px-2 border border-gray-200 rounded bg-white max-w-[160px]"
+                              className="max-w-[160px]"
                             >
                               <option value="">— Semua / line —</option>
                               {runMachines.filter(m => m.machineId).map(m => {
@@ -1260,16 +1261,16 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                                   </option>
                                 );
                               })}
-                            </select>
-                            <select
+                            </Select>
+                            <Select
                               value={d.category}
                               onChange={e => updateDowntime(idx, { category: e.target.value })}
-                              className="text-xs py-1.5 px-2 border border-gray-200 rounded bg-white"
+                              className="w-full"
                             >
                               {DOWNTIME_CATEGORIES.map(c => (
                                 <option key={c} value={c}>{c}</option>
                               ))}
-                            </select>
+                            </Select>
                             <div className="flex items-center gap-1">
                               <input
                                 type="number"
@@ -1650,10 +1651,10 @@ function CostSectionUI({
             return (
             <div key={idx} className="border border-gray-100 rounded-lg p-2 bg-gray-50/50 space-y-1.5">
               <div className="flex gap-2 items-center">
-                <select
+                <Select
                   value={c.standardId}
                   onChange={(e) => onPickStandard(idx, e.target.value)}
-                  className="text-xs py-1 px-2 border border-gray-200 rounded bg-white flex-1 min-w-0"
+                  className="flex-1 min-w-0"
                 >
                   <option value="">— Manual (free input) —</option>
                   {availableStandards.map(s => (
@@ -1661,16 +1662,16 @@ function CostSectionUI({
                       {s.name} (default Rp {Number(s.defaultRate)})
                     </option>
                   ))}
-                </select>
-                <select
+                </Select>
+                <Select
                   value={c.basis}
                   onChange={(e) => onUpdate(idx, { basis: e.target.value as CostLine['basis'] })}
-                  className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
+                  className="w-full"
                 >
                   <option value="InputQty">× qty input</option>
                   <option value="OutputQty">× qty output</option>
                   <option value="Fixed">Flat (run)</option>
-                </select>
+                </Select>
                 <button
                   type="button"
                   onClick={() => onRemove(idx)}

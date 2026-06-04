@@ -6,6 +6,7 @@ import { formatRupiah } from '../lib/formatters';
 import SearchableSelect from './SearchableSelect';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
+import Select from './Select';
 
 interface SOItem {
   id: string;
@@ -282,9 +283,9 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <select value={it.unit} onChange={(e) => updateItem(it.id, { unit: e.target.value })} className="input w-full">
+                        <Select value={it.unit} onChange={(e) => updateItem(it.id, { unit: e.target.value })} className="w-full">
                           {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                        </select>
+                        </Select>
                       </td>
                       <td className="px-3 py-2">
                         <input

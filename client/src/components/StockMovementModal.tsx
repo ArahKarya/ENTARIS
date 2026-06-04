@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import SearchableSelect from './SearchableSelect';
 import type { SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
+import Select from './Select';
 
 interface StockMovementModalProps {
   isOpen: boolean;
@@ -264,19 +265,17 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               <label htmlFor="mov-type" className="block text-xs font-semibold text-gray-500 mb-1.5">
                 Tipe Gerakan <span className="text-red-500">*</span>
               </label>
-              <select
-                id="mov-type"
-                required
+              <Select
                 value={form.movementType}
                 onChange={e => setForm(f => ({ ...f, movementType: e.target.value as typeof form.movementType }))}
                 disabled={isProductionLinked}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full"
               >
                 <option value="In">Masuk (In)</option>
                 <option value="Out">Keluar (Out)</option>
                 <option value="AdjustmentIn">Penyesuaian Naik (AdjustmentIn)</option>
                 <option value="AdjustmentOut">Penyesuaian Turun (AdjustmentOut)</option>
-              </select>
+              </Select>
             </div>
 
             {/* Kuantitas */}
@@ -360,17 +359,17 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               <label htmlFor="mov-ref-type" className="block text-xs font-semibold text-gray-500 mb-1.5">
                 Tipe Referensi
               </label>
-              <select
+              <Select
                 id="mov-ref-type"
                 value={form.referenceType}
                 onChange={e => setForm(f => ({ ...f, referenceType: e.target.value, referenceNumber: '' }))}
                 disabled={isProductionLinked}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full"
               >
                 <option value="">— Tidak Ada —</option>
                 <option value="PurchaseInvoice">Invoice Pembelian</option>
                 <option value="SalesInvoice">Invoice Penjualan</option>
-              </select>
+              </Select>
             </div>
 
             {/* Nomor Referensi */}

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import ImportModal from '../components/ImportModal';
 import { exportToExcel } from '../lib/exportExcel';
+import Select from '../components/Select';
 
 // --- Types ---
 interface Account {
@@ -86,11 +87,11 @@ const AddAccountModal: React.FC<{ isOpen: boolean; onClose: () => void; parent?:
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Tipe Root</label>
-              <select
+              <Select
                 value={formData.rootType}
                 onChange={(e) => setFormData({ ...formData, rootType: e.target.value, accountType: e.target.value })}
                 disabled={!!parent}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full"
               >
                 {[
                   { value: 'ASSET',     label: 'Asset' },
@@ -101,7 +102,7 @@ const AddAccountModal: React.FC<{ isOpen: boolean; onClose: () => void; parent?:
                 ].map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 

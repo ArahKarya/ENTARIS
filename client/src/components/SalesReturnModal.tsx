@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
+import Select from './Select';
 
 interface Props {
   open: boolean;
@@ -148,8 +149,8 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Invoice Penjualan</label>
-              <select
-                className="w-full border border-border rounded-lg px-3 py-2 bg-background"
+              <Select
+                className="w-full"
                 value={invoiceId}
                 onChange={(e) => { setInvoiceId(e.target.value); setLines({}); }}
               >
@@ -159,7 +160,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
                     {i.invoiceNumber} · {i.customer?.name} · {formatDate(i.date)} · {i.status}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Tanggal Retur</label>

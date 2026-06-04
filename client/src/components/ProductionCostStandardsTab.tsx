@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import Select from './Select';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -172,10 +173,10 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
           {/* Warehouse filter — null option = semua */}
           <div className="flex items-center gap-1.5">
             <WarehouseIcon size={13} className="text-gray-400" />
-            <select
+            <Select
               value={filterWarehouseId}
               onChange={e => setFilterWarehouseId(e.target.value)}
-              className="border border-gray-200 rounded-lg py-1.5 px-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full"
             >
               <option value="">Semua Gudang</option>
               {warehouses.map(w => (
@@ -183,7 +184,7 @@ export default function ProductionCostStandardsTab({ userRole }: Props) {
                   {w.code} — {w.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="text-xs text-gray-500">
             {standards.length > 0 && (

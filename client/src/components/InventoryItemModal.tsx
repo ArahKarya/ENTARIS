@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import Select from './Select';
 
 interface InventoryItemModalProps {
   isOpen: boolean;
@@ -223,11 +224,11 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
               <label htmlFor="item-account" className="block text-xs font-semibold text-gray-500 mb-1.5">
                 Akun Persediaan
               </label>
-              <select
+              <Select
                 id="item-account"
                 value={form.accountId}
                 onChange={e => setForm(f => ({ ...f, accountId: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               >
                 <option value="">— Tidak Dipilih —</option>
                 {assetAccounts.map((a: any) => (
@@ -235,7 +236,7 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
                     {a.accountNumber} — {a.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               <p className="text-xs text-gray-400 mt-1">Pilih akun aset untuk pencatatan GL otomatis saat gerakan stok.</p>
             </div>
 

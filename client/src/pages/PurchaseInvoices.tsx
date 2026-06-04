@@ -10,6 +10,7 @@ import api from '../lib/api';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { exportToExcel } from '../lib/exportExcel';
 import PurchaseInvoiceModal from '../components/PurchaseInvoiceModal';
+import Select from '../components/Select';
 import ApprovalPanel, { type ApprovalRequest } from '../components/ApprovalPanel';
 import InvoiceDetailDrawer from '../components/InvoiceDetailDrawer';
 import TableRowSkeleton from '../components/TableRowSkeleton';
@@ -335,15 +336,15 @@ export const PurchaseInvoices = () => {
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <select
+        <Select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-44"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
-        </select>
+        </Select>
         <div className="flex items-center gap-1.5 text-sm text-gray-500">
           <span className="text-xs">Dari</span>
           <input

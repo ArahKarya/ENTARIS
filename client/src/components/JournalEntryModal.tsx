@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { X, Plus, Trash2, Loader2, AlertCircle, Save } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
 import RupiahInput from './RupiahInput';
+import Select from './Select';
 
 interface Account {
   id: string;
@@ -143,10 +144,10 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   {items.map((item, index) => (
                     <tr key={item.id} className="group hover:bg-gray-50 transition-colors">
                       <td className="px-3 py-2">
-                        <select
+                        <Select
                           value={item.accountId}
                           onChange={(e) => updateItem(index, 'accountId', e.target.value)}
-                          className="w-full border-none bg-transparent text-sm text-gray-800 focus:ring-0 focus:outline-none p-0 cursor-pointer"
+                          className="w-full"
                         >
                           <option value="" className="text-gray-400">Pilih Akun...</option>
                           {accounts?.map((acc: Account) => (
@@ -154,7 +155,7 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                               {acc.accountNumber} - {acc.name}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </td>
                       <td className="px-3 py-2">
                         <input
