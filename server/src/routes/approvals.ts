@@ -2,11 +2,8 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { roleMiddleware, AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
-import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
-import { submitProductionRunInTx } from '../services/productionRunSubmit';
-import { submitSalesReturnInTx } from '../services/salesReturnSubmit';
-import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema } from '../utils/schemas';
-import { notifyUsers } from '../services/notificationService';
+import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
+import { decideApproval } from '../services/approvalDecision';
 
 const router = Router();
 
@@ -93,6 +90,29 @@ router.get('/requests', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi'])
   }
 });
 
+// GET /requests/:id — satu pengajuan (utk deep-link dari notifikasi). Admin lihat
+// semua; non-Admin hanya pengajuannya sendiri.
+router.get('/requests/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+  try {
+    const request = await prisma.approvalRequest.findUnique({
+      where: { id: req.params.id as string },
+      include: {
+        requester: { select: { fullName: true, role: true } },
+        approver: { select: { fullName: true } },
+        rejecter: { select: { fullName: true } },
+      },
+    });
+    if (!request) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    if (req.user!.role !== 'Admin' && request.requestedBy !== req.user!.userId) {
+      return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    }
+    res.json(request);
+  } catch (error) {
+    logger.error(error, 'GET /approvals/requests/:id error');
+    res.status(500).json({ error: 'Gagal mengambil pengajuan.' });
+  }
+});
+
 // POST /requests — submit approval request
 router.post('/requests', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
   try {
@@ -141,133 +161,39 @@ router.post('/requests', roleMiddleware(['Admin', 'Accountant']), async (req: Au
 // Dokumen baru DIBUAT di sini (gate "approve-before-effect"). Submit asli
 // dijalankan dgn requester sbg pembuat dokumen (audit menunjuk si penginput).
 router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
-  try {
-    const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
-    if (!request) return res.status(404).json({ error: 'Request tidak ditemukan.' });
-    if (request.status !== 'Pending') return res.status(400).json({ error: 'Request sudah diproses.' });
-
-    let createdDoc: { id: string; number: string } | null = null;
-
-    // Kalau ada payload (gate approve-before-effect) → eksekusi submit asli.
-    if (request.payload != null) {
-      const creator = request.requestedBy;
-      createdDoc = await prisma.$transaction(async (tx) => {
-        if (request.documentType === 'PurchaseInvoice') {
-          const parsed = CreatePurchaseInvoiceSchema.safeParse(request.payload);
-          if (!parsed.success) throw new Error('Payload invoice tidak valid: ' + parsed.error.issues[0]?.message);
-          const inv = await submitPurchaseInvoiceInTx(tx, parsed.data as any, creator);
-          return { id: inv.id, number: inv.invoiceNumber };
-        }
-        if (request.documentType === 'ProductionRun') {
-          const parsed = CreateProductionRunSchema.safeParse(request.payload);
-          if (!parsed.success) throw new Error('Payload produksi tidak valid: ' + parsed.error.issues[0]?.message);
-          const run = await submitProductionRunInTx(tx, parsed.data as any, creator);
-          if (!run) throw new Error('Gagal membuat data produksi.');
-          return { id: run.id, number: run.runNumber };
-        }
-        if (request.documentType === 'SalesReturn') {
-          const parsed = CreateSalesReturnSchema.safeParse(request.payload);
-          if (!parsed.success) throw new Error('Payload retur tidak valid: ' + parsed.error.issues[0]?.message);
-          const ret = await submitSalesReturnInTx(tx, parsed.data as any, creator);
-          if (!ret) throw new Error('Gagal membuat retur penjualan.');
-          return { id: ret.id, number: ret.returnNumber };
-        }
-        throw new Error('Tipe dokumen tidak didukung untuk eksekusi: ' + request.documentType);
-      }, { timeout: 30000 });
-    }
-
-    const updated = await prisma.approvalRequest.update({
-      where: { id: request.id },
-      data: {
-        status: 'Approved',
-        approvedBy: req.user!.userId,
-        notes: req.body.notes,
-        decidedAt: new Date(),
-        ...(createdDoc ? { documentId: createdDoc.id, documentNumber: createdDoc.number } : {}),
-      },
-    });
-
-    await notifyUsers(prisma, {
-      userIds: [request.requestedBy],
-      type: 'approval_approved',
-      title: 'Pengajuan Anda disetujui',
-      message: createdDoc
-        ? `Pengajuan disetujui — dokumen ${createdDoc.number} telah dibuat.`
-        : 'Pengajuan Anda telah disetujui.',
-      metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType, documentId: createdDoc?.id },
-    });
-    logger.info({ requestId: request.id, documentType: request.documentType, createdDoc, approvedBy: req.user!.userId }, 'Approval approved + document executed');
-    res.json({ ...updated, createdDocument: createdDoc });
-  } catch (error: any) {
-    logger.error(error, 'POST /approvals/requests/:id/approve error');
-    res.status(400).json({ error: error?.message || 'Gagal approve request.' });
-  }
+  const result = await decideApproval({
+    requestId: req.params.id as string,
+    action: 'approve',
+    actorUserId: req.user!.userId,
+    note: req.body?.notes,
+  });
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json(result);
 });
 
 // POST /requests/:id/reject
 router.post('/requests/:id/reject', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
-  try {
-    const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
-    if (!request) return res.status(404).json({ error: 'Request tidak ditemukan.' });
-    if (request.status !== 'Pending') return res.status(400).json({ error: 'Request sudah diproses.' });
-
-    const updated = await prisma.approvalRequest.update({
-      where: { id: request.id },
-      data: {
-        status: 'Rejected',
-        rejectedBy: req.user!.userId,
-        notes: req.body.notes,
-        decidedAt: new Date(),
-      },
-    });
-
-    await notifyUsers(prisma, {
-      userIds: [request.requestedBy],
-      type: 'approval_rejected',
-      title: 'Pengajuan ditolak',
-      message: `Pengajuan ditolak: ${req.body.notes ?? '-'}`,
-      metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType },
-    });
-    res.json(updated);
-  } catch (error) {
-    logger.error(error, 'POST /approvals/requests/:id/reject error');
-    res.status(500).json({ error: 'Gagal reject request.' });
-  }
+  const result = await decideApproval({
+    requestId: req.params.id as string,
+    action: 'reject',
+    actorUserId: req.user!.userId,
+    note: req.body?.notes,
+  });
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json(result);
 });
 
 // POST /requests/:id/request-revision — Admin minta staff perbaiki pengajuan.
 // Status → NeedsRevision (reversible), wajib alasan. Dokumen TIDAK dibuat.
 router.post('/requests/:id/request-revision', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
-  try {
-    const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
-    if (!request) return res.status(404).json({ error: 'Request tidak ditemukan.' });
-    if (request.status !== 'Pending') return res.status(400).json({ error: 'Request sudah diproses.' });
-
-    const notes = (req.body?.notes ?? '').trim();
-    if (!notes) return res.status(400).json({ error: 'Alasan revisi wajib diisi.' });
-
-    const updated = await prisma.approvalRequest.update({
-      where: { id: request.id },
-      data: {
-        status: 'NeedsRevision',
-        rejectedBy: req.user!.userId, // reuse kolom utk catat siapa minta revisi
-        notes,
-        decidedAt: new Date(),
-      },
-    });
-    await notifyUsers(prisma, {
-      userIds: [request.requestedBy],
-      type: 'approval_revision',
-      title: 'Pengajuan perlu revisi',
-      message: `Pengajuan perlu revisi: ${notes}`,
-      metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType },
-    });
-    logger.info({ requestId: request.id, by: req.user!.userId }, 'Approval request-revision');
-    res.json(updated);
-  } catch (error) {
-    logger.error(error, 'POST /approvals/requests/:id/request-revision error');
-    res.status(500).json({ error: 'Gagal meminta revisi.' });
-  }
+  const result = await decideApproval({
+    requestId: req.params.id as string,
+    action: 'revise',
+    actorUserId: req.user!.userId,
+    note: req.body?.notes,
+  });
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json(result);
 });
 
 // PUT /requests/:id/resubmit — staff perbaiki payload & ajukan ulang.

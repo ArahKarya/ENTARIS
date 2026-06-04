@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Check, X, Loader2, Eye, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -47,6 +47,9 @@ interface Props {
   userRole: string | undefined;
   onResubmit?: (req: ApprovalRequest) => void;
   onViewDocument?: (req: ApprovalRequest) => void;
+  // Deep-link dari notifikasi: id pengajuan yg langsung dibuka detailnya.
+  focusRequestId?: string;
+  onFocusHandled?: () => void;
 }
 
 // Hitung estimasi total PI dari payload (mirror server purchaseInvoiceCalc).
@@ -96,7 +99,7 @@ function prodHppEstimate(payload: any): { hpp: number | null; knownMaterial: boo
  * Revisi), detail modal, aksi Admin (Setuju/Tolak/Minta Edit), dan tombol
  * "Edit & Ajukan Ulang" untuk staff pemilik pengajuan berstatus Perlu Revisi.
  */
-export default function ApprovalPanel({ documentType, userRole, onResubmit, onViewDocument }: Props) {
+export default function ApprovalPanel({ documentType, userRole, onResubmit, onViewDocument, focusRequestId, onFocusHandled }: Props) {
   const qc = useQueryClient();
   const isAdmin = userRole === 'Admin';
   const currentUserId = useMemo(() => {
@@ -107,6 +110,23 @@ export default function ApprovalPanel({ documentType, userRole, onResubmit, onVi
   const [detailReq, setDetailReq] = useState<ApprovalRequest | null>(null);
   const [reasonModal, setReasonModal] = useState<{ mode: 'reject' | 'revision'; id: string } | null>(null);
   const [reasonText, setReasonText] = useState('');
+
+  // Deep-link: ambil pengajuan spesifik & buka detailnya langsung (sekali saja).
+  const focusHandledRef = useRef<string | null>(null);
+  const { data: focusReq } = useQuery<ApprovalRequest>({
+    queryKey: ['approval-request', focusRequestId],
+    queryFn: async () => (await api.get(`/approvals/requests/${focusRequestId}`)).data,
+    enabled: !!focusRequestId && focusHandledRef.current !== focusRequestId,
+    retry: false,
+  });
+  useEffect(() => {
+    if (focusReq && focusRequestId && focusHandledRef.current !== focusRequestId) {
+      focusHandledRef.current = focusRequestId;
+      setStatus((focusReq.status as StatusKey) ?? 'Pending');
+      setDetailReq(focusReq);
+      onFocusHandled?.();
+    }
+  }, [focusReq, focusRequestId, onFocusHandled]);
 
   const { data: requests = [], isLoading } = useQuery<ApprovalRequest[]>({
     queryKey: ['approval-requests', documentType ?? 'all', status],

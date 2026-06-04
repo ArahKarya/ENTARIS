@@ -7,7 +7,7 @@ import { handleRouteError } from '../../utils/errors';
 import { cancelProductionRunInTx } from '../../services/productionRunCancel';
 import { submitProductionRunInTx } from '../../services/productionRunSubmit';
 import { editProductionRunInTx } from '../../services/productionRunEdit';
-import { needsApproval, queueApproval } from '../../services/approvalGate';
+import { needsApproval, queueApproval, approvalsLink } from '../../services/approvalGate';
 import { notifyAdmins } from '../../services/notificationService';
 import { logger } from '../../lib/logger';
 
@@ -141,10 +141,12 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           label: 'Data Produksi (Input bahan baku)',
         }),
       );
+      const requester = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { fullName: true } });
+      const link = approvalsLink(request.id);
       await notifyAdmins({
         type: 'approval_pending',
-        title: 'Pengajuan menunggu persetujuan',
-        message: `Data Produksi (${amount.toLocaleString('id-ID')} kg input) menunggu persetujuan Anda.`,
+        title: '🔔 Persetujuan: Data Produksi',
+        message: `Data Produksi (${amount.toLocaleString('id-ID')} kg input) dari ${requester?.fullName ?? 'staf'} menunggu persetujuan Anda.${link ? `\n\n🔗 Buka & proses: ${link}` : ''}`,
         metadata: { kind: 'approval', requestId: request.id, documentType: 'ProductionRun' },
         excludeUserId: req.user!.userId,
       });

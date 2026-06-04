@@ -29,6 +29,18 @@ export function needsApproval(role: string): boolean {
 }
 
 /**
+ * Link ke halaman approval di aplikasi (utk disisipkan ke notifikasi).
+ * Sumber: env APP_BASE_URL (mis. https://erp.panganmasadepan.com). Bila tidak
+ * di-set → null (notifikasi tetap terkirim tanpa link). Telegram meng-auto-link
+ * URL polos sehingga bisa langsung diklik.
+ */
+export function approvalsLink(requestId?: string): string | null {
+  const base = (process.env.APP_BASE_URL ?? '').replace(/\/+$/, '');
+  if (!base) return null;
+  return requestId ? `${base}/approvals?request=${requestId}` : `${base}/approvals`;
+}
+
+/**
  * Buat antrian approval (payload disimpan, dokumen belum dibuat).
  * Dipanggil dari route POST PI/Produksi saat requester bukan Admin.
  */

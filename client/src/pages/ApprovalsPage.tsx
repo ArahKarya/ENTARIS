@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Plus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,6 +32,13 @@ const roles = ['Admin', 'Accountant'];
 
 export default function ApprovalsPage() {
   const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusRequestId = searchParams.get('request') ?? undefined;
+  const clearFocus = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('request');
+    setSearchParams(next, { replace: true });
+  };
   const [tab, setTab] = useState<'requests' | 'rules'>('requests');
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
@@ -97,6 +105,8 @@ export default function ApprovalsPage() {
       {tab === 'requests' && (
         <ApprovalPanel
           userRole={userRole}
+          focusRequestId={focusRequestId}
+          onFocusHandled={clearFocus}
           onViewDocument={(req: ApprovalRequest) => {
             if (!req.documentId) return;
             if (req.documentType === 'PurchaseInvoice') setViewInvoiceId(req.documentId);

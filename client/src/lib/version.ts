@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.9.0';
-export const APP_BUILD_DATE = '2026-05-26';
+export const APP_VERSION = '3.10.0';
+export const APP_BUILD_DATE = '2026-06-05';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.10.0',
+    date: '2026-06-05',
+    title: 'Approval Langsung dari Telegram (Setuju / Tolak / Minta Revisi)',
+    changes: [
+      'Manajer dapat menyetujui, menolak, atau meminta revisi pengajuan langsung dari tombol di japri Telegram — tanpa buka aplikasi',
+      'Minta Revisi: bot meminta admin membalas dengan alasan, lalu pengaju otomatis diberi tahu',
+      'Pesan pengajuan kini lebih informatif: jenis dokumen, nilai, dan nama pengaju',
+      'Setiap notifikasi pengajuan menyertakan link "Buka & proses" yang langsung membuka detail pengajuan tsb di aplikasi (deep-link)',
+      'Keamanan: hanya admin aktif yang Telegram-nya tertaut yang dapat mengeksekusi keputusan; tombol hanya muncul di japri admin (bukan grup)',
+    ],
+  },
   {
     version: '3.9.0',
     date: '2026-06-04',

@@ -54,11 +54,20 @@ export async function notifyUsers(db: Db, input: NotifyInput, opts?: NotifyOpts)
           if (await isPersonalTelegramOn()) {
             const linked = await prisma.user.findMany({
               where: { id: { in: input.userIds }, telegramChatId: { not: null } },
-              select: { telegramChatId: true },
+              select: { telegramChatId: true, role: true },
             });
+            // Tombol aksi hanya utk approval_pending ke admin (japri admin saja).
+            const requestId = (input.metadata as any)?.requestId as string | undefined;
             for (const u of linked) {
               if (u.telegramChatId) {
-                void pushTelegramToUser({ chatId: u.telegramChatId, type: input.type, title: input.title, message: input.message });
+                void pushTelegramToUser({
+                  chatId: u.telegramChatId,
+                  type: input.type,
+                  title: input.title,
+                  message: input.message,
+                  requestId,
+                  withApprovalButtons: input.type === 'approval_pending' && !!requestId && u.role === 'Admin',
+                });
               }
             }
           }

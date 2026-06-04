@@ -7,7 +7,7 @@ import { CreateSalesReturnSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
 import { submitSalesReturnInTx } from '../services/salesReturnSubmit';
 import { cancelSalesReturnInTx } from '../services/salesReturnCancel';
-import { needsApproval, queueApproval } from '../services/approvalGate';
+import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
 
@@ -155,10 +155,12 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           label: 'Retur Penjualan (menunggu approval)',
         }),
       );
+      const requester = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { fullName: true } });
+      const link = approvalsLink(request.id);
       await notifyAdmins({
         type: 'approval_pending',
-        title: 'Pengajuan menunggu persetujuan',
-        message: 'Retur Penjualan menunggu persetujuan Anda.',
+        title: '🔔 Persetujuan: Retur Penjualan',
+        message: `Retur Penjualan dari ${requester?.fullName ?? 'staf'} menunggu persetujuan Anda.${link ? `\n\n🔗 Buka & proses: ${link}` : ''}`,
         metadata: { kind: 'approval', requestId: request.id, documentType: 'SalesReturn' },
         excludeUserId: req.user!.userId,
       });

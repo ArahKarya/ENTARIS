@@ -8,7 +8,7 @@ import { handleRouteError } from '../utils/errors';
 import { cancelPurchaseInvoiceInTx } from '../services/invoiceCancellation';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
 import { revisePurchaseInvoiceInTx } from '../services/purchaseInvoiceRevise';
-import { needsApproval, queueApproval } from '../services/approvalGate';
+import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
 
@@ -122,10 +122,12 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
           label: 'Invoice Pembelian (menunggu approval)',
         }),
       );
+      const requester = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { fullName: true } });
+      const link = approvalsLink(request.id);
       await notifyAdmins({
         type: 'approval_pending',
-        title: 'Pengajuan menunggu persetujuan',
-        message: `Invoice Pembelian (Rp ${amount.toLocaleString('id-ID')}) menunggu persetujuan Anda.`,
+        title: '🔔 Persetujuan: Invoice Pembelian',
+        message: `Invoice Pembelian senilai Rp ${amount.toLocaleString('id-ID')} dari ${requester?.fullName ?? 'staf'} menunggu persetujuan Anda.${link ? `\n\n🔗 Buka & proses: ${link}` : ''}`,
         metadata: { kind: 'approval', requestId: request.id, documentType: 'PurchaseInvoice' },
         excludeUserId: req.user!.userId,
       });

@@ -1908,3 +1908,15 @@ model TelegramConfig {
 
   @@map("telegram_config")
 }
+
+// ─── State sementara alur "Minta Revisi" via Telegram (2 langkah) ───────────
+// Saat admin tekan tombol Minta Revisi, simpan request yg ditunggu alasannya;
+// balasan teks berikutnya di chat tsb jadi alasan revisi. Lihat telegramService.
+model TelegramPendingRevise {
+  chatId      String   @id @map("chat_id")
+  requestId   String   @map("request_id")
+  actorUserId String   @map("actor_user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("telegram_pending_revise")
+}
