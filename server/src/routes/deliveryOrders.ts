@@ -99,8 +99,12 @@ router.get('/pending', roleMiddleware(READ_ROLES), async (req, res) => {
     const data = await prisma.deliveryOrder.findMany({
       where: { partyId, status: 'Submitted', invoiceId: null },
       include: {
-        items: { include: { inventoryItem: true } },
+        // salesOrderItem → harga jual & diskon dari SO, supaya baris invoice
+        // dari Surat Jalan terisi otomatis (bukan rate 0).
+        items: { include: { inventoryItem: true, salesOrderItem: { select: { rate: true, discount: true } } } },
         customer: { select: { id: true, name: true } },
+        // salesOrder → No. PO pelanggan (customerRefNo) / No. SO utk auto-isi ref invoice.
+        salesOrder: { select: { soNumber: true, customerRefNo: true } },
       },
       orderBy: { date: 'asc' },
     });

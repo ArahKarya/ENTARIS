@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus, Search, FileText, ChevronLeft, ChevronRight,
   DollarSign, AlertTriangle, CheckCircle2, Receipt, Download, Undo2,
@@ -33,6 +34,24 @@ export const SalesInvoices = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Deep-link dari Surat Jalan: /sales?fromDO=<id>&party=<partyId> → buka modal
+  // & prefill dari DO tsb.
+  const [prefillFromDO, setPrefillFromDO] = useState<{ doId: string; partyId: string } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const doId = searchParams.get('fromDO');
+    const party = searchParams.get('party');
+    if (doId && party) {
+      setPrefillFromDO({ doId, partyId: party });
+      setIsModalOpen(true);
+      // bersihkan query supaya tak terbuka ulang saat refresh/navigate
+      searchParams.delete('fromDO');
+      searchParams.delete('party');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: raw, isLoading } = useQuery({
     queryKey: ['sales-invoices'],
@@ -360,7 +379,8 @@ export const SalesInvoices = () => {
 
       <SalesInvoiceModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setPrefillFromDO(null); }}
+        prefillFromDO={prefillFromDO}
       />
 
       <SalesReturnModal

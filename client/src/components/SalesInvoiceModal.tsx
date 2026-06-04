@@ -40,14 +40,17 @@ interface PendingDOItem {
   unit: string;
   description: string | null;
   inventoryItem?: { id: string; name: string; code: string; unit: string } | null;
-  warehouse?: { id: string; code: string } | null;
+  // Harga jual & diskon dari baris SO (DO digenerate dari SO).
+  salesOrderItem?: { rate: number | string; discount: number | string } | null;
 }
 
 interface PendingDO {
   id: string;
-  number: string;
+  doNumber: string;
   date: string;
   items: PendingDOItem[];
+  // No. PO pelanggan / No. SO utk auto-isi referensi invoice.
+  salesOrder?: { soNumber: string; customerRefNo: string | null } | null;
 }
 
 const MAX_ATTACHMENTS = 5;
@@ -60,7 +63,11 @@ const defaultItem = (): InvoiceItem => ({
   id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0, deliveryOrderItemId: null, deliveryOrderNumber: undefined, sourceMovementId: '',
 });
 
-const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+const SalesInvoiceModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  prefillFromDO?: { doId: string; partyId: string } | null;
+}> = ({ isOpen, onClose, prefillFromDO }) => {
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
   const [partyId, setPartyId] = useState('');
@@ -134,6 +141,17 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       setItems((prev) => prev.map((it) => (it.taxPct > 0 ? { ...it, taxPct: 0 } : it)));
     }
   }, [isWapu]);
+
+  // Deep-link dari Surat Jalan (/sales?fromDO=…): set pelanggan + mode "dari DO",
+  // lalu auto-pilih DO-nya saat daftar pending termuat (efek di bawah).
+  const [autoSelectDOId, setAutoSelectDOId] = useState<string | null>(null);
+  React.useEffect(() => {
+    if (isOpen && prefillFromDO) {
+      setPartyId(prefillFromDO.partyId);
+      setFromDOMode(true);
+      setAutoSelectDOId(prefillFromDO.doId);
+    }
+  }, [isOpen, prefillFromDO]);
 
   const inventoryOptions = useMemo<SelectOption[]>(
     () =>
@@ -278,20 +296,38 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
         description: doi.description ?? '',
         quantity: Number(doi.quantity) || 0,
         unit: doi.unit,
-        rate: 0,
-        discount: 0,
+        // Harga jual & diskon diturunkan dari SO (via salesOrderItem) agar tak
+        // perlu ketik ulang; tetap bisa diedit di tabel.
+        rate: Number(doi.salesOrderItem?.rate) || 0,
+        discount: Number(doi.salesOrderItem?.discount) || 0,
         taxPct: 0,
         pphPct: 0,
         deliveryOrderItemId: doi.id,
-        deliveryOrderNumber: doc.number,
+        deliveryOrderNumber: doc.doNumber,
       }));
       // Drop any default empty row when adding first DO
       const base = items.filter(
         (row) => row.deliveryOrderItemId || row.itemName || row.inventoryItemId || row.serviceItemId,
       );
       setItems([...base, ...newRows]);
+      // Auto-isi No. PO/SO di invoice (bila belum diisi manual): PO pelanggan
+      // dari SO; kalau SO tak punya No. PO, pakai No. SO.
+      if (!customerRefNo.trim()) {
+        const ref = doc.salesOrder?.customerRefNo?.trim() || doc.salesOrder?.soNumber || '';
+        if (ref) setCustomerRefNo(ref);
+      }
     }
   };
+
+  // Auto-pilih DO saat deep-link dari Surat Jalan, begitu daftar pending termuat.
+  React.useEffect(() => {
+    if (!autoSelectDOId) return;
+    if (pendingDOs?.some((d) => d.id === autoSelectDOId) && !selectedDOIds.includes(autoSelectDOId)) {
+      toggleDOSelection(autoSelectDOId);
+      setAutoSelectDOId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelectDOId, pendingDOs]);
 
   const toggleDOExpanded = (doId: string) => {
     setExpandedDOIds(
@@ -310,7 +346,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
         (row, i) => i !== idx && row.deliveryOrderNumber === targetDONumber,
       );
       if (remainingRowsForDO.length === 0 && targetDONumber) {
-        const matchingDO = pendingDOs?.find((d) => d.number === targetDONumber);
+        const matchingDO = pendingDOs?.find((d) => d.doNumber === targetDONumber);
         if (matchingDO) {
           setSelectedDOIds(selectedDOIds.filter((id) => id !== matchingDO.id));
         }
@@ -396,24 +432,26 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             {/* LEFT — Bill To */}
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tagihkan Kepada</p>
-              <select
-                value={partyId}
-                onChange={(e) => {
-                  setPartyId(e.target.value);
-                  // Switching customer → reset any DO selections (DOs are scoped to a party).
-                  if (selectedDOIds.length > 0 || items.some((i) => i.deliveryOrderItemId)) {
-                    setSelectedDOIds([]);
-                    setExpandedDOIds([]);
-                    setItems([defaultItem()]);
-                  }
-                }}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-              >
-                <option value="">— Pilih Pelanggan —</option>
-                {parties?.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              <div className="mb-2">
+                <SearchableSelect
+                  options={(parties ?? []).map((p: any) => ({
+                    value: p.id,
+                    label: p.phone ? `${p.name} · ${p.phone}` : p.name,
+                  }))}
+                  value={partyId}
+                  onChange={(v) => {
+                    setPartyId(v);
+                    // Switching customer → reset any DO selections (DOs are scoped to a party).
+                    if (selectedDOIds.length > 0 || items.some((i) => i.deliveryOrderItemId)) {
+                      setSelectedDOIds([]);
+                      setExpandedDOIds([]);
+                      setItems([defaultItem()]);
+                    }
+                  }}
+                  placeholder="— Pilih / cari pelanggan —"
+                  aria-label="Pilih pelanggan"
+                />
+              </div>
               {selectedParty && (
                 <div className="text-xs text-gray-500 space-y-0.5 mt-1 pl-1">
                   {selectedParty.email && <p>{selectedParty.email}</p>}
@@ -515,7 +553,7 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                             <Truck size={14} className="text-blue-600 shrink-0" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-mono font-medium text-gray-900">{doc.number}</span>
+                                <span className="text-sm font-mono font-medium text-gray-900">{doc.doNumber}</span>
                                 <span className="text-xs text-gray-400">
                                   {new Date(doc.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
@@ -542,8 +580,8 @@ const SalesInvoiceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                                     <span className="text-gray-400">•</span>
                                     <span className="flex-1">
                                       {it.itemName}
-                                      {it.warehouse?.code && (
-                                        <span className="text-gray-400"> · {it.warehouse.code}</span>
+                                      {it.inventoryItem?.code && (
+                                        <span className="text-gray-400"> · {it.inventoryItem.code}</span>
                                       )}
                                     </span>
                                     <span className="font-mono tabular-nums text-gray-700">

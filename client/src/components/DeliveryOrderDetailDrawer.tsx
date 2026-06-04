@@ -113,10 +113,11 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
 
   const pdfFileName = doc ? `${doc.doNumber}.pdf` : 'surat-jalan.pdf';
 
-  const handleBuatInvoiceHint = () => {
-    toast.info('Buka menu Penjualan → Invoice Penjualan → Buat Invoice → toggle "Dari Surat Jalan" untuk menarik DO ini.', {
-      duration: 6000,
-    });
+  const handleBuatInvoice = () => {
+    if (!doc?.id) return;
+    // Deep-link ke Invoice Penjualan: auto-buka modal & prefill dari DO ini.
+    navigate(`/sales?fromDO=${doc.id}&party=${doc.partyId}`);
+    onClose();
   };
 
   const handleLihatInvoice = () => {
@@ -342,7 +343,7 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                   </button>
                 )}
                 <button
-                  onClick={handleBuatInvoiceHint}
+                  onClick={handleBuatInvoice}
                   className="btn-primary"
                 >
                   Buat Invoice

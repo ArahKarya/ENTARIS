@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.8.0';
+export const APP_VERSION = '3.8.3';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,33 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.8.3',
+    date: '2026-06-04',
+    title: 'Tombol Buat Invoice Langsung dari Surat Jalan',
+    changes: [
+      'Di detail Surat Jalan, tombol "Buat Invoice" kini langsung membuka form Invoice Penjualan yang sudah terisi dari Surat Jalan itu (pelanggan, item, harga, No. PO/SO) — tinggal cek & simpan',
+      'Sebelumnya hanya menampilkan petunjuk untuk buka menu manual',
+    ],
+  },
+  {
+    version: '3.8.2',
+    date: '2026-06-04',
+    title: 'Fix Buat Invoice dari Surat Jalan + Auto-isi No. PO/SO',
+    changes: [
+      'Nomor Surat Jalan kini tampil benar di pemilih (sebelumnya kosong karena salah field)',
+      'Harga & diskon baris invoice dari Surat Jalan terisi otomatis dari SO (tidak lagi 0)',
+      'No. Referensi invoice terisi otomatis: No. PO pelanggan dari SO, atau No. SO bila PO kosong',
+    ],
+  },
+  {
+    version: '3.8.1',
+    date: '2026-06-04',
+    title: 'Pencarian Pelanggan di Buat Invoice Penjualan',
+    changes: [
+      'Pemilih pelanggan saat buat invoice penjualan kini bisa diketik/dicari (SearchableSelect) + tampil nomor telepon untuk membedakan nama mirip',
+    ],
+  },
   {
     version: '3.8.0',
     date: '2026-06-04',
