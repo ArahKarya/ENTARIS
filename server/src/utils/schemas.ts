@@ -909,6 +909,7 @@ export const UpdateTelegramConfigSchema = z.object({
   notifyApproval: z.boolean().optional(),
   notifyInvoiceOverdue: z.boolean().optional(),
   notifyLowStock: z.boolean().optional(),
+  personalEnabled: z.boolean().optional(),
 });
 
 export const TestTelegramSchema = z.object({

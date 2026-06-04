@@ -6,6 +6,8 @@ import { roleMiddleware, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateUserSchema, UpdateUserSchema, ChangePasswordSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
+import { randomBytes } from 'crypto';
+import { getBotUsername, sendTestToChat } from '../services/telegramService';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -38,6 +40,7 @@ router.get('/', roleMiddleware(['Admin']), async (req, res) => {
           isActive: true,
           lastLoginAt: true,
           createdAt: true,
+          telegramChatId: true,
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -46,7 +49,9 @@ router.get('/', roleMiddleware(['Admin']), async (req, res) => {
       prisma.user.count({ where }),
     ]);
 
-    return res.json({ data: users, total, page: Number(page), limit: take });
+    // Jangan bocorkan chatId mentah — hanya status tertaut.
+    const data = users.map(({ telegramChatId, ...u }) => ({ ...u, telegramLinked: !!telegramChatId }));
+    return res.json({ data, total, page: Number(page), limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /users', 'Gagal mengambil data user.');
   }
@@ -233,6 +238,54 @@ router.patch('/:id/toggle', roleMiddleware(['Admin']), async (req: AuthRequest, 
     return res.json(user);
   } catch (error) {
     return handleRouteError(res, error, 'PATCH /users/:id/toggle', 'Gagal mengubah status user.');
+  }
+});
+
+// POST /api/users/:id/telegram-link — generate kode tautan + deep link (Admin)
+router.post('/:id/telegram-link', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string;
+    const user = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (!user) return res.status(404).json({ error: 'User tidak ditemukan.' });
+    // kode acak 6 char (huruf/angka tanpa ambigu)
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    const bytes = randomBytes(6);
+    for (let i = 0; i < 6; i++) code += alphabet[bytes[i]! % alphabet.length];
+    await prisma.user.update({ where: { id }, data: { telegramLinkCode: code, telegramChatId: null } });
+    const botUsername = await getBotUsername();
+    const deepLink = botUsername ? `https://t.me/${botUsername}?start=${code}` : null;
+    return res.json({ code, botUsername, deepLink });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /users/:id/telegram-link', 'Gagal membuat kode tautan Telegram.');
+  }
+});
+
+// POST /api/users/:id/telegram-test — kirim japri uji ke user (Admin)
+router.post('/:id/telegram-test', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string;
+    const user = await prisma.user.findUnique({ where: { id }, select: { telegramChatId: true, fullName: true } });
+    if (!user) return res.status(404).json({ error: 'User tidak ditemukan.' });
+    if (!user.telegramChatId) {
+      return res.status(400).json({ error: 'User belum menautkan Telegram.' });
+    }
+    const result = await sendTestToChat(user.telegramChatId);
+    if (!result.ok) return res.status(400).json({ error: `Gagal kirim: ${result.error}` });
+    return res.json({ message: `Pesan uji terkirim ke Telegram ${user.fullName}.` });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /users/:id/telegram-test', 'Gagal mengirim pesan uji.');
+  }
+});
+
+// DELETE /api/users/:id/telegram — putuskan tautan (Admin)
+router.delete('/:id/telegram', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.user.update({ where: { id }, data: { telegramChatId: null, telegramLinkCode: null } });
+    return res.json({ message: 'Tautan Telegram diputus.' });
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /users/:id/telegram', 'Gagal memutus tautan Telegram.');
   }
 });
 

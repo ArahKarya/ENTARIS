@@ -749,6 +749,9 @@ model User {
   role                        UserRole                     @default(Accountant)
   isActive                    Boolean                      @default(true) @map("is_active")
   lastLoginAt                 DateTime?                    @map("last_login_at")
+  // Notifikasi Telegram japri: chat id pribadi (tertaut via /start) + kode tautan sementara.
+  telegramChatId              String?                      @map("telegram_chat_id")
+  telegramLinkCode            String?                      @unique @map("telegram_link_code")
   journalEntries              JournalEntry[]
   salesInvoices               SalesInvoice[]
   purchaseInvoices            PurchaseInvoice[]
@@ -1896,6 +1899,9 @@ model TelegramConfig {
   notifyApproval       Boolean  @default(true) @map("notify_approval")
   notifyInvoiceOverdue Boolean  @default(true) @map("notify_invoice_overdue")
   notifyLowStock       Boolean  @default(true) @map("notify_low_stock")
+  // Japri per-user: master toggle + offset polling getUpdates.
+  personalEnabled      Boolean  @default(true) @map("personal_enabled")
+  lastUpdateId         BigInt?  @map("last_update_id")
   updatedBy            String?  @map("updated_by")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")

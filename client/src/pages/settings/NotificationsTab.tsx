@@ -11,6 +11,7 @@ interface TelegramConfig {
   notifyApproval: boolean;
   notifyInvoiceOverdue: boolean;
   notifyLowStock: boolean;
+  personalEnabled: boolean;
 }
 
 const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string; desc?: string }> = ({ checked, onChange, label, desc }) => (
@@ -32,7 +33,7 @@ export const NotificationsTab: React.FC = () => {
 
   const [form, setForm] = useState<TelegramConfig & { botToken: string }>({
     enabled: false, chatId: '', hasToken: false, botToken: '',
-    notifyApproval: true, notifyInvoiceOverdue: true, notifyLowStock: true,
+    notifyApproval: true, notifyInvoiceOverdue: true, notifyLowStock: true, personalEnabled: true,
   });
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export const NotificationsTab: React.FC = () => {
         notifyApproval: form.notifyApproval,
         notifyInvoiceOverdue: form.notifyInvoiceOverdue,
         notifyLowStock: form.notifyLowStock,
+        personalEnabled: form.personalEnabled,
       };
       if (form.botToken.trim()) payload.botToken = form.botToken.trim();
       return api.put('/telegram/config', payload);
@@ -105,14 +107,15 @@ export const NotificationsTab: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Chat ID (grup)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Chat ID grup <span className="font-normal text-gray-400">(opsional)</span></label>
           <input
             type="text"
             value={form.chatId}
             onChange={(e) => setForm((f) => ({ ...f, chatId: e.target.value }))}
-            placeholder="mis. -1001234567890"
+            placeholder="mis. -1001234567890 (kosongkan jika tak pakai grup)"
             className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <p className="text-xs text-gray-400 mt-1">Notifikasi dikirim japri ke tiap staf yang ditautkan. Chat ID grup hanya untuk mirror pengumuman (pengajuan masuk / jatuh tempo / stok rendah) ke grup — boleh dikosongkan.</p>
         </div>
 
         <div className="border-t border-gray-100 pt-3">
@@ -120,6 +123,14 @@ export const NotificationsTab: React.FC = () => {
           <Toggle checked={form.notifyApproval} onChange={(v) => setForm((f) => ({ ...f, notifyApproval: v }))} label="Approval / Pengajuan menunggu" />
           <Toggle checked={form.notifyInvoiceOverdue} onChange={(v) => setForm((f) => ({ ...f, notifyInvoiceOverdue: v }))} label="Invoice jatuh tempo" />
           <Toggle checked={form.notifyLowStock} onChange={(v) => setForm((f) => ({ ...f, notifyLowStock: v }))} label="Stok rendah" />
+          <div className="border-t border-gray-100 mt-2 pt-2">
+            <Toggle
+              checked={form.personalEnabled}
+              onChange={(v) => setForm((f) => ({ ...f, personalEnabled: v }))}
+              label="Notifikasi personal (japri ke user)"
+              desc="Kirim ke Telegram pribadi staf yang sudah ditautkan (mis. hasil approval ke pengaju). Tautkan akun di Manajemen User."
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 pt-2">

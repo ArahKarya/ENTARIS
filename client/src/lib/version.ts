@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.8.5';
+export const APP_VERSION = '3.9.0';
 export const APP_BUILD_DATE = '2026-05-26';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.9.0',
+    date: '2026-06-04',
+    title: 'Notifikasi Telegram Japri per Staf (Auto-link /start)',
+    changes: [
+      'Notifikasi personal (mis. hasil approval ke pengaju) kini dikirim ke Telegram pribadi staf yang sudah ditautkan',
+      'Manajemen User: tombol Hubungkan Telegram -> staf buka link bot & tekan Start, status Tertaut otomatis (polling getUpdates)',
+      'Toggle master "Notifikasi personal" di Pengaturan -> Notifikasi; broadcast role tetap ke grup',
+    ],
+  },
   {
     version: '3.8.5',
     date: '2026-06-04',

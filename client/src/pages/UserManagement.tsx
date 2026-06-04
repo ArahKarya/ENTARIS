@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, MoreHorizontal, Users, Loader2, Shield, ShieldCheck, Eye, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Users, Loader2, Shield, ShieldCheck, Eye, Pencil, ToggleLeft, ToggleRight, Send, Link2Off, X, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ interface UserData {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  telegramLinked?: boolean;
 }
 
 export const UserManagement = () => {
@@ -25,6 +26,7 @@ export const UserManagement = () => {
   const [menuUserId, setMenuUserId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [linkInfo, setLinkInfo] = useState<{ user: UserData; code: string; deepLink: string | null; botUsername: string | null } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['users', searchTerm],
@@ -34,6 +36,8 @@ export const UserManagement = () => {
       const response = await api.get('/users', { params });
       return response.data;
     },
+    // Saat modal tautan terbuka, refresh berkala utk deteksi status "Tertaut".
+    refetchInterval: linkInfo ? 4000 : false,
   });
 
   const users: UserData[] = data?.data ?? [];
@@ -71,6 +75,31 @@ export const UserManagement = () => {
     setMenuUserId(null);
     toggleMutation.mutate(user.id);
   };
+
+  const linkMutation = useMutation({
+    mutationFn: (user: UserData) => api.post(`/users/${user.id}/telegram-link`).then(r => ({ user, ...r.data })),
+    onSuccess: (d: any) => {
+      setLinkInfo({ user: d.user, code: d.code, deepLink: d.deepLink, botUsername: d.botUsername });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membuat kode tautan.'),
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/users/${id}/telegram`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Tautan Telegram diputus.'); },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal memutus tautan.'),
+  });
+
+  const handleTelegramLink = (user: UserData) => { setMenuUserId(null); linkMutation.mutate(user); };
+
+  const testMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/users/${id}/telegram-test`),
+    onSuccess: (res: any) => toast.success(res.data?.message || 'Pesan uji terkirim.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Tes gagal.'),
+  });
+
+  // Status tertaut terkini utk user di modal (dari refetch berkala).
+  const linkUserLive = linkInfo ? users.find(u => u.id === linkInfo.user.id) : null;
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -160,20 +189,21 @@ export const UserManagement = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Role</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Status</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Login Terakhir</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Telegram</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center">
+                  <td colSpan={8} className="py-16 text-center">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
                     <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Memuat data user...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center">
+                  <td colSpan={8} className="py-16 text-center">
                     <Users className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
                     <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Belum ada data user.</p>
                   </td>
@@ -209,6 +239,11 @@ export const UserManagement = () => {
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                       {user.lastLoginAt ? formatDate(user.lastLoginAt) : '-'}
                     </td>
+                    <td className="px-4 py-3">
+                      {user.telegramLinked
+                        ? <span className="badge badge-green rounded-full text-xs font-semibold">Tertaut</span>
+                        : <span className="badge badge-gray rounded-full text-xs font-semibold">Belum</span>}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="relative inline-block" ref={menuUserId === user.id ? menuRef : undefined}>
                         <button
@@ -238,6 +273,31 @@ export const UserManagement = () => {
                               {user.isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
                               {user.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                             </button>
+                            <button
+                              onClick={() => handleTelegramLink(user)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                              style={{ color: 'var(--color-text-primary)' }}
+                            >
+                              <Send size={13} /> {user.telegramLinked ? 'Tautkan Ulang Telegram' : 'Hubungkan Telegram'}
+                            </button>
+                            {user.telegramLinked && (
+                              <button
+                                onClick={() => { setMenuUserId(null); testMutation.mutate(user.id); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                                style={{ color: 'var(--color-text-primary)' }}
+                              >
+                                <Send size={13} /> Tes Telegram
+                              </button>
+                            )}
+                            {user.telegramLinked && (
+                              <button
+                                onClick={() => { setMenuUserId(null); unlinkMutation.mutate(user.id); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                                style={{ color: '#dc2626' }}
+                              >
+                                <Link2Off size={13} /> Putuskan Telegram
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -256,6 +316,52 @@ export const UserManagement = () => {
         onClose={handleCloseModal}
         editUser={editUser}
       />
+
+      {/* Modal Tautan Telegram */}
+      {linkInfo && (
+        <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLinkInfo(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="text-base font-semibold flex items-center gap-2"><Send className="w-4 h-4 text-blue-600" /> Hubungkan Telegram — {linkInfo.user.fullName}</h2>
+              <button onClick={() => setLinkInfo(null)} className="p-1.5 rounded-lg hover:bg-accent"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 space-y-3 text-sm">
+              {linkUserLive?.telegramLinked ? (
+                <div className="space-y-2">
+                  <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 font-medium">
+                    ✅ Telegram <b>{linkInfo.user.fullName}</b> sudah tertaut. Notifikasi akan dikirim ke japri-nya.
+                  </div>
+                  <button onClick={() => testMutation.mutate(linkInfo.user.id)} disabled={testMutation.isPending} className="btn-secondary text-sm">
+                    <Send className="w-3.5 h-3.5" /> {testMutation.isPending ? 'Mengirim…' : 'Kirim Pesan Uji'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-muted-foreground">Minta <b>{linkInfo.user.fullName}</b> melakukan langkah berikut di HP-nya:</p>
+                  <ol className="list-decimal ml-5 space-y-1 text-xs text-muted-foreground">
+                    <li>Buka link bot di bawah lalu tekan <b>Start</b> (atau kirim <code>/start {linkInfo.code}</code> ke bot).</li>
+                    <li>Status akan otomatis berubah <b>Tertaut</b> dalam &lt; 1 menit.</li>
+                  </ol>
+                  {linkInfo.deepLink ? (
+                    <div className="flex items-center gap-2">
+                      <input readOnly value={linkInfo.deepLink} className="flex-1 border border-border rounded-lg px-2 py-1.5 text-xs bg-background font-mono" />
+                      <button onClick={() => { navigator.clipboard.writeText(linkInfo.deepLink!); toast.success('Link disalin.'); }} className="btn-secondary text-xs"><Copy className="w-3.5 h-3.5" /> Salin</button>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                      Bot belum terkonfigurasi / token belum diisi. Atur dulu di <b>Pengaturan → Notifikasi</b>. Kode tautan: <code className="font-mono">{linkInfo.code}</code>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">Menunggu staf menekan Start… (jendela ini akan memperbarui status otomatis)</p>
+                </>
+              )}
+            </div>
+            <div className="flex justify-end px-5 py-3 border-t border-border">
+              <button onClick={() => setLinkInfo(null)} className="btn-secondary text-sm">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

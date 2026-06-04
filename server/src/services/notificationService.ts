@@ -9,7 +9,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
-import { pushTelegram } from './telegramService';
+import { pushTelegram, pushTelegramToUser, isPersonalTelegramOn } from './telegramService';
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -40,10 +40,35 @@ export async function notifyUsers(db: Db, input: NotifyInput, opts?: NotifyOpts)
         metadata: input.metadata ?? {},
       })),
     });
-    // Echo ke Telegram (fire-and-forget). notifyRole menyetel skipTelegram agar
-    // fan-out role hanya jadi 1 pesan grup.
+    // Echo Telegram. notifyRole set skipTelegram (ia kirim ke GRUP sendiri).
+    //  - Tipe broadcast (jatuh tempo, stok rendah) → GRUP (pertahankan perilaku
+    //    lama: ditujukan ke admin/accountant sbg pengumuman).
+    //  - Tipe personal (mis. keputusan approval ke pengaju) → JAPRI ke user
+    //    yang sudah menautkan Telegram.
+    // Telegram: utamakan JAPRI ke tiap penerima yang sudah menautkan akun.
+    // Grup hanya MIRROR opsional utk tipe broadcast (jika Chat ID grup diisi —
+    // pushTelegram otomatis no-op bila grup kosong). Jadi grup tidak wajib.
     if (!opts?.skipTelegram) {
-      void pushTelegram({ type: input.type, title: input.title, message: input.message });
+      void (async () => {
+        try {
+          if (await isPersonalTelegramOn()) {
+            const linked = await prisma.user.findMany({
+              where: { id: { in: input.userIds }, telegramChatId: { not: null } },
+              select: { telegramChatId: true },
+            });
+            for (const u of linked) {
+              if (u.telegramChatId) {
+                void pushTelegramToUser({ chatId: u.telegramChatId, type: input.type, title: input.title, message: input.message });
+              }
+            }
+          }
+          // Mirror grup (opsional) utk pengumuman broadcast.
+          const broadcastTypes = ['approval_pending', 'invoice_overdue', 'low_stock'];
+          if (broadcastTypes.includes(input.type)) {
+            void pushTelegram({ type: input.type, title: input.title, message: input.message });
+          }
+        } catch { /* never throw */ }
+      })();
     }
     return res.count;
   } catch (err) {
@@ -66,14 +91,12 @@ export async function notifyRole(
     const userIds = users
       .map((u) => u.id)
       .filter((id) => id !== input.excludeUserId);
-    const count = await notifyUsers(
+    // notifyUsers menangani japri ke tiap anggota role tertaut + mirror grup
+    // opsional (utk tipe broadcast). Tak perlu skipTelegram lagi.
+    return await notifyUsers(
       prisma,
       { userIds, type: input.type, title: input.title, message: input.message, metadata: input.metadata },
-      { skipTelegram: true },
     );
-    // Satu pesan grup utk seluruh fan-out role (bukan per-user).
-    void pushTelegram({ type: input.type, title: input.title, message: input.message });
-    return count;
   } catch (err) {
     logger.error({ err, type: input.type }, 'notifyRole gagal (diabaikan)');
     return 0;

@@ -21,6 +21,7 @@ router.get('/config', roleMiddleware(['Admin']), async (_req: AuthRequest, res) 
       notifyApproval: cfg?.notifyApproval ?? true,
       notifyInvoiceOverdue: cfg?.notifyInvoiceOverdue ?? true,
       notifyLowStock: cfg?.notifyLowStock ?? true,
+      personalEnabled: cfg?.personalEnabled ?? true,
     });
   } catch (error) {
     return handleRouteError(res, error, 'GET /telegram/config', 'Gagal mengambil konfigurasi Telegram.');
@@ -38,6 +39,7 @@ router.put('/config', roleMiddleware(['Admin']), async (req: AuthRequest, res) =
       ...(body.notifyApproval !== undefined && { notifyApproval: body.notifyApproval }),
       ...(body.notifyInvoiceOverdue !== undefined && { notifyInvoiceOverdue: body.notifyInvoiceOverdue }),
       ...(body.notifyLowStock !== undefined && { notifyLowStock: body.notifyLowStock }),
+      ...(body.personalEnabled !== undefined && { personalEnabled: body.personalEnabled }),
       updatedBy: req.user!.userId,
     };
     // Token: hanya ubah jika string non-kosong dikirim (kosong = pertahankan).

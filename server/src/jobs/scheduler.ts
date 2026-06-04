@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 import { runQuotationSweeper } from './quotationSweeper';
 import { runDueRecurringTemplates } from '../services/recurringRunner';
 import { runNotificationChecks } from '../services/notificationService';
+import { pollTelegramUpdates } from '../services/telegramService';
 
 /**
  * Postgres advisory lock helper. Returns true if THIS connection acquired the
@@ -105,6 +106,14 @@ export function startScheduler(): void {
         }
       });
     }, { timezone: 'Asia/Jakarta' }),
+  );
+
+  // Tiap menit: poll getUpdates Telegram → tautkan /start <kode> ke user.
+  // Ringan & langsung skip kalau Telegram nonaktif/no token.
+  tasks.push(
+    cron.schedule('* * * * *', () => {
+      void withAdvisoryLock(BigInt('123456789004'), () => pollTelegramUpdates());
+    }),
   );
 
   // Run quotation sweeper once at startup to catch anything missed during downtime.
