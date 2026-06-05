@@ -4,6 +4,7 @@ import { Loader2, Plus, Edit2, Trash2, X, GitBranch, AlertCircle } from 'lucide-
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { can } from '../lib/permissions';
 
 interface ProductionProcess {
   id: string;
@@ -23,12 +24,8 @@ interface FormState {
 
 const blankForm: FormState = { name: '', description: '', sortOrder: '0' };
 
-interface Props {
-  userRole: string;
-}
-
-export default function ProductionProcessesTab({ userRole }: Props) {
-  const canEdit = userRole === 'Admin' || userRole === 'Accountant';
+export default function ProductionProcessesTab() {
+  const canEdit = can('production', 'edit');
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductionProcess | null>(null);

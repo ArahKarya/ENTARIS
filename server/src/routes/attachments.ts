@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import multer from 'multer';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { saveAttachment, deleteAttachment, getFullPath } from '../utils/fileStorage';
 import { handleRouteError } from '../utils/errors';
 
@@ -51,7 +51,6 @@ function detectMimeFromMagicBytes(buf: Buffer): string | null {
 // ─── POST /api/attachments/upload ────────────────────────────────────────────
 router.post(
   '/upload',
-  roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']),
   upload.array('files', MAX_FILES),
   async (req: AuthRequest, res: Response) => {
     try {
@@ -296,7 +295,7 @@ router.get('/invoice/:type/:id/related', async (req: AuthRequest, res: Response)
 });
 
 // ─── GET /api/attachments/:referenceType/:referenceId ────────────────────────
-router.get('/:referenceType/:referenceId', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi', 'Viewer']), async (req: AuthRequest, res: Response) => {
+router.get('/:referenceType/:referenceId', async (req: AuthRequest, res: Response) => {
   try {
     const referenceType = req.params.referenceType as string;
     const referenceId = req.params.referenceId as string;
@@ -344,7 +343,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // ─── POST /api/attachments/counts — batch count for list indicators ──────────
-router.post('/counts', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi', 'Viewer']), async (req: AuthRequest, res: Response) => {
+router.post('/counts', async (req: AuthRequest, res: Response) => {
   try {
     const { referenceType, referenceIds } = req.body;
     if (!referenceType || !Array.isArray(referenceIds) || referenceIds.length === 0) {

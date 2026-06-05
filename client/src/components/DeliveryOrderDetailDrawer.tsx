@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import AttachmentPreview from './AttachmentPreview';
 import DeliveryOrderPDF from '../lib/pdf/DeliveryOrderPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import DeliveryOrderModal from './DeliveryOrderModal';
+import { can, cap } from '../lib/permissions';
 
 interface Props {
   doId: string | null;
@@ -27,25 +28,14 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
   Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
 };
 
-function getUserRole(): string | null {
-  try {
-    return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? null;
-  } catch {
-    return null;
-  }
-}
-
 const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
   const company = useCompanyPDF();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  const userRole = useMemo(() => getUserRole(), []);
-  const isAdmin = userRole === 'Admin';
-  // Edit mengikuti WRITE_ROLES backend (Admin + Accountant + StaffProduksi).
-  // Cancel tetap Admin-only.
-  const canEdit = userRole === 'Admin' || userRole === 'Accountant' || userRole === 'StaffProduksi';
+  const isAdmin = cap('doc.cancel');
+  const canEdit = can('delivery_order', 'edit');
   const [editOpen, setEditOpen] = useState(false);
 
   const { data: doc, isLoading } = useQuery({

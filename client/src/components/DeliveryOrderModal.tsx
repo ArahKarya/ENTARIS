@@ -6,6 +6,7 @@ import api from '../lib/api';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import WarehousePicker from './WarehousePicker';
 import Select from './Select';
+import { cap } from '../lib/permissions';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -79,9 +80,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   );
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [negativeStockReason, setNegativeStockReason] = useState('');
-  const isAdmin = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'Admin'; } catch { return false; }
-  })();
+  const isAdmin = cap('inventory.negative_stock');
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();

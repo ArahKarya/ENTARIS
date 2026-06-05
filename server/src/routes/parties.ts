@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware } from '../middleware/auth';
+import { requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreatePartySchema, UpdatePartySchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
@@ -246,7 +246,7 @@ router.get('/dashboard', async (_req, res) => {
 });
 
 // POST /api/parties
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req, res) => {
+router.post('/', async (req, res) => {
   const body = validateBody(CreatePartySchema, req.body, res);
   if (!body) return;
 
@@ -270,7 +270,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 });
 
 // PUT /api/parties/:id
-router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req, res) => {
+router.put('/:id', async (req, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdatePartySchema, req.body, res);
   if (!body) return;
@@ -298,7 +298,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
 });
 
 // DELETE /api/parties/:id
-router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   const id = req.params.id as string;
 
   try {

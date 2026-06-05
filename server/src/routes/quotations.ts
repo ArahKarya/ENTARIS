@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { BusinessError, handleRouteError } from '../utils/errors';
@@ -179,7 +179,7 @@ router.get('/:id', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST / — create draft
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateQuotationSchema, req.body, res);
   if (!body) return;
 
@@ -228,7 +228,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 // ─────────────────────────────────────────────────────────────────────────────
 // PUT /:id — edit (Draft only)
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateQuotationSchema, req.body, res);
   if (!body) return;
 
@@ -278,7 +278,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /:id — only Draft can be hard-deleted
 // ─────────────────────────────────────────────────────────────────────────────
-router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const existing = await prisma.quotation.findUnique({ where: { id: req.params.id as string } });
     if (!existing) return res.status(404).json({ error: 'Penawaran tidak ditemukan.' });
@@ -295,7 +295,7 @@ router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/send — Draft → Sent
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch('/:id/send', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id/send', async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const q = await tx.quotation.findUnique({ where: { id: req.params.id as string }, include: { items: true } });
@@ -317,7 +317,7 @@ router.patch('/:id/send', roleMiddleware(['Admin', 'Accountant']), async (req, r
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/accept — Sent → Accepted
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch('/:id/accept', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id/accept', async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const q = await tx.quotation.findUnique({ where: { id: req.params.id as string } });
@@ -338,7 +338,7 @@ router.patch('/:id/accept', roleMiddleware(['Admin', 'Accountant']), async (req,
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/reject — Sent → Rejected
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch('/:id/reject', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id/reject', async (req, res) => {
   const body = validateBody(RejectQuotationSchema, req.body, res);
   if (!body) return;
   try {
@@ -360,7 +360,7 @@ router.patch('/:id/reject', roleMiddleware(['Admin', 'Accountant']), async (req,
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/cancel — any → Cancelled (Admin only, blocked if converted)
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch('/:id/cancel', roleMiddleware(['Admin']), async (req, res) => {
+router.patch('/:id/cancel', requireCap('doc.cancel'), async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const q = await tx.quotation.findUnique({ where: { id: req.params.id as string } });
@@ -444,7 +444,7 @@ router.get('/:id/convert-payload', async (req, res) => {
 // invoice creation (which posts GL via existing logic) from quotation linking
 // keeps GL posting logic single-sourced in routes/sales.ts.
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/:id/link', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.post('/:id/link', async (req, res) => {
   const { salesInvoiceId } = req.body ?? {};
   if (!salesInvoiceId || typeof salesInvoiceId !== 'string') {
     return res.status(400).json({ error: 'salesInvoiceId wajib diisi.' });

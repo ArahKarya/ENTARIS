@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import api from './lib/api';
+import { can } from './lib/permissions';
 import { CompanySettingsProvider } from './contexts/CompanySettingsContext';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
@@ -50,34 +53,44 @@ import DailyReport from './pages/reports/DailyReport';
 import OeeReport from './pages/reports/OeeReport';
 
 
+// Protected shell: refresh /auth/me sekali saat load supaya permissions/caps di
+// localStorage selalu fresh (mis. setelah Admin mengubah matriks izin). Server
+// tetap enforce; ini menjaga UI sinkron. 401 → ke /login.
 const ProtectedRoute = () => {
-  const user = localStorage.getItem('user');
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  const [ready, setReady] = useState(false);
+  const [authed, setAuthed] = useState<boolean>(() => !!localStorage.getItem('user'));
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!localStorage.getItem('user')) { setReady(true); setAuthed(false); return; }
+    api.get('/auth/me')
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.user) localStorage.setItem('user', JSON.stringify(res.data.user));
+        setAuthed(true);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err?.response?.status === 401) {
+          localStorage.removeItem('user');
+          setAuthed(false);
+        }
+      })
+      .finally(() => { if (!cancelled) setReady(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!authed && !localStorage.getItem('user')) return <Navigate to="/login" replace />;
+  if (!ready) return null; // hindari flash UI sebelum permissions ter-refresh
   return <Outlet />;
 };
 
-function getUserRole(): string | null {
-  try { return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? null; }
-  catch { return null; }
-}
-
-const RoleRoute = ({ allowed, children }: { allowed: string[]; children: React.ReactNode }) => {
-  const role = getUserRole();
-  if (role && !allowed.includes(role)) {
-    return <Navigate to="/" replace />;
-  }
-  return <>{children}</>;
+// Gate route berdasarkan izin modul (view). Tanpa akses → ke beranda (Dashboard
+// selalu dapat diakses, jadi tak ada loop redirect).
+const PermRoute = ({ module, children }: { module: string; children: React.ReactNode }) => {
+  if (can(module, 'view')) return <>{children}</>;
+  return <Navigate to="/" replace />;
 };
-
-// Shorthand: routes only accessible to finance roles (not StaffProduksi)
-const FinanceRoute = ({ children }: { children: React.ReactNode }) => (
-  <RoleRoute allowed={['Admin', 'Accountant', 'Viewer']}>{children}</RoleRoute>
-);
-const AdminRoute = ({ children }: { children: React.ReactNode }) => (
-  <RoleRoute allowed={['Admin']}>{children}</RoleRoute>
-);
 
 function App() {
   return (
@@ -90,53 +103,53 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/coa" element={<FinanceRoute><COAPage /></FinanceRoute>} />
-            <Route path="/gl" element={<FinanceRoute><GeneralLedger /></FinanceRoute>} />
-            <Route path="/sales" element={<FinanceRoute><SalesInvoices /></FinanceRoute>} />
-            <Route path="/inquiries" element={<FinanceRoute><Inquiries /></FinanceRoute>} />
-            <Route path="/quotations" element={<FinanceRoute><Quotations /></FinanceRoute>} />
-            <Route path="/sales-orders" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><SalesOrders /></RoleRoute>} />
-            <Route path="/sales-returns" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><SalesReturnsPage /></RoleRoute>} />
-            <Route path="/purchase" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><PurchaseInvoices /></RoleRoute>} />
-            <Route path="/payments" element={<FinanceRoute><Payments /></FinanceRoute>} />
-            <Route path="/vendor-deposits" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><VendorDeposits /></RoleRoute>} />
-            <Route path="/customer-deposits" element={<RoleRoute allowed={['Admin', 'Accountant']}><CustomerDeposits /></RoleRoute>} />
-            <Route path="/parties" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><PartiesPage /></RoleRoute>} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/stock-opname" element={<RoleRoute allowed={['Admin', 'Accountant']}><StockOpnamePage /></RoleRoute>} />
-            <Route path="/warehouses" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><Warehouses /></RoleRoute>} />
-            <Route path="/warehouse-stock" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><WarehouseStockDashboard /></RoleRoute>} />
-            <Route path="/stock-transfers" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi']}><StockTransfers /></RoleRoute>} />
-            <Route path="/delivery-orders" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><DeliveryOrders /></RoleRoute>} />
-            <Route path="/goods-receipts" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><GoodsReceipts /></RoleRoute>} />
-            <Route path="/purchase-orders" element={<RoleRoute allowed={['Admin', 'Accountant', 'StaffProduksi', 'Viewer']}><PurchaseOrders /></RoleRoute>} />
+            <Route path="/coa" element={<PermRoute module="coa"><COAPage /></PermRoute>} />
+            <Route path="/gl" element={<PermRoute module="journal"><GeneralLedger /></PermRoute>} />
+            <Route path="/sales" element={<PermRoute module="sales_invoice"><SalesInvoices /></PermRoute>} />
+            <Route path="/inquiries" element={<PermRoute module="quotation"><Inquiries /></PermRoute>} />
+            <Route path="/quotations" element={<PermRoute module="quotation"><Quotations /></PermRoute>} />
+            <Route path="/sales-orders" element={<PermRoute module="sales_order"><SalesOrders /></PermRoute>} />
+            <Route path="/sales-returns" element={<PermRoute module="sales_return"><SalesReturnsPage /></PermRoute>} />
+            <Route path="/purchase" element={<PermRoute module="purchase_invoice"><PurchaseInvoices /></PermRoute>} />
+            <Route path="/payments" element={<PermRoute module="payment"><Payments /></PermRoute>} />
+            <Route path="/vendor-deposits" element={<PermRoute module="vendor_deposit"><VendorDeposits /></PermRoute>} />
+            <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
+            <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
+            <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />
+            <Route path="/stock-opname" element={<PermRoute module="stock_opname"><StockOpnamePage /></PermRoute>} />
+            <Route path="/warehouses" element={<PermRoute module="warehouse"><Warehouses /></PermRoute>} />
+            <Route path="/warehouse-stock" element={<PermRoute module="inventory"><WarehouseStockDashboard /></PermRoute>} />
+            <Route path="/stock-transfers" element={<PermRoute module="stock_transfer"><StockTransfers /></PermRoute>} />
+            <Route path="/delivery-orders" element={<PermRoute module="delivery_order"><DeliveryOrders /></PermRoute>} />
+            <Route path="/goods-receipts" element={<PermRoute module="goods_receipt"><GoodsReceipts /></PermRoute>} />
+            <Route path="/purchase-orders" element={<PermRoute module="purchase_order"><PurchaseOrders /></PermRoute>} />
 
-            {/* Report Routes */}
-            <Route path="/reports" element={<FinanceRoute><Reports /></FinanceRoute>} />
-            <Route path="/reports/daily" element={<FinanceRoute><DailyReport /></FinanceRoute>} />
-            <Route path="/reports/trial-balance" element={<FinanceRoute><TrialBalance /></FinanceRoute>} />
-            <Route path="/reports/profit-loss" element={<FinanceRoute><ProfitLoss /></FinanceRoute>} />
-            <Route path="/reports/balance-sheet" element={<FinanceRoute><BalanceSheet /></FinanceRoute>} />
-            <Route path="/reports/cash-flow" element={<FinanceRoute><CashFlow /></FinanceRoute>} />
-            <Route path="/reports/aging-ar" element={<FinanceRoute><AgingAnalysis type="Customer" /></FinanceRoute>} />
-            <Route path="/reports/aging-ap" element={<FinanceRoute><AgingAnalysis type="Supplier" /></FinanceRoute>} />
-            <Route path="/reports/tax" element={<FinanceRoute><TaxReport /></FinanceRoute>} />
-            <Route path="/reports/ledger-book" element={<FinanceRoute><LedgerBook /></FinanceRoute>} />
-            <Route path="/reports/hpp" element={<FinanceRoute><HppReport /></FinanceRoute>} />
-            <Route path="/reports/profitability-per-sku" element={<FinanceRoute><ProfitabilityPerSku /></FinanceRoute>} />
-            <Route path="/reports/oee" element={<FinanceRoute><OeeReport /></FinanceRoute>} />
-            <Route path="/reports/payable-schedule" element={<FinanceRoute><PayableSchedule /></FinanceRoute>} />
-            <Route path="/reports/receivable-schedule" element={<FinanceRoute><ReceivableSchedule /></FinanceRoute>} />
+            {/* Report Routes — semua modul 'reports' */}
+            <Route path="/reports" element={<PermRoute module="reports"><Reports /></PermRoute>} />
+            <Route path="/reports/daily" element={<PermRoute module="reports"><DailyReport /></PermRoute>} />
+            <Route path="/reports/trial-balance" element={<PermRoute module="reports"><TrialBalance /></PermRoute>} />
+            <Route path="/reports/profit-loss" element={<PermRoute module="reports"><ProfitLoss /></PermRoute>} />
+            <Route path="/reports/balance-sheet" element={<PermRoute module="reports"><BalanceSheet /></PermRoute>} />
+            <Route path="/reports/cash-flow" element={<PermRoute module="reports"><CashFlow /></PermRoute>} />
+            <Route path="/reports/aging-ar" element={<PermRoute module="reports"><AgingAnalysis type="Customer" /></PermRoute>} />
+            <Route path="/reports/aging-ap" element={<PermRoute module="reports"><AgingAnalysis type="Supplier" /></PermRoute>} />
+            <Route path="/reports/tax" element={<PermRoute module="reports"><TaxReport /></PermRoute>} />
+            <Route path="/reports/ledger-book" element={<PermRoute module="reports"><LedgerBook /></PermRoute>} />
+            <Route path="/reports/hpp" element={<PermRoute module="reports"><HppReport /></PermRoute>} />
+            <Route path="/reports/profitability-per-sku" element={<PermRoute module="reports"><ProfitabilityPerSku /></PermRoute>} />
+            <Route path="/reports/oee" element={<PermRoute module="reports"><OeeReport /></PermRoute>} />
+            <Route path="/reports/payable-schedule" element={<PermRoute module="reports"><PayableSchedule /></PermRoute>} />
+            <Route path="/reports/receivable-schedule" element={<PermRoute module="reports"><ReceivableSchedule /></PermRoute>} />
 
-            <Route path="/reconciliation" element={<RoleRoute allowed={['Admin', 'Accountant']}><BankReconciliation /></RoleRoute>} />
-            <Route path="/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
-            <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="/audit" element={<AdminRoute><AuditTrail /></AdminRoute>} />
-            <Route path="/health-check" element={<AdminRoute><HealthCheckPage /></AdminRoute>} />
-            <Route path="/fixed-assets" element={<RoleRoute allowed={['Admin', 'Accountant']}><FixedAssetsPage /></RoleRoute>} />
-            <Route path="/approvals" element={<RoleRoute allowed={['Admin', 'Accountant']}><ApprovalsPage /></RoleRoute>} />
+            <Route path="/reconciliation" element={<PermRoute module="reconciliation"><BankReconciliation /></PermRoute>} />
+            <Route path="/settings" element={<PermRoute module="settings"><SettingsPage /></PermRoute>} />
+            <Route path="/users" element={<PermRoute module="users"><UserManagement /></PermRoute>} />
+            <Route path="/audit" element={<PermRoute module="audit"><AuditTrail /></PermRoute>} />
+            <Route path="/health-check" element={<PermRoute module="audit"><HealthCheckPage /></PermRoute>} />
+            <Route path="/fixed-assets" element={<PermRoute module="fixed_assets"><FixedAssetsPage /></PermRoute>} />
+            <Route path="/approvals" element={<PermRoute module="approvals"><ApprovalsPage /></PermRoute>} />
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/recurring" element={<RoleRoute allowed={['Admin', 'Accountant']}><RecurringTransactions /></RoleRoute>} />
+            <Route path="/recurring" element={<PermRoute module="recurring"><RecurringTransactions /></PermRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

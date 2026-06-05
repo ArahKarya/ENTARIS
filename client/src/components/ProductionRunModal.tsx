@@ -9,6 +9,7 @@ import WarehousePicker from './WarehousePicker';
 import BatchPicker from './BatchPicker';
 import type { Batch } from './BatchPicker';
 import Select from './Select';
+import { cap } from '../lib/permissions';
 
 interface LineItem {
   itemId: string;
@@ -148,9 +149,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const [manpowerCount, setManpowerCount] = useState('');
   const [runMachines, setRunMachines] = useState<MachineLine[]>([]);
   const [downtimes, setDowntimes] = useState<DowntimeLine[]>([]);
-  const isAdmin = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'Admin'; } catch { return false; }
-  })();
+  const isAdmin = cap('inventory.negative_stock');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 

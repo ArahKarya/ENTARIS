@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware } from '../middleware/auth';
+import { requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateServiceItemSchema, UpdateServiceItemSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/service-items
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.post('/', async (req, res) => {
   const body = validateBody(CreateServiceItemSchema, req.body, res);
   if (!body) return;
 
@@ -60,7 +60,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
 });
 
 // PATCH /api/service-items/:id
-router.patch('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id', async (req, res) => {
   const body = validateBody(UpdateServiceItemSchema, req.body, res);
   if (!body) return;
 
@@ -78,7 +78,7 @@ router.patch('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) =
 });
 
 // DELETE /api/service-items/:id (soft delete)
-router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   try {
     await prisma.serviceItem.update({
       where: { id: req.params.id as string },

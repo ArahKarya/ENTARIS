@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../../middleware/auth';
+import { AuthRequest, requireCap } from '../../middleware/auth';
+import { hasCap } from '../../services/permissionService';
 import { validateBody } from '../../utils/validate';
 import { CreateProductionRunSchema, UpdateProductionRunSchema } from '../../utils/schemas';
 import { handleRouteError } from '../../utils/errors';
@@ -121,16 +122,16 @@ router.get('/:id', async (req, res) => {
 // POST /api/inventory/production-runs — record a production run.
 // Heavy lifting (inputs/outputs validation, multi-account JE, stock movements,
 // WAC, COGS backfill) lives in services/productionRunSubmit.ts.
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateProductionRunSchema, req.body, res);
   if (!body) return;
-  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
-    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  if (body.allowNegativeStock && !(await hasCap(req.user!.role, 'inventory.negative_stock'))) {
+    return res.status(403).json({ error: 'Anda tidak berwenang bypass validasi stok.' });
   }
 
   try {
-    // Approval gate: non-Admin → masuk antrian, dokumen baru dibuat saat approve.
-    if (needsApproval(req.user!.role)) {
+    // Approval gate: tanpa capability bypass → masuk antrian, dokumen dibuat saat approve.
+    if (await needsApproval(req.user!.role)) {
       const amount = (body.inputs ?? []).reduce((s: number, it: any) => s + Number(it.quantity ?? 0), 0);
       const request = await prisma.$transaction((tx) =>
         queueApproval(tx, {
@@ -167,12 +168,12 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 // PUT /api/inventory/production-runs/:id — Edit (cancel old + recreate with
 // same runNumber, JE revisioned as JV-{runNo}-R{n}). Heavy logic lives in
 // services/productionRunEdit.ts.
-router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateProductionRunSchema, req.body, res);
   if (!body) return;
-  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
-    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+  if (body.allowNegativeStock && !(await hasCap(req.user!.role, 'inventory.negative_stock'))) {
+    return res.status(403).json({ error: 'Anda tidak berwenang bypass validasi stok.' });
   }
 
   try {
@@ -188,7 +189,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
 
 
 // PUT /api/inventory/production-runs/:id/cancel
-router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const allowNegativeStock = req.query.allowNegativeStock === 'true' || req.body?.allowNegativeStock === true;
   const negativeStockReason = typeof req.body?.negativeStockReason === 'string' ? req.body.negativeStockReason : null;

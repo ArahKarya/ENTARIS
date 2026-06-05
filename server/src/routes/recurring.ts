@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateRecurringSchema, UpdateRecurringSchema } from '../utils/schemas';
 import { updateBalancesForItems } from '../utils/accountBalance';
@@ -127,7 +127,7 @@ async function executeTemplate(
 }
 
 // GET /api/recurring — list all templates
-router.get('/', roleMiddleware(['Admin', 'Accountant']), async (_req, res) => {
+router.get('/', async (_req, res) => {
   try {
     const templates = await prisma.recurringTemplate.findMany({
       orderBy: { createdAt: 'desc' },
@@ -141,7 +141,7 @@ router.get('/', roleMiddleware(['Admin', 'Accountant']), async (_req, res) => {
 });
 
 // POST /api/recurring — create template
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateRecurringSchema, req.body, res);
   if (!body) return;
 
@@ -164,7 +164,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 });
 
 // PUT /api/recurring/:id — update template
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.put('/:id', async (req, res) => {
   const body = validateBody(UpdateRecurringSchema, req.body, res);
   if (!body) return;
 
@@ -188,7 +188,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => 
 });
 
 // DELETE /api/recurring/:id — soft delete (set isActive=false)
-router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     await prisma.recurringTemplate.update({
       where: { id: req.params.id as string },
@@ -201,7 +201,7 @@ router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) 
 });
 
 // POST /api/recurring/:id/execute — manually execute one template
-router.post('/:id/execute', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/:id/execute', async (req: AuthRequest, res) => {
   try {
     const template = await prisma.recurringTemplate.findUnique({
       where: { id: req.params.id as string },
@@ -226,7 +226,7 @@ router.post('/:id/execute', roleMiddleware(['Admin', 'Accountant']), async (req:
 });
 
 // POST /api/recurring/run-due — Admin: execute all due templates
-router.post('/run-due', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/run-due', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const now = new Date();
     const dueTemplates = await prisma.recurringTemplate.findMany({

@@ -9,6 +9,7 @@
 // Document type yang di-gate: 'PurchaseInvoice', 'ProductionRun'.
 
 import type { Prisma } from '@prisma/client';
+import { hasCap } from './permissionService';
 
 type Tx = Prisma.TransactionClient;
 
@@ -22,10 +23,11 @@ const GATED_LABELS: Record<GatedDocumentType, string> = {
 };
 
 /**
- * Apakah role ini perlu approval? Admin bebas; selain itu di-gate.
+ * Apakah role ini perlu approval? Role dgn capability 'approval.bypass'
+ * (default: Admin/super) langsung diproses; selain itu masuk antrian.
  */
-export function needsApproval(role: string): boolean {
-  return role !== 'Admin';
+export async function needsApproval(roleKey: string): Promise<boolean> {
+  return !(await hasCap(roleKey, 'approval.bypass'));
 }
 
 /**

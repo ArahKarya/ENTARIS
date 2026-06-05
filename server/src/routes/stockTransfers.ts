@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { handleRouteError } from '../utils/errors';
 import { validateBody } from '../utils/validate';
 import { submitStockTransferInTx, cancelStockTransferInTx } from '../services/stockTransfer';
@@ -93,7 +93,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST / — create + submit (single step for now)
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateTransferSchema, req.body, res);
   if (!body) return;
 
@@ -109,7 +109,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 });
 
 // PATCH /:id — edit header fields only (notes, mobil, supir, penerima)
-router.patch('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.patch('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateHeaderSchema, req.body, res);
   if (!body) return;
   try {
@@ -135,7 +135,7 @@ router.patch('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), a
 });
 
 // POST /:id/mark-printed — set printedAt timestamp (tracks when SJG dicetak)
-router.post('/:id/mark-printed', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/:id/mark-printed', async (req: AuthRequest, res) => {
   try {
     const updated = await prisma.stockTransfer.update({
       where: { id: req.params.id as string },
@@ -148,7 +148,7 @@ router.post('/:id/mark-printed', roleMiddleware(['Admin', 'Accountant', 'StaffPr
 });
 
 // PATCH /:id/cancel — reverse the transfer
-router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.patch('/:id/cancel', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
       (tx) => cancelStockTransferInTx(tx, req.params.id as string),

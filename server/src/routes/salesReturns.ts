@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateSalesReturnSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -140,12 +140,12 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/sales-returns — create (approval-gated for non-Admin)
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateSalesReturnSchema, req.body, res);
   if (!body) return;
 
   try {
-    if (needsApproval(req.user!.role)) {
+    if (await needsApproval(req.user!.role)) {
       const request = await prisma.$transaction((tx) =>
         queueApproval(tx, {
           documentType: 'SalesReturn',
@@ -178,7 +178,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 });
 
 // POST /api/sales-returns/:id/cancel — Admin only
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
       (tx) => cancelSalesReturnInTx(tx, req.params.id as string),

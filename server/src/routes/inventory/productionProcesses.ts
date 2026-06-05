@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { roleMiddleware } from '../../middleware/auth';
+import { requireCap } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import {
   CreateProductionProcessSchema,
@@ -33,7 +33,6 @@ router.get('/', async (req, res) => {
 // POST /api/inventory/production-processes
 router.post(
   '/',
-  roleMiddleware(['Admin', 'Accountant']),
   async (req, res) => {
     const body = validateBody(CreateProductionProcessSchema, req.body, res);
     if (!body) return;
@@ -62,7 +61,6 @@ router.post(
 // PUT /api/inventory/production-processes/:id
 router.put(
   '/:id',
-  roleMiddleware(['Admin', 'Accountant']),
   async (req, res) => {
     const body = validateBody(UpdateProductionProcessSchema, req.body, res);
     if (!body) return;
@@ -96,7 +94,7 @@ router.put(
 // DELETE /api/inventory/production-processes/:id
 // Soft-delete approach: if process already used by any run, deactivate it
 // (preserves historical traceability). Otherwise hard delete.
-router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   const id = req.params.id as string;
   try {
     const usageCount = await prisma.productionRunProcess.count({

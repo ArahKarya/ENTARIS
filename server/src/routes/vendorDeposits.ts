@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { updateAccountBalance, recalcPartyOutstanding } from '../utils/accountBalance';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
@@ -105,7 +105,7 @@ router.get('/balance/:partyId', async (req, res) => {
 });
 
 // PATCH /api/vendor-deposits/:id/cancel — cancel a vendor deposit payment
-router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.patch('/:id/cancel', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
   try {
@@ -212,7 +212,7 @@ router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req:
 });
 
 // POST /api/vendor-deposits/apply — apply deposit to purchase invoice
-router.post('/apply', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/apply', async (req: AuthRequest, res) => {
   const body = validateBody(ApplyVendorDepositSchema, req.body, res);
   if (!body) return;
 
@@ -332,7 +332,7 @@ router.post('/apply', roleMiddleware(['Admin', 'Accountant']), async (req: AuthR
 });
 
 // POST /api/vendor-deposits/apply/:id/cancel — cancel deposit application
-router.post('/apply/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/apply/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const application = await tx.vendorDepositApplication.findUnique({
@@ -400,7 +400,7 @@ router.post('/apply/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequ
 // POST /api/vendor-deposits/:id/refund — selesaikan sisa uang muka via
 // offset hutang (FIFO ke purchase invoice terlama) dan/atau refund kas dari
 // vendor (vendor mengembalikan DP ke rekening kita).
-router.post('/:id/refund', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/:id/refund', async (req: AuthRequest, res) => {
   const body = validateBody(RefundVendorDepositSchema, req.body, res);
   if (!body) return;
 

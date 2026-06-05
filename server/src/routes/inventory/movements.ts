@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Decimal from 'decimal.js';
 import { prisma } from '../../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../../middleware/auth';
+import { AuthRequest, requireCap } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { CreateStockMovementSchema, UpdateStockMovementSchema } from '../../utils/schemas';
 import { BusinessError, handleRouteError } from '../../utils/errors';
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/inventory/movements
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateStockMovementSchema, req.body, res);
   if (!body) return;
 
@@ -295,7 +295,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /api/inventory/movements/:id — edit movement (cancel old + create new)
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateStockMovementSchema, req.body, res);
   if (!body) return;
@@ -509,7 +509,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 });
 
 // PUT /api/inventory/movements/:id/cancel
-router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
   try {

@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware } from '../middleware/auth';
+import { requirePerm } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { UpdateCompanySettingsSchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
@@ -19,7 +19,7 @@ router.use(dummyDataRouter);
 // GET /api/settings/runtime — runtime info (platform, domain, versions).
 // Restricted to Admin/Accountant because nodeVersion + hostname + memory size
 // are useful reconnaissance signals to anyone with read access to the system.
-router.get('/runtime', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.get('/runtime', requirePerm('settings'), async (req, res) => {
   try {
     const protocol = req.protocol;
     const host = req.get('host') || 'localhost';
@@ -77,7 +77,7 @@ router.get('/company', async (req, res) => {
 });
 
 // PUT /api/settings/company (Admin only)
-router.put('/company', roleMiddleware(['Admin']), async (req, res) => {
+router.put('/company', requirePerm('settings'), async (req, res) => {
   const rawBody = req.body;
   const mergedBody = {
     ...rawBody,
@@ -127,7 +127,7 @@ router.put('/company', roleMiddleware(['Admin']), async (req, res) => {
   }
 });
 
-router.get('/check-update', roleMiddleware(['Admin']), async (_req, res) => {
+router.get('/check-update', requirePerm('settings'), async (_req, res) => {
   try {
     const currentVersion = (() => {
       try {

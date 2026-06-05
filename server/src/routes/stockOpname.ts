@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateStockOpnameSchema, SubmitStockOpnameSchema } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
@@ -84,7 +84,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/stock-opname — Create and submit in one step
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateStockOpnameSchema, req.body, res);
   if (!body) return;
 
@@ -302,7 +302,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 });
 
 // PUT /api/stock-opname/:id/cancel — Cancel and reverse all adjustments
-router.put('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
   try {

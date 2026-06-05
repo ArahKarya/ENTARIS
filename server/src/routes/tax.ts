@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware } from '../middleware/auth';
+import { requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateTaxConfigSchema, UpdateTaxConfigSchema } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
@@ -23,7 +23,7 @@ router.get('/config', async (_req, res) => {
 });
 
 // POST /api/tax/config — create tax config (Admin only)
-router.post('/config', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/config', async (req, res) => {
   const body = validateBody(CreateTaxConfigSchema, req.body, res);
   if (!body) return;
 
@@ -43,7 +43,7 @@ router.post('/config', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // PUT /api/tax/config/:id — update tax config
-router.put('/config/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.put('/config/:id', async (req, res) => {
   const body = validateBody(UpdateTaxConfigSchema, req.body, res);
   if (!body) return;
 
@@ -63,7 +63,7 @@ router.put('/config/:id', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // DELETE /api/tax/config/:id — soft delete (set isActive=false)
-router.delete('/config/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/config/:id', requireCap('doc.cancel'), async (req, res) => {
   try {
     const id = req.params.id as string;
     const existing = await prisma.taxConfig.findUnique({ where: { id } });

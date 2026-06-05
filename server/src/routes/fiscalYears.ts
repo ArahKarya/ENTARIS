@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { updateAccountBalance } from '../utils/accountBalance';
 import { validateBody } from '../utils/validate';
 import { CreateFiscalYearSchema } from '../utils/schemas';
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/fiscal-years (Admin only)
-router.post('/', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/', async (req, res) => {
   const body = validateBody(CreateFiscalYearSchema, req.body, res);
   if (!body) return;
 
@@ -57,7 +57,7 @@ router.post('/', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // POST /api/fiscal-years/:id/close — close fiscal year (Admin only)
-router.post('/:id/close', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
   try {
@@ -192,7 +192,7 @@ router.post('/:id/close', roleMiddleware(['Admin']), async (req: AuthRequest, re
 });
 
 // POST /api/fiscal-years/:id/reopen — reopen a closed fiscal year (Admin only)
-router.post('/:id/reopen', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/reopen', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const fyId = req.params.id as string;
 
   try {

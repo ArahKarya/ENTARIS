@@ -41,10 +41,6 @@ export const PurchaseInvoices = () => {
   const [editConfirmTarget, setEditConfirmTarget] = useState<any>(null);
   const [piTab, setPiTab] = useState<'list' | 'approval'>('list');
   const [resubmitId, setResubmitId] = useState<string | null>(null);
-  const userRole = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role; } catch { return undefined; }
-  }, []);
-
   // Resubmit: payload (raw create-body) → modal prefill shape.
   const handlePIResubmit = (req: ApprovalRequest) => {
     const p = req.payload ?? {};
@@ -269,7 +265,6 @@ export const PurchaseInvoices = () => {
       {piTab === 'approval' && (
         <ApprovalPanel
           documentType="PurchaseInvoice"
-          userRole={userRole}
           onResubmit={handlePIResubmit}
           onViewDocument={(req) => { if (req.documentId) setSelectedId(req.documentId); }}
         />

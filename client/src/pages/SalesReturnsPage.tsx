@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Undo2, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { cap } from '../lib/permissions';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import SalesReturnModal from '../components/SalesReturnModal';
 import TableRowSkeleton from '../components/TableRowSkeleton';
@@ -16,10 +17,7 @@ export default function SalesReturnsPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
 
-  const userRole = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role; } catch { return undefined; }
-  }, []);
-  const isAdmin = userRole === 'Admin';
+  const isAdmin = cap('approval.decide');
 
   const { data, isLoading } = useQuery({
     queryKey: ['sales-returns'],

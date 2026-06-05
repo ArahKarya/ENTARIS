@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { X, ClipboardList, User, Calendar, Package, Loader2, XCircle, AlertTriangle, PackageCheck } from 'lucide-react';
@@ -6,6 +6,7 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { formatDate, formatRupiah } from '../lib/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
+import { cap } from '../lib/permissions';
 
 interface Props {
   poId: string | null;
@@ -17,17 +18,10 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
   Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
 };
 
-function getUserRole(): string | null {
-  try {
-    return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? null;
-  } catch { return null; }
-}
-
 const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose }) => {
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const userRole = useMemo(() => getUserRole(), []);
-  const isAdmin = userRole === 'Admin';
+  const isAdmin = cap('doc.cancel');
 
   const { data: doc, isLoading } = useQuery({
     queryKey: ['purchase-order-detail', poId],

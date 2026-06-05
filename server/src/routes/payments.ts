@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { updateAccountBalance, recalcPartyOutstanding } from '../utils/accountBalance';
 import { validateBody } from '../utils/validate';
 import { CreatePaymentSchema } from '../utils/schemas';
@@ -110,7 +110,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/payments — record payment/receipt
 // POST /api/payments — record payment/receipt. All 6 paymentType branches
 // + auto-allocate live in services/paymentSubmit.ts.
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreatePaymentSchema, req.body, res);
   if (!body) return;
 
@@ -126,7 +126,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 });
 
 // POST /api/payments/:id/cancel — cancel payment and reverse allocations
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const payment = await tx.payment.findUnique({

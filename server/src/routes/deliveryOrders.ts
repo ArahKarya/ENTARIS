@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
+import { hasCap } from '../services/permissionService';
 import { validateBody } from '../utils/validate';
 import { CreateDeliveryOrderSchema } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
@@ -14,14 +15,11 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
-const READ_ROLES = ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'];
-// StaffProduksi diizinkan create + edit Surat Jalan (mereka yang fisik
-// nyetak & hand off ke supir). Cancel tetap Admin-only karena merupakan
-// destructive operation yang mengembalikan stok.
-const WRITE_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
+// Akses modul 'delivery_order' di-enforce di mount (index.ts). Cancel = capability
+// 'doc.cancel'; bypass stok minus = capability 'inventory.negative_stock'.
 
 // ─── GET / list ───────────────────────────────────────────────────────────
-router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const {
       status,
@@ -90,7 +88,7 @@ router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
 
 // ─── GET /pending ─────────────────────────────────────────────────────────
 // Used by the invoice modal to pick DOs that still need billing.
-router.get('/pending', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/pending', async (req, res) => {
   try {
     const { partyId } = req.query;
     if (!partyId || typeof partyId !== 'string') {
@@ -115,7 +113,7 @@ router.get('/pending', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── GET /:id detail ──────────────────────────────────────────────────────
-router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const deliveryOrder = await prisma.deliveryOrder.findUnique({
       where: { id: req.params.id as string },
@@ -140,12 +138,12 @@ router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── POST / submit ────────────────────────────────────────────────────────
-router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
   if (!body) return;
 
   // Strict mode + Admin-only bypass: cuma Admin yang boleh allowNegativeStock.
-  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+  if (body.allowNegativeStock && !(await hasCap(req.user!.role, 'inventory.negative_stock'))) {
     return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
   }
 
@@ -164,7 +162,7 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
 // ─── POST /from-invoice/:invoiceId — retroactive DO ────────────────────────
 // Used when an invoice was entered first (direct-sale) and the physical DO
 // paperwork comes later. No stock movements; links to invoice's existing SM.
-router.post('/from-invoice/:invoiceId', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.post('/from-invoice/:invoiceId', async (req: AuthRequest, res) => {
   const body = validateBody(CreateDOFromInvoiceSchema, req.body, res);
   if (!body) return;
 
@@ -190,7 +188,7 @@ router.post('/from-invoice/:invoiceId', roleMiddleware(WRITE_ROLES), async (req:
 // ─── PATCH /:id edit header ───────────────────────────────────────────────
 // Only header fields (notes, nomorMobil, driverName, recipientName) — quantities
 // and items can't change once stock has moved. Status must still be Submitted.
-router.patch('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.patch('/:id', async (req: AuthRequest, res) => {
   try {
     const existing = await prisma.deliveryOrder.findUnique({
       where: { id: req.params.id as string },
@@ -219,10 +217,10 @@ router.patch('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) 
 // ─── PUT /:id full edit — reverse old movements, re-apply new items ────────
 // Allowed only when DO is Submitted and not yet linked to an invoice.
 // doNumber is preserved.
-router.put('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
   if (!body) return;
-  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+  if (body.allowNegativeStock && !(await hasCap(req.user!.role, 'inventory.negative_stock'))) {
     return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
   }
   try {
@@ -238,7 +236,7 @@ router.put('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) =>
 });
 
 // ─── POST /:id/cancel — Admin only ────────────────────────────────────────
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
       (tx) => cancelDeliveryOrderInTx(tx, req.params.id as string),

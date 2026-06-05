@@ -16,11 +16,7 @@ import { Layers } from 'lucide-react';
 import VendorDepositModal from '../components/VendorDepositModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import PaymentDetailDrawer from '../components/PaymentDetailDrawer';
-
-const getUserRole = (): string | null => {
-  try { return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? null; }
-  catch { return null; }
-};
+import { cap } from '../lib/permissions';
 
 interface CashTransaction {
   id: string;
@@ -48,8 +44,7 @@ export const Payments = () => {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const role = getUserRole();
-  const canCancel = role === 'Admin';
+  const canCancel = cap('doc.cancel');
 
   const cancelPaymentMutation = useMutation({
     mutationFn: (id: string) => api.post(`/payments/${id}/cancel`),

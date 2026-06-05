@@ -9,6 +9,7 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import Select from './Select';
+import { can } from '../lib/permissions';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -89,12 +90,8 @@ const fmtRupiah = (val: string | number) =>
 
 // ─── Main Tab ────────────────────────────────────────────────────────────────
 
-interface Props {
-  userRole: string;
-}
-
-export default function ProductionCostStandardsTab({ userRole }: Props) {
-  const canEdit = userRole === 'Admin' || userRole === 'Accountant';
+export default function ProductionCostStandardsTab() {
+  const canEdit = can('production', 'edit');
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<CostStandard | null>(null);

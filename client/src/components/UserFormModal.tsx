@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { X, Loader2, AlertCircle, User, Mail, Lock, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 import Select from './Select';
 
-type UserRole = 'Admin' | 'Accountant' | 'StaffProduksi' | 'Viewer';
+interface RoleOption { key: string; name: string }
 
 interface UserFormData {
   username: string;
   email: string;
   fullName: string;
   password: string;
-  role: UserRole;
+  role: string;
 }
 
 const defaultForm = (): UserFormData => ({
@@ -35,6 +35,13 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, editUser
   const queryClient = useQueryClient();
 
   const isEdit = !!editUser;
+
+  // Daftar role dinamis (RBAC) untuk dropdown.
+  const { data: roleOptions = [] } = useQuery<RoleOption[]>({
+    queryKey: ['roles-assignable'],
+    queryFn: async () => (await api.get('/roles/assignable')).data,
+    enabled: isOpen,
+  });
 
   useEffect(() => {
     if (isOpen && editUser) {
@@ -202,10 +209,10 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, editUser
                   color: 'var(--color-text-primary)',
                 }}
               >
-                <option value="Admin">Admin</option>
-                <option value="Accountant">Accountant</option>
-                <option value="StaffProduksi">Staff Produksi</option>
-                <option value="Viewer">Viewer</option>
+                {roleOptions.length === 0 && <option value={form.role}>{form.role}</option>}
+                {roleOptions.map((r) => (
+                  <option key={r.key} value={r.key}>{r.name}</option>
+                ))}
               </Select>
             </div>
           </div>

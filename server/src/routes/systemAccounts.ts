@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { systemAccounts } from '../services/systemAccounts';
 import {
   SYSTEM_ACCOUNT_ROLES,
@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 // GET /api/system-accounts — list all mappings grouped by role
-router.get('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   const mappings = await prisma.systemAccountMapping.findMany({
     include: {
       account: {

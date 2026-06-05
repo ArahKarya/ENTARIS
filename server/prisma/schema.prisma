@@ -746,7 +746,9 @@ model User {
   fullName                    String                       @map("full_name")
   email                       String                       @unique
   passwordHash                String                       @map("password_hash")
-  role                        UserRole                     @default(Accountant)
+  // role = Role.key (string dinamis). Nilai lama 'Admin'/'Accountant'/'StaffProduksi'/'Viewer'
+  // tetap valid; role custom dibuat Admin lewat RBAC. Enum UserRole sudah ditinggalkan.
+  role                        String                       @default("Accountant")
   isActive                    Boolean                      @default(true) @map("is_active")
   lastLoginAt                 DateTime?                    @map("last_login_at")
   // Notifikasi Telegram japri: chat id pribadi (tertaut via /start) + kode tautan sementara.
@@ -782,6 +784,47 @@ model User {
   updatedAt                   DateTime                     @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+// ─── RBAC Dinamis: Role custom + matriks izin (role × modul → view/edit) ─────
+// Role.key dirujuk oleh User.role (string). Role bawaan isSystem=true (tak bisa
+// dihapus); Admin isSuperAdmin=true (lolos semua cek). Lihat constants/modules.ts.
+model Role {
+  id           String           @id @default(uuid())
+  key          String           @unique
+  name         String
+  description  String?
+  isSystem     Boolean          @default(false) @map("is_system")
+  isSuperAdmin Boolean          @default(false) @map("is_super_admin")
+  isActive     Boolean          @default(true) @map("is_active")
+  permissions  RolePermission[]
+  capabilities RoleCapability[]
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id      String  @id @default(uuid())
+  roleId  String  @map("role_id")
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module  String
+  canView Boolean @default(false) @map("can_view")
+  canEdit Boolean @default(false) @map("can_edit")
+
+  @@unique([roleId, module])
+  @@map("role_permissions")
+}
+
+model RoleCapability {
+  id         String @id @default(uuid())
+  roleId     String @map("role_id")
+  role       Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  capability String
+
+  @@unique([roleId, capability])
+  @@map("role_capabilities")
 }
 
 model TokenBlacklist {

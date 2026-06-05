@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { formatRupiah } from '../lib/formatters';
 import { cn } from '../lib/utils';
+import { cap } from '../lib/permissions';
 
 export interface ApprovalRequest {
   id: string;
@@ -44,7 +45,6 @@ const docTypeLabel: Record<string, string> = {
 
 interface Props {
   documentType?: 'PurchaseInvoice' | 'ProductionRun'; // undefined = semua tipe
-  userRole: string | undefined;
   onResubmit?: (req: ApprovalRequest) => void;
   onViewDocument?: (req: ApprovalRequest) => void;
   // Deep-link dari notifikasi: id pengajuan yg langsung dibuka detailnya.
@@ -99,9 +99,9 @@ function prodHppEstimate(payload: any): { hpp: number | null; knownMaterial: boo
  * Revisi), detail modal, aksi Admin (Setuju/Tolak/Minta Edit), dan tombol
  * "Edit & Ajukan Ulang" untuk staff pemilik pengajuan berstatus Perlu Revisi.
  */
-export default function ApprovalPanel({ documentType, userRole, onResubmit, onViewDocument, focusRequestId, onFocusHandled }: Props) {
+export default function ApprovalPanel({ documentType, onResubmit, onViewDocument, focusRequestId, onFocusHandled }: Props) {
   const qc = useQueryClient();
-  const isAdmin = userRole === 'Admin';
+  const isAdmin = cap('approval.decide');
   const currentUserId = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null')?.id ?? null; } catch { return null; }
   }, []);

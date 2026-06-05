@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Plus, Settings2 } from 'lucide-react';
@@ -44,10 +44,6 @@ export default function ApprovalsPage() {
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [viewRunId, setViewRunId] = useState<string | null>(null);
-  const userRole = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role; } catch { return undefined; }
-  }, []);
-
   const { data: rules = [] } = useQuery<ApprovalRule[]>({
     queryKey: ['approval-rules'],
     queryFn: async () => (await api.get('/approvals/rules')).data,
@@ -104,7 +100,6 @@ export default function ApprovalsPage() {
       {/* Requests Tab — pakai ApprovalPanel (semua tipe, sub-tab status) */}
       {tab === 'requests' && (
         <ApprovalPanel
-          userRole={userRole}
           focusRequestId={focusRequestId}
           onFocusHandled={clearFocus}
           onViewDocument={(req: ApprovalRequest) => {

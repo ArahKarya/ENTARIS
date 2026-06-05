@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware, AuthRequest } from '../middleware/auth';
+import { requireCap, AuthRequest } from '../middleware/auth';
+import { hasCap } from '../services/permissionService';
 import { logger } from '../lib/logger';
 import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
 import { decideApproval } from '../services/approvalDecision';
@@ -10,7 +11,7 @@ const router = Router();
 // ── Rules Management (Admin only) ────────────────────────────────────────────
 
 // GET /rules — list all approval rules
-router.get('/rules', roleMiddleware(['Admin']), async (_req, res) => {
+router.get('/rules', requireCap('approval.decide'), async (_req, res) => {
   try {
     const rules = await prisma.approvalRule.findMany({
       orderBy: [{ documentType: 'asc' }, { minAmount: 'asc' }],
@@ -23,7 +24,7 @@ router.get('/rules', roleMiddleware(['Admin']), async (_req, res) => {
 });
 
 // POST /rules — create approval rule
-router.post('/rules', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/rules', requireCap('approval.decide'), async (req, res) => {
   try {
     const { documentType, minAmount, requiredRole } = req.body;
     const rule = await prisma.approvalRule.create({
@@ -37,7 +38,7 @@ router.post('/rules', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // PUT /rules/:id — update rule
-router.put('/rules/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.put('/rules/:id', requireCap('approval.decide'), async (req, res) => {
   try {
     const { documentType, minAmount, requiredRole, isActive } = req.body;
     const rule = await prisma.approvalRule.update({
@@ -52,7 +53,7 @@ router.put('/rules/:id', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // DELETE /rules/:id
-router.delete('/rules/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/rules/:id', requireCap('approval.decide'), async (req, res) => {
   try {
     await prisma.approvalRule.delete({ where: { id: req.params.id as string } });
     res.json({ success: true });
@@ -64,14 +65,14 @@ router.delete('/rules/:id', roleMiddleware(['Admin']), async (req, res) => {
 // ── Approval Requests ────────────────────────────────────────────────────────
 
 // GET /requests — list approval requests (pending first)
-router.get('/requests', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.get('/requests', async (req: AuthRequest, res) => {
   try {
     const { status } = req.query;
     const where: any = {};
     if (status) where.status = status;
     // Non-Admin hanya lihat request yang mereka ajukan sendiri (transparansi
     // status); Admin lihat semua antrian untuk di-review.
-    if (req.user!.role !== 'Admin') where.requestedBy = req.user!.userId;
+    if (!(await hasCap(req.user!.role, 'approval.view_all'))) where.requestedBy = req.user!.userId;
 
     const requests = await prisma.approvalRequest.findMany({
       where,
@@ -92,7 +93,7 @@ router.get('/requests', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi'])
 
 // GET /requests/:id — satu pengajuan (utk deep-link dari notifikasi). Admin lihat
 // semua; non-Admin hanya pengajuannya sendiri.
-router.get('/requests/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.get('/requests/:id', async (req: AuthRequest, res) => {
   try {
     const request = await prisma.approvalRequest.findUnique({
       where: { id: req.params.id as string },
@@ -103,7 +104,7 @@ router.get('/requests/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduks
       },
     });
     if (!request) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
-    if (req.user!.role !== 'Admin' && request.requestedBy !== req.user!.userId) {
+    if (!(await hasCap(req.user!.role, 'approval.view_all')) && request.requestedBy !== req.user!.userId) {
       return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
     }
     res.json(request);
@@ -114,7 +115,7 @@ router.get('/requests/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduks
 });
 
 // POST /requests — submit approval request
-router.post('/requests', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/requests', async (req: AuthRequest, res) => {
   try {
     const { documentType, documentId, documentNumber, amount } = req.body;
 
@@ -160,7 +161,7 @@ router.post('/requests', roleMiddleware(['Admin', 'Accountant']), async (req: Au
 // POST /requests/:id/approve — eksekusi dokumen dari payload, lalu tandai Approved.
 // Dokumen baru DIBUAT di sini (gate "approve-before-effect"). Submit asli
 // dijalankan dgn requester sbg pembuat dokumen (audit menunjuk si penginput).
-router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/requests/:id/approve', requireCap('approval.decide'), async (req: AuthRequest, res) => {
   const result = await decideApproval({
     requestId: req.params.id as string,
     action: 'approve',
@@ -172,7 +173,7 @@ router.post('/requests/:id/approve', roleMiddleware(['Admin']), async (req: Auth
 });
 
 // POST /requests/:id/reject
-router.post('/requests/:id/reject', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/requests/:id/reject', requireCap('approval.decide'), async (req: AuthRequest, res) => {
   const result = await decideApproval({
     requestId: req.params.id as string,
     action: 'reject',
@@ -185,7 +186,7 @@ router.post('/requests/:id/reject', roleMiddleware(['Admin']), async (req: AuthR
 
 // POST /requests/:id/request-revision — Admin minta staff perbaiki pengajuan.
 // Status → NeedsRevision (reversible), wajib alasan. Dokumen TIDAK dibuat.
-router.post('/requests/:id/request-revision', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/requests/:id/request-revision', requireCap('approval.decide'), async (req: AuthRequest, res) => {
   const result = await decideApproval({
     requestId: req.params.id as string,
     action: 'revise',
@@ -199,11 +200,11 @@ router.post('/requests/:id/request-revision', roleMiddleware(['Admin']), async (
 // PUT /requests/:id/resubmit — staff perbaiki payload & ajukan ulang.
 // Hanya pemilik pengajuan + status NeedsRevision. Status → Pending (lewat gate
 // lagi). Dokumen TETAP dibuat saat approve, bukan di sini.
-router.put('/requests/:id/resubmit', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.put('/requests/:id/resubmit', async (req: AuthRequest, res) => {
   try {
     const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
     if (!request) return res.status(404).json({ error: 'Request tidak ditemukan.' });
-    if (request.requestedBy !== req.user!.userId && req.user!.role !== 'Admin') {
+    if (request.requestedBy !== req.user!.userId && !(await hasCap(req.user!.role, 'approval.view_all'))) {
       return res.status(403).json({ error: 'Bukan pengajuan Anda.' });
     }
     if (request.status !== 'NeedsRevision') {
@@ -247,7 +248,7 @@ router.put('/requests/:id/resubmit', roleMiddleware(['Admin', 'Accountant', 'Sta
 });
 
 // GET /check — check if a document needs approval
-router.get('/check', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.get('/check', async (req, res) => {
   try {
     const { documentType, amount } = req.query;
     const rule = await prisma.approvalRule.findFirst({

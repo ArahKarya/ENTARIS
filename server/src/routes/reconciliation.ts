@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { systemAccounts } from '../services/systemAccounts';
 import {
@@ -14,7 +14,7 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 const router = Router();
 
 // GET /api/reconciliation — list all reconciliations
-router.get('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { page = '1', limit = '50' } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
@@ -40,7 +40,7 @@ router.get('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
 });
 
 // POST /api/reconciliation — create new reconciliation
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateReconciliationSchema, req.body, res);
   if (!body) return;
 
@@ -74,7 +74,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 });
 
 // GET /api/reconciliation/:id — detail with items + unmatched ledger entries
-router.get('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id as string;
     const reconciliation = await prisma.bankReconciliation.findUnique({
@@ -114,7 +114,7 @@ router.get('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => 
 });
 
 // POST /api/reconciliation/:id/items — add statement line items
-router.post('/:id/items', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.post('/:id/items', async (req, res) => {
   const body = validateBody(AddStatementItemsSchema, req.body, res);
   if (!body) return;
 
@@ -142,7 +142,7 @@ router.post('/:id/items', roleMiddleware(['Admin', 'Accountant']), async (req, r
 });
 
 // PATCH /api/reconciliation/:id/match — match a statement item to a ledger entry
-router.patch('/:id/match', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id/match', async (req, res) => {
   const body = validateBody(MatchItemSchema, req.body, res);
   if (!body) return;
 
@@ -181,7 +181,7 @@ router.patch('/:id/match', roleMiddleware(['Admin', 'Accountant']), async (req, 
 });
 
 // PATCH /api/reconciliation/:id/unmatch — unmatch an item
-router.patch('/:id/unmatch', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id/unmatch', async (req, res) => {
   const body = validateBody(UnmatchItemSchema, req.body, res);
   if (!body) return;
 
@@ -213,7 +213,7 @@ router.patch('/:id/unmatch', roleMiddleware(['Admin', 'Accountant']), async (req
 });
 
 // POST /api/reconciliation/:id/complete — mark as Completed
-router.post('/:id/complete', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.post('/:id/complete', async (req, res) => {
   try {
     const id = req.params.id as string;
     const reconciliation = await prisma.bankReconciliation.findUnique({
@@ -244,7 +244,7 @@ router.post('/:id/complete', roleMiddleware(['Admin', 'Accountant']), async (req
 });
 
 // DELETE /api/reconciliation/:id — delete (only if Draft)
-router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const id = req.params.id as string;
     const reconciliation = await prisma.bankReconciliation.findUnique({

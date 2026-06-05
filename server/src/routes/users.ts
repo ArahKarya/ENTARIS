@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware, AuthRequest } from '../middleware/auth';
+import { requirePerm, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateUserSchema, UpdateUserSchema, ChangePasswordSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -13,7 +13,7 @@ import { logger } from '../lib/logger';
 const router = Router();
 
 // GET /api/users — list all users (Admin only)
-router.get('/', roleMiddleware(['Admin']), async (req, res) => {
+router.get('/', requirePerm('users'), async (req, res) => {
   try {
     const { page = '1', limit = '50', search } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
@@ -58,11 +58,17 @@ router.get('/', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // POST /api/users — create new user (Admin only)
-router.post('/', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/', requirePerm('users'), async (req, res) => {
   const body = validateBody(CreateUserSchema, req.body, res);
   if (!body) return;
 
   try {
+    // Validasi role harus ada (RBAC dinamis).
+    const roleExists = await prisma.role.findUnique({ where: { key: body.role } });
+    if (!roleExists) {
+      return res.status(400).json({ error: 'Role tidak valid.' });
+    }
+
     // Check unique username
     const existingUsername = await prisma.user.findUnique({ where: { username: body.username } });
     if (existingUsername) {
@@ -147,12 +153,20 @@ router.put('/me/password', async (req: AuthRequest, res) => {
 });
 
 // PUT /api/users/:id — update user (Admin only)
-router.put('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.put('/:id', requirePerm('users'), async (req, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateUserSchema, req.body, res);
   if (!body) return;
 
   try {
+    // Validasi role bila diubah (RBAC dinamis).
+    if (body.role !== undefined) {
+      const roleExists = await prisma.role.findUnique({ where: { key: body.role } });
+      if (!roleExists) {
+        return res.status(400).json({ error: 'Role tidak valid.' });
+      }
+    }
+
     // Check unique username if changing
     if (body.username) {
       const existing = await prisma.user.findFirst({
@@ -206,7 +220,7 @@ router.put('/:id', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // PATCH /api/users/:id/toggle — toggle isActive (Admin only)
-router.patch('/:id/toggle', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.patch('/:id/toggle', requirePerm('users'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
   try {
@@ -242,7 +256,7 @@ router.patch('/:id/toggle', roleMiddleware(['Admin']), async (req: AuthRequest, 
 });
 
 // POST /api/users/:id/telegram-link — generate kode tautan + deep link (Admin)
-router.post('/:id/telegram-link', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/telegram-link', requirePerm('users'), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
     const user = await prisma.user.findUnique({ where: { id }, select: { id: true } });
@@ -262,7 +276,7 @@ router.post('/:id/telegram-link', roleMiddleware(['Admin']), async (req: AuthReq
 });
 
 // POST /api/users/:id/telegram-test — kirim japri uji ke user (Admin)
-router.post('/:id/telegram-test', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/telegram-test', requirePerm('users'), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
     const user = await prisma.user.findUnique({ where: { id }, select: { telegramChatId: true, fullName: true } });
@@ -279,7 +293,7 @@ router.post('/:id/telegram-test', roleMiddleware(['Admin']), async (req: AuthReq
 });
 
 // DELETE /api/users/:id/telegram — putuskan tautan (Admin)
-router.delete('/:id/telegram', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.delete('/:id/telegram', requirePerm('users'), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
     await prisma.user.update({ where: { id }, data: { telegramChatId: null, telegramLinkCode: null } });

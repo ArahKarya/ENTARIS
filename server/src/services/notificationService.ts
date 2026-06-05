@@ -10,6 +10,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { pushTelegram, pushTelegramToUser, isPersonalTelegramOn } from './telegramService';
+import { hasCap } from './permissionService';
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -56,17 +57,20 @@ export async function notifyUsers(db: Db, input: NotifyInput, opts?: NotifyOpts)
               where: { id: { in: input.userIds }, telegramChatId: { not: null } },
               select: { telegramChatId: true, role: true },
             });
-            // Tombol aksi hanya utk approval_pending ke admin (japri admin saja).
+            // Tombol aksi hanya utk approval_pending ke user dgn capability
+            // 'approval.decide' (default Admin/super) — japri pemutus saja.
             const requestId = (input.metadata as any)?.requestId as string | undefined;
             for (const u of linked) {
               if (u.telegramChatId) {
+                const withApprovalButtons =
+                  input.type === 'approval_pending' && !!requestId && (await hasCap(u.role, 'approval.decide'));
                 void pushTelegramToUser({
                   chatId: u.telegramChatId,
                   type: input.type,
                   title: input.title,
                   message: input.message,
                   requestId,
-                  withApprovalButtons: input.type === 'approval_pending' && !!requestId && u.role === 'Admin',
+                  withApprovalButtons,
                 });
               }
             }

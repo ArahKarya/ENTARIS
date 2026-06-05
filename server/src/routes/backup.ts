@@ -3,7 +3,7 @@ import { spawn, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
-import { roleMiddleware } from '../middleware/auth';
+import { requireCap } from '../middleware/auth';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -193,7 +193,7 @@ function buildRestoreCommand(host: string, port: string, user: string, db: strin
 }
 
 // GET /api/backup/list — list backup files
-router.get('/list', roleMiddleware(['Admin']), async (_req, res) => {
+router.get('/list', async (_req, res) => {
   try {
     await ensureBackupDir();
     const entries = await fs.promises.readdir(BACKUP_DIR);
@@ -219,7 +219,7 @@ router.get('/list', roleMiddleware(['Admin']), async (_req, res) => {
 });
 
 // POST /api/backup/create — trigger pg_dump
-router.post('/create', roleMiddleware(['Admin']), async (_req, res) => {
+router.post('/create', async (_req, res) => {
   try {
     await ensureBackupDir();
     const { host, port, user, password, db } = parseDatabaseUrl();
@@ -258,7 +258,7 @@ router.post('/create', roleMiddleware(['Admin']), async (_req, res) => {
 });
 
 // GET /api/backup/download/:filename — download a backup file
-router.get('/download/:filename', roleMiddleware(['Admin']), async (req, res) => {
+router.get('/download/:filename', async (req, res) => {
   try {
     const filename = req.params.filename as string;
 
@@ -311,7 +311,7 @@ const upload = multer({
   },
 });
 
-router.post('/upload', roleMiddleware(['Admin']), upload.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'File backup tidak ditemukan dalam request.' });
@@ -333,7 +333,7 @@ router.post('/upload', roleMiddleware(['Admin']), upload.single('file'), async (
 });
 
 // POST /api/backup/restore — restore from backup
-router.post('/restore', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/restore', requireCap('doc.cancel'), async (req, res) => {
   try {
     const { filename } = req.body;
     if (!filename || typeof filename !== 'string') {

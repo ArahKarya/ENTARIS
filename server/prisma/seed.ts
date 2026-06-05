@@ -1,4 +1,4 @@
-import { PrismaClient, AccountType, RootType, UserRole, PartyType } from '@prisma/client';
+import { PrismaClient, AccountType, RootType, PartyType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
@@ -28,10 +28,10 @@ async function main() {
   const adminPassword = await bcrypt.hash('Adminarahkarya123!dsw', 12);
 
   const users = [
-    { username: 'admin',    fullName: 'Administrator',   email: 'admin@arahkarya.com',     role: UserRole.Admin,         password: adminPassword   },
-    { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@keuangan.local',    role: UserRole.Accountant,    password: defaultPassword },
-    { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@keuangan.local', role: UserRole.StaffProduksi, password: defaultPassword },
-    { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@keuangan.local',   role: UserRole.Viewer,        password: defaultPassword },
+    { username: 'admin',    fullName: 'Administrator',   email: 'admin@arahkarya.com',     role: 'Admin',         password: adminPassword   },
+    { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@keuangan.local',    role: 'Accountant',    password: defaultPassword },
+    { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@keuangan.local', role: 'StaffProduksi', password: defaultPassword },
+    { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@keuangan.local',   role: 'Viewer',        password: defaultPassword },
   ];
 
   for (const u of users) {

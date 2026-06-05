@@ -5,14 +5,11 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { Prisma } from '@prisma/client';
-import { roleMiddleware } from '../../middleware/auth';
 import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
 import { buildStockSnapshot } from '../../services/stockSnapshot';
 
 const router = Router();
-
-router.use(roleMiddleware(['Admin', 'Accountant', 'Viewer']));
 
 function parseQueryDate(value: unknown, endOfDay = false): Date | undefined {
   if (typeof value !== 'string' || !value) return undefined;

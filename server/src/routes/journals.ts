@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { updateBalancesForItems } from '../utils/accountBalance';
 import { applyPartyImpact } from '../utils/partyBalance';
 import { generateDocumentNumber } from '../utils/documentNumber';
@@ -74,7 +74,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/journals — create journal entry
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateJournalSchema, req.body, res);
   if (!body) return;
 
@@ -195,7 +195,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 });
 
 // PATCH /api/journals/:id/cancel — cancel a journal entry and reverse balances
-router.patch('/:id/cancel', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.patch('/:id/cancel', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
   try {

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import ExcelJS from 'exceljs';
 import { prisma } from '../../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../../middleware/auth';
+import { AuthRequest } from '../../middleware/auth';
 import { logger } from '../../lib/logger';
 
 const router = Router();
@@ -10,7 +10,6 @@ const router = Router();
 // Download current data as editable Excel template for re-upload
 router.get(
   '/template/:type',
-  roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']),
   async (req: AuthRequest, res) => {
     const { type } = req.params;
 

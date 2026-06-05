@@ -473,9 +473,9 @@ export const CreateMachineSchema = z.object({
 export const UpdateMachineSchema = CreateMachineSchema.partial();
 
 // ─── User Management ─────────────────────────────────────────────────────────
-const UserRoleEnum = z.enum(['Admin', 'Accountant', 'StaffProduksi', 'Viewer'], {
-  message: "Role harus salah satu dari: Admin, Accountant, StaffProduksi, Viewer",
-});
+// RBAC dinamis: role = key Role (string). Keberadaan role divalidasi di route
+// users (cek ke tabel roles), bukan enum hardcoded lagi.
+const UserRoleEnum = z.string().min(1, 'Role wajib diisi.');
 
 export const CreateUserSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter.'),

@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
+import { hasCap } from '../services/permissionService';
 import { validateBody } from '../utils/validate';
 import {
   CreateSalesOrderSchema,
@@ -17,11 +18,8 @@ import Decimal from 'decimal.js';
 
 const router = Router();
 
-const READ_ROLES = ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'];
-// StaffProduksi punya akses penuh SO (buat/edit/submit/cancel) — pesanan
-// langsung relevan dgn kerja mereka (siapkan & kirim barang).
-const WRITE_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
-const CANCEL_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
+// Akses modul 'sales_order' di-enforce di mount (index.ts).
+// Bypass stok minus = capability 'inventory.negative_stock'.
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function computeTotals(input: {
@@ -64,7 +62,7 @@ async function refreshSOStatusInTx(tx: Prisma.TransactionClient, soId: string) {
 }
 
 // ─── GET / list ────────────────────────────────────────────────────────────
-router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, partyId, startDate, endDate, search, page = '1', limit = '50' } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
@@ -109,7 +107,7 @@ router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── GET /:id detail ───────────────────────────────────────────────────────
-router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const so = await prisma.salesOrder.findUnique({
       where: { id: req.params.id as string },
@@ -149,7 +147,7 @@ router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── POST / create ─────────────────────────────────────────────────────────
-router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateSalesOrderSchema, req.body, res);
   if (!body) return;
   try {
@@ -205,7 +203,7 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
 });
 
 // ─── PUT /:id edit ─────────────────────────────────────────────────────────
-router.put('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateSalesOrderSchema, req.body, res);
   if (!body) return;
   try {
@@ -260,7 +258,7 @@ router.put('/:id', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) =>
 });
 
 // ─── POST /:id/submit ──────────────────────────────────────────────────────
-router.post('/:id/submit', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.post('/:id/submit', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const so = await tx.salesOrder.findUnique({ where: { id: req.params.id as string } });
@@ -279,7 +277,7 @@ router.post('/:id/submit', roleMiddleware(WRITE_ROLES), async (req: AuthRequest,
 });
 
 // ─── POST /:id/cancel ──────────────────────────────────────────────────────
-router.post('/:id/cancel', roleMiddleware(CANCEL_ROLES), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const so = await tx.salesOrder.findUnique({ where: { id: req.params.id as string } });
@@ -303,10 +301,10 @@ router.post('/:id/cancel', roleMiddleware(CANCEL_ROLES), async (req: AuthRequest
 });
 
 // ─── POST /:id/generate-do — generate DeliveryOrder dari SO ────────────────
-router.post('/:id/generate-do', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/:id/generate-do', async (req: AuthRequest, res) => {
   const body = validateBody(GenerateDOFromSOSchema, req.body, res);
   if (!body) return;
-  if (body.allowNegativeStock && req.user!.role !== 'Admin') {
+  if (body.allowNegativeStock && !(await hasCap(req.user!.role, 'inventory.negative_stock'))) {
     return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
   }
   try {

@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware } from '../middleware/auth';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import fixedAssetsRouter from './dashboard/fixedAssets';
@@ -21,9 +20,6 @@ function parseRange(
   const end = isNaN(parsedEnd.getTime()) ? (defaults.end ?? new Date()) : parsedEnd;
   return { start, end };
 }
-
-// All dashboard endpoints require at least Viewer role
-router.use(roleMiddleware(['Admin', 'Accountant', 'Viewer']));
 
 // Sub-router untuk widget Aset Tetap (single comprehensive endpoint).
 router.use('/fixed-assets', fixedAssetsRouter);

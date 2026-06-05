@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.10.0';
+export const APP_VERSION = '3.11.0';
 export const APP_BUILD_DATE = '2026-06-05';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.11.0',
+    date: '2026-06-05',
+    title: 'Role & Hak Akses Dinamis (RBAC) — Buat Role Custom + Matriks Izin',
+    changes: [
+      'Admin dapat membuat/menghapus role sendiri (mis. Kasir, Auditor, Staf Pembelian) lewat Pengaturan → Hak Akses',
+      'Matriks izin per modul (Lihat/Edit) yang bisa diatur tiap role tanpa ubah kode; menu & akses mengikuti izin otomatis',
+      'Hak khusus terpisah: setujui pengajuan, lewati approval, batalkan/finalisasi dokumen, bypass stok minus, kelola hak akses',
+      'Role bawaan (Admin/Akuntan/Staff Produksi/Viewer) tetap dengan akses yang sama persis — tanpa perubahan bagi pengguna lama',
+      'Pemilihan role saat buat/edit user kini mengikuti daftar role yang ada (dinamis)',
+    ],
+  },
   {
     version: '3.10.0',
     date: '2026-06-05',

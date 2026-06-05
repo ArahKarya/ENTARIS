@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { roleMiddleware } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { CreateMachineSchema, UpdateMachineSchema } from '../../utils/schemas';
 import { handleRouteError } from '../../utils/errors';
@@ -42,7 +41,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/inventory/machines
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.post('/', async (req, res) => {
   const body = validateBody(CreateMachineSchema, req.body, res);
   if (!body) return;
   try {
@@ -66,7 +65,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
 });
 
 // PUT /api/inventory/machines/:id
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.put('/:id', async (req, res) => {
   const body = validateBody(UpdateMachineSchema, req.body, res);
   if (!body) return;
   try {
@@ -96,7 +95,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => 
 // DELETE /api/inventory/machines/:id
 // Block hard-delete when the machine is referenced by any production run or
 // downtime row — preserves historical OEE traceability. Suggest deactivating.
-router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const id = req.params.id as string;
   try {
     const [runCount, downtimeCount] = await Promise.all([

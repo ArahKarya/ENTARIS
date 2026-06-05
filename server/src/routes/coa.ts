@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { updateAccountBalance } from '../utils/accountBalance';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
@@ -70,7 +70,7 @@ router.get('/flat', async (req, res) => {
 });
 
 // POST /api/coa — create new account (Admin only)
-router.post('/', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/', async (req, res) => {
   const body = validateBody(CreateAccountSchema, req.body, res);
   if (!body) return;
 
@@ -99,7 +99,7 @@ router.post('/', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // PUT /api/coa/:id — update account (Admin only)
-router.put('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.put('/:id', async (req, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateAccountSchema, req.body, res);
   if (!body) return;
@@ -142,7 +142,7 @@ router.put('/:id', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // PATCH /api/coa/:id/balance — set opening balance (Admin only)
-router.patch('/:id/balance', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.patch('/:id/balance', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const body = validateBody(SetBalanceSchema, req.body, res);
   if (!body) return;
@@ -216,7 +216,7 @@ router.patch('/:id/balance', roleMiddleware(['Admin']), async (req: AuthRequest,
 });
 
 // DELETE /api/coa/:id — delete account with safety checks (Admin only)
-router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   const id = req.params.id as string;
 
   try {

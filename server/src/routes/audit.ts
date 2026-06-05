@@ -1,12 +1,11 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware } from '../middleware/auth';
 import { handleRouteError } from '../utils/errors';
 
 const router = Router();
 
 // GET /api/audit-logs — paginated list, filterable (Admin only)
-router.get('/', roleMiddleware(['Admin']), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const {
       page = '1',

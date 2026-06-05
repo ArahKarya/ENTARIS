@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { validateBody } from '../utils/validate';
 import { buildStockSnapshot } from '../services/stockSnapshot';
@@ -102,7 +102,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/warehouses
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateWarehouseSchema, req.body, res);
   if (!body) return;
 
@@ -130,7 +130,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 });
 
 // PUT /api/warehouses/:id
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateWarehouseSchema, req.body, res);
   if (!body) return;
   try {
@@ -160,7 +160,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 });
 
 // DELETE /api/warehouses/:id — only if no stock & no movements
-router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   try {
     const id = req.params.id as string;
     const wh = await prisma.warehouse.findUnique({ where: { id } });

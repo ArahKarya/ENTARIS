@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma';
 import { generateToken } from '../utils/auth';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { loginRateLimiter } from '../middleware/rateLimiter';
+import { getEffectiveForClient } from '../services/permissionService';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -73,12 +74,16 @@ router.post('/login', loginRateLimiter, async (req, res) => {
       path: '/',
     });
 
+    const access = await getEffectiveForClient(user.role);
     return res.json({
       user: {
         id: user.id,
         username: user.username,
         fullName: user.fullName,
         role: user.role,
+        isSuperAdmin: access.isSuperAdmin,
+        permissions: access.permissions,
+        caps: access.caps,
       },
     });
   } catch (error) {
@@ -97,7 +102,15 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res) => {
     if (!user || !user.isActive) {
       return res.status(401).json({ error: 'User tidak ditemukan atau tidak aktif.' });
     }
-    return res.json({ user });
+    const access = await getEffectiveForClient(user.role);
+    return res.json({
+      user: {
+        ...user,
+        isSuperAdmin: access.isSuperAdmin,
+        permissions: access.permissions,
+        caps: access.caps,
+      },
+    });
   } catch (error) {
     logger.error({ error }, 'GET /auth/me error');
     return res.status(500).json({ error: 'Gagal mengambil data user.' });

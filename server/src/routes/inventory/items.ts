@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../../middleware/auth';
+import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { CreateInventoryItemSchema, UpdateInventoryItemSchema } from '../../utils/schemas';
 import { BusinessError } from '../../utils/errors';
@@ -202,7 +202,7 @@ router.get('/:id/batches', async (req, res) => {
 });
 
 // POST /api/inventory/items
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateInventoryItemSchema, req.body, res);
   if (!body) return;
 
@@ -231,7 +231,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 });
 
 // PUT /api/inventory/items/:id
-router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateInventoryItemSchema, req.body, res);
   if (!body) return;
@@ -261,7 +261,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
 });
 
 // DELETE /api/inventory/items/:id
-router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.delete('/:id', async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
 

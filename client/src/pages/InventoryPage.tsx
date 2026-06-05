@@ -20,6 +20,7 @@ import ImportModal from '../components/ImportModal';
 import WarehousePicker from '../components/WarehousePicker';
 import Select from '../components/Select';
 import { exportToExcel } from '../lib/exportExcel';
+import { can, cap } from '../lib/permissions';
 
 type TabType = 'dashboard' | 'items' | 'movements' | 'production' | 'services';
 
@@ -78,14 +79,6 @@ export function InventoryPage() {
   const [serviceSaving, setServiceSaving] = useState(false);
 
   const queryClient = useQueryClient();
-
-  const userRole = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? '';
-    } catch {
-      return '';
-    }
-  }, []);
 
   // --- Queries ---
   const { data: itemsRaw, isLoading: itemsLoading } = useQuery({
@@ -667,7 +660,7 @@ export function InventoryPage() {
                           {mov.notes ?? '—'}
                         </td>
                         <td>
-                          {!isCancelled && ['Admin', 'Accountant'].includes(userRole) && (
+                          {!isCancelled && can('inventory', 'edit') && (
                             <div className="flex items-center gap-0.5">
                               <button
                                 onClick={() => { setEditMovement(mov); setMovementModalOpen(true); }}
@@ -676,7 +669,7 @@ export function InventoryPage() {
                               >
                                 <Edit2 size={14} />
                               </button>
-                              {userRole === 'Admin' && (
+                              {cap('doc.cancel') && (
                                 <button
                                   onClick={() => setCancelTarget(mov.id)}
                                   className="p-1.5 hover:bg-red-50 rounded text-gray-300 hover:text-red-500 transition-colors"
@@ -761,14 +754,13 @@ export function InventoryPage() {
           </div>
 
           {prodSubTab === 'dashboard' && <ProductionDashboardTab items={items} />}
-          {prodSubTab === 'costStandards' && <ProductionCostStandardsTab userRole={userRole} />}
-          {prodSubTab === 'processes' && <ProductionProcessesTab userRole={userRole} />}
-          {prodSubTab === 'machines' && <MachinesTab userRole={userRole} />}
+          {prodSubTab === 'costStandards' && <ProductionCostStandardsTab />}
+          {prodSubTab === 'processes' && <ProductionProcessesTab />}
+          {prodSubTab === 'machines' && <MachinesTab />}
 
           {prodSubTab === 'approval' && (
             <ApprovalPanel
               documentType="ProductionRun"
-              userRole={userRole}
               onResubmit={(req: ApprovalRequest) => {
                 setEditProdRun(null);
                 setProdPrefillPayload(req.payload);
@@ -905,7 +897,7 @@ export function InventoryPage() {
                             >
                               <Eye size={15} />
                             </button>
-                            {!isCancelled && (userRole === 'Admin' || userRole === 'Accountant' || userRole === 'StaffProduksi') && (
+                            {!isCancelled && can('production', 'edit') && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setEditProdRun(run); setProductionModalOpen(true); }}
                                 className="p-1.5 hover:bg-amber-50 rounded text-gray-300 hover:text-amber-500 transition-colors"
@@ -914,7 +906,7 @@ export function InventoryPage() {
                                 <Edit2 size={15} />
                               </button>
                             )}
-                            {!isCancelled && userRole === 'Admin' && (
+                            {!isCancelled && cap('doc.cancel') && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setCancelProdTarget(run.id); }}
                                 className="p-1.5 hover:bg-red-50 rounded text-gray-300 hover:text-red-500 transition-colors"
@@ -1002,7 +994,7 @@ export function InventoryPage() {
                         >
                           <Edit2 size={15} />
                         </button>
-                        {svc.isActive && userRole === 'Admin' && (
+                        {svc.isActive && cap('doc.cancel') && (
                           <button
                             onClick={() => handleDeactivateService(svc.id)}
                             className="p-1.5 hover:bg-red-50 rounded text-gray-300 hover:text-red-500 transition-colors"
@@ -1104,7 +1096,7 @@ export function InventoryPage() {
       <ProductionDetailDrawer
         runId={selectedProdRunId}
         onClose={() => setSelectedProdRunId(null)}
-        canCancel={userRole === 'Admin'}
+        canCancel={cap('doc.cancel')}
         onCancel={(id) => {
           setSelectedProdRunId(null);
           setCancelProdTarget(id);

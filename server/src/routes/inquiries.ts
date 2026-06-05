@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { BusinessError, handleRouteError } from '../utils/errors';
@@ -94,7 +94,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─── POST / create ────────────────────────────────────────────────────────
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateInquirySchema, req.body, res);
   if (!body) return;
 
@@ -144,7 +144,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 });
 
 // ─── PUT /:id ─────────────────────────────────────────────────────────────
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateInquirySchema, req.body, res);
   if (!body) return;
 
@@ -194,7 +194,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 });
 
 // ─── DELETE /:id (only Baru/Diproses, NOT after conversion) ───────────────
-router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const existing = await prisma.inquiry.findUnique({ where: { id: req.params.id as string } });
     if (!existing) return res.status(404).json({ error: 'Inquiry tidak ditemukan.' });
@@ -210,7 +210,7 @@ router.delete('/:id', roleMiddleware(['Admin', 'Accountant']), async (req, res) 
 
 // ─── PATCH /:id/status ────────────────────────────────────────────────────
 // Allowed: Baru ↔ Diproses, Diproses → Hilang/Ditutup. Dikonversi only via convert flow.
-router.patch('/:id/status', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.patch('/:id/status', async (req, res) => {
   const body = validateBody(InquiryStatusUpdateSchema, req.body, res);
   if (!body) return;
   try {
@@ -243,7 +243,7 @@ router.patch('/:id/status', roleMiddleware(['Admin', 'Accountant']), async (req,
 // Returns prefilled data for QuotationModal. Auto-creates a Customer Party
 // if the inquiry was logged for a prospect (no partyId yet) so the modal
 // can submit immediately.
-router.get('/:id/convert-payload', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.get('/:id/convert-payload', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const inquiry = await tx.inquiry.findUnique({
@@ -303,7 +303,7 @@ router.get('/:id/convert-payload', roleMiddleware(['Admin', 'Accountant']), asyn
 });
 
 // ─── POST /:id/link — attach Quotation after frontend creates it ──────────
-router.post('/:id/link', roleMiddleware(['Admin', 'Accountant']), async (req, res) => {
+router.post('/:id/link', async (req, res) => {
   const { quotationId } = req.body ?? {};
   if (!quotationId || typeof quotationId !== 'string') {
     return res.status(400).json({ error: 'quotationId wajib diisi.' });

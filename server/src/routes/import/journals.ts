@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../../middleware/auth';
+import { AuthRequest } from '../../middleware/auth';
 import { updateBalancesForItems } from '../../utils/accountBalance';
 import { generateDocumentNumber } from '../../utils/documentNumber';
 import { getOpenFiscalYear } from '../../utils/fiscalYear';
@@ -13,7 +13,6 @@ const router = Router();
 // ─── POST /api/import/journals ───────────────────────────────────────────────
 router.post(
   '/journals',
-  roleMiddleware(['Admin', 'Accountant']),
   upload.single('file'),
   async (req: AuthRequest, res) => {
     if (!req.file) return res.status(400).json({ error: 'File wajib diunggah.' });

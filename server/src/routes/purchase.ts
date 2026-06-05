@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreatePurchaseInvoiceSchema, RevisePurchaseInvoiceSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -105,13 +105,13 @@ router.get('/:id', async (req, res) => {
 // POST /api/purchase/invoices — create purchase invoice.
 // Heavy lifting (landed cost, multi-account JE, stock, WAC, COGS backfill)
 // lives in services/purchaseInvoiceSubmit.ts.
-router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreatePurchaseInvoiceSchema, req.body, res);
   if (!body) return;
 
   try {
     // Approval gate: non-Admin → masuk antrian, dokumen baru dibuat saat approve.
-    if (needsApproval(req.user!.role)) {
+    if (await needsApproval(req.user!.role)) {
       const amount = (body.items ?? []).reduce((s: number, it: any) => s + Number(it.amount ?? 0), 0) + Number(body.biayaLain ?? 0);
       const request = await prisma.$transaction((tx) =>
         queueApproval(tx, {
@@ -145,7 +145,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async
 
 
 // PUT /api/purchase/invoices/:id — edit invoice (notes, dueDate)
-router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const invoice = await prisma.purchaseInvoice.findUnique({ where: { id: req.params.id as string } });
     if (!invoice) return res.status(404).json({ error: 'Invoice tidak ditemukan.' });
@@ -165,7 +165,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant', 'StaffProduksi']), asy
 
 // POST /api/purchase/invoices/:id/revise-price — revisi harga (supplier koreksi)
 // Delta di-split: porsi stok → Persediaan+WAC, porsi sudah-keluar → 5.11.
-router.post('/:id/revise-price', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/:id/revise-price', async (req: AuthRequest, res) => {
   const body = validateBody(RevisePurchaseInvoiceSchema, req.body, res);
   if (!body) return;
   try {
@@ -181,7 +181,7 @@ router.post('/:id/revise-price', roleMiddleware(['Admin', 'Accountant']), async 
 });
 
 // POST /api/purchase/invoices/:id/cancel — cancel purchase invoice
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
       (tx) => cancelPurchaseInvoiceInTx(tx, req.params.id as string),

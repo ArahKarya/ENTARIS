@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requirePerm } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { runNotificationChecks } from '../services/notificationService';
 
@@ -77,7 +77,7 @@ router.patch('/read-all', async (req: AuthRequest, res) => {
 // POST /api/notifications/check — Admin: trigger notification checks manually.
 // Logika dipindah ke notificationService.runNotificationChecks (dipakai juga
 // oleh cron harian).
-router.post('/check', roleMiddleware(['Admin']), async (_req: AuthRequest, res) => {
+router.post('/check', requirePerm('audit'), async (_req: AuthRequest, res) => {
   try {
     const { created } = await runNotificationChecks();
     return res.json({ message: `Pengecekan selesai. ${created} notifikasi baru dibuat.`, created });

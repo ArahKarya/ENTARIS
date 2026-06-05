@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send,
+  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send, KeyRound,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { cap } from '../lib/permissions';
 import { FiscalYearsTab } from './settings/FiscalYearsTab';
 import { CompanySettingsTab } from './settings/CompanySettingsTab';
 import { SystemAccountsTab } from '../components/SystemAccountsTab';
@@ -10,15 +11,18 @@ import { TaxConfigTab } from './settings/TaxConfigTab';
 import { BackupTab } from './settings/BackupTab';
 import { AboutTab } from './settings/AboutTab';
 import { NotificationsTab } from './settings/NotificationsTab';
+import { RolePermissionsTab } from './settings/RolePermissionsTab';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'backup' | 'about'>('fiscal');
+  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'roles' | 'backup' | 'about'>('fiscal');
+  const canManageRbac = cap('rbac.manage');
   const tabs = [
     { id: 'fiscal', label: 'Tahun Buku', icon: Calendar },
     { id: 'company', label: 'Profil Perusahaan', icon: Building2 },
     { id: 'accounts', label: 'Akun Sistem', icon: Shield },
     { id: 'tax', label: 'Pajak', icon: Receipt },
     { id: 'notifications', label: 'Notifikasi', icon: Send },
+    ...(canManageRbac ? [{ id: 'roles', label: 'Hak Akses', icon: KeyRound }] : []),
     { id: 'backup', label: 'Backup', icon: HardDrive },
     { id: 'about', label: 'Tentang Aplikasi', icon: Info },
   ];
@@ -58,6 +62,7 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'accounts' && <SystemAccountsTab />}
       {activeTab === 'tax' && <TaxConfigTab />}
       {activeTab === 'notifications' && <NotificationsTab />}
+      {activeTab === 'roles' && canManageRbac && <RolePermissionsTab />}
       {activeTab === 'backup' && <BackupTab />}
       {activeTab === 'about' && <AboutTab />}
     </div>

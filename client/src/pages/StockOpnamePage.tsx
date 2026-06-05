@@ -9,6 +9,7 @@ import PDFDownloadButton from '../components/PDFDownloadButton';
 import StockOpnamePDF from '../lib/pdf/StockOpnamePDF';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
 import WarehousePicker from '../components/WarehousePicker';
+import { can, cap } from '../lib/permissions';
 
 const formatNumber = (val: number | string, decimals = 3) =>
   Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
@@ -28,11 +29,7 @@ export function StockOpnamePage() {
   const queryClient = useQueryClient();
   const companySettings = useCompanySettings();
 
-  const userRole = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? ''; }
-    catch { return ''; }
-  }, []);
-  const canEdit = userRole === 'Admin' || userRole === 'Accountant';
+  const canEdit = can('stock_opname', 'edit');
 
   // List query
   const { data: listRaw, isLoading: listLoading } = useQuery({
@@ -103,7 +100,7 @@ export function StockOpnamePage() {
                 label="Unduh PDF"
               />
             )}
-            {detail?.status === 'Submitted' && userRole === 'Admin' && (
+            {detail?.status === 'Submitted' && cap('doc.cancel') && (
               <button onClick={() => setCancelTarget(detail.id)} className="btn btn-danger text-sm"><XCircle size={16} className="mr-1" /> Batalkan</button>
             )}
           </div>

@@ -2,7 +2,7 @@
 // preview/fix transactions) lives in routes/health/{checks,fixes}.ts —
 // this file is now just dispatch + audit-log wrapping.
 import { Router } from 'express';
-import { roleMiddleware, AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import {
@@ -26,7 +26,7 @@ import {
 const router = Router();
 
 // ── GET /api/health-check — Run all diagnostic checks in parallel ───────────
-router.get('/', roleMiddleware(['Admin']), async (_req, res) => {
+router.get('/', async (_req, res) => {
   try {
     const checks: CheckResult[] = await Promise.all([
       checkAleSync(),
@@ -51,7 +51,7 @@ router.get('/', roleMiddleware(['Admin']), async (_req, res) => {
 });
 
 // ── GET /api/health-check/preview/:check — Preview what fix will change ─────
-router.get('/preview/:check', roleMiddleware(['Admin']), async (req, res) => {
+router.get('/preview/:check', async (req, res) => {
   const check = String(req.params.check ?? '');
 
   try {
@@ -79,7 +79,7 @@ router.get('/preview/:check', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // ── POST /api/health-check/fix/:check — Auto-fix a specific check ────────────
-router.post('/fix/:check', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/fix/:check', async (req: AuthRequest, res) => {
   const check = String(req.params.check ?? '');
   const userId = req.user?.userId;
   const userAgent = Array.isArray(req.headers['user-agent'])

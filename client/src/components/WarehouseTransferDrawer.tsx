@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PDFDownloadLink } from '@react-pdf/renderer';
@@ -9,6 +9,7 @@ import { formatDate } from '../lib/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
 import WarehouseTransferPDF from '../lib/pdf/WarehouseTransferPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
+import { cap } from '../lib/permissions';
 
 interface Props {
   transferId: string | null;
@@ -20,19 +21,12 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
   Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
 };
 
-function getUserRole(): string | null {
-  try {
-    return JSON.parse(localStorage.getItem('user') || 'null')?.role ?? null;
-  } catch { return null; }
-}
-
 const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
   const company = useCompanyPDF();
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  const userRole = useMemo(() => getUserRole(), []);
-  const canCancel = userRole === 'Admin' || userRole === 'Accountant';
+  const canCancel = cap('doc.cancel');
 
   const { data: doc, isLoading } = useQuery({
     queryKey: ['stock-transfer-detail', transferId],

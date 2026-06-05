@@ -4,6 +4,7 @@ import { Loader2, Plus, Edit2, Trash2, X, Cog, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { can } from '../lib/permissions';
 
 interface Machine {
   id: string;
@@ -38,12 +39,8 @@ const blankForm: FormState = {
 const fmtRate = (v: string | number | null) =>
   v == null ? null : Number(v).toLocaleString('id-ID', { maximumFractionDigits: 3 });
 
-interface Props {
-  userRole: string;
-}
-
-export default function MachinesTab({ userRole }: Props) {
-  const canEdit = userRole === 'Admin' || userRole === 'Accountant';
+export default function MachinesTab() {
+  const canEdit = can('production', 'edit');
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Machine | null>(null);

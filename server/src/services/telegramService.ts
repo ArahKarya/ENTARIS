@@ -6,6 +6,7 @@
 
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import { hasCap } from './permissionService';
 
 const TELEGRAM_API = 'https://api.telegram.org';
 const SEND_TIMEOUT_MS = 5000;
@@ -256,7 +257,8 @@ async function handleApprovalCallback(botToken: string, cb: any): Promise<void> 
           select: { id: true, role: true, isActive: true, fullName: true },
         })
       : null;
-    if (!user || !user.isActive || user.role !== 'Admin') {
+    // Hanya user aktif dgn capability 'approval.decide' (default Admin/super) yang boleh.
+    if (!user || !user.isActive || !(await hasCap(user.role, 'approval.decide'))) {
       void answerCallbackQuery(botToken, cbId, 'Anda tidak berwenang menyetujui pengajuan.');
       return;
     }

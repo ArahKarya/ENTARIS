@@ -2,7 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import Decimal from 'decimal.js';
 import { prisma } from '../../lib/prisma';
-import { roleMiddleware } from '../../middleware/auth';
+import { requirePerm } from '../../middleware/auth';
 import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
 import { generateDocumentNumber } from '../../utils/documentNumber';
@@ -11,7 +11,7 @@ import { recalcPartyOutstanding } from '../../utils/accountBalance';
 const router = Router();
 
 // POST /api/settings/generate-dummy — Generate dummy transactions (Admin only)
-router.post('/generate-dummy', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
   try {
     const admin = await prisma.user.findFirst({ where: { role: 'Admin' } });
     if (!admin) return res.status(400).json({ error: 'User admin tidak ditemukan.' });
@@ -580,7 +580,7 @@ router.post('/generate-dummy', roleMiddleware(['Admin']), async (req, res) => {
 });
 
 // POST /api/settings/delete-dummy — Delete only dummy data (Admin only)
-router.post('/delete-dummy', roleMiddleware(['Admin']), async (_req, res) => {
+router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
   try {
     const results = { parties: 0, salesInvoices: 0, purchaseInvoices: 0, payments: 0, journals: 0, inventoryItems: 0, movements: 0, productionRuns: 0 };
 
@@ -727,7 +727,7 @@ router.post('/delete-dummy', roleMiddleware(['Admin']), async (_req, res) => {
 });
 
 // POST /api/settings/reset-data — Reset all data and re-seed (Admin only, development)
-router.post('/reset-data', roleMiddleware(['Admin']), async (req, res) => {
+router.post('/reset-data', requirePerm('settings'), async (req, res) => {
   const body = req.body;
   if (body?.confirmation !== 'RESET') {
     return res.status(400).json({ error: 'Ketik RESET untuk mengonfirmasi.' });

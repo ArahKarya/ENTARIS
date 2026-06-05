@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { UpdateTelegramConfigSchema, TestTelegramSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -11,7 +11,7 @@ const router = Router();
 const SLUG = 'default';
 
 // GET /api/telegram/config — Admin. Token TIDAK pernah dikembalikan (hasToken saja).
-router.get('/config', roleMiddleware(['Admin']), async (_req: AuthRequest, res) => {
+router.get('/config', async (_req: AuthRequest, res) => {
   try {
     const cfg = await prisma.telegramConfig.findUnique({ where: { slug: SLUG } });
     return res.json({
@@ -29,7 +29,7 @@ router.get('/config', roleMiddleware(['Admin']), async (_req: AuthRequest, res) 
 });
 
 // PUT /api/telegram/config — Admin. botToken hanya di-update bila dikirim non-kosong.
-router.put('/config', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.put('/config', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateTelegramConfigSchema, req.body, res);
   if (!body) return;
   try {
@@ -61,7 +61,7 @@ router.put('/config', roleMiddleware(['Admin']), async (req: AuthRequest, res) =
 
 // POST /api/telegram/test — Admin. Kirim pesan uji (token/chatId dari body bila
 // ada — untuk menguji nilai yang baru diketik — else pakai yang tersimpan).
-router.post('/test', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/test', async (req: AuthRequest, res) => {
   const body = validateBody(TestTelegramSchema, req.body, res);
   if (!body) return;
   try {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { roleMiddleware } from '../../middleware/auth';
+import { requireCap } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import {
   CreateProductionCostStandardSchema,
@@ -54,7 +54,6 @@ router.get('/', async (req, res) => {
 // POST /api/inventory/production-cost-standards
 router.post(
   '/',
-  roleMiddleware(['Admin', 'Accountant']),
   async (req, res) => {
     const body = validateBody(CreateProductionCostStandardSchema, req.body, res);
     if (!body) return;
@@ -92,7 +91,6 @@ router.post(
 // PUT /api/inventory/production-cost-standards/:id
 router.put(
   '/:id',
-  roleMiddleware(['Admin', 'Accountant']),
   async (req, res) => {
     const body = validateBody(UpdateProductionCostStandardSchema, req.body, res);
     if (!body) return;
@@ -137,7 +135,7 @@ router.put(
 // DELETE /api/inventory/production-cost-standards/:id
 // Soft-delete approach: if standard already used by a run, deactivate.
 // Otherwise hard delete.
-router.delete('/:id', roleMiddleware(['Admin']), async (req, res) => {
+router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   const id = req.params.id as string;
   try {
     const usageCount = await prisma.productionRunCost.count({

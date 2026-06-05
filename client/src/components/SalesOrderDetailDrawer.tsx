@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
 import Select from './Select';
+import { cap } from '../lib/permissions';
 
 interface Props {
   soId: string | null;
@@ -45,7 +46,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const [genAllowNeg, setGenAllowNeg] = useState(false);
   const [genNegReason, setGenNegReason] = useState('');
   const [genError, setGenError] = useState('');
-  const isAdmin = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'Admin'; } catch { return false; } })();
+  const canBypassNegativeStock = cap('inventory.negative_stock');
   // Uang muka (DP)
   const [dpOpen, setDpOpen] = useState(false);
   const [dpDate, setDpDate] = useState(new Date().toISOString().split('T')[0]);
@@ -467,7 +468,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     </tbody>
                   </table>
                 </div>
-                {isAdmin && (
+                {canBypassNegativeStock && (
                   <div className="border border-amber-200 bg-amber-50/40 rounded p-2 space-y-1.5">
                     <label className="flex items-start gap-2 cursor-pointer text-xs text-amber-900">
                       <input type="checkbox" checked={genAllowNeg} onChange={(e) => setGenAllowNeg(e.target.checked)} className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500" />

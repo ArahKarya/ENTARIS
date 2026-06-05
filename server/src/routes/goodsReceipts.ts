@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateGoodsReceiptSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -11,11 +11,9 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
-const READ_ROLES = ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'];
-const WRITE_ROLES = ['Admin', 'Accountant', 'StaffProduksi'];
 
 // ─── GET / list ───────────────────────────────────────────────────────────
-router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const {
       status,
@@ -83,7 +81,7 @@ router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── GET /pending — for PI modal to pick STT not yet invoiced ──────────────
-router.get('/pending', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/pending', async (req, res) => {
   try {
     const { partyId } = req.query;
     if (!partyId || typeof partyId !== 'string') {
@@ -109,7 +107,7 @@ router.get('/pending', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── GET /:id detail ──────────────────────────────────────────────────────
-router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const gr = await prisma.goodsReceipt.findUnique({
       where: { id: req.params.id as string },
@@ -136,7 +134,7 @@ router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── POST / submit ────────────────────────────────────────────────────────
-router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateGoodsReceiptSchema, req.body, res);
   if (!body) return;
 
@@ -153,7 +151,7 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
 });
 
 // ─── POST /:id/cancel ─────────────────────────────────────────────────────
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const allowNegativeStock = req.body?.allowNegativeStock === true;
     const negativeStockReason = typeof req.body?.negativeStockReason === 'string' ? req.body.negativeStockReason : null;

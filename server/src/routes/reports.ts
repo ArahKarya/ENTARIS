@@ -3,16 +3,12 @@ import ExcelJS from 'exceljs';
 import { prisma } from '../lib/prisma';
 import { Prisma } from '@prisma/client';
 import { computeImpact } from '../utils/accountBalance';
-import { roleMiddleware } from '../middleware/auth';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { compareAccountNumber } from '../utils/accountSort';
 import operationalRouter from './reports/operational';
 
 const router = Router();
-
-// All report endpoints require at least Viewer role
-router.use(roleMiddleware(['Admin', 'Accountant', 'Viewer']));
 
 // Operational reports (HPP, payable/receivable schedule, daily) live in
 // reports/operational.ts to keep this file scannable.

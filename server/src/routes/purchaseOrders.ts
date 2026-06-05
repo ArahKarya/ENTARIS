@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreatePurchaseOrderSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -10,12 +10,10 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
-const READ_ROLES = ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'];
 // PO: Admin + Accountant only (sesuai keputusan Phase 1)
-const WRITE_ROLES = ['Admin', 'Accountant'];
 
 // ─── GET / list ───────────────────────────────────────────────────────────
-router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, partyId, startDate, endDate, search, page = '1', limit = '50' } = req.query;
     const take = Math.min(Number(limit) || 50, 200);
@@ -60,7 +58,7 @@ router.get('/', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── GET /:id detail ──────────────────────────────────────────────────────
-router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const po = await prisma.purchaseOrder.findUnique({
       where: { id: req.params.id as string },
@@ -83,7 +81,7 @@ router.get('/:id', roleMiddleware(READ_ROLES), async (req, res) => {
 });
 
 // ─── POST / submit ────────────────────────────────────────────────────────
-router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreatePurchaseOrderSchema, req.body, res);
   if (!body) return;
 
@@ -100,7 +98,7 @@ router.post('/', roleMiddleware(WRITE_ROLES), async (req: AuthRequest, res) => {
 });
 
 // ─── POST /:id/cancel ─────────────────────────────────────────────────────
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
       (tx) => cancelPurchaseOrderInTx(tx, req.params.id as string),

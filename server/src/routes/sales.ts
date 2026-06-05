@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { AuthRequest, roleMiddleware } from '../middleware/auth';
+import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateSalesInvoiceSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
@@ -152,7 +152,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/sales/invoices — create sales invoice.
 // Heavy lifting (validation, multi-account JE, stock, COGS) is in
 // services/salesInvoiceSubmit.ts. This handler is a thin controller.
-router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateSalesInvoiceSchema, req.body, res);
   if (!body) return;
 
@@ -169,7 +169,7 @@ router.post('/', roleMiddleware(['Admin', 'Accountant']), async (req: AuthReques
 
 
 // PUT /api/sales/invoices/:id — edit invoice (notes, dueDate, terms)
-router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequest, res) => {
+router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const invoice = await prisma.salesInvoice.findUnique({ where: { id: req.params.id as string } });
     if (!invoice) return res.status(404).json({ error: 'Invoice tidak ditemukan.' });
@@ -189,7 +189,7 @@ router.put('/:id', roleMiddleware(['Admin', 'Accountant']), async (req: AuthRequ
 });
 
 // POST /api/sales/invoices/:id/cancel — cancel sales invoice
-router.post('/:id/cancel', roleMiddleware(['Admin']), async (req: AuthRequest, res) => {
+router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
       (tx) => cancelSalesInvoiceInTx(tx, req.params.id as string),

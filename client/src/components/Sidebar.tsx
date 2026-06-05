@@ -34,17 +34,17 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { can } from '../lib/permissions';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { APP_VERSION } from '../lib/version';
-
-type Role = 'Admin' | 'Accountant' | 'StaffProduksi' | 'Viewer';
 
 interface NavItem {
   icon: React.FC<any>;
   label: string;
   href?: string;
-  roles?: Role[];
+  // Modul RBAC: item tampil bila user punya izin 'view'. Tanpa module = selalu tampil.
+  module?: string;
   children?: NavItem[];
 }
 
@@ -58,27 +58,25 @@ const allNavItems: NavItem[] = [
   {
     icon: ShoppingCart,
     label: 'Penjualan',
-    roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'],
     children: [
-      { icon: Inbox, label: 'Inquiry', href: '/inquiries', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: FileSignature, label: 'Penawaran', href: '/quotations', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: ClipboardList, label: 'Pesanan (SO)', href: '/sales-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
-      { icon: Truck, label: 'Surat Jalan', href: '/delivery-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
-      { icon: Receipt, label: 'Invoice Penjualan', href: '/sales', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: Undo2, label: 'Retur Penjualan', href: '/sales-returns', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
-      { icon: Wallet, label: 'Uang Muka Pelanggan', href: '/customer-deposits', roles: ['Admin', 'Accountant'] },
+      { icon: Inbox, label: 'Inquiry', href: '/inquiries', module: 'quotation' },
+      { icon: FileSignature, label: 'Penawaran', href: '/quotations', module: 'quotation' },
+      { icon: ClipboardList, label: 'Pesanan (SO)', href: '/sales-orders', module: 'sales_order' },
+      { icon: Truck, label: 'Surat Jalan', href: '/delivery-orders', module: 'delivery_order' },
+      { icon: Receipt, label: 'Invoice Penjualan', href: '/sales', module: 'sales_invoice' },
+      { icon: Undo2, label: 'Retur Penjualan', href: '/sales-returns', module: 'sales_return' },
+      { icon: Wallet, label: 'Uang Muka Pelanggan', href: '/customer-deposits', module: 'customer_deposit' },
     ],
   },
 
   {
     icon: Package,
     label: 'Pembelian',
-    roles: ['Admin', 'Accountant', 'StaffProduksi'],
     children: [
-      { icon: Receipt, label: 'Purchase Order (PO)', href: '/purchase-orders', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
-      { icon: Receipt, label: 'BPB / STT (Penerimaan)', href: '/goods-receipts', roles: ['Admin', 'Accountant', 'StaffProduksi', 'Viewer'] },
-      { icon: Receipt, label: 'Invoice Pembelian', href: '/purchase', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
-      { icon: Wallet, label: 'Uang Muka Vendor', href: '/vendor-deposits', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Receipt, label: 'Purchase Order (PO)', href: '/purchase-orders', module: 'purchase_order' },
+      { icon: Receipt, label: 'BPB / STT (Penerimaan)', href: '/goods-receipts', module: 'goods_receipt' },
+      { icon: Receipt, label: 'Invoice Pembelian', href: '/purchase', module: 'purchase_invoice' },
+      { icon: Wallet, label: 'Uang Muka Vendor', href: '/vendor-deposits', module: 'vendor_deposit' },
     ],
   },
 
@@ -86,57 +84,53 @@ const allNavItems: NavItem[] = [
     icon: Warehouse,
     label: 'Stok & Produksi',
     children: [
-      { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory' },
-      { icon: LayoutDashboard, label: 'Dashboard Per Gudang', href: '/warehouse-stock' },
-      { icon: ClipboardCheck, label: 'Stok Opname', href: '/stock-opname', roles: ['Admin', 'Accountant'] },
-      { icon: Repeat, label: 'Transfer Stok', href: '/stock-transfers', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
-      { icon: Building2, label: 'Daftar Gudang', href: '/warehouses', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Warehouse, label: 'Stok & Gudang', href: '/inventory', module: 'inventory' },
+      { icon: LayoutDashboard, label: 'Dashboard Per Gudang', href: '/warehouse-stock', module: 'inventory' },
+      { icon: ClipboardCheck, label: 'Stok Opname', href: '/stock-opname', module: 'stock_opname' },
+      { icon: Repeat, label: 'Transfer Stok', href: '/stock-transfers', module: 'stock_transfer' },
+      { icon: Building2, label: 'Daftar Gudang', href: '/warehouses', module: 'warehouse' },
     ],
   },
 
   {
     icon: CreditCard,
     label: 'Bank & Kas',
-    roles: ['Admin', 'Accountant', 'Viewer'],
     children: [
-      { icon: CreditCard, label: 'Transaksi Bank/Kas', href: '/payments', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: Scale, label: 'Rekonsiliasi Bank', href: '/reconciliation', roles: ['Admin', 'Accountant'] },
-      { icon: Repeat, label: 'Transaksi Berulang', href: '/recurring', roles: ['Admin', 'Accountant'] },
+      { icon: CreditCard, label: 'Transaksi Bank/Kas', href: '/payments', module: 'payment' },
+      { icon: Scale, label: 'Rekonsiliasi Bank', href: '/reconciliation', module: 'reconciliation' },
+      { icon: Repeat, label: 'Transaksi Berulang', href: '/recurring', module: 'recurring' },
     ],
   },
 
   {
     icon: BookOpen,
     label: 'Akuntansi',
-    roles: ['Admin', 'Accountant', 'Viewer'],
     children: [
-      { icon: Network, label: 'Bagan Akun', href: '/coa', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: Receipt, label: 'Buku Besar', href: '/gl', roles: ['Admin', 'Accountant', 'Viewer'] },
-      { icon: Building2, label: 'Aset Tetap', href: '/fixed-assets', roles: ['Admin', 'Accountant'] },
-      { icon: ShieldCheck, label: 'Approval', href: '/approvals', roles: ['Admin', 'Accountant'] },
+      { icon: Network, label: 'Bagan Akun', href: '/coa', module: 'coa' },
+      { icon: Receipt, label: 'Buku Besar', href: '/gl', module: 'journal' },
+      { icon: Building2, label: 'Aset Tetap', href: '/fixed-assets', module: 'fixed_assets' },
+      { icon: ShieldCheck, label: 'Approval', href: '/approvals', module: 'approvals' },
     ],
   },
 
-  { icon: FileBarChart, label: 'Laporan', href: '/reports', roles: ['Admin', 'Accountant', 'Viewer'] },
+  { icon: FileBarChart, label: 'Laporan', href: '/reports', module: 'reports' },
 
   {
     icon: Users,
     label: 'Master Data',
-    roles: ['Admin', 'Accountant', 'StaffProduksi'],
     children: [
-      { icon: Users, label: 'Pelanggan & Vendor', href: '/parties', roles: ['Admin', 'Accountant', 'StaffProduksi'] },
+      { icon: Users, label: 'Pelanggan & Vendor', href: '/parties', module: 'parties' },
     ],
   },
 
   {
     icon: ServerCog,
     label: 'Sistem',
-    roles: ['Admin'],
     children: [
-      { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['Admin'] },
-      { icon: Shield, label: 'Manajemen User', href: '/users', roles: ['Admin'] },
-      { icon: ScrollText, label: 'Jejak Audit', href: '/audit', roles: ['Admin'] },
-      { icon: HeartPulse, label: 'Health Check', href: '/health-check', roles: ['Admin'] },
+      { icon: Settings, label: 'Pengaturan', href: '/settings', module: 'settings' },
+      { icon: Shield, label: 'Manajemen User', href: '/users', module: 'users' },
+      { icon: ScrollText, label: 'Jejak Audit', href: '/audit', module: 'audit' },
+      { icon: HeartPulse, label: 'Health Check', href: '/health-check', module: 'audit' },
     ],
   },
 ];
@@ -188,22 +182,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
     }
   }, []);
 
-  const userRole = user?.role as Role | undefined;
-
-  // Filter nav items by role. Hide a group entirely if no child matches.
+  // Filter nav items by izin modul. Sembunyikan grup bila tak ada anak yang tampil.
   const navItems = useMemo<NavItem[]>(() => {
-    const filterByRole = (items: NavItem[]): NavItem[] =>
+    const filterByPerm = (items: NavItem[]): NavItem[] =>
       items
-        .filter((it) => !it.roles || (userRole !== undefined && it.roles.includes(userRole)))
+        .filter((it) => !it.module || can(it.module, 'view'))
         .map((it) => {
           if (!it.children) return it;
-          const visibleChildren = filterByRole(it.children);
+          const visibleChildren = filterByPerm(it.children);
           if (visibleChildren.length === 0) return null;
           return { ...it, children: visibleChildren };
         })
         .filter((it): it is NavItem => it !== null);
-    return filterByRole(allNavItems);
-  }, [userRole]);
+    return filterByPerm(allNavItems);
+  }, []);
 
   // Auto-expand the group whose child URL matches current location.
   useEffect(() => {

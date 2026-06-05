@@ -1,14 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { roleMiddleware, AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { validateBody } from '../utils/validate';
 import Decimal from 'decimal.js';
 
 const router = Router();
-
-router.use(roleMiddleware(['Admin', 'Accountant']));
 
 // ── Schemas ─────────────────────────────────────────────────────────────────
 const CreateFixedAssetSchema = z.object({

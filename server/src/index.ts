@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
-import { authMiddleware } from './middleware/auth';
+import { authMiddleware, requirePerm, requireWrite } from './middleware/auth';
 import { auditTrailMiddleware } from './middleware/auditTrail';
 import { logger } from './lib/logger';
 
@@ -52,8 +52,10 @@ import { startScheduler } from './jobs/scheduler';
 import healthCheckRoutes from './routes/healthCheck';
 import fixedAssetRoutes from './routes/fixedAssets';
 import approvalRoutes from './routes/approvals';
+import roleRoutes from './routes/roles';
 import cogsBackfillRoutes from './routes/cogsBackfill';
 import { systemAccounts } from './services/systemAccounts';
+import { ensureRbacSeed } from './services/rbacSeed';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -163,46 +165,61 @@ app.get('/api/version', (_req, res) => {
 app.use('/api', authMiddleware);
 app.use('/api', auditTrailMiddleware);
 
-app.use('/api/coa', coaRoutes);
-app.use('/api/journals', journalRoutes);
-app.use('/api/sales/invoices', salesRoutes);
-app.use('/api/purchase/invoices', purchaseRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/parties', partyRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/fiscal-years', fiscalYearRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/audit-logs', auditRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/telegram', telegramRoutes);
-app.use('/api/recurring', recurringRoutes);
-app.use('/api/import', importRoutes);
-app.use('/api/reconciliation', reconciliationRoutes);
-app.use('/api/tax', taxRoutes);
-app.use('/api/backup', backupRoutes);
-app.use('/api/service-items', serviceItemRoutes);
-app.use('/api/vendor-deposits', vendorDepositRoutes);
-app.use('/api/customer-deposits', customerDepositRoutes);
-app.use('/api/system-accounts', systemAccountRoutes);
-app.use('/api/attachments', attachmentRoutes);
-app.use('/api/stock-opname', stockOpnameRoutes);
-app.use('/api/health-check', healthCheckRoutes);
-app.use('/api/fixed-assets', fixedAssetRoutes);
-app.use('/api/approvals', approvalRoutes);
-app.use('/api/cogs-backfill', cogsBackfillRoutes);
-app.use('/api/quotations', quotationRoutes);
-app.use('/api/inquiries', inquiryRoutes);
-app.use('/api/warehouses', warehouseRoutes);
-app.use('/api/stock-transfers', stockTransferRoutes);
-app.use('/api/delivery-orders', deliveryOrderRoutes);
-app.use('/api/sales-orders', salesOrderRoutes);
-app.use('/api/sales-returns', salesReturnRoutes);
-app.use('/api/goods-receipts', goodsReceiptRoutes);
-app.use('/api/purchase-orders', purchaseOrderRoutes);
+// ─── RBAC dinamis: gate per modul di mount ──────────────────────────────────
+// requirePerm(module): GET→view, tulis→edit (router transaksional).
+// requireWrite(module): GET terbuka (data referensi), tulis→edit.
+// Mount tanpa gate (dashboard/search/attachments/notifications/users/settings/
+// import-via-requireWrite/approvals) di-gate di dalam file (mixed-sensitivity).
+// Endpoint sensitif (cancel/decide/dll) pakai requireCap di dalam route file.
+
+// Data referensi (GET terbuka untuk mengisi form di seluruh app):
+app.use('/api/coa', requireWrite('coa'), coaRoutes);
+app.use('/api/parties', requireWrite('parties'), partyRoutes);
+app.use('/api/warehouses', requireWrite('warehouse'), warehouseRoutes);
+app.use('/api/fiscal-years', requireWrite('settings'), fiscalYearRoutes);
+app.use('/api/tax', requireWrite('settings'), taxRoutes);
+app.use('/api/system-accounts', requireWrite('settings'), systemAccountRoutes);
+app.use('/api/service-items', requireWrite('sales_invoice'), serviceItemRoutes);
+app.use('/api/import', requireWrite('settings'), importRoutes);
+
+// Transaksional (view+edit per modul):
+app.use('/api/journals', requirePerm('journal'), journalRoutes);
+app.use('/api/sales/invoices', requirePerm('sales_invoice'), salesRoutes);
+app.use('/api/purchase/invoices', requirePerm('purchase_invoice'), purchaseRoutes);
+app.use('/api/payments', requirePerm('payment'), paymentRoutes);
+app.use('/api/reports', requirePerm('reports'), reportRoutes);
+app.use('/api/reconciliation', requirePerm('reconciliation'), reconciliationRoutes);
+app.use('/api/recurring', requirePerm('recurring'), recurringRoutes);
+app.use('/api/vendor-deposits', requirePerm('vendor_deposit'), vendorDepositRoutes);
+app.use('/api/customer-deposits', requirePerm('customer_deposit'), customerDepositRoutes);
+app.use('/api/stock-opname', requirePerm('stock_opname'), stockOpnameRoutes);
+app.use('/api/fixed-assets', requirePerm('fixed_assets'), fixedAssetRoutes);
+app.use('/api/quotations', requirePerm('quotation'), quotationRoutes);
+app.use('/api/inquiries', requirePerm('quotation'), inquiryRoutes);
+app.use('/api/stock-transfers', requirePerm('stock_transfer'), stockTransferRoutes);
+app.use('/api/delivery-orders', requirePerm('delivery_order'), deliveryOrderRoutes);
+app.use('/api/sales-orders', requirePerm('sales_order'), salesOrderRoutes);
+app.use('/api/sales-returns', requirePerm('sales_return'), salesReturnRoutes);
+app.use('/api/goods-receipts', requirePerm('goods_receipt'), goodsReceiptRoutes);
+app.use('/api/purchase-orders', requirePerm('purchase_order'), purchaseOrderRoutes);
+app.use('/api/cogs-backfill', requirePerm('journal'), cogsBackfillRoutes);
+app.use('/api/approvals', requirePerm('approvals'), approvalRoutes);
+
+// Sistem (modul 'audit'/'settings' → hanya Admin/super by default):
+app.use('/api/audit-logs', requirePerm('audit'), auditRoutes);
+app.use('/api/health-check', requirePerm('audit'), healthCheckRoutes);
+app.use('/api/backup', requirePerm('audit'), backupRoutes);
+app.use('/api/telegram', requirePerm('settings'), telegramRoutes);
+
+// Gate di dalam file (mixed-sensitivity / endpoint terbuka khusus):
+app.use('/api/dashboard', requirePerm('reports'), dashboardRoutes); // ringkasan finansial → izin 'reports'
+app.use('/api/search', searchRoutes);                // pencarian global
+app.use('/api/attachments', attachmentRoutes);       // lampiran — ikut dokумен induk
+app.use('/api/notifications', notificationRoutes);   // per-user; POST /check di-gate di file
+app.use('/api/settings', settingsRoutes);            // GET /company terbuka; tulis di-gate di file
+app.use('/api/users', usersRoutes);                  // /me/password terbuka; admin di-gate di file
+app.use('/api/roles', roleRoutes);                   // kelola RBAC — guard requireCap('rbac.manage') di file
+app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di inventory/index.ts
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist.
@@ -259,6 +276,11 @@ app.listen(port, () => {
   logger.info(`Server running at http://localhost:${port}`);
   systemAccounts.validateStartup().catch((err) => {
     logger.error({ err }, 'System account mapping validation failed');
+  });
+
+  // RBAC: pastikan role bawaan + matriks izin default ada (idempoten, no-regression).
+  ensureRbacSeed().catch((err) => {
+    logger.error({ err }, 'ensureRbacSeed failed');
   });
 
   // All background jobs (token purge, quotation sweep, recurring runner) go
