@@ -53,7 +53,9 @@ Fullstack TypeScript (React 19 + Express 5 + Prisma 7 + PostgreSQL 16), self-hos
 
 ### Halaman Login
 
-Login modern dengan animasi background jaringan, mendukung role Admin / Accountant / Viewer.
+Login modern dengan animasi background jaringan. Mendukung role bawaan (Admin / Accountant / Staff Produksi / Viewer) maupun role custom yang dibuat Admin lewat menu Hak Akses.
+
+> ℹ️ Beberapa cuplikan di bawah akan diperbarui untuk mencerminkan UI terbaru (mis. menu Pengaturan → **Hak Akses** dan **Approval via Telegram**).
 
 <p align="center">
   <img src="docs/screenshots/01-login.png" alt="Halaman Login" width="700">
@@ -219,14 +221,14 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 
 - **Dashboard real-time** multi-tab (Overview / Keuangan / Sales / Stok / Produksi) dengan widget yang bisa di-toggle sesuai kebutuhan user.
 - **Transaksi Berulang (Recurring)** — template jurnal untuk beban rutin (sewa, gaji, langganan) yang auto-generate per jadwal harian/mingguan/bulanan.
-- **Approval Workflow** multi-level untuk transaksi di atas threshold tertentu (konfigurabel); dengan notifikasi ke approver.
-- **Notifikasi** terintegrasi untuk invoice jatuh tempo, stok di bawah minimum, approval pending, dan event penting lainnya.
+- **Approval Workflow** berbasis aturan (per tipe dokumen + threshold nominal). Pengajuan oleh staf ditahan sampai disetujui — efek GL/stok baru terjadi setelah *approve* (gate "approve-before-effect"). Manajer dapat **menyetujui / menolak / minta revisi langsung dari tombol di Telegram** (tanpa buka aplikasi), atau lewat halaman Approval; pesan memuat detail + link langsung ke pengajuan.
+- **Notifikasi** terintegrasi (invoice jatuh tempo, stok di bawah minimum, approval pending, hasil keputusan) — in-app **dan** ke **Telegram**: japri pribadi per-staf yang sudah menautkan akun (via `/start`) + mirror ke grup opsional.
 - **Global Search (Ctrl + K)** — command palette untuk cari invoice, pelanggan, akun, transaksi dari mana saja di aplikasi.
 - **Health Check Page** — diagnosa otomatis kesehatan data (saldo tidak balance, invoice orphan, mapping akun hilang, dsb.) untuk memastikan integritas data.
 
 ### 9. Governance, Keamanan & Data
 
-- **Role-based Access Control** — 4 role built-in (Admin / Accountant / StaffProduksi / Viewer) dengan granular permission per modul.
+- **Role & Hak Akses Dinamis (RBAC)** — selain 4 role bawaan (Admin / Accountant / StaffProduksi / Viewer), Admin dapat **membuat/menghapus role custom sendiri** (mis. Kasir, Auditor, Staf Pembelian) dan mengatur **matriks izin per modul (Lihat / Edit) + hak khusus** (setujui pengajuan, lewati approval, batalkan/finalisasi dokumen, bypass stok minus, kelola hak akses) langsung dari **Pengaturan → Hak Akses** — tanpa ubah kode. Menu, route, dan tombol aksi otomatis mengikuti izin; enforcement di sisi server. Role `Admin` = super-admin (akses penuh, tak bisa dikunci).
 - **Audit Trail** lengkap — setiap insert/update/delete tercatat dengan user, timestamp, dan *before/after* value. Dapat difilter per user, tabel, atau periode.
 - **Manajemen User** dengan reset password, deaktivasi, dan penguncian akun otomatis setelah percobaan login gagal berlebihan (rate limiting).
 - **JWT Authentication** dengan *short-lived token* + refresh strategy; password di-hash bcrypt 12 rounds.
@@ -248,7 +250,7 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 - **Frontend** — React 19, TypeScript, Vite 7, TailwindCSS 4, TanStack Query 5, Recharts, @react-pdf/renderer, Sonner, Lucide
 - **Backend** — Node.js 20, Express 5, TypeScript, Prisma 7, Zod, Pino, JWT, bcrypt, helmet, express-rate-limit
 - **Database** — PostgreSQL 16
-- **Auth** — JWT + bcrypt, role-based (Admin / Accountant / Viewer / StaffProduksi)
+- **Auth** — JWT + bcrypt, RBAC dinamis (role custom + matriks izin per modul, dapat diatur dari UI)
 - **Testing** — Vitest (unit), Playwright (E2E)
 - **Deploy** — Docker Compose (2 container: `app` + `db`)
 
