@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.12.1';
+export const APP_VERSION = '3.12.2';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.12.2',
+    date: '2026-06-07',
+    title: 'Fix: Pihak "Pelanggan & Vendor" Muncul di Dropdown Kedua Sisi',
+    changes: [
+      'Pihak bertipe "Both" (Pelanggan & Vendor) kini ikut tampil saat memilih Supplier (STT, PO, Invoice Pembelian, Uang Muka Vendor) maupun Pelanggan (SO, Invoice Penjualan, dll)',
+      'Sebelumnya pihak Both tidak muncul di dropdown mana pun — mis. konsumen repros yang juga supplier di STT titipan',
+    ],
+  },
   {
     version: '3.12.1',
     date: '2026-06-07',

@@ -36,7 +36,14 @@ router.get('/', async (req, res) => {
     const take = Math.min(Number(limit) || 100, 200);
     const skip = (Number(page) - 1) * take;
 
-    const where = type ? { partyType: type as any } : {};
+    // partyType 'Both' harus ikut muncul saat filter Customer/Supplier —
+    // pihak "Pelanggan & Vendor" dipakai di dropdown kedua sisi (mis. konsumen
+    // repros yang juga jadi "supplier" di STT titipan).
+    const where = type && type !== 'Both'
+      ? { OR: [{ partyType: type as any }, { partyType: 'Both' as any }] }
+      : type
+        ? { partyType: 'Both' as any }
+        : {};
 
     const [parties, total] = await Promise.all([
       prisma.party.findMany({
