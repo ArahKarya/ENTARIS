@@ -63,6 +63,14 @@ export const SYSTEM_ACCOUNT_ROLES = {
     required: true,
     expectedRootType: 'LIABILITY' as const,
   },
+  PROJECT_GUARANTEE: {
+    key: 'PROJECT_GUARANTEE',
+    label: 'Uang Jaminan Proyek',
+    description: 'Setoran jaminan (tender/pelaksanaan) ke pemberi proyek',
+    multiAccount: false,
+    required: false,
+    expectedRootType: 'ASSET' as const,
+  },
   COGS: {
     key: 'COGS',
     label: 'Beban Pokok Penjualan',
@@ -355,6 +363,7 @@ export const DEFAULT_ACCOUNT_NUMBERS: Record<SystemAccountRole, string | string[
   SERVICE_REVENUE: '4.2',
   VENDOR_DEPOSIT: '1.3',
   CUSTOMER_DEPOSIT: '2.1.2',
+  PROJECT_GUARANTEE: '1.8',
   COGS: '5',
   OPENING_EQUITY: '3.1',
   RETAINED_EARNINGS: '3.2',

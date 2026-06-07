@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.11.0';
-export const APP_BUILD_DATE = '2026-06-05';
+export const APP_VERSION = '3.12.0';
+export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.12.0',
+    date: '2026-06-07',
+    title: 'Uang Jaminan Proyek — Setor, Kembalikan/Hangus, Reminder Jatuh Tempo',
+    changes: [
+      'Modul baru Bank & Kas → Uang Jaminan Proyek: catat setoran jaminan tender/pelaksanaan/pemeliharaan ke pemberi proyek',
+      'Jurnal otomatis: setor (DR Uang Jaminan 1.8 / CR Kas-Bank), settlement kembali dan/atau hangus jadi beban — bisa parsial & berulang',
+      'Status otomatis Disetor → Selesai; pembatalan setoran/settlement me-reverse jurnal (hak khusus Batalkan Dokumen)',
+      'Reminder otomatis H-7 & saat lewat jatuh tempo pengembalian via notifikasi in-app + Telegram',
+      'Akun aset 1.8 Uang Jaminan Proyek dibuat otomatis; bisa diganti di Pengaturan → Akun Sistem',
+    ],
+  },
   {
     version: '3.11.0',
     date: '2026-06-05',

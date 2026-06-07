@@ -39,6 +39,7 @@ import { Notifications } from './pages/Notifications';
 import { RecurringTransactions } from './pages/RecurringTransactions';
 import { BankReconciliation } from './pages/BankReconciliation';
 import { VendorDeposits } from './pages/VendorDeposits';
+import { ProjectGuarantees } from './pages/ProjectGuarantees';
 import { CustomerDeposits } from './pages/CustomerDeposits';
 import TaxReport from './pages/reports/TaxReport';
 import LedgerBook from './pages/reports/LedgerBook';
@@ -113,6 +114,7 @@ function App() {
             <Route path="/purchase" element={<PermRoute module="purchase_invoice"><PurchaseInvoices /></PermRoute>} />
             <Route path="/payments" element={<PermRoute module="payment"><Payments /></PermRoute>} />
             <Route path="/vendor-deposits" element={<PermRoute module="vendor_deposit"><VendorDeposits /></PermRoute>} />
+            <Route path="/project-guarantees" element={<PermRoute module="project_guarantee"><ProjectGuarantees /></PermRoute>} />
             <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
             <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
             <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />

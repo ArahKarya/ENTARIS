@@ -35,6 +35,7 @@ import taxRoutes from './routes/tax';
 import backupRoutes from './routes/backup';
 import serviceItemRoutes from './routes/serviceItems';
 import vendorDepositRoutes from './routes/vendorDeposits';
+import projectGuaranteeRoutes from './routes/projectGuarantees';
 import customerDepositRoutes from './routes/customerDeposits';
 import systemAccountRoutes from './routes/systemAccounts';
 import attachmentRoutes from './routes/attachments';
@@ -56,6 +57,7 @@ import roleRoutes from './routes/roles';
 import cogsBackfillRoutes from './routes/cogsBackfill';
 import { systemAccounts } from './services/systemAccounts';
 import { ensureRbacSeed } from './services/rbacSeed';
+import { ensureProjectGuaranteeAccount } from './services/projectGuaranteeSeed';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -191,6 +193,7 @@ app.use('/api/reports', requirePerm('reports'), reportRoutes);
 app.use('/api/reconciliation', requirePerm('reconciliation'), reconciliationRoutes);
 app.use('/api/recurring', requirePerm('recurring'), recurringRoutes);
 app.use('/api/vendor-deposits', requirePerm('vendor_deposit'), vendorDepositRoutes);
+app.use('/api/project-guarantees', requirePerm('project_guarantee'), projectGuaranteeRoutes);
 app.use('/api/customer-deposits', requirePerm('customer_deposit'), customerDepositRoutes);
 app.use('/api/stock-opname', requirePerm('stock_opname'), stockOpnameRoutes);
 app.use('/api/fixed-assets', requirePerm('fixed_assets'), fixedAssetRoutes);
@@ -281,6 +284,9 @@ app.listen(port, () => {
   // RBAC: pastikan role bawaan + matriks izin default ada (idempoten, no-regression).
   ensureRbacSeed().catch((err) => {
     logger.error({ err }, 'ensureRbacSeed failed');
+  });
+  ensureProjectGuaranteeAccount().catch((err) => {
+    logger.error({ err }, 'ensureProjectGuaranteeAccount failed');
   });
 
   // All background jobs (token purge, quotation sweep, recurring runner) go

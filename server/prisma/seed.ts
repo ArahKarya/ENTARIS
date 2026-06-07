@@ -147,6 +147,9 @@ async function main() {
     { accountNumber: '1.7.3', name: 'Akumulasi Penyusutan Mesin', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.7' },
     { accountNumber: '1.7.4', name: 'Akumulasi Penyusutan Inventaris Kantor', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.7' },
 
+    // 1.8 Uang Jaminan Proyek (jaminan tender/pelaksanaan ke pemberi proyek)
+    { accountNumber: '1.8', name: 'Uang Jaminan Proyek', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1' },
+
     // ═══════════════════════════════════════════
     // 2. LIABILITAS
     // ═══════════════════════════════════════════
@@ -309,6 +312,7 @@ async function main() {
     { role: 'SALES', accountNumber: '4.1', sortOrder: 0 },
     { role: 'SERVICE_REVENUE', accountNumber: '4.2', sortOrder: 0 },
     { role: 'VENDOR_DEPOSIT', accountNumber: '1.3', sortOrder: 0 },
+    { role: 'PROJECT_GUARANTEE', accountNumber: '1.8', sortOrder: 0 },
     { role: 'CUSTOMER_DEPOSIT', accountNumber: '2.1.2', sortOrder: 0 },
     { role: 'COGS', accountNumber: '5', sortOrder: 0 },
     { role: 'OPENING_EQUITY', accountNumber: '3.1', sortOrder: 0 },

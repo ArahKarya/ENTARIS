@@ -90,6 +90,7 @@ model Party {
   purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrderSupplier")
   goodsReceipts          GoodsReceipt[]          @relation("GoodsReceiptSupplier")
   salesReturns           SalesReturn[]
+  projectGuarantees      ProjectGuarantee[]      @relation("ProjectGuaranteeParty")
   ledgerEntries          AccountingLedgerEntry[]
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
@@ -1928,6 +1929,71 @@ model SalesReturnItem {
   @@index([salesReturnId])
   @@index([salesInvoiceItemId])
   @@map("sales_return_items")
+}
+
+// ─── Uang Jaminan Proyek (Project Guarantee) ────────────────────────────────
+// Setoran jaminan (tender/pelaksanaan/pemeliharaan) ke pemberi proyek.
+// Setor: DR Uang Jaminan (1.8) / CR Kas-Bank. Settlement (bisa parsial,
+// berulang): DR Kas-Bank (kembali) + DR Beban (hangus) / CR Uang Jaminan.
+// outstanding = amount − Σ(return+forfeit settlement aktif) — selalu dihitung.
+// JE/ALE lines sengaja TANPA partyId: applyPartyImpact menaikkan
+// outstandingAmount pihak utk baris ASSET ber-party (tak ada special-case 1.8)
+// — link pihak cukup di row ini. Plain-scalar FK (account/journal/fy/user)
+// supaya tak menambah back-relation di banyak model. Lihat routes/projectGuarantees.ts.
+model ProjectGuarantee {
+  id                 String                       @id @default(uuid())
+  guaranteeNumber    String                       @unique @map("guarantee_number")
+  date               DateTime
+  partyId            String                       @map("party_id")
+  party              Party                        @relation("ProjectGuaranteeParty", fields: [partyId], references: [id])
+  // Penawaran | Pelaksanaan | Pemeliharaan | Lainnya — divalidasi Zod, bukan enum.
+  guaranteeType      String                       @map("guarantee_type")
+  projectName        String                       @map("project_name")
+  referenceNo        String?                      @map("reference_no")
+  amount             Decimal                      @db.Decimal(15, 2)
+  // Akun kas/bank sumber dana. Plain scalar.
+  accountId          String                       @map("account_id")
+  expectedReturnDate DateTime?                    @map("expected_return_date")
+  notes              String?
+  // Disetor | Selesai | Dibatalkan
+  status             String                       @default("Disetor")
+  journalEntryId     String?                      @map("journal_entry_id")
+  fiscalYearId       String                       @map("fiscal_year_id")
+  createdBy          String                       @map("created_by")
+  settlements        ProjectGuaranteeSettlement[]
+  submittedAt        DateTime?                    @map("submitted_at")
+  cancelledAt        DateTime?                    @map("cancelled_at")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([expectedReturnDate])
+  @@index([fiscalYearId])
+  @@map("project_guarantees")
+}
+
+model ProjectGuaranteeSettlement {
+  id               String           @id @default(uuid())
+  guaranteeId      String           @map("guarantee_id")
+  guarantee        ProjectGuarantee @relation(fields: [guaranteeId], references: [id])
+  date             DateTime
+  returnAmount     Decimal          @default(0) @map("return_amount") @db.Decimal(15, 2)
+  forfeitAmount    Decimal          @default(0) @map("forfeit_amount") @db.Decimal(15, 2)
+  // Kas/bank tujuan pengembalian. Plain scalar.
+  returnAccountId  String?          @map("return_account_id")
+  // Akun beban utk porsi hangus. Plain scalar.
+  forfeitAccountId String?          @map("forfeit_account_id")
+  journalEntryId   String?          @map("journal_entry_id")
+  notes            String?
+  isCancelled      Boolean          @default(false) @map("is_cancelled")
+  cancelledAt      DateTime?        @map("cancelled_at")
+  createdBy        String           @map("created_by")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  @@index([guaranteeId])
+  @@map("project_guarantee_settlements")
 }
 
 // ─── Konfigurasi Notifikasi Telegram (singleton) ───────────────────────────

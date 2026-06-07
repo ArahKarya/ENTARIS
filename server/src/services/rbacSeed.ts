@@ -5,7 +5,7 @@
 
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
-import { BUILTIN_ROLES, DEFAULT_MATRIX, DEFAULT_CAPS } from '../constants/modules';
+import { BUILTIN_ROLES, DEFAULT_MATRIX, DEFAULT_CAPS, BACKFILL_MODULES } from '../constants/modules';
 import { invalidatePermissionCache } from './permissionService';
 
 export async function ensureRbacSeed(): Promise<void> {
@@ -55,6 +55,28 @@ export async function ensureRbacSeed(): Promise<void> {
         }
       }
     }
+
+    // Backfill modul yang ditambahkan setelah rilis RBAC awal ke role sistem
+    // existing — ONE-SHOT per module key: hanya bila belum ada satupun
+    // RolePermission utk modul itu. roles.ts me-rewrite izin via
+    // deleteMany+createMany, jadi backfill tanpa guard akan menghidupkan
+    // kembali izin yang sengaja dicabut Admin tiap boot.
+    for (const moduleKey of BACKFILL_MODULES) {
+      const already = await prisma.rolePermission.count({ where: { module: moduleKey } });
+      if (already > 0) continue;
+
+      const systemRoles = await prisma.role.findMany({ where: { isSystem: true } });
+      const rows = systemRoles.flatMap((role) => {
+        const action = DEFAULT_MATRIX[role.key]?.[moduleKey];
+        if (!action) return [];
+        return [{ roleId: role.id, module: moduleKey, canView: true, canEdit: action === 'edit' }];
+      });
+      if (rows.length > 0) {
+        await prisma.rolePermission.createMany({ data: rows, skipDuplicates: true });
+        logger.info({ module: moduleKey, roles: rows.length }, 'RBAC: backfill izin modul baru ke role sistem');
+      }
+    }
+
     invalidatePermissionCache();
   } catch (err) {
     logger.error({ err }, 'ensureRbacSeed gagal (diabaikan saat boot)');

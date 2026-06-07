@@ -28,6 +28,8 @@ export function notificationLink(n: NotifItem, role: string | undefined): string
       return '/inventory';
     case 'quotation_expiring':
       return '/quotations';
+    case 'guarantee_due':
+      return '/project-guarantees';
     default:
       return null;
   }

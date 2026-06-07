@@ -325,6 +325,40 @@ export const RefundVendorDepositSchema = z
     path: ['cashAccountId'],
   });
 
+// ─── Uang Jaminan Proyek ─────────────────────────────────────────────────────
+export const GUARANTEE_TYPES = ['Penawaran', 'Pelaksanaan', 'Pemeliharaan', 'Lainnya'] as const;
+
+export const CreateProjectGuaranteeSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  partyId: z.string().uuid('Pihak pemberi proyek wajib dipilih.'),
+  guaranteeType: z.enum(GUARANTEE_TYPES),
+  projectName: z.string().min(1, 'Nama proyek wajib diisi.'),
+  referenceNo: z.string().optional().nullable(),
+  amount: z.coerce.number().positive('Jumlah jaminan harus lebih dari 0.'),
+  accountId: z.string().uuid('Akun sumber dana wajib dipilih.'),
+  expectedReturnDate: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+// Settlement: pengembalian (kas masuk) dan/atau hangus (beban), bisa parsial
+// dan berulang sampai sisa jaminan habis.
+export const SettleProjectGuaranteeSchema = z
+  .object({
+    date: z.string().min(1, 'Tanggal wajib diisi.'),
+    returnAmount: z.coerce.number().min(0).default(0),
+    forfeitAmount: z.coerce.number().min(0).default(0),
+    returnAccountId: z.string().uuid().optional().nullable(),
+    expenseAccountId: z.string().uuid().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })
+  .refine((d) => d.returnAmount + d.forfeitAmount > 0, {
+    message: 'Masukkan jumlah dikembalikan atau hangus minimal salah satu.',
+  })
+  .refine((d) => d.returnAmount === 0 || !!d.returnAccountId, {
+    message: 'Pilih akun kas/bank tujuan pengembalian.',
+    path: ['returnAccountId'],
+  });
+
 // ─── Party ────────────────────────────────────────────────────────────────────
 export const CreatePartySchema = z.object({
   name: z.string().min(1, 'Nama wajib diisi.'),

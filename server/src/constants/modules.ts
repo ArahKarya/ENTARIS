@@ -35,6 +35,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'payment', label: 'Transaksi Bank/Kas', group: 'Bank & Kas' },
   { key: 'reconciliation', label: 'Rekonsiliasi Bank', group: 'Bank & Kas' },
   { key: 'recurring', label: 'Transaksi Berulang', group: 'Bank & Kas' },
+  { key: 'project_guarantee', label: 'Uang Jaminan Proyek', group: 'Bank & Kas' },
   // AKUNTANSI
   { key: 'coa', label: 'Bagan Akun (COA)', group: 'Akuntansi' },
   { key: 'journal', label: 'Buku Besar / Jurnal', group: 'Akuntansi' },
@@ -96,7 +97,7 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
     sales_return: 'edit', customer_deposit: 'edit',
     purchase_order: 'edit', goods_receipt: 'edit', purchase_invoice: 'edit', vendor_deposit: 'edit',
     inventory: 'edit', stock_transfer: 'edit', stock_opname: 'edit', production: 'edit', warehouse: 'edit',
-    payment: 'edit', reconciliation: 'edit', recurring: 'edit',
+    payment: 'edit', reconciliation: 'edit', recurring: 'edit', project_guarantee: 'edit',
     coa: 'view', journal: 'edit', fixed_assets: 'edit', approvals: 'edit',
     reports: 'view', parties: 'edit',
   },
@@ -109,10 +110,18 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
   Viewer: {
     sales_order: 'view', delivery_order: 'view', sales_invoice: 'view', quotation: 'view',
     purchase_order: 'view', goods_receipt: 'view',
-    inventory: 'view', payment: 'view',
+    inventory: 'view', payment: 'view', project_guarantee: 'view',
     coa: 'view', journal: 'view', fixed_assets: 'view', reports: 'view',
   },
 };
+
+/**
+ * Modul yang ditambahkan SETELAH rilis RBAC awal. ensureRbacSeed mem-backfill
+ * izin DEFAULT_MATRIX modul ini ke role sistem yang sudah ada di DB production
+ * — one-shot per key (hanya bila belum ada satupun RolePermission utk modul
+ * tsb), supaya izin yang sengaja dicabut Admin tidak dihidupkan kembali tiap boot.
+ */
+export const BACKFILL_MODULES: string[] = ['project_guarantee'];
 
 /** Capabilities default per role bawaan non-super (kosong = sama seperti sekarang). */
 export const DEFAULT_CAPS: Record<string, string[]> = {

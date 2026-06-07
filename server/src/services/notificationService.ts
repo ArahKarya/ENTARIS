@@ -76,7 +76,7 @@ export async function notifyUsers(db: Db, input: NotifyInput, opts?: NotifyOpts)
             }
           }
           // Mirror grup (opsional) utk pengumuman broadcast.
-          const broadcastTypes = ['approval_pending', 'invoice_overdue', 'low_stock'];
+          const broadcastTypes = ['approval_pending', 'invoice_overdue', 'low_stock', 'guarantee_due'];
           if (broadcastTypes.includes(input.type)) {
             void pushTelegram({ type: input.type, title: input.title, message: input.message });
           }
@@ -203,6 +203,43 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
       title: 'Stok Rendah',
       message: `Stok ${item.name} (${item.code}) tersisa ${Number(item.currentStock)} ${item.unit}, di bawah minimum ${Number(item.minimumStock)} ${item.unit}.`,
       metadata: { itemId: item.id, itemCode: item.code },
+    });
+  }
+
+  // 4. Uang jaminan proyek mendekati / melewati jatuh tempo pengembalian
+  const dueSoon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const dueGuarantees = await prisma.projectGuarantee.findMany({
+    where: { status: 'Disetor', expectedReturnDate: { not: null, lte: dueSoon } },
+    include: {
+      party: { select: { name: true } },
+      settlements: { where: { isCancelled: false }, select: { returnAmount: true, forfeitAmount: true } },
+    },
+  });
+  const existingGuaranteeNotifs = await prisma.notification.findMany({
+    where: { type: 'guarantee_due', createdAt: { gte: oneDayAgo } },
+    select: { metadata: true },
+  });
+  const existingGuaranteeIds = new Set(
+    existingGuaranteeNotifs.map((n) => (n.metadata as any)?.guaranteeId).filter(Boolean),
+  );
+  for (const g of dueGuarantees) {
+    if (existingGuaranteeIds.has(g.id)) continue;
+    const settled = g.settlements.reduce(
+      (sum, s) => sum + Number(s.returnAmount) + Number(s.forfeitAmount),
+      0,
+    );
+    const outstanding = Number(g.amount) - settled;
+    if (outstanding <= 0.01) continue;
+
+    const dueDate = g.expectedReturnDate!;
+    const overdue = dueDate < now;
+    const dueStr = dueDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    created += await notifyUsers(prisma, {
+      userIds,
+      type: 'guarantee_due',
+      title: overdue ? 'Uang Jaminan Lewat Jatuh Tempo' : 'Uang Jaminan Mendekati Jatuh Tempo',
+      message: `${g.guaranteeNumber} (${g.projectName}) ke ${g.party.name} — sisa Rp ${outstanding.toLocaleString('id-ID')}, ${overdue ? 'jatuh tempo pengembalian sudah lewat' : 'jatuh tempo pengembalian'} ${dueStr}. Tagih pengembalian ke pemberi proyek.`,
+      metadata: { guaranteeId: g.id, guaranteeNumber: g.guaranteeNumber },
     });
   }
 
