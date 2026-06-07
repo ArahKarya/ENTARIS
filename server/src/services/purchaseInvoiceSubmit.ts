@@ -92,6 +92,11 @@ export async function submitPurchaseInvoiceInTx(
       if (grItem.goodsReceipt.status === 'Cancelled') {
         throw new BusinessError(`STT ${grItem.goodsReceipt.sttNumber} sudah dibatalkan.`);
       }
+      if (grItem.goodsReceipt.isCustomerOwned) {
+        throw new BusinessError(
+          `STT ${grItem.goodsReceipt.sttNumber} adalah barang titipan pelanggan (repros) — tidak bisa di-invoice sebagai pembelian.`,
+        );
+      }
       if (grItem.goodsReceipt.partyId !== body.partyId) {
         throw new BusinessError(
           `Supplier baris dari STT ${grItem.goodsReceipt.sttNumber} berbeda dengan supplier invoice.`,

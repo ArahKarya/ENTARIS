@@ -15,6 +15,8 @@ export interface SubmitGoodsReceiptInput {
   date: string;
   partyId: string;
   purchaseOrderId?: string | null;
+  /** Barang titipan pelanggan (jasa repros/maklon): qty saja, GL nol. */
+  isCustomerOwned?: boolean;
   nomorMobil?: string | null;
   driverName?: string | null;
   recipientName?: string | null;
@@ -68,6 +70,11 @@ export async function submitGoodsReceiptInTx(
     throw new BusinessError(`Party '${party.name}' bukan supplier.`);
   }
 
+  const isCustomerOwned = body.isCustomerOwned === true;
+  if (isCustomerOwned && body.purchaseOrderId) {
+    throw new BusinessError('STT barang titipan tidak boleh terkait Purchase Order.');
+  }
+
   // PO validation (optional)
   if (body.purchaseOrderId) {
     const po = await tx.purchaseOrder.findUnique({ where: { id: body.purchaseOrderId } });
@@ -95,6 +102,7 @@ export async function submitGoodsReceiptInTx(
       date: parsedDate,
       partyId: body.partyId,
       purchaseOrderId: body.purchaseOrderId ?? null,
+      isCustomerOwned,
       status: 'Submitted',
       notes: body.notes ?? null,
       nomorMobil: body.nomorMobil ?? null,
@@ -124,9 +132,14 @@ export async function submitGoodsReceiptInTx(
     // averageCost item saat ini sebagai provisional. PI nanti yang fix
     // harga aktual + post variance kalau beda.
     const provided = Number(line.lockedUnitCost ?? 0);
-    const unitCost = provided > 0
-      ? new Decimal(provided)
-      : new Decimal(invItem.averageCost.toString());
+    // Barang titipan pelanggan: nilai dipaksa 0 — bukan aset kita, tidak
+    // boleh masuk Persediaan/Hutang Belum Tagih. JE di bawah otomatis skip
+    // karena totalCr = 0.
+    const unitCost = isCustomerOwned
+      ? new Decimal(0)
+      : provided > 0
+        ? new Decimal(provided)
+        : new Decimal(invItem.averageCost.toString());
     const totalValue = qty.times(unitCost).toDecimalPlaces(2);
 
     // Stock movement In
@@ -150,13 +163,17 @@ export async function submitGoodsReceiptInTx(
       },
     });
 
-    // Update inventory_items: total stock + weighted average cost
-    const newAvg = calcWeightedAverage(
-      invItem.currentStock,
-      invItem.averageCost,
-      qty.toNumber(),
-      unitCost.toNumber(),
-    );
+    // Update inventory_items: total stock + weighted average cost.
+    // Barang titipan: averageCost TIDAK disentuh (qty 0-cost akan mendilusi
+    // WAC item kalau item dipakai juga untuk stok milik sendiri).
+    const newAvg = isCustomerOwned
+      ? Number(invItem.averageCost)
+      : calcWeightedAverage(
+          invItem.currentStock,
+          invItem.averageCost,
+          qty.toNumber(),
+          unitCost.toNumber(),
+        );
     await tx.inventoryItem.update({
       where: { id: invItem.id },
       data: {

@@ -205,6 +205,9 @@ export const GoodsReceipts = () => {
                       <td className="text-gray-500 whitespace-nowrap">{formatDate(d.date)}</td>
                       <td className="whitespace-nowrap">
                         <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{d.sttNumber}</span>
+                        {d.isCustomerOwned && (
+                          <span className="badge badge-teal text-[10px] ml-1.5" title="Barang titipan pelanggan (jasa repros) — tanpa nilai GL, tidak di-invoice">Titipan</span>
+                        )}
                       </td>
                       <td>
                         <p className="font-medium text-gray-800">{d.supplier?.name ?? '—'}</p>

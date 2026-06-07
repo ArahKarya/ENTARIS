@@ -152,7 +152,9 @@ export async function cancelGoodsReceiptInTx(
   // Recompute averageCost for each affected item from remaining active In
   // movements (the cancelled receipt no longer contributes). Mirrors the
   // production-cancel pattern — prevents WAC staying inflated after cancel.
-  for (const itemId of affectedItemIds) {
+  // STT barang titipan: skip — submit-nya tidak menyentuh WAC, recompute di
+  // sini justru memasukkan movement 0-cost titipan lain ke rata-rata.
+  for (const itemId of stt.isCustomerOwned ? [] : affectedItemIds) {
     const activeIns = await tx.stockMovement.findMany({
       where: { itemId, movementType: { in: ['In', 'AdjustmentIn', 'TransferIn'] }, isCancelled: false },
       select: { quantity: true, unitCost: true },

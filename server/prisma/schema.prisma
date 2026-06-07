@@ -1793,6 +1793,9 @@ model GoodsReceipt {
   date             DateTime
   partyId          String             @map("party_id")
   supplier         Party              @relation("GoodsReceiptSupplier", fields: [partyId], references: [id])
+  // Barang titipan pelanggan (jasa repros/maklon): qty tracked, nilai GL
+  // dipaksa 0, disembunyikan dari picker PI, averageCost item tak disentuh.
+  isCustomerOwned  Boolean            @default(false) @map("is_customer_owned")
   // Optional link ke PO (kalau STT memang dipenuhi dari PO tertentu).
   purchaseOrderId  String?            @map("purchase_order_id")
   purchaseOrder    PurchaseOrder?     @relation("GRFromPO", fields: [purchaseOrderId], references: [id])

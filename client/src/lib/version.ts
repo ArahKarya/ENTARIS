@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.12.0';
+export const APP_VERSION = '3.12.1';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.12.1',
+    date: '2026-06-07',
+    title: 'STT Barang Titipan Pelanggan (Jasa Repros/Maklon)',
+    changes: [
+      'Ceklis "Barang Titipan Pelanggan" di form STT: terima barang milik pelanggan untuk diproses ulang (rice-to-rice)',
+      'Guardrail otomatis: hanya kuantitas yang dicatat — tanpa nilai persediaan/hutang, rata-rata harga item tidak terganggu',
+      'STT titipan tidak muncul di pilihan Invoice Pembelian dan diblok bila dipaksa di-invoice — tagih jasanya lewat Invoice Penjualan (baris jasa)',
+      'Badge "Titipan" di daftar & detail STT',
+    ],
+  },
   {
     version: '3.12.0',
     date: '2026-06-07',

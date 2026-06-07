@@ -874,6 +874,8 @@ export const CreateGoodsReceiptSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
   partyId: z.string().uuid('Supplier wajib dipilih.'),
   purchaseOrderId: z.string().uuid().nullable().optional(),
+  // Barang titipan pelanggan (jasa repros): GL nol, tak bisa di-invoice.
+  isCustomerOwned: z.boolean().optional().default(false),
   nomorMobil: z.string().max(50).nullable().optional(),
   driverName: z.string().max(200).nullable().optional(),
   recipientName: z.string().max(200).nullable().optional(),

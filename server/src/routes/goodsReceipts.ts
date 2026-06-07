@@ -93,6 +93,8 @@ router.get('/pending', async (req, res) => {
         status: 'Submitted',
         invoiceId: null,
         isLegacyBackfill: false,
+        // STT barang titipan (repros) tidak pernah di-invoice ke PI.
+        isCustomerOwned: false,
       },
       include: {
         items: { include: { inventoryItem: true, warehouse: true } },

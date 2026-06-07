@@ -124,7 +124,12 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
               <PackageCheck size={18} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">{isLoading ? 'Memuat...' : doc?.sttNumber}</h2>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {isLoading ? 'Memuat...' : doc?.sttNumber}
+                {doc?.isCustomerOwned && (
+                  <span className="badge badge-teal text-[10px] ml-2 align-middle" title="Barang titipan pelanggan (jasa repros) — tanpa nilai GL, tidak di-invoice">Titipan</span>
+                )}
+              </h2>
               <p className="text-xs text-gray-400">Bukti Penerimaan Barang</p>
             </div>
           </div>

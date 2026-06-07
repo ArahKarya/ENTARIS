@@ -58,6 +58,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [recipientName, _setRecipientName] = useState(() => getCurrentUserName());
   const [notes, setNotes] = useState('');
+  const [isCustomerOwned, setIsCustomerOwned] = useState(false);
   const [items, setItems] = useState<GRItem[]>([defaultItem()]);
   const [error, setError] = useState('');
 
@@ -165,7 +166,8 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
     mutation.mutate({
       date,
       partyId,
-      purchaseOrderId: purchaseOrderId || null,
+      purchaseOrderId: isCustomerOwned ? null : (purchaseOrderId || null),
+      isCustomerOwned,
       nomorMobil: nomorMobil.trim() || null,
       driverName: driverName.trim() || null,
       recipientName: recipientName.trim() || null,
@@ -212,10 +214,30 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
             </div>
           </div>
 
+          <label className="flex items-start gap-3 cursor-pointer group rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={isCustomerOwned}
+              onChange={(e) => { setIsCustomerOwned(e.target.checked); if (e.target.checked) setPurchaseOrderId(''); }}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+            />
+            <span>
+              <span className="text-sm font-medium text-teal-800 group-hover:text-teal-900">Barang Titipan Pelanggan (Jasa Repros)</span>
+              <span className="block text-xs text-teal-600 mt-0.5">
+                Barang milik pelanggan untuk diproses ulang — hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang,
+                dan tidak bisa dijadikan Invoice Pembelian. Tagih jasanya lewat Invoice Penjualan (baris jasa).
+              </span>
+            </span>
+          </label>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PO (opsional)</label>
-              <SearchableSelect options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
+              {isCustomerOwned ? (
+                <input type="text" value="— Tidak berlaku untuk barang titipan —" disabled className="input w-full text-gray-400" />
+              ) : (
+                <SearchableSelect options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">No. Mobil</label>
