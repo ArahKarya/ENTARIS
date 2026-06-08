@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.12.2';
+export const APP_VERSION = '3.12.3';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.12.3',
+    date: '2026-06-07',
+    title: 'Fix: Dropdown Standar Biaya Produksi Tidak Terlihat',
+    changes: [
+      'Dropdown pemilih standar biaya di form Proses Produksi terjepit sampai lebar 0 oleh dropdown basis (regresi sweep dropdown custom) — kini tampil normal',
+      'Baris "Tambah Biaya" kembali bisa memilih master standar biaya per gudang',
+    ],
+  },
   {
     version: '3.12.2',
     date: '2026-06-07',

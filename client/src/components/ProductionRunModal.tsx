@@ -1662,10 +1662,12 @@ function CostSectionUI({
                     </option>
                   ))}
                 </Select>
+                {/* Lebar tetap — w-full di flex row menjepit picker standar
+                    (flex-1 min-w-0) sampai 0px sejak sweep dropdown custom. */}
                 <Select
                   value={c.basis}
                   onChange={(e) => onUpdate(idx, { basis: e.target.value as CostLine['basis'] })}
-                  className="w-full"
+                  className="w-32 shrink-0"
                 >
                   <option value="InputQty">× qty input</option>
                   <option value="OutputQty">× qty output</option>
