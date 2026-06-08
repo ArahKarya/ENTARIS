@@ -52,19 +52,23 @@ interface Props {
   onFocusHandled?: () => void;
 }
 
+// Total harga akhir satu baris PI dari payload pengajuan.
+// hargaAkhir = qty×rate×(1−disc%) + PPN − PPh − potonganItem.
+// Payload pengajuan TIDAK menyimpan it.amount → harus dihitung di sini,
+// jangan andalkan it.amount (selalu undefined → tampil Rp 0).
+function piLineTotal(it: any): number {
+  const qty = Number(it.timbanganDiterima ?? it.quantity ?? 0);
+  const base = qty * Number(it.rate ?? 0);
+  const afterDisc = base - base * (Number(it.discount ?? 0) / 100);
+  const ppn = afterDisc * (Number(it.taxPct ?? 0) / 100);
+  const pph = afterDisc * (Number(it.pphPct ?? 0) / 100);
+  return afterDisc + ppn - pph - Number(it.potonganItem ?? 0);
+}
+
 // Hitung estimasi total PI dari payload (mirror server purchaseInvoiceCalc).
-// hargaAkhir per item = qty×rate×(1−disc%) + PPN − PPh − potonganItem.
 function piTotals(payload: any): { subtotal: number; grandTotal: number } {
   const items: any[] = payload?.items ?? [];
-  let subtotal = 0;
-  for (const it of items) {
-    const qty = Number(it.timbanganDiterima ?? it.quantity ?? 0);
-    const base = qty * Number(it.rate ?? 0);
-    const afterDisc = base - base * (Number(it.discount ?? 0) / 100);
-    const ppn = afterDisc * (Number(it.taxPct ?? 0) / 100);
-    const pph = afterDisc * (Number(it.pphPct ?? 0) / 100);
-    subtotal += afterDisc + ppn - pph - Number(it.potonganItem ?? 0);
-  }
+  const subtotal = items.reduce((s, it) => s + piLineTotal(it), 0);
   const grandTotal = subtotal - Number(payload?.potongan ?? 0) + Number(payload?.biayaLain ?? 0);
   return { subtotal: Math.round(subtotal), grandTotal: Math.round(grandTotal) };
 }
@@ -523,7 +527,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                                 <div className="flex items-center justify-between">
                                   <span className="text-gray-800 font-medium">{it.itemName ?? '—'}</span>
                                   <span className="font-mono tabular-nums text-gray-600">
-                                    {fmtNum(qty)} {it.unit ?? ''} × {formatRupiah(Number(it.rate ?? 0))} = {formatRupiah(Number(it.amount ?? 0))}
+                                    {fmtNum(qty)} {it.unit ?? ''} × {formatRupiah(Number(it.rate ?? 0))} = {formatRupiah(Math.round(piLineTotal(it)))}
                                   </span>
                                 </div>
                                 {meta.length > 0 && <div className="text-[10px] text-gray-400 mt-0.5">{meta.join(' · ')}</div>}

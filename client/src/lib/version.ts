@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.13.0';
+export const APP_VERSION = '3.13.1';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.13.1',
+    date: '2026-06-08',
+    title: 'Fix: Total per Baris di Detail Approval Pembelian Tampil Rp 0',
+    changes: [
+      'Detail pengajuan Invoice Pembelian: total harga akhir per baris item kini terhitung benar (qty × harga − diskon + PPN − PPh) — sebelumnya selalu Rp 0 karena payload pengajuan tidak menyimpan nilai amount',
+    ],
+  },
   {
     version: '3.13.0',
     date: '2026-06-07',
