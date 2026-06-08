@@ -24,6 +24,10 @@ interface Props {
   onChange: (batchId: string, batch: Batch | null) => void;
   disabled?: boolean;
   className?: string;
+  // Batch id yang sudah dipakai baris LAIN di form yang sama (item+gudang sama).
+  // Disembunyikan dari dropdown agar tidak terpilih dobel. Batch yang sedang
+  // dipilih baris ini sendiri (value) tetap muncul.
+  excludeIds?: Iterable<string>;
 }
 
 const fmtDate = (s: string) => {
@@ -44,7 +48,7 @@ const fmtRupiah = (val: number) =>
 // for a production input. Shows available batches with date, qty available,
 // and unit cost. Empty string value means "no specific batch" — server will
 // fall back to WAC-based costing (legacy behavior, still supported).
-export default function BatchPicker({ itemId, warehouseId, value, onChange, disabled, className }: Props) {
+export default function BatchPicker({ itemId, warehouseId, value, onChange, disabled, className, excludeIds }: Props) {
   const enabled = !!itemId && !!warehouseId;
 
   const { data, isLoading, isFetching } = useQuery({
@@ -57,7 +61,14 @@ export default function BatchPicker({ itemId, warehouseId, value, onChange, disa
     staleTime: 30_000,
   });
 
-  const batches: Batch[] = useMemo(() => data?.data ?? [], [data]);
+  // Sembunyikan batch yang sudah dipakai baris lain (cegah dobel), kecuali
+  // batch yang sedang dipilih baris ini sendiri.
+  const excludeKey = useMemo(() => [...(excludeIds ?? [])].sort().join(','), [excludeIds]);
+  const batches: Batch[] = useMemo(() => {
+    const all: Batch[] = data?.data ?? [];
+    const excl = new Set(excludeKey ? excludeKey.split(',') : []);
+    return all.filter(b => b.id === value || !excl.has(b.id));
+  }, [data, excludeKey, value]);
 
   if (!enabled) {
     return (

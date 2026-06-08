@@ -364,6 +364,9 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
                               itemId={it.itemId}
                               warehouseId={fromWarehouseId}
                               value={it.sourceMovementId ?? ''}
+                              excludeIds={items
+                                .filter((r, i) => i !== idx && r.itemId === it.itemId && r.sourceMovementId)
+                                .map((r) => r.sourceMovementId as string)}
                               onChange={(id) => {
                                 const next = [...items];
                                 next[idx] = { ...next[idx], sourceMovementId: id };

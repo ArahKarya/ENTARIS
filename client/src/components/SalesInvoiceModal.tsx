@@ -720,6 +720,9 @@ const SalesInvoiceModal: React.FC<{
                                   itemId={item.inventoryItemId}
                                   warehouseId={item.warehouseId}
                                   value={item.sourceMovementId ?? ''}
+                                  excludeIds={items
+                                    .filter((r, i) => i !== idx && r.inventoryItemId === item.inventoryItemId && r.warehouseId === item.warehouseId && r.sourceMovementId)
+                                    .map((r) => r.sourceMovementId as string)}
                                   onChange={(id) => updateItem(idx, 'sourceMovementId', id as any)}
                                 />
                               </div>

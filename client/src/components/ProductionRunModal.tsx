@@ -956,6 +956,9 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                                 itemId={row.itemId}
                                 warehouseId={warehouseId}
                                 value={row.sourceMovementId}
+                                excludeIds={inputs
+                                  .filter((r, i) => i !== idx && r.itemId === row.itemId && r.sourceMovementId)
+                                  .map((r) => r.sourceMovementId)}
                                 onChange={(id, batch) => onPickBatch(idx, id, batch)}
                               />
                             </div>

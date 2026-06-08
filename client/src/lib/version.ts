@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.13.1';
+export const APP_VERSION = '3.13.2';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.13.2',
+    date: '2026-06-08',
+    title: 'Fix: Batch yang Sudah Dipilih Tidak Muncul Lagi di Baris Lain',
+    changes: [
+      'Pemilih batch (Transfer Stok, Proses Produksi, Invoice Penjualan): batch yang sudah dipilih di baris lain otomatis disembunyikan dari dropdown baris berikutnya — cegah alokasi dobel',
+      'Pengingat: untuk transfer/produksi jumlah besar yang tersebar di banyak batch, pakai tombol "Bagi Batch" agar terpecah otomatis (FIFO) tanpa input baris satu per satu',
+    ],
+  },
   {
     version: '3.13.1',
     date: '2026-06-08',
