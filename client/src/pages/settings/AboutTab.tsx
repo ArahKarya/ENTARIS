@@ -100,7 +100,7 @@ export const AboutTab: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">{APP_NAME}</h3>
-                <p className="text-blue-100 text-xs">Sistem ERP Keuangan</p>
+                <p className="text-blue-100 text-xs">Sistem ERP & Operasional</p>
               </div>
             </div>
             <span className="bg-white/20 text-white text-sm font-mono font-bold px-3 py-1.5 rounded-lg">

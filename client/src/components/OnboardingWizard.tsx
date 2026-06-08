@@ -214,7 +214,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   Selamat Datang!
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Keuangan ERP siap digunakan. Mari setup perusahaan Anda dalam beberapa langkah mudah.
+                  ERP PMD siap digunakan. Mari setup perusahaan Anda dalam beberapa langkah mudah.
                 </p>
               </div>
             </div>
@@ -429,7 +429,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   Selesai!
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Setup awal berhasil. Anda sekarang bisa mulai menggunakan aplikasi keuangan.
+                  Setup awal berhasil. Anda sekarang bisa mulai menggunakan aplikasi.
                 </p>
               </div>
               <button

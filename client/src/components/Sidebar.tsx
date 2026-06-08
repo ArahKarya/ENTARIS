@@ -332,7 +332,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
               <img src={sidebarLogoSrc} alt="Logo" className={`w-full h-full object-contain ${needsInvert ? 'invert' : ''}`} />
             </div>
             <span className="text-sm font-bold tracking-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {settings?.companyName || 'Keuangan'}
+              {settings?.companyName || 'ERP PMD'}
             </span>
           </div>
         )}

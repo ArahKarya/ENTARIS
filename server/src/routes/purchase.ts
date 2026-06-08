@@ -8,6 +8,7 @@ import { handleRouteError } from '../utils/errors';
 import { cancelPurchaseInvoiceInTx } from '../services/invoiceCancellation';
 import { submitPurchaseInvoiceInTx } from '../services/purchaseInvoiceSubmit';
 import { revisePurchaseInvoiceInTx } from '../services/purchaseInvoiceRevise';
+import { computePurchaseItem } from '../services/purchaseInvoiceCalc';
 import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
@@ -112,7 +113,17 @@ router.post('/', async (req: AuthRequest, res) => {
   try {
     // Approval gate: non-Admin → masuk antrian, dokumen baru dibuat saat approve.
     if (await needsApproval(req.user!.role)) {
-      const amount = (body.items ?? []).reduce((s: number, it: any) => s + Number(it.amount ?? 0), 0) + Number(body.biayaLain ?? 0);
+      // Payload submit TIDAK menyimpan it.amount (server yang hitung) — hitung
+      // grand total di sini via computePurchaseItem agar antrian approval,
+      // notifikasi Telegram, dan daftar approval menampilkan nilai yang benar
+      // (bukan Rp 0). Detail approval memakai rumus yang sama.
+      const amount =
+        (body.items ?? []).reduce(
+          (s: number, it: any) => s + computePurchaseItem(it).hargaAkhir.toNumber(),
+          0,
+        ) -
+        Number(body.potongan ?? 0) +
+        Number(body.biayaLain ?? 0);
       const request = await prisma.$transaction((tx) =>
         queueApproval(tx, {
           documentType: 'PurchaseInvoice',

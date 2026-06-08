@@ -206,7 +206,7 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
         </div>
 
         <p className="mt-6 text-xs font-medium uppercase tracking-[0.22em] text-white/70">
-          Sistem ERP Keuangan & Operasional
+          Sistem ERP & Operasional
         </p>
         <h1
           className="mt-3 text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight"

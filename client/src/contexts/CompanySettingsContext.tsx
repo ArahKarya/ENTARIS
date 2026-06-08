@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
+import { APP_NAME } from '../lib/version';
 
 interface CompanySettings {
   id: string;
@@ -36,7 +37,7 @@ export const CompanySettingsProvider: React.FC<{ children: React.ReactNode }> = 
 
     // Update page title
     if (data.companyName) {
-      document.title = `Keuangan - ${data.companyName}`;
+      document.title = `${APP_NAME} - ${data.companyName}`;
     }
 
     // Favicon always uses the static app icon (not company logo)

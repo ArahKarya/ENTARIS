@@ -33,7 +33,7 @@ export const SettingsPage: React.FC = () => {
         <Settings size={18} className="text-gray-400" />
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Pengaturan</h1>
-          <p className="text-sm text-gray-500">Konfigurasi sistem Keuangan.</p>
+          <p className="text-sm text-gray-500">Konfigurasi sistem ERP.</p>
         </div>
       </div>
 

@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.13.2';
+export const APP_VERSION = '3.13.4';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,23 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.13.4',
+    date: '2026-06-08',
+    title: 'Fix: Grand Total Pengajuan Pembelian Rp 0 di Notif & Daftar Approval',
+    changes: [
+      'Nilai pengajuan Invoice Pembelian kini terhitung benar saat dibuat — sebelumnya Rp 0 di notifikasi Telegram & daftar approval (hanya muncul di detail) karena payload pengajuan tidak menyimpan amount per baris',
+    ],
+  },
+  {
+    version: '3.13.3',
+    date: '2026-06-08',
+    title: 'Branding: Ganti Sisa Tulisan "Keuangan" Jadi ERP',
+    changes: [
+      'Judul tab browser, subtitle halaman login, layar onboarding, dan sidebar kini memakai nama "ERP PMD" — bukan "Keuangan" (sisa branding lama)',
+      'Istilah akuntansi tetap apa adanya (Laporan Keuangan, Rasio Keuangan, dll)',
+    ],
+  },
   {
     version: '3.13.2',
     date: '2026-06-08',
