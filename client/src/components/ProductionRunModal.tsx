@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Plus, Trash2, Calculator, ChevronDown, ChevronRight, Gauge } from 'lucide-react';
+import { X, Plus, Trash2, Calculator, ChevronDown, ChevronRight, Gauge, Layers } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import BatchPicker from './BatchPicker';
 import type { Batch } from './BatchPicker';
 import Select from './Select';
 import { cap } from '../lib/permissions';
+import { fetchBatches, allocateFifo } from '../lib/fifoAllocate';
 
 interface LineItem {
   itemId: string;
@@ -531,6 +532,44 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const updateOutput = (idx: number, field: string, value: string | boolean) => {
     setOutputs(prev => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row));
   };
+  // Bagi Batch Otomatis (FIFO): pecah baris idx menjadi N baris per batch.
+  // Sisa yang tak tertampung batch → baris tanpa batch (fallback WAC, valid
+  // di server) + warning. Batch yang sudah dipakai baris lain tidak dialokasi ulang.
+  const splitInputRow = async (idx: number) => {
+    const row = inputs[idx];
+    const qty = parseFloat(row.quantity) || 0;
+    if (!row.itemId || !warehouseId || qty <= 0) return;
+    try {
+      const batches = await fetchBatches(row.itemId, warehouseId);
+      const claimed = new Map<string, number>();
+      inputs.forEach((r, i) => {
+        if (i !== idx && r.itemId === row.itemId && r.sourceMovementId) {
+          claimed.set(r.sourceMovementId, (claimed.get(r.sourceMovementId) ?? 0) + (parseFloat(r.quantity) || 0));
+        }
+      });
+      const { allocations, shortfall } = allocateFifo(batches, qty, claimed);
+      if (allocations.length === 0) {
+        toast.error('Tidak ada batch tersedia untuk item ini di gudang terpilih.');
+        return;
+      }
+      const newRows: LineItem[] = allocations.map(a => ({
+        itemId: row.itemId,
+        quantity: String(a.qty),
+        sourceMovementId: a.batch.id,
+        batchUnitCost: String(a.batch.unitCost),
+      }));
+      if (shortfall > 0) {
+        newRows.push({ itemId: row.itemId, quantity: String(shortfall), sourceMovementId: '', batchUnitCost: '' });
+        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia — baris sisa memakai biaya rata-rata (WAC).`);
+      } else {
+        toast.success(`Dibagi ke ${allocations.length} batch (FIFO).`);
+      }
+      setInputs(prev => [...prev.slice(0, idx), ...newRows, ...prev.slice(idx + 1)]);
+    } catch {
+      toast.error('Gagal mengambil daftar batch.');
+    }
+  };
+
   const addInput = () => setInputs(prev => [...prev, { itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
   const removeInput = (idx: number) => setInputs(prev => prev.filter((_, i) => i !== idx));
   const addOutput = () => setOutputs(prev => [...prev, { itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
@@ -911,12 +950,26 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                       {row.itemId && (
                         <div>
                           <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">Batch sumber</label>
-                          <BatchPicker
-                            itemId={row.itemId}
-                            warehouseId={warehouseId}
-                            value={row.sourceMovementId}
-                            onChange={(id, batch) => onPickBatch(idx, id, batch)}
-                          />
+                          <div className="flex gap-2 items-center">
+                            <div className="flex-1 min-w-0">
+                              <BatchPicker
+                                itemId={row.itemId}
+                                warehouseId={warehouseId}
+                                value={row.sourceMovementId}
+                                onChange={(id, batch) => onPickBatch(idx, id, batch)}
+                              />
+                            </div>
+                            {!row.sourceMovementId && (parseFloat(row.quantity) || 0) > 0 && warehouseId && (
+                              <button
+                                type="button"
+                                onClick={() => void splitInputRow(idx)}
+                                className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-lg px-2 py-1.5 transition-colors"
+                                title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
+                              >
+                                <Layers size={12} /> Bagi Batch
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

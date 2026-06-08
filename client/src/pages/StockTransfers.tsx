@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Loader2, ArrowRight, Trash2, Repeat, X, AlertCircle } from 'lucide-react';
+import { Plus, Loader2, ArrowRight, Trash2, Repeat, X, AlertCircle, Layers } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import SearchableSelect, { type SelectOption } from '../components/SearchableSel
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import WarehouseTransferDrawer from '../components/WarehouseTransferDrawer';
 import BatchPicker from '../components/BatchPicker';
+import { fetchBatches, allocateFifo } from '../lib/fifoAllocate';
 
 const STATUS_BADGE: Record<string, string> = {
   Draft: 'badge-gray',
@@ -146,6 +147,45 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
   const [items, setItems] = useState<TransferItemRow[]>([
     { id: crypto.randomUUID(), itemId: '', quantity: 0 },
   ]);
+
+  // Bagi Batch Otomatis (FIFO): pecah baris menjadi N baris per batch tersedia.
+  // Sisa tak tertampung → baris tanpa batch (WAC) + warning.
+  const splitTransferRow = async (idx: number) => {
+    const row = items[idx];
+    const qty = Number(row.quantity) || 0;
+    if (!row.itemId || !fromWarehouseId || qty <= 0) return;
+    try {
+      const batches = await fetchBatches(row.itemId, fromWarehouseId);
+      const claimed = new Map<string, number>();
+      items.forEach((r, i) => {
+        if (i !== idx && r.itemId === row.itemId && r.sourceMovementId) {
+          claimed.set(r.sourceMovementId, (claimed.get(r.sourceMovementId) ?? 0) + (Number(r.quantity) || 0));
+        }
+      });
+      const { allocations, shortfall } = allocateFifo(batches, qty, claimed);
+      if (allocations.length === 0) {
+        toast.error('Tidak ada batch tersedia untuk item ini di gudang asal.');
+        return;
+      }
+      const newRows: TransferItemRow[] = allocations.map(a => ({
+        id: crypto.randomUUID(),
+        itemId: row.itemId,
+        quantity: a.qty,
+        unit: row.unit,
+        description: row.description,
+        sourceMovementId: a.batch.id,
+      }));
+      if (shortfall > 0) {
+        newRows.push({ id: crypto.randomUUID(), itemId: row.itemId, quantity: shortfall, unit: row.unit, sourceMovementId: '' });
+        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia — baris sisa memakai biaya rata-rata (WAC).`);
+      } else {
+        toast.success(`Dibagi ke ${allocations.length} batch (FIFO).`);
+      }
+      setItems(prev => [...prev.slice(0, idx), ...newRows, ...prev.slice(idx + 1)]);
+    } catch {
+      toast.error('Gagal mengambil daftar batch.');
+    }
+  };
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();
@@ -318,16 +358,30 @@ function StockTransferModal({ isOpen, onClose }: ModalProps) {
                         <label className="text-[10px] text-muted-foreground block mb-0.5">
                           Batch sumber (opsional)
                         </label>
-                        <BatchPicker
-                          itemId={it.itemId}
-                          warehouseId={fromWarehouseId}
-                          value={it.sourceMovementId ?? ''}
-                          onChange={(id) => {
-                            const next = [...items];
-                            next[idx] = { ...next[idx], sourceMovementId: id };
-                            setItems(next);
-                          }}
-                        />
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1 min-w-0">
+                            <BatchPicker
+                              itemId={it.itemId}
+                              warehouseId={fromWarehouseId}
+                              value={it.sourceMovementId ?? ''}
+                              onChange={(id) => {
+                                const next = [...items];
+                                next[idx] = { ...next[idx], sourceMovementId: id };
+                                setItems(next);
+                              }}
+                            />
+                          </div>
+                          {!it.sourceMovementId && (Number(it.quantity) || 0) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => void splitTransferRow(idx)}
+                              className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-lg px-2 py-1.5 transition-colors"
+                              title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
+                            >
+                              <Layers size={12} /> Bagi Batch
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.12.3';
+export const APP_VERSION = '3.13.0';
 export const APP_BUILD_DATE = '2026-06-07';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.13.0',
+    date: '2026-06-07',
+    title: 'Bagi Batch Otomatis (FIFO) — Produksi & Transfer Stok',
+    changes: [
+      'Tombol "Bagi Batch" di baris input Proses Produksi & Transfer Stok: isi total qty, sistem memecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)',
+      'Tidak perlu lagi input manual satu baris per batch (mis. transfer 9.950 kg yang tersebar di belasan batch)',
+      'Batch yang sudah dipakai baris lain tidak dialokasi ulang; sisa qty melebihi batch otomatis jadi baris biaya rata-rata (WAC) dengan peringatan',
+    ],
+  },
   {
     version: '3.12.3',
     date: '2026-06-07',
