@@ -41,14 +41,6 @@ export const MODULES: ModuleDef[] = [
   { key: 'journal', label: 'Buku Besar / Jurnal', group: 'Akuntansi' },
   { key: 'fixed_assets', label: 'Aset Tetap', group: 'Akuntansi' },
   { key: 'approvals', label: 'Approval (pengajuan)', group: 'Akuntansi' },
-  // LAPORAN
-  { key: 'reports', label: 'Laporan', group: 'Laporan' },
-  // MASTER DATA
-  { key: 'parties', label: 'Pelanggan & Vendor', group: 'Master Data' },
-  // SISTEM
-  { key: 'settings', label: 'Pengaturan', group: 'Sistem' },
-  { key: 'users', label: 'Manajemen User', group: 'Sistem' },
-  { key: 'audit', label: 'Jejak Audit & Sistem', group: 'Sistem' },
   // GENERAL AFFAIRS (modul GA)
   { key: 'ga_assets', label: 'Aset', group: 'EAM — Manajemen Aset' },
   { key: 'ga_vehicle', label: 'Kendaraan', group: 'EAM — Manajemen Aset' },
@@ -58,7 +50,14 @@ export const MODULES: ModuleDef[] = [
   { key: 'ga_inventory', label: 'Inventaris (Sparepart/ATK)', group: 'EAM — Manajemen Aset' },
   { key: 'ga_documents', label: 'Dokumen Legal & Sertifikat', group: 'EAM — Manajemen Aset' },
   { key: 'ga_master', label: 'Master Data EAM', group: 'EAM — Manajemen Aset' },
-];
+  // LAPORAN
+  { key: 'reports', label: 'Laporan', group: 'Laporan' },
+  // MASTER DATA
+  { key: 'parties', label: 'Pelanggan & Vendor', group: 'Master Data' },
+  // SISTEM
+  { key: 'settings', label: 'Pengaturan', group: 'Sistem' },
+  { key: 'users', label: 'Manajemen User', group: 'Sistem' },
+  { key: 'audit', label: 'Jejak Audit & Sistem', group: 'Sistem' },];
 
 export const MODULE_KEYS = MODULES.map((m) => m.key);
 
