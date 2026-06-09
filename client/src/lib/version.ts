@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.14.1';
+export const APP_VERSION = '3.14.2';
 export const APP_BUILD_DATE = '2026-06-09';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.14.2',
+    date: '2026-06-09',
+    title: 'Revamp Landing Page /welcome (lebih hidup)',
+    changes: [
+      'Hero animatif: gradient bergerak, partikel & ikon mengambang, kartu hero dengan efek sonar, statistik counter',
+      'Tambah trust strip, section Cara Kerja, dan badge sektor; konsisten brand navy AKS',
+    ],
+  },
   {
     version: '3.14.1',
     date: '2026-06-09',
