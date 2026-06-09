@@ -162,6 +162,9 @@ export const GaAssetsPage = () => {
                     </td>
                     <td>
                       <span className="font-medium text-gray-800">{a.name}</span>
+                      {a.fixedAsset && (
+                        <span className="badge badge-blue text-[10px] ml-1.5" title={`Tercatat sebagai Aset Tetap ${a.fixedAsset.assetNumber} · Nilai buku Rp ${Number(a.fixedAsset.bookValue).toLocaleString('id-ID')}`}>Aset Tetap</span>
+                      )}
                       {a.location && <span className="block text-[11px] text-gray-400">{a.location}</span>}
                     </td>
                     <td className="text-gray-700">{a.category?.name ?? '—'}</td>

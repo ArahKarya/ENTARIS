@@ -138,16 +138,16 @@ const allNavItems: NavItem[] = [
   },
   {
     icon: Boxes,
-    label: 'General Affairs',
+    label: 'EAM — Manajemen Aset',
     children: [
-      { icon: Boxes, label: 'Aset Fisik', href: '/ga/assets', module: 'ga_assets' },
+      { icon: Boxes, label: 'Aset', href: '/ga/assets', module: 'ga_assets' },
       { icon: FileText, label: 'Dokumen & Sertifikat', href: '/ga/documents', module: 'ga_documents' },
-      { icon: ClipboardList, label: 'Inventaris GA', href: '/ga/inventory', module: 'ga_inventory' },
+      { icon: ClipboardList, label: 'Inventaris', href: '/ga/inventory', module: 'ga_inventory' },
       { icon: Wrench, label: 'Maintenance / WO', href: '/ga/maintenance', module: 'ga_maintenance' },
       { icon: Car, label: 'Kendaraan', href: '/ga/vehicle', module: 'ga_vehicle' },
       { icon: Building2Ga, label: 'Gedung & Sewa', href: '/ga/building', module: 'ga_building' },
       { icon: ScanLine, label: 'Equipment & Kalibrasi', href: '/ga/equipment', module: 'ga_equipment' },
-      { icon: FolderCog, label: 'Master Data GA', href: '/ga/master', module: 'ga_master' },
+      { icon: FolderCog, label: 'Master Data', href: '/ga/master', module: 'ga_master' },
     ],
   },
 ];

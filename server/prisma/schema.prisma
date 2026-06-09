@@ -1595,6 +1595,10 @@ model TransactionAttachment {
 model FixedAsset {
   id                      String              @id @default(uuid())
   assetNumber             String              @unique @map("asset_number")
+  // Link ke master aset EAM (ga_assets). Aset EAM = master tunggal;
+  // FixedAsset = profil keuangan/penyusutan yang menempel.
+  gaAssetId               String?             @unique @map("ga_asset_id")
+  gaAsset                 GaAsset?            @relation("FixedAssetEam", fields: [gaAssetId], references: [id])
   name                    String
   category                String
   description             String?
@@ -2241,6 +2245,7 @@ model GaAsset {
   buildingData                 GaBuildingData?
   buildingRentals              GaBuildingRental[]
   equipmentData                GaEquipmentData?
+  fixedAsset                   FixedAsset?               @relation("FixedAssetEam")
   calibrationLogs              GaCalibrationLog[]
   @@index([categoryId])
   @@index([branchId])

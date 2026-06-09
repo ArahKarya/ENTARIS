@@ -50,14 +50,14 @@ export const MODULES: ModuleDef[] = [
   { key: 'users', label: 'Manajemen User', group: 'Sistem' },
   { key: 'audit', label: 'Jejak Audit & Sistem', group: 'Sistem' },
   // GENERAL AFFAIRS (modul GA)
-  { key: 'ga_assets', label: 'Aset Fisik (GA)', group: 'General Affairs' },
-  { key: 'ga_documents', label: 'Dokumen Legal & Sertifikat', group: 'General Affairs' },
-  { key: 'ga_inventory', label: 'Inventaris GA (Sparepart/ATK)', group: 'General Affairs' },
-  { key: 'ga_maintenance', label: 'Maintenance & Work Order', group: 'General Affairs' },
-  { key: 'ga_vehicle', label: 'Kendaraan', group: 'General Affairs' },
-  { key: 'ga_building', label: 'Gedung & Sewa', group: 'General Affairs' },
-  { key: 'ga_equipment', label: 'Equipment & Kalibrasi', group: 'General Affairs' },
-  { key: 'ga_master', label: 'Master Data GA', group: 'General Affairs' },
+  { key: 'ga_assets', label: 'Aset', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_documents', label: 'Dokumen Legal & Sertifikat', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_inventory', label: 'Inventaris (Sparepart/ATK)', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_maintenance', label: 'Maintenance & Work Order', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_vehicle', label: 'Kendaraan', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_building', label: 'Gedung & Sewa', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_equipment', label: 'Equipment & Kalibrasi', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_master', label: 'Master Data EAM', group: 'EAM — Manajemen Aset' },
 ];
 
 export const MODULE_KEYS = MODULES.map((m) => m.key);

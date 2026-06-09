@@ -190,6 +190,7 @@ router.get('/', async (req: AuthRequest, res) => {
           branch: { select: { code: true, name: true } },
           costCenter: { select: { code: true, name: true } },
           qr: { select: { qrCode: true } },
+          fixedAsset: { select: { id: true, assetNumber: true, bookValue: true } },
         },
       }),
       prisma.gaAsset.count({ where }),
@@ -239,6 +240,7 @@ router.get('/:id', async (req, res) => {
         costCenter: true,
         qr: true,
         photos: { orderBy: { orderIdx: 'asc' } },
+        fixedAsset: true, // profil keuangan/penyusutan (EAM)
       },
     });
     if (!asset) return res.status(404).json({ error: 'Aset tidak ditemukan.' });

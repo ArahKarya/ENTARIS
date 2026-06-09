@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.0';
+export const APP_VERSION = '3.15.1';
 export const APP_BUILD_DATE = '2026-06-09';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.1',
+    date: '2026-06-09',
+    title: 'EAM — Manajemen Aset (rename GA + satukan Aset Tetap)',
+    changes: [
+      'Grup menu General Affairs diganti menjadi EAM — Manajemen Aset',
+      'Aset Tetap (akuntansi) kini menyatu dengan aset EAM: setiap aset tetap punya master aset EAM yang sama (ditandai badge "Aset Tetap")',
+      'Penyusutan & jurnal aset tetap tetap berjalan apa adanya — hanya ditautkan, tidak diubah',
+    ],
+  },
   {
     version: '3.15.0',
     date: '2026-06-09',
