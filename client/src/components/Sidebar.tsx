@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Boxes, FileText, Wrench, Car, Building2 as Building2Ga, ScanLine, FolderCog,
   Bell,
   LayoutDashboard,
   Receipt,
@@ -133,6 +134,20 @@ const allNavItems: NavItem[] = [
       { icon: Shield, label: 'Manajemen User', href: '/users', module: 'users' },
       { icon: ScrollText, label: 'Jejak Audit', href: '/audit', module: 'audit' },
       { icon: HeartPulse, label: 'Health Check', href: '/health-check', module: 'audit' },
+    ],
+  },
+  {
+    icon: Boxes,
+    label: 'General Affairs',
+    children: [
+      { icon: Boxes, label: 'Aset Fisik', href: '/ga/assets', module: 'ga_assets' },
+      { icon: FileText, label: 'Dokumen & Sertifikat', href: '/ga/documents', module: 'ga_documents' },
+      { icon: ClipboardList, label: 'Inventaris GA', href: '/ga/inventory', module: 'ga_inventory' },
+      { icon: Wrench, label: 'Maintenance / WO', href: '/ga/maintenance', module: 'ga_maintenance' },
+      { icon: Car, label: 'Kendaraan', href: '/ga/vehicle', module: 'ga_vehicle' },
+      { icon: Building2Ga, label: 'Gedung & Sewa', href: '/ga/building', module: 'ga_building' },
+      { icon: ScanLine, label: 'Equipment & Kalibrasi', href: '/ga/equipment', module: 'ga_equipment' },
+      { icon: FolderCog, label: 'Master Data GA', href: '/ga/master', module: 'ga_master' },
     ],
   },
 ];

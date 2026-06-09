@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.14.2';
+export const APP_VERSION = '3.15.0';
 export const APP_BUILD_DATE = '2026-06-09';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.0',
+    date: '2026-06-09',
+    title: 'Modul General Affairs (GA) — Merge GA Monitor jadi 1 Aplikasi',
+    changes: [
+      'Grup menu baru General Affairs: Aset Fisik, Dokumen & Sertifikat, Inventaris GA, Maintenance/Work Order, Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Master Data GA',
+      'GA Monitor di-merge ke dalam ERP — satu aplikasi, satu login, satu database (tabel ga_*)',
+      'Hak akses GA diatur via Pengaturan → Hak Akses (8 modul ga_*); QR aset publik tetap bisa diakses tanpa login',
+    ],
+  },
   {
     version: '3.14.2',
     date: '2026-06-09',

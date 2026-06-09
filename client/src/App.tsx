@@ -41,6 +41,14 @@ import { RecurringTransactions } from './pages/RecurringTransactions';
 import { BankReconciliation } from './pages/BankReconciliation';
 import { VendorDeposits } from './pages/VendorDeposits';
 import { ProjectGuarantees } from './pages/ProjectGuarantees';
+import { GaAssetsPage } from './pages/ga/GaAssetsPage';
+import { GaDocumentsPage } from './pages/ga/GaDocumentsPage';
+import { GaInventoryPage } from './pages/ga/GaInventoryPage';
+import { GaMaintenancePage } from './pages/ga/GaMaintenancePage';
+import { GaVehiclePage } from './pages/ga/GaVehiclePage';
+import { GaBuildingPage } from './pages/ga/GaBuildingPage';
+import { GaEquipmentPage } from './pages/ga/GaEquipmentPage';
+import { GaMasterPage } from './pages/ga/GaMasterPage';
 import { CustomerDeposits } from './pages/CustomerDeposits';
 import TaxReport from './pages/reports/TaxReport';
 import LedgerBook from './pages/reports/LedgerBook';
@@ -117,6 +125,15 @@ function App() {
             <Route path="/payments" element={<PermRoute module="payment"><Payments /></PermRoute>} />
             <Route path="/vendor-deposits" element={<PermRoute module="vendor_deposit"><VendorDeposits /></PermRoute>} />
             <Route path="/project-guarantees" element={<PermRoute module="project_guarantee"><ProjectGuarantees /></PermRoute>} />
+            {/* General Affairs */}
+            <Route path="/ga/assets" element={<PermRoute module="ga_assets"><GaAssetsPage /></PermRoute>} />
+            <Route path="/ga/documents" element={<PermRoute module="ga_documents"><GaDocumentsPage /></PermRoute>} />
+            <Route path="/ga/inventory" element={<PermRoute module="ga_inventory"><GaInventoryPage /></PermRoute>} />
+            <Route path="/ga/maintenance" element={<PermRoute module="ga_maintenance"><GaMaintenancePage /></PermRoute>} />
+            <Route path="/ga/vehicle" element={<PermRoute module="ga_vehicle"><GaVehiclePage /></PermRoute>} />
+            <Route path="/ga/building" element={<PermRoute module="ga_building"><GaBuildingPage /></PermRoute>} />
+            <Route path="/ga/equipment" element={<PermRoute module="ga_equipment"><GaEquipmentPage /></PermRoute>} />
+            <Route path="/ga/master" element={<PermRoute module="ga_master"><GaMasterPage /></PermRoute>} />
             <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
             <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
             <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />

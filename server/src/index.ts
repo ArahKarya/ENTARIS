@@ -12,6 +12,15 @@ import { logger } from './lib/logger';
 // Route handlers
 import authRoutes from './routes/auth';
 import publicRoutes from './routes/public';
+import gaPublicQrRoutes from './routes/ga/publicQr';
+import gaMasterRoutes from './routes/ga/master';
+import gaAssetsRoutes from './routes/ga/assets';
+import gaDocumentsRoutes from './routes/ga/documents';
+import gaInventoryRoutes from './routes/ga/inventory';
+import gaMaintenanceRoutes from './routes/ga/maintenance';
+import gaVehicleRoutes from './routes/ga/vehicle';
+import gaBuildingRoutes from './routes/ga/building';
+import gaEquipmentRoutes from './routes/ga/equipment';
 import coaRoutes from './routes/coa';
 import journalRoutes from './routes/journals';
 import salesRoutes from './routes/sales';
@@ -151,6 +160,7 @@ app.use('/api', apiRateLimit);
 // ─── Public Routes ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/ga/public', gaPublicQrRoutes); // GA: QR publik (tanpa auth)
 
 // Build version stamped at process start — changes every container restart
 // (= every deploy). Used by VersionWatcher di client untuk deteksi update
@@ -194,6 +204,15 @@ app.use('/api/reconciliation', requirePerm('reconciliation'), reconciliationRout
 app.use('/api/recurring', requirePerm('recurring'), recurringRoutes);
 app.use('/api/vendor-deposits', requirePerm('vendor_deposit'), vendorDepositRoutes);
 app.use('/api/project-guarantees', requirePerm('project_guarantee'), projectGuaranteeRoutes);
+  // ── General Affairs (GA) modules ──────────────────────────────────────
+app.use('/api/ga/master', requirePerm('ga_master'), gaMasterRoutes);
+app.use('/api/ga/assets', requirePerm('ga_assets'), gaAssetsRoutes);
+app.use('/api/ga/documents', requirePerm('ga_documents'), gaDocumentsRoutes);
+app.use('/api/ga/inventory', requirePerm('ga_inventory'), gaInventoryRoutes);
+app.use('/api/ga/maintenance', requirePerm('ga_maintenance'), gaMaintenanceRoutes);
+app.use('/api/ga/vehicle', requirePerm('ga_vehicle'), gaVehicleRoutes);
+app.use('/api/ga/building', requirePerm('ga_building'), gaBuildingRoutes);
+app.use('/api/ga/equipment', requirePerm('ga_equipment'), gaEquipmentRoutes);
 app.use('/api/customer-deposits', requirePerm('customer_deposit'), customerDepositRoutes);
 app.use('/api/stock-opname', requirePerm('stock_opname'), stockOpnameRoutes);
 app.use('/api/fixed-assets', requirePerm('fixed_assets'), fixedAssetRoutes);
