@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.1';
+export const APP_VERSION = '3.15.2';
 export const APP_BUILD_DATE = '2026-06-09';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.2',
+    date: '2026-06-09',
+    title: 'EAM — urutan menu dirapikan',
+    changes: [
+      'Urutan modul EAM: Aset → Kendaraan → Gedung → Equipment → Maintenance/WO → Inventaris → Dokumen → Master Data (alur logis: master aset, spesialisasi, operasional, pendukung, konfigurasi)',
+    ],
+  },
   {
     version: '3.15.1',
     date: '2026-06-09',
