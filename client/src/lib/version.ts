@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.13.4';
-export const APP_BUILD_DATE = '2026-06-07';
+export const APP_VERSION = '3.14.0';
+export const APP_BUILD_DATE = '2026-06-09';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.14.0',
+    date: '2026-06-09',
+    title: 'Landing Page Publik Produk (/welcome)',
+    changes: [
+      'Halaman landing publik di /welcome untuk memperkenalkan produk Simple ERP oleh PT Arah Karya Sinergi (fitur, prinsip, CTA masuk/konsultasi)',
+      'User yang sudah login otomatis diarahkan ke aplikasi; routing aplikasi yang ada tidak berubah',
+    ],
+  },
   {
     version: '3.13.4',
     date: '2026-06-08',

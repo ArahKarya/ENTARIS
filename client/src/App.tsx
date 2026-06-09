@@ -24,6 +24,7 @@ import { PartiesPage } from './pages/PartiesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { StockOpnamePage } from './pages/StockOpnamePage';
 import LoginPage from './pages/LoginPage';
+import LandingPage from './pages/LandingPage';
 import PublicInquiry from './pages/PublicInquiry';
 
 import Reports from './pages/Reports';
@@ -97,6 +98,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/welcome" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/tanya" element={<PublicInquiry />} />
         <Route path="/inquire" element={<PublicInquiry />} />
