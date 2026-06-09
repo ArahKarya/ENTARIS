@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.14.0';
+export const APP_VERSION = '3.14.1';
 export const APP_BUILD_DATE = '2026-06-09';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.14.1',
+    date: '2026-06-09',
+    title: 'Fix: Warna Status Invoice (Dibatalkan jadi Merah)',
+    changes: [
+      'Status "Dibatalkan" di daftar Invoice Penjualan & Pembelian kini berwarna merah (sebelumnya biru, sama dengan "Diajukan")',
+      'Label status diseragamkan ke Bahasa Indonesia (Diajukan, Sebagian, Dibatalkan)',
+    ],
+  },
   {
     version: '3.14.0',
     date: '2026-06-09',

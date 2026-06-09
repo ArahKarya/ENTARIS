@@ -441,9 +441,12 @@ export const PurchaseInvoices = () => {
                       'badge',
                       invoice.status === 'Paid' ? 'badge-green' :
                       invoice.status === 'Draft' ? 'badge-gray' :
-                      invoice.status === 'PartiallyPaid' ? 'badge-yellow' : 'badge-blue'
+                      invoice.status === 'PartiallyPaid' ? 'badge-yellow' :
+                      invoice.status === 'Cancelled' ? 'badge-red' : 'badge-blue'
                     )}>
-                      {invoice.status === 'PartiallyPaid' ? 'Sebagian' : invoice.status}
+                      {invoice.status === 'PartiallyPaid' ? 'Sebagian' :
+                       invoice.status === 'Cancelled' ? 'Dibatalkan' :
+                       invoice.status === 'Submitted' ? 'Diajukan' : invoice.status}
                     </span>
                   </td>
                 </tr>
