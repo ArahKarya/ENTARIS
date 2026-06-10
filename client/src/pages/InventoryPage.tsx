@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Warehouse, PackageSearch, Edit2, Trash2, XCircle, Plus, LayoutDashboard, Upload, Download, Eye } from 'lucide-react';
+import { Loader2, Warehouse, PackageSearch, Edit2, Trash2, XCircle, Plus, LayoutDashboard, Upload, Download, Eye, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../lib/api';
 import { formatDate, formatRupiah } from '../lib/formatters';
@@ -68,6 +68,7 @@ export function InventoryPage() {
   const [prodResubmitId, setProdResubmitId] = useState<string | null>(null);
   const [filterProdStartDate, setFilterProdStartDate] = useState('');
   const [filterProdEndDate, setFilterProdEndDate] = useState('');
+  const [prodSearch, setProdSearch] = useState('');
   const [cancelProdTarget, setCancelProdTarget] = useState<string | null>(null);
   const [isCancellingProd, setIsCancellingProd] = useState(false);
   const [selectedProdRunId, setSelectedProdRunId] = useState<string | null>(null);
@@ -122,6 +123,21 @@ export function InventoryPage() {
   const productionRuns: any[] = Array.isArray(productionRaw)
     ? productionRaw
     : (productionRaw?.data ?? []);
+
+  // Filter pencarian client-side: no. produksi, referensi, nama item
+  // input/output, dan catatan.
+  const filteredProductionRuns = useMemo(() => {
+    const q = prodSearch.trim().toLowerCase();
+    if (!q) return productionRuns;
+    return productionRuns.filter((run: any) => {
+      const itemNames = (run.items ?? [])
+        .map((i: any) => i.item?.name ?? '')
+        .join(' ');
+      return [run.runNumber, run.referenceNumber, run.notes, itemNames]
+        .filter(Boolean)
+        .some((f: string) => f.toLowerCase().includes(q));
+    });
+  }, [productionRuns, prodSearch]);
 
   const { data: serviceItemsRaw, isLoading: servicesLoading } = useQuery({
     queryKey: ['service-items'],
@@ -793,6 +809,19 @@ export function InventoryPage() {
                 className="border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            <div className="flex-1 min-w-[220px]">
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Cari</label>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={prodSearch}
+                  onChange={e => setProdSearch(e.target.value)}
+                  placeholder="No. produksi, referensi, item, catatan..."
+                  className="w-full border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Table */}
@@ -819,15 +848,19 @@ export function InventoryPage() {
                       Memuat data proses produksi...
                     </td>
                   </tr>
-                ) : productionRuns.length === 0 ? (
+                ) : filteredProductionRuns.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-16 text-center">
                       <PackageSearch className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">Belum ada proses produksi.</p>
+                      <p className="text-sm text-gray-400">
+                        {prodSearch.trim() || filterProdStartDate || filterProdEndDate
+                          ? 'Tidak ada proses produksi yang cocok dengan filter.'
+                          : 'Belum ada proses produksi.'}
+                      </p>
                     </td>
                   </tr>
                 ) : (
-                  productionRuns.map((run: any) => {
+                  filteredProductionRuns.map((run: any) => {
                     const isCancelled = run.isCancelled;
                     const inputLines = (run.items ?? []).filter((i: any) => i.lineType === 'Input');
                     const outputLines = (run.items ?? []).filter((i: any) => i.lineType === 'Output' || i.lineType === 'ByProduct');

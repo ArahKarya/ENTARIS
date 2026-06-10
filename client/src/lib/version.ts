@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.3';
-export const APP_BUILD_DATE = '2026-06-09';
+export const APP_VERSION = '3.15.4';
+export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.4',
+    date: '2026-06-10',
+    title: 'Data Produksi — filter pencarian',
+    changes: [
+      'Kotak pencarian di tab Data Produksi: cari cepat berdasarkan no. produksi, referensi, nama item (input/output), atau catatan',
+    ],
+  },
   {
     version: '3.15.3',
     date: '2026-06-09',
