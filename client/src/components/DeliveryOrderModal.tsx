@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -102,6 +102,14 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     },
   });
 
+  const { data: warehouses } = useQuery({
+    queryKey: ['warehouses-active'],
+    queryFn: async () => {
+      const res = await api.get('/warehouses?active=true');
+      return (res.data.data ?? res.data) as any[];
+    },
+  });
+
   const selectedParty = parties?.find((p: any) => p.id === partyId);
 
   const partyOptions = useMemo<SelectOption[]>(
@@ -113,10 +121,40 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     () =>
       (inventoryItems ?? []).map((inv: any) => ({
         value: inv.id,
-        label: `${inv.code} — ${inv.name} (${inv.currentStock} ${inv.unit})`,
+        label: `${inv.code} — ${inv.name}`,
       })),
     [inventoryItems],
   );
+
+  // Stok PER GUDANG: ambil stok item untuk tiap gudang yang dipakai di baris.
+  // /inventory/items?warehouseId=X meng-override currentStock jadi stok gudang
+  // tsb. Dipakai utk tampilan & validasi per baris (bukan total semua gudang).
+  const usedWarehouseIds = useMemo(
+    () => [...new Set(items.filter((i) => i.inventoryItemId && i.warehouseId).map((i) => i.warehouseId))],
+    [items],
+  );
+  const whStockQueries = useQueries({
+    queries: usedWarehouseIds.map((wh) => ({
+      queryKey: ['inv-stock-by-wh', wh],
+      queryFn: async () => {
+        const res = await api.get('/inventory/items', { params: { warehouseId: wh, limit: 1000 } });
+        const arr: any[] = res.data.data ?? res.data;
+        const m: Record<string, number> = {};
+        for (const it of arr) m[it.id] = Number(it.currentStock);
+        return m;
+      },
+      staleTime: 30_000,
+    })),
+  });
+  const whStock: Record<string, Record<string, number>> = {};
+  usedWarehouseIds.forEach((wh, i) => { whStock[wh] = (whStockQueries[i]?.data as Record<string, number>) ?? {}; });
+  // Stok gudang utk satu baris (null = belum ada gudang / belum termuat).
+  const lineStock = (itemId: string, warehouseId: string): number | null => {
+    if (!itemId || !warehouseId) return null;
+    const map = whStock[warehouseId];
+    if (!map) return null;
+    return map[itemId] ?? 0;
+  };
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
@@ -168,20 +206,24 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     return acc;
   }, {});
 
-  // Detect stock shortages so the user can opt-in to allow negative stock.
+  // Deteksi kekurangan stok PER (item + gudang) — bukan total semua gudang.
   const stockShortages = (() => {
-    const qtyByItem = new Map<string, number>();
+    const qtyByKey = new Map<string, { itemId: string; warehouseId: string; needed: number }>();
     for (const it of items) {
-      if (!it.inventoryItemId) continue;
-      qtyByItem.set(it.inventoryItemId, (qtyByItem.get(it.inventoryItemId) ?? 0) + (Number(it.quantity) || 0));
+      if (!it.inventoryItemId || !it.warehouseId) continue;
+      const key = `${it.inventoryItemId}|${it.warehouseId}`;
+      const prev = qtyByKey.get(key);
+      qtyByKey.set(key, { itemId: it.inventoryItemId, warehouseId: it.warehouseId, needed: (prev?.needed ?? 0) + (Number(it.quantity) || 0) });
     }
-    const out: { id: string; name: string; unit: string; available: number; needed: number }[] = [];
-    qtyByItem.forEach((needed, id) => {
-      const inv = inventoryItems?.find((i: any) => i.id === id);
+    const out: { id: string; name: string; unit: string; warehouse: string; available: number; needed: number }[] = [];
+    qtyByKey.forEach(({ itemId, warehouseId, needed }) => {
+      const inv = inventoryItems?.find((i: any) => i.id === itemId);
       if (!inv) return;
-      const available = Number(inv.currentStock);
+      const available = lineStock(itemId, warehouseId);
+      if (available == null) return; // stok gudang belum termuat — jangan blok
       if (available < needed) {
-        out.push({ id, name: inv.name, unit: inv.unit || '', available, needed });
+        const wh = warehouses?.find((w: any) => w.id === warehouseId);
+        out.push({ id: itemId, name: inv.name, unit: inv.unit || '', warehouse: wh?.name ?? wh?.code ?? '', available, needed });
       }
     });
     return out;
@@ -378,6 +420,16 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                               size="sm"
                               placeholder="Pilih gudang sumber..."
                             />
+                            {item.warehouseId && (() => {
+                              const avail = lineStock(item.inventoryItemId, item.warehouseId);
+                              if (avail == null) return <p className="mt-1 text-[11px] text-gray-400">Memuat stok gudang…</p>;
+                              const short = avail < (Number(item.quantity) || 0);
+                              return (
+                                <p className={`mt-1 text-[11px] ${short ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                                  Stok di gudang ini: {avail.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {item.unit}
+                                </p>
+                              );
+                            })()}
                           </div>
                         )}
                       </td>
@@ -473,7 +525,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                   <ul className="mt-1 ml-1 list-disc list-inside text-xs space-y-0.5">
                     {stockShortages.map((s) => (
                       <li key={s.id}>
-                        <span className="font-medium">{s.name}</span>: tersedia {s.available.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}, dibutuhkan {s.needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}
+                        <span className="font-medium">{s.name}</span> @ {s.warehouse}: tersedia {s.available.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}, dibutuhkan {s.needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}
                         <span className="text-amber-600"> (kurang {(s.needed - s.available).toLocaleString('id-ID', { maximumFractionDigits: 3 })})</span>
                       </li>
                     ))}

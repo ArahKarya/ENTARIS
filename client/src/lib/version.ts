@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.6';
+export const APP_VERSION = '3.15.7';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.7',
+    date: '2026-06-12',
+    title: 'Surat Jalan — stok yang ditampilkan per gudang terpilih',
+    changes: [
+      'Picker stok di Surat Jalan kini menampilkan & memvalidasi stok GUDANG yang dipilih per baris (bukan total semua gudang)',
+      'Tiap baris menampilkan "Stok di gudang ini: X"; peringatan kekurangan menyebut nama gudang',
+    ],
+  },
   {
     version: '3.15.6',
     date: '2026-06-12',
