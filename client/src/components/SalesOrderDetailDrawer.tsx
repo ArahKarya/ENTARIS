@@ -237,7 +237,8 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                 <tbody>
                   {so.items?.map((it: any) => {
                     const remaining = Number(it.quantity) - Number(it.deliveredQty);
-                    const fully = remaining <= 0;
+                    const over = remaining < -0.0001;
+                    const fully = Math.abs(remaining) <= 0.0001;
                     return (
                       <tr key={it.id} className="border-t border-border">
                         <td className="px-3 py-2">
@@ -247,7 +248,11 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                         <td className="px-3 py-2 text-right tabular-nums">{Number(it.quantity).toLocaleString('id-ID')} {it.unit}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{Number(it.deliveredQty).toLocaleString('id-ID')}</td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {fully ? (
+                          {over ? (
+                            <span className="text-blue-600 font-medium" title="Terkirim melebihi pesanan SO">
+                              +{Math.abs(remaining).toLocaleString('id-ID')} lebih
+                            </span>
+                          ) : fully ? (
                             <span className="text-green-600"><CheckCircle2 size={12} className="inline" /></span>
                           ) : (
                             <span className="text-amber-600 font-medium">{remaining.toLocaleString('id-ID')}</span>

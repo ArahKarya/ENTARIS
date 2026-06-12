@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.1';
+export const APP_VERSION = '3.16.2';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.2',
+    date: '2026-06-12',
+    title: 'SO — tampilkan kelebihan kirim (lebih dari pesanan)',
+    changes: [
+      'Detail SO: kolom Sisa kini menampilkan "+X lebih" (biru) bila terkirim melebihi qty pesanan — sebelumnya hanya centang hijau (kelebihan tersembunyi)',
+    ],
+  },
   {
     version: '3.16.1',
     date: '2026-06-12',
