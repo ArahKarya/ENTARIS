@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.5';
+export const APP_VERSION = '3.15.6';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.6',
+    date: '2026-06-12',
+    title: 'Welcome Page — Revamp Premium Minimal',
+    changes: [
+      'Desain ulang /welcome bergaya premium minimal (navy elegan, tipografi tegas, gerak ditahan)',
+      'Visual hero diganti mockup dashboard ERP (UI tiruan: sidebar, KPI, grafik arus kas, status dokumen)',
+      'Grid fitur monokrom rapi, section Cara Kerja gelap, kontras heading diperbaiki',
+    ],
+  },
   {
     version: '3.15.5',
     date: '2026-06-10',
