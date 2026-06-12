@@ -18,6 +18,9 @@ interface DOItem {
   quantity: number;
   unit: string;
   description: string;
+  // Diisi saat baris ditarik dari SO → submit lewat endpoint generate-do
+  // (otomatis kurangi SO + update status). Kosong = baris manual/standalone.
+  salesOrderItemId?: string;
 }
 
 const defaultItem = (): DOItem => ({
@@ -81,6 +84,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [negativeStockReason, setNegativeStockReason] = useState('');
   const isAdmin = cap('inventory.negative_stock');
+  const [salesOrderId, setSalesOrderId] = useState('');
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();
@@ -91,6 +95,17 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       const res = await api.get('/parties?type=Customer');
       return res.data.data ?? res.data;
     },
+  });
+
+  // SO terbuka (Submitted/PartiallyDelivered) utk fitur "Tarik dari SO".
+  const { data: openSOs } = useQuery({
+    queryKey: ['open-sales-orders'],
+    queryFn: async () => {
+      const res = await api.get('/sales-orders', { params: { limit: 200 } });
+      const all: any[] = res.data.data ?? res.data;
+      return all.filter((so: any) => so.status === 'Submitted' || so.status === 'PartiallyDelivered');
+    },
+    enabled: !isEdit,
   });
 
   const { data: inventoryItems } = useQuery({
@@ -156,11 +171,49 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     return map[itemId] ?? 0;
   };
 
+  // Opsi SO: kalau pelanggan sudah dipilih, batasi ke SO pelanggan itu.
+  const soOptions = useMemo<SelectOption[]>(
+    () => (openSOs ?? [])
+      .filter((so: any) => !partyId || so.partyId === partyId)
+      .map((so: any) => ({ value: so.id, label: `${so.soNumber} — ${so.customer?.name ?? ''}` })),
+    [openSOs, partyId],
+  );
+
+  // Tarik baris dari SO: prefill item dari sisa belum-terkirim + link SO item.
+  const handlePickSO = async (soId: string) => {
+    setSalesOrderId(soId);
+    setError('');
+    if (!soId) return;
+    try {
+      const res = await api.get(`/sales-orders/${soId}`);
+      const so = res.data;
+      setPartyId(so.partyId);
+      const rows: DOItem[] = (so.items ?? [])
+        .map((it: any) => {
+          const remaining = Number(it.quantity) - Number(it.deliveredQty ?? 0);
+          return { it, remaining };
+        })
+        .filter(({ remaining }: any) => remaining > 0.0001)
+        .map(({ it, remaining }: any) => ({
+          id: crypto.randomUUID(),
+          inventoryItemId: it.inventoryItemId ?? '',
+          warehouseId: '',
+          itemName: it.itemName,
+          quantity: Number(remaining.toFixed(3)),
+          unit: it.unit,
+          description: it.description ?? '',
+          salesOrderItemId: it.id,
+        }));
+      setItems(rows.length > 0 ? rows : [defaultItem()]);
+      if (rows.length === 0) toast.info('Semua item SO ini sudah terkirim penuh.');
+    } catch {
+      setError('Gagal mengambil detail SO.');
+    }
+  };
+
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = isEdit
-        ? await api.put(`/delivery-orders/${editDO!.id}`, data)
-        : await api.post('/delivery-orders', data);
+    mutationFn: async (vars: { endpoint: string; method: 'post' | 'put'; body: any }) => {
+      const res = vars.method === 'put' ? await api.put(vars.endpoint, vars.body) : await api.post(vars.endpoint, vars.body);
       return res.data;
     },
     onSuccess: (data: any) => {
@@ -179,6 +232,8 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items-active'] });
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['open-sales-orders'] });
       onClose();
     },
     onError: (err: any) => setError(err.response?.data?.error || (isEdit ? 'Gagal mengedit surat jalan.' : 'Gagal menyimpan surat jalan.')),
@@ -256,23 +311,52 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       return;
     }
 
+    // Ditarik dari SO → submit lewat generate-do (otomatis kurangi SO + status).
+    if (!isEdit && salesOrderId) {
+      const soItems = validItems.filter((i) => i.salesOrderItemId);
+      if (soItems.length === 0) { setError('Tidak ada baris yang ditarik dari SO.'); return; }
+      mutation.mutate({
+        endpoint: `/sales-orders/${salesOrderId}/generate-do`,
+        method: 'post',
+        body: {
+          date,
+          nomorMobil: nomorMobil.trim() || null,
+          driverName: driverName.trim() || null,
+          recipientName: recipientName.trim() || null,
+          notes: notes.trim() || null,
+          allowNegativeStock,
+          negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
+          items: soItems.map((i) => ({
+            salesOrderItemId: i.salesOrderItemId,
+            warehouseId: i.warehouseId || null,
+            quantity: Number(i.quantity),
+          })),
+        },
+      });
+      return;
+    }
+
     mutation.mutate({
-      date,
-      partyId,
-      nomorMobil: nomorMobil.trim() || null,
-      driverName: driverName.trim() || null,
-      recipientName: recipientName.trim() || null,
-      notes: notes.trim() || null,
-      allowNegativeStock,
-      negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
-      items: validItems.map((i) => ({
-        inventoryItemId: i.inventoryItemId || null,
-        warehouseId: i.warehouseId || null,
-        itemName: i.itemName,
-        quantity: Number(i.quantity),
-        unit: i.unit,
-        description: i.description.trim() || null,
-      })),
+      endpoint: isEdit ? `/delivery-orders/${editDO!.id}` : '/delivery-orders',
+      method: isEdit ? 'put' : 'post',
+      body: {
+        date,
+        partyId,
+        nomorMobil: nomorMobil.trim() || null,
+        driverName: driverName.trim() || null,
+        recipientName: recipientName.trim() || null,
+        notes: notes.trim() || null,
+        allowNegativeStock,
+        negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
+        items: validItems.map((i) => ({
+          inventoryItemId: i.inventoryItemId || null,
+          warehouseId: i.warehouseId || null,
+          itemName: i.itemName,
+          quantity: Number(i.quantity),
+          unit: i.unit,
+          description: i.description.trim() || null,
+        })),
+      },
     });
   };
 
@@ -312,12 +396,27 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
           <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 border-b border-gray-100">
             {/* LEFT — Customer */}
             <div>
+              {!isEdit && (
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tarik dari Pesanan Penjualan (opsional)</p>
+                  <SearchableSelect
+                    options={soOptions}
+                    value={salesOrderId}
+                    onChange={(v) => void handlePickSO(v)}
+                    placeholder="— Tanpa SO (kirim bebas) —"
+                  />
+                  {salesOrderId && (
+                    <p className="mt-1 text-[11px] text-teal-700">Baris diisi dari sisa SO. Surat Jalan akan mengurangi SO & memperbarui statusnya.</p>
+                  )}
+                </div>
+              )}
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Pelanggan</p>
               <SearchableSelect
                 options={partyOptions}
                 value={partyId}
                 onChange={setPartyId}
                 placeholder="— Pilih Pelanggan —"
+                disabled={!!salesOrderId}
               />
               {selectedParty && (
                 <div className="text-xs text-gray-500 space-y-0.5 mt-2 pl-1">

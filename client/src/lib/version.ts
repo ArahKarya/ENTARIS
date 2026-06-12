@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.0';
+export const APP_VERSION = '3.16.1';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.1',
+    date: '2026-06-12',
+    title: 'Surat Jalan — Tarik dari SO (kurangi SO otomatis)',
+    changes: [
+      'Form Surat Jalan kini punya dropdown "Tarik dari Pesanan Penjualan (opsional)": pilih SO → baris terisi dari sisa belum-terkirim',
+      'Surat Jalan yang ditarik dari SO otomatis menambah qty terkirim & memperbarui status SO (Sebagian Terkirim/Selesai) — lewat alur generate-do yang sudah ada',
+      'Tanpa pilih SO: tetap surat jalan bebas seperti biasa (tidak terkait SO)',
+    ],
+  },
   {
     version: '3.16.0',
     date: '2026-06-12',
