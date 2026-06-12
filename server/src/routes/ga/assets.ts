@@ -58,6 +58,14 @@ const CATEGORY_PREFIX: Record<string, string> = {
   IT_EQUIPMENT: 'IT',
   BANGUNAN: 'BLD',
   FURNITURE: 'FRN',
+  GUDANG: 'GDG',
+  EQUIPMENT: 'EQP',
+  TANAH: 'TNH',
+  // Kategori warisan merge Aset Tetap (kode FA_*) — selaraskan ke prefix rapi.
+  FA_MESIN: 'MSN',
+  FA_BANGUNAN: 'BLD',
+  FA_TANAH: 'TNH',
+  FA_PERALATAN: 'PRL',
 };
 
 function getCategoryPrefix(code: string): string {

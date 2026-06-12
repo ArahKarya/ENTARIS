@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.4';
+export const APP_VERSION = '3.15.5';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.15.5',
+    date: '2026-06-10',
+    title: 'EAM — penyelarasan prefix kode kategori aset',
+    changes: [
+      'Penomoran kode aset memakai prefix yang konsisten per kategori (KND, MSN, BLD, TNH, ALT, IT, FRN, GDG, EQP); kategori warisan Aset Tetap ikut diselaraskan',
+    ],
+  },
   {
     version: '3.15.4',
     date: '2026-06-10',
