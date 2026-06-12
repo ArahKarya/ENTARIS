@@ -12,6 +12,8 @@ import { editDeliveryOrderInTx } from '../services/deliveryOrderEdit';
 import { createDeliveryOrderFromInvoiceInTx } from '../services/deliveryOrderFromInvoice';
 import { CreateDOFromInvoiceSchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
+import { queueApproval, approvalsLink } from '../services/approvalGate';
+import { notifyAdmins } from '../services/notificationService';
 
 const router = Router();
 
@@ -142,9 +144,33 @@ router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
   if (!body) return;
 
-  // Strict mode + Admin-only bypass: cuma Admin yang boleh allowNegativeStock.
+  // Stok minus: punya capability → bypass langsung. Tidak punya → tidak lagi
+  // diblok, tapi MASUK ANTRIAN APPROVAL (staf tetap bisa buat SJ, manajer
+  // setujui). Dokumen dibuat saat approve (dgn bypass). Lihat approvalDecision.
   if (body.allowNegativeStock && !(await hasCap(req.user!.role, 'inventory.negative_stock'))) {
-    return res.status(403).json({ error: 'Hanya Admin yang dapat bypass validasi stok.' });
+    try {
+      const request = await prisma.$transaction((tx) =>
+        queueApproval(tx, {
+          documentType: 'DeliveryOrder',
+          payload: req.body,
+          amount: 0,
+          requestedBy: req.user!.userId,
+          label: 'Surat Jalan (menunggu approval — stok minus)',
+        }),
+      );
+      const requester = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { fullName: true } });
+      const link = approvalsLink(request.id);
+      await notifyAdmins({
+        type: 'approval_pending',
+        title: '🔔 Persetujuan: Surat Jalan (stok minus)',
+        message: `Surat Jalan dari ${requester?.fullName ?? 'staf'} butuh persetujuan karena stok minus.${body.negativeStockReason ? `\nAlasan: ${body.negativeStockReason}` : ''}${link ? `\n\n🔗 Buka & proses: ${link}` : ''}`,
+        metadata: { kind: 'approval', requestId: request.id, documentType: 'DeliveryOrder' },
+        excludeUserId: req.user!.userId,
+      });
+      return res.status(202).json({ pendingApproval: true, request, message: 'Surat jalan menunggu persetujuan manajer (stok minus).' });
+    } catch (error) {
+      return handleRouteError(res, error, 'POST /delivery-orders (approval)', 'Gagal mengajukan surat jalan.');
+    }
   }
 
   try {

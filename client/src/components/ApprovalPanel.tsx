@@ -41,6 +41,8 @@ const labelOf = (s: string) => STATUS_TABS.find((t) => t.key === s)?.label ?? s;
 const docTypeLabel: Record<string, string> = {
   PurchaseInvoice: 'Invoice Pembelian',
   ProductionRun: 'Data Produksi',
+  SalesReturn: 'Retur Penjualan',
+  DeliveryOrder: 'Surat Jalan',
 };
 
 interface Props {
@@ -363,6 +365,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
       {detailReq && (() => {
         const p = detailReq.payload ?? {};
         const isProd = detailReq.documentType === 'ProductionRun';
+        const isDO = detailReq.documentType === 'DeliveryOrder';
         const piItems: any[] = p.items ?? [];
         const inputs: any[] = p.inputs ?? [];
         const outputs: any[] = p.outputs ?? [];
@@ -372,7 +375,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         const processIds: string[] = p.processIds ?? [];
         const basisLabel: Record<string, string> = { InputQty: 'per kg input', OutputQty: 'per kg output', Fixed: 'tetap' };
         const fmtT = (v: any) => v ? new Date(v).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
-        const pi = isProd ? null : piTotals(p);
+        const pi = (isProd || isDO) ? null : piTotals(p);
         const hppEst = isProd ? prodHppEstimate(p) : null;
         return (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailReq(null)}>
@@ -397,7 +400,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                 {/* Info umum */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                   {p.date && <div><span className="text-gray-400">Tanggal:</span> <span className="text-gray-800">{p.date}</span></div>}
-                  {!isProd && p.partyId && <div><span className="text-gray-400">Supplier:</span> <span className="text-gray-800">{partyMap[p.partyId] ?? '—'}</span></div>}
+                  {!isProd && p.partyId && <div><span className="text-gray-400">{isDO ? 'Pelanggan:' : 'Supplier:'}</span> <span className="text-gray-800">{partyMap[p.partyId] ?? '—'}</span></div>}
                   {!isProd && p.dueDate && <div><span className="text-gray-400">Jatuh Tempo:</span> <span className="text-gray-800">{p.dueDate}</span></div>}
                   {!isProd && p.terms && <div><span className="text-gray-400">Syarat:</span> <span className="text-gray-800">{p.terms}</span></div>}
                   {!isProd && p.customerRefNo && <div><span className="text-gray-400">No. Ref:</span> <span className="text-gray-800">{p.customerRefNo}</span></div>}
@@ -410,7 +413,30 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                   {p.notes && <div className="col-span-2"><span className="text-gray-400">Catatan:</span> <span className="text-gray-800">{p.notes}</span></div>}
                 </div>
 
-                {isProd ? (
+                {isDO ? (
+                  <>
+                    {p.negativeStockReason && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        <span className="font-semibold">Alasan stok minus:</span> {p.negativeStockReason}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-1.5">Barang Dikirim</p>
+                      <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
+                        {piItems.length === 0 ? <p className="px-3 py-2 text-xs text-gray-400">—</p> :
+                          piItems.map((it, i) => (
+                            <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
+                              <div className="text-gray-800">
+                                <span className="font-medium">{it.itemName ?? '—'}</span>
+                                {it.warehouseId && <span className="text-gray-400"> · {warehouseMap[it.warehouseId] ?? 'gudang'}</span>}
+                              </div>
+                              <span className="font-mono tabular-nums text-gray-600">{fmtNum(Number(it.quantity ?? 0))} {it.unit ?? ''}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                ) : isProd ? (
                   <>
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-1.5">Bahan Baku (Input)</p>

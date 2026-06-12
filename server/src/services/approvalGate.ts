@@ -13,13 +13,14 @@ import { hasCap } from './permissionService';
 
 type Tx = Prisma.TransactionClient;
 
-export const GATED_DOCUMENT_TYPES = ['PurchaseInvoice', 'ProductionRun', 'SalesReturn'] as const;
+export const GATED_DOCUMENT_TYPES = ['PurchaseInvoice', 'ProductionRun', 'SalesReturn', 'DeliveryOrder'] as const;
 export type GatedDocumentType = (typeof GATED_DOCUMENT_TYPES)[number];
 
 const GATED_LABELS: Record<GatedDocumentType, string> = {
   PurchaseInvoice: 'Invoice Pembelian',
   ProductionRun: 'Data Produksi',
   SalesReturn: 'Retur Penjualan',
+  DeliveryOrder: 'Surat Jalan',
 };
 
 /**

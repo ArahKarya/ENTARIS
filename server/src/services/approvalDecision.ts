@@ -8,7 +8,8 @@ import { logger } from '../lib/logger';
 import { submitPurchaseInvoiceInTx } from './purchaseInvoiceSubmit';
 import { submitProductionRunInTx } from './productionRunSubmit';
 import { submitSalesReturnInTx } from './salesReturnSubmit';
-import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema } from '../utils/schemas';
+import { submitDeliveryOrderInTx } from './deliveryOrderSubmit';
+import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema, CreateDeliveryOrderSchema } from '../utils/schemas';
 import { notifyUsers } from './notificationService';
 
 export type ApprovalAction = 'approve' | 'reject' | 'revise';
@@ -69,6 +70,14 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
             const ret = await submitSalesReturnInTx(tx, parsed.data as any, creator);
             if (!ret) throw new Error('Gagal membuat retur penjualan.');
             return { id: ret.id, number: ret.returnNumber };
+          }
+          if (request.documentType === 'DeliveryOrder') {
+            const parsed = CreateDeliveryOrderSchema.safeParse(request.payload);
+            if (!parsed.success) throw new Error('Payload surat jalan tidak valid: ' + parsed.error.issues[0]?.message);
+            // Disetujui = eksekusi dgn bypass stok minus (itu alasan masuk antrian).
+            const doDoc = await submitDeliveryOrderInTx(tx, { ...parsed.data, allowNegativeStock: true } as any, creator);
+            if (!doDoc) throw new Error('Gagal membuat surat jalan.');
+            return { id: doDoc.id, number: doDoc.doNumber };
           }
           throw new Error('Tipe dokumen tidak didukung untuk eksekusi: ' + request.documentType);
         }, { timeout: 30000 });

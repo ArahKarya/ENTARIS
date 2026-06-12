@@ -163,12 +163,16 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
         : await api.post('/delivery-orders', data);
       return res.data;
     },
-    onSuccess: () => {
-      toast.success(
-        isEdit
-          ? `${editDO!.doNumber} berhasil diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.`
-          : 'Surat jalan berhasil dibuat. Stok dikeluarkan dari gudang.',
-      );
+    onSuccess: (data: any) => {
+      if (data?.pendingApproval) {
+        toast.success('Surat jalan diajukan — menunggu persetujuan manajer (stok minus).');
+      } else {
+        toast.success(
+          isEdit
+            ? `${editDO!.doNumber} berhasil diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.`
+            : 'Surat jalan berhasil dibuat. Stok dikeluarkan dari gudang.',
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-order-detail'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
@@ -533,10 +537,29 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                 </div>
               </div>
               {!isAdmin && (
-                <p className="text-xs text-amber-700 mt-2 pl-5">
-                  Submit akan ditolak — buat produksi/transfer/penerimaan untuk
-                  item ini dulu, atau kurangi qty di Surat Jalan.
-                </p>
+                <div className="mt-2 pl-5 space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer text-xs">
+                    <input
+                      type="checkbox"
+                      checked={allowNegativeStock}
+                      onChange={(e) => setAllowNegativeStock(e.target.checked)}
+                      className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-amber-900">
+                      <strong>Ajukan persetujuan stok minus:</strong> tetap buat Surat Jalan (mis. barang dikirim sambil produksi berjalan). Surat Jalan akan dibuat setelah <strong>disetujui manajer</strong>.
+                    </span>
+                  </label>
+                  {allowNegativeStock && (
+                    <textarea
+                      value={negativeStockReason}
+                      onChange={(e) => setNegativeStockReason(e.target.value)}
+                      placeholder="Alasan (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'"
+                      className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      rows={2}
+                      required
+                    />
+                  )}
+                </div>
               )}
               {isAdmin && (
                 <div className="mt-2 pl-5 space-y-2">

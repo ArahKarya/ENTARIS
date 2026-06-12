@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.15.7';
+export const APP_VERSION = '3.16.0';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.0',
+    date: '2026-06-12',
+    title: 'Surat Jalan Stok Minus via Approval (bukan Admin-only)',
+    changes: [
+      'Staff bisa tetap membuat Surat Jalan saat stok minus (barang dikirim sambil produksi berjalan) — masuk antrian approval, bukan diblok',
+      'Manajer menyetujui di tab Approval (detail SJ + alasan stok minus tampil); Surat Jalan baru dibuat setelah disetujui',
+      'Pemegang hak "Bypass stok minus" tetap bisa langsung tanpa approval',
+    ],
+  },
   {
     version: '3.15.7',
     date: '2026-06-12',
