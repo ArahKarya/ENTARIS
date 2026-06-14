@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.2';
+export const APP_VERSION = '3.16.3';
 export const APP_BUILD_DATE = '2026-06-10';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.3',
+    date: '2026-06-14',
+    title: 'SO — rincian uang muka (Diterima · Terpakai · Sisa)',
+    changes: [
+      'Panel uang muka di detail SO kini menampilkan DP Terpakai (sudah di-apply ke invoice) & Sisa Uang Muka — sebelumnya hanya total diterima sehingga seolah tak berkurang',
+      'Plus baris Grand Total & Sisa Tagihan dipisah agar jelas',
+    ],
+  },
   {
     version: '3.16.2',
     date: '2026-06-12',

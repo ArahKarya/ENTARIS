@@ -119,7 +119,10 @@ router.get('/:id', async (req, res) => {
         user: { select: { id: true, fullName: true } },
         depositPayments: {
           where: { status: { not: 'Cancelled' }, paymentType: 'CustomerDeposit' },
-          select: { id: true, paymentNumber: true, date: true, amount: true, refundedAmount: true },
+          select: {
+            id: true, paymentNumber: true, date: true, amount: true, refundedAmount: true,
+            customerDepositApplications: { where: { isCancelled: false }, select: { appliedAmount: true } },
+          },
           orderBy: { date: 'desc' },
         },
       },
@@ -131,11 +134,18 @@ router.get('/:id', async (req, res) => {
       (sum, p) => sum + (Number(p.amount) - Number(p.refundedAmount)),
       0,
     );
+    // Uang muka yang sudah dipakai ke invoice (aplikasi deposit non-cancel).
+    const depositApplied = so.depositPayments.reduce(
+      (sum, p) => sum + (p.customerDepositApplications ?? []).reduce((a, x) => a + Number(x.appliedAmount), 0),
+      0,
+    );
     const grandTotal = Number(so.grandTotal);
     res.json({
       ...so,
       depositSummary: {
         received: depositReceived,
+        applied: depositApplied,
+        depositRemaining: Math.max(0, depositReceived - depositApplied),
         grandTotal,
         remaining: Math.max(0, grandTotal - depositReceived),
         pct: grandTotal > 0 ? Math.round((depositReceived / grandTotal) * 100) : 0,

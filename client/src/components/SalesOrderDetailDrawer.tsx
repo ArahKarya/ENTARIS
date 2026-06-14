@@ -317,11 +317,21 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     <p className="font-mono font-semibold text-emerald-700">{formatRupiah(so.depositSummary.received)}</p>
                   </div>
                   <div>
+                    <p className="text-[11px] text-muted-foreground">DP Terpakai</p>
+                    <p className="font-mono">{formatRupiah(so.depositSummary.applied ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Sisa Uang Muka</p>
+                    <p className="font-mono font-semibold text-emerald-700">{formatRupiah(so.depositSummary.depositRemaining ?? so.depositSummary.received)}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm border-t border-emerald-100 pt-2">
+                  <div>
                     <p className="text-[11px] text-muted-foreground">Grand Total</p>
                     <p className="font-mono">{formatRupiah(so.depositSummary.grandTotal)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-muted-foreground">Sisa</p>
+                    <p className="text-[11px] text-muted-foreground">Sisa Tagihan</p>
                     <p className="font-mono font-semibold">{formatRupiah(so.depositSummary.remaining)}</p>
                   </div>
                 </div>
