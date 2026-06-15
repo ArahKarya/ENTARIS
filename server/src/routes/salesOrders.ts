@@ -13,6 +13,7 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { submitDeliveryOrderInTx } from '../services/deliveryOrderSubmit';
+import { recomputeDeliveredQtyInTx } from '../services/salesOrderDelivery';
 import { logger } from '../lib/logger';
 import Decimal from 'decimal.js';
 
@@ -38,28 +39,9 @@ function computeTotals(input: {
   };
 }
 
-async function refreshSOStatusInTx(tx: Prisma.TransactionClient, soId: string) {
-  // Re-evaluate SO status from item delivered_qty vs quantity totals.
-  const so = await tx.salesOrder.findUnique({
-    where: { id: soId },
-    include: { items: true },
-  });
-  if (!so) return;
-  if (so.status === 'Cancelled' || so.status === 'Draft') return;
-  const allFully = so.items.every((it) =>
-    new Decimal(it.deliveredQty.toString()).gte(new Decimal(it.quantity.toString())),
-  );
-  const anyDelivered = so.items.some((it) =>
-    new Decimal(it.deliveredQty.toString()).gt(0),
-  );
-  let newStatus = so.status;
-  if (allFully) newStatus = 'FullyDelivered';
-  else if (anyDelivered) newStatus = 'PartiallyDelivered';
-  else newStatus = 'Submitted';
-  if (newStatus !== so.status) {
-    await tx.salesOrder.update({ where: { id: soId }, data: { status: newStatus } });
-  }
-}
+// SO delivered-qty + status are derived from the linked DO lines via
+// recomputeDeliveredQtyInTx (services/salesOrderDelivery) — the single source
+// of truth shared by generate-do, DO edit, and DO cancel.
 
 // ─── GET / list ────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -379,13 +361,10 @@ router.post('/:id/generate-do', async (req: AuthRequest, res) => {
         const doItem = doItems[i];
         if (!doItem) continue;
         await tx.deliveryOrderItem.update({ where: { id: doItem.id }, data: { salesOrderItemId: bIt.salesOrderItemId } });
-        await tx.salesOrderItem.update({
-          where: { id: bIt.salesOrderItemId },
-          data: { deliveredQty: { increment: bIt.quantity } },
-        });
       }
 
-      await refreshSOStatusInTx(tx, so.id);
+      // delivered_qty + status derived from the actual linked DO lines.
+      await recomputeDeliveredQtyInTx(tx, so.id);
 
       return tx.deliveryOrder.findUnique({
         where: { id: doResult.id },

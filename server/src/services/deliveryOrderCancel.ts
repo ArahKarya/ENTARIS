@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
+import { recomputeDeliveredQtyInTx } from './salesOrderDelivery';
 import { logger } from '../lib/logger';
 
 type Tx = Prisma.TransactionClient;
@@ -36,12 +37,6 @@ export async function cancelDeliveryOrderInTx(
     throw new BusinessError('Batalkan invoice terkait dulu sebelum batalkan surat jalan.');
   }
 
-  // Track which lines actually had their stock reversed, so we only revert
-  // deliveredQty for those (M2: a line whose movement was independently
-  // cancelled is skipped here AND must not have deliveredQty decremented,
-  // else SO fulfillment diverges from real stock).
-  const reversedLineIds = new Set<string>();
-
   for (const line of deliveryOrder.items) {
     if (!line.stockMovementId) continue;
 
@@ -68,42 +63,19 @@ export async function cancelDeliveryOrderInTx(
       where: { id: sm.id },
       data: { isCancelled: true },
     });
-    reversedLineIds.add(line.id);
   }
 
-  // Revert deliveredQty di SO items + recompute SO status (kalau DO link ke SO).
-  if (deliveryOrder.salesOrderId) {
-    for (const line of deliveryOrder.items) {
-      // Only revert lines whose stock reversal actually happened (M2).
-      if (line.salesOrderItemId && reversedLineIds.has(line.id)) {
-        await tx.salesOrderItem.update({
-          where: { id: line.salesOrderItemId },
-          data: { deliveredQty: { decrement: Number(line.quantity) } },
-        });
-      }
-    }
-    // Recompute SO status.
-    const so = await tx.salesOrder.findUnique({
-      where: { id: deliveryOrder.salesOrderId },
-      include: { items: true },
-    });
-    if (so && so.status !== 'Cancelled' && so.status !== 'Draft') {
-      const items = so.items;
-      const allFully = items.every((it) =>
-        Number(it.deliveredQty) >= Number(it.quantity),
-      );
-      const anyDelivered = items.some((it) => Number(it.deliveredQty) > 0);
-      const newStatus = allFully ? 'FullyDelivered' : anyDelivered ? 'PartiallyDelivered' : 'Submitted';
-      if (newStatus !== so.status) {
-        await tx.salesOrder.update({ where: { id: so.id }, data: { status: newStatus } });
-      }
-    }
-  }
-
+  // Flip status FIRST so the cancelled DO's lines drop out of the recompute.
   await tx.deliveryOrder.update({
     where: { id: doId },
     data: { status: 'Cancelled', cancelledAt: new Date() },
   });
+
+  // Re-derive SO delivered_qty + status from the remaining active DO lines
+  // (single source of truth — no fragile per-line decrement).
+  if (deliveryOrder.salesOrderId) {
+    await recomputeDeliveredQtyInTx(tx, deliveryOrder.salesOrderId);
+  }
 
   logger.info({ doId, doNumber: deliveryOrder.doNumber }, 'Delivery order cancelled');
 

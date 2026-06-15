@@ -3,6 +3,7 @@ import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
+import { recomputeDeliveredQtyInTx, relinkDoItemsToSOInTx } from './salesOrderDelivery';
 import { logger } from '../lib/logger';
 import type { SubmitDeliveryOrderInput } from './deliveryOrderSubmit';
 
@@ -220,6 +221,14 @@ export async function editDeliveryOrderInTx(
         },
       });
     }
+  }
+
+  // Editing drops & recreates the DO lines, which loses their SO link. Restore
+  // it and re-derive the SO's delivered_qty + status from the real lines so the
+  // order always mirrors the surat-jalan numbers.
+  if (oldDo.salesOrderId) {
+    await relinkDoItemsToSOInTx(tx, doId);
+    await recomputeDeliveredQtyInTx(tx, oldDo.salesOrderId);
   }
 
   logger.info(

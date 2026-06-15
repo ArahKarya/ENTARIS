@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.5';
+export const APP_VERSION = '3.16.6';
 export const APP_BUILD_DATE = '2026-06-15';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.6',
+    date: '2026-06-15',
+    title: 'SO — qty terkirim selalu ikut angka real Surat Jalan',
+    changes: [
+      'delivered_qty SO kini di-recompute dari total Surat Jalan aktif yang ter-link (sumber kebenaran), bukan akumulasi increment yang bisa bolong — kelebihan kirim (+X lebih) tampil benar',
+      'Edit Surat Jalan tidak lagi memutus kaitan ke SO: baris otomatis di-link ulang & SO dihitung ulang. Cancel SJ juga memakai recompute yang sama',
+    ],
+  },
   {
     version: '3.16.5',
     date: '2026-06-15',
