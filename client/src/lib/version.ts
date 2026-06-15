@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.3';
-export const APP_BUILD_DATE = '2026-06-10';
+export const APP_VERSION = '3.16.5';
+export const APP_BUILD_DATE = '2026-06-15';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,22 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.5',
+    date: '2026-06-15',
+    title: 'SO — Download PDF gabung lampiran (PNG/PDF)',
+    changes: [
+      'Tombol Download PDF di detail SO kini menggabungkan file lampiran SO (foto/PDF) ke dalam satu file PDF — nama file "<SO>_with_lampiran.pdf". Tanpa lampiran tetap unduh PDF SO biasa',
+    ],
+  },
+  {
+    version: '3.16.4',
+    date: '2026-06-14',
+    title: 'SO — Download PDF (lengkap dengan pengiriman & invoice)',
+    changes: [
+      'Tombol "Download PDF" di detail SO: cetak pesanan penjualan berisi item, ringkasan uang muka, daftar Surat Jalan terkait, dan Invoice terkait dalam satu dokumen',
+    ],
+  },
   {
     version: '3.16.3',
     date: '2026-06-14',

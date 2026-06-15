@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Pencil, Send, Ban, Truck, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Pencil, Send, Ban, Truck, Loader2, AlertCircle, CheckCircle2, Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { formatRupiah, formatDate } from '../lib/formatters';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
@@ -10,6 +10,11 @@ import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
 import Select from './Select';
 import { cap } from '../lib/permissions';
+import { pdf } from '@react-pdf/renderer';
+import SalesOrderPDF from '../lib/pdf/SalesOrderPDF';
+import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
+import { mergeInvoicePdfWithAttachments } from '../lib/pdf/mergePdfWithAttachments';
+import type { AttachmentRef } from '../lib/pdf/mergePdfWithAttachments';
 
 interface Props {
   soId: string | null;
@@ -35,6 +40,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const queryClient = useQueryClient();
+  const company = useCompanyPDF();
   const [genDOOpen, setGenDOOpen] = useState(false);
   const [genItems, setGenItems] = useState<Record<string, number>>({});
   const [genWarehouseId, setGenWarehouseId] = useState('');
@@ -65,6 +71,58 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
     },
     enabled: Boolean(soId),
   });
+
+  // Lampiran SO (PNG/PDF) untuk digabung ke PDF unduhan.
+  const { data: attachments = [] } = useQuery({
+    queryKey: ['so-attachments', soId],
+    queryFn: async () => {
+      const res = await api.get(`/attachments/sales_order/${soId}`);
+      return (res.data.data ?? res.data) as Array<{ id: string; fileName: string; mimeType: string }>;
+    },
+    enabled: Boolean(soId),
+  });
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!so) return;
+    setIsDownloading(true);
+    try {
+      const soBlob = await pdf(<SalesOrderPDF so={so} company={company} />).toBlob();
+      if (attachments.length === 0) {
+        const url = URL.createObjectURL(soBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${so.soNumber}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+      const refs: AttachmentRef[] = attachments.map((a) => ({
+        id: a.id,
+        fileName: a.fileName,
+        mimeType: a.mimeType,
+        fetchUrl: `/attachments/file/${a.id}`,
+      }));
+      const merged = await mergeInvoicePdfWithAttachments(soBlob, refs, {
+        fetchBinary: async (url) => {
+          const res = await api.get(url, { responseType: 'arraybuffer' });
+          return res.data as ArrayBuffer;
+        },
+      });
+      const url = URL.createObjectURL(merged);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${so.soNumber}_with_lampiran.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`PDF + ${attachments.length} lampiran siap diunduh.`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal membuat PDF.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const { data: warehouses } = useQuery({
     queryKey: ['warehouses-active'],
@@ -200,9 +258,22 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
             <h2 className="text-base font-semibold text-foreground">Detail Sales Order</h2>
             {so && <p className="text-xs text-muted-foreground font-mono">{so.soNumber}</p>}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent" aria-label="Tutup">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {so && so.status !== 'Cancelled' && (
+              <button
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+                title={attachments.length > 0 ? `Unduh PDF SO + ${attachments.length} lampiran dalam 1 file` : 'Unduh PDF SO'}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-60"
+              >
+                {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                {isDownloading ? 'Menyiapkan…' : (attachments.length > 0 ? `Download PDF +${attachments.length}` : 'Download PDF')}
+              </button>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent" aria-label="Tutup">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {isLoading ? (

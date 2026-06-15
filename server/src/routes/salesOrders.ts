@@ -114,7 +114,14 @@ router.get('/:id', async (req, res) => {
       include: {
         customer: true,
         items: { include: { inventoryItem: { select: { id: true, code: true, name: true, unit: true, currentStock: true } } } },
-        deliveryOrders: { select: { id: true, doNumber: true, date: true, status: true } },
+        deliveryOrders: {
+          select: {
+            id: true, doNumber: true, date: true, status: true,
+            items: { select: { itemName: true, quantity: true, unit: true } },
+            invoice: { select: { id: true, invoiceNumber: true, date: true, grandTotal: true, outstanding: true, status: true } },
+          },
+          orderBy: { date: 'asc' },
+        },
         quotation: { select: { id: true, quotationNumber: true } },
         user: { select: { id: true, fullName: true } },
         depositPayments: {
