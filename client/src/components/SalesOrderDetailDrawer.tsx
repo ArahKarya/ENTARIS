@@ -133,13 +133,15 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
     },
   });
 
-  // Akun kas/bank untuk terima uang muka.
+  // Akun kas/bank untuk terima uang muka. Pakai /coa/flat (daftar datar) —
+  // /coa mengembalikan tree (akun 1.1.x ada di children) sehingga filter
+  // flat tak menemukan apa pun → dropdown kosong.
   const { data: cashAccounts } = useQuery({
     queryKey: ['cash-bank-accounts'],
     queryFn: async () => {
-      const res = await api.get('/coa?type=ASSET');
+      const res = await api.get('/coa/flat');
       const all: any[] = res.data.data ?? res.data;
-      return all.filter((a: any) => !a.isGroup && /^1\.1\./.test(a.accountNumber));
+      return all.filter((a: any) => !a.isGroup && a.accountType === 'ASSET' && a.accountNumber.startsWith('1.1'));
     },
   });
 

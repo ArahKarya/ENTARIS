@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.7';
-export const APP_BUILD_DATE = '2026-06-15';
+export const APP_VERSION = '3.16.8';
+export const APP_BUILD_DATE = '2026-06-16';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.8',
+    date: '2026-06-16',
+    title: 'Fix: dropdown akun kas/bank kosong saat Terima Uang Muka di SO',
+    changes: [
+      'Form "Terima Uang Muka" di detail SO: dropdown Kas/Bank tidak muncul karena salah ambil data (endpoint tree). Diperbaiki memakai /coa/flat seperti modul lain — akun 1.1.x kini tampil',
+    ],
+  },
   {
     version: '3.16.7',
     date: '2026-06-15',
