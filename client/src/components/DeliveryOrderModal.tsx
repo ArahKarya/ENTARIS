@@ -188,24 +188,26 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       const res = await api.get(`/sales-orders/${soId}`);
       const so = res.data;
       setPartyId(so.partyId);
-      const rows: DOItem[] = (so.items ?? [])
-        .map((it: any) => {
-          const remaining = Number(it.quantity) - Number(it.deliveredQty ?? 0);
-          return { it, remaining };
-        })
-        .filter(({ remaining }: any) => remaining > 0.0001)
-        .map(({ it, remaining }: any) => ({
+      // Semua baris SO ikut tampil. Sisa belum-terkirim jadi qty default;
+      // baris yang sudah penuh prefill 0 — staff tetap bisa menambah untuk
+      // kirim LEBIH dari qty SO (over-delivery diizinkan, SO tampil "+X lebih").
+      const rows: DOItem[] = (so.items ?? []).map((it: any) => {
+        const remaining = Number(it.quantity) - Number(it.deliveredQty ?? 0);
+        return {
           id: crypto.randomUUID(),
           inventoryItemId: it.inventoryItemId ?? '',
           warehouseId: '',
           itemName: it.itemName,
-          quantity: Number(remaining.toFixed(3)),
+          quantity: Number(Math.max(remaining, 0).toFixed(3)),
           unit: it.unit,
           description: it.description ?? '',
           salesOrderItemId: it.id,
-        }));
+        };
+      });
       setItems(rows.length > 0 ? rows : [defaultItem()]);
-      if (rows.length === 0) toast.info('Semua item SO ini sudah terkirim penuh.');
+      if (rows.length > 0 && rows.every((r) => r.quantity === 0)) {
+        toast.info('Semua item SO sudah terkirim penuh — isi qty bila mau kirim lebih.');
+      }
     } catch {
       setError('Gagal mengambil detail SO.');
     }

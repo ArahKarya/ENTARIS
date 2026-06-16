@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.6';
+export const APP_VERSION = '3.16.7';
 export const APP_BUILD_DATE = '2026-06-15';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.7',
+    date: '2026-06-15',
+    title: 'Surat Jalan boleh melebihi qty SO (over-delivery)',
+    changes: [
+      'Generate Surat Jalan dari SO tidak lagi memblokir qty yang melebihi sisa pesanan — staff bisa kirim lebih dari qty SO (tercatat sebagai "+X lebih" di SO)',
+      'Form "Tarik dari SO" kini menampilkan semua baris (termasuk yang sudah terkirim penuh, prefill 0) sehingga bisa dipakai untuk kirim tambahan',
+    ],
+  },
   {
     version: '3.16.6',
     date: '2026-06-15',

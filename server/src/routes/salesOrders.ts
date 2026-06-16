@@ -317,15 +317,20 @@ router.post('/:id/generate-do', async (req: AuthRequest, res) => {
         throw new BusinessError('Hanya SO status Submitted atau PartiallyDelivered yang bisa generate Surat Jalan.');
       }
 
-      // Validate every body item references a valid SO item + qty doesn't
-      // exceed (quantity - deliveredQty).
+      // Validate every body item references a valid SO item. Over-delivery
+      // (qty > sisa belum dikirim) is ALLOWED — staff can ship more than
+      // ordered; the SO reflects it as "+X lebih". Just log it for an audit
+      // trail instead of blocking.
       const soItemMap = new Map(so.items.map((it) => [it.id, it]));
       for (const bIt of body.items) {
         const soItem = soItemMap.get(bIt.salesOrderItemId);
         if (!soItem) throw new BusinessError(`SO item ${bIt.salesOrderItemId} tidak ditemukan di SO ini.`);
         const remaining = new Decimal(soItem.quantity.toString()).minus(new Decimal(soItem.deliveredQty.toString()));
         if (new Decimal(bIt.quantity).gt(remaining)) {
-          throw new BusinessError(`Qty ${bIt.quantity} untuk '${soItem.itemName}' melebihi sisa belum dikirim ${remaining.toString()}.`);
+          logger.info(
+            { soId: so.id, soNumber: so.soNumber, soItemId: soItem.id, itemName: soItem.itemName, qty: bIt.quantity, remaining: remaining.toString() },
+            'Generate DO with over-delivery (qty exceeds remaining SO qty)',
+          );
         }
       }
 
