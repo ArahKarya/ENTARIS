@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import os
 import urllib.request
 
 API = "http://localhost:3002/api"
@@ -45,7 +46,11 @@ def api(method, path, data=None):
 
 
 def login():
-    body = json.dumps({"username": "admin@keuangan.local", "password": "Admin123!"}).encode()
+    user = os.environ.get("COA_ADMIN_USER", "admin@keuangan.local")
+    pw = os.environ.get("COA_ADMIN_PASSWORD")
+    if not pw:
+        raise SystemExit("COA_ADMIN_PASSWORD environment variable wajib diisi (jangan hardcode password)")
+    body = json.dumps({"username": user, "password": pw}).encode()
     req = urllib.request.Request(
         f"{API}/auth/login",
         data=body,
