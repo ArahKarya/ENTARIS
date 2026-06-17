@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Search,
   FileText,
@@ -194,6 +194,24 @@ export const GaDocumentsPage = () => {
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal mengunggah versi.'),
   });
+
+  const handleDownload = useCallback(async (docId: string, versionId: string, filename: string) => {
+    try {
+      const res = await api.get(`/ga/documents/${docId}/versions/${versionId}/file`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Gagal mengunduh file dokumen.');
+    }
+  }, []);
 
   const openCreate = () => {
     setEditTarget(null);
@@ -395,15 +413,13 @@ export const GaDocumentsPage = () => {
                       <td>
                         <div className="flex items-center gap-0.5">
                           {latest && (
-                            <a
-                              href={`/api/ga/documents/${d.id}/versions/${latest.id}/file`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              onClick={() => handleDownload(d.id, latest.id, `${d.code}-v${latest.versionNo}.pdf`)}
                               className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 transition-colors"
                               title={`Unduh versi v${latest.versionNo}`}
                             >
                               <Download size={16} />
-                            </a>
+                            </button>
                           )}
                           {canEdit && (
                             <>
