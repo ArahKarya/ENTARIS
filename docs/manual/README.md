@@ -1,6 +1,6 @@
-# 📘 Buku Manual ERP PMD
+# 📘 Buku Manual Simple ERP
 
-Panduan lengkap penggunaan aplikasi **ERP PMD** — sistem keuangan & operasional PT Pangan Masa Depan (penggilingan padi). Dari setup awal sampai operasional harian semua modul, lengkap dengan contoh kasus nyata.
+Panduan lengkap penggunaan aplikasi **Simple ERP** — sistem keuangan & operasional Perusahaan (penggilingan padi). Dari setup awal sampai operasional harian semua modul, lengkap dengan contoh kasus nyata.
 
 > **Versi aplikasi:** 3.3.0 · **Update manual:** Mei 2026
 > **Pengguna:** Owner, Manajer, Accountant, Staff Produksi
@@ -12,7 +12,7 @@ Panduan lengkap penggunaan aplikasi **ERP PMD** — sistem keuangan & operasiona
 
 ### Bagian I — Dasar
 1. [Pendahuluan & Konsep Dasar](01-pendahuluan.md)
-   - Apa itu ERP PMD, peran pengguna, prinsip double-entry, alur dokumen
+   - Apa itu Simple ERP, peran pengguna, prinsip double-entry, alur dokumen
 2. [Setup Awal](02-setup-awal.md)
    - Login pertama, profil perusahaan, tahun buku, user & role, gudang, bagan akun, akun sistem, saldo awal
 
