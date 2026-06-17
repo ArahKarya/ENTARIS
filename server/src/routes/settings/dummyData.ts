@@ -111,13 +111,13 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
 
       // --- Dummy Inventory Items ---
       const itemDefs = [
-        { code: 'GBH-GKP', name: 'Gabah Kering Panen (GKP)', unit: 'Kg', category: 'Bahan Baku', minimumStock: 5000 },
-        { code: 'GBH-GKG', name: 'Gabah Kering Giling (GKG)', unit: 'Kg', category: 'Bahan Baku', minimumStock: 3000 },
-        { code: 'BRS-PRM', name: 'Beras Premium', unit: 'Kg', category: 'Produk Jadi', minimumStock: 2000 },
-        { code: 'BRS-MED', name: 'Beras Medium', unit: 'Kg', category: 'Produk Jadi', minimumStock: 1000 },
-        { code: 'BKT-001', name: 'Bekatul', unit: 'Kg', category: 'Produk Sampingan', minimumStock: 500 },
-        { code: 'SKM-001', name: 'Sekam', unit: 'Kg', category: 'Produk Sampingan', minimumStock: 200 },
-        { code: 'MNR-001', name: 'Menir', unit: 'Kg', category: 'Produk Sampingan', minimumStock: 300 },
+        { code: 'RP5-8GB', name: 'Raspberry Pi 5 8GB', unit: 'Unit', category: 'Bahan Baku', minimumStock: 100 },
+        { code: 'CASE-AL', name: 'Casing Aluminium IoT', unit: 'Unit', category: 'Bahan Baku', minimumStock: 100 },
+        { code: 'GTW-PRM', name: 'IoT Smart Gateway Premium', unit: 'Unit', category: 'Produk Jadi', minimumStock: 50 },
+        { code: 'GTW-BSC', name: 'IoT Smart Gateway Basic', unit: 'Unit', category: 'Produk Jadi', minimumStock: 30 },
+        { code: 'SD-64GB', name: 'MicroSD Card 64GB Preloaded', unit: 'Unit', category: 'Bahan Baku', minimumStock: 100 },
+        { code: 'PWR-USB', name: 'Power Adapter USB-C', unit: 'Unit', category: 'Bahan Baku', minimumStock: 100 },
+        { code: 'BY-CBL', name: 'Kabel Konektor Sisa (By-Product)', unit: 'Meter', category: 'Produk Sampingan', minimumStock: 10 },
       ];
 
       const items = [];
@@ -156,7 +156,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               invoiceNumber: invNum, date, partyId: supplier.id, status: 'Submitted',
               grandTotal, outstanding: grandTotal, taxPct: 11, potongan: 0, biayaLain: 0,
               fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date, isDummy: true,
-              items: { create: [{ itemName: 'Gabah GKP', quantity: qty, unit: 'Kg', rate, discount: 0, amount: subtotal.toNumber(), accountId: invId!, description: '' }] },
+              items: { create: [{ itemName: 'Raspberry Pi 5 8GB', quantity: qty, unit: 'Unit', rate, discount: 0, amount: subtotal.toNumber(), accountId: invId!, description: '' }] },
             },
           });
 
@@ -164,7 +164,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           const jvNum = await generateDocumentNumber(tx, 'JV', date, fy.id);
           await tx.journalEntry.create({
             data: {
-              entryNumber: jvNum, date, narration: 'Pembelian gabah - ' + supplier.name,
+              entryNumber: jvNum, date, narration: 'Pembelian komponen IoT - ' + supplier.name,
               status: 'Submitted', fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
               items: { create: [
                 { accountId: invId!, debit: grandTotal, credit: 0 },
@@ -202,7 +202,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               grandTotal, outstanding: grandTotal, taxPct: 11, potongan: 0, biayaLain: 0,
               dueDate: new Date(date.getTime() + 30 * 86400000),
               fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date, isDummy: true,
-              items: { create: [{ itemName: 'Beras Premium', quantity: qty, unit: 'Kg', rate, discount: 0, amount: subtotal.toNumber(), accountId: salesId!, description: '' }] },
+              items: { create: [{ itemName: 'IoT Smart Gateway Premium', quantity: qty, unit: 'Unit', rate, discount: 0, amount: subtotal.toNumber(), accountId: salesId!, description: '' }] },
             },
           });
 
@@ -210,7 +210,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           const siJvNum = await generateDocumentNumber(tx, 'JV', date, fy.id);
           await tx.journalEntry.create({
             data: {
-              entryNumber: siJvNum, date, narration: 'Penjualan beras - ' + customer.name,
+              entryNumber: siJvNum, date, narration: 'Penjualan Smart Gateway - ' + customer.name,
               status: 'Submitted', fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
               items: { create: [
                 { accountId: arId!, debit: grandTotal, credit: 0 },
@@ -370,13 +370,13 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       const dummyItems = await tx.inventoryItem.findMany({ where: { isDummy: true } });
       const itemByCode = new Map(dummyItems.map(i => [i.code, i]));
 
-      const gkpItem = itemByCode.get('GBH-GKP');
-      const gkgItem = itemByCode.get('GBH-GKG');
-      const berasPrm = itemByCode.get('BRS-PRM');
-      const berasMed = itemByCode.get('BRS-MED');
-      const bekatul = itemByCode.get('BKT-001');
-      const sekam = itemByCode.get('SKM-001');
-      const menir = itemByCode.get('MNR-001');
+      const gkpItem = itemByCode.get('RP5-8GB');
+      const gkgItem = itemByCode.get('CASE-AL');
+      const berasPrm = itemByCode.get('GTW-PRM');
+      const berasMed = itemByCode.get('GTW-BSC');
+      const bekatul = itemByCode.get('SD-64GB');
+      const sekam = itemByCode.get('PWR-USB');
+      const menir = itemByCode.get('BY-CBL');
 
       if (gkpItem && gkgItem && berasPrm) {
         const genSM = generateDocumentNumber;
@@ -396,7 +396,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               data: {
                 movementNumber: smNum, date, itemId: gkpItem.id, movementType: 'In',
                 quantity: qty, unitCost, totalValue: qty * unitCost,
-                offsetAccountId: kasId!, notes: 'Pembelian gabah GKP',
+                offsetAccountId: kasId!, notes: 'Pembelian board Raspberry Pi 5',
                 fiscalYearId: fy.id, createdById: admin.id,
               },
             });
@@ -413,7 +413,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
             data: {
               movementNumber: smOutNum, date: gilingDate, itemId: gkpItem.id, movementType: 'Out',
               quantity: gilingQty, unitCost: 0, totalValue: 0,
-              notes: 'Proses giling ke GKG', referenceType: 'ProductionRun',
+              notes: 'Perakitan Casing & Raspberry Pi', referenceType: 'ProductionRun',
               fiscalYearId: gilingFy.id, createdById: admin.id,
             },
           });
@@ -427,7 +427,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
             data: {
               movementNumber: smGkgNum, date: gilingDate, itemId: gkgItem.id, movementType: 'In',
               quantity: gkgQty, unitCost: 0, totalValue: 0,
-              notes: 'Hasil giling dari GKP', referenceType: 'ProductionRun',
+              notes: 'Persiapan Modul IoT Board', referenceType: 'ProductionRun',
               fiscalYearId: gilingFy.id, createdById: admin.id,
             },
           });
@@ -448,7 +448,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           await tx.productionRun.create({
             data: {
               runNumber: prodNum, date: prodDate, yieldPct: yield1,
-              notes: 'Produksi beras premium bulan ' + (month.getMonth() + 1),
+              notes: 'Perakitan IoT Smart Gateway Premium bulan ' + (month.getMonth() + 1),
               fiscalYearId: prodFy.id, createdById: admin.id,
               items: {
                 create: [
@@ -480,7 +480,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               data: {
                 movementNumber: smSellNum, date: sellDate, itemId: berasPrm.id, movementType: 'Out',
                 quantity: sellQty, unitCost: 12000, totalValue: sellQty * 12000,
-                offsetAccountId: kasId!, notes: 'Penjualan beras premium',
+                offsetAccountId: kasId!, notes: 'Penjualan IoT Smart Gateway Premium',
                 fiscalYearId: sellFy.id, createdById: admin.id,
               },
             });
@@ -498,7 +498,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               data: {
                 movementNumber: smAdjNum, date: adjDate, itemId: bekatul.id, movementType: 'AdjustmentOut',
                 quantity: adjQty, unitCost: 0, totalValue: 0,
-                notes: 'Stok opname — selisih bekatul', fiscalYearId: adjFy.id, createdById: admin.id,
+                notes: 'Stok opname — MicroSD Card', fiscalYearId: adjFy.id, createdById: admin.id,
               },
             });
             await tx.inventoryItem.update({ where: { id: bekatul.id }, data: { currentStock: { decrement: adjQty } } });
@@ -518,7 +518,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           await tx.productionRun.create({
             data: {
               runNumber: prodNum2, date: prodDate2, yieldPct: yield2,
-              notes: 'Produksi beras medium', fiscalYearId: prodFy2.id, createdById: admin.id,
+              notes: 'Perakitan IoT Smart Gateway Basic', fiscalYearId: prodFy2.id, createdById: admin.id,
               items: {
                 create: [
                   { itemId: gkgItem.id, lineType: 'Input', quantity: inputQty2 },
