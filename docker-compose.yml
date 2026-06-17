@@ -50,6 +50,7 @@ services:
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:5173}"
       APP_BASE_URL: "${APP_BASE_URL:-}"
       NODE_ENV: "production"
+      UPLOADS_DIR: "/app/uploads"
     volumes:
       - backups:/app/server/backups
       - uploads:/app/uploads
