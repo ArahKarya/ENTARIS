@@ -47,8 +47,8 @@ RUN apk add --no-cache postgresql16-client gzip vips
 COPY server/package.json server/package-lock.json* ./server/
 RUN cd server && npm ci --omit=dev
 
-# Create uploads directory
-RUN mkdir -p /app/uploads/attachments
+# Create uploads + backups directories
+RUN mkdir -p /app/uploads/attachments /app/server/backups
 
 # Copy build artifacts
 COPY --from=builder /app/server/dist ./server/dist
@@ -61,6 +61,10 @@ COPY --from=builder /app/client/dist ./client/dist
 # Entrypoint: migrate + auto-seed + start
 COPY docker-app-entrypoint.sh /docker-app-entrypoint.sh
 RUN chmod +x /docker-app-entrypoint.sh
+
+# Run as non-root: ensure writable dirs are owned by the node user (uid 1000)
+RUN chown -R node:node /app/uploads /app/server/backups
+USER node
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

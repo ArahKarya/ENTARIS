@@ -48,7 +48,12 @@ fi
 if [ -z "$DB_USER" ] && [ -f "${PROJECT_DIR}/server/.env" ]; then
   DB_URL=$(grep -E '^DATABASE_URL=' "${PROJECT_DIR}/server/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
   if [ -n "$DB_URL" ]; then
-    # Parse: postgresql://user:pass@host:port/dbname?schema=public
+    # Parse: postgresql://user:***@host:port/dbname?schema=public
+    # NOTE: we only extract the USER and DB NAME here, never the password.
+    #       Neither user nor dbname can contain ':' or '/' in practice, so these
+    #       sed captures are safe. The password is intentionally NOT parsed —
+    #       pg_dump runs via `docker exec` using trust auth, so password chars
+    #       (special or not) are irrelevant to this script.
     DB_USER=$(echo "$DB_URL" | sed -E 's|postgresql://([^:]+):.*|\1|')
     DB_NAME=$(echo "$DB_URL" | sed -E 's|.*/([^?]+).*|\1|')
   fi

@@ -43,6 +43,18 @@ fi
 DB_USER="${DB_USER:-user}"
 DB_NAME="${DB_NAME:-simple_erp}"
 
+# ─── Security: validate identifiers before interpolating into SQL ──────────────
+# DB_NAME / DB_USER are injected directly into DROP/CREATE DATABASE statements,
+# so reject anything that is not a safe SQL identifier (letters, digits, underscore).
+if ! [[ "$DB_NAME" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  echo "❌ DB_NAME tidak valid (hanya huruf, angka, underscore): '$DB_NAME'" >&2
+  exit 1
+fi
+if ! [[ "$DB_USER" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  echo "❌ DB_USER tidak valid (hanya huruf, angka, underscore): '$DB_USER'" >&2
+  exit 1
+fi
+
 # ─── Find PostgreSQL container ────────────────────────────────────────────────
 find_pg_container() {
   local cid=""

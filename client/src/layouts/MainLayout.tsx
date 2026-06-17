@@ -10,6 +10,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 import OnboardingWizard from '../components/OnboardingWizard';
 import { useTheme } from '../contexts/ThemeContext';
 import api from '../lib/api';
+import { queryClient } from '../lib/queryClient';
 
 const routeNames: Record<string, string> = {
   '': 'Dashboard',
@@ -75,6 +76,7 @@ export const MainLayout = () => {
   const handleLogout = async () => {
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
     localStorage.removeItem('user');
+    queryClient.clear();
     navigate('/login');
   };
 
