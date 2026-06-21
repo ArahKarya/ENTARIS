@@ -332,6 +332,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
             salesOrderItemId: i.salesOrderItemId,
             warehouseId: i.warehouseId || null,
             quantity: Number(i.quantity),
+            description: i.description?.trim() || null,
           })),
         },
       });

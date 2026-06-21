@@ -352,7 +352,7 @@ router.post('/:id/generate-do', async (req: AuthRequest, res) => {
             itemName: soItem.itemName,
             quantity: bIt.quantity,
             unit: soItem.unit,
-            description: soItem.description ?? null,
+            description: bIt.description ?? soItem.description ?? null,
           };
         }),
       };
