@@ -156,6 +156,7 @@ export const GenerateDOFromSOSchema = z.object({
     salesOrderItemId: z.string().min(1),
     quantity: z.coerce.number().positive(),
     warehouseId: z.string().nullable().optional(),
+    description: z.string().nullable().optional(),
   })).min(1),
 });
 
