@@ -1,26 +1,34 @@
-# Simple ERP
+<div align="center">
 
-**Solusi ERP keuangan yang mudah dipasang, cepat digunakan, dan cukup kuat untuk bertumbuh bersama bisnis Anda** — dari toko/UKM dengan beberapa user, hingga perusahaan manufaktur (rice mill, trading, pangan) yang butuh pembukuan double-entry penuh, multi-role, dan audit trail lengkap.
+# Simple ERP — Self-Hosted Double-Entry Accounting & Operations
 
-Fullstack TypeScript (React 19 + Express 5 + Prisma 7 + PostgreSQL 16), self-hosted via Docker Compose. Satu perintah untuk deploy, langsung pakai — tanpa biaya lisensi bulanan, data 100% milik Anda.
+**ERP keuangan fullstack TypeScript — double-entry murni, multi-role, self-hosted via Docker, tanpa biaya lisensi bulanan.**
 
-![Stack](https://img.shields.io/badge/stack-React%2019%20%7C%20Express%205%20%7C%20Prisma%207-0ea5e9)
-![Database](https://img.shields.io/badge/database-PostgreSQL%2016-336791)
-![Deploy](https://img.shields.io/badge/deploy-Docker%20Compose-2496ED)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![Demo](https://img.shields.io/badge/Demo-Live-16C79A?style=flat-square)](https://erp.arahkarya.com)
+[![Stack](https://img.shields.io/badge/Stack-React%2019%20%C2%B7%20Express%205%20%C2%B7%20Prisma%207-0F3460?style=flat-square)](#-stack)
 
----
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-FF6F61?style=flat-square&logo=postgresql&logoColor=white)](#-stack)
+[![Deploy](https://img.shields.io/badge/Deploy-Docker%20Compose-0F3460?style=flat-square&logo=docker&logoColor=white)](#-quickstart-docker)
+[![License](https://img.shields.io/badge/License-MIT-0F3460?style=flat-square)](./LICENSE)
 
-## Mengapa Simple ERP?
+</div>
 
-| | Kenapa penting |
+> Produk **PT Arah Karya Sinergi**.
+
+**Simple ERP** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
+
+Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **42 route backend**, **35 client pages**, **71 komponen**, **11 PDF template**, dan **63 migrasi** database.
+
+## ✨ Kenapa Simple ERP
+
+| Masalah | Solusi |
 |---|---|
-| **🚀 Cepat dipasang** | `docker compose up -d --build` — dalam 5 menit aplikasi sudah bisa login. Seed otomatis (chart of account, fiscal year, system accounts) saat pertama kali jalan. |
-| **🧱 Pondasi akuntansi yang benar** | Double-entry bookkeeping murni. Setiap transaksi (invoice, pembayaran, JV, produksi, stok) otomatis posting ke GL dan selalu balanced — tidak ada "angka melayang". |
-| **📈 Skalabilitas bertahap** | Mulai dari warung/UKM (1-3 user, tanpa modul produksi) hingga pabrik (puluhan user, BOM, konversi produksi, HPP, pajak per item, multi-gudang) — fitur tinggal diaktifkan, schema sama. |
-| **💰 Gratis & self-hosted** | MIT license. Data & backup ada di server Anda sendiri (Raspberry Pi 5, VPS murah, atau on-premise). Tidak ada vendor lock-in, tidak ada biaya per-user. |
-| **🇮🇩 Cocok untuk bisnis Indonesia** | UI Bahasa Indonesia, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, export PDF/Excel siap cetak. |
-| **🛠️ Mudah disesuaikan** | TypeScript end-to-end, kode rapi, Prisma schema terbuka — tim internal atau developer eksternal bisa tambah modul baru tanpa perlu membongkar core. |
+| **Pasang lama & ribet** | `docker compose up -d --build` — dalam 5 menit aplikasi sudah bisa login. Seed otomatis (chart of account, fiscal year, system accounts) saat pertama jalan. |
+| **Angka tidak konsisten / "melayang"** | **Double-entry bookkeeping** murni. Setiap transaksi (invoice, pembayaran, JV, produksi, stok) otomatis posting ke GL dan **selalu balanced**. |
+| **Sistem kaku, susah berkembang** | Skalabilitas bertahap — dari warung/UKM (1–3 user, tanpa modul produksi) hingga pabrik (puluhan user, BOM, konversi produksi, HPP, pajak per item, multi-gudang). Fitur tinggal diaktifkan, schema sama. |
+| **Biaya SaaS bulanan & vendor lock-in** | **MIT license**, **gratis & self-hosted**. Data & backup di server sendiri (Raspberry Pi 5, VPS murah, on-premise). Tidak ada biaya per-user. |
+| **Software akuntansi tidak cocok Indonesia** | UI **Bahasa Indonesia**, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, export PDF/Excel siap cetak. |
+| **Susah disesuaikan tim internal** | TypeScript end-to-end, kode rapi, **Prisma schema terbuka** — tim internal atau developer eksternal bisa tambah modul baru tanpa membongkar core. |
 
 ### Cocok untuk
 
@@ -29,126 +37,56 @@ Fullstack TypeScript (React 19 + Express 5 + Prisma 7 + PostgreSQL 16), self-hos
 - **Perusahaan manufaktur** (rice mill, pangan, pupuk, produk industri) dengan kebutuhan BOM, konversi produksi, dan HPP real-time
 - **Kantor akuntan / konsultan** yang ingin self-host pembukuan multi-klien di infra sendiri
 
----
+## 📸 Tampilan
 
-## Daftar Isi
+| | |
+|---|---|
+| **Halaman Login** — animasi background jaringan, role bawaan & custom | **Dashboard** — ringkasan keuangan real-time multi-tab |
+| ![Login](docs/screenshots/01-login.png) | ![Dashboard](docs/screenshots/02-dashboard.png) |
+| **Buku Besar** — jurnal double-entry, filter periode & preset cepat | **Bagan Akun (COA)** — hierarki parent-child, import/export Excel |
+| ![Buku Besar](docs/screenshots/04-buku-besar.png) | ![COA](docs/screenshots/03-coa.png) |
+| **Invoice Penjualan** — per-item, PPN, auto-posting GL | **Invoice Pembelian** — PPN masukan, biaya lain, auto-posting |
+| ![Sales Invoice](docs/screenshots/05-sales-invoices.png) | ![Purchase Invoice](docs/screenshots/06-purchase-invoices.png) |
+| **Pembayaran & Alokasi** — auto-alokasi FIFO, split & partial payment | **Pelanggan & Vendor** — saldo terutang + deposit |
+| ![Payments](docs/screenshots/07-payments.png) | ![Parties](docs/screenshots/08-parties.png) |
+| **Inventori & Produksi** — moving average cost, rendemen produksi | **Daftar Laporan** — 10 laporan keuangan siap pakai |
+| ![Inventory](docs/screenshots/09-inventory.png) | ![Reports](docs/screenshots/10-reports-index.png) |
+| **Laba Rugi** — periode bebas, comparative, break-down kategori | **Neraca** — posisi keuangan per tanggal cut-off |
+| ![Profit Loss](docs/screenshots/12-profit-loss.png) | ![Balance Sheet](docs/screenshots/13-balance-sheet.png) |
+| **Trial Balance** — ringkasan seluruh saldo akun | **Aging Piutang** — bucket umur 0-30 / 31-60 / 61-90 / >90 |
+| ![Trial Balance](docs/screenshots/11-trial-balance.png) | ![Aging AR](docs/screenshots/14-aging-ar.png) |
+| **Aset Tetap** — register & depresiasi otomatis per bulan | **Jejak Audit** — log before/after setiap mutasi data |
+| ![Fixed Assets](docs/screenshots/15-fixed-assets.png) | ![Audit Trail](docs/screenshots/16-audit-trail.png) |
+| **Pengaturan** — profil, 26 role akun sistem, backup/restore, fiscal year | |
+| ![Settings](docs/screenshots/17-settings.png) | |
 
-- [Mengapa Simple ERP?](#mengapa-simple-erp)
-- [Cuplikan Aplikasi](#cuplikan-aplikasi)
-- [Fitur Utama](#fitur-utama)
-- [Tech Stack](#tech-stack)
-- [Quick Start (Docker)](#quick-start-docker)
-- [Login Default (Demo)](#login-default-demo)
-- [Perintah Docker Harian](#perintah-docker-harian)
-- [Deploy ke Server / Raspberry Pi](#deploy-ke-server--raspberry-pi)
-- [Arsitektur](#arsitektur-docker)
-- [Akun Sistem (System Account Roles)](#akun-sistem-system-account-roles)
-- [Troubleshooting](#troubleshooting)
-- [Development (tanpa Docker)](#development-tanpa-docker)
-- [Lisensi](#lisensi)
+## 🏛️ Arsitektur
 
----
+```
+docker compose up -d
+         │
+         ├── db  (postgres:16-alpine)
+         │    ├── Port: 5432 (internal)
+         │    ├── Volume: pgdata → /var/lib/postgresql/data
+         │    └── Healthcheck: pg_isready
+         │
+         └── app (custom build dari Dockerfile)
+              ├── Port: 3001 → host
+              ├── Auto-migrate Prisma saat startup
+              ├── Auto-seed jika database kosong
+              └── Serve: Express API + React SPA
+```
 
-## Cuplikan Aplikasi
+**Yang terjadi saat `docker compose up --build`:**
 
-### Halaman Login
+1. Container `db` start, PostgreSQL siap
+2. Container `app` start, menunggu db healthy
+3. `prisma migrate deploy` — jalankan **63 migrasi** database
+4. Cek jumlah user — jika 0, jalankan seed (COA, user admin, fiscal year)
+5. Express server start di port 3001
+6. Serve React SPA + API dari satu port
 
-Login modern dengan animasi background jaringan. Mendukung role bawaan (Admin / Accountant / Staff Produksi / Viewer) maupun role custom yang dibuat Admin lewat menu Hak Akses.
-
-> ℹ️ Beberapa cuplikan di bawah akan diperbarui untuk mencerminkan UI terbaru (mis. menu Pengaturan → **Hak Akses** dan **Approval via Telegram**).
-
-<p align="center">
-  <img src="docs/screenshots/01-login.png" alt="Halaman Login" width="700">
-</p>
-
-### Dashboard
-
-Ringkasan keuangan real-time — kas & bank, piutang, hutang, deposit, persediaan, laba bulan ini — dengan widget yang bisa di-toggle per tab (Overview / Keuangan / Sales / Stok / Produksi).
-
-<p align="center">
-  <img src="docs/screenshots/02-dashboard.png" alt="Dashboard" width="900">
-</p>
-
-### Buku Besar (General Ledger)
-
-Jurnal double-entry dengan filter periode, preset cepat (Hari Ini / Minggu / Bulan / YTD), dan toggle *Sembunyikan yang Dibatalkan* untuk kerapian tampilan.
-
-<p align="center">
-  <img src="docs/screenshots/04-buku-besar.png" alt="Buku Besar" width="900">
-</p>
-
-### Invoice Penjualan & Pembelian
-
-Input per-item dengan PPN, diskon, biaya lain, auto-posting GL (DR Piutang / CR Penjualan atau DR Persediaan / CR Hutang).
-
-<p align="center">
-  <img src="docs/screenshots/05-sales-invoices.png" alt="Invoice Penjualan" width="480">
-  <img src="docs/screenshots/06-purchase-invoices.png" alt="Invoice Pembelian" width="480">
-</p>
-
-### Pembayaran & Alokasi
-
-Penerimaan dan pembayaran dengan auto-alokasi ke invoice outstanding, support split payment (bayar banyak invoice sekaligus), dan refund uang muka.
-
-<p align="center">
-  <img src="docs/screenshots/07-payments.png" alt="Pembayaran" width="900">
-</p>
-
-### Bagan Akun (COA)
-
-Hierarki parent-child, import Excel/CSV dengan saldo awal, ekspor, dan mapping ke 26 role akun sistem (pajak, deposit, depresiasi, dll.).
-
-<p align="center">
-  <img src="docs/screenshots/03-coa.png" alt="COA" width="900">
-</p>
-
-### Pelanggan, Vendor & Stok
-
-Manajemen mitra dengan saldo terutang + deposit, dan inventori dengan produksi rendemen (GKP → beras + bekatul + menir).
-
-<p align="center">
-  <img src="docs/screenshots/08-parties.png" alt="Parties" width="480">
-  <img src="docs/screenshots/09-inventory.png" alt="Inventory" width="480">
-</p>
-
-### Laporan Keuangan
-
-10 laporan siap pakai — Trial Balance, Laba Rugi, Neraca, Arus Kas, Aging (AR/AP), Pajak, Buku Besar, HPP, Jadwal Piutang/Hutang. Semua mendukung drill-down dan export PDF/Excel.
-
-<p align="center">
-  <img src="docs/screenshots/10-reports-index.png" alt="Daftar Laporan" width="900">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/12-profit-loss.png" alt="Laba Rugi" width="480">
-  <img src="docs/screenshots/13-balance-sheet.png" alt="Neraca" width="480">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/11-trial-balance.png" alt="Trial Balance" width="480">
-  <img src="docs/screenshots/14-aging-ar.png" alt="Aging Piutang" width="480">
-</p>
-
-### Aset Tetap & Jejak Audit
-
-Register aset tetap dengan depresiasi otomatis per bulan + audit trail setiap mutasi data.
-
-<p align="center">
-  <img src="docs/screenshots/15-fixed-assets.png" alt="Fixed Assets" width="480">
-  <img src="docs/screenshots/16-audit-trail.png" alt="Audit Trail" width="480">
-</p>
-
-### Pengaturan
-
-Kelola profil perusahaan, 26 role akun sistem, backup/restore database, fiscal year, pajak, dan tampilan — semua dari UI tanpa utak-atik kode.
-
-<p align="center">
-  <img src="docs/screenshots/17-settings.png" alt="Settings" width="900">
-</p>
-
----
-
-## Fitur Utama
+## 🧩 Fitur Utama
 
 Fitur dikelompokkan per area bisnis. Semua modul terintegrasi pada satu basis data dengan posting otomatis ke Buku Besar, sehingga angka di dashboard dan laporan selalu konsisten dengan transaksi sumber.
 
@@ -164,8 +102,8 @@ Fitur dikelompokkan per area bisnis. Semua modul terintegrasi pada satu basis da
 
 Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua tahap saling terhubung satu klik.
 
-- **Inquiry (NEW)** — catat pertanyaan calon customer/prospect sebelum penawaran resmi. Workflow Baru → Diproses → Dikonversi/Hilang/Ditutup; channel tracking (WhatsApp / Telepon / Email / Walk-in / Referral); items hybrid (free-text atau structured); auto-create Party saat conversion ke Penawaran.
-- **Public Inquiry Form (NEW)** — halaman publik `/tanya` untuk customer isi sendiri, langsung masuk ke pipeline. Mobile-first, branded dengan logo perusahaan, anti-spam (honeypot + rate limit). Dilengkapi **QR Code Generator** untuk dibagikan via WA / IG bio / brosur / kartu nama dengan tracking sumber.
+- **Inquiry** — catat pertanyaan calon customer/prospect sebelum penawaran resmi. Workflow Baru → Diproses → Dikonversi/Hilang/Ditutup; channel tracking (WhatsApp / Telepon / Email / Walk-in / Referral); items hybrid (free-text atau structured); auto-create Party saat conversion ke Penawaran.
+- **Public Inquiry Form** — halaman publik `/tanya` untuk customer isi sendiri, langsung masuk ke pipeline. Mobile-first, branded dengan logo perusahaan, anti-spam (honeypot + rate limit). Dilengkapi **QR Code Generator** untuk dibagikan via WA / IG bio / brosur / kartu nama dengan tracking sumber.
 - **Penawaran (Quotations)** — full lifecycle Draft → Sent → Accepted/Rejected/Expired. Auto-expire sweeper tiap jam + notifikasi 3 hari sebelum expiry. PDF "PENAWARAN HARGA" dengan validity box, status badge, signatures, disclaimer "Bukan Faktur Resmi". Conversion satu-klik ke Sales Invoice.
 - **Invoice Penjualan** per-item dengan PPN individual per baris, diskon per-item maupun global, biaya tambahan (ongkir, packing), No. Referensi PO/Penawaran customer, dan auto-posting `DR Piutang / CR Penjualan`. Boleh `grandTotal=0` untuk sample/replacement/100% diskon.
 - **Penerimaan Pembayaran** dengan auto-alokasi ke invoice outstanding berbasis FIFO; mendukung *split payment* (satu transfer untuk beberapa invoice), *partial payment*, dan refund uang muka.
@@ -203,7 +141,7 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 
 ### 7. Laporan & Analisa
 
-Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung ke detail transaksi sumber.
+Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung ke detail transaksi sumber. **10 laporan keuangan** siap pakai:
 
 - **Trial Balance** — ringkasan seluruh saldo akun per tanggal tertentu
 - **Laba/Rugi (Profit & Loss)** — periode bebas, comparative vs periode sebelumnya, break-down per kategori pendapatan/beban
@@ -243,20 +181,7 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 - **Responsive** — UI beradaptasi untuk desktop, tablet, dan mobile.
 - **Bahasa Indonesia sepenuhnya** pada UI; kode & komentar dalam Bahasa Inggris sesuai praktik internasional.
 
----
-
-## Tech Stack
-
-- **Frontend** — React 19, TypeScript, Vite 7, TailwindCSS 4, TanStack Query 5, Recharts, @react-pdf/renderer, Sonner, Lucide
-- **Backend** — Node.js 20, Express 5, TypeScript, Prisma 7, Zod, Pino, JWT, bcrypt, helmet, express-rate-limit
-- **Database** — PostgreSQL 16
-- **Auth** — JWT + bcrypt, RBAC dinamis (role custom + matriks izin per modul, dapat diatur dari UI)
-- **Testing** — Vitest (unit), Playwright (E2E)
-- **Deploy** — Docker Compose (2 container: `app` + `db`)
-
----
-
-## Quick Start (Docker)
+## 🚀 Quickstart (Docker)
 
 ### Prasyarat
 
@@ -266,8 +191,8 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/Logia-ysn/aplikasi-keuangan-pmd.git
-cd aplikasi-keuangan-pmd
+git clone https://github.com/ArahKarya/simple-erp.git
+cd simple-erp
 ```
 
 ### 2. Buat file `.env`
@@ -325,9 +250,7 @@ Server running at http://localhost:3001
 http://localhost:3001
 ```
 
----
-
-## Login Default (Demo)
+## 🔑 Login Default (Demo)
 
 Setelah seed pertama, aplikasi punya 4 akun default siap pakai:
 
@@ -342,9 +265,7 @@ Setelah seed pertama, aplikasi punya 4 akun default siap pakai:
 
 > ⚠️ **Ganti password default segera setelah login pertama di production.** Bisa via menu user di header → "Ganti Password", atau via Onboarding Wizard. Password bisa di-override saat seed pakai env `SEED_ADMIN_PASSWORD`.
 
----
-
-## Perintah Docker Harian
+## 🐳 Perintah Docker Harian
 
 ```bash
 # Start / stop / restart
@@ -398,15 +319,13 @@ docker compose down -v    # -v menghapus volume = hapus database
 docker compose up -d --build   # fresh start + auto-seed
 ```
 
----
-
-## Deploy ke Server / Raspberry Pi
+## 🌐 Deploy ke Server / Raspberry Pi
 
 ### Opsi 1: Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/Logia-ysn/aplikasi-keuangan-pmd.git
-cd aplikasi-keuangan-pmd
+git clone https://github.com/ArahKarya/simple-erp.git
+cd simple-erp
 
 cp .env.docker.example .env
 nano .env   # Set JWT_SECRET dan ALLOWED_ORIGINS
@@ -443,37 +362,7 @@ server {
 }
 ```
 
----
-
-## Arsitektur Docker
-
-```
-docker compose up -d
-         │
-         ├── db  (postgres:16-alpine)
-         │    ├── Port: 5432 (internal)
-         │    ├── Volume: pgdata → /var/lib/postgresql/data
-         │    └── Healthcheck: pg_isready
-         │
-         └── app (custom build dari Dockerfile)
-              ├── Port: 3001 → host
-              ├── Auto-migrate Prisma saat startup
-              ├── Auto-seed jika database kosong
-              └── Serve: Express API + React SPA
-```
-
-**Yang terjadi saat `docker compose up --build`:**
-
-1. Container `db` start, PostgreSQL siap
-2. Container `app` start, menunggu db healthy
-3. `prisma migrate deploy` — jalankan migrasi database
-4. Cek jumlah user — jika 0, jalankan seed (COA, user admin, fiscal year)
-5. Express server start di port 3001
-6. Serve React SPA + API dari satu port
-
----
-
-## Akun Sistem (System Account Roles)
+## 🧾 Akun Sistem (System Account Roles)
 
 Akun-akun ini digunakan oleh sistem untuk auto GL posting. Semua bisa dikonfigurasi via **Pengaturan > Akun Sistem** tanpa mengubah kode — jadi bisa dipakai untuk berbagai jenis industri.
 
@@ -503,9 +392,7 @@ Akun-akun ini digunakan oleh sistem untuk auto GL posting. Semua bisa dikonfigur
 | **Ekuitas** | OPENING_EQUITY, RETAINED_EARNINGS | 3.1, 3.2 | Saldo awal & laba ditahan |
 | | CURRENT_PROFIT, OWNER_DRAWING | 3.4, 3.5 | Laba berjalan & prive |
 
----
-
-## Troubleshooting
+## 🩺 Troubleshooting
 
 ### App tidak start / crash loop
 
@@ -550,9 +437,7 @@ docker compose up -d --build   # Prisma migrate deploy otomatis
 
 Migrasi database dijalankan otomatis saat container start. Data aman.
 
----
-
-## Development (tanpa Docker)
+## 🛠️ Development (tanpa Docker)
 
 ```bash
 # 1. Jalankan PostgreSQL via Docker (database saja)
@@ -585,8 +470,36 @@ npm run build            # Vite production build
 npm run lint             # ESLint
 ```
 
+## ✅ Status
+
+- [x] Akuntansi inti — COA, Buku Besar double-entry, Jurnal Umum, 26 akun sistem, tahun fiskal
+- [x] Penjualan & piutang — Inquiry, Penawaran, Invoice, pembayaran FIFO, aging, deposit
+- [x] Pembelian & hutang — Invoice, pembayaran vendor, aging, cancel auto-reverse
+- [x] Bank, kas & rekonsiliasi — multi-akun, rekonsiliasi, transfer
+- [x] Stok & produksi — moving average cost, stock opname, konversi rendemen
+- [x] Aset tetap & depresiasi otomatis
+- [x] 10 laporan keuangan dengan drill-down + export PDF/Excel
+- [x] Approval workflow + notifikasi Telegram (approve/reject dari chat)
+- [x] RBAC dinamis (role custom + matriks izin per modul)
+- [x] Audit trail, backup/restore via UI, PWA, dark mode
+- [x] Self-hosted Docker Compose, auto-migrate & auto-seed
+- [ ] Multi-currency penuh (FX gain/loss tersedia, UI multi-currency menyusul)
+- [ ] Modul HRD/payroll (out of scope — handled by third-party)
+
+## 🧱 Stack
+
+- **Frontend** — React **19.2**, TypeScript **5.9**, Vite 7, TailwindCSS 4, TanStack Query 5, Recharts, @react-pdf/renderer, Sonner, Lucide
+- **Backend** — Node.js 20, Express **5.2**, TypeScript **5.9**, Prisma **7.5**, Zod, Pino, JWT, bcrypt, helmet, express-rate-limit
+- **Database** — PostgreSQL **16**
+- **Auth** — JWT + bcrypt, RBAC dinamis (role custom + matriks izin per modul, dapat diatur dari UI)
+- **Testing** — Vitest (unit), Playwright (E2E)
+- **Deploy** — Docker Compose (2 container: `app` + `db`)
+- **Skala kode** — **42 route** backend · **35 client pages** · **71 komponen** · **11 PDF template** · **63 migrasi**
+
+## 📄 Lisensi
+
+[MIT](./LICENSE) © 2026 PT Arah Karya Sinergi (AKS)
+
 ---
 
-## Lisensi
-
-MIT
+<div align="center"><sub>© 2026 PT Arah Karya Sinergi (AKS)</sub></div>
