@@ -2,7 +2,7 @@
 
 ## Overview
 
-Simple ERP — aplikasi keuangan & operasional untuk UKM hingga enterprise. Full-stack TypeScript app with double-entry bookkeeping.
+ERP PMD — sistem ERP penuh untuk mengelola operasi PT Pangan Masa Depan. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
 
 ## Tech Stack
 
