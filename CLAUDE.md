@@ -2,7 +2,7 @@
 
 ## Overview
 
-Simple ERP — aplikasi keuangan & operasional untuk UKM hingga enterprise. Full-stack TypeScript app with double-entry bookkeeping.
+Simple ERP — sistem ERP penuh untuk mengelola operasi perusahaan (penjualan, pembelian, inventori/gudang, keuangan) untuk UKM hingga enterprise. Modul lengkap: Quotation→SO→DO→Invoice (sales), PO→GR→PI (purchase), Inventory/Warehouse/Stock Opname/Transfer, COA/GL/Payments/Bank Recon/Fixed Assets (finance), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
 
 ## Tech Stack
 

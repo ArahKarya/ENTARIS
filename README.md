@@ -1,8 +1,8 @@
 <div align="center">
 
-# Simple ERP — Self-Hosted Double-Entry Accounting & Operations
+# Simple ERP — Penjualan, Pembelian, Inventori & Keuangan Terintegrasi
 
-**ERP keuangan fullstack TypeScript — double-entry murni, multi-role, self-hosted via Docker, tanpa biaya lisensi bulanan.**
+**ERP Self-Hosted fullstack TypeScript — kelola seluruh operasi perusahaan (penjualan, pembelian, gudang, keuangan) dalam satu sistem, dengan pembukuan double-entry otomatis di setiap transaksi. Multi-role, self-hosted via Docker, tanpa biaya lisensi bulanan.**
 
 [![Demo](https://img.shields.io/badge/Demo-Live-16C79A?style=flat-square)](https://erp.arahkarya.com)
 [![Stack](https://img.shields.io/badge/Stack-React%2019%20%C2%B7%20Express%205%20%C2%B7%20Prisma%207-0F3460?style=flat-square)](#-stack)
