@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.8';
-export const APP_BUILD_DATE = '2026-06-16';
+export const APP_VERSION = '3.16.9';
+export const APP_BUILD_DATE = '2026-06-21';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.16.9',
+    date: '2026-06-21',
+    title: 'Fix: Surat Jalan lama tak muncul + filter "Sudah Diinvoice" kosong',
+    changes: [
+      'Daftar Surat Jalan dulu hanya memuat 200 terbaru lalu disaring di browser — surat jalan lama (>200) tidak muncul sama sekali. Kini filter, pencarian, dan halaman diproses di server sehingga semua data terjangkau',
+      'Tab "Sudah Diinvoice" sebelumnya selalu kosong (membandingkan status turunan dengan enum mentah). Sekarang menampilkan surat jalan yang sudah ditagih dengan benar',
+    ],
+  },
   {
     version: '3.16.8',
     date: '2026-06-16',

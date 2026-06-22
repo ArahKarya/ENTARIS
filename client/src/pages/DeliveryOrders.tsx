@@ -61,36 +61,28 @@ export const DeliveryOrders = () => {
     [parties],
   );
 
-  const { data: raw, isLoading, isError } = useQuery({
-    queryKey: ['delivery-orders'],
+  // Filter + paging dilakukan di server: total DO bisa >200 sehingga fetch
+  // terbatas (limit) memotong data lama, dan status "Invoiced" adalah state
+  // turunan yang hanya backend yang tahu (Submitted + invoiceId). Kirim semua
+  // filter ke backend yang sudah mendukungnya.
+  const { data: resp, isLoading, isError } = useQuery({
+    queryKey: ['delivery-orders', debouncedSearch, statusFilter, partyId, dateFrom, dateTo, page],
     queryFn: async () => {
-      const res = await api.get('/delivery-orders?limit=200');
-      return res.data.data ?? res.data;
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(PAGE_SIZE));
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (statusFilter) params.set('status', statusFilter);
+      if (partyId) params.set('partyId', partyId);
+      if (dateFrom) params.set('startDate', dateFrom);
+      if (dateTo) params.set('endDate', dateTo);
+      const res = await api.get(`/delivery-orders?${params.toString()}`);
+      return res.data as { data: any[]; total: number };
     },
   });
 
-  const filtered = useMemo(() => {
-    if (!raw) return [];
-    return (raw as any[]).filter((d: any) => {
-      if (debouncedSearch) {
-        const q = debouncedSearch.toLowerCase();
-        const match =
-          d.doNumber?.toLowerCase().includes(q) ||
-          d.customer?.name?.toLowerCase().includes(q) ||
-          d.party?.name?.toLowerCase().includes(q) ||
-          d.nomorMobil?.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      if (statusFilter && d.status !== statusFilter) return false;
-      if (partyId && d.partyId !== partyId && d.customer?.id !== partyId) return false;
-      if (dateFrom && new Date(d.date) < new Date(dateFrom)) return false;
-      if (dateTo && new Date(d.date) > new Date(dateTo + 'T23:59:59')) return false;
-      return true;
-    });
-  }, [raw, debouncedSearch, statusFilter, partyId, dateFrom, dateTo]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = resp?.data ?? [];
+  const totalPages = Math.max(1, Math.ceil((resp?.total ?? 0) / PAGE_SIZE));
 
   const hasActiveFilter = !!(searchTerm || statusFilter || partyId || dateFrom || dateTo);
 
@@ -195,16 +187,16 @@ export const DeliveryOrders = () => {
                     <p className="text-sm text-red-500">Gagal memuat daftar surat jalan.</p>
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-16 text-center">
                     <Truck className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
-                      {raw && (raw as any[]).length === 0
-                        ? 'Belum ada surat jalan.'
-                        : 'Tidak ada surat jalan sesuai filter.'}
+                      {hasActiveFilter
+                        ? 'Tidak ada surat jalan sesuai filter.'
+                        : 'Belum ada surat jalan.'}
                     </p>
-                    {raw && (raw as any[]).length === 0 && (
+                    {!hasActiveFilter && (
                       <button
                         onClick={() => setIsModalOpen(true)}
                         className="mt-3 text-xs text-blue-600 hover:text-blue-700 font-medium"
@@ -261,10 +253,10 @@ export const DeliveryOrders = () => {
         </div>
 
         {/* Pagination */}
-        {filtered.length > PAGE_SIZE && (
+        {(resp?.total ?? 0) > PAGE_SIZE && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
             <p className="text-xs text-gray-400">
-              Menampilkan {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} dari {filtered.length} surat jalan
+              Menampilkan {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, resp?.total ?? 0)} dari {resp?.total ?? 0} surat jalan
             </p>
             <div className="flex items-center gap-1">
               <button
