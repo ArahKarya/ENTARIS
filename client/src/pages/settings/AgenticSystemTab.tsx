@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import {
-  Loader2, Plus, Trash2, Play, Save, Bot, X,
+  Loader2, Plus, Trash2, Play, Save, Bot, X, Eye, EyeOff, RefreshCw,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -23,11 +23,8 @@ interface EffectiveTool {
 }
 interface AiSetting {
   id: string;
-  provider: string;
-  baseUrl: string;
-  apiKeyEnv: string;
-  model: string;
-  channels: string[];
+  agenticEnabled: boolean;
+  serviceToken: string | null;
 }
 interface WhitelistEntry {
   id: string;
@@ -43,7 +40,6 @@ const RISK_BADGE: Record<string, string> = {
   write: 'bg-amber-50 text-amber-700 border-amber-200',
   critical: 'bg-red-50 text-red-700 border-red-200',
 };
-const PROVIDERS = ['9router', 'claude', 'ollama', 'openai'];
 const CHANNELS = ['telegram', 'whatsapp'];
 
 export const AgenticSystemTab: React.FC = () => {
@@ -55,6 +51,7 @@ export const AgenticSystemTab: React.FC = () => {
     queryFn: async () => (await api.get('/ai/config/settings')).data,
   });
   const [form, setForm] = useState<Partial<AiSetting> | null>(null);
+  const [showToken, setShowToken] = useState(false);
   const s = form ?? settings ?? null;
 
   const saveSettings = useMutation({
@@ -126,73 +123,82 @@ export const AgenticSystemTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── Bagian 1: Pengaturan Global AI (API-based) ── */}
+      {/* ── Bagian 1: Koneksi AIRA (config sisi-ERP minimal) ── */}
       <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-1 flex items-center gap-2">
           <Bot size={16} className="text-blue-600" />
-          <h2 className="text-sm font-semibold text-gray-900">Pengaturan Global AI</h2>
-          <span className="text-xs text-gray-400">(semua via API · provider-agnostic)</span>
+          <h2 className="text-sm font-semibold text-gray-900">Koneksi AIRA</h2>
         </div>
+        <p className="mb-3 text-xs text-gray-400">
+          Model AI, memori &amp; konteks dikelola oleh AIRA (aplikasi terpisah). ERP hanya mengatur
+          aktivasi layer agentic &amp; token koneksi.
+        </p>
         {s && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="text-xs font-medium text-gray-600">
-              Provider
-              <select
-                value={s.provider}
-                onChange={(e) => setForm({ ...s, provider: e.target.value })}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-              >
-                {PROVIDERS.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-medium text-gray-600">
-              Base URL
-              <input
-                value={s.baseUrl}
-                onChange={(e) => setForm({ ...s, baseUrl: e.target.value })}
-                placeholder="http://localhost:20128/v1"
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
-              />
-            </label>
-            <label className="text-xs font-medium text-gray-600">
-              API Key Env <span className="text-gray-400">(nama env var, bukan key)</span>
-              <input
-                value={s.apiKeyEnv}
-                onChange={(e) => setForm({ ...s, apiKeyEnv: e.target.value.toUpperCase() })}
-                placeholder="AIRA_API_KEY"
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
-              />
-            </label>
-            <label className="text-xs font-medium text-gray-600">
-              Model
-              <input
-                value={s.model}
-                onChange={(e) => setForm({ ...s, model: e.target.value })}
-                placeholder="claude-opus-4"
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
-              />
-            </label>
-            <div className="sm:col-span-2">
-              <span className="text-xs font-medium text-gray-600">Kanal aktif</span>
-              <div className="mt-1 flex gap-4">
-                {CHANNELS.map((ch) => (
-                  <label key={ch} className="flex items-center gap-1.5 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={(s.channels ?? []).includes(ch)}
-                      onChange={(e) => {
-                        const set = new Set(s.channels ?? []);
-                        e.target.checked ? set.add(ch) : set.delete(ch);
-                        setForm({ ...s, channels: [...set] });
-                      }}
-                    />
-                    {ch === 'telegram' ? 'Telegram (approval)' : 'WhatsApp (info)'}
-                  </label>
-                ))}
+          <div className="space-y-4">
+            {/* Toggle Agentic Enabled */}
+            <div className="flex items-center justify-between rounded border border-gray-200 px-3 py-2.5">
+              <div>
+                <div className="text-sm font-medium text-gray-800">Agentic Enabled</div>
+                <div className="text-xs text-gray-400">
+                  Aktifkan/nonaktifkan seluruh layer agentic. Saat nonaktif, semua pemanggilan tool
+                  ditolak (403).
+                </div>
               </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!s.agenticEnabled}
+                onClick={() => setForm({ ...s, agenticEnabled: !s.agenticEnabled })}
+                className={cn(
+                  'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors',
+                  s.agenticEnabled ? 'bg-emerald-500' : 'bg-gray-300',
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                    s.agenticEnabled ? 'translate-x-6' : 'translate-x-1',
+                  )}
+                />
+              </button>
             </div>
+
+            {/* Service Token */}
+            <label className="block text-xs font-medium text-gray-600">
+              Service Token <span className="text-gray-400">(Bearer untuk AIRA → ERP Tool Router)</span>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={s.serviceToken ?? ''}
+                  onChange={(e) => setForm({ ...s, serviceToken: e.target.value })}
+                  placeholder="Token rahasia untuk auth AIRA"
+                  className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken((v) => !v)}
+                  title={showToken ? 'Sembunyikan' : 'Tampilkan'}
+                  className="flex items-center rounded border border-gray-300 px-2 text-gray-500 hover:bg-gray-50"
+                >
+                  {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tok =
+                      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                        ? crypto.randomUUID().replace(/-/g, '')
+                        : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+                    setForm({ ...s, serviceToken: tok });
+                    setShowToken(true);
+                  }}
+                  title="Generate token baru"
+                  className="flex items-center gap-1 rounded border border-gray-300 px-2 text-xs text-gray-600 hover:bg-gray-50"
+                >
+                  <RefreshCw size={14} /> Generate
+                </button>
+              </div>
+            </label>
           </div>
         )}
         <div className="mt-3 flex justify-end">

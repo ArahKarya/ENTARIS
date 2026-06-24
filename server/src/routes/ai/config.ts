@@ -73,7 +73,9 @@ router.patch('/tools/:name', requireCap('rbac.manage'), async (req: AuthRequest,
   }
 });
 
-// ─── SETTINGS GLOBAL (API-based) ─────────────────────────────────────────────
+// ─── SETTINGS — KONEKSI AIRA (sisi-ERP minimal) ──────────────────────────────
+// SEMUA urusan agentic (model AI, provider, memori, konteks, channels) dihandle
+// AIRA. ERP hanya simpan: toggle agenticEnabled + serviceToken (Bearer untuk AIRA).
 
 // GET /api/ai/config/settings — singleton; buat default jika belum ada
 router.get('/settings', async (_req, res) => {
@@ -86,19 +88,16 @@ router.get('/settings', async (_req, res) => {
   }
 });
 
-const PutSettingsSchema = z.object({
-  provider: z.enum(['9router', 'claude', 'ollama', 'openai']).optional(),
-  baseUrl: z.string().max(500).optional(),
-  apiKeyEnv: z
-    .string()
-    .max(120)
-    .regex(/^[A-Z0-9_]*$/, 'apiKeyEnv harus nama env var (HURUF_BESAR_GARIS).')
-    .optional(),
-  model: z.string().max(200).optional(),
-  channels: z.array(z.enum(['telegram', 'whatsapp'])).optional(),
-});
+const PutSettingsSchema = z
+  .object({
+    agenticEnabled: z.boolean().optional(),
+    serviceToken: z.string().max(255).nullable().optional(),
+  })
+  .refine((b) => b.agenticEnabled !== undefined || b.serviceToken !== undefined, {
+    message: 'Minimal satu dari agenticEnabled/serviceToken harus diisi.',
+  });
 
-// PUT /api/ai/config/settings — simpan konfigurasi global (gate rbac.manage)
+// PUT /api/ai/config/settings — simpan config koneksi AIRA (gate rbac.manage)
 router.put('/settings', requireCap('rbac.manage'), async (req, res) => {
   const body = validateBody(PutSettingsSchema, req.body, res);
   if (!body) return;
@@ -106,11 +105,8 @@ router.put('/settings', requireCap('rbac.manage'), async (req, res) => {
   try {
     const existing = await prisma.aiSetting.findFirst();
     const data = {
-      ...(body.provider !== undefined && { provider: body.provider }),
-      ...(body.baseUrl !== undefined && { baseUrl: body.baseUrl }),
-      ...(body.apiKeyEnv !== undefined && { apiKeyEnv: body.apiKeyEnv }),
-      ...(body.model !== undefined && { model: body.model }),
-      ...(body.channels !== undefined && { channels: body.channels }),
+      ...(body.agenticEnabled !== undefined && { agenticEnabled: body.agenticEnabled }),
+      ...(body.serviceToken !== undefined && { serviceToken: body.serviceToken }),
     };
     const saved = existing
       ? await prisma.aiSetting.update({ where: { id: existing.id }, data })
