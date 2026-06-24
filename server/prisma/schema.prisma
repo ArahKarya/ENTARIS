@@ -2678,16 +2678,15 @@ model AiToolConfig {
   @@map("ai_tool_configs")
 }
 
-/// Konfigurasi global AI — semua via API (provider-agnostic). API key = referensi
-/// env var (apiKeyEnv), key asli TIDAK PERNAH masuk DB (keputusan Opsi B).
+/// Config koneksi ERP↔AIRA (sisi-ERP saja). SEMUA urusan agentic (model AI,
+/// provider, memori, konteks, channels) dihandle AIRA — BUKAN ERP. Model ini
+/// hanya menyimpan toggle on/off layer agentic + service token untuk auth AIRA
+/// ke ERP Tool Router (Bearer).
 model AiSetting {
-  id        String   @id @default(uuid())
-  provider  String   @default("9router") // 9router | claude | ollama | openai
-  baseUrl   String   @default("") @map("base_url")
-  apiKeyEnv String   @default("") @map("api_key_env") // NAMA env var, bukan key
-  model     String   @default("")
-  channels  Json     @default("[]") // ["telegram","whatsapp"]
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  agenticEnabled Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
+  serviceToken   String?  @map("service_token") // token AIRA → ERP Tool Router (Bearer)
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("ai_settings")
 }

@@ -55,6 +55,14 @@ router.post('/', async (req: AuthRequest, res) => {
   if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
 
   try {
+    // Gate global: layer agentic harus diaktifkan dari Settings → Agentic System.
+    // Kalau agenticEnabled=false → tolak SEMUA invoke (engine AIRA & Test Tool).
+    const setting = await prisma.aiSetting.findFirst();
+    if (!setting?.agenticEnabled) {
+      logger.warn({ tool: body.tool, by: user.userId }, 'AIRA router: agentic_disabled');
+      return res.status(403).json({ ok: false, error: 'agentic_disabled', detail: 'Layer agentic dinonaktifkan. Aktifkan di Settings → Agentic System.' });
+    }
+
     const tool = await resolveTool(body.tool);
 
     // (b) tool ada & aktif
