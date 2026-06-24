@@ -1,0 +1,7305 @@
+{
+  "app": "erp-aks",
+  "version": 2,
+  "generatedNote": "AIRA Tool Router config — FULL coverage (Simple ERP / AKS). DRAFT untuk review Ndoro, BELUM live. Selaras BRD AIRA §8.9: name/group/module/desc/risk/roles/input/output/handler/confirm_template. Handler = path internal NYATA (diaudit dari server/src/routes/*.ts + mount di index.ts). risk: read=GET/query/report, write=create/update non-finansial, critical=submit/cancel/approve/posting GL/payment/delete data finansial. roles diturunkan dari DEFAULT_MATRIX (constants/modules.ts); Admin super-admin selalu lolos. enabled=false default kecuali 16 tool warisan v1 yg pertahankan flag-nya. confirm_template WAJIB untuk write/critical (HITL). Endpoint EXCLUDE (health/telegram/public/auth/attachment file-IO/import multipart/backup binary/dummy data/ai self-config) TIDAK didaftarkan — lihat docs/ai-tool-coverage-analysis.md.",
+  "modules": [
+    "sales_order",
+    "delivery_order",
+    "sales_invoice",
+    "quotation",
+    "sales_return",
+    "customer_deposit",
+    "purchase_order",
+    "goods_receipt",
+    "purchase_invoice",
+    "vendor_deposit",
+    "inventory",
+    "stock_transfer",
+    "stock_opname",
+    "production",
+    "warehouse",
+    "payment",
+    "reconciliation",
+    "recurring",
+    "project_guarantee",
+    "coa",
+    "journal",
+    "fixed_assets",
+    "approvals",
+    "ga_assets",
+    "ga_vehicle",
+    "ga_building",
+    "ga_equipment",
+    "ga_maintenance",
+    "ga_inventory",
+    "ga_documents",
+    "ga_master",
+    "reports",
+    "parties",
+    "settings",
+    "users",
+    "audit"
+  ],
+  "roles": [
+    "Admin",
+    "Accountant",
+    "StaffProduksi",
+    "Viewer"
+  ],
+  "capabilities": [
+    "doc.cancel",
+    "approval.decide",
+    "approval.bypass",
+    "approval.view_all",
+    "inventory.negative_stock",
+    "rbac.manage"
+  ],
+  "tools": [
+    {
+      "name": "quot_list",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Daftar penawaran (filter status/party/tanggal).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string",
+        "partyId": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/quotations",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "quot_stats",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Statistik penawaran (jumlah per status, nilai).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "stats": "object"
+      },
+      "handler": "GET /api/quotations/stats",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "quot_get",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Detail satu penawaran.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "quotation": "object"
+      },
+      "handler": "GET /api/quotations/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "quot_create",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Buat penawaran (non-binding, tanpa GL).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "date": "date",
+        "validUntil": "date",
+        "partyId": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/quotations",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat Penawaran untuk {partyId}, {items} item, berlaku s/d {validUntil}. Setujui?"
+    },
+    {
+      "name": "quot_update",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Ubah penawaran (selama belum dikonversi).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/quotations/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Penawaran {id}. Setujui?"
+    },
+    {
+      "name": "quot_delete",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Hapus penawaran (draft).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/quotations/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS Penawaran {id}? Aksi permanen."
+    },
+    {
+      "name": "quot_send",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Tandai penawaran terkirim ke pelanggan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/quotations/:id/send",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tandai Penawaran {id} sebagai TERKIRIM. Setujui?"
+    },
+    {
+      "name": "quot_accept",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Tandai penawaran diterima pelanggan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/quotations/:id/accept",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tandai Penawaran {id} DITERIMA pelanggan. Setujui?"
+    },
+    {
+      "name": "quot_reject",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Tandai penawaran ditolak pelanggan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/quotations/:id/reject",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tandai Penawaran {id} DITOLAK pelanggan. Setujui?"
+    },
+    {
+      "name": "quot_cancel",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Batalkan penawaran.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/quotations/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Penawaran {id}? Aksi ini perlu hak doc.cancel."
+    },
+    {
+      "name": "quot_convert_payload",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Ambil payload untuk konversi penawaran → SO/invoice.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "payload": "object"
+      },
+      "handler": "GET /api/quotations/:id/convert-payload",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "quot_link",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Tautkan penawaran ke dokumen turunan (SO/invoice).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "targetId": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/quotations/:id/link",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tautkan Penawaran {id} ke dokumen {targetId}. Setujui?"
+    },
+    {
+      "name": "inq_list",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Daftar inquiry/permintaan masuk dari pelanggan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inquiries",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inq_stats",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Statistik inquiry per status.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "stats": "object"
+      },
+      "handler": "GET /api/inquiries/stats",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inq_get",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Detail satu inquiry.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "inquiry": "object"
+      },
+      "handler": "GET /api/inquiries/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inq_create",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Catat inquiry baru.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "partyId": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inquiries",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat Inquiry baru. Setujui?"
+    },
+    {
+      "name": "inq_update",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Ubah inquiry.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inquiries/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Inquiry {id}. Setujui?"
+    },
+    {
+      "name": "inq_delete",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Hapus inquiry.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/inquiries/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS Inquiry {id}? Aksi permanen."
+    },
+    {
+      "name": "inq_set_status",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Ubah status inquiry.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "status": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/inquiries/:id/status",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah status Inquiry {id} → {status}. Setujui?"
+    },
+    {
+      "name": "inq_convert_payload",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Ambil payload konversi inquiry → penawaran.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "payload": "object"
+      },
+      "handler": "GET /api/inquiries/:id/convert-payload",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inq_link",
+      "group": "Penjualan",
+      "module": "quotation",
+      "desc": "Tautkan inquiry ke penawaran.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "targetId": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/inquiries/:id/link",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tautkan Inquiry {id} ke {targetId}. Setujui?"
+    },
+    {
+      "name": "so_list",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Daftar Sales Order (filter status/party/tanggal/cari).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string",
+        "partyId": "string",
+        "search": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/sales-orders",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "so_get",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Detail satu Sales Order.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "salesOrder": "object"
+      },
+      "handler": "GET /api/sales-orders/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "so_create",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Buat Sales Order (komitmen jual, tanpa GL/stok).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "date": "date",
+        "partyId": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/sales-orders",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat Sales Order untuk {partyId}, {items} item. Setujui?"
+    },
+    {
+      "name": "so_update",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Ubah Sales Order (selama draft).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/sales-orders/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Sales Order {id}. Setujui?"
+    },
+    {
+      "name": "so_submit",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Submit Sales Order (kunci, siap proses DO).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/sales-orders/:id/submit",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Submit Sales Order {id}? Setelah submit jadi komitmen."
+    },
+    {
+      "name": "so_cancel",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Batalkan Sales Order.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/sales-orders/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "BATALKAN Sales Order {id}? Alasan: {reason}."
+    },
+    {
+      "name": "so_generate_do",
+      "group": "Penjualan",
+      "module": "sales_order",
+      "desc": "Buat Surat Jalan (DO) dari Sales Order (stok keluar).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "date": "date",
+        "items": "array"
+      },
+      "output": {
+        "doId": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/sales-orders/:id/generate-do",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 3,
+      "confirm_template": "Buat Surat Jalan dari SO {id}, {items} baris. Setujui? (stok keluar)"
+    },
+    {
+      "name": "do_list",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Daftar Surat Jalan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/delivery-orders",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "do_pending",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Surat Jalan pending (belum di-invoice).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/delivery-orders/pending",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "do_get",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Detail satu Surat Jalan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "deliveryOrder": "object"
+      },
+      "handler": "GET /api/delivery-orders/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "do_create",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Buat Surat Jalan standalone (stok keluar).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "partyId": "string",
+        "items": "array",
+        "date": "date"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/delivery-orders",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat Surat Jalan untuk {partyId}, {items} item. Setujui? (stok keluar)"
+    },
+    {
+      "name": "do_from_invoice",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Buat Surat Jalan dari Invoice Penjualan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "invoiceId": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/delivery-orders/from-invoice/:invoiceId",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat Surat Jalan dari Invoice {invoiceId}. Setujui?"
+    },
+    {
+      "name": "do_patch",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Ubah sebagian field Surat Jalan (mobil/driver/catatan).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PATCH /api/delivery-orders/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Surat Jalan {id}. Setujui?"
+    },
+    {
+      "name": "do_update",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Ubah Surat Jalan (full).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/delivery-orders/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Surat Jalan {id} (full). Setujui?"
+    },
+    {
+      "name": "do_cancel",
+      "group": "Penjualan",
+      "module": "delivery_order",
+      "desc": "Batalkan Surat Jalan (reverse stok).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/delivery-orders/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Surat Jalan {id}? Alasan: {reason}. Reverse stok keluar."
+    },
+    {
+      "name": "si_list",
+      "group": "Penjualan",
+      "module": "sales_invoice",
+      "desc": "Daftar Invoice Penjualan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/sales/invoices",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "si_get",
+      "group": "Penjualan",
+      "module": "sales_invoice",
+      "desc": "Detail satu Invoice Penjualan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "invoice": "object"
+      },
+      "handler": "GET /api/sales/invoices/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "si_create",
+      "group": "Penjualan",
+      "module": "sales_invoice",
+      "desc": "Buat Invoice Penjualan (DR Piutang / CR Penjualan).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "partyId": "string",
+        "items": "array",
+        "date": "date"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/sales/invoices",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 3,
+      "service": "salesInvoiceSubmit",
+      "confirm_template": "Buat Invoice Penjualan untuk {partyId}, {items} item. Setujui? (posting GL)"
+    },
+    {
+      "name": "si_update",
+      "group": "Penjualan",
+      "module": "sales_invoice",
+      "desc": "Ubah Invoice Penjualan (draft).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/sales/invoices/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Invoice Penjualan {id}. Setujui?"
+    },
+    {
+      "name": "si_cancel",
+      "group": "Penjualan",
+      "module": "sales_invoice",
+      "desc": "Batalkan Invoice Penjualan (reverse GL + stok).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/sales/invoices/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Invoice Penjualan {id}? Alasan: {reason}. Reverse jurnal + stok."
+    },
+    {
+      "name": "sret_list",
+      "group": "Penjualan",
+      "module": "sales_return",
+      "desc": "Daftar Retur Penjualan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/sales-returns",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "sret_eligible",
+      "group": "Penjualan",
+      "module": "sales_return",
+      "desc": "Baris invoice yang masih bisa diretur.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "invoiceId": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/sales-returns/eligible/:invoiceId",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "sret_get",
+      "group": "Penjualan",
+      "module": "sales_return",
+      "desc": "Detail satu Retur Penjualan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "salesReturn": "object"
+      },
+      "handler": "GET /api/sales-returns/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "sret_create",
+      "group": "Penjualan",
+      "module": "sales_return",
+      "desc": "Buat Retur Penjualan (stok masuk + reverse penjualan).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "salesInvoiceId": "string",
+        "items": "array",
+        "date": "date"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/sales-returns",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat Retur Penjualan dari Invoice {salesInvoiceId}, {items} baris. Setujui? (posting GL + stok)"
+    },
+    {
+      "name": "sret_cancel",
+      "group": "Penjualan",
+      "module": "sales_return",
+      "desc": "Batalkan Retur Penjualan (reverse).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/sales-returns/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Retur Penjualan {id}? Alasan: {reason}."
+    },
+    {
+      "name": "cdep_list",
+      "group": "Penjualan",
+      "module": "customer_deposit",
+      "desc": "Daftar uang muka pelanggan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "partyId": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/customer-deposits",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "cdep_balance",
+      "group": "Penjualan",
+      "module": "customer_deposit",
+      "desc": "Saldo uang muka per pelanggan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "partyId": "string"
+      },
+      "output": {
+        "balance": "number"
+      },
+      "handler": "GET /api/customer-deposits/balance/:partyId",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "cdep_apply",
+      "group": "Penjualan",
+      "module": "customer_deposit",
+      "desc": "Aplikasikan uang muka pelanggan ke invoice.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "depositPaymentId": "string",
+        "salesInvoiceId": "string",
+        "amount": "number"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/customer-deposits/apply",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Aplikasikan DP pelanggan Rp {amount} ke Invoice {salesInvoiceId}. Setujui?"
+    },
+    {
+      "name": "cdep_apply_cancel",
+      "group": "Penjualan",
+      "module": "customer_deposit",
+      "desc": "Batalkan aplikasi uang muka pelanggan.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/customer-deposits/apply/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN aplikasi DP pelanggan {id}? Reverse alokasi."
+    },
+    {
+      "name": "cdep_cancel",
+      "group": "Penjualan",
+      "module": "customer_deposit",
+      "desc": "Batalkan uang muka pelanggan.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/customer-deposits/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "BATALKAN uang muka pelanggan {id}? Alasan: {reason}."
+    },
+    {
+      "name": "cdep_refund",
+      "group": "Penjualan",
+      "module": "customer_deposit",
+      "desc": "Refund/offset sisa uang muka pelanggan (kas + offset piutang).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "cashAmount": "number",
+        "offsetAmount": "number",
+        "accountId": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/customer-deposits/:id/refund",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Refund/offset uang muka pelanggan {id} (kas {cashAmount}, offset {offsetAmount}). Setujui?"
+    },
+    {
+      "name": "po_list",
+      "group": "Pembelian",
+      "module": "purchase_order",
+      "desc": "Daftar Purchase Order.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string",
+        "partyId": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/purchase-orders",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "po_get",
+      "group": "Pembelian",
+      "module": "purchase_order",
+      "desc": "Detail satu Purchase Order.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "purchaseOrder": "object"
+      },
+      "handler": "GET /api/purchase-orders/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "po_create",
+      "group": "Pembelian",
+      "module": "purchase_order",
+      "desc": "Buat Purchase Order (planning, tanpa GL/stok).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "partyId": "string",
+        "items": "array",
+        "date": "date"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/purchase-orders",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 3,
+      "service": "purchaseOrderSubmit",
+      "confirm_template": "Buat PO ke {partyId} untuk {items} item. Setujui?"
+    },
+    {
+      "name": "po_cancel",
+      "group": "Pembelian",
+      "module": "purchase_order",
+      "desc": "Batalkan Purchase Order.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/purchase-orders/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN PO {id}? Alasan: {reason}."
+    },
+    {
+      "name": "gr_list",
+      "group": "Pembelian",
+      "module": "goods_receipt",
+      "desc": "Daftar Penerimaan Barang (BPB/STT).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "partyId": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/goods-receipts",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gr_pending",
+      "group": "Pembelian",
+      "module": "goods_receipt",
+      "desc": "Penerimaan barang pending (belum di-invoice).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/goods-receipts/pending",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gr_get",
+      "group": "Pembelian",
+      "module": "goods_receipt",
+      "desc": "Detail satu Penerimaan Barang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "goodsReceipt": "object"
+      },
+      "handler": "GET /api/goods-receipts/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gr_create",
+      "group": "Pembelian",
+      "module": "goods_receipt",
+      "desc": "Catat Penerimaan Barang (stok masuk + accrual hutang).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "partyId": "string",
+        "items": "array",
+        "date": "date",
+        "purchaseOrderId": "string"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/goods-receipts",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 3,
+      "service": "goodsReceiptSubmit",
+      "confirm_template": "Catat penerimaan barang dari {partyId}, {items} item. Setujui? (stok masuk + accrual)"
+    },
+    {
+      "name": "gr_cancel",
+      "group": "Pembelian",
+      "module": "goods_receipt",
+      "desc": "Batalkan Penerimaan Barang (reverse stok + accrual).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/goods-receipts/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Penerimaan Barang {id}? Alasan: {reason}. Reverse stok + jurnal."
+    },
+    {
+      "name": "pi_list",
+      "group": "Pembelian",
+      "module": "purchase_invoice",
+      "desc": "Daftar Invoice Pembelian.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/purchase/invoices",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "pi_get",
+      "group": "Pembelian",
+      "module": "purchase_invoice",
+      "desc": "Detail satu Invoice Pembelian.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "invoice": "object"
+      },
+      "handler": "GET /api/purchase/invoices/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "pi_create",
+      "group": "Pembelian",
+      "module": "purchase_invoice",
+      "desc": "Buat Invoice Pembelian (harga aktual + AP).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "partyId": "string",
+        "items": "array",
+        "date": "date"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/purchase/invoices",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat Invoice Pembelian dari {partyId}, {items} item. Setujui? (posting GL hutang)"
+    },
+    {
+      "name": "pi_update",
+      "group": "Pembelian",
+      "module": "purchase_invoice",
+      "desc": "Ubah Invoice Pembelian (draft).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/purchase/invoices/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Invoice Pembelian {id}. Setujui?"
+    },
+    {
+      "name": "pi_revise_price",
+      "group": "Pembelian",
+      "module": "purchase_invoice",
+      "desc": "Revisi harga Invoice Pembelian (post variance ke 5.11).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "lines": "array",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/purchase/invoices/:id/revise-price",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Revisi harga Invoice Pembelian {id}? Alasan: {reason}. Posting selisih harga."
+    },
+    {
+      "name": "pi_cancel",
+      "group": "Pembelian",
+      "module": "purchase_invoice",
+      "desc": "Batalkan Invoice Pembelian (reverse GL).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/purchase/invoices/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Invoice Pembelian {id}? Alasan: {reason}. Reverse jurnal."
+    },
+    {
+      "name": "vdep_list",
+      "group": "Pembelian",
+      "module": "vendor_deposit",
+      "desc": "Daftar uang muka vendor.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "partyId": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/vendor-deposits",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "vdep_balance",
+      "group": "Pembelian",
+      "module": "vendor_deposit",
+      "desc": "Saldo uang muka per vendor.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "partyId": "string"
+      },
+      "output": {
+        "balance": "number"
+      },
+      "handler": "GET /api/vendor-deposits/balance/:partyId",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "vdep_apply",
+      "group": "Pembelian",
+      "module": "vendor_deposit",
+      "desc": "Aplikasikan uang muka vendor ke invoice pembelian.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "depositPaymentId": "string",
+        "purchaseInvoiceId": "string",
+        "amount": "number"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/vendor-deposits/apply",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Aplikasikan uang muka vendor Rp {amount} ke Invoice {purchaseInvoiceId}. Setujui?"
+    },
+    {
+      "name": "vdep_apply_cancel",
+      "group": "Pembelian",
+      "module": "vendor_deposit",
+      "desc": "Batalkan aplikasi uang muka vendor.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/vendor-deposits/apply/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN aplikasi uang muka vendor {id}? Reverse alokasi."
+    },
+    {
+      "name": "vdep_cancel",
+      "group": "Pembelian",
+      "module": "vendor_deposit",
+      "desc": "Batalkan uang muka vendor.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/vendor-deposits/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "BATALKAN uang muka vendor {id}? Alasan: {reason}."
+    },
+    {
+      "name": "vdep_refund",
+      "group": "Pembelian",
+      "module": "vendor_deposit",
+      "desc": "Refund uang muka vendor.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "amount": "number",
+        "accountId": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/vendor-deposits/:id/refund",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Refund uang muka vendor {id} Rp {amount}. Setujui?"
+    },
+    {
+      "name": "inv_items_list",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Daftar item stok (cari/filter).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "search": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/items",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_item_batches",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Daftar batch (lot + harga) per item.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "batches": "array"
+      },
+      "handler": "GET /api/inventory/items/:id/batches",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_low_stock",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Daftar item stok di bawah titik minimum (reorder point).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/items/low-stock",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_item_create",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Buat item stok baru (master).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string",
+        "unit": "string",
+        "category": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inventory/items",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat item stok baru '{name}'. Setujui?"
+    },
+    {
+      "name": "inv_item_update",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Ubah item stok.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inventory/items/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah item stok {id}. Setujui?"
+    },
+    {
+      "name": "inv_item_delete",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Hapus item stok.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/inventory/items/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS item stok {id}? Pastikan tak ada transaksi terkait."
+    },
+    {
+      "name": "inv_mov_list",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Daftar pergerakan stok.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "itemId": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/movements",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_mov_get",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Detail satu pergerakan stok.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "movement": "object"
+      },
+      "handler": "GET /api/inventory/movements/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_mov_create",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Catat pergerakan stok manual (masuk/keluar/adjust).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "itemId": "string",
+        "type": "string",
+        "quantity": "number",
+        "warehouseId": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inventory/movements",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat pergerakan stok {type} {quantity} item {itemId}. Setujui?"
+    },
+    {
+      "name": "inv_mov_update",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Ubah pergerakan stok (draft).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inventory/movements/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah pergerakan stok {id}. Setujui?"
+    },
+    {
+      "name": "inv_mov_cancel",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Batalkan pergerakan stok (reverse).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PUT /api/inventory/movements/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN pergerakan stok {id}? Alasan: {reason}."
+    },
+    {
+      "name": "inv_dash_metrics",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Metrik ringkas stok (nilai, jumlah item).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "metrics": "object"
+      },
+      "handler": "GET /api/inventory/dashboard/metrics",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_dash_by_category",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Nilai stok per kategori.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/dashboard/by-category",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_dash_movement_trend",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Tren pergerakan stok.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "series": "array"
+      },
+      "handler": "GET /api/inventory/dashboard/movement-trend",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_dash_top_items",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Item stok teratas (nilai/pergerakan).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/dashboard/top-items",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "inv_dash_recent_movements",
+      "group": "Stok & Produksi",
+      "module": "inventory",
+      "desc": "Pergerakan stok terbaru.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/dashboard/recent-movements",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_dash_stats",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Statistik produksi ringkas.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "stats": "object"
+      },
+      "handler": "GET /api/inventory/dashboard/production-stats",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_dash_production",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Data dashboard produksi (detail).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "data": "object"
+      },
+      "handler": "GET /api/inventory/dashboard/production",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_dash_yield_trend",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Tren yield produksi.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "series": "array"
+      },
+      "handler": "GET /api/inventory/dashboard/yield-trend",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_dash_oee",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Metrik OEE mesin produksi.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "oee": "object"
+      },
+      "handler": "GET /api/inventory/dashboard/oee",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_run_list",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Daftar Production Run.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/production-runs",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_run_get",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Detail satu Production Run.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "run": "object"
+      },
+      "handler": "GET /api/inventory/production-runs/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_run_create",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Buat Production Run (proses produksi: input → output stok).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "items": "array",
+        "machineId": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inventory/production-runs",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 4,
+      "service": "productionRunSubmit",
+      "confirm_template": "Mulai Production Run {items} item di mesin {machineId}. Setujui?"
+    },
+    {
+      "name": "prod_run_update",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Ubah Production Run (draft).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inventory/production-runs/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Production Run {id}. Setujui?"
+    },
+    {
+      "name": "prod_run_cancel",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Batalkan Production Run (reverse stok).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PUT /api/inventory/production-runs/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Production Run {id}? Alasan: {reason}. Reverse stok."
+    },
+    {
+      "name": "prod_proc_list",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Daftar proses produksi (master).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/production-processes",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_proc_create",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Buat proses produksi (master).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inventory/production-processes",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat proses produksi '{name}'. Setujui?"
+    },
+    {
+      "name": "prod_proc_update",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Ubah proses produksi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inventory/production-processes/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah proses produksi {id}. Setujui?"
+    },
+    {
+      "name": "prod_proc_delete",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Hapus proses produksi.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/inventory/production-processes/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS proses produksi {id}?"
+    },
+    {
+      "name": "prod_cost_list",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Daftar standar biaya produksi.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/production-cost-standards",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "prod_cost_create",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Buat standar biaya produksi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inventory/production-cost-standards",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat standar biaya produksi '{name}'. Setujui?"
+    },
+    {
+      "name": "prod_cost_update",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Ubah standar biaya produksi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inventory/production-cost-standards/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah standar biaya produksi {id}. Setujui?"
+    },
+    {
+      "name": "prod_cost_delete",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Hapus standar biaya produksi.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/inventory/production-cost-standards/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS standar biaya produksi {id}?"
+    },
+    {
+      "name": "mach_list",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Daftar mesin produksi.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/inventory/machines",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "mach_get",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Detail satu mesin.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "machine": "object"
+      },
+      "handler": "GET /api/inventory/machines/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "mach_create",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Buat mesin (master).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/inventory/machines",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat mesin '{name}'. Setujui?"
+    },
+    {
+      "name": "mach_update",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Ubah mesin.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/inventory/machines/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah mesin {id}. Setujui?"
+    },
+    {
+      "name": "mach_delete",
+      "group": "Stok & Produksi",
+      "module": "production",
+      "desc": "Hapus mesin.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/inventory/machines/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS mesin {id}?"
+    },
+    {
+      "name": "stf_list",
+      "group": "Stok & Produksi",
+      "module": "stock_transfer",
+      "desc": "Daftar Transfer Stok antar gudang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/stock-transfers",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "stf_get",
+      "group": "Stok & Produksi",
+      "module": "stock_transfer",
+      "desc": "Detail satu Transfer Stok.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "transfer": "object"
+      },
+      "handler": "GET /api/stock-transfers/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "stf_create",
+      "group": "Stok & Produksi",
+      "module": "stock_transfer",
+      "desc": "Buat Transfer Stok antar gudang.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "fromWarehouseId": "string",
+        "toWarehouseId": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/stock-transfers",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Transfer stok dari gudang {fromWarehouseId} ke {toWarehouseId}, {items} item. Setujui?"
+    },
+    {
+      "name": "stf_update",
+      "group": "Stok & Produksi",
+      "module": "stock_transfer",
+      "desc": "Ubah Transfer Stok (draft).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PATCH /api/stock-transfers/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah Transfer Stok {id}. Setujui?"
+    },
+    {
+      "name": "stf_mark_printed",
+      "group": "Stok & Produksi",
+      "module": "stock_transfer",
+      "desc": "Tandai Transfer Stok sudah dicetak.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/stock-transfers/:id/mark-printed",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tandai Transfer Stok {id} sudah dicetak. Setujui?"
+    },
+    {
+      "name": "stf_cancel",
+      "group": "Stok & Produksi",
+      "module": "stock_transfer",
+      "desc": "Batalkan Transfer Stok (reverse).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/stock-transfers/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "BATALKAN Transfer Stok {id}? Alasan: {reason}."
+    },
+    {
+      "name": "opn_list",
+      "group": "Stok & Produksi",
+      "module": "stock_opname",
+      "desc": "Daftar Stok Opname.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/stock-opname",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "opn_get",
+      "group": "Stok & Produksi",
+      "module": "stock_opname",
+      "desc": "Detail satu Stok Opname.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "opname": "object"
+      },
+      "handler": "GET /api/stock-opname/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "opn_create",
+      "group": "Stok & Produksi",
+      "module": "stock_opname",
+      "desc": "Buat & finalisasi Stok Opname (adjust stok + jurnal selisih).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "warehouseId": "string",
+        "items": "array",
+        "date": "date"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/stock-opname",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Finalisasi Stok Opname gudang {warehouseId}, {items} baris? Adjust stok + jurnal selisih."
+    },
+    {
+      "name": "opn_cancel",
+      "group": "Stok & Produksi",
+      "module": "stock_opname",
+      "desc": "Batalkan Stok Opname (reverse adjustment).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PUT /api/stock-opname/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN Stok Opname {id}? Alasan: {reason}. Reverse adjustment."
+    },
+    {
+      "name": "wh_list",
+      "group": "Stok & Produksi",
+      "module": "warehouse",
+      "desc": "Daftar gudang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/warehouses",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "wh_stock_snapshot",
+      "group": "Stok & Produksi",
+      "module": "warehouse",
+      "desc": "Snapshot stok semua gudang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "snapshot": "array"
+      },
+      "handler": "GET /api/warehouses/stock-snapshot",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "wh_get",
+      "group": "Stok & Produksi",
+      "module": "warehouse",
+      "desc": "Detail satu gudang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "warehouse": "object"
+      },
+      "handler": "GET /api/warehouses/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "wh_create",
+      "group": "Stok & Produksi",
+      "module": "warehouse",
+      "desc": "Buat gudang baru (master).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string",
+        "code": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/warehouses",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat gudang '{name}'. Setujui?"
+    },
+    {
+      "name": "wh_update",
+      "group": "Stok & Produksi",
+      "module": "warehouse",
+      "desc": "Ubah gudang.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/warehouses/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah gudang {id}. Setujui?"
+    },
+    {
+      "name": "wh_delete",
+      "group": "Stok & Produksi",
+      "module": "warehouse",
+      "desc": "Hapus gudang.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/warehouses/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS gudang {id}? Pastikan kosong."
+    },
+    {
+      "name": "pay_list",
+      "group": "Bank & Kas",
+      "module": "payment",
+      "desc": "Daftar transaksi bank/kas.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/payments",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 2
+    },
+    {
+      "name": "pay_cash_journals",
+      "group": "Bank & Kas",
+      "module": "payment",
+      "desc": "Daftar jurnal kas (buku kas).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/payments/cash-journals",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "pay_get",
+      "group": "Bank & Kas",
+      "module": "payment",
+      "desc": "Detail satu transaksi bank/kas.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "payment": "object"
+      },
+      "handler": "GET /api/payments/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "pay_record",
+      "group": "Bank & Kas",
+      "module": "payment",
+      "desc": "Catat transaksi bank (terima/bayar/DP/refund) + alokasi ke invoice. PILOT uc#1.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "paymentType": "string",
+        "amount": "number",
+        "accountId": "string",
+        "partyId": "string",
+        "allocations": "array"
+      },
+      "output": {
+        "id": "string",
+        "number": "string",
+        "status": "string"
+      },
+      "handler": "POST /api/payments",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 2,
+      "service": "paymentSubmit",
+      "confirm_template": "Catat {paymentType} Rp {amount} (akun {accountId}, pihak {partyId}). Setujui? (posting GL)"
+    },
+    {
+      "name": "pay_cancel",
+      "group": "Bank & Kas",
+      "module": "payment",
+      "desc": "Batalkan transaksi bank (reverse GL).",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/payments/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 2,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN transaksi bank {id}? Alasan: {reason}. Reverse jurnal."
+    },
+    {
+      "name": "recon_list",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Daftar rekonsiliasi bank.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/reconciliation",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "recon_get",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Detail satu rekonsiliasi.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "recon": "object"
+      },
+      "handler": "GET /api/reconciliation/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "recon_create",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Buat sesi rekonsiliasi bank.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "accountId": "string",
+        "statementDate": "date"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/reconciliation",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat rekonsiliasi bank akun {accountId} per {statementDate}. Setujui?"
+    },
+    {
+      "name": "recon_add_items",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Tambah item mutasi ke rekonsiliasi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "items": "array"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/reconciliation/:id/items",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tambah {items} item ke rekonsiliasi {id}. Setujui?"
+    },
+    {
+      "name": "recon_match",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Cocokkan item rekonsiliasi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "itemIds": "array"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/reconciliation/:id/match",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Cocokkan item rekonsiliasi {id}. Setujui?"
+    },
+    {
+      "name": "recon_unmatch",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Batalkan pencocokan item rekonsiliasi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "itemIds": "array"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/reconciliation/:id/unmatch",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Batalkan pencocokan item rekonsiliasi {id}. Setujui?"
+    },
+    {
+      "name": "recon_complete",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Selesaikan rekonsiliasi (kunci).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/reconciliation/:id/complete",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Selesaikan & KUNCI rekonsiliasi {id}? Setelah ini tak bisa diubah."
+    },
+    {
+      "name": "recon_delete",
+      "group": "Bank & Kas",
+      "module": "reconciliation",
+      "desc": "Hapus sesi rekonsiliasi.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/reconciliation/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS rekonsiliasi {id}?"
+    },
+    {
+      "name": "rec_list",
+      "group": "Bank & Kas",
+      "module": "recurring",
+      "desc": "Daftar transaksi berulang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/recurring",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rec_create",
+      "group": "Bank & Kas",
+      "module": "recurring",
+      "desc": "Buat template transaksi berulang.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "name": "string",
+        "schedule": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/recurring",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat transaksi berulang '{name}' jadwal {schedule}. Setujui?"
+    },
+    {
+      "name": "rec_update",
+      "group": "Bank & Kas",
+      "module": "recurring",
+      "desc": "Ubah transaksi berulang.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/recurring/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah transaksi berulang {id}. Setujui?"
+    },
+    {
+      "name": "rec_delete",
+      "group": "Bank & Kas",
+      "module": "recurring",
+      "desc": "Hapus transaksi berulang.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/recurring/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS transaksi berulang {id}?"
+    },
+    {
+      "name": "rec_execute",
+      "group": "Bank & Kas",
+      "module": "recurring",
+      "desc": "Jalankan transaksi berulang sekali (generate dokumen).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/recurring/:id/execute",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Jalankan transaksi berulang {id} sekarang? Akan generate dokumen."
+    },
+    {
+      "name": "pg_list",
+      "group": "Bank & Kas",
+      "module": "project_guarantee",
+      "desc": "Daftar uang jaminan proyek.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/project-guarantees",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "pg_get",
+      "group": "Bank & Kas",
+      "module": "project_guarantee",
+      "desc": "Detail satu uang jaminan proyek.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "guarantee": "object"
+      },
+      "handler": "GET /api/project-guarantees/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "pg_create",
+      "group": "Bank & Kas",
+      "module": "project_guarantee",
+      "desc": "Catat uang jaminan proyek (setor jaminan).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "partyId": "string",
+        "amount": "number",
+        "accountId": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/project-guarantees",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat uang jaminan proyek Rp {amount} ke {partyId}. Setujui?"
+    },
+    {
+      "name": "pg_settle",
+      "group": "Bank & Kas",
+      "module": "project_guarantee",
+      "desc": "Selesaikan/cairkan uang jaminan proyek.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "amount": "number"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/project-guarantees/:id/settle",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Selesaikan uang jaminan proyek {id} Rp {amount}? Posting GL."
+    },
+    {
+      "name": "pg_cancel",
+      "group": "Bank & Kas",
+      "module": "project_guarantee",
+      "desc": "Batalkan uang jaminan proyek.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/project-guarantees/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN uang jaminan proyek {id}? Alasan: {reason}."
+    },
+    {
+      "name": "pg_settlement_cancel",
+      "group": "Bank & Kas",
+      "module": "project_guarantee",
+      "desc": "Batalkan penyelesaian uang jaminan.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/project-guarantees/settlements/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BATALKAN penyelesaian jaminan {id}? Reverse GL."
+    },
+    {
+      "name": "coa_list",
+      "group": "Akuntansi",
+      "module": "coa",
+      "desc": "Bagan akun (tree).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "accounts": "array"
+      },
+      "handler": "GET /api/coa",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "coa_flat",
+      "group": "Akuntansi",
+      "module": "coa",
+      "desc": "Bagan akun (flat list, untuk dropdown).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "accounts": "array"
+      },
+      "handler": "GET /api/coa/flat",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "coa_create",
+      "group": "Akuntansi",
+      "module": "coa",
+      "desc": "Buat akun baru (COA).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "code": "string",
+        "name": "string",
+        "type": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/coa",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat akun {code} '{name}'. Setujui?"
+    },
+    {
+      "name": "coa_update",
+      "group": "Akuntansi",
+      "module": "coa",
+      "desc": "Ubah akun COA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/coa/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah akun COA {id}. Setujui?"
+    },
+    {
+      "name": "coa_set_balance",
+      "group": "Akuntansi",
+      "module": "coa",
+      "desc": "Set saldo awal akun (opening balance).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "amount": "number"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/coa/:id/balance",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Set saldo awal akun {id} = Rp {amount}? Mempengaruhi neraca awal."
+    },
+    {
+      "name": "coa_delete",
+      "group": "Akuntansi",
+      "module": "coa",
+      "desc": "Hapus akun COA.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/coa/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS akun COA {id}? Pastikan tak ada transaksi."
+    },
+    {
+      "name": "je_list",
+      "group": "Akuntansi",
+      "module": "journal",
+      "desc": "Daftar jurnal (buku besar).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "startDate": "date",
+        "endDate": "date",
+        "search": "string",
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/journals",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "je_get",
+      "group": "Akuntansi",
+      "module": "journal",
+      "desc": "Detail satu jurnal.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "journal": "object"
+      },
+      "handler": "GET /api/journals/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "je_create",
+      "group": "Akuntansi",
+      "module": "journal",
+      "desc": "Buat jurnal manual (wajib balanced). Transfer antar bank / koreksi.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "date": "date",
+        "narration": "string",
+        "items": "array"
+      },
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "handler": "POST /api/journals",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 4,
+      "confirm_template": "Buat jurnal: {narration}, {items} baris (harus balanced). Setujui? (posting GL)"
+    },
+    {
+      "name": "je_cancel",
+      "group": "Akuntansi",
+      "module": "journal",
+      "desc": "Batalkan jurnal (reverse).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/journals/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "BATALKAN jurnal {id}? Alasan: {reason}. Reverse posting."
+    },
+    {
+      "name": "cogs_backfill_list",
+      "group": "Akuntansi",
+      "module": "journal",
+      "desc": "Daftar kandidat backfill COGS.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/cogs-backfill",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "cogs_backfill_summary",
+      "group": "Akuntansi",
+      "module": "journal",
+      "desc": "Ringkasan backfill COGS.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {},
+      "output": {
+        "summary": "object"
+      },
+      "handler": "GET /api/cogs-backfill/summary",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fa_list",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Daftar aset tetap.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/fixed-assets",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fa_categories",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Daftar kategori aset tetap.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/fixed-assets/categories",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fa_get",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Detail satu aset tetap.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "asset": "object"
+      },
+      "handler": "GET /api/fixed-assets/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fa_summary_by_category",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Ringkasan aset tetap per kategori.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/fixed-assets/summary/by-category",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fa_create",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Catat aset tetap baru.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "name": "string",
+        "cost": "number",
+        "acquisitionDate": "date"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/fixed-assets",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat aset tetap '{name}' Rp {cost}. Setujui?"
+    },
+    {
+      "name": "fa_update",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Ubah aset tetap.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/fixed-assets/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah aset tetap {id}. Setujui?"
+    },
+    {
+      "name": "fa_depreciate",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Jalankan penyusutan satu aset (posting GL).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "period": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/fixed-assets/:id/depreciate",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Susutkan aset {id} periode {period}? Posting GL beban penyusutan."
+    },
+    {
+      "name": "fa_depreciate_bulk",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Jalankan penyusutan massal semua aset periode.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/fixed-assets/depreciate-bulk",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Susutkan SEMUA aset periode {period}? Posting GL massal."
+    },
+    {
+      "name": "fa_dispose",
+      "group": "Akuntansi",
+      "module": "fixed_assets",
+      "desc": "Pelepasan aset tetap (jual/hapus + GL untung-rugi).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "proceeds": "number"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/fixed-assets/:id/dispose",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Lepas aset {id} (hasil Rp {proceeds})? Posting GL untung/rugi pelepasan."
+    },
+    {
+      "name": "appr_rules_list",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Daftar aturan approval.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "rules": "array"
+      },
+      "handler": "GET /api/approvals/rules",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide"
+    },
+    {
+      "name": "appr_rule_create",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Buat aturan approval.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "module": "string",
+        "threshold": "number"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/approvals/rules",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide",
+      "confirm_template": "Buat aturan approval modul {module} threshold {threshold}. Setujui?"
+    },
+    {
+      "name": "appr_rule_update",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Ubah aturan approval.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/approvals/rules/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide",
+      "confirm_template": "Ubah aturan approval {id}. Setujui?"
+    },
+    {
+      "name": "appr_rule_delete",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Hapus aturan approval.",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/approvals/rules/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide",
+      "confirm_template": "HAPUS aturan approval {id}?"
+    },
+    {
+      "name": "appr_requests_list",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Daftar pengajuan approval.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/approvals/requests",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "appr_request_get",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Detail satu pengajuan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "request": "object"
+      },
+      "handler": "GET /api/approvals/requests/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "appr_request_create",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Buat pengajuan approval.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "module": "string",
+        "refId": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/approvals/requests",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat pengajuan approval modul {module} ref {refId}. Setujui?"
+    },
+    {
+      "name": "appr_approve",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Setujui pengajuan.",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string",
+        "note": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/approvals/requests/:id/approve",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide",
+      "confirm_template": "SETUJUI pengajuan {id}? Catatan: {note}."
+    },
+    {
+      "name": "appr_reject",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Tolak pengajuan.",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string",
+        "note": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/approvals/requests/:id/reject",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide",
+      "confirm_template": "TOLAK pengajuan {id}? Catatan: {note}."
+    },
+    {
+      "name": "appr_request_revision",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Minta revisi pengajuan.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string",
+        "note": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/approvals/requests/:id/request-revision",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "approval.decide",
+      "confirm_template": "Minta REVISI pengajuan {id}? Catatan: {note}."
+    },
+    {
+      "name": "appr_resubmit",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Ajukan ulang pengajuan setelah revisi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PUT /api/approvals/requests/:id/resubmit",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ajukan ulang pengajuan {id}. Setujui?"
+    },
+    {
+      "name": "appr_check",
+      "group": "Akuntansi",
+      "module": "approvals",
+      "desc": "Cek apakah aksi butuh approval.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "module": "string",
+        "amount": "number"
+      },
+      "output": {
+        "required": "boolean"
+      },
+      "handler": "GET /api/approvals/check",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fy_list",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Daftar tahun fiskal.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/fiscal-years",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "fy_create",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Buat tahun fiskal.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "year": "number",
+        "startDate": "date",
+        "endDate": "date"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/fiscal-years",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat tahun fiskal {year}. Setujui?"
+    },
+    {
+      "name": "fy_close",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Tutup buku tahun fiskal (closing entries).",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/fiscal-years/:id/close",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "TUTUP BUKU tahun fiskal {id}? Generate closing entries. Aksi besar."
+    },
+    {
+      "name": "fy_reopen",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Buka kembali tahun fiskal yang sudah ditutup.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/fiscal-years/:id/reopen",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "BUKA KEMBALI tahun fiskal {id}? Reverse closing entries."
+    },
+    {
+      "name": "tax_get_config",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Konfigurasi pajak (PPN/PPh).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "config": "object"
+      },
+      "handler": "GET /api/tax/config",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "tax_report",
+      "group": "Akuntansi",
+      "module": "reports",
+      "desc": "Laporan pajak per periode.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/tax/report",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "tax_create_config",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Tambah konfigurasi pajak.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "name": "string",
+        "rate": "number"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/tax/config",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tambah konfigurasi pajak '{name}' {rate}%. Setujui?"
+    },
+    {
+      "name": "tax_update_config",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Ubah konfigurasi pajak.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/tax/config/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah konfigurasi pajak {id}. Setujui?"
+    },
+    {
+      "name": "tax_delete_config",
+      "group": "Akuntansi",
+      "module": "settings",
+      "desc": "Hapus konfigurasi pajak.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/tax/config/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS konfigurasi pajak {id}?"
+    },
+    {
+      "name": "rpt_dashboard",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Metrik ringkas dashboard (omzet, piutang, hutang, kas).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "metrics": "object"
+      },
+      "handler": "GET /api/dashboard/metrics",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_charts",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Data chart dashboard.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "charts": "object"
+      },
+      "handler": "GET /api/dashboard/charts",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_top_customers",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Pelanggan teratas (omzet).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/top-customers",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_top_vendors",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Vendor teratas (pembelian).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/top-vendors",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_overdue",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Invoice jatuh tempo / lewat tempo.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/overdue",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_expense_breakdown",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Rincian beban per kategori.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/expense-breakdown",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_stock_alerts",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Peringatan stok (rendah/minus).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/stock-alerts",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_pending_do",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Surat Jalan pending.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/pending-do",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_negative_stock",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Item dengan stok minus.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/dashboard/negative-stock",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_cash_flow",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Arus kas ringkas dashboard.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "data": "object"
+      },
+      "handler": "GET /api/dashboard/cash-flow",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_financial_ratios",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Rasio keuangan ringkas.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "ratios": "object"
+      },
+      "handler": "GET /api/dashboard/financial-ratios",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_monthly_profit",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laba bulanan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "series": "array"
+      },
+      "handler": "GET /api/dashboard/monthly-profit",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_aging_summary",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Ringkasan umur piutang/hutang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "summary": "object"
+      },
+      "handler": "GET /api/dashboard/aging-summary",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_dash_cash_position",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Posisi kas/bank saat ini.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "positions": "array"
+      },
+      "handler": "GET /api/dashboard/cash-position",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_trial_balance",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Neraca saldo (trial balance) per periode.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/trial-balance",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_profit_loss",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laporan laba rugi per periode.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/profit-loss",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_balance_sheet",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laporan neraca (balance sheet) per periode.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/balance-sheet",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_cash_flow",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laporan arus kas per periode.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/cash-flow",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_aging",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laporan umur piutang/hutang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "type": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/aging",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_ledger_detail",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Detail buku besar per akun.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "accountId": "string",
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/ledger-detail",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_ledger_book",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Buku besar lengkap.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/ledger-book",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_hpp",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laporan HPP (harga pokok produksi).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/operational/hpp",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_profitability_sku",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Profitabilitas per SKU.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "period": "string"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/operational/profitability-per-sku",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_payable_schedule",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Jadwal jatuh tempo hutang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/operational/payable-schedule",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_receivable_schedule",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Jadwal jatuh tempo piutang.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/operational/receivable-schedule",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_daily",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Laporan operasional harian.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "date": "date"
+      },
+      "output": {
+        "report": "object"
+      },
+      "handler": "GET /api/reports/operational/daily",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "rpt_fa_dashboard",
+      "group": "Laporan",
+      "module": "reports",
+      "desc": "Dashboard aset tetap.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "data": "object"
+      },
+      "handler": "GET /api/dashboard/fixed-assets",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "party_search",
+      "group": "Master & Sistem",
+      "module": "parties",
+      "desc": "Cari pelanggan/vendor berdasarkan nama/kode.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "q": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/parties",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "party_similar",
+      "group": "Master & Sistem",
+      "module": "parties",
+      "desc": "Cari party mirip (deteksi duplikat).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/parties/similar",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "party_dashboard",
+      "group": "Master & Sistem",
+      "module": "parties",
+      "desc": "Dashboard ringkas party (saldo, transaksi).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "data": "object"
+      },
+      "handler": "GET /api/parties/dashboard",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "party_create",
+      "group": "Master & Sistem",
+      "module": "parties",
+      "desc": "Buat pelanggan/vendor baru.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string",
+        "type": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/parties",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat party '{name}' tipe {type}. Setujui?"
+    },
+    {
+      "name": "party_update",
+      "group": "Master & Sistem",
+      "module": "parties",
+      "desc": "Ubah pelanggan/vendor.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/parties/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah party {id}. Setujui?"
+    },
+    {
+      "name": "party_delete",
+      "group": "Master & Sistem",
+      "module": "parties",
+      "desc": "Hapus pelanggan/vendor.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/parties/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS party {id}? Pastikan tak ada transaksi."
+    },
+    {
+      "name": "svc_list",
+      "group": "Master & Sistem",
+      "module": "sales_invoice",
+      "desc": "Daftar item jasa (master).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/service-items",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "svc_create",
+      "group": "Master & Sistem",
+      "module": "sales_invoice",
+      "desc": "Buat item jasa.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "name": "string",
+        "rate": "number"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/service-items",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat item jasa '{name}' Rp {rate}. Setujui?"
+    },
+    {
+      "name": "svc_update",
+      "group": "Master & Sistem",
+      "module": "sales_invoice",
+      "desc": "Ubah item jasa.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PATCH /api/service-items/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah item jasa {id}. Setujui?"
+    },
+    {
+      "name": "svc_delete",
+      "group": "Master & Sistem",
+      "module": "sales_invoice",
+      "desc": "Hapus item jasa.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/service-items/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "doc.cancel",
+      "confirm_template": "HAPUS item jasa {id}?"
+    },
+    {
+      "name": "search_global",
+      "group": "Universal",
+      "module": "reports",
+      "desc": "Pencarian universal lintas-entitas (dokumen, party, item) — entity resolution.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "q": "string"
+      },
+      "output": {
+        "results": "array"
+      },
+      "handler": "GET /api/search",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "set_company_get",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Ambil profil perusahaan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "company": "object"
+      },
+      "handler": "GET /api/settings/company",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "set_runtime_get",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Ambil pengaturan runtime sistem.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "settings": "object"
+      },
+      "handler": "GET /api/settings/runtime",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "set_check_update",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Cek pembaruan aplikasi.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "update": "object"
+      },
+      "handler": "GET /api/settings/check-update",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "set_company_update",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Ubah profil perusahaan.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PUT /api/settings/company",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah profil perusahaan. Setujui?"
+    },
+    {
+      "name": "usr_list",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Daftar user.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/users",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "usr_create",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Buat user baru.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "email": "string",
+        "role": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/users",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat user {email} role {role}. Setujui?"
+    },
+    {
+      "name": "usr_update",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Ubah user.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/users/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah user {id}. Setujui?"
+    },
+    {
+      "name": "usr_toggle",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Aktif/nonaktifkan user.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/users/:id/toggle",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Aktif/nonaktifkan user {id}. Setujui?"
+    },
+    {
+      "name": "role_list",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Daftar role.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/roles",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "role_assignable",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Daftar role yang bisa ditugaskan.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/roles/assignable",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "role_catalog",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Katalog modul + capability (untuk UI RBAC).",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "catalog": "object"
+      },
+      "handler": "GET /api/roles/catalog",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "role_create",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Buat role baru.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/roles",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "rbac.manage",
+      "confirm_template": "Buat role '{name}'. Setujui?"
+    },
+    {
+      "name": "role_update",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Ubah role + matriks izin.",
+      "risk": "write",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string",
+        "permissions": "object"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/roles/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "rbac.manage",
+      "confirm_template": "Ubah role {id} + izin. Setujui?"
+    },
+    {
+      "name": "role_delete",
+      "group": "Master & Sistem",
+      "module": "users",
+      "desc": "Hapus role.",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/roles/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "requiresCapability": "rbac.manage",
+      "confirm_template": "HAPUS role {id}? User yang memakai akan kehilangan izin."
+    },
+    {
+      "name": "audit_list",
+      "group": "Master & Sistem",
+      "module": "audit",
+      "desc": "Jejak audit (siapa-ubah-apa-kapan).",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "page": "number",
+        "filter": "object"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/audit-logs",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "sysacct_get",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Pemetaan akun sistem (auto-GL).",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {},
+      "output": {
+        "mapping": "object"
+      },
+      "handler": "GET /api/system-accounts",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "sysacct_update",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Ubah pemetaan akun sistem (auto-GL). HATI-HATI: mempengaruhi semua posting.",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "mapping": "object"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PUT /api/system-accounts",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah pemetaan AKUN SISTEM? Mempengaruhi SEMUA auto-posting GL. Sangat berisiko."
+    },
+    {
+      "name": "notif_list",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Daftar notifikasi user.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/notifications",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "notif_unread_count",
+      "group": "Master & Sistem",
+      "module": "settings",
+      "desc": "Jumlah notifikasi belum dibaca.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "count": "number"
+      },
+      "handler": "GET /api/notifications/unread-count",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_asset_list",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Daftar aset GA (EAM).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/assets",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_asset_next_code",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Kode aset GA berikutnya.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "code": "string"
+      },
+      "handler": "GET /api/ga/assets/_next-code",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_asset_get",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Detail satu aset GA.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "asset": "object"
+      },
+      "handler": "GET /api/ga/assets/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_asset_create",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Buat aset GA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string",
+        "category": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/assets",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat aset GA '{name}'. Setujui?"
+    },
+    {
+      "name": "ga_asset_update",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Ubah aset GA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/assets/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah aset GA {id}. Setujui?"
+    },
+    {
+      "name": "ga_asset_bulk_update",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Ubah massal aset GA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "ids": "array",
+        "patch": "object"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/assets/bulk/update",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah massal {ids} aset GA. Setujui?"
+    },
+    {
+      "name": "ga_asset_bulk_delete",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Hapus massal aset GA.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "ids": "array"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/ga/assets/bulk/delete",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS massal {ids} aset GA?"
+    },
+    {
+      "name": "ga_asset_set_condition",
+      "group": "EAM",
+      "module": "ga_assets",
+      "desc": "Set kondisi aset GA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "condition": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/assets/:id/condition",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Set kondisi aset GA {id} = {condition}. Setujui?"
+    },
+    {
+      "name": "ga_veh_get",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Detail kendaraan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "vehicle": "object"
+      },
+      "handler": "GET /api/ga/vehicle/assets/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_veh_update",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Ubah data kendaraan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/vehicle/assets/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah kendaraan {id}. Setujui?"
+    },
+    {
+      "name": "ga_veh_services",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Riwayat servis kendaraan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/vehicle/assets/:id/services",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_veh_add_service",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Catat servis kendaraan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "desc": "string",
+        "cost": "number"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/vehicle/assets/:id/services",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat servis kendaraan {id}: {desc} Rp {cost}. Setujui?"
+    },
+    {
+      "name": "ga_veh_service_requests",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Daftar permintaan servis kendaraan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/vehicle/service-requests",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_veh_service_request_get",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Detail permintaan servis.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "request": "object"
+      },
+      "handler": "GET /api/ga/vehicle/service-requests/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_veh_create_service_request",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Ajukan permintaan servis kendaraan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "desc": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/vehicle/assets/:id/service-requests",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ajukan servis kendaraan {id}: {desc}. Setujui?"
+    },
+    {
+      "name": "ga_veh_approve_service",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Setujui permintaan servis kendaraan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/vehicle/service-requests/:id/approve",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "SETUJUI permintaan servis {id}. Setujui?"
+    },
+    {
+      "name": "ga_veh_reject_service",
+      "group": "EAM",
+      "module": "ga_vehicle",
+      "desc": "Tolak permintaan servis kendaraan.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/vehicle/service-requests/:id/reject",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "TOLAK permintaan servis {id}? Alasan: {reason}."
+    },
+    {
+      "name": "ga_bld_get",
+      "group": "EAM",
+      "module": "ga_building",
+      "desc": "Detail gedung.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "building": "object"
+      },
+      "handler": "GET /api/ga/building/assets/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_bld_update",
+      "group": "EAM",
+      "module": "ga_building",
+      "desc": "Ubah data gedung.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/building/assets/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah gedung {id}. Setujui?"
+    },
+    {
+      "name": "ga_bld_rentals",
+      "group": "EAM",
+      "module": "ga_building",
+      "desc": "Daftar sewa gedung.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/building/assets/:id/rentals",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_bld_add_rental",
+      "group": "EAM",
+      "module": "ga_building",
+      "desc": "Catat sewa gedung.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "tenant": "string",
+        "amount": "number"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/building/assets/:id/rentals",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat sewa gedung {id} ke {tenant} Rp {amount}. Setujui?"
+    },
+    {
+      "name": "ga_bld_update_rental",
+      "group": "EAM",
+      "module": "ga_building",
+      "desc": "Ubah sewa gedung.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "rid": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/building/assets/:id/rentals/:rid",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah sewa gedung {id}/{rid}. Setujui?"
+    },
+    {
+      "name": "ga_bld_end_rental",
+      "group": "EAM",
+      "module": "ga_building",
+      "desc": "Akhiri sewa gedung.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "rid": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/building/assets/:id/rentals/:rid/end",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Akhiri sewa gedung {id}/{rid}. Setujui?"
+    },
+    {
+      "name": "ga_eqp_get",
+      "group": "EAM",
+      "module": "ga_equipment",
+      "desc": "Detail equipment.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "equipment": "object"
+      },
+      "handler": "GET /api/ga/equipment/assets/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_eqp_update",
+      "group": "EAM",
+      "module": "ga_equipment",
+      "desc": "Ubah data equipment.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/equipment/assets/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah equipment {id}. Setujui?"
+    },
+    {
+      "name": "ga_eqp_calibration_logs",
+      "group": "EAM",
+      "module": "ga_equipment",
+      "desc": "Riwayat kalibrasi equipment.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/equipment/assets/:id/calibration-logs",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "ga_eqp_add_calibration",
+      "group": "EAM",
+      "module": "ga_equipment",
+      "desc": "Catat kalibrasi equipment.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "date": "date",
+        "result": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/equipment/assets/:id/calibration-logs",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat kalibrasi equipment {id} ({result}). Setujui?"
+    },
+    {
+      "name": "gm_schedules",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Jadwal maintenance.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/maintenance/schedules",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gm_schedule_create",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Buat jadwal maintenance.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "assetId": "string",
+        "interval": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/maintenance/schedules",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat jadwal maintenance aset {assetId} interval {interval}. Setujui?"
+    },
+    {
+      "name": "gm_schedule_update",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Ubah jadwal maintenance.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/maintenance/schedules/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah jadwal maintenance {id}. Setujui?"
+    },
+    {
+      "name": "gm_wo_list",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Daftar Work Order maintenance.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "status": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/maintenance/work-orders",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gm_wo_get",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Detail Work Order.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "workOrder": "object"
+      },
+      "handler": "GET /api/ga/maintenance/work-orders/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gm_wo_create",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Buat Work Order maintenance.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "assetId": "string",
+        "desc": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/maintenance/work-orders",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 5,
+      "confirm_template": "Buat Work Order untuk aset {assetId}: {desc}. Setujui?"
+    },
+    {
+      "name": "gm_wo_assign",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Tugaskan Work Order ke teknisi.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "assigneeId": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/maintenance/work-orders/:id/assign",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tugaskan WO {id} ke {assigneeId}. Setujui?"
+    },
+    {
+      "name": "gm_wo_start",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Mulai pengerjaan Work Order.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/maintenance/work-orders/:id/start",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Mulai WO {id}. Setujui?"
+    },
+    {
+      "name": "gm_wo_complete",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Selesaikan Work Order.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "notes": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/maintenance/work-orders/:id/complete",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Selesaikan WO {id}. Setujui?"
+    },
+    {
+      "name": "gm_wo_close",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Tutup Work Order.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/maintenance/work-orders/:id/close",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tutup WO {id}. Setujui?"
+    },
+    {
+      "name": "gm_wo_cancel",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Batalkan Work Order.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "reason": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "PATCH /api/ga/maintenance/work-orders/:id/cancel",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "BATALKAN WO {id}? Alasan: {reason}."
+    },
+    {
+      "name": "gm_wo_add_parts",
+      "group": "EAM",
+      "module": "ga_maintenance",
+      "desc": "Tambah sparepart ke Work Order (konsumsi inventaris).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string",
+        "parts": "array"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "POST /api/ga/maintenance/work-orders/:id/parts",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Tambah {parts} sparepart ke WO {id}. Setujui? (konsumsi inventaris GA)"
+    },
+    {
+      "name": "gi_items",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Daftar inventaris GA (sparepart/ATK).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "search": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/inventory/items",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gi_item_get",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Detail item inventaris GA.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "item": "object"
+      },
+      "handler": "GET /api/ga/inventory/items/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gi_low_stock",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Inventaris GA stok rendah.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/inventory/low-stock",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gi_movements",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Pergerakan inventaris GA.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "itemId": "string"
+      },
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/inventory/movements",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gi_item_create",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Buat item inventaris GA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string",
+        "unit": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/inventory/items",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat item inventaris GA '{name}'. Setujui?"
+    },
+    {
+      "name": "gi_item_update",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Ubah item inventaris GA.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/inventory/items/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah item inventaris GA {id}. Setujui?"
+    },
+    {
+      "name": "gi_movement_create",
+      "group": "EAM",
+      "module": "ga_inventory",
+      "desc": "Catat pergerakan inventaris GA (masuk/keluar).",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "itemId": "string",
+        "type": "string",
+        "quantity": "number"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/inventory/movements",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat pergerakan inventaris GA {type} {quantity} item {itemId}. Setujui?"
+    },
+    {
+      "name": "gd_list",
+      "group": "EAM",
+      "module": "ga_documents",
+      "desc": "Daftar dokumen legal/sertifikat (termasuk yg hampir kadaluarsa untuk reminder).",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "expiringSoon": "boolean"
+      },
+      "output": {
+        "documents": "array"
+      },
+      "handler": "GET /api/ga/documents",
+      "permAction": "view",
+      "enabled": false,
+      "level": 3,
+      "phase": 5
+    },
+    {
+      "name": "gd_get",
+      "group": "EAM",
+      "module": "ga_documents",
+      "desc": "Detail satu dokumen legal.",
+      "risk": "read",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "document": "object"
+      },
+      "handler": "GET /api/ga/documents/:id",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gd_create",
+      "group": "EAM",
+      "module": "ga_documents",
+      "desc": "Catat dokumen legal/sertifikat.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string",
+        "expiryDate": "date"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/documents",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Catat dokumen legal '{name}' (exp {expiryDate}). Setujui?"
+    },
+    {
+      "name": "gd_update",
+      "group": "EAM",
+      "module": "ga_documents",
+      "desc": "Ubah dokumen legal.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "PUT /api/ga/documents/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Ubah dokumen legal {id}. Setujui?"
+    },
+    {
+      "name": "gd_delete",
+      "group": "EAM",
+      "module": "ga_documents",
+      "desc": "Hapus dokumen legal.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "output": {
+        "status": "string"
+      },
+      "handler": "DELETE /api/ga/documents/:id",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "HAPUS dokumen legal {id}?"
+    },
+    {
+      "name": "gam_branches",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Daftar cabang (master EAM).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/master/branches",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gam_branch_create",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Buat cabang.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/master/branches",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat cabang '{name}'. Setujui?"
+    },
+    {
+      "name": "gam_cost_centers",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Daftar cost center.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/master/cost-centers",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gam_cost_center_create",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Buat cost center.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi"
+      ],
+      "input": {
+        "name": "string"
+      },
+      "output": {
+        "id": "string"
+      },
+      "handler": "POST /api/ga/master/cost-centers",
+      "permAction": "edit",
+      "enabled": false,
+      "level": 1,
+      "phase": 1,
+      "confirm_template": "Buat cost center '{name}'. Setujui?"
+    },
+    {
+      "name": "gam_asset_categories",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Daftar kategori aset EAM.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/master/asset-categories",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gam_locations",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Daftar lokasi EAM.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/master/locations",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gam_document_types",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Daftar tipe dokumen legal.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/master/document-types",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    },
+    {
+      "name": "gam_inventory_categories",
+      "group": "EAM",
+      "module": "ga_master",
+      "desc": "Daftar kategori inventaris GA.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {},
+      "output": {
+        "items": "array"
+      },
+      "handler": "GET /api/ga/master/inventory-categories",
+      "permAction": "view",
+      "enabled": false,
+      "level": 1,
+      "phase": 1
+    }
+  ]
+}
