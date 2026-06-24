@@ -1,0 +1,119 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+@page { size: 1190px 842px; margin: 0; }
+* { box-sizing: border-box; margin:0; padding:0; }
+body { font-family:'DejaVu Sans',sans-serif; }
+.page { width:1190px; height:842px; padding:38px 46px; position:relative; background:#fff;
+  background-image:linear-gradient(rgba(11,27,61,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(11,27,61,.04) 1px,transparent 1px);
+  background-size:42px 42px; }
+.title { font-size:23px; font-weight:800; color:#0B1B3D; letter-spacing:-.4px; }
+.title b { color:#0a93b8; }
+.sub { font-size:11px; color:#6b7a90; margin-top:4px; margin-bottom:14px; }
+.legend { position:absolute; top:42px; right:46px; font-size:9px; color:#6b7a90; text-align:right; line-height:1.7; }
+.legend span { display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:middle; margin-right:4px; }
+
+/* entity card */
+.ent { position:absolute; border-radius:9px; overflow:hidden; border:1.5px solid #0B1B3D; width:198px; background:#fff; box-shadow:0 1px 3px rgba(11,27,61,.08); }
+.ent.ai { border-color:#0a93b8; }
+.ent.erp { border-color:#16786a; }
+.ent .h { font-size:11px; font-weight:800; color:#fff; background:#0B1B3D; padding:6px 10px; letter-spacing:.2px; }
+.ent.ai .h { background:#0a93b8; }
+.ent.erp .h { background:#16786a; }
+.ent .b { padding:6px 10px; font-size:8.6px; color:#33414f; line-height:1.55; }
+.ent .b .pk { color:#0a93b8; font-weight:700; }
+.ent .b .fk { color:#16786a; font-weight:700; }
+
+/* connector lines via svg */
+svg.wires { position:absolute; inset:0; width:1190px; height:842px; z-index:0; pointer-events:none; }
+.note { position:absolute; font-size:8.5px; color:#8a97a8; font-style:italic; }
+.foot { position:absolute; bottom:20px; left:46px; right:46px; display:flex; justify-content:space-between;
+  font-size:9px; color:#7b8aa0; border-top:1px solid #d3dae3; padding-top:7px; }
+</style></head><body>
+<div class="page">
+  <div class="title">ERD — <b>AI Layer</b> & Relasi ke Simple ERP</div>
+  <div class="sub">Tujuh entitas AI (biru) menambah, tidak mengubah, 96 entitas ERP (hijau). Relasi ke ERP = ID lunak (dapat dilepas).</div>
+  <div class="legend">
+    <div><span style="background:#0a93b8"></span>Entitas AI-Layer (baru)</div>
+    <div><span style="background:#16786a"></span>Entitas ERP existing</div>
+    <div><span style="background:#0B1B3D"></span>PK &nbsp; <span style="background:#16786a"></span>FK</div>
+  </div>
+
+  <svg class="wires" width="1190" height="842" xmlns="http://www.w3.org/2000/svg">
+    <!-- ROW1 chain (box mid-height ~218, boxes: 70-268, 320-518, 570-768, 820-1018) -->
+    <path d="M 268 218 L 320 218" stroke="#0a93b8" stroke-width="2.2" fill="none"/>
+    <path d="M 518 218 L 570 218" stroke="#0a93b8" stroke-width="2.2" fill="none"/>
+    <path d="M 768 218 L 820 218" stroke="#0a93b8" stroke-width="2.2" fill="none"/>
+    <!-- AiConversation(left~169,bottom~248) -> AiWhitelist(top~470) -->
+    <path d="M 169 248 L 169 470" stroke="#0a93b8" stroke-width="1.6" fill="none" stroke-dasharray="5 4"/>
+    <!-- AiWhitelist(right~348,mid~512) -> User(left~420,mid~512) -->
+    <path d="M 348 512 L 420 512" stroke="#16786a" stroke-width="1.8" fill="none"/>
+    <!-- AiAgentIdentity(top~660) -> User: lurus naik ke samping kiri User -->
+    <path d="M 270 690 L 400 690 L 400 535 L 420 535" stroke="#0a93b8" stroke-width="1.6" fill="none" stroke-dasharray="5 4"/>
+    <!-- AiActionAudit -> ApprovalRequest -->
+    <path d="M 919 248 L 919 470" stroke="#0a93b8" stroke-width="1.8" fill="none" stroke-dasharray="5 4"/>
+    <!-- ApprovalRequest -> Dokumen ERP -->
+    <path d="M 919 545 L 919 645" stroke="#16786a" stroke-width="1.8" fill="none"/>
+    <!-- AiActionAudit(bottom~870,248) -> AuditLog(top~647,455): turun dari bawah box -->
+    <path d="M 870 248 L 870 360 L 700 360 L 700 455" stroke="#0a93b8" stroke-width="1.5" fill="none" stroke-dasharray="4 4"/>
+    <!-- AiMemory(top~700) -> User: konek biar tak floating -->
+    <path d="M 470 700 L 530 700 L 530 545" stroke="#0a93b8" stroke-width="1.5" fill="none" stroke-dasharray="5 4"/>
+  </svg>
+
+  <!-- ROW 1: AI conversation chain -->
+  <div class="ent ai" style="left:70px; top:175px">
+    <div class="h">AiConversation</div>
+    <div class="b"><span class="pk">id</span> · channel · channelChatId<br><span class="fk">userId→User</span> · status · startedAt</div>
+  </div>
+  <div class="ent ai" style="left:320px; top:175px">
+    <div class="h">AiMessage</div>
+    <div class="b"><span class="pk">id</span> · <span class="fk">conversationId</span> · role<br>content · tokensIn/Out · costUsd</div>
+  </div>
+  <div class="ent ai" style="left:570px; top:175px">
+    <div class="h">AiToolCall</div>
+    <div class="b"><span class="pk">id</span> · <span class="fk">conversationId</span><br>toolName · tier · argsJson · status · latencyMs</div>
+  </div>
+  <div class="ent ai" style="left:820px; top:175px">
+    <div class="h">AiActionAudit</div>
+    <div class="b"><span class="pk">id</span> · <span class="fk">toolCallId</span> · module<br>erpEntityType/Id · effect · <span class="fk">approvalRequestId</span></div>
+  </div>
+
+  <!-- ROW 2: bridge to ERP -->
+  <div class="ent ai" style="left:150px; top:470px">
+    <div class="h">AiWhitelist</div>
+    <div class="b"><span class="pk">id</span> · channel · channelUserId<br><span class="fk">userId→User</span> · scopeJson · isActive</div>
+  </div>
+  <div class="ent erp" style="left:420px; top:478px; width:175px">
+    <div class="h">User (ERP)</div>
+    <div class="b"><span class="pk">id</span> · email · <span class="fk">roleKey</span><br>(termasuk service-user "AI Agent")</div>
+  </div>
+  <div class="ent erp" style="left:560px; top:455px; width:175px">
+    <div class="h">AuditLog (ERP)</div>
+    <div class="b"><span class="pk">id</span> · action · entity<br>userId · timestamp</div>
+  </div>
+  <div class="ent erp" style="left:820px; top:470px">
+    <div class="h">ApprovalRequest (ERP)</div>
+    <div class="b"><span class="pk">id</span> · documentType · payload<br>status · <span class="fk">requestedBy/approvedBy</span></div>
+  </div>
+
+  <!-- ROW 3 -->
+  <div class="ent ai" style="left:70px; top:660px">
+    <div class="h">AiAgentIdentity</div>
+    <div class="b"><span class="pk">id</span> · <span class="fk">serviceUserId→User</span><br>roleKey · modelName · isActive</div>
+  </div>
+  <div class="ent ai" style="left:320px; top:660px; width:230px">
+    <div class="h">AiMemory <span style="font-weight:400; font-size:8px">(fase lanjut)</span></div>
+    <div class="b"><span class="pk">id</span> · <span class="fk">userId</span> · scope · refType/Id<br>content · embedding (pgvector, opsional)</div>
+  </div>
+  <div class="ent erp" style="left:820px; top:645px">
+    <div class="h">Dokumen ERP (96 entitas)</div>
+    <div class="b">Payment · SalesInvoice · DeliveryOrder<br>JournalEntry · PurchaseInvoice · … (dibuat saat approve)</div>
+  </div>
+
+  <div class="note" style="left:660px; top:600px; width:150px">ApprovalRequest existing yang<br>mengeksekusi → buat dokumen<br>saat owner Setuju</div>
+  <div class="note" style="left:215px; top:430px; width:155px">Relasi ke ERP = ID lunak (garis<br>putus) → AI-layer dapat dilepas</div>
+
+  <div class="foot">
+    <div>Disiapkan oleh Arah Karya Sinergi (AKS)</div>
+    <div>ERD AI Layer · Simple ERP · Juni 2026</div>
+  </div>
+</div>
+</body></html>

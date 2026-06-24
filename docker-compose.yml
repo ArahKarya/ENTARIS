@@ -18,13 +18,15 @@
 # Lock project name explicitly so renaming the folder doesn't break the
 # existing volumes/network/container names. Project = aplikasi-keuangan-pmd
 # regardless of working directory.
-name: aplikasi-keuangan-pmd
+name: simple-erp
 
 services:
   # ── Database ──────────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5435:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-keuangan}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keuangan_secret_2026}

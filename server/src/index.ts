@@ -29,6 +29,8 @@ import paymentRoutes from './routes/payments';
 import partyRoutes from './routes/parties';
 import dashboardRoutes from './routes/dashboard';
 import reportRoutes from './routes/reports';
+import aiConfigRoutes from './routes/ai/config';
+import aiRouterRoutes from './routes/ai/router';
 import settingsRoutes from './routes/settings';
 import fiscalYearRoutes from './routes/fiscalYears';
 import inventoryRoutes from './routes/inventory';
@@ -242,6 +244,12 @@ app.use('/api/settings', settingsRoutes);            // GET /company terbuka; tu
 app.use('/api/users', usersRoutes);                  // /me/password terbuka; admin di-gate di file
 app.use('/api/roles', roleRoutes);                   // kelola RBAC — guard requireCap('rbac.manage') di file
 app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di inventory/index.ts
+
+// ─── AIRA — AI Tool Layer & Tool Router (Agentic System) ──────────────────────
+// config: kelola tool/setting/whitelist → gate requireWrite('settings') + cap
+//         rbac.manage di endpoint sensitif (di file). router: per-tool RBAC di file.
+app.use('/api/ai/config', requireWrite('settings'), aiConfigRoutes);
+app.use('/api/ai/router', aiRouterRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist.
