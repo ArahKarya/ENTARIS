@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "generatedNote": "Registry tool AI Layer Simple ERP. Single source of truth mapping function (tool AI) -> endpoint ERP + kontrol izin. Tambah fitur baru = tambah 1 objek ke array 'tools', lalu jalankan validate-registry.mjs. Disusun dari audit kode (server/src/routes + services + constants/modules.ts).",
+  "modules": [
+    "sales_order", "delivery_order", "sales_invoice", "quotation", "sales_return", "customer_deposit",
+    "purchase_order", "goods_receipt", "purchase_invoice", "vendor_deposit",
+    "inventory", "stock_transfer", "stock_opname", "production", "warehouse",
+    "payment", "reconciliation", "recurring", "project_guarantee",
+    "coa", "journal", "fixed_assets", "approvals",
+    "ga_assets", "ga_vehicle", "ga_building", "ga_equipment", "ga_maintenance", "ga_inventory", "ga_documents", "ga_master",
+    "reports", "parties", "settings", "users", "audit"
+  ],
+  "capabilities": [
+    "doc.cancel", "approval.decide", "approval.bypass", "approval.view_all", "inventory.negative_stock", "rbac.manage"
+  ],
+  "tools": [
+    { "name": "so_list", "group": "Penjualan", "module": "sales_order", "kind": "read", "tier": "auto", "method": "GET", "path": "/sales-orders", "permAction": "view", "summary": "Daftar Sales Order", "phase": 3, "enabled": false },
+    { "name": "so_get", "group": "Penjualan", "module": "sales_order", "kind": "read", "tier": "auto", "method": "GET", "path": "/sales-orders/:id", "permAction": "view", "summary": "Detail satu Sales Order", "phase": 3, "enabled": false },
+    { "name": "so_create", "group": "Penjualan", "module": "sales_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales-orders", "permAction": "edit", "summary": "Buat Sales Order baru", "phase": 3, "enabled": false },
+    { "name": "so_submit", "group": "Penjualan", "module": "sales_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales-orders/:id/submit", "permAction": "edit", "summary": "Submit Sales Order", "phase": 3, "enabled": false },
+    { "name": "so_generate_do", "group": "Penjualan", "module": "sales_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales-orders/:id/generate-do", "permAction": "edit", "summary": "Buat Surat Jalan dari SO", "phase": 3, "enabled": false },
+    { "name": "so_cancel", "group": "Penjualan", "module": "sales_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales-orders/:id/cancel", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan Sales Order", "phase": 3, "enabled": false },
+
+    { "name": "do_list", "group": "Penjualan", "module": "delivery_order", "kind": "read", "tier": "auto", "method": "GET", "path": "/delivery-orders", "permAction": "view", "summary": "Daftar Surat Jalan", "phase": 3, "enabled": false },
+    { "name": "do_pending", "group": "Penjualan", "module": "delivery_order", "kind": "read", "tier": "auto", "method": "GET", "path": "/delivery-orders/pending", "permAction": "view", "summary": "Surat Jalan menunggu", "phase": 3, "enabled": false },
+    { "name": "do_create", "group": "Penjualan", "module": "delivery_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/delivery-orders", "service": "deliveryOrderSubmit", "permAction": "edit", "summary": "Buat Surat Jalan", "phase": 3, "enabled": false },
+    { "name": "do_from_invoice", "group": "Penjualan", "module": "delivery_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/delivery-orders/from-invoice/:invoiceId", "service": "deliveryOrderFromInvoice", "permAction": "edit", "summary": "Buat Surat Jalan dari Invoice", "phase": 3, "enabled": false },
+    { "name": "do_cancel", "group": "Penjualan", "module": "delivery_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/delivery-orders/:id/cancel", "service": "deliveryOrderCancel", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan Surat Jalan", "phase": 3, "enabled": false },
+
+    { "name": "si_list", "group": "Penjualan", "module": "sales_invoice", "kind": "read", "tier": "auto", "method": "GET", "path": "/sales/invoices", "permAction": "view", "summary": "Daftar Invoice Penjualan", "phase": 3, "enabled": false },
+    { "name": "si_get", "group": "Penjualan", "module": "sales_invoice", "kind": "read", "tier": "auto", "method": "GET", "path": "/sales/invoices/:id", "permAction": "view", "summary": "Detail Invoice Penjualan", "phase": 3, "enabled": false },
+    { "name": "si_create", "group": "Penjualan", "module": "sales_invoice", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales/invoices", "service": "salesInvoiceSubmit", "permAction": "edit", "summary": "Buat Invoice Penjualan (DR Piutang/CR Penjualan)", "phase": 3, "enabled": false },
+    { "name": "si_cancel", "group": "Penjualan", "module": "sales_invoice", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales/invoices/:id/cancel", "service": "invoiceCancellation", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan Invoice Penjualan", "phase": 3, "enabled": false },
+
+    { "name": "quo_list", "group": "Penjualan", "module": "quotation", "kind": "read", "tier": "auto", "method": "GET", "path": "/quotations", "permAction": "view", "summary": "Daftar Penawaran/Quotation", "phase": 3, "enabled": false },
+    { "name": "quo_stats", "group": "Penjualan", "module": "quotation", "kind": "read", "tier": "auto", "method": "GET", "path": "/quotations/stats", "permAction": "view", "summary": "Statistik Quotation", "phase": 3, "enabled": false },
+    { "name": "quo_create", "group": "Penjualan", "module": "quotation", "kind": "action", "tier": "draft", "method": "POST", "path": "/quotations", "permAction": "edit", "summary": "Buat Quotation (tanpa efek GL)", "phase": 3, "enabled": false },
+
+    { "name": "sr_list", "group": "Penjualan", "module": "sales_return", "kind": "read", "tier": "auto", "method": "GET", "path": "/sales-returns", "permAction": "view", "summary": "Daftar Retur Penjualan", "phase": 3, "enabled": false },
+    { "name": "sr_create", "group": "Penjualan", "module": "sales_return", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/sales-returns", "service": "salesReturnSubmit", "permAction": "edit", "summary": "Buat Retur Penjualan", "phase": 3, "enabled": false },
+
+    { "name": "cd_list", "group": "Penjualan", "module": "customer_deposit", "kind": "read", "tier": "auto", "method": "GET", "path": "/customer-deposits", "permAction": "view", "summary": "Daftar Uang Muka Pelanggan", "phase": 4, "enabled": false },
+    { "name": "cd_create", "group": "Penjualan", "module": "customer_deposit", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/customer-deposits", "permAction": "edit", "summary": "Catat Uang Muka Pelanggan", "phase": 4, "enabled": false },
+
+    { "name": "po_list", "group": "Pembelian", "module": "purchase_order", "kind": "read", "tier": "auto", "method": "GET", "path": "/purchase-orders", "permAction": "view", "summary": "Daftar Purchase Order", "phase": 3, "enabled": false },
+    { "name": "po_create", "group": "Pembelian", "module": "purchase_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/purchase-orders", "service": "purchaseOrderSubmit", "permAction": "edit", "summary": "Buat Purchase Order", "phase": 3, "enabled": false },
+    { "name": "po_cancel", "group": "Pembelian", "module": "purchase_order", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/purchase-orders/:id/cancel", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan Purchase Order", "phase": 3, "enabled": false },
+
+    { "name": "gr_list", "group": "Pembelian", "module": "goods_receipt", "kind": "read", "tier": "auto", "method": "GET", "path": "/goods-receipts", "permAction": "view", "summary": "Daftar Penerimaan Barang (BPB/STT)", "phase": 3, "enabled": false },
+    { "name": "gr_create", "group": "Pembelian", "module": "goods_receipt", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/goods-receipts", "service": "goodsReceiptSubmit", "permAction": "edit", "summary": "Catat Penerimaan Barang (stok+accrual hutang)", "phase": 3, "enabled": false },
+    { "name": "gr_cancel", "group": "Pembelian", "module": "goods_receipt", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/goods-receipts/:id/cancel", "service": "goodsReceiptCancel", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan Penerimaan Barang", "phase": 3, "enabled": false },
+
+    { "name": "pi_list", "group": "Pembelian", "module": "purchase_invoice", "kind": "read", "tier": "auto", "method": "GET", "path": "/purchase/invoices", "permAction": "view", "summary": "Daftar Invoice Pembelian", "phase": 3, "enabled": false },
+    { "name": "pi_create", "group": "Pembelian", "module": "purchase_invoice", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/purchase/invoices", "service": "purchaseInvoiceSubmit", "permAction": "edit", "summary": "Buat Invoice Pembelian", "phase": 3, "enabled": false },
+    { "name": "pi_revise_price", "group": "Pembelian", "module": "purchase_invoice", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/purchase/invoices/:id/revise-price", "service": "purchaseInvoiceRevise", "permAction": "edit", "summary": "Revisi harga Invoice Pembelian", "phase": 3, "enabled": false },
+
+    { "name": "inv_items", "group": "Stok & Produksi", "module": "inventory", "kind": "read", "tier": "auto", "method": "GET", "path": "/inventory/items", "permAction": "view", "summary": "Daftar item stok", "phase": 1, "enabled": false },
+    { "name": "inv_low_stock", "group": "Stok & Produksi", "module": "inventory", "kind": "read", "tier": "auto", "method": "GET", "path": "/inventory/items/low-stock", "permAction": "view", "summary": "Item stok menipis", "phase": 1, "enabled": false },
+    { "name": "inv_movement", "group": "Stok & Produksi", "module": "inventory", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/inventory/movements", "permAction": "edit", "summary": "Penyesuaian stok manual", "phase": 4, "enabled": false },
+
+    { "name": "st_list", "group": "Stok & Produksi", "module": "stock_transfer", "kind": "read", "tier": "auto", "method": "GET", "path": "/stock-transfers", "permAction": "view", "summary": "Daftar Transfer Stok", "phase": 4, "enabled": false },
+    { "name": "st_create", "group": "Stok & Produksi", "module": "stock_transfer", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/stock-transfers", "service": "stockTransfer", "permAction": "edit", "summary": "Buat Transfer Stok", "phase": 4, "enabled": false },
+
+    { "name": "prod_runs", "group": "Stok & Produksi", "module": "production", "kind": "read", "tier": "auto", "method": "GET", "path": "/production/runs", "permAction": "view", "summary": "Daftar Production Run", "phase": 4, "enabled": false },
+    { "name": "prod_oee", "group": "Stok & Produksi", "module": "production", "kind": "read", "tier": "auto", "method": "GET", "path": "/inventory/dashboard/oee", "permAction": "view", "summary": "Metrik OEE produksi", "phase": 4, "enabled": false },
+    { "name": "prod_run_create", "group": "Stok & Produksi", "module": "production", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/production/runs", "service": "productionRunSubmit", "permAction": "edit", "summary": "Buat Production Run", "phase": 4, "enabled": false },
+
+    { "name": "pay_list", "group": "Bank & Kas", "module": "payment", "kind": "read", "tier": "auto", "method": "GET", "path": "/payments", "permAction": "view", "summary": "Daftar transaksi bank/kas", "phase": 2, "enabled": false },
+    { "name": "pay_get", "group": "Bank & Kas", "module": "payment", "kind": "read", "tier": "auto", "method": "GET", "path": "/payments/:id", "permAction": "view", "summary": "Detail satu transaksi bank/kas", "phase": 2, "enabled": false },
+    { "name": "pay_cash_journals", "group": "Bank & Kas", "module": "payment", "kind": "read", "tier": "auto", "method": "GET", "path": "/payments/cash-journals", "permAction": "view", "summary": "Jurnal kas", "phase": 2, "enabled": false },
+    { "name": "pay_draft_receive", "group": "Bank & Kas", "module": "payment", "kind": "draft", "tier": "draft", "method": "POST", "path": "/payments", "service": "paymentSubmit", "permAction": "edit", "summary": "Siapkan draft penerimaan (alokasi ke invoice)", "phase": 2, "enabled": false, "args": [ { "name": "amount", "type": "number", "required": true, "desc": "Nominal" }, { "name": "accountId", "type": "string", "required": true, "desc": "Akun bank tujuan" }, { "name": "allocations", "type": "array", "required": false, "desc": "Alokasi ke invoice" } ] },
+    { "name": "pay_record", "group": "Bank & Kas", "module": "payment", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/payments", "service": "paymentSubmit", "permAction": "edit", "summary": "Catat transaksi bank (DR/CR Kas/Bank) — PILOT", "phase": 2, "enabled": false },
+    { "name": "pay_cancel", "group": "Bank & Kas", "module": "payment", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/payments/:id/cancel", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan transaksi bank", "phase": 2, "enabled": false },
+
+    { "name": "recon_list", "group": "Bank & Kas", "module": "reconciliation", "kind": "read", "tier": "auto", "method": "GET", "path": "/reconciliation", "permAction": "view", "summary": "Daftar rekonsiliasi bank", "phase": 4, "enabled": false },
+    { "name": "recon_complete", "group": "Bank & Kas", "module": "reconciliation", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/reconciliation/:id/complete", "permAction": "edit", "summary": "Selesaikan rekonsiliasi", "phase": 4, "enabled": false },
+
+    { "name": "coa_list", "group": "Akuntansi", "module": "coa", "kind": "read", "tier": "auto", "method": "GET", "path": "/coa", "permAction": "view", "summary": "Bagan Akun (COA)", "phase": 1, "enabled": false },
+    { "name": "coa_flat", "group": "Akuntansi", "module": "coa", "kind": "read", "tier": "auto", "method": "GET", "path": "/coa/flat", "permAction": "view", "summary": "COA flat list", "phase": 1, "enabled": false },
+
+    { "name": "je_list", "group": "Akuntansi", "module": "journal", "kind": "read", "tier": "auto", "method": "GET", "path": "/journals", "permAction": "view", "summary": "Daftar jurnal/buku besar", "phase": 4, "enabled": false },
+    { "name": "je_create", "group": "Akuntansi", "module": "journal", "kind": "action", "tier": "must_approve", "method": "POST", "path": "/journals", "permAction": "edit", "summary": "Buat jurnal manual (wajib balanced)", "phase": 4, "enabled": false },
+    { "name": "je_cancel", "group": "Akuntansi", "module": "journal", "kind": "action", "tier": "must_approve", "method": "PATCH", "path": "/journals/:id/cancel", "permAction": "edit", "requiresCapability": "doc.cancel", "summary": "Batalkan jurnal", "phase": 4, "enabled": false },
+
+    { "name": "fa_list", "group": "Akuntansi", "module": "fixed_assets", "kind": "read", "tier": "auto", "method": "GET", "path": "/fixed-assets", "permAction": "view", "summary": "Daftar Aset Tetap", "phase": 4, "enabled": false },
+
+    { "name": "appr_list", "group": "Akuntansi", "module": "approvals", "kind": "read", "tier": "auto", "method": "GET", "path": "/approvals", "permAction": "view", "summary": "Daftar pengajuan approval", "phase": 2, "enabled": false },
+
+    { "name": "ga_assets", "group": "EAM", "module": "ga_assets", "kind": "read", "tier": "auto", "method": "GET", "path": "/ga/assets", "permAction": "view", "summary": "Daftar aset GA", "phase": 5, "enabled": false },
+    { "name": "ga_asset_create", "group": "EAM", "module": "ga_assets", "kind": "action", "tier": "draft", "method": "POST", "path": "/ga/assets", "permAction": "edit", "summary": "Buat aset GA", "phase": 5, "enabled": false },
+    { "name": "gv_services", "group": "EAM", "module": "ga_vehicle", "kind": "read", "tier": "auto", "method": "GET", "path": "/ga/vehicle/assets/:id/services", "permAction": "view", "summary": "Riwayat servis kendaraan", "phase": 5, "enabled": false },
+    { "name": "gm_work_orders", "group": "EAM", "module": "ga_maintenance", "kind": "read", "tier": "auto", "method": "GET", "path": "/ga/maintenance/work-orders", "permAction": "view", "summary": "Daftar Work Order maintenance", "phase": 5, "enabled": false },
+    { "name": "gm_wo_create", "group": "EAM", "module": "ga_maintenance", "kind": "action", "tier": "draft", "method": "POST", "path": "/ga/maintenance/work-orders", "permAction": "edit", "summary": "Buat Work Order", "phase": 5, "enabled": false },
+    { "name": "gd_expiring", "group": "EAM", "module": "ga_documents", "kind": "read", "tier": "auto", "method": "GET", "path": "/ga/documents", "permAction": "view", "summary": "Dokumen legal mendekati kedaluwarsa (reminder)", "phase": 5, "enabled": false },
+
+    { "name": "rpt_balance_sheet", "group": "Laporan", "module": "reports", "kind": "read", "tier": "auto", "method": "GET", "path": "/reports", "permAction": "view", "summary": "Laporan neraca", "phase": 1, "enabled": true },
+    { "name": "rpt_dashboard", "group": "Laporan", "module": "reports", "kind": "read", "tier": "auto", "method": "GET", "path": "/dashboard", "permAction": "view", "summary": "Metrik dashboard ringkas", "phase": 1, "enabled": true },
+
+    { "name": "party_search", "group": "Master & Sistem", "module": "parties", "kind": "read", "tier": "auto", "method": "GET", "path": "/parties", "permAction": "view", "summary": "Cari pelanggan/vendor", "phase": 1, "enabled": true },
+    { "name": "party_similar", "group": "Master & Sistem", "module": "parties", "kind": "read", "tier": "auto", "method": "GET", "path": "/parties/similar", "permAction": "view", "summary": "Deteksi duplikat party", "phase": 1, "enabled": false },
+    { "name": "party_create", "group": "Master & Sistem", "module": "parties", "kind": "action", "tier": "draft", "method": "POST", "path": "/parties", "permAction": "edit", "summary": "Buat pelanggan/vendor baru", "phase": 3, "enabled": false },
+    { "name": "audit_search", "group": "Master & Sistem", "module": "audit", "kind": "read", "tier": "auto", "method": "GET", "path": "/audit", "permAction": "view", "summary": "Cari jejak audit", "phase": 1, "enabled": false },
+
+    { "name": "search_global", "group": "Universal", "module": "reports", "kind": "read", "tier": "auto", "method": "GET", "path": "/search", "permAction": "view", "summary": "Pencarian universal (entity resolution)", "phase": 1, "enabled": true }
+  ]
+}

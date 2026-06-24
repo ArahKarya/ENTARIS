@@ -2660,3 +2660,48 @@ model GaCalibrationLog {
   @@index([validUntil])
   @@map("ga_calibration_logs")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AIRA — AI Tool Layer & Tool Router (sisi aplikasi ERP). Tabel Ai* terisolasi,
+// NOL perubahan tabel ERP existing (NFR1). Lihat docs/erd-ai-layer/PRD.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Override per-tool dari UI (file registry = default; DB = override editable).
+model AiToolConfig {
+  id        String   @id @default(uuid())
+  toolName  String   @unique @map("tool_name")
+  enabled   Boolean? // null = ikut registry
+  tier      String? // null = ikut risk→tier default
+  updatedBy String?  @map("updated_by") // User.id (tanpa FK, isolasi)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_tool_configs")
+}
+
+/// Konfigurasi global AI — semua via API (provider-agnostic). API key = referensi
+/// env var (apiKeyEnv), key asli TIDAK PERNAH masuk DB (keputusan Opsi B).
+model AiSetting {
+  id        String   @id @default(uuid())
+  provider  String   @default("9router") // 9router | claude | ollama | openai
+  baseUrl   String   @default("") @map("base_url")
+  apiKeyEnv String   @default("") @map("api_key_env") // NAMA env var, bukan key
+  model     String   @default("")
+  channels  Json     @default("[]") // ["telegram","whatsapp"]
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_settings")
+}
+
+/// Whitelist akses terstruktur (channel ↔ user eksternal). Siap dipakai engine.
+model AiWhitelist {
+  id         String   @id @default(uuid())
+  channel    String // telegram | whatsapp
+  externalId String   @map("external_id") // chat_id TG / nomor WA
+  label      String?
+  role       String?  @default("Viewer") // role efektif via kanal ini
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([channel, externalId])
+  @@map("ai_whitelist")
+}

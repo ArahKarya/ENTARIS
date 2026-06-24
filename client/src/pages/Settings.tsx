@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send, KeyRound,
+  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send, KeyRound, Bot,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
@@ -12,9 +12,10 @@ import { BackupTab } from './settings/BackupTab';
 import { AboutTab } from './settings/AboutTab';
 import { NotificationsTab } from './settings/NotificationsTab';
 import { RolePermissionsTab } from './settings/RolePermissionsTab';
+import { AgenticSystemTab } from './settings/AgenticSystemTab';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'roles' | 'backup' | 'about'>('fiscal');
+  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'roles' | 'agentic' | 'backup' | 'about'>('fiscal');
   const canManageRbac = cap('rbac.manage');
   const tabs = [
     { id: 'fiscal', label: 'Tahun Buku', icon: Calendar },
@@ -23,6 +24,7 @@ export const SettingsPage: React.FC = () => {
     { id: 'tax', label: 'Pajak', icon: Receipt },
     { id: 'notifications', label: 'Notifikasi', icon: Send },
     ...(canManageRbac ? [{ id: 'roles', label: 'Hak Akses', icon: KeyRound }] : []),
+    ...(canManageRbac ? [{ id: 'agentic', label: 'Agentic System', icon: Bot }] : []),
     { id: 'backup', label: 'Backup', icon: HardDrive },
     { id: 'about', label: 'Tentang Aplikasi', icon: Info },
   ];
@@ -63,6 +65,7 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'tax' && <TaxConfigTab />}
       {activeTab === 'notifications' && <NotificationsTab />}
       {activeTab === 'roles' && canManageRbac && <RolePermissionsTab />}
+      {activeTab === 'agentic' && canManageRbac && <AgenticSystemTab />}
       {activeTab === 'backup' && <BackupTab />}
       {activeTab === 'about' && <AboutTab />}
     </div>

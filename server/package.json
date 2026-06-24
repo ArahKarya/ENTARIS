@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');fs.copyFileSync('src/ai/aira-tool-router.json','dist/ai/aira-tool-router.json');fs.chmodSync('dist/ai/aira-tool-router.json',0o644)\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "ts-node prisma/seed.ts",
