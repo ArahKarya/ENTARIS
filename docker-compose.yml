@@ -53,6 +53,8 @@ services:
       APP_BASE_URL: "${APP_BASE_URL:-}"
       NODE_ENV: "production"
       UPLOADS_DIR: "/app/uploads"
+      # ── AIRA (agentic layer) — A3 HMAC shared secret. Sumber: .env (sinkron dgn aira-core). ──
+      AIRA_SERVICE_SECRET: "${AIRA_SERVICE_SECRET:?AIRA_SERVICE_SECRET wajib diisi di .env (sinkron dgn aira-core)}"
     volumes:
       - backups:/app/server/backups
       - uploads:/app/uploads
