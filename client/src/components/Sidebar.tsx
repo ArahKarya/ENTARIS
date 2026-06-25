@@ -33,6 +33,7 @@ import {
   Inbox,
   BookOpen,
   ServerCog,
+  Sparkles,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -55,6 +56,7 @@ interface NavItem {
 // and group — we treat it as group only (children take precedence).
 const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+  { icon: Sparkles, label: 'AIRA Asisten', href: '/aira' },
   { icon: Bell, label: 'Notifikasi', href: '/notifications' },
 
   {

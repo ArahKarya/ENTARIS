@@ -61,6 +61,7 @@ import FixedAssetsPage from './pages/FixedAssetsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import DailyReport from './pages/reports/DailyReport';
 import OeeReport from './pages/reports/OeeReport';
+import AiraChat from './pages/AiraChat';
 
 
 // Protected shell: refresh /auth/me sekali saat load supaya permissions/caps di
@@ -114,6 +115,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/aira" element={<AiraChat />} />
             <Route path="/coa" element={<PermRoute module="coa"><COAPage /></PermRoute>} />
             <Route path="/gl" element={<PermRoute module="journal"><GeneralLedger /></PermRoute>} />
             <Route path="/sales" element={<PermRoute module="sales_invoice"><SalesInvoices /></PermRoute>} />
