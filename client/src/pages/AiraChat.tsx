@@ -15,6 +15,7 @@ interface ChatMessage {
   decided?: 'approve' | 'reject' | null;
   streaming?: boolean;
   status?: string;
+  auto?: boolean; // L3: dieksekusi otomatis oleh AIRA (tanpa approval manusia)
 }
 
 const STAGE_LABEL: Record<string, string> = {
@@ -123,6 +124,18 @@ export function AiraChat() {
               text: (data.draft?.summary as string) || 'AIRA menyiapkan draft yang butuh persetujuan.',
               status: 'paused',
             });
+          } else if (event === 'executed') {
+            // L3: tier=auto/approved → AIRA eksekusi langsung tanpa kartu draft.
+            const d = data.data as Record<string, any> | null;
+            const ref = d?.entryNumber || d?.docNumber || d?.number || data.run_id || '';
+            patchMsg(asstId, {
+              streaming: false,
+              status: 'executed',
+              auto: !!data.auto,
+              text: data.auto
+                ? `Selesai otomatis${ref ? ` — ${ref}` : ''}.`
+                : `Tereksekusi${ref ? ` — ${ref}` : ''}.`,
+            });
           } else if (event === 'done') {
             const planSummary = data.plan?.summary as string | undefined;
             patchMsg(asstId, {
@@ -216,6 +229,13 @@ export function AiraChat() {
                 <div className="rounded-2xl rounded-tr-sm bg-[#0B1B3D] text-white px-4 py-2 text-sm">{m.text}</div>
               ) : (
                 <div className="space-y-2">
+                  {/* Badge otomatis (L3): AIRA eksekusi tanpa approval */}
+                  {m.auto && (
+                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium">
+                      <Sparkles className="w-3 h-3" />
+                      Otomatis
+                    </span>
+                  )}
                   {/* Stage chips saat streaming */}
                   {m.stages && m.stages.length > 0 && (m.streaming || !m.draft) && (
                     <div className="flex flex-wrap gap-1.5">
