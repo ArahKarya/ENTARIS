@@ -44,7 +44,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "${PORT:-3001}:3001"
+      - "127.0.0.1:${PORT:-3001}:3001"
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-keuangan}:${POSTGRES_PASSWORD:-keuangan_secret_2026}@db:5432/${POSTGRES_DB:-keuangan_db}?schema=public"
       PORT: "3001"
