@@ -4923,7 +4923,7 @@
       "phase": 1
     },
     {
-      "name": "rpt_dash_cash_position",
+      "name": "get_cash_position",
       "group": "Laporan",
       "module": "reports",
       "desc": "Posisi kas/bank saat ini.",
@@ -4944,7 +4944,7 @@
       "phase": 1
     },
     {
-      "name": "rpt_trial_balance",
+      "name": "get_trial_balance",
       "group": "Laporan",
       "module": "reports",
       "desc": "Neraca saldo (trial balance) per periode.",
@@ -5036,7 +5036,7 @@
       "phase": 1
     },
     {
-      "name": "rpt_aging",
+      "name": "get_aging_receivable",
       "group": "Laporan",
       "module": "reports",
       "desc": "Laporan umur piutang/hutang.",
@@ -5152,7 +5152,7 @@
       "phase": 1
     },
     {
-      "name": "rpt_payable_schedule",
+      "name": "get_payable_schedule",
       "group": "Laporan",
       "module": "reports",
       "desc": "Jadwal jatuh tempo hutang.",
@@ -5173,7 +5173,7 @@
       "phase": 1
     },
     {
-      "name": "rpt_receivable_schedule",
+      "name": "get_receivable_schedule",
       "group": "Laporan",
       "module": "reports",
       "desc": "Jadwal jatuh tempo piutang.",

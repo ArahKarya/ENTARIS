@@ -108,6 +108,7 @@ router.post('/', async (req: AuthRequest, res) => {
       const port = process.env.PORT || 3001;
       const authHeader = req.headers.authorization;
       const cookie = req.headers.cookie;
+      const airaServiceToken = req.headers['x-aira-service-token'] as string | undefined;
       const url = `http://127.0.0.1:${port}${path}`;
       try {
         const upstream = await fetch(url, {
@@ -115,6 +116,11 @@ router.post('/', async (req: AuthRequest, res) => {
           headers: {
             ...(authHeader ? { authorization: authHeader } : {}),
             ...(cookie ? { cookie } : {}),
+            // Teruskan service-token AIRA (A+.0) ke hop internal agar endpoint
+            // handler dapat re-autentikasi sebagai aira-system. Tanpa ini,
+            // pemanggil service-token lolos di /api/ai/router tapi loopback
+            // internal kena 401 (tak ada JWT/cookie).
+            ...(airaServiceToken ? { 'x-aira-service-token': airaServiceToken } : {}),
           },
         });
         const data = await upstream.json().catch(() => null);
@@ -152,6 +158,7 @@ router.post('/', async (req: AuthRequest, res) => {
       const port = process.env.PORT || 3001;
       const authHeader = req.headers.authorization;
       const cookie = req.headers.cookie;
+      const airaServiceToken = req.headers['x-aira-service-token'] as string | undefined;
       const url = `http://127.0.0.1:${port}${path}`;
       try {
         const upstream = await fetch(url, {
@@ -160,6 +167,7 @@ router.post('/', async (req: AuthRequest, res) => {
             'content-type': 'application/json',
             ...(authHeader ? { authorization: authHeader } : {}),
             ...(cookie ? { cookie } : {}),
+            ...(airaServiceToken ? { 'x-aira-service-token': airaServiceToken } : {}),
           },
           body: ['GET', 'HEAD'].includes(method ?? '') ? undefined : JSON.stringify(body.args),
         });
