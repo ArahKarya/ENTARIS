@@ -33,7 +33,6 @@ import {
   Inbox,
   BookOpen,
   ServerCog,
-  Sparkles,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -51,12 +50,24 @@ interface NavItem {
   children?: NavItem[];
 }
 
+// Ikon logo AIRA — render <img> dengan API mirip lucide (size + className + style)
+const AiraIcon: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size = 18, className, style }) => (
+  <img
+    src="/aira-logo-dark.png"
+    alt="AIRA"
+    width={size}
+    height={size}
+    className={className}
+    style={{ ...style, objectFit: 'contain' }}
+  />
+);
+
 // ─── Module / submodule structure (Opsi A — by business function) ──────────
 // Parent without href is a pure group toggle. With href, parent is both link
 // and group — we treat it as group only (children take precedence).
 const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: Sparkles, label: 'AIRA Asisten', href: '/aira' },
+  { icon: AiraIcon, label: 'AIRA Asisten', href: '/aira' },
   { icon: Bell, label: 'Notifikasi', href: '/notifications' },
 
   {
