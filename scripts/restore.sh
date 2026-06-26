@@ -57,10 +57,17 @@ fi
 
 # ─── Find PostgreSQL container ────────────────────────────────────────────────
 find_pg_container() {
-  local cid=""
-  cid=$(docker ps -qf "ancestor=postgres:16" 2>/dev/null || true)
-  [ -z "$cid" ] && cid=$(docker ps -qf "name=postgres" 2>/dev/null | head -1 || true)
-  [ -z "$cid" ] && cid=$(docker ps -qf "name=db" 2>/dev/null | head -1 || true)
+  # Definitive: the postgres container that actually holds DB_NAME with DB_USER.
+  # Robust on multi-instance hosts + postgres:16-alpine tag.
+  # Optional override: BACKUP_DB_CONTAINER in .env.
+  local cid="${BACKUP_DB_CONTAINER:-}"
+  if [ -z "$cid" ]; then
+    for c in $(docker ps --filter "ancestor=postgres" --format "{{.ID}}" 2>/dev/null) $(docker ps --format "{{.ID}} {{.Image}}" 2>/dev/null | grep -i postgres | awk "{print \$1}"); do
+      if docker exec "$c" psql -U "$DB_USER" -d "$DB_NAME" -tc "SELECT 1" >/dev/null 2>&1; then
+        cid="$c"; break
+      fi
+    done
+  fi
   echo "$cid"
 }
 
@@ -175,6 +182,33 @@ gunzip -c "$RESTORE_FILE" | docker exec -i "$CONTAINER_ID" \
   psql -U "$DB_USER" -d "$DB_NAME" --quiet 2>/dev/null
 
 echo "✅ Database restored successfully."
+
+# ─── Restore uploads (attachments) ───────────────────────────────────────────
+# Find the matching uploads archive: simple_erp_uploads_<TIMESTAMP>.tar.gz
+# derived from the DB filename simple_erp_<TIMESTAMP>.sql.gz, and extract it
+# into the app uploads Docker volume. Without this, restored DB rows point to
+# attachment files that do not exist.
+echo ""
+echo "📎 Restoring uploads (attachments)..."
+UPLOADS_BASENAME=$(basename "$RESTORE_FILE" | sed -E 's/^simple_erp_(.*)\.sql\.gz$/simple_erp_uploads_\1.tar.gz/')
+UPLOADS_ARCHIVE="$(dirname "$RESTORE_FILE")/${UPLOADS_BASENAME}"
+if [ -f "$UPLOADS_ARCHIVE" ]; then
+  UPLOAD_VOL=$(docker volume ls --format '{{.Name}}' | grep -E '_uploads$' | head -1 || true)
+  if [ -n "$UPLOAD_VOL" ]; then
+    echo "   Volume: ${UPLOAD_VOL}"
+    docker run --rm \
+      -v "${UPLOAD_VOL}:/dst" \
+      -v "$(dirname "$UPLOADS_ARCHIVE"):/src:ro" \
+      alpine:3 \
+      sh -c "cd /dst && tar -xzf /src/${UPLOADS_BASENAME}"
+    RESTORED_COUNT=$(docker run --rm -v "${UPLOAD_VOL}:/dst" alpine:3 sh -c "find /dst -type f | wc -l")
+    echo "   ✅ Uploads restored. Files now in volume: ${RESTORED_COUNT}"
+  else
+    echo "   ⚠️  uploads volume not found — skipped (attachments NOT restored)."
+  fi
+else
+  echo "   ⚠️  No uploads archive found (${UPLOADS_BASENAME}) — DB-only restore."
+fi
 
 # ─── Prisma migrations ────────────────────────────────────────────────────────
 echo ""
