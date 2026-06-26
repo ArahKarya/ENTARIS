@@ -159,9 +159,10 @@ router.get('/sessions/:id/messages', async (req: AuthRequest, res) => {
   const user = req.user;
   if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
   try {
-    const upstream = await fetch(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}/messages`, {
-      method: 'GET',
-    });
+    // Teruskan user_id agar aira-core menegakkan ownership (cegah IDOR baca sesi user lain).
+    const url = new URL(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}/messages`);
+    url.searchParams.set('user_id', user.userId);
+    const upstream = await fetch(url, { method: 'GET' });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
   } catch (error) {
@@ -187,10 +188,11 @@ router.patch('/sessions/:id', async (req: AuthRequest, res) => {
   const body = validateBody(PatchSessionSchema, req.body, res);
   if (!body) return;
   try {
+    // Sertakan user_id agar aira-core menegakkan ownership (cegah IDOR ubah sesi user lain).
     const upstream = await fetch(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, user_id: user.userId }),
     });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
