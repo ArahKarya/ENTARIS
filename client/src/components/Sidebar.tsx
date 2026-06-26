@@ -53,7 +53,7 @@ interface NavItem {
 // Ikon logo AIRA — render <img> dengan API mirip lucide (size + className + style)
 const AiraIcon: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size = 18, className, style }) => (
   <img
-    src="/aira-logo-dark.png"
+    src="/aira-icon-light.png"
     alt="AIRA"
     width={size}
     height={size}
