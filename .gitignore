@@ -41,4 +41,6 @@ server/backups/
 
 # Claude
 .claude/
+# Hermes
+.hermes/
 backups/
