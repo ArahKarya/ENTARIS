@@ -2704,3 +2704,15 @@ model AiWhitelist {
   @@unique([channel, externalId])
   @@map("ai_whitelist")
 }
+
+/// Idempotency log: tiap run AIRA yang sudah dieksekusi (anti-replay A3).
+/// runId = UUID unik per-run AIRA, sekali pakai.
+model AiExecutedRun {
+  id          String   @id @default(uuid())
+  runId       String   @unique @map("run_id")
+  tool        String
+  executedAt  DateTime @default(now()) @map("executed_at")
+  ref         String?  // journalId / docId hasil eksekusi (opsional)
+
+  @@map("ai_executed_runs")
+}

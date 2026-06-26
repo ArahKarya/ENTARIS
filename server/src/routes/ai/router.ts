@@ -1,17 +1,17 @@
 // AIRA Tool Router — satu pintu eksekusi tool (BRD AIRA Pilar 2/3).
 //
-// Alur (PRD FR6):
+// Alur (PRD FR6, M4.4.2 Pola A — approval terpusat di AIRA):
 //   1. resolve tool dari registry+override (status efektif)
 //   2. tolak bila tak ada / enabled=false
-//   3. cek izin 2-lapis:
-//        (a) role pemanggil ∈ tool.roles
-//        (b) can(role, module, permAction)  — warisi RBAC ERP
-//        (c) requiresCapability (opsional)  — hasCap
-//   4. risk=read    → panggil handler (internal fetch, auth diteruskan) → data
-//      risk=write/critical → buat ApprovalRequest NYATA di DB → pending_approval
+//   3. cek izin 2-lapis (role, modul RBAC, capability)
+//   4. risk=read → eksekusi via internal fetch → data
+//   5. risk=write/critical:
+//        (A) Header A3 ada (X-AIRA-Run/Ts/Sig) → verifyAiraApproval → eksekusi nyata
+//            (approval sudah lewat Approval Queue AIRA) → catat runId (anti-replay).
+//        (B) Tanpa header A3 (Test Tool UI / akses manual) → ApprovalRequest di DB ERP.
 //
-// Engine AI belum tersambung; endpoint ini diuji via UI (Test Tool) & nanti
-// dipanggil engine dengan kontrak sama (plug-and-play).
+// POLA A = approval terpusat di AIRA. ERP router = executor murni untuk AIRA.
+// ERP TIDAK bikin ApprovalRequest utk jalur AIRA — itu sudah ditangani Approval Queue AIRA.
 
 import { Router } from 'express';
 import { z } from 'zod';
@@ -22,6 +22,7 @@ import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
 import { effectiveTools } from '../../ai/registry';
 import { logger } from '../../lib/logger';
+import { verifyAiraApproval, recordExecutedRun } from '../../ai/airaApproval';
 
 const router = Router();
 
@@ -107,6 +108,7 @@ router.post('/', async (req: AuthRequest, res) => {
       const port = process.env.PORT || 3001;
       const authHeader = req.headers.authorization;
       const cookie = req.headers.cookie;
+      const airaServiceToken = req.headers['x-aira-service-token'] as string | undefined;
       const url = `http://127.0.0.1:${port}${path}`;
       try {
         const upstream = await fetch(url, {
@@ -114,6 +116,11 @@ router.post('/', async (req: AuthRequest, res) => {
           headers: {
             ...(authHeader ? { authorization: authHeader } : {}),
             ...(cookie ? { cookie } : {}),
+            // Teruskan service-token AIRA (A+.0) ke hop internal agar endpoint
+            // handler dapat re-autentikasi sebagai aira-system. Tanpa ini,
+            // pemanggil service-token lolos di /api/ai/router tapi loopback
+            // internal kena 401 (tak ada JWT/cookie).
+            ...(airaServiceToken ? { 'x-aira-service-token': airaServiceToken } : {}),
           },
         });
         const data = await upstream.json().catch(() => null);
@@ -128,7 +135,68 @@ router.post('/', async (req: AuthRequest, res) => {
       }
     }
 
-    // (e) WRITE/CRITICAL → buat ApprovalRequest NYATA (bukan dummy)
+    // (e) WRITE/CRITICAL — dua jalur:
+    //   (A) Header A3 ada → dari AIRA (sudah lewat Approval Queue) → eksekusi nyata.
+    //   (B) Tanpa A3 → dari Test Tool UI / manual → ApprovalRequest DB ERP (existing).
+
+    const hasAiraHeaders =
+      req.headers['x-aira-run'] || req.headers['x-aira-ts'] || req.headers['x-aira-sig'];
+
+    if (hasAiraHeaders) {
+      // ── Jalur A: AIRA Pola A — verifikasi A3, eksekusi nyata. ──
+      const airaCheck = await verifyAiraApproval(req, tool.name, body.args);
+      if (!airaCheck.ok) {
+        logger.warn(
+          { tool: tool.name, reason: airaCheck.reason, by: user.userId },
+          'AIRA router: A3 gagal',
+        );
+        return res.status(403).json({ ok: false, error: 'aira_approval_failed', detail: airaCheck.reason });
+      }
+
+      // A3 lolos — forward ke handler asli (internal fetch, same-process).
+      const [method, path] = tool.handler.split(' ');
+      const port = process.env.PORT || 3001;
+      const authHeader = req.headers.authorization;
+      const cookie = req.headers.cookie;
+      const airaServiceToken = req.headers['x-aira-service-token'] as string | undefined;
+      const url = `http://127.0.0.1:${port}${path}`;
+      try {
+        const upstream = await fetch(url, {
+          method: method ?? 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...(authHeader ? { authorization: authHeader } : {}),
+            ...(cookie ? { cookie } : {}),
+            ...(airaServiceToken ? { 'x-aira-service-token': airaServiceToken } : {}),
+          },
+          body: ['GET', 'HEAD'].includes(method ?? '') ? undefined : JSON.stringify(body.args),
+        });
+        const data = await upstream.json().catch(() => null);
+        if (!upstream.ok) {
+          logger.error(
+            { tool: tool.name, status: upstream.status },
+            'AIRA router: A3 upstream gagal',
+          );
+          return res.status(502).json({ ok: false, error: 'upstream_error', upstreamStatus: upstream.status, data });
+        }
+
+        // Catat runId → anti-replay sekali pakai.
+        const ref = (data as Record<string, unknown>)?.id as string | undefined
+          ?? (data as Record<string, unknown>)?.journalId as string | undefined;
+        await recordExecutedRun(airaCheck.runId!, tool.name, ref);
+
+        logger.info(
+          { tool: tool.name, runId: airaCheck.runId, ref, by: user.userId },
+          'AIRA router: A3 eksekusi OK',
+        );
+        return res.json({ ok: true, kind: 'executed', runId: airaCheck.runId, data });
+      } catch (err) {
+        logger.error({ err, tool: tool.name }, 'AIRA router: A3 upstream unreachable');
+        return res.status(502).json({ ok: false, error: 'upstream_unreachable' });
+      }
+    }
+
+    // ── Jalur B: Test Tool UI / manual (tanpa A3) → ApprovalRequest DB ERP. ──
     const confirmText = renderConfirm(tool.confirm_template, body.args);
     const amount =
       typeof body.args.amount === 'number'
@@ -148,7 +216,7 @@ router.post('/', async (req: AuthRequest, res) => {
           risk: tool.risk,
           confirm: confirmText,
           args: body.args as object,
-          requestedVia: 'aira_router',
+          requestedVia: 'test_tool_ui',
         },
         status: 'Pending',
         requestedBy: user.userId,
@@ -158,7 +226,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     logger.info(
       { tool: tool.name, risk: tool.risk, approvalId: approval.id, by: user.userId },
-      'AIRA router: action → ApprovalRequest dibuat',
+      'AIRA router: Test Tool → ApprovalRequest dibuat',
     );
 
     return res.json({

@@ -58,6 +58,7 @@ fi
 # ─── Find PostgreSQL container ────────────────────────────────────────────────
 find_pg_container() {
   # Definitive: the postgres container that actually holds DB_NAME with DB_USER.
+  # Robust on multi-instance hosts + postgres:16-alpine tag.
   # Optional override: BACKUP_DB_CONTAINER in .env.
   local cid="${BACKUP_DB_CONTAINER:-}"
   if [ -z "$cid" ]; then

@@ -8,7 +8,7 @@ import { prisma } from '../../lib/prisma';
 import { requireCap, type AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { BusinessError, handleRouteError } from '../../utils/errors';
-import { effectiveTools, getTool, riskToTier } from '../../ai/registry';
+import { effectiveTools, getTool, riskToTier, loadRegistry } from '../../ai/registry';
 import type { ToolTier } from '../../ai/types';
 
 const router = Router();
@@ -25,6 +25,31 @@ router.get('/tools', async (_req, res) => {
     return res.json(effectiveTools(map));
   } catch (error) {
     return handleRouteError(res, error, 'GET /ai/config/tools', 'Gagal mengambil daftar tool.');
+  }
+});
+
+// GET /api/ai/config/tool-router — FULL registry (app/version/modules/roles/
+// capabilities/tools) untuk SYNC oleh AIRA core. ERP = sumber kebenaran tunggal:
+// AIRA menarik katalog penuh dari sini (bukan file bundled). Tools sudah di-merge
+// status efektif (enabled+tier dari override DB) supaya AIRA tak perlu fetch tier
+// terpisah. Response = objek ToolRouter (kompatibel skema aira-core toolRouter.ts).
+router.get('/tool-router', async (_req, res) => {
+  try {
+    const { registry, result } = loadRegistry();
+    const overrides = await prisma.aiToolConfig.findMany();
+    const map = new Map(overrides.map((o) => [o.toolName, { enabled: o.enabled, tier: o.tier }]));
+    const tools = effectiveTools(map);
+    return res.json({
+      app: registry.app,
+      version: registry.version,
+      generatedNote: `served by ERP /ai/config/tool-router (live sync); loaded=${result.loaded}, skipped=${result.skipped.length}`,
+      modules: registry.modules ?? [],
+      roles: registry.roles ?? [],
+      capabilities: registry.capabilities ?? [],
+      tools,
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ai/config/tool-router', 'Gagal mengambil tool-router.');
   }
 });
 

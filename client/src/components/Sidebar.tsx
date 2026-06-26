@@ -50,11 +50,35 @@ interface NavItem {
   children?: NavItem[];
 }
 
+// Ikon logo AIRA — render <img> dengan API mirip lucide (size + className + style).
+// Light theme: simbol navy. Dark theme: simbol putih. Swap via Tailwind dark: variant.
+const AiraIcon: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size = 18, className, style }) => (
+  <>
+    <img
+      src="/aira-icon.png"
+      alt="AIRA"
+      width={size}
+      height={size}
+      className={cn(className, 'block dark:hidden')}
+      style={{ ...style, objectFit: 'contain' }}
+    />
+    <img
+      src="/aira-icon-light.png"
+      alt="AIRA"
+      width={size}
+      height={size}
+      className={cn(className, 'hidden dark:block')}
+      style={{ ...style, objectFit: 'contain' }}
+    />
+  </>
+);
+
 // ─── Module / submodule structure (Opsi A — by business function) ──────────
 // Parent without href is a pure group toggle. With href, parent is both link
 // and group — we treat it as group only (children take precedence).
 const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+  { icon: AiraIcon, label: 'AIRA Asisten', href: '/aira' },
   { icon: Bell, label: 'Notifikasi', href: '/notifications' },
 
   {

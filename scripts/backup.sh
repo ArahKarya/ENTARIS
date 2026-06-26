@@ -71,12 +71,12 @@ log "Step 1/4: Dumping database..."
 
 # Detect DB container DEFINITIVELY: the postgres container that actually
 # contains database $DB_NAME with role $DB_USER. Robust on multi-instance
-# hosts where compose project name != dir name != container name.
+# hosts where compose project name != dir name != container name, and where
+# the image tag is postgres:16-alpine (ancestor=postgres:16 does NOT match).
 # Optional override: set BACKUP_DB_CONTAINER in .env to skip auto-detect.
 CONTAINER_ID="${BACKUP_DB_CONTAINER:-}"
 if [ -z "$CONTAINER_ID" ]; then
-  for cid in $(docker ps --filter "ancestor=postgres" --format "{{.ID}}" 2>/dev/null) \
-             $(docker ps --format "{{.ID}} {{.Image}}" 2>/dev/null | grep -i postgres | awk "{print \$1}"); do
+  for cid in $(docker ps --filter "ancestor=postgres" --format "{{.ID}}" 2>/dev/null) $(docker ps --format "{{.ID}} {{.Image}}" 2>/dev/null | grep -i postgres | awk "{print \$1}"); do
     if docker exec "$cid" psql -U "$DB_USER" -d "$DB_NAME" -tc "SELECT 1" >/dev/null 2>&1; then
       CONTAINER_ID="$cid"
       break

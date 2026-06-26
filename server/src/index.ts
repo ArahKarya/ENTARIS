@@ -31,6 +31,7 @@ import dashboardRoutes from './routes/dashboard';
 import reportRoutes from './routes/reports';
 import aiConfigRoutes from './routes/ai/config';
 import aiRouterRoutes from './routes/ai/router';
+import aiChatRoutes from './routes/ai/chat';
 import settingsRoutes from './routes/settings';
 import fiscalYearRoutes from './routes/fiscalYears';
 import inventoryRoutes from './routes/inventory';
@@ -250,6 +251,7 @@ app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di i
 //         rbac.manage di endpoint sensitif (di file). router: per-tool RBAC di file.
 app.use('/api/ai/config', requireWrite('settings'), aiConfigRoutes);
 app.use('/api/ai/router', aiRouterRoutes);
+app.use('/api/ai/chat', aiChatRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist.

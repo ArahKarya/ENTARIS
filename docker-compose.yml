@@ -53,9 +53,16 @@ services:
       APP_BASE_URL: "${APP_BASE_URL:-}"
       NODE_ENV: "production"
       UPLOADS_DIR: "/app/uploads"
+      # ── AIRA (agentic layer) — A3 HMAC shared secret. Sumber: .env (sinkron dgn aira-core). ──
+      AIRA_SERVICE_SECRET: "${AIRA_SERVICE_SECRET:?AIRA_SERVICE_SECRET wajib diisi di .env (sinkron dgn aira-core)}"
+      # ── AIRA panel chat (M4.5) — ERP proxy ke aira-core via network aira-net (DNS container). ──
+      AIRA_CORE_BASE_URL: "${AIRA_CORE_BASE_URL:-http://aira-core:8080}"
     volumes:
       - backups:/app/server/backups
       - uploads:/app/uploads
+    networks:
+      - default
+      - aira-net
     depends_on:
       db:
         condition: service_healthy
@@ -64,3 +71,10 @@ volumes:
   pgdata:
   backups:
   uploads:
+
+networks:
+  # Network milik proyek agentic-erp (aira-core). External: dibuat oleh compose AIRA.
+  # ERP join ke sini supaya server bisa proxy /api/ai/chat → http://aira-core:8080.
+  aira-net:
+    external: true
+    name: agentic-erp_aira-net
