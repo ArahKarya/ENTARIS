@@ -169,4 +169,34 @@ router.get('/sessions/:id/messages', async (req: AuthRequest, res) => {
   }
 });
 
+// ── PATCH /api/ai/chat/sessions/:id — rename (title) / archive (status) ──
+// Proxy ke aira-core PATCH /v1/sessions/:id. Validasi payload minimal di sini,
+// aira-core yang menegakkan kontrak penuh. Auth ERP (req.user) jadi gerbang.
+const PatchSessionSchema = z
+  .object({
+    title: z.string().min(1).optional(),
+    status: z.enum(['active', 'archived']).optional(),
+  })
+  .refine((d) => d.title !== undefined || d.status !== undefined, {
+    message: 'minimal satu field (title|status) wajib diisi',
+  });
+
+router.patch('/sessions/:id', async (req: AuthRequest, res) => {
+  const user = req.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+  const body = validateBody(PatchSessionSchema, req.body, res);
+  if (!body) return;
+  try {
+    const upstream = await fetch(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await upstream.json().catch(() => null);
+    return res.status(upstream.status).json(data);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ai/chat/sessions/:id', 'Gagal memperbarui sesi AIRA.');
+  }
+});
+
 export default router;
