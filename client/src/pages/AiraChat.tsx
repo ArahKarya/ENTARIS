@@ -33,13 +33,41 @@ function csrfToken(): string | undefined {
 let msgSeq = 0;
 const nextId = () => `m${Date.now()}_${msgSeq++}`;
 
+// ── Persist chat antar-navigasi (s.d user logout / tutup tab) ──
+// Pakai sessionStorage: bertahan saat pindah modul & balik, hilang saat sesi browser
+// berakhir. Logout meng-clear key ini secara eksplisit (lihat MainLayout.handleLogout).
+const AIRA_MSGS_KEY = 'aira_chat_messages';
+const AIRA_SESSION_KEY = 'aira_chat_session_id';
+
+function loadMessages(): ChatMessage[] {
+  try {
+    const raw = sessionStorage.getItem(AIRA_MSGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    // Bersihkan flag transient: jangan restore status 'streaming' (stream sudah mati).
+    return parsed.map((m) => (m.streaming ? { ...m, streaming: false } : m));
+  } catch {
+    return [];
+  }
+}
+
 export function AiraChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(() => sessionStorage.getItem(AIRA_SESSION_KEY));
   const [approving, setApproving] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist pesan tiap berubah.
+  useEffect(() => {
+    try { sessionStorage.setItem(AIRA_MSGS_KEY, JSON.stringify(messages)); } catch { /* quota/serialize ignore */ }
+  }, [messages]);
+
+  // Persist session id.
+  useEffect(() => {
+    if (sessionId) sessionStorage.setItem(AIRA_SESSION_KEY, sessionId);
+  }, [sessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

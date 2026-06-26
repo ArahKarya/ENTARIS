@@ -76,6 +76,9 @@ export const MainLayout = () => {
   const handleLogout = async () => {
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
     localStorage.removeItem('user');
+    // Bersihkan chat AIRA yang dipersist (sessionStorage) saat logout.
+    sessionStorage.removeItem('aira_chat_messages');
+    sessionStorage.removeItem('aira_chat_session_id');
     queryClient.clear();
     navigate('/login');
   };
