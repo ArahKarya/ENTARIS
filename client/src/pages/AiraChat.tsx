@@ -200,8 +200,8 @@ export function AiraChat() {
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-2.5 pb-3 mb-2 border-b border-gray-200 dark:border-gray-700">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#0B1B3D] to-[#48CAE4] flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-white" />
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#0B1B3D] to-[#48CAE4] flex items-center justify-center overflow-hidden p-1">
+          <img src="/aira-logo-dark.png" alt="AIRA" className="w-full h-full object-contain" />
         </div>
         <div>
           <h1 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">AIRA Asisten</h1>
@@ -213,15 +213,16 @@ export function AiraChat() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 py-2 px-1">
         {messages.length === 0 && (
           <div className="text-center text-gray-400 mt-16 space-y-2">
-            <Sparkles className="w-10 h-10 mx-auto opacity-40" />
+            <img src="/aira-logo-dark.png" alt="AIRA" className="w-12 h-12 mx-auto opacity-40 object-contain dark:hidden" />
+            <img src="/aira-logo-dark.png" alt="AIRA" className="w-12 h-12 mx-auto opacity-50 object-contain hidden dark:block" />
             <p className="text-sm">Mulai dengan, mis. <span className="italic">"Buat jurnal koreksi: debit Beban Telekomunikasi 50.000, kredit Petty Cash 50.000"</span></p>
           </div>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'assistant' && (
-              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#0B1B3D] to-[#48CAE4] flex items-center justify-center shrink-0 mt-0.5">
-                <Sparkles className="w-4 h-4 text-white" />
+              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#0B1B3D] to-[#48CAE4] flex items-center justify-center shrink-0 mt-0.5 overflow-hidden p-0.5">
+                <img src="/aira-logo-dark.png" alt="AIRA" className="w-full h-full object-contain" />
               </div>
             )}
             <div className={`max-w-[80%] space-y-2 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
