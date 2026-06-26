@@ -154,15 +154,20 @@ export function AiraChat() {
             });
           } else if (event === 'executed') {
             // L3: tier=auto/approved → AIRA eksekusi langsung tanpa kartu draft.
+            // A+.2: read-tool kini balas `answer` (kalimat natural berisi angka).
+            // Bila ada → tampilkan jawaban itu (bukan "Selesai otomatis — runId").
             const d = data.data as Record<string, any> | null;
             const ref = d?.entryNumber || d?.docNumber || d?.number || data.run_id || '';
+            const answer = (data.answer as string | undefined)?.trim();
             patchMsg(asstId, {
               streaming: false,
               status: 'executed',
               auto: !!data.auto,
-              text: data.auto
-                ? `Selesai otomatis${ref ? ` — ${ref}` : ''}.`
-                : `Tereksekusi${ref ? ` — ${ref}` : ''}.`,
+              text: answer
+                ? answer
+                : data.auto
+                  ? `Selesai otomatis${ref ? ` — ${ref}` : ''}.`
+                  : `Tereksekusi${ref ? ` — ${ref}` : ''}.`,
             });
           } else if (event === 'done') {
             const planSummary = data.plan?.summary as string | undefined;
