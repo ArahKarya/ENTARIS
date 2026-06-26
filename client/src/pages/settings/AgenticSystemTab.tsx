@@ -26,6 +26,14 @@ interface AiSetting {
   agenticEnabled: boolean;
   serviceToken: string | null;
 }
+interface AiraHealth {
+  online: boolean;
+  status: string;
+  version: string | null;
+  tools_loaded: number | null;
+  base_url: string;
+  checked_at: string;
+}
 interface WhitelistEntry {
   id: string;
   channel: string;
@@ -49,6 +57,15 @@ export const AgenticSystemTab: React.FC = () => {
   const { data: settings } = useQuery<AiSetting>({
     queryKey: ['ai-settings'],
     queryFn: async () => (await api.get('/ai/config/settings')).data,
+  });
+
+  // ── Status AIRA core (Fase 5: detect online/offline) ──
+  // Poll tiap 15 dtk supaya badge mengikuti kondisi aira-core secara live.
+  const { data: airaHealth } = useQuery<AiraHealth>({
+    queryKey: ['aira-health'],
+    queryFn: async () => (await api.get('/ai/chat/aira-health')).data,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
   const [form, setForm] = useState<Partial<AiSetting> | null>(null);
   const [showToken, setShowToken] = useState(false);
@@ -128,6 +145,33 @@ export const AgenticSystemTab: React.FC = () => {
         <div className="mb-1 flex items-center gap-2">
           <Bot size={16} className="text-blue-600" />
           <h2 className="text-sm font-semibold text-gray-900">Koneksi AIRA</h2>
+          {/* Badge status aira-core online/offline (Fase 5: detect 2 arah) */}
+          <span
+            title={
+              airaHealth
+                ? `aira-core ${airaHealth.status}` +
+                  (airaHealth.version ? ` · v${airaHealth.version}` : '') +
+                  (airaHealth.tools_loaded != null ? ` · ${airaHealth.tools_loaded} tools` : '') +
+                  ` · ${airaHealth.base_url}`
+                : 'mengecek status aira-core…'
+            }
+            className={cn(
+              'ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium',
+              !airaHealth
+                ? 'border-gray-200 bg-gray-50 text-gray-400'
+                : airaHealth.online
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-red-200 bg-red-50 text-red-700',
+            )}
+          >
+            <span
+              className={cn(
+                'h-1.5 w-1.5 rounded-full',
+                !airaHealth ? 'bg-gray-300' : airaHealth.online ? 'bg-emerald-500' : 'bg-red-500',
+              )}
+            />
+            {!airaHealth ? 'Mengecek…' : airaHealth.online ? 'AIRA Online' : 'AIRA Offline'}
+          </span>
         </div>
         <p className="mb-3 text-xs text-gray-400">
           Model AI, memori &amp; konteks dikelola oleh AIRA (aplikasi terpisah). ERP hanya mengatur

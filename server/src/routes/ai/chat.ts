@@ -199,4 +199,41 @@ router.patch('/sessions/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// ── GET /api/ai/chat/aira-health — detect aira-core hidup (Fase 5) ──
+// ERP ping aira-core /v1/health untuk UI badge online/offline di Settings →
+// Agentic. Selalu balas 200 ke klien (status di body), supaya FE mudah render.
+// online=true bila aira-core merespons 200. Timeout pendek (3s) agar UI responsif.
+router.get('/aira-health', async (_req: AuthRequest, res) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+  try {
+    const upstream = await fetch(`${AIRA_BASE}/v1/health`, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    const data = (await upstream.json().catch(() => null)) as Record<string, unknown> | null;
+    return res.json({
+      online: upstream.ok,
+      status: (data?.status as string) ?? (upstream.ok ? 'ok' : 'error'),
+      version: (data?.version as string) ?? null,
+      tools_loaded: (data?.tools_loaded as number) ?? null,
+      base_url: AIRA_BASE,
+      checked_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Unreachable / timeout → offline (bukan error HTTP, UI tetap render badge).
+    logger.warn({ err: (err as Error).message }, 'AIRA health: aira-core unreachable');
+    return res.json({
+      online: false,
+      status: 'unreachable',
+      version: null,
+      tools_loaded: null,
+      base_url: AIRA_BASE,
+      checked_at: new Date().toISOString(),
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
 export default router;
