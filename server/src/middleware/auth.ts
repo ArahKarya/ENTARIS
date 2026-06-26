@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { timingSafeEqual } from 'crypto';
 import { verifyToken } from '../utils/auth';
 import { prisma } from '../lib/prisma';
 import { can, hasCap } from '../services/permissionService';
+import { logger } from '../lib/logger';
 import type { PermAction } from '../constants/modules';
 
 export interface AuthRequest extends Request {
@@ -11,7 +13,45 @@ export interface AuthRequest extends Request {
   };
 }
 
+/**
+ * Bandingkan dua string secara timing-safe. Samakan panjang dulu agar
+ * crypto.timingSafeEqual tak melempar saat panjang berbeda (dan agar perbedaan
+ * panjang tidak bocor lewat early-throw). Mengembalikan false bila salah satu
+ * kosong/null.
+ */
+function safeTokenEqual(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  const ab = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  // Panjang berbeda → tetap lakukan compare panjang-tetap untuk hindari throw,
+  // lalu paksa false. Pakai panjang maksimum agar timingSafeEqual tak throw.
+  const len = Math.max(ab.length, bb.length);
+  const pa = Buffer.alloc(len);
+  const pb = Buffer.alloc(len);
+  ab.copy(pa);
+  bb.copy(pb);
+  const equalContent = timingSafeEqual(pa, pb);
+  return equalContent && ab.length === bb.length;
+}
+
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // ── AIRA embedded service-token (Tahap A+.0) ────────────────────────────
+  // AIRA = sistem terpercaya tertanam. Bila header x-aira-service-token ADA,
+  // cocokkan timing-safe ke ai_settings.service_token. Cocok → identity system
+  // role Admin (super-admin FULL), LEWATI JWT/blacklist/CSRF. Salah → 401 tegas
+  // (tak fallback ke JWT). Tak ada header → jalur JWT user biasa apa adanya.
+  const serviceTokenHeader = req.headers['x-aira-service-token'] as string | undefined;
+  if (serviceTokenHeader !== undefined) {
+    const setting = await prisma.aiSetting.findFirst();
+    const stored = setting?.serviceToken ?? null;
+    if (stored && safeTokenEqual(serviceTokenHeader, stored)) {
+      req.user = { userId: 'aira-system', role: 'Admin' };
+      logger.info({ by: 'aira-system' }, 'service-token auth');
+      return next();
+    }
+    return res.status(401).json({ error: 'invalid service token' });
+  }
+
   // Extract token: prefer cookie, fall back to Authorization header
   const token =
     req.cookies?.token ||
