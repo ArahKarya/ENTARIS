@@ -303,4 +303,30 @@ router.post('/cashbook-approve', async (req: AuthRequest, res) => {
   }
 });
 
+
+// ── POST /api/ai/chat/cashbook-cancel — batalkan draft buku kas (lepas, tanpa posting) ──
+// Proxy ke aira-core POST /v1/cashbook/:runId/cancel.
+const CashbookCancelSchema = z.object({ run_id: z.string().min(1) });
+router.post('/cashbook-cancel', async (req: AuthRequest, res) => {
+  const body = validateBody(CashbookCancelSchema, req.body, res);
+  if (!body) return;
+  const user = req.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+  if (!(await agenticEnabled())) {
+    return res.status(403).json({ ok: false, error: 'agentic_disabled' });
+  }
+  try {
+    const upstream = await fetch(`${AIRA_BASE}/v1/cashbook/${encodeURIComponent(body.run_id)}/cancel`, {
+      method: 'POST',
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({}),
+    });
+    const data = await upstream.json().catch(() => null);
+    return res.status(upstream.status).json(data);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/chat/cashbook-cancel', 'Gagal membatalkan buku kas via AIRA.');
+  }
+});
+
+
 export default router;

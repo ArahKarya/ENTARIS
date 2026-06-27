@@ -381,6 +381,27 @@ export function AiraChat() {
     }
   }, [patchMsg]);
 
+  /** Batalkan draft buku kas (lepas di backend, tanpa posting). */
+  const cancelCashBook = useCallback(async (msgId: string, runId: string) => {
+    setCbPending(msgId);
+    try {
+      const resp = await fetch('/api/ai/chat/cashbook-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}) },
+        credentials: 'include',
+        body: JSON.stringify({ run_id: runId }),
+      });
+      const j = await resp.json().catch(() => null);
+      if (!resp.ok) { toast.error(j?.error || `Gagal membatalkan (HTTP ${resp.status})`); return; }
+      patchMsg(msgId, { cashbook: null, status: 'cashbook_cancelled' });
+      toast.success('Buku kas dibatalkan.');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCbPending(null);
+    }
+  }, [patchMsg]);
+
   /** Approve / reject draft → /api/ai/chat/approve. */
   const decide = useCallback(async (msgId: string, runId: string, decision: 'approve' | 'reject') => {
     setApproving(msgId);
@@ -604,6 +625,8 @@ export function AiraChat() {
                         pending={cbPending === m.id}
                         done={m.cashbookDone ?? null}
                         onApprove={(entries) => approveCashBook(m.id, m.runId!, entries)}
+                        onClose={() => patchMsg(m.id, { cashbook: null })}
+                        onCancel={() => cancelCashBook(m.id, m.runId!)}
                       />
                     )}
                   </div>

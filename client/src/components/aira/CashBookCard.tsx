@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Check, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Check, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 
 export interface CashEntry {
   idx: number;
@@ -31,6 +31,8 @@ interface Props {
   pending: boolean;
   done: { posted: number; skipped: number; failed: number; learned: number } | null;
   onApprove: (entries: Array<{ idx: number; account?: string; accountLabel?: string; skip?: boolean }>) => void;
+  onClose?: () => void;   // sembunyikan kartu (FE saja)
+  onCancel?: () => void;  // batalkan draft di backend
 }
 
 const rupiah = (n: number) => 'Rp ' + (n || 0).toLocaleString('id-ID');
@@ -38,7 +40,7 @@ const TXN_LABEL: Record<string, string> = {
   pengeluaran: 'Keluar', pemasukan: 'Masuk', uang_muka: 'Uang Muka', terima_kasbon: 'Terima Kasbon', lainnya: 'Lainnya',
 };
 
-export function CashBookCard({ draft, coa, pending, done, onApprove }: Props) {
+export function CashBookCard({ draft, coa, pending, done, onApprove, onClose, onCancel }: Props) {
   // state koreksi per-baris: account override + skip
   const [edits, setEdits] = useState<Record<number, { account?: string; skip?: boolean }>>({});
 
@@ -127,16 +129,36 @@ export function CashBookCard({ draft, coa, pending, done, onApprove }: Props) {
           </tbody>
         </table>
       </div>
-      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs">
-        <span className="text-gray-500">Masuk {rupiah(draft.totals.masuk)} · Keluar {rupiah(draft.totals.keluar)}</span>
-        <button
-          onClick={submit}
-          disabled={pending || willPost === 0}
-          className="px-3 py-1.5 rounded-lg bg-[#0B1B3D] hover:bg-[#142a5c] disabled:opacity-40 text-white flex items-center gap-1.5"
-        >
-          {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-          Posting {willPost} jurnal
-        </button>
+      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 text-xs">
+        <span className="text-gray-500 shrink-0">Masuk {rupiah(draft.totals.masuk)} · Keluar {rupiah(draft.totals.keluar)}</span>
+        <div className="flex items-center gap-2">
+          {onClose && (
+            <button
+              onClick={onClose}
+              disabled={pending}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40"
+            >
+              Tutup
+            </button>
+          )}
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              disabled={pending}
+              className="px-2.5 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              <X className="w-3.5 h-3.5" /> Batalkan
+            </button>
+          )}
+          <button
+            onClick={submit}
+            disabled={pending || willPost === 0}
+            className="px-3 py-1.5 rounded-lg bg-[#0B1B3D] hover:bg-[#142a5c] disabled:opacity-40 text-white flex items-center gap-1.5"
+          >
+            {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            Posting {willPost} jurnal
+          </button>
+        </div>
       </div>
     </div>
   );
