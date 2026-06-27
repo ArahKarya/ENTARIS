@@ -113,14 +113,24 @@ router.get('/settings', async (_req, res) => {
   }
 });
 
+const VALID_CHANNELS = ['web', 'telegram', 'whatsapp'] as const;
 const PutSettingsSchema = z
   .object({
     agenticEnabled: z.boolean().optional(),
     serviceToken: z.string().max(255).nullable().optional(),
+    // M2-A4: channel aktif (subset web|telegram|whatsapp). Kosong = SEMUA aktif.
+    activeChannels: z.array(z.enum(VALID_CHANNELS)).optional(),
+    // M2-A4: scope modul (group bisnis) yang boleh dipakai AIRA. Kosong = SEMUA.
+    whitelistModules: z.array(z.string().max(64)).max(50).optional(),
   })
-  .refine((b) => b.agenticEnabled !== undefined || b.serviceToken !== undefined, {
-    message: 'Minimal satu dari agenticEnabled/serviceToken harus diisi.',
-  });
+  .refine(
+    (b) =>
+      b.agenticEnabled !== undefined ||
+      b.serviceToken !== undefined ||
+      b.activeChannels !== undefined ||
+      b.whitelistModules !== undefined,
+    { message: 'Minimal satu field harus diisi.' },
+  );
 
 // PUT /api/ai/config/settings — simpan config koneksi AIRA (gate rbac.manage)
 router.put('/settings', requireCap('rbac.manage'), async (req, res) => {
@@ -132,6 +142,8 @@ router.put('/settings', requireCap('rbac.manage'), async (req, res) => {
     const data = {
       ...(body.agenticEnabled !== undefined && { agenticEnabled: body.agenticEnabled }),
       ...(body.serviceToken !== undefined && { serviceToken: body.serviceToken }),
+      ...(body.activeChannels !== undefined && { activeChannels: body.activeChannels }),
+      ...(body.whitelistModules !== undefined && { whitelistModules: body.whitelistModules }),
     };
     const saved = existing
       ? await prisma.aiSetting.update({ where: { id: existing.id }, data })

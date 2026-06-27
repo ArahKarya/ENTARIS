@@ -75,6 +75,22 @@ router.post('/', async (req: AuthRequest, res) => {
       return res.status(404).json({ ok: false, error: 'tool_disabled' });
     }
 
+    // (b+) M2-A4: scope modul. whitelistModules berisi GROUP bisnis yang boleh
+    // dipakai AIRA. Fail-safe: list KOSONG = semua group diizinkan (tak memutus
+    // apa pun). Bila terisi & group tool tak termasuk → tolak (module_not_whitelisted).
+    const moduleWhitelist = setting.whitelistModules ?? [];
+    if (moduleWhitelist.length > 0 && tool.group && !moduleWhitelist.includes(tool.group)) {
+      logger.warn(
+        { tool: tool.name, group: tool.group, by: user.userId },
+        'AIRA router: module_not_whitelisted',
+      );
+      return res.status(403).json({
+        ok: false,
+        error: 'module_not_whitelisted',
+        detail: `Modul "${tool.group}" tidak termasuk whitelist AIRA. Atur di Settings → Agentic System.`,
+      });
+    }
+
     // (c) izin 2-lapis
     // lapis 1: role pemanggil ∈ daftar roles tool
     if (!tool.roles.includes(user.role)) {

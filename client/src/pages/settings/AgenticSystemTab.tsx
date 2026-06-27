@@ -25,7 +25,31 @@ interface AiSetting {
   id: string;
   agenticEnabled: boolean;
   serviceToken: string | null;
+  activeChannels: string[];
+  whitelistModules: string[];
 }
+
+// M2-A4: channel yang AIRA bisa layani (toggle global).
+const AI_CHANNELS: { id: string; label: string }[] = [
+  { id: 'web', label: 'Web (Panel ERP)' },
+  { id: 'telegram', label: 'Telegram' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+];
+
+// M2-A4: group modul bisnis (selaras tool-router .group). Kosong = semua boleh.
+const AI_MODULE_GROUPS: string[] = [
+  'Penjualan',
+  'Pembelian',
+  'Stok & Produksi',
+  'Akuntansi',
+  'Bank & Kas',
+  'Laporan',
+  'EAM',
+  'Master & Sistem',
+  'AI / Agentic',
+  'Universal',
+  'Laporan/Universal',
+];
 interface AiraHealth {
   online: boolean;
   status: string;
@@ -243,6 +267,77 @@ export const AgenticSystemTab: React.FC = () => {
                 </button>
               </div>
             </label>
+
+            {/* M2-A4: Channel aktif (global) */}
+            <div className="rounded border border-gray-200 px-3 py-2.5">
+              <div className="text-sm font-medium text-gray-800">Channel Aktif</div>
+              <div className="mb-2 text-xs text-gray-400">
+                Channel yang dilayani AIRA. Kosong = semua aktif. (Penegakan di gateway AIRA.)
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {AI_CHANNELS.map((ch) => {
+                  const list = s.activeChannels ?? [];
+                  const checked = list.length === 0 || list.includes(ch.id);
+                  const allActive = list.length === 0;
+                  return (
+                    <label key={ch.id} className="flex items-center gap-1.5 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          // Dari "semua aktif" (kosong) → materialisasi penuh dulu, lalu toggle.
+                          const base = allActive ? AI_CHANNELS.map((c) => c.id) : [...list];
+                          const next = base.includes(ch.id)
+                            ? base.filter((c) => c !== ch.id)
+                            : [...base, ch.id];
+                          // Bila semua tercentang lagi → simpan sebagai kosong (= semua, lebih ringkas).
+                          const normalized = next.length === AI_CHANNELS.length ? [] : next;
+                          setForm({ ...s, activeChannels: normalized });
+                        }}
+                        className="h-3.5 w-3.5 rounded border-gray-300"
+                      />
+                      {ch.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* M2-A4: Whitelist Modul (group bisnis) */}
+            <div className="rounded border border-gray-200 px-3 py-2.5">
+              <div className="text-sm font-medium text-gray-800">Whitelist Modul</div>
+              <div className="mb-2 text-xs text-gray-400">
+                Group modul yang boleh dipakai AIRA. Kosong = semua modul boleh (default).
+                Bila dipilih, tool di luar group ditolak (403).
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {AI_MODULE_GROUPS.map((g) => {
+                  const list = s.whitelistModules ?? [];
+                  const active = list.includes(g);
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => {
+                        const next = active ? list.filter((x) => x !== g) : [...list, g];
+                        setForm({ ...s, whitelistModules: next });
+                      }}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-xs transition-colors',
+                        active
+                          ? 'border-blue-300 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50',
+                      )}
+                    >
+                      {g}
+                    </button>
+                  );
+                })}
+              </div>
+              {(s.whitelistModules ?? []).length === 0 && (
+                <div className="mt-2 text-xs text-emerald-600">● Semua modul aktif (tak ada batasan)</div>
+              )}
+            </div>
           </div>
         )}
         <div className="mt-3 flex justify-end">

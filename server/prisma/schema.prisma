@@ -2686,6 +2686,10 @@ model AiSetting {
   id             String   @id @default(uuid())
   agenticEnabled Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
   serviceToken   String?  @map("service_token") // token AIRA → ERP Tool Router (Bearer)
+  // M2-A4: channel aktif (web|telegram|whatsapp). Kosong = SEMUA aktif (fail-safe).
+  activeChannels String[] @default([]) @map("active_channels")
+  // M2-A4: scope modul (group bisnis) yang boleh dipakai AIRA. Kosong = SEMUA (fail-safe).
+  whitelistModules String[] @default([]) @map("whitelist_modules")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("ai_settings")
