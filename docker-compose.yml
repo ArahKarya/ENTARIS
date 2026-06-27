@@ -18,7 +18,7 @@
 # Lock project name explicitly so renaming the folder doesn't break the
 # existing volumes/network/container names. Project = aplikasi-keuangan-pmd
 # regardless of working directory.
-name: simple-erp
+name: aplikasi-keuangan-pmd
 
 services:
   # ── Database ──────────────────────────────────────────────────────────────
