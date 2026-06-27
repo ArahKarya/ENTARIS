@@ -17,6 +17,7 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import { prisma } from '../../lib/prisma';
 import { type AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
@@ -24,6 +25,9 @@ import { handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
 
 const router = Router();
+
+// A2: terima lampiran dokumen (PDF/gambar) <=10MB untuk diteruskan ke aira-core.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const AIRA_BASE = process.env.AIRA_CORE_BASE_URL || 'http://aira-core:8080';
 
@@ -54,7 +58,7 @@ async function agenticEnabled(): Promise<boolean> {
 }
 
 // ── POST /api/ai/chat/stream — proxy SSE ke aira-core /v1/run/stream ──
-router.post('/stream', async (req: AuthRequest, res) => {
+router.post('/stream', upload.single('file'), async (req: AuthRequest, res) => {
   const body = validateBody(ChatSchema, req.body, res);
   if (!body) return;
   const user = req.user;
@@ -76,19 +80,38 @@ router.post('/stream', async (req: AuthRequest, res) => {
   req.on('close', () => controller.abort());
 
   try {
-    const upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
-      method: 'POST',
-      headers: airaHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({
-        input: body.input,
-        app: 'simple-erp',
-        session_id: body.session_id,
-        user_id: user.userId,
-        // role + userId DARI JWT ERP — bukan dari klien (anti-spoof RBAC).
-        context: { role: user.role },
-      }),
-      signal: controller.signal,
-    });
+    // A2: bila ada lampiran (multipart file) -> teruskan sbg FormData ke aira-core.
+    //     Selain itu tetap JSON (panel chat teks). role+userId dari JWT ERP (anti-spoof).
+    const upFile = (req as AuthRequest & { file?: { buffer: Buffer; mimetype: string; originalname: string } }).file;
+    let upstream: Response;
+    if (upFile?.buffer?.length) {
+      const fd = new FormData();
+      fd.append('input', body.input);
+      fd.append('app', 'simple-erp');
+      if (body.session_id) fd.append('session_id', body.session_id);
+      fd.append('user_id', user.userId);
+      fd.append('context', JSON.stringify({ role: user.role }));
+      fd.append('file', new Blob([new Uint8Array(upFile.buffer)], { type: upFile.mimetype }), upFile.originalname || 'lampiran');
+      upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
+        method: 'POST',
+        headers: airaHeaders(), // JANGAN set Content-Type; fetch set boundary FormData.
+        body: fd,
+        signal: controller.signal,
+      });
+    } else {
+      upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
+        method: 'POST',
+        headers: airaHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          input: body.input,
+          app: 'simple-erp',
+          session_id: body.session_id,
+          user_id: user.userId,
+          context: { role: user.role },
+        }),
+        signal: controller.signal,
+      });
+    }
 
     if (!upstream.ok || !upstream.body) {
       const text = await upstream.text().catch(() => '');
