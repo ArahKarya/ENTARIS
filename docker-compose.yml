@@ -57,6 +57,8 @@ services:
       AIRA_SERVICE_SECRET: "${AIRA_SERVICE_SECRET:?AIRA_SERVICE_SECRET wajib diisi di .env (sinkron dgn aira-core)}"
       # ── AIRA panel chat (M4.5) — ERP proxy ke aira-core via network aira-net (DNS container). ──
       AIRA_CORE_BASE_URL: "${AIRA_CORE_BASE_URL:-http://aira-core:8080}"
+      # AIRA panel auth - Bearer token utk proxy ke aira-core (/v1/*). Sinkron dgn aira-core AIRA_API_TOKEN.
+      AIRA_API_TOKEN: "${AIRA_API_TOKEN:?AIRA_API_TOKEN wajib diisi di .env (sinkron dgn aira-core)}"
     volumes:
       - backups:/app/server/backups
       - uploads:/app/uploads

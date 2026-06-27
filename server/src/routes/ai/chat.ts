@@ -27,6 +27,15 @@ const router = Router();
 
 const AIRA_BASE = process.env.AIRA_CORE_BASE_URL || 'http://aira-core:8080';
 
+// Bearer token utk auth ke aira-core (sinkron dgn aira-core AIRA_API_TOKEN).
+// aira-core menolak /v1/* tanpa Bearer (401) -> tanpa ini, FE kena 401 -> interceptor logout.
+const AIRA_API_TOKEN = process.env.AIRA_API_TOKEN || '';
+function airaHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const h: Record<string, string> = { ...extra };
+  if (AIRA_API_TOKEN) h['Authorization'] = `Bearer ${AIRA_API_TOKEN}`;
+  return h;
+}
+
 const ChatSchema = z.object({
   input: z.string().min(1, 'Pesan tidak boleh kosong.'),
   session_id: z.string().optional(),
@@ -69,7 +78,7 @@ router.post('/stream', async (req: AuthRequest, res) => {
   try {
     const upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         input: body.input,
         app: 'simple-erp',
@@ -123,7 +132,7 @@ router.post('/approve', async (req: AuthRequest, res) => {
   try {
     const upstream = await fetch(`${AIRA_BASE}/v1/approve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         run_id: body.run_id,
         decision: body.decision,
@@ -146,7 +155,7 @@ router.get('/sessions', async (req: AuthRequest, res) => {
     const url = new URL(`${AIRA_BASE}/v1/sessions`);
     url.searchParams.set('user_id', user.userId);
     url.searchParams.set('app', 'simple-erp');
-    const upstream = await fetch(url, { method: 'GET' });
+    const upstream = await fetch(url, { method: 'GET', headers: airaHeaders() });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
   } catch (error) {
@@ -162,7 +171,7 @@ router.get('/sessions/:id/messages', async (req: AuthRequest, res) => {
     // Teruskan user_id agar aira-core menegakkan ownership (cegah IDOR baca sesi user lain).
     const url = new URL(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}/messages`);
     url.searchParams.set('user_id', user.userId);
-    const upstream = await fetch(url, { method: 'GET' });
+    const upstream = await fetch(url, { method: 'GET', headers: airaHeaders() });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
   } catch (error) {
@@ -191,7 +200,7 @@ router.patch('/sessions/:id', async (req: AuthRequest, res) => {
     // Sertakan user_id agar aira-core menegakkan ownership (cegah IDOR ubah sesi user lain).
     const upstream = await fetch(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ...body, user_id: user.userId }),
     });
     const data = await upstream.json().catch(() => null);
@@ -211,6 +220,7 @@ router.get('/aira-health', async (_req: AuthRequest, res) => {
   try {
     const upstream = await fetch(`${AIRA_BASE}/v1/health`, {
       method: 'GET',
+      headers: airaHeaders(),
       signal: controller.signal,
     });
     const data = (await upstream.json().catch(() => null)) as Record<string, unknown> | null;
