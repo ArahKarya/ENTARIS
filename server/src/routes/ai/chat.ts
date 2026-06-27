@@ -271,4 +271,36 @@ router.get('/aira-health', async (_req: AuthRequest, res) => {
   }
 });
 
+// ── POST /api/ai/chat/cashbook-approve — approve+posting draft buku kas (C4) ──
+// Proxy ke aira-core POST /v1/cashbook/:runId/approve. role/by_user dari JWT ERP.
+const CashbookApproveSchema = z.object({
+  run_id: z.string().min(1),
+  entries: z.array(z.object({
+    idx: z.number(),
+    account: z.string().optional(),
+    accountLabel: z.string().optional(),
+    skip: z.boolean().optional(),
+  })).optional(),
+});
+router.post('/cashbook-approve', async (req: AuthRequest, res) => {
+  const body = validateBody(CashbookApproveSchema, req.body, res);
+  if (!body) return;
+  const user = req.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+  if (!(await agenticEnabled())) {
+    return res.status(403).json({ ok: false, error: 'agentic_disabled' });
+  }
+  try {
+    const upstream = await fetch(`${AIRA_BASE}/v1/cashbook/${encodeURIComponent(body.run_id)}/approve`, {
+      method: 'POST',
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ entries: body.entries ?? [], by_user: user.userId }),
+    });
+    const data = await upstream.json().catch(() => null);
+    return res.status(upstream.status).json(data);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/chat/cashbook-approve', 'Gagal posting buku kas via AIRA.');
+  }
+});
+
 export default router;

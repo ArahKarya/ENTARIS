@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { DraftCard, type AiraDraft } from '../components/aira/DraftCard';
+import { CashBookCard, type CashBookDraftData, type CoaOption } from '../components/aira/CashBookCard';
 
 // ── Tipe pesan di panel chat ──
 interface ChatMessage {
@@ -20,6 +21,9 @@ interface ChatMessage {
   streaming?: boolean;
   status?: string;
   auto?: boolean; // L3: dieksekusi otomatis oleh AIRA (tanpa approval manusia)
+  cashbook?: CashBookDraftData | null; // C3: draft buku kas multi-baris
+  coa?: CoaOption[];                   // daftar akun utk dropdown koreksi
+  cashbookDone?: { posted: number; skipped: number; failed: number; learned: number } | null;
 }
 
 // ── Tipe sesi (dari aira-core via proxy ERP) ──
@@ -36,6 +40,8 @@ const STAGE_LABEL: Record<string, string> = {
   guardrail: 'Memeriksa kebijakan',
   reason: 'Menimbang keputusan',
   execute: 'Mengeksekusi',
+  cashbook_extract: 'Membaca buku kas',
+  cashbook_classify: 'Memetakan akun COA',
 };
 
 /** Ambil CSRF token dari cookie (sama pola api.ts). */
@@ -284,6 +290,15 @@ export function AiraChat() {
             if (!stages.includes(stLabel)) { stages.push(stLabel); patchMsg(asstId, { stages: [...stages] }); }
           } else if (event === 'token') {
             setMessages((prev) => prev.map((m) => m.id === asstId ? { ...m, text: m.text + (data.text ?? '') } : m));
+          } else if (event === 'cashbook_paused') {
+            patchMsg(asstId, {
+              streaming: false,
+              cashbook: data.draft as CashBookDraftData,
+              coa: (data.coa ?? []) as CoaOption[],
+              runId: data.run_id,
+              status: 'cashbook_paused',
+              text: `Aku baca buku kas: ${(data.draft as CashBookDraftData).entries.length} transaksi. Cek akun yang kutandai kuning lalu posting.`,
+            });
           } else if (event === 'paused') {
             patchMsg(asstId, {
               streaming: false,
@@ -333,6 +348,38 @@ export function AiraChat() {
       setBusy(false);
     }
   }, [input, busy, sessionId, attachedFile, patchMsg, qc]);
+
+  // C4: state posting cash-book per pesan.
+  const [cbPending, setCbPending] = useState<string | null>(null);
+
+  /** Approve cash-book: kirim koreksi akun + skip -> ERP proxy -> aira-core posting. */
+  const approveCashBook = useCallback(async (
+    msgId: string, runId: string,
+    entries: Array<{ idx: number; account?: string; accountLabel?: string; skip?: boolean }>,
+  ) => {
+    setCbPending(msgId);
+    try {
+      const resp = await fetch('/api/ai/chat/cashbook-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}) },
+        credentials: 'include',
+        body: JSON.stringify({ run_id: runId, entries }),
+      });
+      const j = await resp.json().catch(() => null);
+      if (!resp.ok) {
+        toast.error(j?.error || `Gagal posting (HTTP ${resp.status})`);
+        setCbPending(null);
+        return;
+      }
+      patchMsg(msgId, { cashbookDone: { posted: (j.posted ?? []).length, skipped: (j.skipped ?? []).length, failed: (j.failed ?? []).length, learned: j.learned ?? 0 } });
+      if ((j.failed ?? []).length) toast.warning(`${j.failed.length} baris gagal diposting.`);
+      else toast.success(`${(j.posted ?? []).length} jurnal diposting.`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCbPending(null);
+    }
+  }, [patchMsg]);
 
   /** Approve / reject draft → /api/ai/chat/approve. */
   const decide = useCallback(async (msgId: string, runId: string, decision: 'approve' | 'reject') => {
@@ -547,6 +594,16 @@ export function AiraChat() {
                         pending={approving === m.id}
                         decided={m.decided ?? null}
                         onDecision={(d) => decide(m.id, m.runId!, d)}
+                      />
+                    )}
+                    {m.cashbook && m.runId && (
+                      <CashBookCard
+                        draft={m.cashbook}
+                        coa={m.coa ?? []}
+                        runId={m.runId}
+                        pending={cbPending === m.id}
+                        done={m.cashbookDone ?? null}
+                        onApprove={(entries) => approveCashBook(m.id, m.runId!, entries)}
                       />
                     )}
                   </div>
