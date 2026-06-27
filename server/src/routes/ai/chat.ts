@@ -72,7 +72,7 @@ router.post('/stream', async (req: AuthRequest, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         input: body.input,
-        app: 'erp-aks',
+        app: 'simple-erp',
         session_id: body.session_id,
         user_id: user.userId,
         // role + userId DARI JWT ERP — bukan dari klien (anti-spoof RBAC).
@@ -145,7 +145,7 @@ router.get('/sessions', async (req: AuthRequest, res) => {
   try {
     const url = new URL(`${AIRA_BASE}/v1/sessions`);
     url.searchParams.set('user_id', user.userId);
-    url.searchParams.set('app', 'erp-aks');
+    url.searchParams.set('app', 'simple-erp');
     const upstream = await fetch(url, { method: 'GET' });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
