@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
+import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import GaAssetQRModal from '../../components/GaAssetQRModal';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
 
@@ -48,6 +49,7 @@ export const GaAssetsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; code: string } | null>(null);
+  const [qrTarget, setQrTarget] = useState<any | null>(null);
   const queryClient = useQueryClient();
 
   const canEdit = can('ga_assets', 'edit');
@@ -174,24 +176,33 @@ export const GaAssetsPage = () => {
                     </td>
                     <td className="text-center text-gray-600">{conditionLabel(a.condition)}</td>
                     <td>
-                      {canEdit && (
-                        <div className="flex items-center justify-end gap-0.5">
-                          <button
-                            onClick={() => openEdit(a)}
-                            className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors"
-                            title="Edit aset"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget({ id: a.id, code: a.code })}
-                            className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
-                            title="Hapus aset"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-end gap-0.5">
+                        <button
+                          onClick={() => setQrTarget(a)}
+                          className="p-1.5 hover:bg-slate-100 rounded text-gray-400 hover:text-slate-700 transition-colors"
+                          title="QR aset"
+                        >
+                          <QrCode size={16} />
+                        </button>
+                        {canEdit && (
+                          <>
+                            <button
+                              onClick={() => openEdit(a)}
+                              className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors"
+                              title="Edit aset"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget({ id: a.id, code: a.code })}
+                              className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
+                              title="Hapus aset"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -208,6 +219,12 @@ export const GaAssetsPage = () => {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+
+      <GaAssetQRModal
+        isOpen={qrTarget !== null}
+        onClose={() => setQrTarget(null)}
+        asset={qrTarget}
+      />
 
       <ConfirmDialog
         open={deleteTarget !== null}

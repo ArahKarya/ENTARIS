@@ -26,6 +26,7 @@ import { StockOpnamePage } from './pages/StockOpnamePage';
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
 import PublicInquiry from './pages/PublicInquiry';
+import PublicAssetScan from './pages/PublicAssetScan';
 
 import Reports from './pages/Reports';
 import TrialBalance from './pages/reports/TrialBalance';
@@ -111,6 +112,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/tanya" element={<PublicInquiry />} />
         <Route path="/inquire" element={<PublicInquiry />} />
+        <Route path="/aset/:qrCode" element={<PublicAssetScan />} />
         
         <Route element={<ProtectedRoute />}>
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
