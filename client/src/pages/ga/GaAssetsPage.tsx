@@ -55,7 +55,7 @@ export const GaAssetsPage = () => {
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['ga-assets'],
     queryFn: async () => {
-      const res = await api.get('/ga/assets');
+      const res = await api.get('/ga/assets', { params: { limit: 500 } });
       return res.data;
     },
   });

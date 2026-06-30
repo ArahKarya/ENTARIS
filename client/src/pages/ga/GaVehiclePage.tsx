@@ -46,7 +46,7 @@ export const GaVehiclePage = () => {
   // ── Assets list ───────────────────────────────────────────────────
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
     queryKey: ['ga-assets'],
-    queryFn: async () => (await api.get('/ga/assets')).data,
+    queryFn: async () => (await api.get('/ga/assets', { params: { limit: 500 } })).data,
   });
 
   const filteredAssets = useMemo(() => {

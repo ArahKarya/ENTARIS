@@ -35,7 +35,7 @@ export const GaEquipmentPage = () => {
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
     queryKey: ['ga-assets'],
     queryFn: async () => {
-      const res = await api.get('/ga/assets');
+      const res = await api.get('/ga/assets', { params: { limit: 500 } });
       return res.data?.data ?? res.data ?? [];
     },
   });

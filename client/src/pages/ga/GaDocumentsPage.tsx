@@ -125,7 +125,7 @@ export const GaDocumentsPage = () => {
   const { data: assets = [] } = useQuery<AssetOption[]>({
     queryKey: ['ga-assets-options'],
     queryFn: async () => {
-      const res = await api.get('/ga/assets');
+      const res = await api.get('/ga/assets', { params: { limit: 500 } });
       return Array.isArray(res.data) ? res.data : res.data?.data ?? [];
     },
   });
