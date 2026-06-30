@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Wrench, Plus, Loader2, X, Calendar, ClipboardList, UserPlus, Play, CheckCircle2,
-  Lock, XCircle, Package, Image as ImageIcon, AlertTriangle,
+  Lock, XCircle, Package, Image as ImageIcon, AlertTriangle, Pencil, FilePlus, ListChecks,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,16 @@ import { formatRupiah, formatDate } from '../../lib/formatters';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
+import { PhotoUploadModal } from './maintenance/PhotoUploadModal';
+import { ChecklistEditor, type ChecklistItem } from './maintenance/ChecklistEditor';
+
+// Prefill payload for opening CreateWorkOrderModal from a due/overdue schedule.
+type WoPrefill = {
+  assetId: string;
+  type: WoType;
+  scheduleId: string;
+  dueAt: string; // yyyy-mm-dd for <input type="date">
+};
 
 // GA Maintenance & Work Order — preventive schedules + corrective/preventive work orders.
 // Two tabs: "Work Order" (lifecycle OPEN→ASSIGNED→IN_PROGRESS→DONE→CLOSED + CANCELLED)
@@ -98,14 +108,20 @@ const TabButton = ({ active, onClick, icon, label }: { active: boolean; onClick:
 
 const WorkOrderTab = ({ canEdit }: { canEdit: boolean }) => {
   const [statusFilter, setStatusFilter] = useState<WoStatus | ''>('');
+  const [priorityFilter, setPriorityFilter] = useState<WoPriority | ''>('');
+  const [typeFilter, setTypeFilter] = useState<WoType | ''>('');
+  const [mineOnly, setMineOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['ga-work-orders', statusFilter],
+    queryKey: ['ga-work-orders', statusFilter, priorityFilter, typeFilter, mineOnly],
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (statusFilter) params.status = statusFilter;
+      if (priorityFilter) params.priority = priorityFilter;
+      if (typeFilter) params.type = typeFilter;
+      if (mineOnly) params.mine = 'true';
       const res = await api.get('/ga/maintenance/work-orders', { params });
       return res.data as any[];
     },
@@ -127,6 +143,36 @@ const WorkOrderTab = ({ canEdit }: { canEdit: boolean }) => {
             <Plus size={15} /> Buat Work Order
           </button>
         )}
+      </div>
+
+      {/* Secondary filters: priority / type / mine */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Prioritas</span>
+          <select
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value as WoPriority | '')}
+          >
+            <option value="">Semua</option>
+            {(Object.keys(PRIORITY_LABELS) as WoPriority[]).map((p) => (
+              <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tipe</span>
+          <select
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as WoType | '')}
+          >
+            <option value="">Semua</option>
+            <option value="CORRECTIVE">Korektif</option>
+            <option value="PREVENTIVE">Preventif</option>
+          </select>
+        </div>
+        <Chip active={mineOnly} onClick={() => setMineOnly((v) => !v)}>WO Saya</Chip>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -218,6 +264,7 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
   const [assignOpen, setAssignOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [partOpen, setPartOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
 
@@ -352,11 +399,43 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
               )}
             </div>
 
+            {/* Checklist (read-only, shown when WO has a saved checklist) */}
+            {Array.isArray(wo.checklist) && wo.checklist.length > 0 && (
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <ListChecks size={13} /> Checklist
+                </p>
+                <div className="space-y-1.5">
+                  {(wo.checklist as ChecklistItem[]).map((c) => (
+                    <div key={c.id} className="flex items-start gap-2 text-sm bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                      {c.done ? (
+                        <CheckCircle2 size={15} className="text-teal-600 mt-0.5 shrink-0" />
+                      ) : (
+                        <XCircle size={15} className="text-gray-300 mt-0.5 shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-gray-700">
+                          {c.label}
+                          {c.required && <span className="ml-1 text-[10px] font-medium text-red-500 uppercase">wajib</span>}
+                        </span>
+                        {c.notes && <span className="block text-[11px] text-gray-400">{c.notes}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Photos */}
             <div className="border-t border-gray-100 pt-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <ImageIcon size={13} /> Foto ({wo.photos?.length ?? 0})
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <ImageIcon size={13} /> Foto ({wo.photos?.length ?? 0})
+                </p>
+                {canEdit && status && !['CLOSED', 'CANCELLED'].includes(status) && (wo.photos?.length ?? 0) < 6 && (
+                  <button onClick={() => setPhotoOpen(true)} className="text-xs text-teal-600 hover:text-teal-700 font-medium">+ Tambah Foto</button>
+                )}
+              </div>
               {wo.photos?.length ? (
                 <div className="grid grid-cols-3 gap-2">
                   {wo.photos.map((ph: any) => (
@@ -379,6 +458,7 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
       {assignOpen && <AssignModal id={id} onClose={() => setAssignOpen(false)} onDone={invalidate} />}
       {completeOpen && <CompleteModal id={id} onClose={() => setCompleteOpen(false)} onDone={invalidate} />}
       {partOpen && <AddPartModal id={id} onClose={() => setPartOpen(false)} onDone={invalidate} />}
+      {photoOpen && <PhotoUploadModal id={id} onClose={() => setPhotoOpen(false)} onDone={invalidate} />}
       {cancelOpen && <CancelModal id={id} onClose={() => setCancelOpen(false)} onDone={() => { invalidate(); onClose(); }} />}
 
       <ConfirmDialog
@@ -462,10 +542,18 @@ const useTechnicians = () =>
 // CREATE WORK ORDER MODAL
 // ─────────────────────────────────────────────────────────────────────
 
-const CreateWorkOrderModal = ({ onClose }: { onClose: () => void }) => {
+const CreateWorkOrderModal = ({ prefill, onClose }: { prefill?: WoPrefill; onClose: () => void }) => {
   const queryClient = useQueryClient();
   const { data: assets } = useAssets();
-  const [form, setForm] = useState({ assetId: '', type: 'CORRECTIVE' as WoType, priority: 'MEDIUM' as WoPriority, title: '', description: '' });
+  const [form, setForm] = useState({
+    assetId: prefill?.assetId ?? '',
+    type: prefill?.type ?? ('CORRECTIVE' as WoType),
+    priority: 'MEDIUM' as WoPriority,
+    title: '',
+    description: '',
+    dueAt: prefill?.dueAt ?? '',
+  });
+  const scheduleId = prefill?.scheduleId;
 
   const mutation = useMutation({
     mutationFn: () => api.post('/ga/maintenance/work-orders', {
@@ -474,10 +562,13 @@ const CreateWorkOrderModal = ({ onClose }: { onClose: () => void }) => {
       priority: form.priority,
       title: form.title,
       description: form.description || null,
+      scheduleId: scheduleId ?? null,
+      dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : null,
     }),
     onSuccess: () => {
       toast.success('Work order dibuat.');
       queryClient.invalidateQueries({ queryKey: ['ga-work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['ga-schedules'] });
       onClose();
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membuat work order.'),
@@ -490,11 +581,22 @@ const CreateWorkOrderModal = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <ModalShell title="Buat Work Order" onClose={onClose}>
+    <ModalShell title={scheduleId ? 'Buat WO dari Jadwal' : 'Buat Work Order'} onClose={onClose}>
       <div className="space-y-4">
+        {scheduleId && (
+          <div className="flex items-start gap-2 text-xs text-teal-700 bg-teal-50 rounded-lg p-3">
+            <Calendar size={14} className="mt-0.5 shrink-0" />
+            <span>WO ini terhubung ke jadwal preventif. Saat WO selesai, jadwal otomatis bergulir ke jatuh tempo berikutnya.</span>
+          </div>
+        )}
         <div>
           <label className={labelClass}>Aset *</label>
-          <select className={fieldClass} value={form.assetId} onChange={(e) => setForm({ ...form, assetId: e.target.value })}>
+          <select
+            className={fieldClass}
+            value={form.assetId}
+            disabled={!!prefill?.assetId}
+            onChange={(e) => setForm({ ...form, assetId: e.target.value })}
+          >
             <option value="">— Pilih aset —</option>
             {(assets ?? []).map((a: any) => (
               <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
@@ -521,6 +623,10 @@ const CreateWorkOrderModal = ({ onClose }: { onClose: () => void }) => {
         <div>
           <label className={labelClass}>Judul *</label>
           <input className={fieldClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Contoh: Perbaikan AC ruang server" />
+        </div>
+        <div>
+          <label className={labelClass}>Jatuh Tempo (opsional)</label>
+          <input type="date" className={fieldClass} value={form.dueAt} onChange={(e) => setForm({ ...form, dueAt: e.target.value })} />
         </div>
         <div>
           <label className={labelClass}>Deskripsi</label>
@@ -580,10 +686,14 @@ const AssignModal = ({ id, onClose, onDone }: { id: string; onClose: () => void;
 
 const CompleteModal = ({ id, onClose, onDone }: { id: string; onClose: () => void; onDone: () => void }) => {
   const [form, setForm] = useState({ resolution: '', laborHours: '', laborCost: '', externalVendor: '', externalCost: '' });
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
 
   const mutation = useMutation({
     mutationFn: () => api.patch(`/ga/maintenance/work-orders/${id}/complete`, {
       resolution: form.resolution || null,
+      checklist: checklist.length
+        ? checklist.map((c) => ({ id: c.id, label: c.label, required: c.required, done: c.done, notes: c.notes || null }))
+        : null,
       laborHours: form.laborHours ? Number(form.laborHours) : null,
       laborCost: form.laborCost ? Number(form.laborCost) : null,
       externalVendor: form.externalVendor || null,
@@ -592,6 +702,11 @@ const CompleteModal = ({ id, onClose, onDone }: { id: string; onClose: () => voi
     onSuccess: () => { toast.success('Work order selesai.'); onDone(); onClose(); },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal menyelesaikan work order.'),
   });
+
+  const submit = () => {
+    if (checklist.some((c) => !c.label.trim())) return toast.error('Setiap item checklist wajib punya label.');
+    mutation.mutate();
+  };
 
   return (
     <ModalShell title="Selesaikan Work Order" onClose={onClose}>
@@ -618,9 +733,14 @@ const CompleteModal = ({ id, onClose, onDone }: { id: string; onClose: () => voi
             <input type="number" min="0" className={fieldClass} value={form.externalCost} onChange={(e) => setForm({ ...form, externalCost: e.target.value })} />
           </div>
         </div>
+        <div>
+          <label className={labelClass}>Checklist Penyelesaian</label>
+          <p className="text-[11px] text-gray-400 mb-2">Item bertanda "Wajib" harus dicentang "Selesai" sebelum WO bisa ditutup.</p>
+          <ChecklistEditor items={checklist} onChange={setChecklist} />
+        </div>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-          <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-50">
+          <button onClick={submit} disabled={mutation.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-50">
             {mutation.isPending && <Loader2 size={14} className="animate-spin" />} Tandai Selesai
           </button>
         </div>
@@ -755,6 +875,8 @@ const CancelModal = ({ id, onClose, onDone }: { id: string; onClose: () => void;
 
 const SchedulesTab = ({ canEdit }: { canEdit: boolean }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editSchedule, setEditSchedule] = useState<ScheduleRow | null>(null);
+  const [woPrefill, setWoPrefill] = useState<WoPrefill | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['ga-schedules'],
@@ -772,6 +894,9 @@ const SchedulesTab = ({ canEdit }: { canEdit: boolean }) => {
     if (s.intervalKm) return `${s.intervalKm} km`;
     return '—';
   };
+
+  // Format an ISO/date string to yyyy-mm-dd for <input type="date"> prefill.
+  const toDateInput = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : '');
 
   return (
     <div className="space-y-4">
@@ -793,19 +918,20 @@ const SchedulesTab = ({ canEdit }: { canEdit: boolean }) => {
                 <th scope="col">Jatuh Tempo Berikutnya</th>
                 <th scope="col">Catatan</th>
                 <th scope="col" className="text-center">Status</th>
+                {canEdit && <th scope="col" className="text-right">Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center text-gray-400">
+                  <td colSpan={canEdit ? 6 : 5} className="py-16 text-center text-gray-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
                     Memuat jadwal...
                   </td>
                 </tr>
               ) : schedules.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center">
+                  <td colSpan={canEdit ? 6 : 5} className="py-16 text-center">
                     <Calendar className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">Belum ada jadwal preventive.</p>
                   </td>
@@ -815,6 +941,7 @@ const SchedulesTab = ({ canEdit }: { canEdit: boolean }) => {
                   const due = s.nextDueAt ? new Date(s.nextDueAt) : null;
                   const isOverdue = s.isActive && due !== null && due < now;
                   const isDueSoon = s.isActive && due !== null && !isOverdue && (due.getTime() - now.getTime()) < 7 * 24 * 3600 * 1000;
+                  const canMakeWo = s.isActive && (isOverdue || isDueSoon);
                   return (
                     <tr key={s.id} className={!s.isActive ? 'opacity-50' : ''}>
                       <td>
@@ -835,6 +962,26 @@ const SchedulesTab = ({ canEdit }: { canEdit: boolean }) => {
                           {s.isActive ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </td>
+                      {canEdit && (
+                        <td className="text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2">
+                            {canMakeWo && s.asset?.id && (
+                              <button
+                                onClick={() => setWoPrefill({ assetId: s.asset.id, type: 'PREVENTIVE', scheduleId: s.id, dueAt: toDateInput(s.nextDueAt) })}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700"
+                              >
+                                <FilePlus size={13} /> Buat WO
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setEditSchedule(s)}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700"
+                            >
+                              <Pencil size={13} /> Edit
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -845,6 +992,8 @@ const SchedulesTab = ({ canEdit }: { canEdit: boolean }) => {
       </div>
 
       {isCreateOpen && <CreateScheduleModal onClose={() => setIsCreateOpen(false)} />}
+      {editSchedule && <EditScheduleModal schedule={editSchedule} onClose={() => setEditSchedule(null)} />}
+      {woPrefill && <CreateWorkOrderModal prefill={woPrefill} onClose={() => setWoPrefill(null)} />}
     </div>
   );
 };
@@ -919,6 +1068,109 @@ const CreateScheduleModal = ({ onClose }: { onClose: () => void }) => {
           <label className={labelClass}>Catatan</label>
           <textarea className={fieldClass} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </div>
+        <div className="flex justify-end gap-3 pt-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+          <button onClick={submit} disabled={mutation.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-50">
+            {mutation.isPending && <Loader2 size={14} className="animate-spin" />} Simpan
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// EDIT SCHEDULE MODAL
+// ─────────────────────────────────────────────────────────────────────
+
+type ScheduleRow = {
+  id: string;
+  intervalDays: number | null;
+  intervalHours: number | null;
+  intervalKm: number | null;
+  nextDueAt: string | null;
+  notes: string | null;
+  isActive: boolean;
+  asset?: { id: string; code?: string; name?: string } | null;
+};
+
+const EditScheduleModal = ({ schedule, onClose }: { schedule: ScheduleRow; onClose: () => void }) => {
+  const queryClient = useQueryClient();
+  const toDateInput = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : '');
+  const [form, setForm] = useState({
+    intervalDays: schedule.intervalDays != null ? String(schedule.intervalDays) : '',
+    intervalHours: schedule.intervalHours != null ? String(schedule.intervalHours) : '',
+    intervalKm: schedule.intervalKm != null ? String(schedule.intervalKm) : '',
+    nextDueAt: toDateInput(schedule.nextDueAt),
+    notes: schedule.notes ?? '',
+    isActive: !!schedule.isActive,
+  });
+
+  const mutation = useMutation({
+    mutationFn: () => api.put(`/ga/maintenance/schedules/${schedule.id}`, {
+      intervalDays: form.intervalDays ? Number(form.intervalDays) : null,
+      intervalHours: form.intervalHours ? Number(form.intervalHours) : null,
+      intervalKm: form.intervalKm ? Number(form.intervalKm) : null,
+      nextDueAt: form.nextDueAt || undefined,
+      notes: form.notes || null,
+      isActive: form.isActive,
+    }),
+    onSuccess: () => {
+      toast.success('Jadwal diperbarui.');
+      queryClient.invalidateQueries({ queryKey: ['ga-schedules'] });
+      onClose();
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal memperbarui jadwal.'),
+  });
+
+  const submit = () => {
+    if (!form.intervalDays && !form.intervalHours && !form.intervalKm) {
+      return toast.error('Isi salah satu interval (hari, jam, atau km).');
+    }
+    mutation.mutate();
+  };
+
+  return (
+    <ModalShell title="Edit Jadwal Preventive" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="text-sm text-gray-600">
+          <span className="font-medium text-gray-800">{schedule.asset?.name ?? '—'}</span>
+          {schedule.asset?.code && <span className="ml-1 text-xs font-mono text-gray-400">({schedule.asset.code})</span>}
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-2">Isi salah satu interval di bawah ini.</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={labelClass}>Interval Hari</label>
+              <input type="number" min="0" className={fieldClass} value={form.intervalDays} onChange={(e) => setForm({ ...form, intervalDays: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>Interval Jam</label>
+              <input type="number" min="0" className={fieldClass} value={form.intervalHours} onChange={(e) => setForm({ ...form, intervalHours: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>Interval Km</label>
+              <input type="number" min="0" className={fieldClass} value={form.intervalKm} onChange={(e) => setForm({ ...form, intervalKm: e.target.value })} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>Jatuh Tempo Berikutnya</label>
+          <input type="date" className={fieldClass} value={form.nextDueAt} onChange={(e) => setForm({ ...form, nextDueAt: e.target.value })} />
+        </div>
+        <div>
+          <label className={labelClass}>Catatan</label>
+          <textarea className={fieldClass} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={form.isActive}
+            onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+            className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+          />
+          Jadwal aktif
+        </label>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
           <button onClick={submit} disabled={mutation.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-50">
