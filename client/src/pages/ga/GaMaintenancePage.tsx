@@ -10,6 +10,7 @@ import { formatRupiah, formatDate } from '../../lib/formatters';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
+import SearchableSelect from '../../components/SearchableSelect';
 import { PhotoUploadModal } from './maintenance/PhotoUploadModal';
 import { ChecklistEditor, type ChecklistItem } from './maintenance/ChecklistEditor';
 import { CreateMrModal } from './materialRequest/CreateMrModal';
@@ -629,17 +630,14 @@ const CreateWorkOrderModal = ({ prefill, onClose }: { prefill?: WoPrefill; onClo
         )}
         <div>
           <label className={labelClass}>Aset *</label>
-          <select
-            className={fieldClass}
-            value={form.assetId}
-            disabled={!!prefill?.assetId}
-            onChange={(e) => setForm({ ...form, assetId: e.target.value })}
-          >
-            <option value="">— Pilih aset —</option>
-            {(assets ?? []).map((a: any) => (
-              <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
-            ))}
-          </select>
+            <SearchableSelect
+              options={(assets ?? []).map((a: any) => ({ value: a.id, label: `${a.code} — ${a.name}` }))}
+              value={form.assetId}
+              onChange={(v) => setForm({ ...form, assetId: v })}
+              placeholder="— Pilih aset —"
+              disabled={!!prefill?.assetId}
+              allowClear={false}
+            />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -704,12 +702,13 @@ const AssignModal = ({ id, onClose, onDone }: { id: string; onClose: () => void;
       <div className="space-y-4">
         <div>
           <label className={labelClass}>Teknisi *</label>
-          <select className={fieldClass} value={assignedToId} onChange={(e) => setAssignedToId(e.target.value)}>
-            <option value="">— Pilih teknisi —</option>
-            {(techs ?? []).map((u: any) => (
-              <option key={u.id} value={u.id}>{u.fullName} ({u.username})</option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={(techs ?? []).map((u: any) => ({ value: u.id, label: `${u.fullName} (${u.username})` }))}
+            value={assignedToId}
+            onChange={(v) => setAssignedToId(v)}
+            placeholder="— Pilih teknisi —"
+            allowClear={false}
+          />
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
@@ -839,21 +838,23 @@ const AddPartModal = ({ id, onClose, onDone }: { id: string; onClose: () => void
       <div className="space-y-4">
         <div>
           <label className={labelClass}>Item Inventory *</label>
-          <select className={fieldClass} value={form.inventoryItemId} onChange={(e) => setForm({ ...form, inventoryItemId: e.target.value })}>
-            <option value="">— Pilih item —</option>
-            {(items ?? []).map((it: any) => (
-              <option key={it.id} value={it.id}>{it.sku} — {it.name}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={(items ?? []).map((it: any) => ({ value: it.id, label: `${it.sku} — ${it.name}` }))}
+            value={form.inventoryItemId}
+            onChange={(v) => setForm({ ...form, inventoryItemId: v })}
+            placeholder="— Pilih item —"
+            allowClear={false}
+          />
         </div>
         <div>
           <label className={labelClass}>Lokasi Asal (opsional, kurangi stok)</label>
-          <select className={fieldClass} value={form.fromLocationId} onChange={(e) => setForm({ ...form, fromLocationId: e.target.value })}>
-            <option value="">— Tanpa pengurangan stok —</option>
-            {(locations ?? []).map((l: any) => (
-              <option key={l.id} value={l.id}>{l.code} — {l.name}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={(locations ?? []).map((l: any) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
+            value={form.fromLocationId}
+            onChange={(v) => setForm({ ...form, fromLocationId: v })}
+            placeholder="— Tanpa pengurangan stok —"
+            allowClear={true}
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
