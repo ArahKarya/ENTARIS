@@ -12,6 +12,8 @@ import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
 import { PhotoUploadModal } from './maintenance/PhotoUploadModal';
 import { ChecklistEditor, type ChecklistItem } from './maintenance/ChecklistEditor';
+import { CreateMrModal } from './materialRequest/CreateMrModal';
+import { MR_STATUS_LABELS, MR_STATUS_BADGE, type MrStatus } from './materialRequest/types';
 
 // Prefill payload for opening CreateWorkOrderModal from a due/overdue schedule.
 type WoPrefill = {
@@ -267,6 +269,7 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
   const [photoOpen, setPhotoOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
+  const [mrOpen, setMrOpen] = useState(false);
 
   const { data: wo, isLoading } = useQuery({
     queryKey: ['ga-wo', id],
@@ -337,6 +340,7 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
               <Info label="Jatuh Tempo" value={wo.dueAt ? formatDate(wo.dueAt) : '—'} />
               <Info label="Mulai" value={wo.startedAt ? formatDate(wo.startedAt) : '—'} />
               <Info label="Selesai" value={wo.completedAt ? formatDate(wo.completedAt) : '—'} />
+              <Info label="Komponen" value={wo.component || '—'} />
             </div>
 
             {wo.description && (
@@ -369,6 +373,7 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
                   <ActionBtn onClick={() => setCloseConfirm(true)} loading={closeMutation.isPending} icon={<Lock size={14} />} label="Tutup" color="green" />
                 )}
                 <ActionBtn onClick={() => setCancelOpen(true)} icon={<XCircle size={14} />} label="Batalkan" color="red" />
+                <ActionBtn onClick={() => setMrOpen(true)} icon={<FilePlus size={14} />} label="Minta Sparepart / MR" />
               </div>
             )}
 
@@ -451,6 +456,31 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
                 <p className="text-xs text-gray-400">Belum ada foto.</p>
               )}
             </div>
+
+            {/* Cross-ref: Material Requests terkait WO ini */}
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <FilePlus size={13} /> Permintaan Barang (MR)
+              </p>
+              {wo.materialRequests?.length ? (
+                <div className="space-y-1.5">
+                  {wo.materialRequests.map((mr: { id: string; code: string; status: MrStatus; _count?: { items: number } }) => (
+                    <div key={mr.id} className="flex items-center justify-between text-xs bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                      <span className="font-mono text-gray-700">
+                        {mr.code}
+                        <span className="text-gray-400 ml-1">({mr._count?.items ?? 0} item)</span>
+                      </span>
+                      <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', MR_STATUS_BADGE[mr.status as MrStatus])}>
+                        {MR_STATUS_LABELS[mr.status as MrStatus]}
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-gray-400 mt-1">Kelola detail MR di menu Permintaan Barang (MR).</p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">Belum ada permintaan barang untuk WO ini.</p>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -460,6 +490,12 @@ const WorkOrderDetailDrawer = ({ id, canEdit, onClose }: { id: string; canEdit: 
       {partOpen && <AddPartModal id={id} onClose={() => setPartOpen(false)} onDone={invalidate} />}
       {photoOpen && <PhotoUploadModal id={id} onClose={() => setPhotoOpen(false)} onDone={invalidate} />}
       {cancelOpen && <CancelModal id={id} onClose={() => setCancelOpen(false)} onDone={() => { invalidate(); onClose(); }} />}
+      {mrOpen && wo && (
+        <CreateMrModal
+          woContext={{ workOrderId: id, assetId: wo.asset?.id ?? null, woCode: wo.code }}
+          onClose={() => { setMrOpen(false); invalidate(); }}
+        />
+      )}
 
       <ConfirmDialog
         open={closeConfirm}
@@ -551,6 +587,7 @@ const CreateWorkOrderModal = ({ prefill, onClose }: { prefill?: WoPrefill; onClo
     priority: 'MEDIUM' as WoPriority,
     title: '',
     description: '',
+    component: '',
     dueAt: prefill?.dueAt ?? '',
   });
   const scheduleId = prefill?.scheduleId;
@@ -562,6 +599,7 @@ const CreateWorkOrderModal = ({ prefill, onClose }: { prefill?: WoPrefill; onClo
       priority: form.priority,
       title: form.title,
       description: form.description || null,
+      component: form.component || null,
       scheduleId: scheduleId ?? null,
       dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : null,
     }),
@@ -623,6 +661,10 @@ const CreateWorkOrderModal = ({ prefill, onClose }: { prefill?: WoPrefill; onClo
         <div>
           <label className={labelClass}>Judul *</label>
           <input className={fieldClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Contoh: Perbaikan AC ruang server" />
+        </div>
+        <div>
+          <label className={labelClass}>Komponen (opsional)</label>
+          <input className={fieldClass} value={form.component} onChange={(e) => setForm({ ...form, component: e.target.value })} placeholder="Contoh: V-belt, bearing, kompresor" />
         </div>
         <div>
           <label className={labelClass}>Jatuh Tempo (opsional)</label>
