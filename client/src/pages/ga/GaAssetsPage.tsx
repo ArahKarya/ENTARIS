@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
+import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
+import AssetDocumentsDrawer from './assets/AssetDocumentsDrawer';
 
 // GA — Registri Aset Fisik. List + create/edit modal. Konsumsi /ga/assets,
 // dengan select kategori/cabang/cost-center dari /ga/master/*.
@@ -48,9 +49,11 @@ export const GaAssetsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; code: string } | null>(null);
+  const [docDrawerAsset, setDocDrawerAsset] = useState<{ id: string; code: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
   const canEdit = can('ga_assets', 'edit');
+  const canViewDocs = can('ga_documents', 'view');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['ga-assets'],
@@ -174,24 +177,35 @@ export const GaAssetsPage = () => {
                     </td>
                     <td className="text-center text-gray-600">{conditionLabel(a.condition)}</td>
                     <td>
-                      {canEdit && (
-                        <div className="flex items-center justify-end gap-0.5">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {canViewDocs && (
                           <button
-                            onClick={() => openEdit(a)}
-                            className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors"
-                            title="Edit aset"
+                            onClick={() => setDocDrawerAsset({ id: a.id, code: a.code, name: a.name })}
+                            className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Dokumen aset"
                           >
-                            <Pencil size={16} />
+                            <FileText size={16} />
                           </button>
-                          <button
-                            onClick={() => setDeleteTarget({ id: a.id, code: a.code })}
-                            className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
-                            title="Hapus aset"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
+                        )}
+                        {canEdit && (
+                          <>
+                            <button
+                              onClick={() => openEdit(a)}
+                              className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors"
+                              title="Edit aset"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget({ id: a.id, code: a.code })}
+                              className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
+                              title="Hapus aset"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -206,6 +220,15 @@ export const GaAssetsPage = () => {
           key={editTarget?.id ?? 'new'}
           asset={editTarget}
           onClose={() => setIsModalOpen(false)}
+        />
+      )}
+
+      {docDrawerAsset && (
+        <AssetDocumentsDrawer
+          assetId={docDrawerAsset.id}
+          assetCode={docDrawerAsset.code}
+          assetName={docDrawerAsset.name}
+          onClose={() => setDocDrawerAsset(null)}
         />
       )}
 
