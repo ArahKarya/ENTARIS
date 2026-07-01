@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/api';
 import { formatRupiah, formatDate } from '../../../lib/formatters';
 import { toast } from 'sonner';
+import SearchableSelect from '../../../components/SearchableSelect';
 import {
   mrFieldClass as fieldClass,
   mrLabelClass as labelClass,
@@ -375,14 +376,13 @@ function ReceiveModal({
           </div>
           <div>
             <label className={labelClass}>Lokasi Gudang Tujuan *</label>
-            <select className={fieldClass} value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-              <option value="">— Pilih lokasi —</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.code} — {l.name}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={locations.map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
+              value={locationId}
+              onChange={(v) => setLocationId(v)}
+              placeholder="— Pilih lokasi —"
+              allowClear={false}
+            />
           </div>
 
           {needsLink && (
@@ -407,14 +407,13 @@ function ReceiveModal({
               {mode === 'existing' ? (
                 <div>
                   <label className={labelClass}>Item Inventaris</label>
-                  <select className={fieldClass} value={existingItemId} onChange={(e) => setExistingItemId(e.target.value)}>
-                    <option value="">— Pilih item —</option>
-                    {invItems.map((x) => (
-                      <option key={x.id} value={x.id}>
-                        {x.sku} — {x.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
+                    value={existingItemId}
+                    onChange={(v) => setExistingItemId(v)}
+                    placeholder="— Pilih item —"
+                    allowClear={true}
+                  />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">

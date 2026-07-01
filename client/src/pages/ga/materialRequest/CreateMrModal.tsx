@@ -3,6 +3,7 @@ import { X, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/api';
 import { toast } from 'sonner';
+import SearchableSelect from '../../../components/SearchableSelect';
 import {
   mrFieldClass as fieldClass,
   mrLabelClass as labelClass,
@@ -123,14 +124,13 @@ export function CreateMrModal({
           {!woContext && (
             <div>
               <label className={labelClass}>Aset Tujuan (opsional)</label>
-              <select className={fieldClass} value={assetId} onChange={(e) => setAssetId(e.target.value)}>
-                <option value="">— Tanpa aset spesifik —</option>
-                {assets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.code} — {a.name}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={assets.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))}
+                value={assetId}
+                onChange={(v) => setAssetId(v)}
+                placeholder="— Tanpa aset spesifik —"
+                allowClear={true}
+              />
             </div>
           )}
           <div>
@@ -170,18 +170,13 @@ export function CreateMrModal({
                   </div>
                   <div>
                     <label className={labelClass}>Item Inventaris GA (opsional)</label>
-                    <select
-                      className={fieldClass}
+                    <SearchableSelect
+                      options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
                       value={it.inventoryItemId ?? ''}
-                      onChange={(e) => pickInventoryItem(idx, e.target.value)}
-                    >
-                      <option value="">— Barang baru / freetext —</option>
-                      {invItems.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.sku} — {x.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) => pickInventoryItem(idx, v)}
+                      placeholder="— Barang baru / freetext —"
+                      allowClear={true}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="col-span-2">
