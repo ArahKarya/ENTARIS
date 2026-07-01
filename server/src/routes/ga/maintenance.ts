@@ -74,6 +74,7 @@ const CreateWorkOrderSchema = z.object({
   type: z.enum(['PREVENTIVE', 'CORRECTIVE']).default('CORRECTIVE'),
   title: z.string().min(1, 'Judul wajib diisi.').max(200),
   description: z.string().optional().nullable(),
+  component: z.string().max(200).optional().nullable(),
   priority: z.enum(PRIORITY).default('MEDIUM'),
   scheduleId: z.string().optional().nullable(),
   dueAt: z.string().optional().nullable(),
@@ -285,6 +286,10 @@ router.get('/work-orders/:id', async (req: AuthRequest, res) => {
             fromLocation: { select: { code: true, name: true } },
           },
         },
+        materialRequests: {
+          select: { id: true, code: true, status: true, createdAt: true, _count: { select: { items: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
     if (!wo) return res.status(404).json({ error: 'Work order tidak ditemukan.' });
@@ -328,6 +333,7 @@ router.post('/work-orders', async (req: AuthRequest, res) => {
           priority: input.priority,
           title: input.title,
           description: input.description ?? null,
+          component: input.component ?? null,
           reportedById: req.user!.userId,
           reportedAt: new Date(),
           scheduleId: input.scheduleId ?? null,

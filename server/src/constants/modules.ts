@@ -47,6 +47,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'ga_building', label: 'Gedung & Sewa', group: 'EAM — Manajemen Aset' },
   { key: 'ga_equipment', label: 'Equipment & Kalibrasi', group: 'EAM — Manajemen Aset' },
   { key: 'ga_maintenance', label: 'Maintenance & Work Order', group: 'EAM — Manajemen Aset' },
+  { key: 'ga_material_request', label: 'Permintaan Barang (MR)', group: 'EAM — Manajemen Aset' },
   { key: 'ga_inventory', label: 'Inventaris (Sparepart/ATK)', group: 'EAM — Manajemen Aset' },
   { key: 'ga_documents', label: 'Dokumen Legal & Sertifikat', group: 'EAM — Manajemen Aset' },
   { key: 'ga_master', label: 'Master Data EAM', group: 'EAM — Manajemen Aset' },

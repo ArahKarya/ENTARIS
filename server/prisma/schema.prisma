@@ -2096,6 +2096,21 @@ enum GaWorkOrderPhotoType {
   BEFORE
   AFTER
 }
+enum GaMaterialRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  FULFILLED
+  CANCELLED
+}
+enum GaProcurementStatus {
+  REQUESTED
+  QUOTED
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
 enum GaVehicleFuelType {
   BENSIN
   SOLAR
@@ -2247,6 +2262,7 @@ model GaAsset {
   equipmentData                GaEquipmentData?
   fixedAsset                   FixedAsset?               @relation("FixedAssetEam")
   calibrationLogs              GaCalibrationLog[]
+  materialRequests             GaMaterialRequest[]
   @@index([categoryId])
   @@index([branchId])
   @@index([picUserId])
@@ -2347,6 +2363,7 @@ model GaLocation {
   movsFrom       GaInventoryMovement[] @relation("GaMovFrom")
   movsTo         GaInventoryMovement[] @relation("GaMovTo")
   workOrderParts GaWorkOrderPart[]
+  materialRequestItems GaMaterialRequestItem[]
   @@index([branchId])
   @@map("ga_locations")
 }
@@ -2364,6 +2381,7 @@ model GaInventoryItem {
   stocks         GaStockByLocation[]
   movements      GaInventoryMovement[]
   workOrderParts GaWorkOrderPart[]
+  materialRequestItems GaMaterialRequestItem[]
   @@index([categoryId])
   @@map("ga_inventory_items")
 }
@@ -2452,7 +2470,8 @@ model GaWorkOrder {
   laborHours     Decimal?               @map("labor_hours") @db.Decimal(6, 2)
   laborCost      Decimal?               @map("labor_cost") @db.Decimal(14, 2)
   externalVendor String?                @map("external_vendor")
-  externalCost   Decimal?               @map("external_cost") @db.Decimal(14, 2)
+  externalCost   Decimal?               @db.Decimal(14, 2) @map("external_cost")
+  component      String?
   checklist      Json?
   createdAt      DateTime               @default(now()) @map("created_at")
   updatedAt      DateTime               @updatedAt @map("updated_at")
@@ -2460,6 +2479,7 @@ model GaWorkOrder {
   schedule       GaMaintenanceSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
   photos         GaWorkOrderPhoto[]
   parts          GaWorkOrderPart[]
+  materialRequests GaMaterialRequest[]
   vehicleServiceLog GaVehicleServiceLog?
   vehicleServiceReq GaVehicleServiceRequest?
   calibrationLog GaCalibrationLog?
@@ -2499,6 +2519,62 @@ model GaWorkOrderPart {
   @@index([workOrderId])
   @@index([inventoryItemId])
   @@map("ga_work_order_parts")
+}
+
+model GaMaterialRequest {
+  id            String                  @id @default(cuid())
+  code          String                  @unique
+  status        GaMaterialRequestStatus @default(DRAFT)
+  workOrderId   String?                 @map("work_order_id")
+  assetId       String?                 @map("asset_id")
+  machineTarget String?                 @map("machine_target")
+  notes         String?
+  requestedById String                  @map("requested_by_id")
+  requestedAt   DateTime                @default(now()) @map("requested_at")
+  approvedById  String?                 @map("approved_by_id")
+  approvedAt    DateTime?               @map("approved_at")
+  rejectedById  String?                 @map("rejected_by_id")
+  rejectedAt    DateTime?               @map("rejected_at")
+  rejectReason  String?                 @map("reject_reason")
+  // Forward-compat OPSI B (nullable, tidak dipakai sekarang): link ke PO/GL resmi.
+  purchaseOrderId String?               @map("purchase_order_id")
+  glAccountId     String?               @map("gl_account_id")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
+  workOrder     GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  asset         GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  items         GaMaterialRequestItem[]
+  @@index([status])
+  @@index([workOrderId])
+  @@index([assetId])
+  @@map("ga_material_requests")
+}
+
+model GaMaterialRequestItem {
+  id                   String              @id @default(cuid())
+  materialRequestId    String              @map("material_request_id")
+  inventoryItemId      String?             @map("inventory_item_id")
+  itemName             String              @map("item_name")
+  sku                  String?
+  uom                  String
+  quantity             Decimal             @db.Decimal(12, 2)
+  notes                String?
+  // Procurement (diisi bertahap saat pengadaan sparepart).
+  vendorName           String?             @map("vendor_name")
+  unitPrice            Decimal             @default(0) @db.Decimal(14, 2) @map("unit_price")
+  poNumber             String?             @map("po_number")
+  procurementStatus    GaProcurementStatus @default(REQUESTED) @map("procurement_status")
+  receivedQty          Decimal             @default(0) @db.Decimal(12, 2) @map("received_qty")
+  receivedAt           DateTime?           @map("received_at")
+  receivedIntoLocationId String?           @map("received_into_location_id")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  materialRequest      GaMaterialRequest   @relation(fields: [materialRequestId], references: [id], onDelete: Cascade)
+  inventoryItem        GaInventoryItem?    @relation(fields: [inventoryItemId], references: [id])
+  receivedIntoLocation GaLocation?         @relation(fields: [receivedIntoLocationId], references: [id])
+  @@index([materialRequestId])
+  @@index([inventoryItemId])
+  @@map("ga_material_request_items")
 }
 
 model GaVehicleData {
