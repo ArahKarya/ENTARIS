@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode } from 'lucide-react';
+import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import GaAssetQRModal from '../../components/GaAssetQRModal';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
+import AssetDocumentsDrawer from './assets/AssetDocumentsDrawer';
 
 // GA — Registri Aset Fisik. List + create/edit modal. Konsumsi /ga/assets,
 // dengan select kategori/cabang/cost-center dari /ga/master/*.
@@ -50,9 +51,11 @@ export const GaAssetsPage = () => {
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; code: string } | null>(null);
   const [qrTarget, setQrTarget] = useState<any | null>(null);
+  const [docDrawerAsset, setDocDrawerAsset] = useState<{ id: string; code: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
   const canEdit = can('ga_assets', 'edit');
+  const canViewDocs = can('ga_documents', 'view');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['ga-assets'],
@@ -184,6 +187,15 @@ export const GaAssetsPage = () => {
                         >
                           <QrCode size={16} />
                         </button>
+                        {canViewDocs && (
+                          <button
+                            onClick={() => setDocDrawerAsset({ id: a.id, code: a.code, name: a.name })}
+                            className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Dokumen aset"
+                          >
+                            <FileText size={16} />
+                          </button>
+                        )}
                         {canEdit && (
                           <>
                             <button
@@ -225,6 +237,15 @@ export const GaAssetsPage = () => {
         onClose={() => setQrTarget(null)}
         asset={qrTarget}
       />
+
+      {docDrawerAsset && (
+        <AssetDocumentsDrawer
+          assetId={docDrawerAsset.id}
+          assetCode={docDrawerAsset.code}
+          assetName={docDrawerAsset.name}
+          onClose={() => setDocDrawerAsset(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteTarget !== null}
