@@ -5,7 +5,13 @@ import { Prisma } from '@prisma/client';
  * race conditions under concurrent requests.
  *
  * Format: {prefix}-YYYYMM-XXXX  e.g. SI-202603-0001
- * Count is scoped to (prefix, fiscalYear, month) to ensure sequential numbering per month.
+ *
+ * Strategy: MAX(existing number) + 1 within the (prefix, yearMonth) series.
+ * NOTE: previously this used COUNT(rows in month) + 1, which desyncs from the
+ * actual last-used number whenever documents are deleted or their dates are
+ * moved across months — count drops below max, so the next generated number
+ * collides with an existing one and the @unique constraint throws P2002
+ * ("Data duplikat terdeteksi"). MAX+1 is immune to deletions and backdating.
  */
 export async function generateDocumentNumber(
   tx: Prisma.TransactionClient,
@@ -29,46 +35,72 @@ export async function generateDocumentNumber(
   const lockKey = hash % 2147483647; // ensure fits in PostgreSQL int4
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
 
-  // Count existing documents in this fiscal year AND month to get proper sequential number
-  const monthStart = new Date(year, month, 1);
-  const monthEnd = new Date(year, month + 1, 1);
-  const dateFilter = { date: { gte: monthStart, lt: monthEnd } };
-  const where = { fiscalYearId, ...dateFilter };
+  // Find the highest number already used in this (prefix, yearMonth) series.
+  // The series prefix embeds year+month, so no date/fiscalYear filter is needed
+  // (and deleted/backdated rows can never cause collisions).
+  const seriesPrefix = `${prefix}-${yearMonth}-`;
+  const startsWith = { startsWith: seriesPrefix };
 
-  let count = 0;
+  let lastNumber: string | null = null;
   if (prefix === 'SI') {
-    count = await tx.salesInvoice.count({ where });
+    const r = await tx.salesInvoice.findFirst({ where: { invoiceNumber: startsWith }, orderBy: { invoiceNumber: 'desc' }, select: { invoiceNumber: true } });
+    lastNumber = r?.invoiceNumber ?? null;
   } else if (prefix === 'PI') {
-    count = await tx.purchaseInvoice.count({ where });
+    const r = await tx.purchaseInvoice.findFirst({ where: { invoiceNumber: startsWith }, orderBy: { invoiceNumber: 'desc' }, select: { invoiceNumber: true } });
+    lastNumber = r?.invoiceNumber ?? null;
   } else if (prefix === 'PAY') {
-    count = await tx.payment.count({ where });
+    const r = await tx.payment.findFirst({ where: { paymentNumber: startsWith }, orderBy: { paymentNumber: 'desc' }, select: { paymentNumber: true } });
+    lastNumber = r?.paymentNumber ?? null;
   } else if (prefix === 'SM') {
-    count = await tx.stockMovement.count({ where });
+    const r = await tx.stockMovement.findFirst({ where: { movementNumber: startsWith }, orderBy: { movementNumber: 'desc' }, select: { movementNumber: true } });
+    lastNumber = r?.movementNumber ?? null;
   } else if (prefix === 'PR') {
-    count = await tx.productionRun.count({ where });
+    const r = await tx.productionRun.findFirst({ where: { runNumber: startsWith }, orderBy: { runNumber: 'desc' }, select: { runNumber: true } });
+    lastNumber = r?.runNumber ?? null;
   } else if (prefix === 'SO') {
-    count = await tx.stockOpname.count({ where });
+    const r = await tx.stockOpname.findFirst({ where: { opnameNumber: startsWith }, orderBy: { opnameNumber: 'desc' }, select: { opnameNumber: true } });
+    lastNumber = r?.opnameNumber ?? null;
   } else if (prefix === 'QO') {
-    count = await tx.quotation.count({ where });
+    const r = await tx.quotation.findFirst({ where: { quotationNumber: startsWith }, orderBy: { quotationNumber: 'desc' }, select: { quotationNumber: true } });
+    lastNumber = r?.quotationNumber ?? null;
   } else if (prefix === 'INQ') {
-    count = await tx.inquiry.count({ where });
+    const r = await tx.inquiry.findFirst({ where: { inquiryNumber: startsWith }, orderBy: { inquiryNumber: 'desc' }, select: { inquiryNumber: true } });
+    lastNumber = r?.inquiryNumber ?? null;
   } else if (prefix === 'ST') {
-    count = await tx.stockTransfer.count({ where });
+    const r = await tx.stockTransfer.findFirst({ where: { transferNumber: startsWith }, orderBy: { transferNumber: 'desc' }, select: { transferNumber: true } });
+    lastNumber = r?.transferNumber ?? null;
   } else if (prefix === 'DO') {
-    count = await tx.deliveryOrder.count({ where });
+    const r = await tx.deliveryOrder.findFirst({ where: { doNumber: startsWith }, orderBy: { doNumber: 'desc' }, select: { doNumber: true } });
+    lastNumber = r?.doNumber ?? null;
   } else if (prefix === 'STT') {
-    count = await tx.goodsReceipt.count({ where });
+    const r = await tx.goodsReceipt.findFirst({ where: { sttNumber: startsWith }, orderBy: { sttNumber: 'desc' }, select: { sttNumber: true } });
+    lastNumber = r?.sttNumber ?? null;
   } else if (prefix === 'PO') {
-    count = await tx.purchaseOrder.count({ where });
+    const r = await tx.purchaseOrder.findFirst({ where: { poNumber: startsWith }, orderBy: { poNumber: 'desc' }, select: { poNumber: true } });
+    lastNumber = r?.poNumber ?? null;
   } else if (prefix === 'PSN') {
-    count = await tx.salesOrder.count({ where });
+    const r = await tx.salesOrder.findFirst({ where: { soNumber: startsWith }, orderBy: { soNumber: 'desc' }, select: { soNumber: true } });
+    lastNumber = r?.soNumber ?? null;
   } else if (prefix === 'RN') {
-    count = await tx.salesReturn.count({ where });
+    const r = await tx.salesReturn.findFirst({ where: { returnNumber: startsWith }, orderBy: { returnNumber: 'desc' }, select: { returnNumber: true } });
+    lastNumber = r?.returnNumber ?? null;
   } else if (prefix === 'UJ') {
-    count = await tx.projectGuarantee.count({ where });
+    const r = await tx.projectGuarantee.findFirst({ where: { guaranteeNumber: startsWith }, orderBy: { guaranteeNumber: 'desc' }, select: { guaranteeNumber: true } });
+    lastNumber = r?.guaranteeNumber ?? null;
   } else {
-    count = await tx.journalEntry.count({ where });
+    // JV, OB and any other journal-backed prefixes share journalEntry
+    const r = await tx.journalEntry.findFirst({ where: { entryNumber: startsWith }, orderBy: { entryNumber: 'desc' }, select: { entryNumber: true } });
+    lastNumber = r?.entryNumber ?? null;
   }
 
-  return `${prefix}-${yearMonth}-${String(count + 1).padStart(4, '0')}`;
+  // Parse the numeric suffix of the last used number; 0 when series is empty.
+  // parseInt is resilient to a longer suffix (e.g. 5 digits once past 9999).
+  let lastSeq = 0;
+  if (lastNumber) {
+    const suffix = lastNumber.slice(seriesPrefix.length);
+    const parsed = parseInt(suffix, 10);
+    if (!Number.isNaN(parsed)) lastSeq = parsed;
+  }
+
+  return `${prefix}-${yearMonth}-${String(lastSeq + 1).padStart(4, '0')}`;
 }
