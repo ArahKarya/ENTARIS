@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import api from './lib/api';
 import { can } from './lib/permissions';
+import { useNumberInputGuard } from './hooks/useNumberInputGuard';
 import { CompanySettingsProvider } from './contexts/CompanySettingsContext';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
@@ -106,6 +107,7 @@ const PermRoute = ({ module, children }: { module: string; children: React.React
 };
 
 function App() {
+  useNumberInputGuard();
   return (
     <Router>
       <Routes>

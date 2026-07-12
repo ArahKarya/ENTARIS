@@ -6,6 +6,7 @@ import { X, Plus, Trash2, Loader2, AlertCircle, Paperclip, FileText, Image as Im
 import { formatRupiah } from '../lib/formatters';
 import WarehousePicker from './WarehousePicker';
 import Select from './Select';
+import { NumberInput } from './ui/number-input';
 
 // Rice-mill purchase invoice item.
 // Flow: timbanganTruk (info only) → refaksi (kg deducted) → timbanganDiterima (net received)
@@ -499,30 +500,30 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                           {isService ? (
                             <span className="text-xs text-gray-300">—</span>
                           ) : (
-                            <input type="number" value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-amber-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <NumberInput value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-amber-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                           )}
                         </td>
                         <td className="px-2 py-2 text-right">
                           {isService ? (
                             <span className="text-xs text-gray-300">—</span>
                           ) : (
-                            <input type="number" value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <NumberInput value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                           )}
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} placeholder={isService ? '1' : '0'} className="w-full bg-transparent text-xs text-gray-900 font-semibold text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} placeholder={isService ? '1' : '0'} className="w-full bg-transparent text-xs text-gray-900 font-semibold text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-blue-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-blue-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-purple-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-purple-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Math.max(0, Number(e.target.value)))} placeholder="0" className="w-full bg-transparent text-xs text-red-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Math.max(0, Number(e.target.value)))} placeholder="0" className="w-full bg-transparent text-xs text-red-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
                           <span className="font-mono text-xs font-medium text-gray-900 tabular-nums">{formatRupiah(calc.hargaAkhir)}</span>
@@ -604,33 +605,33 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                         <>
                           <div>
                             <label className="block text-xs text-gray-400 mb-1">Timb. Truk (kg)</label>
-                            <input type="number" value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
+                            <NumberInput value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
                           </div>
                           <div>
                             <label className="block text-xs text-gray-400 mb-1">Refaksi (kg)</label>
-                            <input type="number" value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-amber-600" />
+                            <NumberInput value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-amber-600" />
                           </div>
                         </>
                       )}
                       <div className="col-span-2">
                         <label className="block text-xs text-gray-400 mb-1">{isService ? 'Jumlah *' : 'Timbangan Diterima (kg) *'}</label>
-                        <input type="number" value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg py-2 px-2 text-sm font-mono font-semibold" />
+                        <NumberInput value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg py-2 px-2 text-sm font-mono font-semibold" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">{isService ? 'Harga *' : 'Harga/kg *'}</label>
-                        <input type="number" value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
+                        <NumberInput value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">Potongan</label>
-                        <input type="number" value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-red-500" />
+                        <NumberInput value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-red-500" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">PPN %</label>
-                        <input type="number" value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-blue-600" />
+                        <NumberInput value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-blue-600" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">PPh %</label>
-                        <input type="number" value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-purple-600" />
+                        <NumberInput value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-purple-600" />
                       </div>
                     </div>
                     <div className="flex items-center justify-between border-t border-gray-100 pt-2">
@@ -710,7 +711,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                   <span className="flex-1 text-gray-500">Biaya Lain</span>
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-gray-400 text-xs">{biayaLain < 0 ? '−' : '+'}</span>
-                    <input type="number" value={biayaLain || ''} onChange={(e) => setBiayaLain(Number(e.target.value) || 0)} placeholder="0" title="Boleh negatif untuk potong tagihan" className="w-28 text-right font-mono text-gray-700 bg-transparent border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums" />
+                    <NumberInput value={biayaLain || ''} onChange={(e) => setBiayaLain(Number(e.target.value) || 0)} placeholder="0" title="Boleh negatif untuk potong tagihan" className="w-28 text-right font-mono text-gray-700 bg-transparent border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums" />
                   </div>
                 </div>
                 <div className="border-t border-gray-200 pt-2.5 flex justify-between items-baseline">
