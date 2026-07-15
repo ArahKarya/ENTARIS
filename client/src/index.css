@@ -300,6 +300,117 @@
   letter-spacing: 0.02em;
 }
 
+/* ─── Bloomberg COMPAT LAYER ───────────────────────────────────────────────
+   Komponen existing memakai ribuan warna Tailwind hardcode (bg-white,
+   text-gray-900, bg-blue-600, dst) yang tidak ikut CSS variables.
+   Layer ini me-remap utility hardcode tsb di dalam scope tema Bloomberg
+   sehingga SEMUA komponen ikut tema tanpa mengubah satu pun komponen.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* == BLOOMBERG DARK: permukaan & netral == */
+.bloomberg-dark .bg-white { background-color: var(--card) !important; }
+.bloomberg-dark .bg-gray-50 { background-color: var(--secondary) !important; }
+.bloomberg-dark .bg-gray-100 { background-color: var(--muted) !important; }
+.bloomberg-dark .bg-gray-200 { background-color: var(--accent) !important; }
+.bloomberg-dark .hover\:bg-gray-50:hover,
+.bloomberg-dark .hover\:bg-gray-100:hover,
+.bloomberg-dark .hover\:bg-gray-200:hover { background-color: var(--accent) !important; }
+.bloomberg-dark .text-gray-900, .bloomberg-dark .text-gray-800,
+.bloomberg-dark .text-gray-700 { color: var(--foreground) !important; }
+.bloomberg-dark .text-gray-600, .bloomberg-dark .text-gray-500,
+.bloomberg-dark .text-gray-400 { color: var(--muted-foreground) !important; }
+.bloomberg-dark .text-black { color: var(--foreground) !important; }
+.bloomberg-dark .border-gray-100, .bloomberg-dark .border-gray-200,
+.bloomberg-dark .border-gray-300 { border-color: var(--border) !important; }
+.bloomberg-dark .divide-gray-100 > *, .bloomberg-dark .divide-gray-200 > * { border-color: var(--border) !important; }
+.bloomberg-dark .shadow-sm, .bloomberg-dark .shadow,
+.bloomberg-dark .shadow-md, .bloomberg-dark .shadow-lg { box-shadow: 0 0 0 1px var(--border) !important; }
+
+/* == BLOOMBERG DARK: biru (primary/link) → amber/cyan terminal == */
+.bloomberg-dark .bg-blue-600, .bloomberg-dark .bg-blue-700,
+.bloomberg-dark .bg-blue-500, .bloomberg-dark .bg-indigo-600 {
+  background-color: var(--primary) !important; color: var(--primary-foreground) !important;
+}
+.bloomberg-dark .hover\:bg-blue-700:hover, .bloomberg-dark .hover\:bg-blue-600:hover,
+.bloomberg-dark .hover\:bg-blue-500:hover, .bloomberg-dark .hover\:bg-indigo-700:hover {
+  background-color: oklch(0.62 0.14 70) !important; color: var(--primary-foreground) !important;
+}
+.bloomberg-dark .bg-blue-50, .bloomberg-dark .bg-blue-100,
+.bloomberg-dark .bg-indigo-50 { background-color: oklch(0.72 0.14 70 / 0.12) !important; }
+.bloomberg-dark .text-blue-600, .bloomberg-dark .text-blue-700,
+.bloomberg-dark .text-blue-500, .bloomberg-dark .text-blue-800,
+.bloomberg-dark .text-indigo-600 { color: oklch(0.72 0.13 230) !important; }
+.bloomberg-dark .border-blue-200, .bloomberg-dark .border-blue-300,
+.bloomberg-dark .border-blue-500 { border-color: oklch(0.72 0.14 70 / 0.4) !important; }
+.bloomberg-dark .ring-blue-500, .bloomberg-dark .focus\:ring-blue-500:focus { --tw-ring-color: var(--ring) !important; }
+.bloomberg-dark .focus\:border-blue-500:focus { border-color: var(--ring) !important; }
+
+/* == BLOOMBERG DARK: merah == */
+.bloomberg-dark .text-red-600, .bloomberg-dark .text-red-500,
+.bloomberg-dark .text-red-700, .bloomberg-dark .text-red-800 { color: oklch(0.68 0.24 27) !important; }
+.bloomberg-dark .bg-red-50, .bloomberg-dark .bg-red-100 { background-color: oklch(0.55 0.22 27 / 0.15) !important; }
+.bloomberg-dark .bg-red-600, .bloomberg-dark .bg-red-500 { background-color: oklch(0.5 0.21 27) !important; color: #fff !important; }
+.bloomberg-dark .hover\:bg-red-700:hover { background-color: oklch(0.45 0.2 27) !important; }
+.bloomberg-dark .border-red-200, .bloomberg-dark .border-red-300 { border-color: oklch(0.55 0.22 27 / 0.4) !important; }
+
+/* == BLOOMBERG DARK: hijau == */
+.bloomberg-dark .text-green-600, .bloomberg-dark .text-green-700,
+.bloomberg-dark .text-green-800, .bloomberg-dark .text-emerald-600,
+.bloomberg-dark .text-emerald-700 { color: oklch(0.72 0.2 145) !important; }
+.bloomberg-dark .bg-green-50, .bloomberg-dark .bg-green-100,
+.bloomberg-dark .bg-emerald-50, .bloomberg-dark .bg-emerald-100 { background-color: oklch(0.62 0.2 145 / 0.14) !important; }
+.bloomberg-dark .bg-green-600, .bloomberg-dark .bg-emerald-600 { background-color: oklch(0.5 0.17 145) !important; color: #fff !important; }
+.bloomberg-dark .border-green-200, .bloomberg-dark .border-emerald-200 { border-color: oklch(0.62 0.2 145 / 0.4) !important; }
+
+/* == BLOOMBERG DARK: amber/kuning/orange == */
+.bloomberg-dark .text-amber-600, .bloomberg-dark .text-amber-700,
+.bloomberg-dark .text-yellow-600, .bloomberg-dark .text-yellow-700,
+.bloomberg-dark .text-orange-600 { color: oklch(0.78 0.15 70) !important; }
+.bloomberg-dark .bg-amber-50, .bloomberg-dark .bg-amber-100,
+.bloomberg-dark .bg-yellow-50, .bloomberg-dark .bg-yellow-100,
+.bloomberg-dark .bg-orange-50 { background-color: oklch(0.72 0.14 70 / 0.13) !important; }
+.bloomberg-dark .border-amber-200, .bloomberg-dark .border-yellow-200 { border-color: oklch(0.72 0.14 70 / 0.4) !important; }
+
+/* == BLOOMBERG DARK: ungu/teal/cyan aksen lain == */
+.bloomberg-dark .text-purple-600, .bloomberg-dark .text-violet-600 { color: oklch(0.7 0.16 310) !important; }
+.bloomberg-dark .bg-purple-50, .bloomberg-dark .bg-violet-50 { background-color: oklch(0.65 0.18 310 / 0.14) !important; }
+.bloomberg-dark .text-teal-600, .bloomberg-dark .text-cyan-600 { color: oklch(0.72 0.12 200) !important; }
+.bloomberg-dark .bg-teal-50, .bloomberg-dark .bg-cyan-50 { background-color: oklch(0.65 0.12 200 / 0.14) !important; }
+
+/* == BLOOMBERG DARK: bentuk — radius tajam ala terminal == */
+.bloomberg-dark .rounded-xl, .bloomberg-dark .rounded-2xl,
+.bloomberg-dark .rounded-lg { border-radius: 2px !important; }
+.bloomberg-dark .rounded-md, .bloomberg-dark .rounded { border-radius: 1px !important; }
+
+/* == BLOOMBERG LIGHT: permukaan & netral (cream) == */
+.bloomberg-light .bg-white { background-color: var(--card) !important; }
+.bloomberg-light .bg-gray-50 { background-color: var(--secondary) !important; }
+.bloomberg-light .bg-gray-100 { background-color: var(--muted) !important; }
+.bloomberg-light .text-gray-900, .bloomberg-light .text-gray-800,
+.bloomberg-light .text-gray-700 { color: var(--foreground) !important; }
+.bloomberg-light .text-gray-600, .bloomberg-light .text-gray-500 { color: var(--muted-foreground) !important; }
+.bloomberg-light .border-gray-100, .bloomberg-light .border-gray-200,
+.bloomberg-light .border-gray-300 { border-color: var(--border) !important; }
+
+/* == BLOOMBERG LIGHT: biru → navy == */
+.bloomberg-light .bg-blue-600, .bloomberg-light .bg-blue-700,
+.bloomberg-light .bg-blue-500, .bloomberg-light .bg-indigo-600 {
+  background-color: var(--primary) !important; color: var(--primary-foreground) !important;
+}
+.bloomberg-light .hover\:bg-blue-700:hover, .bloomberg-light .hover\:bg-blue-600:hover {
+  background-color: oklch(0.22 0.09 250) !important;
+}
+.bloomberg-light .text-blue-600, .bloomberg-light .text-blue-700,
+.bloomberg-light .text-blue-500 { color: var(--primary) !important; }
+.bloomberg-light .bg-blue-50, .bloomberg-light .bg-blue-100 { background-color: var(--accent) !important; }
+.bloomberg-light .border-blue-200, .bloomberg-light .border-blue-300 { border-color: oklch(0.28 0.1 250 / 0.35) !important; }
+.bloomberg-light .ring-blue-500, .bloomberg-light .focus\:ring-blue-500:focus { --tw-ring-color: var(--ring) !important; }
+
+/* == BLOOMBERG LIGHT: bentuk == */
+.bloomberg-light .rounded-xl, .bloomberg-light .rounded-2xl,
+.bloomberg-light .rounded-lg { border-radius: 2px !important; }
+.bloomberg-light .rounded-md, .bloomberg-light .rounded { border-radius: 1px !important; }
+
 @layer base {
   * {
     border-color: var(--border);
