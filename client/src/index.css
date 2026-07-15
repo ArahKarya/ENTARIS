@@ -411,6 +411,35 @@
 .bloomberg-light .rounded-lg { border-radius: 2px !important; }
 .bloomberg-light .rounded-md, .bloomberg-light .rounded { border-radius: 1px !important; }
 
+/* == BLOOMBERG DARK: neutral/slate/zinc palette (sama seperti gray) == */
+.bloomberg-dark .bg-neutral-50, .bloomberg-dark .bg-slate-50, .bloomberg-dark .bg-zinc-50 { background-color: var(--secondary) !important; }
+.bloomberg-dark .bg-neutral-100, .bloomberg-dark .bg-slate-100, .bloomberg-dark .bg-zinc-100 { background-color: var(--muted) !important; }
+.bloomberg-dark .bg-neutral-200, .bloomberg-dark .bg-slate-200, .bloomberg-dark .bg-zinc-200 { background-color: var(--accent) !important; }
+.bloomberg-dark .bg-neutral-800, .bloomberg-dark .bg-neutral-900,
+.bloomberg-dark .bg-slate-800, .bloomberg-dark .bg-slate-900 { background-color: var(--card) !important; }
+.bloomberg-dark .text-neutral-900, .bloomberg-dark .text-neutral-800, .bloomberg-dark .text-neutral-700,
+.bloomberg-dark .text-slate-900, .bloomberg-dark .text-slate-800, .bloomberg-dark .text-slate-700,
+.bloomberg-dark .text-zinc-900, .bloomberg-dark .text-zinc-800 { color: var(--foreground) !important; }
+.bloomberg-dark .text-neutral-600, .bloomberg-dark .text-neutral-500, .bloomberg-dark .text-neutral-400,
+.bloomberg-dark .text-slate-600, .bloomberg-dark .text-slate-500, .bloomberg-dark .text-slate-400,
+.bloomberg-dark .text-zinc-600, .bloomberg-dark .text-zinc-500 { color: var(--muted-foreground) !important; }
+.bloomberg-dark .text-neutral-200, .bloomberg-dark .text-neutral-300,
+.bloomberg-dark .text-slate-200, .bloomberg-dark .text-slate-300 { color: var(--foreground) !important; }
+.bloomberg-dark .border-neutral-100, .bloomberg-dark .border-neutral-200, .bloomberg-dark .border-neutral-300,
+.bloomberg-dark .border-neutral-700, .bloomberg-dark .border-neutral-800,
+.bloomberg-dark .border-slate-200, .bloomberg-dark .border-slate-300,
+.bloomberg-dark .border-zinc-200 { border-color: var(--border) !important; }
+
+/* == BLOOMBERG LIGHT: neutral/slate/zinc == */
+.bloomberg-light .bg-neutral-50, .bloomberg-light .bg-slate-50 { background-color: var(--secondary) !important; }
+.bloomberg-light .bg-neutral-100, .bloomberg-light .bg-slate-100 { background-color: var(--muted) !important; }
+.bloomberg-light .text-neutral-900, .bloomberg-light .text-neutral-700,
+.bloomberg-light .text-slate-900, .bloomberg-light .text-slate-700 { color: var(--foreground) !important; }
+.bloomberg-light .text-neutral-600, .bloomberg-light .text-neutral-500, .bloomberg-light .text-neutral-400,
+.bloomberg-light .text-slate-600, .bloomberg-light .text-slate-500 { color: var(--muted-foreground) !important; }
+.bloomberg-light .border-neutral-200, .bloomberg-light .border-neutral-300,
+.bloomberg-light .border-slate-200 { border-color: var(--border) !important; }
+
 @layer base {
   * {
     border-color: var(--border);
