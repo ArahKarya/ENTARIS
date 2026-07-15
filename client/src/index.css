@@ -187,6 +187,119 @@
   color-scheme: dark;
 }
 
+/* ─── THEME PACK: Bloomberg Dark ───────────────────────────────────────────
+   Amber-on-black terminal style. Font switches to monospace globally.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bloomberg-dark {
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(0.9 0.08 70);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.88 0.07 70);
+  --popover: oklch(0.08 0 0);
+  --popover-foreground: oklch(0.88 0.07 70);
+
+  --primary: oklch(0.72 0.14 70);
+  --primary-foreground: oklch(0.05 0 0);
+  --secondary: oklch(0.12 0 0);
+  --secondary-foreground: oklch(0.75 0.06 70);
+  --muted: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.52 0.04 70);
+  --accent: oklch(0.15 0.01 70);
+  --accent-foreground: oklch(0.85 0.08 70);
+
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.62 0.2 145);
+  --success-foreground: oklch(0.05 0 0);
+  --warning: oklch(0.72 0.14 70);
+  --warning-foreground: oklch(0.05 0 0);
+  --info: oklch(0.62 0.15 220);
+  --info-foreground: oklch(0.05 0 0);
+
+  --border: oklch(0.18 0.01 70);
+  --input: oklch(0.15 0.01 70);
+  --ring: oklch(0.72 0.14 70);
+
+  --chart-1: oklch(0.72 0.14 70);
+  --chart-2: oklch(0.62 0.2 145);
+  --chart-3: oklch(0.55 0.22 27);
+  --chart-4: oklch(0.62 0.15 220);
+  --chart-5: oklch(0.65 0.18 310);
+
+  --radius: 0.125rem;
+
+  --sidebar: oklch(0.06 0 0);
+  --sidebar-foreground: oklch(0.75 0.06 70);
+  --sidebar-primary: oklch(0.72 0.14 70);
+  --sidebar-primary-foreground: oklch(0.05 0 0);
+  --sidebar-accent: oklch(0.12 0.01 70);
+  --sidebar-accent-foreground: oklch(0.85 0.08 70);
+  --sidebar-border: oklch(0.2 0.01 70);
+  --sidebar-ring: oklch(0.72 0.14 70);
+
+  color-scheme: dark;
+}
+
+/* ─── THEME PACK: Bloomberg Light ──────────────────────────────────────────
+   Navy-on-cream formal finance style. Monospace + structured layout feel.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bloomberg-light {
+  --background: oklch(0.97 0.005 80);
+  --foreground: oklch(0.15 0.02 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 250);
+
+  --primary: oklch(0.28 0.1 250);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.93 0.01 80);
+  --secondary-foreground: oklch(0.22 0.03 250);
+  --muted: oklch(0.93 0.008 80);
+  --muted-foreground: oklch(0.42 0.03 250);
+  --accent: oklch(0.9 0.015 250);
+  --accent-foreground: oklch(0.2 0.04 250);
+
+  --destructive: oklch(0.48 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.38 0.14 145);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.52 0.12 65);
+  --warning-foreground: oklch(0.1 0.02 65);
+  --info: oklch(0.38 0.12 220);
+  --info-foreground: oklch(1 0 0);
+
+  --border: oklch(0.83 0.01 80);
+  --input: oklch(0.83 0.01 80);
+  --ring: oklch(0.28 0.1 250);
+
+  --chart-1: oklch(0.28 0.1 250);
+  --chart-2: oklch(0.38 0.14 145);
+  --chart-3: oklch(0.52 0.12 65);
+  --chart-4: oklch(0.38 0.12 220);
+  --chart-5: oklch(0.45 0.14 310);
+
+  --radius: 0.125rem;
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.3 0.02 250);
+  --sidebar-primary: oklch(0.28 0.1 250);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.93 0.015 250);
+  --sidebar-accent-foreground: oklch(0.2 0.04 250);
+  --sidebar-border: oklch(0.28 0.1 250);
+  --sidebar-ring: oklch(0.28 0.1 250);
+
+  color-scheme: light;
+}
+
+/* Bloomberg shared: monospace font override */
+.bloomberg-dark body, .bloomberg-dark *,
+.bloomberg-light body, .bloomberg-light * {
+  font-family: 'Courier New', Courier, monospace !important;
+  letter-spacing: 0.02em;
+}
+
 @layer base {
   * {
     border-color: var(--border);
