@@ -30,7 +30,7 @@ function MiniPreview({ themeId }: { themeId: ThemeId }) {
           <div style={{ height: 5, background: c.accent, borderRadius: 1 }} />
           {/* cards */}
           <div style={{ display: 'flex', gap: 2, flex: 1 }}>
-            {[0.6, 0.8, 0.5, 0.7].map((w, i) => (
+            {[0, 1, 2, 3].map(i => (
               <div key={i} style={{ flex: 1, background: c.sidebar, border: `0.5px solid ${c.accent}`, borderRadius: 1 }} />
             ))}
           </div>
