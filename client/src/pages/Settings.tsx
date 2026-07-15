@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send, KeyRound, Bot,
+  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send, KeyRound, Bot, Palette,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
@@ -13,9 +13,10 @@ import { AboutTab } from './settings/AboutTab';
 import { NotificationsTab } from './settings/NotificationsTab';
 import { RolePermissionsTab } from './settings/RolePermissionsTab';
 import { AgenticSystemTab } from './settings/AgenticSystemTab';
+import { AppearanceTab } from './settings/AppearanceTab';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'roles' | 'agentic' | 'backup' | 'about'>('fiscal');
+  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'roles' | 'agentic' | 'backup' | 'appearance' | 'about'>('fiscal');
   const canManageRbac = cap('rbac.manage');
   const tabs = [
     { id: 'fiscal', label: 'Tahun Buku', icon: Calendar },
@@ -25,6 +26,7 @@ export const SettingsPage: React.FC = () => {
     { id: 'notifications', label: 'Notifikasi', icon: Send },
     ...(canManageRbac ? [{ id: 'roles', label: 'Hak Akses', icon: KeyRound }] : []),
     ...(canManageRbac ? [{ id: 'agentic', label: 'Agentic System', icon: Bot }] : []),
+    { id: 'appearance', label: 'Tampilan', icon: Palette },
     { id: 'backup', label: 'Backup', icon: HardDrive },
     { id: 'about', label: 'Tentang Aplikasi', icon: Info },
   ];
@@ -66,6 +68,7 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'notifications' && <NotificationsTab />}
       {activeTab === 'roles' && canManageRbac && <RolePermissionsTab />}
       {activeTab === 'agentic' && canManageRbac && <AgenticSystemTab />}
+      {activeTab === 'appearance' && <AppearanceTab />}
       {activeTab === 'backup' && <BackupTab />}
       {activeTab === 'about' && <AboutTab />}
     </div>
