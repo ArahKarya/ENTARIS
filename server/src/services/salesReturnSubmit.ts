@@ -283,6 +283,11 @@ export async function submitSalesReturnInTx(
     });
     customerDepositId = deposit.id;
     await tx.salesReturn.update({ where: { id: salesReturn.id }, data: { customerDepositId } });
+    // Sync cached customerDepositBalance on party (mirrors paymentSubmit.ts behaviour)
+    await tx.party.update({
+      where: { id: invoice.partyId },
+      data: { customerDepositBalance: { increment: creditPortionNum } },
+    });
   }
 
   // ── Stock-in + COGS reversal for restock lines ──

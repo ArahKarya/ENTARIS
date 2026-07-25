@@ -84,10 +84,18 @@ export async function cancelSalesReturnInTx(
 
   // Cancel the customer-deposit Payment (liability already reversed via main JE).
   if (ret.customerDepositId) {
+    const dep = await tx.payment.findUnique({ where: { id: ret.customerDepositId }, select: { amount: true, partyId: true } });
     await tx.payment.update({
       where: { id: ret.customerDepositId },
       data: { status: 'Cancelled', cancelledAt: new Date() },
     });
+    // Sync cached customerDepositBalance on party
+    if (dep) {
+      await tx.party.update({
+        where: { id: dep.partyId },
+        data: { customerDepositBalance: { decrement: Number(dep.amount) } },
+      });
+    }
   }
 
   await tx.salesReturn.update({
