@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from 'react';
 
-export type ThemeId = 'light' | 'dark' | 'system' | 'bloomberg-dark' | 'bloomberg-light';
+export type ThemeId = 'light' | 'dark' | 'system' | 'bloomberg-dark' | 'bloomberg-light' | 'neo-clean';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -8,6 +8,7 @@ export interface ThemeMeta {
   description: string;
   isDark: boolean;
   isBloomberg?: boolean;
+  isNew?: boolean;
 }
 
 export const THEME_PACKS: ThemeMeta[] = [
@@ -16,6 +17,7 @@ export const THEME_PACKS: ThemeMeta[] = [
   { id: 'system',           label: 'Ikuti Sistem',       description: 'Otomatis sesuai OS',               isDark: false },
   { id: 'bloomberg-dark',   label: 'Bloomberg Dark',     description: 'Terminal amber-on-black',          isDark: true,  isBloomberg: true },
   { id: 'bloomberg-light',  label: 'Bloomberg Light',    description: 'Finance navy-on-cream',            isDark: false, isBloomberg: true },
+  { id: 'neo-clean',        label: 'NeoClean',           description: 'Kartu melayang, aksen lime',       isDark: false, isNew: true },
 ];
 
 interface ThemeContextType {
@@ -29,7 +31,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const BLOOMBERG_THEMES: ThemeId[] = ['bloomberg-dark', 'bloomberg-light'];
-const ALL_THEME_CLASSES = ['light', 'dark', 'bloomberg-dark', 'bloomberg-light'];
+const ALL_THEME_CLASSES = ['light', 'dark', 'bloomberg-dark', 'bloomberg-light', 'neo-clean'];
 
 function getSystemDark(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -56,6 +58,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (theme === 'system') return getSystemDark() ? 'dark' : 'light';
     if (theme === 'bloomberg-dark') return 'dark';
     if (theme === 'bloomberg-light') return 'light';
+    if (theme === 'neo-clean') return 'light';
     return theme as 'light' | 'dark';
   }, [theme]);
 

@@ -293,6 +293,134 @@
   color-scheme: light;
 }
 
+/* ─── THEME PACK: NeoClean ─────────────────────────────────────────────────
+   Modern SaaS dashboard style. Light gray canvas, floating white cards with
+   large radius + soft shadow, neon lime accent, near-black emphasis.
+   Inspired by contemporary health/fintech dashboards.
+   ─────────────────────────────────────────────────────────────────────────── */
+.neo-clean {
+  --background: oklch(0.96 0.002 250);
+  --foreground: oklch(0.18 0.004 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.004 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.004 250);
+
+  /* Lime accent — #C6F135 in oklch */
+  --primary: oklch(0.9 0.2 122);
+  --primary-foreground: oklch(0.18 0.004 250);
+  --secondary: oklch(0.94 0.003 250);
+  --secondary-foreground: oklch(0.24 0.006 250);
+  --muted: oklch(0.95 0.002 250);
+  --muted-foreground: oklch(0.52 0.008 250);
+  --accent: oklch(0.93 0.004 250);
+  --accent-foreground: oklch(0.22 0.006 250);
+
+  --destructive: oklch(0.58 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.72 0.17 145);
+  --success-foreground: oklch(0.18 0.004 250);
+  --warning: oklch(0.75 0.15 75);
+  --warning-foreground: oklch(0.18 0.004 250);
+  --info: oklch(0.6 0.15 240);
+  --info-foreground: oklch(1 0 0);
+
+  --border: oklch(0.91 0.003 250);
+  --input: oklch(0.93 0.003 250);
+  --ring: oklch(0.9 0.2 122);
+
+  --chart-1: oklch(0.2 0.006 250);
+  --chart-2: oklch(0.9 0.2 122);
+  --chart-3: oklch(0.72 0.17 145);
+  --chart-4: oklch(0.75 0.15 75);
+  --chart-5: oklch(0.62 0.14 240);
+
+  /* Large radius — signature of this style */
+  --radius: 0.875rem;
+
+  --shadow-xs: 0 1px 3px 0 oklch(0 0 0 / 0.04);
+  --shadow-sm: 0 2px 8px 0 oklch(0 0 0 / 0.05);
+  --shadow-md: 0 2px 12px 0 oklch(0 0 0 / 0.06);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.32 0.006 250);
+  --sidebar-primary: oklch(0.18 0.004 250);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.002 250);
+  --sidebar-accent-foreground: oklch(0.2 0.006 250);
+  --sidebar-border: oklch(0.92 0.003 250);
+  --sidebar-ring: oklch(0.9 0.2 122);
+
+  color-scheme: light;
+}
+
+/* ─── NeoClean COMPAT LAYER ────────────────────────────────────────────────
+   Remap hardcoded Tailwind utilities so every existing component adopts the
+   theme without touching a single component file.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Surfaces */
+.neo-clean .bg-white { background-color: var(--card) !important; }
+.neo-clean .bg-gray-50, .neo-clean .bg-neutral-50,
+.neo-clean .bg-slate-50, .neo-clean .bg-zinc-50 { background-color: var(--secondary) !important; }
+.neo-clean .bg-gray-100, .neo-clean .bg-neutral-100,
+.neo-clean .bg-slate-100, .neo-clean .bg-zinc-100 { background-color: var(--muted) !important; }
+.neo-clean .bg-gray-200, .neo-clean .bg-neutral-200,
+.neo-clean .bg-slate-200, .neo-clean .bg-zinc-200 { background-color: var(--accent) !important; }
+
+/* Text */
+.neo-clean .text-gray-900, .neo-clean .text-gray-800, .neo-clean .text-gray-700,
+.neo-clean .text-neutral-900, .neo-clean .text-neutral-800, .neo-clean .text-neutral-700,
+.neo-clean .text-slate-900, .neo-clean .text-slate-800, .neo-clean .text-slate-700,
+.neo-clean .text-zinc-900, .neo-clean .text-zinc-800, .neo-clean .text-zinc-700 { color: var(--foreground) !important; }
+.neo-clean .text-gray-600, .neo-clean .text-gray-500, .neo-clean .text-gray-400,
+.neo-clean .text-neutral-600, .neo-clean .text-neutral-500, .neo-clean .text-neutral-400,
+.neo-clean .text-slate-600, .neo-clean .text-slate-500, .neo-clean .text-slate-400,
+.neo-clean .text-zinc-600, .neo-clean .text-zinc-500, .neo-clean .text-zinc-400 { color: var(--muted-foreground) !important; }
+
+/* Borders */
+.neo-clean .border-gray-200, .neo-clean .border-gray-300, .neo-clean .border-gray-100,
+.neo-clean .border-neutral-200, .neo-clean .border-neutral-300, .neo-clean .border-neutral-100,
+.neo-clean .border-slate-200, .neo-clean .border-slate-300, .neo-clean .border-slate-100,
+.neo-clean .border-zinc-200, .neo-clean .border-zinc-300, .neo-clean .border-zinc-100 { border-color: var(--border) !important; }
+
+/* Primary action: blue → near-black (lime reserved for positive/active accents) */
+.neo-clean .bg-blue-600, .neo-clean .bg-blue-700, .neo-clean .bg-blue-500 {
+  background-color: oklch(0.18 0.004 250) !important;
+  color: oklch(1 0 0) !important;
+}
+.neo-clean .text-blue-600, .neo-clean .text-blue-700, .neo-clean .text-blue-500 { color: var(--foreground) !important; }
+.neo-clean .border-blue-600, .neo-clean .border-blue-500 { border-color: oklch(0.18 0.004 250) !important; }
+.neo-clean .ring-blue-500, .neo-clean .focus\:ring-blue-500:focus { --tw-ring-color: var(--ring) !important; }
+
+/* Hover states */
+.neo-clean .hover\:bg-gray-50:hover, .neo-clean .hover\:bg-neutral-50:hover,
+.neo-clean .hover\:bg-slate-50:hover { background-color: var(--accent) !important; }
+.neo-clean .hover\:bg-gray-100:hover, .neo-clean .hover\:bg-neutral-100:hover { background-color: var(--muted) !important; }
+.neo-clean .hover\:bg-blue-700:hover, .neo-clean .hover\:bg-blue-600:hover {
+  background-color: oklch(0.26 0.006 250) !important;
+}
+
+/* Signature shape: generous rounding + soft shadow, no hard borders */
+.neo-clean .rounded, .neo-clean .rounded-md { border-radius: 0.625rem !important; }
+.neo-clean .rounded-lg { border-radius: 0.875rem !important; }
+.neo-clean .rounded-xl, .neo-clean .rounded-2xl { border-radius: 1.25rem !important; }
+.neo-clean .shadow-sm, .neo-clean .shadow, .neo-clean .shadow-md {
+  box-shadow: 0 2px 12px 0 oklch(0 0 0 / 0.06) !important;
+}
+
+/* Pills: badges and small status chips fully rounded */
+.neo-clean .rounded-full { border-radius: 9999px !important; }
+
+/* Status colors tuned for the light canvas */
+.neo-clean .bg-green-100, .neo-clean .bg-emerald-100 { background-color: oklch(0.94 0.12 122) !important; }
+.neo-clean .text-green-800, .neo-clean .text-green-700,
+.neo-clean .text-emerald-800, .neo-clean .text-emerald-700 { color: oklch(0.35 0.12 145) !important; }
+.neo-clean .bg-red-100 { background-color: oklch(0.94 0.05 25) !important; }
+.neo-clean .text-red-800, .neo-clean .text-red-700 { color: oklch(0.45 0.18 25) !important; }
+.neo-clean .bg-amber-100, .neo-clean .bg-yellow-100 { background-color: oklch(0.95 0.08 85) !important; }
+.neo-clean .text-amber-800, .neo-clean .text-yellow-800 { color: oklch(0.45 0.13 75) !important; }
+
 /* Bloomberg shared: monospace font override */
 .bloomberg-dark body, .bloomberg-dark *,
 .bloomberg-light body, .bloomberg-light * {
