@@ -155,39 +155,15 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
           await updateAccountBalance(tx, vendorDepositAccount.id, 0, depositAmount);
           await updateAccountBalance(tx, openingEquityAccount.id, depositAmount, 0);
 
-          // Create reversal journal
-          const jvNumber = await generateDocumentNumber(tx, 'JV', new Date(), deposit.fiscalYearId);
-          const journal = await tx.journalEntry.create({
-            data: {
-              entryNumber: jvNumber,
-              date: new Date(),
-              narration: `[BATAL] Pembatalan uang muka vendor: ${deposit.paymentNumber}`,
-              status: 'Submitted',
-              fiscalYearId: deposit.fiscalYearId,
-              createdBy: req.user!.userId,
-              submittedAt: new Date(),
-              items: {
-                create: [
-                  { accountId: openingEquityAccount.id, partyId: deposit.partyId, debit: depositAmount, credit: 0, description: `[BATAL] UM Vendor: ${deposit.paymentNumber}` },
-                  { accountId: vendorDepositAccount.id, partyId: deposit.partyId, debit: 0, credit: depositAmount, description: `[BATAL] UM Vendor: ${deposit.paymentNumber}` },
-                ],
-              },
-            },
-            include: { items: true },
-          });
-
-          await tx.accountingLedgerEntry.createMany({
-            data: journal.items.map((item) => ({
-              date: new Date(),
-              accountId: item.accountId,
-              partyId: item.partyId,
-              debit: item.debit,
-              credit: item.credit,
-              referenceType: 'JournalEntry' as const,
-              referenceId: journal.id,
-              description: item.description || `[BATAL] UM Vendor: ${deposit.paymentNumber}`,
-              fiscalYearId: deposit.fiscalYearId,
-            })),
+          // FIX(double-reversal): jangan buat JV pembalik [BATAL].
+          // Pola lama membuat baris pembalik aktif SEKALIGUS soft-cancel
+          // jurnal asli di jalur lain -> saldo dobel terbalik (kasus
+          // PAY-202604-0021/0026 Suparih -800jt, dan STT-0014/0015).
+          // Cukup: reverse balance (sudah dilakukan di atas) + soft-cancel
+          // defensif ALE asli hasil import legacy bila ada.
+          await tx.accountingLedgerEntry.updateMany({
+            where: { description: { contains: deposit.paymentNumber }, isCancelled: false },
+            data: { isCancelled: true },
           });
         }
       }
