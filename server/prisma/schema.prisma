@@ -2139,6 +2139,44 @@ enum GaVehicleServiceRequestStatus {
   COMPLETED
   CANCELLED
 }
+enum GaVehicleTaxType {
+  STNK_TAHUNAN
+  STNK_5_TAHUNAN
+  KIR
+  PAJAK_KENDARAAN
+}
+enum GaVehicleTaxStatus {
+  ACTIVE
+  EXPIRED
+  IN_PROCESS
+}
+enum GaVehicleInsuranceType {
+  ALL_RISK
+  TLO
+  KECELAKAAN_DIRI
+  LAINNYA
+}
+enum GaVehicleInsuranceStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+enum GaVehicleInspectionResult {
+  BAIK
+  PERLU_PERHATIAN
+  TIDAK_LAYAK
+}
+enum GaVehicleIncidentSeverity {
+  RINGAN
+  SEDANG
+  BERAT
+}
+enum GaVehicleIncidentStatus {
+  DILAPORKAN
+  DALAM_PROSES
+  SELESAI
+  KLAIM_ASURANSI
+}
 enum GaBuildingType {
   KANTOR
   GUDANG
@@ -2263,6 +2301,11 @@ model GaAsset {
   fixedAsset                   FixedAsset?               @relation("FixedAssetEam")
   calibrationLogs              GaCalibrationLog[]
   materialRequests             GaMaterialRequest[]
+  vehicleTaxes                 GaVehicleTax[]
+  vehicleInsurances            GaVehicleInsurance[]
+  vehicleFuelLogs              GaVehicleFuelLog[]
+  vehicleInspections           GaVehicleInspection[]
+  vehicleIncidents             GaVehicleIncident[]
   @@index([categoryId])
   @@index([branchId])
   @@index([picUserId])
@@ -2322,6 +2365,8 @@ model GaDocument {
   versions        GaDocumentVersion[]
   buildingRentals GaBuildingRental[]
   calibrationLog  GaCalibrationLog?
+  vehicleTaxes      GaVehicleTax[]
+  vehicleInsurances GaVehicleInsurance[]
   @@index([typeId])
   @@index([assetId])
   @@index([expiryDate])
@@ -2640,6 +2685,110 @@ model GaVehicleServiceRequest {
   @@index([status])
   @@index([requestedById])
   @@map("ga_vehicle_service_requests")
+}
+
+// ── Fleet management: pajak, asuransi, BBM, inspeksi, insiden kendaraan ────
+// Semua model ini scoped ke GaAsset (kategori Kendaraan) via assetId, sejalan
+// dengan pola GaVehicleData/GaVehicleServiceLog yang sudah ada. Dipisah dari
+// GaVehicleData (1-1) karena masing-masing bersifat 1-many dengan histori
+// (pajak tahun ini vs tahun lalu, polis lama vs baru, log BBM per pengisian).
+
+model GaVehicleTax {
+  id            String              @id @default(cuid())
+  assetId       String              @map("asset_id")
+  type          GaVehicleTaxType
+  periodYear    Int                 @map("period_year")
+  amount        Decimal?            @db.Decimal(14, 2)
+  paidAt        DateTime?           @map("paid_at")
+  dueDate       DateTime            @map("due_date")
+  status        GaVehicleTaxStatus  @default(ACTIVE)
+  documentId    String?             @map("document_id")
+  notes         String?
+  createdById   String?             @map("created_by_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  asset         GaAsset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document      GaDocument?         @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  @@index([assetId])
+  @@index([dueDate, status])
+  @@map("ga_vehicle_taxes")
+}
+
+model GaVehicleInsurance {
+  id            String                    @id @default(cuid())
+  assetId       String                    @map("asset_id")
+  type          GaVehicleInsuranceType
+  provider      String
+  policyNumber  String?                   @map("policy_number")
+  premium       Decimal?                  @db.Decimal(14, 2)
+  coverageValue Decimal?                  @map("coverage_value") @db.Decimal(16, 2)
+  startDate     DateTime                  @map("start_date")
+  endDate       DateTime                  @map("end_date")
+  status        GaVehicleInsuranceStatus  @default(ACTIVE)
+  documentId    String?                   @map("document_id")
+  notes         String?
+  createdById   String?                   @map("created_by_id")
+  createdAt     DateTime                  @default(now()) @map("created_at")
+  updatedAt     DateTime                  @updatedAt @map("updated_at")
+  asset         GaAsset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document      GaDocument?               @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  @@index([assetId])
+  @@index([endDate, status])
+  @@map("ga_vehicle_insurances")
+}
+
+model GaVehicleFuelLog {
+  id            String    @id @default(cuid())
+  assetId       String    @map("asset_id")
+  tanggal       DateTime
+  odometer      Int?
+  liters        Decimal   @db.Decimal(8, 2)
+  pricePerLiter Decimal?  @map("price_per_liter") @db.Decimal(10, 2)
+  totalCost     Decimal   @map("total_cost") @db.Decimal(14, 2)
+  spbu          String?
+  driverName    String?   @map("driver_name")
+  notes         String?
+  createdById   String?   @map("created_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  asset         GaAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  @@index([assetId, tanggal])
+  @@map("ga_vehicle_fuel_logs")
+}
+
+model GaVehicleInspection {
+  id            String                     @id @default(cuid())
+  assetId       String                     @map("asset_id")
+  tanggal       DateTime
+  odometer      Int?
+  checklist     Json
+  overallResult GaVehicleInspectionResult  @map("overall_result")
+  notes         String?
+  inspectedById String?                    @map("inspected_by_id")
+  createdAt     DateTime                   @default(now()) @map("created_at")
+  asset         GaAsset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  @@index([assetId, tanggal])
+  @@map("ga_vehicle_inspections")
+}
+
+model GaVehicleIncident {
+  id           String                   @id @default(cuid())
+  assetId      String                   @map("asset_id")
+  tanggal      DateTime
+  location     String?
+  driverName   String?                  @map("driver_name")
+  description  String
+  severity     GaVehicleIncidentSeverity
+  status       GaVehicleIncidentStatus  @default(DILAPORKAN)
+  estimatedCost Decimal?                @map("estimated_cost") @db.Decimal(14, 2)
+  actualCost   Decimal?                 @map("actual_cost") @db.Decimal(14, 2)
+  insuranceClaimNo String?              @map("insurance_claim_no")
+  reportedById String?                  @map("reported_by_id")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
+  asset        GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  @@index([assetId, tanggal])
+  @@index([status])
+  @@map("ga_vehicle_incidents")
 }
 
 model GaBuildingData {

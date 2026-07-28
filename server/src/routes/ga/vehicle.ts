@@ -59,6 +59,79 @@ const RejectServiceRequestSchema = z.object({
   reason: z.string().min(1, 'Alasan wajib diisi.').max(500),
 });
 
+// ── Fleet management schemas ─────────────────────────────────────────
+const VEHICLE_TAX_TYPES = ['STNK_TAHUNAN', 'STNK_5_TAHUNAN', 'KIR', 'PAJAK_KENDARAAN'] as const;
+const VEHICLE_TAX_STATUSES = ['ACTIVE', 'EXPIRED', 'IN_PROCESS'] as const;
+const VEHICLE_INSURANCE_TYPES = ['ALL_RISK', 'TLO', 'KECELAKAAN_DIRI', 'LAINNYA'] as const;
+const VEHICLE_INSURANCE_STATUSES = ['ACTIVE', 'EXPIRED', 'CANCELLED'] as const;
+const VEHICLE_INSPECTION_RESULTS = ['BAIK', 'PERLU_PERHATIAN', 'TIDAK_LAYAK'] as const;
+const VEHICLE_INCIDENT_SEVERITIES = ['RINGAN', 'SEDANG', 'BERAT'] as const;
+const VEHICLE_INCIDENT_STATUSES = ['DILAPORKAN', 'DALAM_PROSES', 'SELESAI', 'KLAIM_ASURANSI'] as const;
+
+const DriverAssignSchema = z.object({
+  picUserId: z.string().min(1).optional().nullable(),
+});
+
+const VehicleTaxSchema = z.object({
+  type: z.enum(VEHICLE_TAX_TYPES),
+  periodYear: z.number().int().min(2000).max(2100),
+  amount: z.number().nonnegative().optional().nullable(),
+  paidAt: z.string().optional().nullable(),
+  dueDate: z.string().min(1, 'Jatuh tempo wajib diisi.'),
+  status: z.enum(VEHICLE_TAX_STATUSES).default('ACTIVE'),
+  documentId: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const VehicleInsuranceSchema = z.object({
+  type: z.enum(VEHICLE_INSURANCE_TYPES),
+  provider: z.string().min(1).max(200),
+  policyNumber: z.string().max(100).optional().nullable(),
+  premium: z.number().nonnegative().optional().nullable(),
+  coverageValue: z.number().nonnegative().optional().nullable(),
+  startDate: z.string().min(1, 'Tanggal mulai wajib diisi.'),
+  endDate: z.string().min(1, 'Tanggal berakhir wajib diisi.'),
+  status: z.enum(VEHICLE_INSURANCE_STATUSES).default('ACTIVE'),
+  documentId: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const VehicleFuelLogSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi.'),
+  odometer: z.number().int().nonnegative().optional().nullable(),
+  liters: z.number().positive('Liter harus lebih dari 0.'),
+  pricePerLiter: z.number().nonnegative().optional().nullable(),
+  totalCost: z.number().nonnegative(),
+  spbu: z.string().max(200).optional().nullable(),
+  driverName: z.string().max(100).optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const VEHICLE_INSPECTION_CHECKPOINTS = [
+  'ban', 'rem', 'oli', 'lampu', 'klakson', 'wiper', 'kaca_spion', 'sabuk_pengaman',
+  'ac', 'aki', 'radiator', 'kelengkapan_p3k_apar',
+] as const;
+
+const VehicleInspectionSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi.'),
+  odometer: z.number().int().nonnegative().optional().nullable(),
+  checklist: z.record(z.string(), z.enum(['OK', 'PERLU_PERHATIAN', 'RUSAK'])),
+  overallResult: z.enum(VEHICLE_INSPECTION_RESULTS),
+  notes: z.string().optional().nullable(),
+});
+
+const VehicleIncidentSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi.'),
+  location: z.string().max(300).optional().nullable(),
+  driverName: z.string().max(100).optional().nullable(),
+  description: z.string().min(1).max(2000),
+  severity: z.enum(VEHICLE_INCIDENT_SEVERITIES),
+  status: z.enum(VEHICLE_INCIDENT_STATUSES).default('DILAPORKAN'),
+  estimatedCost: z.number().nonnegative().optional().nullable(),
+  actualCost: z.number().nonnegative().optional().nullable(),
+  insuranceClaimNo: z.string().max(100).optional().nullable(),
+});
+
 // ═══════════════════════════════════════════════════════════════════
 // VEHICLE DATA (1-to-1 dengan Asset, scoped via /assets/:id)
 // ═══════════════════════════════════════════════════════════════════
@@ -349,6 +422,400 @@ router.patch('/service-requests/:id/cancel', async (req: AuthRequest, res) => {
     return res.json({ id: updated.id, status: updated.status });
   } catch (error) {
     return handleRouteError(res, error, 'PATCH /ga/vehicle/service-requests/:id/cancel', 'Gagal cancel.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// DRIVER ASSIGNMENT (pakai GaAsset.picUserId yang sudah ada -- scoped
+// ke sini karena 'siapa driver kendaraan ini' adalah konsep vehicle,
+// meskipun field-nya generic di GaAsset)
+// ═══════════════════════════════════════════════════════════════════
+
+router.patch('/assets/:id/driver', async (req: AuthRequest, res) => {
+  const input = validateBody(DriverAssignSchema, req.body, res);
+  if (!input) return;
+
+  const assetId = String(req.params.id);
+  try {
+    const updated = await prisma.gaAsset.update({
+      where: { id: assetId },
+      data: { picUserId: input.picUserId ?? null },
+      select: { id: true, picUserId: true },
+    });
+    let picName: string | null = null;
+    if (updated.picUserId) {
+      const u = await prisma.user.findUnique({ where: { id: updated.picUserId }, select: { fullName: true } });
+      picName = u?.fullName ?? null;
+    }
+    return res.json({ id: updated.id, picUserId: updated.picUserId, picName });
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/assets/:id/driver', 'Gagal menugaskan driver.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// PAJAK / STNK / KIR (1-to-many, histori per tahun)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/assets/:id/taxes', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleTax.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { dueDate: 'desc' },
+      include: { document: { select: { id: true, code: true, title: true } } },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/taxes', 'Gagal mengambil data pajak.');
+  }
+});
+
+router.post('/assets/:id/taxes', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleTaxSchema, req.body, res);
+  if (!input) return;
+  try {
+    const created = await prisma.gaVehicleTax.create({
+      data: {
+        assetId: String(req.params.id),
+        type: input.type,
+        periodYear: input.periodYear,
+        amount: input.amount != null ? new Prisma.Decimal(input.amount) : null,
+        paidAt: input.paidAt ? new Date(input.paidAt) : null,
+        dueDate: new Date(input.dueDate),
+        status: input.status,
+        documentId: input.documentId ?? null,
+        notes: input.notes ?? null,
+        createdById: req.user!.userId,
+      },
+    });
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/taxes', 'Gagal simpan data pajak.');
+  }
+});
+
+router.patch('/assets/:id/taxes/:tid', async (req, res) => {
+  const input = validateBody(VehicleTaxSchema.partial(), req.body, res);
+  if (!input) return;
+  try {
+    const data: Prisma.GaVehicleTaxUpdateInput = {};
+    if (input.type) data.type = input.type;
+    if (input.periodYear !== undefined) data.periodYear = input.periodYear;
+    if (input.amount !== undefined) data.amount = input.amount != null ? new Prisma.Decimal(input.amount) : null;
+    if (input.paidAt !== undefined) data.paidAt = input.paidAt ? new Date(input.paidAt) : null;
+    if (input.dueDate) data.dueDate = new Date(input.dueDate);
+    if (input.status) data.status = input.status;
+    if (input.documentId !== undefined) data.document = input.documentId ? { connect: { id: input.documentId } } : { disconnect: true };
+    if (input.notes !== undefined) data.notes = input.notes ?? null;
+
+    const updated = await prisma.gaVehicleTax.update({ where: { id: String(req.params.tid) }, data });
+    return res.json(updated);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/assets/:id/taxes/:tid', 'Gagal update data pajak.');
+  }
+});
+
+router.delete('/assets/:id/taxes/:tid', async (req, res) => {
+  try {
+    await prisma.gaVehicleTax.delete({ where: { id: String(req.params.tid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/taxes/:tid', 'Gagal hapus data pajak.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// ASURANSI (1-to-many, histori polis)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/assets/:id/insurances', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleInsurance.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { endDate: 'desc' },
+      include: { document: { select: { id: true, code: true, title: true } } },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/insurances', 'Gagal mengambil data asuransi.');
+  }
+});
+
+router.post('/assets/:id/insurances', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleInsuranceSchema, req.body, res);
+  if (!input) return;
+  try {
+    const created = await prisma.gaVehicleInsurance.create({
+      data: {
+        assetId: String(req.params.id),
+        type: input.type,
+        provider: input.provider,
+        policyNumber: input.policyNumber ?? null,
+        premium: input.premium != null ? new Prisma.Decimal(input.premium) : null,
+        coverageValue: input.coverageValue != null ? new Prisma.Decimal(input.coverageValue) : null,
+        startDate: new Date(input.startDate),
+        endDate: new Date(input.endDate),
+        status: input.status,
+        documentId: input.documentId ?? null,
+        notes: input.notes ?? null,
+        createdById: req.user!.userId,
+      },
+    });
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/insurances', 'Gagal simpan data asuransi.');
+  }
+});
+
+router.patch('/assets/:id/insurances/:iid', async (req, res) => {
+  const input = validateBody(VehicleInsuranceSchema.partial(), req.body, res);
+  if (!input) return;
+  try {
+    const data: Prisma.GaVehicleInsuranceUpdateInput = {};
+    if (input.type) data.type = input.type;
+    if (input.provider) data.provider = input.provider;
+    if (input.policyNumber !== undefined) data.policyNumber = input.policyNumber ?? null;
+    if (input.premium !== undefined) data.premium = input.premium != null ? new Prisma.Decimal(input.premium) : null;
+    if (input.coverageValue !== undefined) data.coverageValue = input.coverageValue != null ? new Prisma.Decimal(input.coverageValue) : null;
+    if (input.startDate) data.startDate = new Date(input.startDate);
+    if (input.endDate) data.endDate = new Date(input.endDate);
+    if (input.status) data.status = input.status;
+    if (input.documentId !== undefined) data.document = input.documentId ? { connect: { id: input.documentId } } : { disconnect: true };
+    if (input.notes !== undefined) data.notes = input.notes ?? null;
+
+    const updated = await prisma.gaVehicleInsurance.update({ where: { id: String(req.params.iid) }, data });
+    return res.json(updated);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/assets/:id/insurances/:iid', 'Gagal update data asuransi.');
+  }
+});
+
+router.delete('/assets/:id/insurances/:iid', async (req, res) => {
+  try {
+    await prisma.gaVehicleInsurance.delete({ where: { id: String(req.params.iid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/insurances/:iid', 'Gagal hapus data asuransi.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// LOG BBM (1-to-many, per pengisian)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/assets/:id/fuel-logs', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleFuelLog.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { tanggal: 'desc' },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/fuel-logs', 'Gagal mengambil log BBM.');
+  }
+});
+
+router.post('/assets/:id/fuel-logs', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleFuelLogSchema, req.body, res);
+  if (!input) return;
+  const assetId = String(req.params.id);
+  try {
+    const created = await prisma.gaVehicleFuelLog.create({
+      data: {
+        assetId,
+        tanggal: new Date(input.tanggal),
+        odometer: input.odometer ?? null,
+        liters: new Prisma.Decimal(input.liters),
+        pricePerLiter: input.pricePerLiter != null ? new Prisma.Decimal(input.pricePerLiter) : null,
+        totalCost: new Prisma.Decimal(input.totalCost),
+        spbu: input.spbu ?? null,
+        driverName: input.driverName ?? null,
+        notes: input.notes ?? null,
+        createdById: req.user!.userId,
+      },
+    });
+
+    // Sinkron dengan pola service log: update odometer terakhir kalau lebih besar.
+    if (input.odometer != null) {
+      const vd = await prisma.gaVehicleData.findUnique({ where: { assetId } });
+      if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
+        await prisma.gaVehicleData.update({ where: { assetId }, data: { odometerTerakhir: input.odometer } });
+      }
+    }
+
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/fuel-logs', 'Gagal simpan log BBM.');
+  }
+});
+
+router.delete('/assets/:id/fuel-logs/:fid', async (req, res) => {
+  try {
+    await prisma.gaVehicleFuelLog.delete({ where: { id: String(req.params.fid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/fuel-logs/:fid', 'Gagal hapus log BBM.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// INSPEKSI BERKALA (checklist ban/rem/oli/dll, beda dari service log)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/inspection-checkpoints', async (_req, res) => {
+  return res.json(VEHICLE_INSPECTION_CHECKPOINTS);
+});
+
+router.get('/assets/:id/inspections', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleInspection.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { tanggal: 'desc' },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/inspections', 'Gagal mengambil data inspeksi.');
+  }
+});
+
+router.post('/assets/:id/inspections', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleInspectionSchema, req.body, res);
+  if (!input) return;
+  try {
+    const created = await prisma.gaVehicleInspection.create({
+      data: {
+        assetId: String(req.params.id),
+        tanggal: new Date(input.tanggal),
+        odometer: input.odometer ?? null,
+        checklist: input.checklist,
+        overallResult: input.overallResult,
+        notes: input.notes ?? null,
+        inspectedById: req.user!.userId,
+      },
+    });
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/inspections', 'Gagal simpan data inspeksi.');
+  }
+});
+
+router.delete('/assets/:id/inspections/:iid', async (req, res) => {
+  try {
+    await prisma.gaVehicleInspection.delete({ where: { id: String(req.params.iid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/inspections/:iid', 'Gagal hapus data inspeksi.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// INSIDEN / KECELAKAAN
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/assets/:id/incidents', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleIncident.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { tanggal: 'desc' },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/incidents', 'Gagal mengambil data insiden.');
+  }
+});
+
+router.post('/assets/:id/incidents', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleIncidentSchema, req.body, res);
+  if (!input) return;
+  try {
+    const created = await prisma.gaVehicleIncident.create({
+      data: {
+        assetId: String(req.params.id),
+        tanggal: new Date(input.tanggal),
+        location: input.location ?? null,
+        driverName: input.driverName ?? null,
+        description: input.description,
+        severity: input.severity,
+        status: input.status,
+        estimatedCost: input.estimatedCost != null ? new Prisma.Decimal(input.estimatedCost) : null,
+        actualCost: input.actualCost != null ? new Prisma.Decimal(input.actualCost) : null,
+        insuranceClaimNo: input.insuranceClaimNo ?? null,
+        reportedById: req.user!.userId,
+      },
+    });
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/incidents', 'Gagal simpan data insiden.');
+  }
+});
+
+router.patch('/assets/:id/incidents/:iid', async (req, res) => {
+  const input = validateBody(VehicleIncidentSchema.partial(), req.body, res);
+  if (!input) return;
+  try {
+    const data: Prisma.GaVehicleIncidentUpdateInput = {};
+    if (input.tanggal) data.tanggal = new Date(input.tanggal);
+    if (input.location !== undefined) data.location = input.location ?? null;
+    if (input.driverName !== undefined) data.driverName = input.driverName ?? null;
+    if (input.description) data.description = input.description;
+    if (input.severity) data.severity = input.severity;
+    if (input.status) data.status = input.status;
+    if (input.estimatedCost !== undefined) data.estimatedCost = input.estimatedCost != null ? new Prisma.Decimal(input.estimatedCost) : null;
+    if (input.actualCost !== undefined) data.actualCost = input.actualCost != null ? new Prisma.Decimal(input.actualCost) : null;
+    if (input.insuranceClaimNo !== undefined) data.insuranceClaimNo = input.insuranceClaimNo ?? null;
+
+    const updated = await prisma.gaVehicleIncident.update({ where: { id: String(req.params.iid) }, data });
+    return res.json(updated);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/assets/:id/incidents/:iid', 'Gagal update data insiden.');
+  }
+});
+
+router.delete('/assets/:id/incidents/:iid', async (req, res) => {
+  try {
+    await prisma.gaVehicleIncident.delete({ where: { id: String(req.params.iid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/incidents/:iid', 'Gagal hapus data insiden.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// DASHBOARD ARMADA — ringkasan lintas-kendaraan (bukan per-asset)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/fleet-summary', async (req: AuthRequest, res) => {
+  try {
+    const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
+    const assetWhere: Prisma.GaAssetWhereInput = categoryId ? { categoryId } : {};
+    const now = new Date();
+    const soon = new Date(now.getTime() + 30 * 24 * 3600 * 1000); // 30 hari ke depan
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [totalVehicles, taxExpiringSoon, taxExpired, insuranceExpiringSoon, insuranceExpired,
+      openIncidents, serviceThisMonth, fuelThisMonth] = await Promise.all([
+      prisma.gaAsset.count({ where: assetWhere }),
+      prisma.gaVehicleTax.count({ where: { status: 'ACTIVE', dueDate: { gte: now, lte: soon } } }),
+      prisma.gaVehicleTax.count({ where: { status: 'ACTIVE', dueDate: { lt: now } } }),
+      prisma.gaVehicleInsurance.count({ where: { status: 'ACTIVE', endDate: { gte: now, lte: soon } } }),
+      prisma.gaVehicleInsurance.count({ where: { status: 'ACTIVE', endDate: { lt: now } } }),
+      prisma.gaVehicleIncident.count({ where: { status: { in: ['DILAPORKAN', 'DALAM_PROSES'] } } }),
+      prisma.gaVehicleServiceLog.aggregate({ where: { tanggal: { gte: monthStart } }, _sum: { biaya: true } }),
+      prisma.gaVehicleFuelLog.aggregate({ where: { tanggal: { gte: monthStart } }, _sum: { totalCost: true } }),
+    ]);
+
+    return res.json({
+      totalVehicles,
+      taxExpiringSoon,
+      taxExpired,
+      insuranceExpiringSoon,
+      insuranceExpired,
+      openIncidents,
+      serviceCostThisMonth: Number(serviceThisMonth._sum.biaya ?? 0),
+      fuelCostThisMonth: Number(fuelThisMonth._sum.totalCost ?? 0),
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/fleet-summary', 'Gagal mengambil ringkasan armada.');
   }
 });
 
