@@ -10,7 +10,6 @@ import {
   Building2,
   ClipboardList,
   PackageSearch,
-  BookOpen,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -35,33 +34,22 @@ interface NavItem {
 // EAM standalone: HANYA modul aset & maintenance (GA) + Aset Tetap akuntansi.
 // Tidak ada Dashboard/Penjualan/Pembelian/Stok/Bank finance — itu tetap di
 // app ERP utama. Lihat PRD EAM-Standalone-v0.1 Section 5 (scope MVP).
+// EAM: tanpa grouping/collapsible — semua modul langsung tampil flat di
+// level atas (Ndoro: "tidak perlu bisa nav bar nya, default langsung
+// keluar semua jadi modul").
 const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Bell, label: 'Notifikasi', href: '/notifications' },
-
-  {
-    icon: Boxes,
-    label: 'EAM — Manajemen Aset',
-    children: [
-      { icon: Boxes, label: 'Aset', href: '/ga/assets', module: 'ga_assets' },
-      { icon: Car, label: 'Kendaraan', href: '/ga/vehicle', module: 'ga_vehicle' },
-      { icon: Building2Ga, label: 'Gedung & Sewa', href: '/ga/building', module: 'ga_building' },
-      { icon: ScanLine, label: 'Equipment & Kalibrasi', href: '/ga/equipment', module: 'ga_equipment' },
-      { icon: Wrench, label: 'Maintenance / WO', href: '/ga/maintenance', module: 'ga_maintenance' },
-      { icon: PackageSearch, label: 'Permintaan Barang (MR)', href: '/ga/material-requests', module: 'ga_material_request' },
-      { icon: ClipboardList, label: 'Inventaris', href: '/ga/inventory', module: 'ga_inventory' },
-      { icon: FileText, label: 'Dokumen & Sertifikat', href: '/ga/documents', module: 'ga_documents' },
-      { icon: FolderCog, label: 'Master Data', href: '/ga/master', module: 'ga_master' },
-    ],
-  },
-
-  {
-    icon: BookOpen,
-    label: 'Akuntansi',
-    children: [
-      { icon: Building2, label: 'Aset Tetap', href: '/fixed-assets', module: 'fixed_assets' },
-    ],
-  },
+  { icon: Boxes, label: 'Aset', href: '/ga/assets', module: 'ga_assets' },
+  { icon: Car, label: 'Kendaraan', href: '/ga/vehicle', module: 'ga_vehicle' },
+  { icon: Building2Ga, label: 'Gedung & Sewa', href: '/ga/building', module: 'ga_building' },
+  { icon: ScanLine, label: 'Equipment & Kalibrasi', href: '/ga/equipment', module: 'ga_equipment' },
+  { icon: Wrench, label: 'Maintenance / WO', href: '/ga/maintenance', module: 'ga_maintenance' },
+  { icon: PackageSearch, label: 'Permintaan Barang (MR)', href: '/ga/material-requests', module: 'ga_material_request' },
+  { icon: ClipboardList, label: 'Inventaris', href: '/ga/inventory', module: 'ga_inventory' },
+  { icon: FileText, label: 'Dokumen & Sertifikat', href: '/ga/documents', module: 'ga_documents' },
+  { icon: FolderCog, label: 'Master Data', href: '/ga/master', module: 'ga_master' },
+  { icon: Building2, label: 'Aset Tetap', href: '/fixed-assets', module: 'fixed_assets' },
 ];
 
 interface SidebarProps {
