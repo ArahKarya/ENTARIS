@@ -10,15 +10,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
-        'favicon.ico', 'favicon.png', 'favicon-16.png', 'favicon-32.png',
-        'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png',
+        'favicon-v2.ico', 'favicon-v2.png', 'favicon-16-v2.png', 'favicon-32-v2.png',
+        'apple-touch-icon-v2.png', 'pwa-192x192-v2.png', 'pwa-512x512-v2.png',
         'app-icon-master.svg',
       ],
       manifest: {
         name: 'EAM',
         short_name: 'EAM',
         description: 'EAM — Enterprise Asset Management PT Pangan Masa Depan',
-        theme_color: '#2c4d78',
+        theme_color: '#0d9488',
         background_color: '#fafafb',
         display: 'standalone',
         orientation: 'any',
@@ -26,13 +26,13 @@ export default defineConfig({
         categories: ['business', 'productivity'],
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'pwa-192x192-v2.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-512x512-v2.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
