@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import PublicAssetScan from './pages/PublicAssetScan';
 
 import { EamDashboard } from './pages/EamDashboard';
+import { Notifications } from './pages/Notifications';
 import { GaAssetsPage } from './pages/ga/GaAssetsPage';
 import { GaDocumentsPage } from './pages/ga/GaDocumentsPage';
 import { GaInventoryPage } from './pages/ga/GaInventoryPage';
@@ -75,6 +76,7 @@ function App() {
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
             {/* Home EAM = dashboard ringkas (aset/NBV/WO), bukan dashboard finance ERP */}
             <Route path="/" element={<EamDashboard />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/ga/assets" element={<PermRoute module="ga_assets"><GaAssetsPage /></PermRoute>} />
             <Route path="/ga/documents" element={<PermRoute module="ga_documents"><GaDocumentsPage /></PermRoute>} />
             <Route path="/ga/inventory" element={<PermRoute module="ga_inventory"><GaInventoryPage /></PermRoute>} />

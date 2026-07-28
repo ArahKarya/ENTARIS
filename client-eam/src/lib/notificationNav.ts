@@ -1,35 +1,51 @@
-// Tentukan rute tujuan saat sebuah notifikasi di-klik, ROLE-AWARE.
-//
-// Approval: Admin/Accountant bisa buka halaman terpusat /approvals; StaffProduksi
-// (pengaju) tidak punya akses /approvals → diarahkan ke tab approval di modulnya
-// (Invoice Pembelian → /purchase, Data Produksi → /inventory).
+// Tentukan rute tujuan saat sebuah notifikasi di-klik, dalam konteks EAM
+// (bukan ERP finance). EAM cuma punya modul GA/aset — tidak ada
+// /approvals, /purchase, /sales, /quotations, /project-guarantees seperti
+// ERP. Backend belum pernah generate notifikasi GA (low stock/WO
+// overdue/MR pending) sampai saat ini, jadi mapping ini defensif untuk
+// saat fitur itu ada nanti, plus tetap fallback aman untuk notifikasi
+// finance lama (kalau ada baris lawas ikut ke-load, klik-nya diam saja
+// alih-alih redirect ke rute yang 404 di EAM).
 
 export interface NotifItem {
   type: string;
   metadata?: any;
 }
 
-export function notificationLink(n: NotifItem, role: string | undefined): string | null {
+export function notificationLink(n: NotifItem, _role: string | undefined): string | null {
   const meta = n.metadata ?? {};
-  if (meta.link) return meta.link; // override eksplisit
+  if (meta.link) return meta.link; // override eksplisit dari backend
 
   switch (n.type) {
+    // GA / EAM — belum pernah di-generate backend, disiapkan untuk saat ada
+    case 'low_stock':
+      return '/ga/inventory';
+    case 'wo_overdue':
+    case 'wo_assigned':
+    case 'wo_completed':
+      return '/ga/maintenance';
+    case 'mr_pending':
+    case 'mr_approved':
+    case 'mr_rejected':
+      return '/ga/material-requests';
+    case 'calibration_due':
+      return '/ga/equipment';
+    case 'document_expiring':
+      return '/ga/documents';
+    case 'rental_expiring':
+      return '/ga/building';
+
+    // Notifikasi finance ERP lama (kalau baris lama ikut ke-load di sini) —
+    // tidak ada rute yang sesuai di EAM, jangan redirect ke 404.
     case 'approval_pending':
     case 'approval_approved':
     case 'approval_rejected':
-    case 'approval_revision': {
-      if (role === 'Admin' || role === 'Accountant') return '/approvals';
-      // Pengaju non-admin → ke modul (tab approval ada di sana).
-      return meta.documentType === 'ProductionRun' ? '/inventory' : '/purchase';
-    }
+    case 'approval_revision':
     case 'invoice_overdue':
-      return meta.invoiceType === 'purchase' ? '/purchase' : '/sales';
-    case 'low_stock':
-      return '/inventory';
     case 'quotation_expiring':
-      return '/quotations';
     case 'guarantee_due':
-      return '/project-guarantees';
+      return null;
+
     default:
       return null;
   }

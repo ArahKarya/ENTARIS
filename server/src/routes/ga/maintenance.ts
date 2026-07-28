@@ -263,9 +263,17 @@ router.get('/work-orders', async (req: AuthRequest, res) => {
       include: {
         asset: { select: { id: true, code: true, name: true } },
         _count: { select: { parts: true, photos: true } },
+        parts: { select: { quantity: true, unitCost: true } },
       },
     });
-    return res.json(items);
+    // Expose totalCost per WO di list juga (bukan cuma detail) supaya FE bisa
+    // render KPI cards (Total Biaya Maintenance) & kolom biaya di tabel tanpa
+    // N+1 request ke endpoint detail per baris.
+    const withTotalCost = items.map(({ parts, ...wo }) => ({
+      ...wo,
+      totalCost: computeWorkOrderTotalCost(wo.laborCost, wo.externalCost, parts),
+    }));
+    return res.json(withTotalCost);
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/maintenance/work-orders', 'Gagal mengambil work order.');
   }

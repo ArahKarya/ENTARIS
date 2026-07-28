@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   Wrench, Plus, Loader2, X, Calendar, ClipboardList, UserPlus, Play, CheckCircle2,
   Lock, XCircle, Package, Image as ImageIcon, AlertTriangle, Pencil, FilePlus, ListChecks,
+  Search, Wallet, CalendarClock,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -109,11 +110,14 @@ const TabButton = ({ active, onClick, icon, label }: { active: boolean; onClick:
 // WORK ORDER TAB
 // ─────────────────────────────────────────────────────────────────────
 
+const ACTIVE_WO_STATUSES = new Set<WoStatus>(['OPEN', 'ASSIGNED', 'IN_PROGRESS']);
+
 const WorkOrderTab = ({ canEdit }: { canEdit: boolean }) => {
   const [statusFilter, setStatusFilter] = useState<WoStatus | ''>('');
   const [priorityFilter, setPriorityFilter] = useState<WoPriority | ''>('');
   const [typeFilter, setTypeFilter] = useState<WoType | ''>('');
   const [mineOnly, setMineOnly] = useState(false);
+  const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
@@ -129,10 +133,92 @@ const WorkOrderTab = ({ canEdit }: { canEdit: boolean }) => {
       return res.data as any[];
     },
   });
-  const workOrders = data ?? [];
+  const allWorkOrders = data ?? [];
+
+  // KPI dihitung dari data TIDAK terfilter search (search cuma mempersempit
+  // tampilan tabel) -- KPI harus mencerminkan filter status/prioritas/tipe
+  // yang aktif, konsisten dengan pola ERP (mis. SalesOrders.tsx summary cards).
+  const now = useMemo(() => new Date(), []);
+  const kpi = useMemo(() => {
+    let active = 0, overdue = 0, doneThisMonth = 0, totalCost = 0;
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    for (const wo of allWorkOrders) {
+      if (ACTIVE_WO_STATUSES.has(wo.status as WoStatus)) {
+        active++;
+        if (wo.dueAt && new Date(wo.dueAt) < now) overdue++;
+      }
+      if ((wo.status === 'DONE' || wo.status === 'CLOSED') && wo.completedAt) {
+        const d = new Date(wo.completedAt);
+        if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) doneThisMonth++;
+      }
+      totalCost += Number(wo.totalCost ?? 0);
+    }
+    return { active, overdue, doneThisMonth, totalCost };
+  }, [allWorkOrders, now]);
+
+  const search_ = search.trim().toLowerCase();
+  const workOrders = search_
+    ? allWorkOrders.filter((wo) =>
+        wo.code?.toLowerCase().includes(search_) ||
+        wo.title?.toLowerCase().includes(search_) ||
+        wo.asset?.name?.toLowerCase().includes(search_) ||
+        wo.asset?.code?.toLowerCase().includes(search_),
+      )
+    : allWorkOrders;
 
   return (
     <div className="space-y-4">
+      {/* KPI cards -- pola standar ERP: grid 4 kolom, icon+angka+label */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 rounded-lg"><ClipboardList size={16} className="text-blue-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">WO Aktif</p>
+              <p className="text-lg font-bold text-gray-900">{kpi.active}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-50 rounded-lg"><CalendarClock size={16} className="text-red-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Overdue</p>
+              <p className="text-lg font-bold text-gray-900">{kpi.overdue}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-50 rounded-lg"><CheckCircle2 size={16} className="text-green-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Selesai Bln Ini</p>
+              <p className="text-lg font-bold text-gray-900">{kpi.doneThisMonth}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-teal-50 rounded-lg"><Wallet size={16} className="text-teal-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Biaya</p>
+              <p className="text-sm font-bold text-gray-900">{formatRupiah(kpi.totalCost)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search box */}
+      <div className="relative max-w-sm">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari kode WO, judul, atau aset..."
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+      </div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Status filter chips */}
         <div className="flex flex-wrap items-center gap-1.5">
@@ -189,26 +275,32 @@ const WorkOrderTab = ({ canEdit }: { canEdit: boolean }) => {
                 <th scope="col" className="text-center">Tipe</th>
                 <th scope="col" className="text-center">Prioritas</th>
                 <th scope="col" className="text-center">Status</th>
+                <th scope="col">Jatuh Tempo</th>
+                <th scope="col" className="text-right">Biaya</th>
                 <th scope="col">Teknisi</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-gray-400">
+                  <td colSpan={9} className="py-16 text-center text-gray-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
                     Memuat work order...
                   </td>
                 </tr>
               ) : workOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center">
+                  <td colSpan={9} className="py-16 text-center">
                     <Wrench className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400">Belum ada work order.</p>
+                    <p className="text-sm text-gray-400">
+                      {search ? 'Tidak ada work order yang cocok dengan pencarian.' : 'Belum ada work order.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
-                workOrders.map((wo: any) => (
+                workOrders.map((wo: any) => {
+                  const isOverdue = ACTIVE_WO_STATUSES.has(wo.status as WoStatus) && wo.dueAt && new Date(wo.dueAt) < now;
+                  return (
                   <tr key={wo.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setDetailId(wo.id)}>
                     <td className="whitespace-nowrap">
                       <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{wo.code}</span>
@@ -231,9 +323,23 @@ const WorkOrderTab = ({ canEdit }: { canEdit: boolean }) => {
                         {STATUS_LABELS[wo.status as WoStatus] ?? wo.status}
                       </span>
                     </td>
+                    <td className="whitespace-nowrap">
+                      {wo.dueAt ? (
+                        <span className={cn('text-xs', isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600')}>
+                          {formatDate(wo.dueAt)}
+                          {isOverdue && <span className="block text-[10px] uppercase">Lewat tempo</span>}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="text-right whitespace-nowrap text-xs text-gray-700">
+                      {wo.totalCost ? formatRupiah(wo.totalCost) : <span className="text-gray-300">—</span>}
+                    </td>
                     <td className="text-gray-600 text-sm">{wo.assignedToId ? (wo.assignedToName ?? '—') : <span className="text-gray-300">—</span>}</td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
