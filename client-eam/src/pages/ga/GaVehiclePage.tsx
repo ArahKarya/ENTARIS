@@ -11,6 +11,7 @@ import api from '../../lib/api';
 import { can, cap } from '../../lib/permissions';
 import { formatRupiah, formatDate } from '../../lib/formatters';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { AssetPhotoSection } from '../../components/AssetPhotoSection';
 import { toast } from 'sonner';
 
 const FUEL_TYPES = ['BENSIN', 'SOLAR', 'PERTAMAX', 'PERTALITE', 'DEX', 'LPG', 'LISTRIK', 'HYBRID', 'LAINNYA'] as const;
@@ -226,6 +227,8 @@ export const GaVehiclePage = () => {
                   </div>
                 )}
               </div>
+
+              <AssetPhotoSection assetId={selectedAsset.id} canEdit={canEdit} />
 
               {/* Service logs */}
               <div className="card p-0 overflow-hidden">

@@ -10,6 +10,7 @@ import api from '../../lib/api';
 import { can } from '../../lib/permissions';
 import { formatRupiah, formatDate } from '../../lib/formatters';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { AssetPhotoSection } from '../../components/AssetPhotoSection';
 import { toast } from 'sonner';
 
 const BUILDING_TYPES = ['KANTOR', 'GUDANG', 'PABRIK', 'RUMAH', 'MESS', 'RUKO', 'LAINNYA'] as const;
@@ -207,6 +208,8 @@ export const GaBuildingPage = () => {
                   </div>
                 )}
               </div>
+
+              <AssetPhotoSection assetId={selectedAsset.id} canEdit={canEdit} />
 
               {/* Rentals */}
               <div className="card p-0 overflow-hidden">

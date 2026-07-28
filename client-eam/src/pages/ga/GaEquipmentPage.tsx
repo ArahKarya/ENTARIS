@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { can } from '../../lib/permissions';
 import { formatRupiah, formatDate } from '../../lib/formatters';
+import { AssetPhotoSection } from '../../components/AssetPhotoSection';
 import { toast } from 'sonner';
 
 const UNITS = ['KG', 'GRAM', 'TON', 'LBS'] as const;
@@ -173,6 +174,8 @@ export const GaEquipmentPage = () => {
                   </div>
                 )}
               </div>
+
+              <AssetPhotoSection assetId={selectedId} canEdit={canEdit} />
 
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
