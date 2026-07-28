@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.9';
-export const APP_BUILD_DATE = '2026-06-21';
+export const APP_VERSION = '3.17.0';
+export const APP_BUILD_DATE = '2026-07-28';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.17.0',
+    date: '2026-07-28',
+    title: 'EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo',
+    changes: [
+      'Modul EAM kini punya frontend standalone (client-eam/) di domain eam.panganmasadepan.com — bukan repo terpisah, tetap satu monorepo simple-erp-pmd, satu backend/API, satu database',
+      'Login SSO: satu akun ERP dipakai untuk EAM lewat shared-cookie cross-subdomain (.panganmasadepan.com), tidak perlu login ulang',
+      'Tampilan login EAM dibedakan dari ERP (palet hijau tosca/emerald, ikon & copy khusus aset/maintenance) supaya tidak tertukar oleh pengguna',
+      'Dashboard ringkas EAM: total aset, nilai buku (NBV), work order aktif/overdue, breakdown per kategori aset, quick links ke semua modul',
+      'Filter otomatis per modul (mis. klik Kendaraan hanya tampilkan kategori Kendaraan) via parameter categoryId multi-value di endpoint aset (backward-compatible, tidak mengubah endpoint lama)',
+      'Modul GA (General Affairs) di ERP utama tetap aktif dan terhubung real-time ke EAM — data & aksi tersinkron dua arah lewat API yang sama',
+    ],
+  },
   {
     version: '3.16.9',
     date: '2026-06-21',

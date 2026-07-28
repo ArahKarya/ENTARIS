@@ -11,6 +11,12 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
+// Cross-subdomain cookie support (ERP + EAM standalone app share login).
+// Empty string in non-production keeps localhost cookies working (domain
+// attribute is not settable for plain "localhost").
+const COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? '.panganmasadepan.com' : undefined;
+
+
 router.post('/login', loginRateLimiter, async (req, res) => {
   const { username, password } = req.body;
 
@@ -59,7 +65,8 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // 'strict' would drop the cookie navigating ERP <-> EAM subdomains
+      domain: COOKIE_DOMAIN,
       maxAge: 24 * 60 * 60 * 1000, // 24h
       path: '/',
     });
@@ -69,7 +76,8 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     res.cookie('csrf-token', csrfToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
+      domain: COOKIE_DOMAIN,
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
@@ -134,8 +142,8 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res) => {
       // ignore if already blacklisted
     }
   }
-  res.clearCookie('token', { path: '/' });
-  res.clearCookie('csrf-token', { path: '/' });
+  res.clearCookie('token', { path: '/', domain: COOKIE_DOMAIN });
+  res.clearCookie('csrf-token', { path: '/', domain: COOKIE_DOMAIN });
   return res.json({ message: 'Logged out successfully.' });
 });
 

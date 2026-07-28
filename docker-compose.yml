@@ -69,6 +69,18 @@ services:
       db:
         condition: service_healthy
 
+  # ── EAM (Enterprise Asset Management) — standalone frontend, satu repo ────
+  # Reuse akun & API ERP lewat shared-cookie SSO (.panganmasadepan.com);
+  # tidak ada backend/DB terpisah — cukup nginx static SPA. Bagian dari
+  # monorepo simple-erp-pmd (client-eam/), bukan aplikasi/repo terpisah.
+  client-eam:
+    build: ./client-eam
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${EAM_PORT:-3005}:3005"
+    depends_on:
+      - app
+
 volumes:
   pgdata:
   backups:

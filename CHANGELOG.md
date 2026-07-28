@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.17.0] - 2026-07-28
+
+### EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo
+
+Modul EAM (dulu General Affairs) kini punya frontend standalone di `client-eam/`, dideploy terpisah di `eam.panganmasadepan.com`, **tetap satu monorepo, satu backend/API, satu database** dengan ERP utama — bukan produk/repo terpisah.
+
+**Ditambahkan**:
+- `client-eam/` — React+Vite SPA baru, di-clone dari `client/` lalu dipangkas hanya rute modul GA/EAM (Aset, Kendaraan, Gedung, Equipment, Maintenance, Permintaan Barang, Inventaris, Dokumen, Master Data)
+- Dashboard EAM (`/`) — total aset, nilai buku (NBV), work order aktif & overdue, breakdown per kategori, quick links
+- Login SSO cross-subdomain: cookie `.panganmasadepan.com` (`sameSite: lax`) sehingga 1 login ERP otomatis berlaku juga di EAM
+- Filter kategori multi-value di `GET /api/fixed-assets` & `GET /api/ga/assets` (`?categoryId=A,B`) — dipakai tiap halaman modul EAM supaya otomatis hanya menampilkan kategori miliknya (mis. halaman Kendaraan hanya tampilkan aset Kendaraan)
+- Tampilan login EAM dibedakan dari ERP: palet hijau tosca/emerald, ikon & copy khusus aset/maintenance (bukan replikasi identik ERP)
+- Service `client-eam` ditambahkan ke `docker-compose.yml` — deploy jadi bagian siklus `docker compose up -d --build` yang sama dengan ERP
+
+**Diubah**:
+- `server/src/routes/auth.ts` — cookie domain `.panganmasadepan.com` (produksi) + `sameSite: lax` (dari `strict`) supaya cookie ikut terbawa lintas subdomain ERP↔EAM
+- `server/src/routes/ga/assets.ts` — `buildAssetWhere()` menerima `categoryId` comma-separated (backward-compatible, single ID tetap jalan seperti biasa)
+
+**Tidak berubah**: modul GA di ERP utama tetap aktif dan tersinkron real-time dengan EAM (baca/tulis ke endpoint & DB yang sama).
+
 ## [3.1.3] - 2026-05-22
 
 ### Strict Mode: Stok Tidak Boleh Minus (Hapus Bypass)

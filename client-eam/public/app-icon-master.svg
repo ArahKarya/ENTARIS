@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- ERP PMD App Icon — "P" monogram
+       Konsep: huruf P putih bold di rounded square steel blue. Hint pangan via
+       golden accent kecil di bagian dalam loop P. Path-based, font-free. -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3a5d8f"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="grain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbd271"/>
+      <stop offset="100%" stop-color="#e6a623"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="6" result="offsetblur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.20"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- "P" monogram: stem + bowl. Constructed as filled paths with
+       fill-rule=evenodd untuk bikin hole di tengah bowl. -->
+  <g filter="url(#softShadow)">
+    <path
+      fill="#ffffff"
+      fill-rule="evenodd"
+      d="
+        M 140 96
+        L 305 96
+        A 124 124 0 0 1 305 344
+        L 224 344
+        L 224 416
+        L 140 416
+        Z
+
+        M 224 168
+        L 224 272
+        L 295 272
+        A 52 52 0 0 0 295 168
+        Z
+      "/>
+  </g>
+
+  <!-- Golden grain dot inside the P bowl (subtle PMD = Pangan accent) -->
+  <circle cx="261" cy="220" r="20" fill="url(#grain)"/>
+</svg>

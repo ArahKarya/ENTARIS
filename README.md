@@ -139,6 +139,16 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 - **Depresiasi Otomatis** per periode (bulanan) dengan jurnal yang terposting otomatis ke akun beban penyusutan dan akumulasi penyusutan.
 - **Disposisi Aset** (penjualan/penghapusan) dengan perhitungan untung/rugi pelepasan otomatis.
 
+### 6.1 EAM — Enterprise Asset Management (`client-eam/`)
+
+Aplikasi frontend **standalone** di `eam.panganmasadepan.com`, tapi **tetap satu monorepo** — satu backend/API, satu database, satu akun login dengan ERP utama. Cocok untuk staf lapangan (mekanik, GA) yang hanya butuh modul aset tanpa harus buka menu keuangan.
+
+- **Login SSO** cross-subdomain — 1 akun ERP otomatis berlaku di EAM (shared cookie `.panganmasadepan.com`), tanpa login ulang.
+- **Dashboard ringkas**: total aset, nilai buku (NBV), work order aktif & overdue, breakdown nilai per kategori, quick links ke tiap modul.
+- **Modul aset per kategori**: Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Inventaris GA, Dokumen & Sertifikat, Maintenance/Work Order, Permintaan Barang, Master Data — tiap halaman otomatis terfilter ke kategorinya sendiri (`?categoryId=` multi-value di API, backward-compatible dengan ERP utama).
+- **QR aset publik** tetap bisa diakses tanpa login (scan barcode aset fisik).
+- Modul GA di ERP utama **tetap aktif** dan tersinkron real-time dua arah dengan EAM (data & aksi lewat API + DB yang sama, bukan salinan/replika).
+
 ### 7. Laporan & Analisa
 
 Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung ke detail transaksi sumber. **10 laporan keuangan** siap pakai:

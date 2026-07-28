@@ -41,3 +41,29 @@ export async function adjustWarehouseStock(
     update: { currentStock: { increment: delta } },
   });
 }
+
+/**
+ * Read current per-warehouse stock for a set of (itemId, warehouseId) pairs.
+ * Returns a Map keyed by `${itemId}::${warehouseId}` -> current stock number.
+ * Missing inventory_stocks rows are reported as 0 (no row == never stocked).
+ *
+ * This is the read-side counterpart of `adjustWarehouseStock` and the ONLY
+ * correct basis for "is there enough stock" checks: `inventory_items.
+ * currentStock` is a denormalized total across every warehouse and will
+ * happily pass a check for a warehouse that is actually empty.
+ */
+export async function getWarehouseStockMap(
+  tx: Tx,
+  pairs: Array<{ itemId: string; warehouseId: string }>,
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (pairs.length === 0) return map;
+  const rows = await tx.inventoryStock.findMany({
+    where: { OR: pairs.map((p) => ({ itemId: p.itemId, warehouseId: p.warehouseId })) },
+    select: { itemId: true, warehouseId: true, currentStock: true },
+  });
+  for (const r of rows) {
+    map.set(`${r.itemId}::${r.warehouseId}`, Number(r.currentStock));
+  }
+  return map;
+}
