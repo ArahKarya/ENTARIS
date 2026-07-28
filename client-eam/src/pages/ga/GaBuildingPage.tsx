@@ -37,7 +37,7 @@ export const GaBuildingPage = () => {
   const [endTarget, setEndTarget] = useState<{ id: string; label: string } | null>(null);
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ['ga-assets'],
+    queryKey: ['ga-assets', 'gedung'],
     queryFn: async () => (await api.get('/ga/assets', { params: { limit: 500, categoryId: 'cmq6bx8z30003vvqjbog7voys,cmq7ja1kg000401lp4k5obtk8' } })).data,
   });
 

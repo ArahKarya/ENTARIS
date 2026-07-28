@@ -58,7 +58,7 @@ export const GaAssetsPage = () => {
   const canViewDocs = can('ga_documents', 'view');
 
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['ga-assets'],
+    queryKey: ['ga-assets', 'all'],
     queryFn: async () => {
       const res = await api.get('/ga/assets', { params: { limit: 500 } });
       return res.data;
@@ -69,7 +69,7 @@ export const GaAssetsPage = () => {
     mutationFn: (id: string) => api.post('/ga/assets/bulk/delete', { ids: [id] }),
     onSuccess: () => {
       toast.success('Aset dihapus.');
-      queryClient.invalidateQueries({ queryKey: ['ga-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['ga-assets'] }); // prefix match: invalidates 'all' + kategori lain juga
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal menghapus aset.'),
   });
@@ -367,7 +367,7 @@ const AssetModal = ({ asset, onClose }: AssetModalProps) => {
         toast.error('Aset tersimpan, tapi foto gagal diunggah. Coba unggah ulang lewat Edit.');
       }
       toast.success(isEdit ? 'Aset diperbarui.' : 'Aset dibuat.');
-      queryClient.invalidateQueries({ queryKey: ['ga-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['ga-assets'] }); // prefix match: invalidates 'all' + kategori lain juga
       onClose();
     },
     onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan aset.'),

@@ -45,7 +45,7 @@ export const GaVehiclePage = () => {
 
   // ── Assets list ───────────────────────────────────────────────────
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ['ga-assets'],
+    queryKey: ['ga-assets', 'kendaraan'],
     queryFn: async () => (await api.get('/ga/assets', { params: { limit: 500, categoryId: 'cmq7ja1dc000001lpil7negq7' } })).data,
   });
 

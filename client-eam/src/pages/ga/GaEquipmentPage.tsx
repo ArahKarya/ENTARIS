@@ -33,7 +33,7 @@ export const GaEquipmentPage = () => {
   const [showCalModal, setShowCalModal] = useState(false);
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ['ga-assets'],
+    queryKey: ['ga-assets', 'equipment'],
     queryFn: async () => {
       const res = await api.get('/ga/assets', { params: { limit: 500, categoryId: 'cmq7ja1lo000501lpk8lwwi2q' } });
       return res.data?.data ?? res.data ?? [];
