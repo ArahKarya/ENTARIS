@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode, FileText } from 'lucide-react';
+import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode, FileText, Camera, ImageOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -307,10 +307,65 @@ const AssetModal = ({ asset, onClose }: AssetModalProps) => {
     queryFn: async () => (await api.get('/ga/master/cost-centers')).data,
   });
 
+  // ── Foto aset ────────────────────────────────────────────────────
+  // Edit mode: tarik daftar foto tersimpan dari detail aset (list endpoint
+  // tidak include photos, hanya /:id). Create mode: belum ada foto.
+  const { data: assetDetail } = useQuery({
+    queryKey: ['ga-asset-detail', asset?.id],
+    queryFn: async () => (await api.get(`/ga/assets/${asset.id}`)).data,
+    enabled: isEdit,
+  });
+  const existingPhotos: Array<{ id: string; filePath: string; caption: string | null }> =
+    assetDetail?.photos ?? [];
+
+  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
+
+  const pickPhoto = (f: File | null) => {
+    if (!f) {
+      setNewPhotoFile(null);
+      setNewPhotoPreview(null);
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+      setError('Format foto harus JPG, PNG, atau WEBP.');
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setError('Ukuran foto maksimal 5 MB.');
+      return;
+    }
+    setNewPhotoFile(f);
+    setNewPhotoPreview(URL.createObjectURL(f));
+  };
+
+  const uploadPhoto = async (assetId: string) => {
+    if (!newPhotoFile) return;
+    const fd = new FormData();
+    fd.append('photo', newPhotoFile);
+    // Do NOT set Content-Type manually — axios sets the multipart boundary.
+    await api.post(`/ga/assets/${assetId}/photos`, fd);
+  };
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: (photoId: string) => api.delete(`/ga/assets/${asset?.id}/photos/${photoId}`),
+    onSuccess: () => {
+      toast.success('Foto dihapus.');
+      queryClient.invalidateQueries({ queryKey: ['ga-asset-detail', asset?.id] });
+    },
+    onError: () => toast.error('Gagal menghapus foto.'),
+  });
+
   const mutation = useMutation({
     mutationFn: (payload: any) =>
       isEdit ? api.put(`/ga/assets/${asset.id}`, payload) : api.post('/ga/assets', payload),
-    onSuccess: () => {
+    onSuccess: async (res) => {
+      try {
+        const savedId = isEdit ? asset.id : res.data?.id;
+        if (savedId) await uploadPhoto(savedId);
+      } catch {
+        toast.error('Aset tersimpan, tapi foto gagal diunggah. Coba unggah ulang lewat Edit.');
+      }
       toast.success(isEdit ? 'Aset diperbarui.' : 'Aset dibuat.');
       queryClient.invalidateQueries({ queryKey: ['ga-assets'] });
       onClose();
@@ -491,6 +546,60 @@ const AssetModal = ({ asset, onClose }: AssetModalProps) => {
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
+          </div>
+
+          {/* Foto aset */}
+          <div className="border-t border-gray-100 pt-4">
+            <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1.5">
+              <Camera size={13} /> Foto Aset
+            </label>
+
+            {existingPhotos.length > 0 && (
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {existingPhotos.map((ph) => (
+                  <div key={ph.id} className="relative group">
+                    <img
+                      src={`/uploads/${ph.filePath}`}
+                      alt={ph.caption ?? 'Foto aset'}
+                      className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => deletePhotoMutation.mutate(ph.id)}
+                      title="Hapus foto"
+                      className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {newPhotoPreview ? (
+              <div className="relative inline-block">
+                <img src={newPhotoPreview} alt="Preview foto baru" className="h-20 rounded-lg border border-gray-200 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => pickPhoto(null)}
+                  title="Batalkan"
+                  className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-gray-700 text-white hover:bg-red-600"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 w-fit px-3 py-2 text-sm border border-dashed border-gray-300 rounded-lg cursor-pointer text-gray-500 hover:bg-gray-50 hover:border-teal-400">
+                <ImageOff size={14} className="text-gray-400" />
+                {existingPhotos.length > 0 ? 'Tambah foto lain' : 'Pilih foto (JPG/PNG/WEBP, maks 5 MB)'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

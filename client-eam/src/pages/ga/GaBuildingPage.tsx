@@ -47,6 +47,14 @@ export const GaBuildingPage = () => {
     return assets.filter((a) => a.code?.toLowerCase().includes(q) || a.name?.toLowerCase().includes(q));
   }, [assets, search]);
 
+  // Auto-select aset pertama begitu daftar termuat -- klik modul langsung
+  // tampilkan datanya tanpa perlu klik manual salah satu baris dulu.
+  useEffect(() => {
+    if (selectedId && filteredAssets.some((a) => a.id === selectedId)) return;
+    if (filteredAssets.length > 0) setSelectedId(filteredAssets[0]!.id);
+    else if (filteredAssets.length === 0) setSelectedId(null);
+  }, [filteredAssets, selectedId]);
+
   const selectedAsset = assets.find((a) => a.id === selectedId) ?? null;
 
   const { data: buildingData, isLoading: bdLoading } = useQuery({

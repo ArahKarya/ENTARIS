@@ -46,6 +46,14 @@ export const GaEquipmentPage = () => {
     return assets.filter((a) => a.code?.toLowerCase().includes(q) || a.name?.toLowerCase().includes(q));
   }, [assets, search]);
 
+  // Auto-select aset pertama begitu daftar termuat -- klik modul langsung
+  // tampilkan datanya tanpa perlu klik manual salah satu baris dulu.
+  useEffect(() => {
+    if (selectedId && filtered.some((a) => a.id === selectedId)) return;
+    if (filtered.length > 0) setSelectedId(filtered[0]!.id);
+    else if (filtered.length === 0) setSelectedId(null);
+  }, [filtered, selectedId]);
+
   const { data: equip, isLoading: equipLoading } = useQuery({
     queryKey: ['ga-equipment', selectedId],
     queryFn: async () => {
