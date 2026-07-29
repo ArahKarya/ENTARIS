@@ -8,7 +8,7 @@ import {
   Search, Car, Loader2, Save, Plus, Trash2, Wrench, ClipboardList,
   Check, X, XCircle, UserCog, FileWarning, ShieldCheck, Fuel,
   ClipboardCheck, TriangleAlert, TrendingUp, Users, QrCode,
-  FileCheck2,
+  FileCheck2, Pencil,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
@@ -104,8 +104,8 @@ export const GaVehiclePage = () => {
   const [form, setForm] = useState<Record<string, string>>({});
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [showTaxModal, setShowTaxModal] = useState(false);
-  const [showInsuranceModal, setShowInsuranceModal] = useState(false);
+  const [showTaxModal, setShowTaxModal] = useState<'new' | any>(false);
+  const [showInsuranceModal, setShowInsuranceModal] = useState<'new' | any>(false);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [showIncidentModal, setShowIncidentModal] = useState<{ id: string } | null | 'new'>(null);
@@ -464,7 +464,7 @@ export const GaVehiclePage = () => {
                       <FileWarning size={16} className="text-teal-600" /> Pajak & STNK/KIR
                     </h2>
                     {canEdit && (
-                      <button onClick={() => setShowTaxModal(true)} className="btn-primary bg-teal-600 hover:bg-teal-700">
+                      <button onClick={() => setShowTaxModal('new')} className="btn-primary bg-teal-600 hover:bg-teal-700">
                         <Plus size={14} /> Tambah
                       </button>
                     )}
@@ -497,10 +497,16 @@ export const GaVehiclePage = () => {
                             </td>
                             <td>
                               {canEdit && (
-                                <button onClick={() => setDeleteTax({ id: t.id, label: `${TAX_TYPE_LABELS[t.type]} ${t.periodYear}` })}
-                                  className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
-                                  <Trash2 size={15} />
-                                </button>
+                                <div className="inline-flex items-center gap-0.5">
+                                  <button onClick={() => setShowTaxModal(t)}
+                                    className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors" title="Edit">
+                                    <Pencil size={15} />
+                                  </button>
+                                  <button onClick={() => setDeleteTax({ id: t.id, label: `${TAX_TYPE_LABELS[t.type]} ${t.periodYear}` })}
+                                    className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -519,7 +525,7 @@ export const GaVehiclePage = () => {
                       <ShieldCheck size={16} className="text-teal-600" /> Asuransi Kendaraan
                     </h2>
                     {canEdit && (
-                      <button onClick={() => setShowInsuranceModal(true)} className="btn-primary bg-teal-600 hover:bg-teal-700">
+                      <button onClick={() => setShowInsuranceModal('new')} className="btn-primary bg-teal-600 hover:bg-teal-700">
                         <Plus size={14} /> Tambah
                       </button>
                     )}
@@ -553,10 +559,16 @@ export const GaVehiclePage = () => {
                             </td>
                             <td>
                               {canEdit && (
-                                <button onClick={() => setDeleteInsurance({ id: ins.id, label: `${ins.provider} — ${ins.policyNumber ?? ''}` })}
-                                  className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
-                                  <Trash2 size={15} />
-                                </button>
+                                <div className="inline-flex items-center gap-0.5">
+                                  <button onClick={() => setShowInsuranceModal(ins)}
+                                    className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors" title="Edit">
+                                    <Pencil size={15} />
+                                  </button>
+                                  <button onClick={() => setDeleteInsurance({ id: ins.id, label: `${ins.provider} — ${ins.policyNumber ?? ''}` })}
+                                    className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -822,6 +834,7 @@ export const GaVehiclePage = () => {
       {showTaxModal && selectedId && (
         <TaxModal
           assetId={selectedId}
+          editRecord={showTaxModal === 'new' ? null : showTaxModal}
           onClose={() => setShowTaxModal(false)}
           onSaved={() => { setShowTaxModal(false); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-taxes', selectedId] }); queryClient.invalidateQueries({ queryKey: ['ga-fleet-summary'] }); }}
         />
@@ -831,6 +844,7 @@ export const GaVehiclePage = () => {
       {showInsuranceModal && selectedId && (
         <InsuranceModal
           assetId={selectedId}
+          editRecord={showInsuranceModal === 'new' ? null : showInsuranceModal}
           onClose={() => setShowInsuranceModal(false)}
           onSaved={() => { setShowInsuranceModal(false); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-insurances', selectedId] }); queryClient.invalidateQueries({ queryKey: ['ga-fleet-summary'] }); }}
         />
@@ -1203,18 +1217,29 @@ function DocumentLink({ documentId }: { documentId: string }) {
   );
 }
 
-function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
+function TaxModal({ assetId, editRecord, onClose, onSaved }: { assetId: string; editRecord?: any | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = !!editRecord;
   const currentYear = new Date().getFullYear();
-  const [f, setF] = useState({ type: 'STNK_TAHUNAN', periodYear: String(currentYear), amount: '', paidAt: '', dueDate: '', status: 'ACTIVE', notes: '' });
+  const [f, setF] = useState(() => editRecord ? {
+    type: editRecord.type, periodYear: String(editRecord.periodYear),
+    amount: editRecord.amount != null ? String(editRecord.amount) : '',
+    paidAt: editRecord.paidAt ? editRecord.paidAt.slice(0, 10) : '',
+    dueDate: editRecord.dueDate ? editRecord.dueDate.slice(0, 10) : '',
+    status: editRecord.status, notes: editRecord.notes ?? '',
+  } : { type: 'STNK_TAHUNAN', periodYear: String(currentYear), amount: '', paidAt: '', dueDate: '', status: 'ACTIVE', notes: '' });
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const mut = useMutation({
     mutationFn: async () => {
-      const created = await api.post(`/ga/vehicle/assets/${assetId}/taxes`, {
+      const payload = {
         type: f.type, periodYear: Number(f.periodYear), amount: numOrNull(f.amount),
         paidAt: f.paidAt || null, dueDate: f.dueDate, status: f.status, notes: f.notes || null,
-      });
+      };
+      const res = isEdit
+        ? await api.patch(`/ga/vehicle/assets/${assetId}/taxes/${editRecord.id}`, payload)
+        : await api.post(`/ga/vehicle/assets/${assetId}/taxes`, payload);
+      const recordId = isEdit ? editRecord.id : res.data.id;
       if (file) {
         setUploading(true);
         const typeCodeMap: Record<string, string> = { STNK_TAHUNAN: 'STNK', STNK_5_TAHUNAN: 'STNK', KIR: 'KIR', PAJAK_KENDARAAN: 'STNK' };
@@ -1222,20 +1247,20 @@ function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () 
           const documentId = await uploadSupportingDocument({
             file, title: `${TAX_TYPE_LABELS[f.type]} ${f.periodYear}`, typeCode: typeCodeMap[f.type] ?? 'STNK', assetId,
           });
-          await api.patch(`/ga/vehicle/assets/${assetId}/taxes/${created.data.id}`, { documentId });
+          await api.patch(`/ga/vehicle/assets/${assetId}/taxes/${recordId}`, { documentId });
         } finally {
           setUploading(false);
         }
       }
-      return created;
+      return res;
     },
-    onSuccess: () => { toast.success(file ? 'Data pajak + dokumen disimpan.' : 'Data pajak ditambahkan.'); onSaved(); },
+    onSuccess: () => { toast.success(file ? 'Data pajak + dokumen disimpan.' : isEdit ? 'Data pajak diperbarui.' : 'Data pajak ditambahkan.'); onSaved(); },
     onError: (e: any) => toast.error(e.response?.data?.error || e.message || 'Gagal simpan data pajak.'),
   });
   const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
   const pending = mut.isPending || uploading;
   return (
-    <ModalShell title="Tambah Data Pajak/STNK" icon={<FileWarning size={16} className="text-teal-600" />} onClose={onClose}>
+    <ModalShell title={isEdit ? 'Edit Data Pajak/STNK' : 'Tambah Data Pajak/STNK'} icon={isEdit ? <Pencil size={16} className="text-teal-600" /> : <FileWarning size={16} className="text-teal-600" />} onClose={onClose}>
       <form onSubmit={submit} className="p-5 space-y-3">
         <SelectField label="Jenis" value={f.type} onChange={(v) => setF({ ...f, type: v })} options={TAX_TYPES} />
         <div className="grid grid-cols-2 gap-3">
@@ -1249,6 +1274,9 @@ function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () 
         <SelectField label="Status" value={f.status} onChange={(v) => setF({ ...f, status: v })} options={TAX_STATUSES} />
         <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
         <DocumentUploadField file={file} onChange={setFile} />
+        {isEdit && editRecord.document && (
+          <p className="text-xs text-gray-400">Sudah ada dokumen terlampir. Upload file baru di atas untuk menggantinya.</p>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
           <button type="submit" disabled={pending || !f.dueDate} className="btn-primary bg-teal-600 hover:bg-teal-700">
@@ -1260,18 +1288,30 @@ function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () 
   );
 }
 
-function InsuranceModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
-  const [f, setF] = useState({ type: 'ALL_RISK', provider: '', policyNumber: '', premium: '', coverageValue: '', startDate: '', endDate: '', status: 'ACTIVE', notes: '' });
+function InsuranceModal({ assetId, editRecord, onClose, onSaved }: { assetId: string; editRecord?: any | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = !!editRecord;
+  const [f, setF] = useState(() => editRecord ? {
+    type: editRecord.type, provider: editRecord.provider, policyNumber: editRecord.policyNumber ?? '',
+    premium: editRecord.premium != null ? String(editRecord.premium) : '',
+    coverageValue: editRecord.coverageValue != null ? String(editRecord.coverageValue) : '',
+    startDate: editRecord.startDate ? editRecord.startDate.slice(0, 10) : '',
+    endDate: editRecord.endDate ? editRecord.endDate.slice(0, 10) : '',
+    status: editRecord.status, notes: editRecord.notes ?? '',
+  } : { type: 'ALL_RISK', provider: '', policyNumber: '', premium: '', coverageValue: '', startDate: '', endDate: '', status: 'ACTIVE', notes: '' });
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const mut = useMutation({
     mutationFn: async () => {
-      const created = await api.post(`/ga/vehicle/assets/${assetId}/insurances`, {
+      const payload = {
         type: f.type, provider: f.provider, policyNumber: f.policyNumber || null,
         premium: numOrNull(f.premium), coverageValue: numOrNull(f.coverageValue),
         startDate: f.startDate, endDate: f.endDate, status: f.status, notes: f.notes || null,
-      });
+      };
+      const res = isEdit
+        ? await api.patch(`/ga/vehicle/assets/${assetId}/insurances/${editRecord.id}`, payload)
+        : await api.post(`/ga/vehicle/assets/${assetId}/insurances`, payload);
+      const recordId = isEdit ? editRecord.id : res.data.id;
       if (file) {
         setUploading(true);
         try {
@@ -1279,20 +1319,20 @@ function InsuranceModal({ assetId, onClose, onSaved }: { assetId: string; onClos
             file, title: `Polis ${f.provider} — ${f.policyNumber || INSURANCE_TYPE_LABELS[f.type]}`,
             typeCode: 'ASURANSI_KENDARAAN', assetId,
           });
-          await api.patch(`/ga/vehicle/assets/${assetId}/insurances/${created.data.id}`, { documentId });
+          await api.patch(`/ga/vehicle/assets/${assetId}/insurances/${recordId}`, { documentId });
         } finally {
           setUploading(false);
         }
       }
-      return created;
+      return res;
     },
-    onSuccess: () => { toast.success(file ? 'Data asuransi + dokumen disimpan.' : 'Data asuransi ditambahkan.'); onSaved(); },
+    onSuccess: () => { toast.success(file ? 'Data asuransi + dokumen disimpan.' : isEdit ? 'Data asuransi diperbarui.' : 'Data asuransi ditambahkan.'); onSaved(); },
     onError: (e: any) => toast.error(e.response?.data?.error || e.message || 'Gagal simpan data asuransi.'),
   });
   const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
   const pending = mut.isPending || uploading;
   return (
-    <ModalShell title="Tambah Data Asuransi" icon={<ShieldCheck size={16} className="text-teal-600" />} onClose={onClose} wide>
+    <ModalShell title={isEdit ? 'Edit Data Asuransi' : 'Tambah Data Asuransi'} icon={isEdit ? <Pencil size={16} className="text-teal-600" /> : <ShieldCheck size={16} className="text-teal-600" />} onClose={onClose} wide>
       <form onSubmit={submit} className="p-5 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <SelectField label="Jenis" value={f.type} onChange={(v) => setF({ ...f, type: v })} options={INSURANCE_TYPES} />
@@ -1312,6 +1352,9 @@ function InsuranceModal({ assetId, onClose, onSaved }: { assetId: string; onClos
         </div>
         <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
         <DocumentUploadField file={file} onChange={setFile} />
+        {isEdit && editRecord.document && (
+          <p className="text-xs text-gray-400">Sudah ada dokumen terlampir. Upload file baru di atas untuk menggantinya.</p>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
           <button type="submit" disabled={pending || !f.provider || !f.startDate || !f.endDate} className="btn-primary bg-teal-600 hover:bg-teal-700">
