@@ -25,6 +25,20 @@ const FUEL_TYPES = ['BENSIN', 'SOLAR', 'PERTAMAX', 'PERTALITE', 'DEX', 'LPG', 'L
 const SERVICE_TYPES = ['OLI', 'TUNE_UP', 'SERVIS_BERKALA', 'PERBAIKAN', 'GANTI_BAN', 'ELEKTRIKAL', 'AC', 'LAINNYA'] as const;
 const URGENCIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
 
+const TIRE_POSITIONS = [
+  'DEPAN_KIRI', 'DEPAN_KANAN', 'BELAKANG_KIRI', 'BELAKANG_KANAN',
+  'BELAKANG_KIRI_DALAM', 'BELAKANG_KIRI_LUAR', 'BELAKANG_KANAN_DALAM', 'BELAKANG_KANAN_LUAR', 'CADANGAN',
+] as const;
+const TIRE_POSITION_LABELS: Record<string, string> = {
+  DEPAN_KIRI: 'Depan Kiri', DEPAN_KANAN: 'Depan Kanan',
+  BELAKANG_KIRI: 'Belakang Kiri', BELAKANG_KANAN: 'Belakang Kanan',
+  BELAKANG_KIRI_DALAM: 'Belakang Kiri Dalam', BELAKANG_KIRI_LUAR: 'Belakang Kiri Luar',
+  BELAKANG_KANAN_DALAM: 'Belakang Kanan Dalam', BELAKANG_KANAN_LUAR: 'Belakang Kanan Luar',
+  CADANGAN: 'Cadangan (Serep)',
+};
+const TIRE_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: 'Aktif', ARCHIVED: 'Dilepas (Diarsipkan)', SPARE: 'Ban Serep (Stok)',
+};
 const TAX_TYPES = ['STNK_TAHUNAN', 'STNK_5_TAHUNAN', 'KIR', 'PAJAK_KENDARAAN'] as const;
 const TAX_TYPE_LABELS: Record<string, string> = {
   STNK_TAHUNAN: 'STNK Tahunan', STNK_5_TAHUNAN: 'STNK 5 Tahunan', KIR: 'KIR', PAJAK_KENDARAAN: 'Pajak Kendaraan',
@@ -74,7 +88,7 @@ const SR_STATUS_BADGE: Record<string, string> = {
 };
 
 interface Asset { id: string; code: string; name: string; category?: { name?: string } | null }
-type Tab = 'data' | 'pajak' | 'asuransi' | 'bbm' | 'inspeksi' | 'insiden' | 'service';
+type Tab = 'data' | 'pajak' | 'asuransi' | 'bbm' | 'inspeksi' | 'ban' | 'oli' | 'insiden' | 'service';
 
 const numOrNull = (v: string): number | null => {
   if (v === '' || v == null) return null;
@@ -116,6 +130,10 @@ export const GaVehiclePage = () => {
   const [deleteInspection, setDeleteInspection] = useState<{ id: string; label: string } | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showTireModal, setShowTireModal] = useState<'new' | any>(false);
+  const [showOilModal, setShowOilModal] = useState(false);
+  const [deleteTire, setDeleteTire] = useState<{ id: string; label: string } | null>(null);
+  const [deleteOil, setDeleteOil] = useState<{ id: string; label: string } | null>(null);
 
   // ── Fleet summary (KPI cards di atas, lintas-kendaraan) ─────────────
   const { data: fleetSummary } = useQuery({
@@ -284,6 +302,16 @@ export const GaVehiclePage = () => {
     onSuccess: () => { toast.success('Data inspeksi dihapus.'); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-inspections', selectedId] }); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal hapus data inspeksi.'),
   });
+  const deleteTireMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/tires/${id}`),
+    onSuccess: () => { toast.success('Data ban dihapus.'); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-tires', selectedId] }); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal hapus data ban.'),
+  });
+  const deleteOilMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/oil-logs/${id}`),
+    onSuccess: () => { toast.success('Log oli dihapus.'); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-oil', selectedId] }); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal hapus log oli.'),
+  });
 
   // ── Insiden ───────────────────────────────────────────────────────
   const { data: incidents = [] } = useQuery<any[]>({
@@ -298,8 +326,10 @@ export const GaVehiclePage = () => {
     { key: 'asuransi', label: 'Asuransi', icon: <ShieldCheck size={14} /> },
     { key: 'bbm', label: 'BBM', icon: <Fuel size={14} /> },
     { key: 'inspeksi', label: 'Inspeksi', icon: <ClipboardCheck size={14} /> },
+    { key: 'ban', label: 'Ban', icon: <Wrench size={14} /> },
+    { key: 'oli', label: 'Oli', icon: <Fuel size={14} /> },
     { key: 'insiden', label: 'Insiden', icon: <TriangleAlert size={14} /> },
-    { key: 'service', label: 'Service', icon: <Wrench size={14} /> },
+    { key: 'service', label: 'Service Lain', icon: <Wrench size={14} /> },
   ];
 
   return (
@@ -627,6 +657,28 @@ export const GaVehiclePage = () => {
                 </div>
               )}
 
+              {/* ── TAB: Ban ── */}
+              {tab === 'ban' && (
+                <TireMonitoringPanel
+                  assetId={selectedId!}
+                  canEdit={canEdit}
+                  onAddClick={() => setShowTireModal('new')}
+                  onEditClick={(tire) => setShowTireModal(tire)}
+                  onDeleteClick={(tire) => setDeleteTire({ id: tire.id, label: `${tire.position} (SN: ${tire.serialNumber})` })}
+                />
+              )}
+
+              {/* ── TAB: Oli ── */}
+              {tab === 'oli' && (
+                <OilMonitoringPanel
+                  assetId={selectedId!}
+                  canEdit={canEdit}
+                  odometerTerakhir={vehicleData?.odometerTerakhir ?? 0}
+                  onAddClick={() => setShowOilModal(true)}
+                  onDeleteClick={(log) => setDeleteOil({ id: log.id, label: `${formatDate(log.tanggal)} — Odo ${log.odometer.toLocaleString('id-ID')}` })}
+                />
+              )}
+
               {/* ── TAB: Inspeksi ── */}
               {tab === 'inspeksi' && (
                 <div className="card p-0 overflow-hidden">
@@ -941,7 +993,49 @@ export const GaVehiclePage = () => {
         variant="danger"
       />
 
+      {/* Tire modal */}
+      {showTireModal && selectedId && (
+        <TireModal
+          assetId={selectedId}
+          editRecord={showTireModal === 'new' ? null : showTireModal}
+          onClose={() => setShowTireModal(false)}
+          onSaved={() => { setShowTireModal(false); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-tires', selectedId] }); }}
+        />
+      )}
+
+      {/* Oil modal */}
+      {showOilModal && selectedId && (
+        <OilModal
+          assetId={selectedId}
+          onClose={() => setShowOilModal(false)}
+          onSaved={() => {
+            setShowOilModal(false);
+            queryClient.invalidateQueries({ queryKey: ['ga-vehicle-oil', selectedId] });
+            queryClient.invalidateQueries({ queryKey: ['ga-vehicle', selectedId] }); // update odometerTerakhir
+          }}
+        />
+      )}
+
       <GaAssetQRModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} asset={assetDetail ?? null} />
+
+      <ConfirmDialog
+        open={deleteTire !== null}
+        onCancel={() => setDeleteTire(null)}
+        onConfirm={() => { if (deleteTire) { deleteTireMutation.mutate(deleteTire.id); setDeleteTire(null); } }}
+        title="Hapus Data Ban"
+        message={`Hapus data ban "${deleteTire?.label}"?`}
+        confirmLabel="Ya, Hapus"
+        variant="danger"
+      />
+      <ConfirmDialog
+        open={deleteOil !== null}
+        onCancel={() => setDeleteOil(null)}
+        onConfirm={() => { if (deleteOil) { deleteOilMutation.mutate(deleteOil.id); setDeleteOil(null); } }}
+        title="Hapus Log Oli"
+        message={`Hapus log ganti oli "${deleteOil?.label}"?`}
+        confirmLabel="Ya, Hapus"
+        variant="danger"
+      />
     </div>
   );
 };
@@ -1028,13 +1122,13 @@ function DriverPicker({ currentPic, canEdit, onAssign, isPending }: {
 }
 
 // ── Small field helpers ──────────────────────────────────────────────
-interface FieldProps { label: string; value: string; onChange: (v: string) => void; type?: string; disabled?: boolean }
-function Field({ label, value, onChange, type = 'text', disabled }: FieldProps) {
+interface FieldProps { label: string; value: string; onChange: (v: string) => void; type?: string; step?: string; disabled?: boolean }
+function Field({ label, value, onChange, type = 'text', step, disabled }: FieldProps) {
   return (
     <label className="block">
       <span className="block text-xs font-medium text-gray-500 mb-1">{label}</span>
       <input
-        type={type} value={value} disabled={disabled}
+        type={type} step={step} value={value} disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500"
       />
@@ -1568,6 +1662,395 @@ function IncidentModal({ assetId, incidentId, onClose, onSaved }: { assetId: str
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
           <button type="submit" disabled={pending || !f.tanggal || !f.description} className="btn-primary bg-teal-600 hover:bg-teal-700">
             {pending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MONITORING BAN (Tire Panel & Modal)
+// ═══════════════════════════════════════════════════════════════════
+
+function TireMonitoringPanel({ assetId, canEdit, onAddClick, onEditClick, onDeleteClick }: {
+  assetId: string; canEdit: boolean; onAddClick: () => void;
+  onEditClick: (t: any) => void; onDeleteClick: (t: any) => void;
+}) {
+  const { data: tires = [], isLoading } = useQuery<any[]>({
+    queryKey: ['ga-vehicle-tires', assetId],
+    queryFn: async () => (await api.get(`/ga/vehicle/assets/${assetId}/tires`)).data,
+  });
+
+  const activeTiresMap = useMemo(() => {
+    const map = new Map<string, any>();
+    tires.filter((t) => t.status === 'ACTIVE').forEach((t) => map.set(t.position, t));
+    return map;
+  }, [tires]);
+
+  // Layout visual kendaraan standar (grid)
+  const renderTireVisual = (position: string, label: string) => {
+    const tire = activeTiresMap.get(position);
+    return (
+      <div className={cn(
+        'border rounded-lg p-3 flex flex-col items-center justify-between text-center transition-colors min-h-[110px]',
+        tire ? 'border-teal-200 bg-teal-50/50' : 'border-dashed border-gray-200 bg-gray-50/20'
+      )}>
+        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
+        {tire ? (
+          <div className="my-1.5 min-w-0 w-full">
+            <span className="block font-bold text-gray-800 text-sm truncate">{tire.brand}</span>
+            <span className="block font-mono text-xs text-teal-700 font-semibold truncate bg-white border border-teal-100 rounded px-1 py-0.5 mt-0.5" title="Nomor Seri Ban (DOT/Pabrik)">
+              SN: {tire.serialNumber}
+            </span>
+            {tire.installedOdometer != null && (
+              <span className="block text-[10px] text-gray-500 mt-1">Mulai: {tire.installedOdometer.toLocaleString('id-ID')} km</span>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-300 my-auto">— Kosong —</span>
+        )}
+        {canEdit && tire && (
+          <button onClick={() => onEditClick(tire)} className="text-[10px] font-medium text-teal-600 hover:text-teal-700 mt-1">
+            Ubah / Lepas
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Visual Layout Ban */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <Car size={16} className="text-teal-600" /> Posisi Ban Aktif (Penangkal Tukar Ban)
+          </h2>
+          {canEdit && (
+            <button onClick={onAddClick} className="btn-primary bg-teal-600 hover:bg-teal-700">
+              <Plus size={14} /> Pasang Ban Baru
+            </button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-300" /></div>
+        ) : (
+          <div className="space-y-4">
+            {/* Grid layout ban (Depan & Belakang) */}
+            <div className="max-w-md mx-auto border border-gray-100 bg-gray-50/50 rounded-2xl p-6">
+              {/* As Roda Depan */}
+              <div className="grid grid-cols-2 gap-16 mb-8">
+                {renderTireVisual('DEPAN_KIRI', 'Depan Kiri')}
+                {renderTireVisual('DEPAN_KANAN', 'Depan Kanan')}
+              </div>
+              
+              {/* Batang Chasis Penghubung */}
+              <div className="w-1.5 h-16 bg-gray-200 mx-auto -my-8 mb-4 rounded-full"></div>
+
+              {/* As Roda Belakang Truk (Support tipe engkel atau double luar/dalam) */}
+              <div className="grid grid-cols-2 gap-16">
+                {/* Belakang Kiri (Double atau Engkel) */}
+                <div className="space-y-2">
+                  {activeTiresMap.has('BELAKANG_KIRI_LUAR') || activeTiresMap.has('BELAKANG_KIRI_DALAM') ? (
+                    <>
+                      {renderTireVisual('BELAKANG_KIRI_LUAR', 'Belakang Kiri Luar')}
+                      {renderTireVisual('BELAKANG_KIRI_DALAM', 'Belakang Kiri Dalam')}
+                    </>
+                  ) : (
+                    renderTireVisual('BELAKANG_KIRI', 'Belakang Kiri')
+                  )}
+                </div>
+                {/* Belakang Kanan (Double atau Engkel) */}
+                <div className="space-y-2">
+                  {activeTiresMap.has('BELAKANG_KANAN_LUAR') || activeTiresMap.has('BELAKANG_KANAN_DALAM') ? (
+                    <>
+                      {renderTireVisual('BELAKANG_KANAN_LUAR', 'Belakang Kanan Luar')}
+                      {renderTireVisual('BELAKANG_KANAN_DALAM', 'Belakang Kanan Dalam')}
+                    </>
+                  ) : (
+                    renderTireVisual('BELAKANG_KANAN', 'Belakang Kanan')
+                  )}
+                </div>
+              </div>
+
+              {/* Ban Cadangan */}
+              <div className="mt-8 pt-6 border-t border-gray-200/60 max-w-[180px] mx-auto">
+                {renderTireVisual('CADANGAN', 'Ban Cadangan')}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Histori Ban */}
+      <div className="card p-0 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Histori Seluruh Ban</h2>
+        </div>
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Posisi</th><th>Nomor Seri</th><th>Merek</th><th>Tanggal Pasang</th>
+                <th className="text-right">Odometer Pasang</th><th className="text-center">Status</th><th className="w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {tires.length === 0 ? (
+                <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada data histori ban.</td></tr>
+              ) : tires.map((t) => (
+                <tr key={t.id}>
+                  <td><span className="font-medium text-gray-800">{TIRE_POSITION_LABELS[t.position] ?? t.position}</span></td>
+                  <td><span className="font-mono text-xs text-teal-700 bg-teal-50 border border-teal-100 px-1.5 py-0.5 rounded font-semibold">{t.serialNumber}</span></td>
+                  <td className="text-gray-700">{t.brand} {t.model}</td>
+                  <td className="text-gray-500 whitespace-nowrap">{formatDate(t.installedAt)}</td>
+                  <td className="text-right font-mono text-gray-600">{t.installedOdometer != null ? t.installedOdometer.toLocaleString('id-ID') : '—'}</td>
+                  <td className="text-center">
+                    <span className={cn(
+                      'inline-block text-xs font-medium px-2 py-0.5 rounded-full',
+                      t.status === 'ACTIVE' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200'
+                    )}>
+                      {TIRE_STATUS_LABELS[t.status] ?? t.status}
+                    </span>
+                  </td>
+                  <td>
+                    {canEdit && (
+                      <button onClick={() => onDeleteClick(t)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TireModal({ assetId, editRecord, onClose, onSaved }: { assetId: string; editRecord?: any | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = !!editRecord;
+  const [f, setF] = useState(() => editRecord ? {
+    serialNumber: editRecord.serialNumber, brand: editRecord.brand, model: editRecord.model ?? '',
+    size: editRecord.size ?? '', position: editRecord.position,
+    installedAt: editRecord.installedAt ? editRecord.installedAt.slice(0, 10) : '',
+    installedOdometer: editRecord.installedOdometer != null ? String(editRecord.installedOdometer) : '',
+    notes: editRecord.notes ?? '', status: editRecord.status,
+  } : { serialNumber: '', brand: '', model: '', size: '', position: 'DEPAN_KIRI', installedAt: '', installedOdometer: '', notes: '', status: 'ACTIVE' });
+
+  const mut = useMutation({
+    mutationFn: () => isEdit
+      ? api.patch(`/ga/vehicle/assets/${assetId}/tires/${editRecord.id}`, {
+          serialNumber: f.serialNumber, brand: f.brand, model: f.model || null,
+          size: f.size || null, position: f.position, installedAt: f.installedAt,
+          installedOdometer: numOrNull(f.installedOdometer), notes: f.notes || null, status: f.status,
+        })
+      : api.post(`/ga/vehicle/assets/${assetId}/tires`, {
+          serialNumber: f.serialNumber, brand: f.brand, model: f.model || null,
+          size: f.size || null, position: f.position, installedAt: f.installedAt,
+          installedOdometer: numOrNull(f.installedOdometer), notes: f.notes || null, status: f.status,
+        }),
+    onSuccess: () => { toast.success(isEdit ? 'Data ban diperbarui.' : 'Ban baru dipasang.'); onSaved(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan data ban.'),
+  });
+
+  const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
+
+  return (
+    <ModalShell title={isEdit ? 'Ubah Status / Posisi Ban' : 'Pasang Ban Baru'} icon={<Wrench size={16} className="text-teal-600" />} onClose={onClose}>
+      <form onSubmit={submit} className="p-5 space-y-3">
+        <Field label="Nomor Seri Ban *" value={f.serialNumber} onChange={(v) => setF({ ...f, serialNumber: v })} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Merek *" value={f.brand} onChange={(v) => setF({ ...f, brand: v })} />
+          <Field label="Model / Tipe" value={f.model} onChange={(v) => setF({ ...f, model: v })} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Ukuran (Ring/Lebar)" value={f.size} onChange={(v) => setF({ ...f, size: v })} />
+          <SelectField label="Posisi Roda *" value={f.position} onChange={(v) => setF({ ...f, position: v })} options={TIRE_POSITIONS} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Tanggal Pasang *" type="date" value={f.installedAt} onChange={(v) => setF({ ...f, installedAt: v })} />
+          <Field label="Odometer Pasang" type="number" value={f.installedOdometer} onChange={(v) => setF({ ...f, installedOdometer: v })} />
+        </div>
+        <SelectField label="Status Ban" value={f.status} onChange={(v) => setF({ ...f, status: v })} options={['ACTIVE', 'SPARE', 'ARCHIVED']} />
+        <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+          <button type="submit" disabled={mut.isPending || !f.serialNumber || !f.brand || !f.installedAt} className="btn-primary bg-teal-600 hover:bg-teal-700">
+            {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MONITORING OLI (Oil Panel & Modal)
+// ═══════════════════════════════════════════════════════════════════
+
+function OilMonitoringPanel({ assetId, canEdit, odometerTerakhir, onAddClick, onDeleteClick }: {
+  assetId: string; canEdit: boolean; odometerTerakhir: number;
+  onAddClick: () => void; onDeleteClick: (log: any) => void;
+}) {
+  const { data: logs = [], isLoading } = useQuery<any[]>({
+    queryKey: ['ga-vehicle-oil', assetId],
+    queryFn: async () => (await api.get(`/ga/vehicle/assets/${assetId}/oil-logs`)).data,
+  });
+
+  const latestLog = logs[0] ?? null;
+
+  // Kalkulasi sisa umur oli (meter & visual progress bar)
+  const oilAge = useMemo(() => {
+    if (!latestLog) return null;
+    const totalDuration = latestLog.nextOdometerDue - latestLog.odometer;
+    
+    const remaining = latestLog.nextOdometerDue - odometerTerakhir;
+    const pct = totalDuration > 0 ? Math.max(0, Math.min(100, (remaining / totalDuration) * 100)) : 0;
+    return { remaining, pct, isOverdue: remaining < 0 };
+  }, [latestLog, odometerTerakhir]);
+
+  return (
+    <div className="space-y-4">
+      {/* Visual Status Oli */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <Fuel size={16} className="text-teal-600" /> Status Umur Oli
+          </h2>
+          {canEdit && (
+            <button onClick={onAddClick} className="btn-primary bg-teal-600 hover:bg-teal-700">
+              <Plus size={14} /> Ganti Oli Baru
+            </button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="py-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-300" /></div>
+        ) : !latestLog ? (
+          <div className="py-8 text-center text-gray-400 text-sm">
+            <Fuel size={24} className="mx-auto mb-2 text-gray-200" />
+            Belum ada histori penggantian oli.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <div><p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Merek Oli</p><p className="font-bold text-gray-800">{latestLog.brand}</p></div>
+              <div><p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Volume</p><p className="font-bold text-gray-800">{Number(latestLog.volume)} Liter</p></div>
+              <div><p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Odo Ganti</p><p className="font-mono text-gray-700">{latestLog.odometer.toLocaleString('id-ID')} km</p></div>
+              <div><p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Target Odo Berikutnya</p><p className="font-mono text-teal-700 font-semibold">{latestLog.nextOdometerDue.toLocaleString('id-ID')} km</p></div>
+            </div>
+
+            {oilAge && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">Odometer Terakhir: <strong className="font-mono">{odometerTerakhir.toLocaleString('id-ID')} km</strong></span>
+                  <span className={cn('font-semibold', oilAge.isOverdue ? 'text-red-600' : 'text-teal-600')}>
+                    {oilAge.isOverdue
+                      ? `Lewat target ${Math.abs(oilAge.remaining).toLocaleString('id-ID')} km! 🔴`
+                      : `Sisa ${oilAge.remaining.toLocaleString('id-ID')} km lagi`
+                    }
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                  <div
+                    className={cn('h-full transition-all duration-500', oilAge.isOverdue ? 'bg-red-500' : oilAge.pct < 20 ? 'bg-amber-500' : 'bg-green-500')}
+                    style={{ width: `${oilAge.pct}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Histori Ganti Oli */}
+      <div className="card p-0 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Riwayat Penggantian Oli</h2>
+        </div>
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tanggal</th><th>Merek Oli</th><th className="text-right">Volume</th>
+                <th className="text-right">Odometer Ganti</th><th className="text-right">Target Berikutnya</th>
+                <th>Catatan</th><th className="w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.length === 0 ? (
+                <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada riwayat ganti oli.</td></tr>
+              ) : logs.map((l) => (
+                <tr key={l.id}>
+                  <td className="text-gray-500 whitespace-nowrap">{formatDate(l.tanggal)}</td>
+                  <td className="font-semibold text-gray-800">{l.brand}</td>
+                  <td className="text-right text-gray-600">{Number(l.volume)} L</td>
+                  <td className="text-right font-mono text-gray-600">{l.odometer.toLocaleString('id-ID')} km</td>
+                  <td className="text-right font-mono text-teal-700 font-medium">{l.nextOdometerDue.toLocaleString('id-ID')} km</td>
+                  <td className="text-gray-600 text-sm">{l.notes || '—'}</td>
+                  <td>
+                    {canEdit && (
+                      <button onClick={() => onDeleteClick(l)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OilModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
+  const [f, setF] = useState({ tanggal: '', odometer: '', nextOdometerDue: '', brand: '', volume: '', notes: '' });
+
+  // Auto-hitung target berikutnya (+5.000 km sebagai standard interval oli)
+  useEffect(() => {
+    const o = Number(f.odometer);
+    if (o > 0 && !f.nextOdometerDue) {
+      setF((prev) => ({ ...prev, nextOdometerDue: String(o + 5000) }));
+    }
+  }, [f.odometer]);
+
+  const mut = useMutation({
+    mutationFn: () => api.post(`/ga/vehicle/assets/${assetId}/oil-logs`, {
+      tanggal: f.tanggal, odometer: Number(f.odometer), nextOdometerDue: Number(f.nextOdometerDue),
+      brand: f.brand, volume: Number(f.volume), notes: f.notes || null,
+    }),
+    onSuccess: () => { toast.success('Log ganti oli disimpan.'); onSaved(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan log oli.'),
+  });
+
+  const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
+
+  return (
+    <ModalShell title="Ganti Oli Baru" icon={<Fuel size={16} className="text-teal-600" />} onClose={onClose}>
+      <form onSubmit={submit} className="p-5 space-y-3">
+        <Field label="Tanggal *" type="date" value={f.tanggal} onChange={(v) => setF({ ...f, tanggal: v })} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Odometer Saat Ini *" type="number" value={f.odometer} onChange={(v) => setF({ ...f, odometer: v })} />
+          <Field label="Target Odo Berikutnya *" type="number" value={f.nextOdometerDue} onChange={(v) => setF({ ...f, nextOdometerDue: v })} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Merek Oli *" value={f.brand} onChange={(v) => setF({ ...f, brand: v })} />
+          <Field label="Volume (Liter) *" type="number" step="0.01" value={f.volume} onChange={(v) => setF({ ...f, volume: v })} />
+        </div>
+        <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+          <button type="submit" disabled={mut.isPending || !f.tanggal || !f.odometer || !f.nextOdometerDue || !f.brand || !f.volume} className="btn-primary bg-teal-600 hover:bg-teal-700">
+            {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
           </button>
         </div>
       </form>

@@ -2177,6 +2177,22 @@ enum GaVehicleIncidentStatus {
   SELESAI
   KLAIM_ASURANSI
 }
+enum GaVehicleTirePosition {
+  DEPAN_KIRI
+  DEPAN_KANAN
+  BELAKANG_KIRI
+  BELAKANG_KANAN
+  BELAKANG_KIRI_DALAM
+  BELAKANG_KIRI_LUAR
+  BELAKANG_KANAN_DALAM
+  BELAKANG_KANAN_LUAR
+  CADANGAN
+}
+enum GaVehicleTireStatus {
+  ACTIVE
+  ARCHIVED
+  SPARE
+}
 enum GaBuildingType {
   KANTOR
   GUDANG
@@ -2306,6 +2322,8 @@ model GaAsset {
   vehicleFuelLogs              GaVehicleFuelLog[]
   vehicleInspections           GaVehicleInspection[]
   vehicleIncidents             GaVehicleIncident[]
+  vehicleTires                 GaVehicleTire[]
+  vehicleOilLogs               GaVehicleOilLog[]
   @@index([categoryId])
   @@index([branchId])
   @@index([picUserId])
@@ -2789,6 +2807,48 @@ model GaVehicleIncident {
   @@index([assetId, tanggal])
   @@index([status])
   @@map("ga_vehicle_incidents")
+}
+
+// ── Fleet management: monitoring khusus Ban & Oli ───────────────────────
+// Penangkal supir nakal tukar ban -- track nomor seri per posisi.
+// Monitoring oli -- track odometer terkahir vs target odometer berikutnya.
+
+model GaVehicleTire {
+  id                String                @id @default(cuid())
+  assetId           String                @map("asset_id")
+  serialNumber      String                @map("serial_number")
+  brand             String
+  model             String?
+  size              String?
+  position          GaVehicleTirePosition
+  installedAt       DateTime              @map("installed_at")
+  installedOdometer Int?                  @map("installed_odometer")
+  notes             String?
+  status            GaVehicleTireStatus   @default(ACTIVE)
+  createdById       String?               @map("created_by_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  asset             GaAsset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  @@unique([assetId, position])
+  @@index([assetId])
+  @@index([serialNumber])
+  @@map("ga_vehicle_tires")
+}
+
+model GaVehicleOilLog {
+  id              String    @id @default(cuid())
+  assetId         String    @map("asset_id")
+  tanggal         DateTime
+  odometer        Int
+  nextOdometerDue Int       @map("next_odometer_due")
+  brand           String
+  volume          Decimal   @db.Decimal(5, 2)
+  notes           String?
+  createdById     String?   @map("created_by_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  asset           GaAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  @@index([assetId, tanggal])
+  @@map("ga_vehicle_oil_logs")
 }
 
 model GaBuildingData {

@@ -132,6 +132,34 @@ const VehicleIncidentSchema = z.object({
   insuranceClaimNo: z.string().max(100).optional().nullable(),
 });
 
+// ── Tire & Oil schemas ──
+const TIRE_POSITIONS = [
+  'DEPAN_KIRI', 'DEPAN_KANAN', 'BELAKANG_KIRI', 'BELAKANG_KANAN',
+  'BELAKANG_KIRI_DALAM', 'BELAKANG_KIRI_LUAR', 'BELAKANG_KANAN_DALAM', 'BELAKANG_KANAN_LUAR', 'CADANGAN',
+] as const;
+const TIRE_STATUSES = ['ACTIVE', 'ARCHIVED', 'SPARE'] as const;
+
+const VehicleTireSchema = z.object({
+  serialNumber: z.string().min(1, 'Nomor seri wajib diisi.').max(100),
+  brand: z.string().min(1, 'Merek ban wajib diisi.').max(100),
+  model: z.string().max(100).optional().nullable(),
+  size: z.string().max(50).optional().nullable(),
+  position: z.enum(TIRE_POSITIONS),
+  installedAt: z.string().min(1, 'Tanggal pasang wajib diisi.'),
+  installedOdometer: z.number().int().nonnegative().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.enum(TIRE_STATUSES).default('ACTIVE'),
+});
+
+const VehicleOilLogSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi.'),
+  odometer: z.number().int().nonnegative(),
+  nextOdometerDue: z.number().int().nonnegative(),
+  brand: z.string().min(1, 'Merek oli wajib diisi.').max(100),
+  volume: z.number().positive('Volume harus lebih dari 0.'),
+  notes: z.string().optional().nullable(),
+});
+
 // ═══════════════════════════════════════════════════════════════════
 // VEHICLE DATA (1-to-1 dengan Asset, scoped via /assets/:id)
 // ═══════════════════════════════════════════════════════════════════
@@ -783,6 +811,168 @@ router.delete('/assets/:id/incidents/:iid', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════
 // DASHBOARD ARMADA — ringkasan lintas-kendaraan (bukan per-asset)
 // ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// BAN / TIRE (Master ban per posisi, penangkal tukar ban)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/assets/:id/tires', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleTire.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { position: 'asc' },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/tires', 'Gagal mengambil data ban.');
+  }
+});
+
+router.post('/assets/:id/tires', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleTireSchema, req.body, res);
+  if (!input) return;
+  const assetId = String(req.params.id);
+  try {
+    // Validasi @@unique: satu posisi cuma boleh diisi 1 ban aktif
+    if (input.status === 'ACTIVE') {
+      const existing = await prisma.gaVehicleTire.findFirst({
+        where: { assetId, position: input.position, status: 'ACTIVE' },
+      });
+      if (existing) {
+        return res.status(400).json({
+          error: `Posisi ${input.position} sudah diisi oleh ban aktif (SN: ${existing.serialNumber}). Ganti status ban lama terlebih dahulu.`,
+        });
+      }
+    }
+
+    const created = await prisma.gaVehicleTire.create({
+      data: {
+        assetId,
+        serialNumber: input.serialNumber,
+        brand: input.brand,
+        model: input.model ?? null,
+        size: input.size ?? null,
+        position: input.position,
+        installedAt: new Date(input.installedAt),
+        installedOdometer: input.installedOdometer ?? null,
+        notes: input.notes ?? null,
+        status: input.status,
+        createdById: req.user!.userId,
+      },
+    });
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/tires', 'Gagal simpan data ban.');
+  }
+});
+
+router.patch('/assets/:id/tires/:tid', async (req, res) => {
+  const input = validateBody(VehicleTireSchema.partial(), req.body, res);
+  if (!input) return;
+  const assetId = String(req.params.id);
+  const tireId = String(req.params.tid);
+  try {
+    if (input.status === 'ACTIVE' || input.position) {
+      // Ambil data ban saat ini untuk resolusi posisi & status
+      const current = await prisma.gaVehicleTire.findUnique({ where: { id: tireId } });
+      if (!current) return res.status(404).json({ error: 'Ban tidak ditemukan.' });
+      
+      const targetPos = input.position ?? current.position;
+      const targetStatus = input.status ?? current.status;
+
+      if (targetStatus === 'ACTIVE') {
+        const existing = await prisma.gaVehicleTire.findFirst({
+          where: { assetId, position: targetPos, status: 'ACTIVE', id: { not: tireId } },
+        });
+        if (existing) {
+          return res.status(400).json({
+            error: `Posisi ${targetPos} sudah diisi oleh ban aktif lain (SN: ${existing.serialNumber}).`,
+          });
+        }
+      }
+    }
+
+    const data: Prisma.GaVehicleTireUpdateInput = {};
+    if (input.serialNumber) data.serialNumber = input.serialNumber;
+    if (input.brand) data.brand = input.brand;
+    if (input.model !== undefined) data.model = input.model ?? null;
+    if (input.size !== undefined) data.size = input.size ?? null;
+    if (input.position) data.position = input.position;
+    if (input.installedAt) data.installedAt = new Date(input.installedAt);
+    if (input.installedOdometer !== undefined) data.installedOdometer = input.installedOdometer ?? null;
+    if (input.notes !== undefined) data.notes = input.notes ?? null;
+    if (input.status) data.status = input.status;
+
+    const updated = await prisma.gaVehicleTire.update({ where: { id: tireId }, data });
+    return res.json(updated);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/assets/:id/tires/:tid', 'Gagal update data ban.');
+  }
+});
+
+router.delete('/assets/:id/tires/:tid', async (req, res) => {
+  try {
+    await prisma.gaVehicleTire.delete({ where: { id: String(req.params.tid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/tires/:tid', 'Gagal hapus data ban.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// OLI / OIL LOG (Ganti oli berkala + monitor odometer target)
+// ═══════════════════════════════════════════════════════════════════
+
+router.get('/assets/:id/oil-logs', async (req, res) => {
+  try {
+    const items = await prisma.gaVehicleOilLog.findMany({
+      where: { assetId: String(req.params.id) },
+      orderBy: { tanggal: 'desc' },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/oil-logs', 'Gagal mengambil data log oli.');
+  }
+});
+
+router.post('/assets/:id/oil-logs', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleOilLogSchema, req.body, res);
+  if (!input) return;
+  const assetId = String(req.params.id);
+  try {
+    const created = await prisma.gaVehicleOilLog.create({
+      data: {
+        assetId,
+        tanggal: new Date(input.tanggal),
+        odometer: input.odometer,
+        nextOdometerDue: input.nextOdometerDue,
+        brand: input.brand,
+        volume: new Prisma.Decimal(input.volume),
+        notes: input.notes ?? null,
+        createdById: req.user!.userId,
+      },
+    });
+
+    // Auto-update odometer terakhir on GaVehicleData if greater
+    const vd = await prisma.gaVehicleData.findUnique({ where: { assetId } });
+    if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
+      await prisma.gaVehicleData.update({ where: { assetId }, data: { odometerTerakhir: input.odometer } });
+    }
+
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/oil-logs', 'Gagal simpan log oli.');
+  }
+});
+
+router.delete('/assets/:id/oil-logs/:oid', async (req, res) => {
+  try {
+    await prisma.gaVehicleOilLog.delete({ where: { id: String(req.params.oid) } });
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/oil-logs/:oid', 'Gagal hapus log oli.');
+  }
+});
 
 router.get('/fleet-summary', async (req: AuthRequest, res) => {
   try {
