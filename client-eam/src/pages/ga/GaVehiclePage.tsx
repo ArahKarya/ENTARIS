@@ -7,7 +7,7 @@ import type { FormEvent } from 'react';
 import {
   Search, Car, Loader2, Save, Plus, Trash2, Wrench, ClipboardList,
   Check, X, XCircle, UserCog, FileWarning, ShieldCheck, Fuel,
-  ClipboardCheck, TriangleAlert, TrendingUp, Users,
+  ClipboardCheck, TriangleAlert, TrendingUp, Users, QrCode,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
@@ -17,6 +17,7 @@ import { formatRupiah, formatDate } from '../../lib/formatters';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AssetPhotoSection } from '../../components/AssetPhotoSection';
 import SearchableSelect from '../../components/SearchableSelect';
+import GaAssetQRModal from '../../components/GaAssetQRModal';
 import { toast } from 'sonner';
 
 const FUEL_TYPES = ['BENSIN', 'SOLAR', 'PERTAMAX', 'PERTALITE', 'DEX', 'LPG', 'LISTRIK', 'HYBRID', 'LAINNYA'] as const;
@@ -113,6 +114,7 @@ export const GaVehiclePage = () => {
   const [deleteFuel, setDeleteFuel] = useState<{ id: string; label: string } | null>(null);
   const [deleteInspection, setDeleteInspection] = useState<{ id: string; label: string } | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   // ── Fleet summary (KPI cards di atas, lintas-kendaraan) ─────────────
   const { data: fleetSummary } = useQuery({
@@ -388,11 +390,16 @@ export const GaVehiclePage = () => {
                       <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                         <Car size={16} className="text-teal-600" /> Data Kendaraan — {selectedAsset.name}
                       </h2>
-                      {canEdit && (
-                        <button onClick={() => saveData.mutate()} disabled={saveData.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700">
-                          {saveData.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => setShowQrModal(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-700" title="QR aset">
+                          <QrCode size={14} /> QR Aset
                         </button>
-                      )}
+                        {canEdit && (
+                          <button onClick={() => saveData.mutate()} disabled={saveData.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700">
+                            {saveData.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {vdLoading ? (
                       <div className="py-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-300" /></div>
@@ -902,6 +909,8 @@ export const GaVehiclePage = () => {
         confirmLabel="Ya, Hapus"
         variant="danger"
       />
+
+      <GaAssetQRModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} asset={assetDetail ?? null} />
     </div>
   );
 };

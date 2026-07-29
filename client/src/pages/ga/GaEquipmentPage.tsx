@@ -2,11 +2,13 @@
 // via PUT) + log kalibrasi (1-many). Pola sama dgn GaBuildingPage.
 import { useState, useMemo, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Search, ScanLine, Loader2, Save, Plus, X } from 'lucide-react';
+import { Search, ScanLine, Loader2, Save, Plus, X, QrCode } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { can } from '../../lib/permissions';
 import { formatRupiah, formatDate } from '../../lib/formatters';
+import { AssetPhotoSection } from '../../components/AssetPhotoSection';
+import GaAssetQRModal from '../../components/GaAssetQRModal';
 import { toast } from 'sonner';
 
 const UNITS = ['KG', 'GRAM', 'TON', 'LBS'] as const;
@@ -31,11 +33,20 @@ export const GaEquipmentPage = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [showCalModal, setShowCalModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  // QR tersimpan di GaAsset, bukan GaEquipmentData -- fetch detail asset
+  // terpisah (endpoint sama yang dipakai halaman Aset generik & Kendaraan).
+  const { data: assetDetail } = useQuery({
+    queryKey: ['ga-asset-detail', selectedId],
+    queryFn: async () => (await api.get(`/ga/assets/${selectedId}`)).data,
+    enabled: !!selectedId,
+  });
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ['ga-assets'],
+    queryKey: ['ga-assets', 'equipment'],
     queryFn: async () => {
-      const res = await api.get('/ga/assets', { params: { limit: 500 } });
+      const res = await api.get('/ga/assets', { params: { limit: 500, categoryId: 'cmq7ja1lo000501lpk8lwwi2q' } });
       return res.data?.data ?? res.data ?? [];
     },
   });
@@ -45,6 +56,14 @@ export const GaEquipmentPage = () => {
     const q = search.toLowerCase();
     return assets.filter((a) => a.code?.toLowerCase().includes(q) || a.name?.toLowerCase().includes(q));
   }, [assets, search]);
+
+  // Auto-select aset pertama begitu daftar termuat -- klik modul langsung
+  // tampilkan datanya tanpa perlu klik manual salah satu baris dulu.
+  useEffect(() => {
+    if (selectedId && filtered.some((a) => a.id === selectedId)) return;
+    if (filtered.length > 0) setSelectedId(filtered[0]!.id);
+    else if (filtered.length === 0) setSelectedId(null);
+  }, [filtered, selectedId]);
 
   const { data: equip, isLoading: equipLoading } = useQuery({
     queryKey: ['ga-equipment', selectedId],
@@ -145,7 +164,12 @@ export const GaEquipmentPage = () => {
           ) : (
             <>
               <div className="bg-white border border-gray-200 rounded-xl p-5">
-                <h2 className="text-sm font-semibold text-gray-900 mb-4">Data Equipment</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-gray-900">Data Equipment</h2>
+                  <button onClick={() => setShowQrModal(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-700" title="QR aset">
+                    <QrCode size={14} /> QR Aset
+                  </button>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Field label="Kapasitas Maks"><input type="number" step="0.001" value={form.maxCapacity || ''} onChange={(e) => set('maxCapacity', e.target.value)} disabled={!canEdit} className="inp" /></Field>
                   <Field label="Satuan"><select value={form.unit || ''} onChange={(e) => set('unit', e.target.value)} disabled={!canEdit} className="inp"><option value="">—</option>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select></Field>
@@ -165,6 +189,8 @@ export const GaEquipmentPage = () => {
                   </div>
                 )}
               </div>
+
+              <AssetPhotoSection assetId={selectedId} canEdit={canEdit} />
 
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
@@ -200,6 +226,8 @@ export const GaEquipmentPage = () => {
         <CalibrationModal assetId={selectedId} onClose={() => setShowCalModal(false)}
           onSaved={() => { queryClient.invalidateQueries({ queryKey: ['ga-calibration', selectedId] }); queryClient.invalidateQueries({ queryKey: ['ga-equipment', selectedId] }); setShowCalModal(false); }} />
       )}
+
+      <GaAssetQRModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} asset={assetDetail ?? null} />
 
       <style>{`.inp{width:100%;border:1px solid #e5e7eb;border-radius:.5rem;padding:.5rem .75rem;font-size:.875rem}.inp:focus{outline:none;box-shadow:0 0 0 2px #3b82f6}`}</style>
     </div>
