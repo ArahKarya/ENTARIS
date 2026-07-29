@@ -8,6 +8,7 @@ import {
   Search, Car, Loader2, Save, Plus, Trash2, Wrench, ClipboardList,
   Check, X, XCircle, UserCog, FileWarning, ShieldCheck, Fuel,
   ClipboardCheck, TriangleAlert, TrendingUp, Users, QrCode,
+  FileCheck2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
@@ -473,12 +474,13 @@ export const GaVehiclePage = () => {
                       <thead>
                         <tr>
                           <th>Jenis</th><th className="text-center">Tahun</th><th>Jatuh Tempo</th>
-                          <th className="text-right">Biaya</th><th className="text-center">Status</th><th className="w-10"></th>
+                          <th className="text-right">Biaya</th><th className="text-center">Status</th>
+                          <th className="text-center">Dokumen</th><th className="w-10"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {taxes.length === 0 ? (
-                          <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Belum ada data pajak/STNK.</td></tr>
+                          <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada data pajak/STNK.</td></tr>
                         ) : taxes.map((t: any) => (
                           <tr key={t.id}>
                             <td><span className="badge badge-blue">{TAX_TYPE_LABELS[t.type] ?? t.type}</span></td>
@@ -486,6 +488,13 @@ export const GaVehiclePage = () => {
                             <td className={cn('whitespace-nowrap text-sm', dueBadgeClass(t.dueDate, t.status === 'ACTIVE'))}>{formatDate(t.dueDate)}</td>
                             <td className="text-right font-mono tabular-nums text-gray-900">{t.amount != null ? formatRupiah(Number(t.amount)) : '—'}</td>
                             <td className="text-center"><span className={cn('inline-block text-xs font-medium px-2 py-0.5 rounded-full', t.status === 'ACTIVE' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : t.status === 'EXPIRED' ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200')}>{t.status}</span></td>
+                            <td className="text-center">
+                              {t.document ? (
+                                <DocumentLink documentId={t.document.id} />
+                              ) : (
+                                <span className="text-gray-300 text-xs">—</span>
+                              )}
+                            </td>
                             <td>
                               {canEdit && (
                                 <button onClick={() => setDeleteTax({ id: t.id, label: `${TAX_TYPE_LABELS[t.type]} ${t.periodYear}` })}
@@ -520,12 +529,13 @@ export const GaVehiclePage = () => {
                       <thead>
                         <tr>
                           <th>Jenis</th><th>Penyedia</th><th>No. Polis</th><th>Berlaku Hingga</th>
-                          <th className="text-right">Premi</th><th className="text-center">Status</th><th className="w-10"></th>
+                          <th className="text-right">Premi</th><th className="text-center">Status</th>
+                          <th className="text-center">Dokumen</th><th className="w-10"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {insurances.length === 0 ? (
-                          <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada data asuransi.</td></tr>
+                          <tr><td colSpan={8} className="py-10 text-center text-sm text-gray-400">Belum ada data asuransi.</td></tr>
                         ) : insurances.map((ins: any) => (
                           <tr key={ins.id}>
                             <td><span className="badge badge-blue">{INSURANCE_TYPE_LABELS[ins.type] ?? ins.type}</span></td>
@@ -534,6 +544,13 @@ export const GaVehiclePage = () => {
                             <td className={cn('whitespace-nowrap text-sm', dueBadgeClass(ins.endDate, ins.status === 'ACTIVE'))}>{formatDate(ins.endDate)}</td>
                             <td className="text-right font-mono tabular-nums text-gray-900">{ins.premium != null ? formatRupiah(Number(ins.premium)) : '—'}</td>
                             <td className="text-center"><span className={cn('inline-block text-xs font-medium px-2 py-0.5 rounded-full', ins.status === 'ACTIVE' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200')}>{ins.status}</span></td>
+                            <td className="text-center">
+                              {ins.document ? (
+                                <DocumentLink documentId={ins.document.id} />
+                              ) : (
+                                <span className="text-gray-300 text-xs">—</span>
+                              )}
+                            </td>
                             <td>
                               {canEdit && (
                                 <button onClick={() => setDeleteInsurance({ id: ins.id, label: `${ins.provider} — ${ins.policyNumber ?? ''}` })}
@@ -1121,18 +1138,102 @@ function RejectModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (re
   );
 }
 
+// Upload dokumen pendukung (scan STNK/KIR/dsb) untuk record pajak/asuransi.
+// Alur: (1) buat GaDocument baru (auto-generate code dari document type),
+// (2) upload file jadi versi 1, (3) PATCH record pajak/asuransi dengan
+// documentId hasil (1). 3 request berurutan -- tidak ideal tapi reuse
+// endpoint /ga/documents yang sudah ada persis, tanpa endpoint baru.
+async function uploadSupportingDocument(opts: {
+  file: File; title: string; typeCode: string; assetId: string;
+}): Promise<string> {
+  const typesRes = await api.get('/ga/master/document-types');
+  const docType = (typesRes.data as any[]).find((t) => t.code === opts.typeCode);
+  if (!docType) throw new Error(`Tipe dokumen "${opts.typeCode}" tidak ditemukan di Master Data.`);
+
+  const createRes = await api.post('/ga/documents', {
+    title: opts.title, typeId: docType.id, assetId: opts.assetId, status: 'ACTIVE',
+  });
+  const documentId = createRes.data.id as string;
+
+  const fd = new FormData();
+  fd.append('file', opts.file);
+  await api.post(`/ga/documents/${documentId}/versions`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return documentId;
+}
+
+function DocumentUploadField({ file, onChange }: { file: File | null; onChange: (f: File | null) => void }) {
+  return (
+    <label className="block">
+      <span className="block text-xs font-medium text-gray-500 mb-1">Scan Dokumen (PDF, opsional)</span>
+      <input
+        type="file"
+        accept="application/pdf"
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+      />
+      {file && <span className="block text-[11px] text-gray-400 mt-1">{file.name}</span>}
+    </label>
+  );
+}
+
+// Tampilkan link "Lihat" untuk dokumen yang sudah terlampir di record
+// pajak/asuransi -- fetch detail dokumen (versi terbaru) baru saat diklik,
+// bukan di list awal (hindari N+1 request per baris tabel).
+function DocumentLink({ documentId }: { documentId: string }) {
+  const handleView = async () => {
+    try {
+      const doc = await api.get(`/ga/documents/${documentId}`);
+      const latest = doc.data.versions?.[0];
+      if (!latest) return toast.error('Dokumen belum punya file terupload.');
+      const fileRes = await api.get(`/ga/documents/${documentId}/versions/${latest.id}/file`, { responseType: 'blob' });
+      const url = URL.createObjectURL(fileRes.data as Blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen.');
+    }
+  };
+  return (
+    <button onClick={handleView} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700" title="Lihat dokumen">
+      <FileCheck2 size={13} /> Lihat
+    </button>
+  );
+}
+
 function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
   const currentYear = new Date().getFullYear();
   const [f, setF] = useState({ type: 'STNK_TAHUNAN', periodYear: String(currentYear), amount: '', paidAt: '', dueDate: '', status: 'ACTIVE', notes: '' });
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   const mut = useMutation({
-    mutationFn: () => api.post(`/ga/vehicle/assets/${assetId}/taxes`, {
-      type: f.type, periodYear: Number(f.periodYear), amount: numOrNull(f.amount),
-      paidAt: f.paidAt || null, dueDate: f.dueDate, status: f.status, notes: f.notes || null,
-    }),
-    onSuccess: () => { toast.success('Data pajak ditambahkan.'); onSaved(); },
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan data pajak.'),
+    mutationFn: async () => {
+      const created = await api.post(`/ga/vehicle/assets/${assetId}/taxes`, {
+        type: f.type, periodYear: Number(f.periodYear), amount: numOrNull(f.amount),
+        paidAt: f.paidAt || null, dueDate: f.dueDate, status: f.status, notes: f.notes || null,
+      });
+      if (file) {
+        setUploading(true);
+        const typeCodeMap: Record<string, string> = { STNK_TAHUNAN: 'STNK', STNK_5_TAHUNAN: 'STNK', KIR: 'KIR', PAJAK_KENDARAAN: 'STNK' };
+        try {
+          const documentId = await uploadSupportingDocument({
+            file, title: `${TAX_TYPE_LABELS[f.type]} ${f.periodYear}`, typeCode: typeCodeMap[f.type] ?? 'STNK', assetId,
+          });
+          await api.patch(`/ga/vehicle/assets/${assetId}/taxes/${created.data.id}`, { documentId });
+        } finally {
+          setUploading(false);
+        }
+      }
+      return created;
+    },
+    onSuccess: () => { toast.success(file ? 'Data pajak + dokumen disimpan.' : 'Data pajak ditambahkan.'); onSaved(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || e.message || 'Gagal simpan data pajak.'),
   });
   const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
+  const pending = mut.isPending || uploading;
   return (
     <ModalShell title="Tambah Data Pajak/STNK" icon={<FileWarning size={16} className="text-teal-600" />} onClose={onClose}>
       <form onSubmit={submit} className="p-5 space-y-3">
@@ -1147,10 +1248,11 @@ function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () 
         </div>
         <SelectField label="Status" value={f.status} onChange={(v) => setF({ ...f, status: v })} options={TAX_STATUSES} />
         <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
+        <DocumentUploadField file={file} onChange={setFile} />
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-          <button type="submit" disabled={mut.isPending || !f.dueDate} className="btn-primary bg-teal-600 hover:bg-teal-700">
-            {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+          <button type="submit" disabled={pending || !f.dueDate} className="btn-primary bg-teal-600 hover:bg-teal-700">
+            {pending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} {uploading ? 'Mengunggah...' : 'Simpan'}
           </button>
         </div>
       </form>
@@ -1160,16 +1262,35 @@ function TaxModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () 
 
 function InsuranceModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState({ type: 'ALL_RISK', provider: '', policyNumber: '', premium: '', coverageValue: '', startDate: '', endDate: '', status: 'ACTIVE', notes: '' });
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   const mut = useMutation({
-    mutationFn: () => api.post(`/ga/vehicle/assets/${assetId}/insurances`, {
-      type: f.type, provider: f.provider, policyNumber: f.policyNumber || null,
-      premium: numOrNull(f.premium), coverageValue: numOrNull(f.coverageValue),
-      startDate: f.startDate, endDate: f.endDate, status: f.status, notes: f.notes || null,
-    }),
-    onSuccess: () => { toast.success('Data asuransi ditambahkan.'); onSaved(); },
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan data asuransi.'),
+    mutationFn: async () => {
+      const created = await api.post(`/ga/vehicle/assets/${assetId}/insurances`, {
+        type: f.type, provider: f.provider, policyNumber: f.policyNumber || null,
+        premium: numOrNull(f.premium), coverageValue: numOrNull(f.coverageValue),
+        startDate: f.startDate, endDate: f.endDate, status: f.status, notes: f.notes || null,
+      });
+      if (file) {
+        setUploading(true);
+        try {
+          const documentId = await uploadSupportingDocument({
+            file, title: `Polis ${f.provider} — ${f.policyNumber || INSURANCE_TYPE_LABELS[f.type]}`,
+            typeCode: 'ASURANSI_KENDARAAN', assetId,
+          });
+          await api.patch(`/ga/vehicle/assets/${assetId}/insurances/${created.data.id}`, { documentId });
+        } finally {
+          setUploading(false);
+        }
+      }
+      return created;
+    },
+    onSuccess: () => { toast.success(file ? 'Data asuransi + dokumen disimpan.' : 'Data asuransi ditambahkan.'); onSaved(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || e.message || 'Gagal simpan data asuransi.'),
   });
   const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
+  const pending = mut.isPending || uploading;
   return (
     <ModalShell title="Tambah Data Asuransi" icon={<ShieldCheck size={16} className="text-teal-600" />} onClose={onClose} wide>
       <form onSubmit={submit} className="p-5 space-y-3">
@@ -1190,10 +1311,11 @@ function InsuranceModal({ assetId, onClose, onSaved }: { assetId: string; onClos
           <Field label="Tanggal Berakhir" type="date" value={f.endDate} onChange={(v) => setF({ ...f, endDate: v })} />
         </div>
         <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
+        <DocumentUploadField file={file} onChange={setFile} />
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-          <button type="submit" disabled={mut.isPending || !f.provider || !f.startDate || !f.endDate} className="btn-primary bg-teal-600 hover:bg-teal-700">
-            {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+          <button type="submit" disabled={pending || !f.provider || !f.startDate || !f.endDate} className="btn-primary bg-teal-600 hover:bg-teal-700">
+            {pending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} {uploading ? 'Mengunggah...' : 'Simpan'}
           </button>
         </div>
       </form>
