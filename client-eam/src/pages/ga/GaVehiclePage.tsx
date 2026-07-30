@@ -98,6 +98,36 @@ const numOrNull = (v: string): number | null => {
 
 // Dipakai untuk deteksi jatuh tempo di badge tanggal (pajak/asuransi): merah
 // kalau sudah lewat, kuning kalau <=30 hari lagi, abu kalau masih aman.
+
+function classifyServiceCost(log: any): 'oli' | 'ban' | 'rem' | 'elektrikal' | 'ac' | 'service' | 'lainnya' {
+  const jenis = String(log?.jenisService ?? '').toUpperCase();
+  const text = `${log?.deskripsi ?? ''} ${log?.bengkel ?? ''}`.toLowerCase();
+  if (jenis === 'OLI' || /\boli\b|filter oli|meditran|shell r4|stempet|gemuk/.test(text)) return 'oli';
+  if (jenis === 'GANTI_BAN' || /\bban\b|roda|velg|pelek|shock|shockbreaker|shok|spooring|peredam|drag link|draklink/.test(text)) return 'ban';
+  if (/\brem\b|master rem|minyak rem|central rem|setel rem/.test(text)) return 'rem';
+  if (jenis === 'ELEKTRIKAL' || /lampu|aki|switch|wiper|spion/.test(text)) return 'elektrikal';
+  if (jenis === 'AC' || /\bac\b/.test(text)) return 'ac';
+  if (jenis === 'PERBAIKAN' || jenis === 'SERVIS_BERKALA' || jenis === 'TUNE_UP' || /service|servis|ganti|las|dongkrak|kopling/.test(text)) return 'service';
+  return 'lainnya';
+}
+
+function buildServiceCostSummary(logs: any[]) {
+  const init = {
+    total: 0, count: 0,
+    oli: 0, ban: 0, rem: 0, elektrikal: 0, ac: 0, service: 0, lainnya: 0,
+    oliCount: 0, banCount: 0, remCount: 0, elektrikalCount: 0, acCount: 0, serviceCount: 0, lainnyaCount: 0,
+  };
+  return logs.reduce((acc, log) => {
+    const amount = Number(log?.biaya ?? 0) || 0;
+    const bucket = classifyServiceCost(log);
+    acc.total += amount;
+    acc.count += 1;
+    acc[bucket] += amount;
+    acc[`${bucket}Count` as const] += 1;
+    return acc;
+  }, init);
+}
+
 function dueBadgeClass(dateStr: string | null | undefined, isActive: boolean): string {
   if (!dateStr || !isActive) return 'text-gray-600';
   const due = new Date(dateStr);
@@ -223,6 +253,8 @@ export const GaVehiclePage = () => {
     queryFn: async () => (await api.get(`/ga/vehicle/assets/${selectedId}/services`)).data,
     enabled: !!selectedId,
   });
+
+  const serviceCostSummary = useMemo(() => buildServiceCostSummary(serviceLogs), [serviceLogs]);
 
   const deleteLogMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/services/${id}`),
@@ -412,6 +444,8 @@ export const GaVehiclePage = () => {
                   </button>
                 ))}
               </div>
+
+              <ServiceCostSummaryCards summary={serviceCostSummary} />
 
               {/* ── TAB: Data & Driver ── */}
               {tab === 'data' && (
@@ -1041,6 +1075,32 @@ export const GaVehiclePage = () => {
 };
 
 // ── Fleet KPI card ──────────────────────────────────────────────────
+
+function ServiceCostSummaryCards({ summary }: { summary: ReturnType<typeof buildServiceCostSummary> }) {
+  const cards = [
+    { label: 'Total Service', value: summary.total, count: summary.count, icon: <Wrench size={16} className="text-teal-600" />, bg: 'bg-teal-50' },
+    { label: 'Oli', value: summary.oli, count: summary.oliCount, icon: <Fuel size={16} className="text-amber-600" />, bg: 'bg-amber-50' },
+    { label: 'Ban & Roda', value: summary.ban, count: summary.banCount, icon: <Car size={16} className="text-blue-600" />, bg: 'bg-blue-50' },
+    { label: 'Rem', value: summary.rem, count: summary.remCount, icon: <TriangleAlert size={16} className="text-red-600" />, bg: 'bg-red-50' },
+    { label: 'Elektrikal/AC', value: summary.elektrikal + summary.ac, count: summary.elektrikalCount + summary.acCount, icon: <ShieldCheck size={16} className="text-purple-600" />, bg: 'bg-purple-50' },
+    { label: 'Service Lain', value: summary.service + summary.lainnya, count: summary.serviceCount + summary.lainnyaCount, icon: <ClipboardList size={16} className="text-gray-600" />, bg: 'bg-gray-50' },
+  ];
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      {cards.map((card) => (
+        <div key={card.label} className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>{card.icon}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{card.label}</span>
+          </div>
+          <p className="text-sm font-semibold text-gray-900 tabular-nums">{formatRupiah(card.value)}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">{card.count} catatan</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function FleetKpi({ icon, iconBg, label, value, sub, isText }: { icon: React.ReactNode; iconBg: string; label: string; value: string | number; sub?: string; isText?: boolean }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
