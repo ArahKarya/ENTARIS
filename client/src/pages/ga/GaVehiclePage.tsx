@@ -164,6 +164,10 @@ export const GaVehiclePage = () => {
   const [showOilModal, setShowOilModal] = useState(false);
   const [deleteTire, setDeleteTire] = useState<{ id: string; label: string } | null>(null);
   const [deleteOil, setDeleteOil] = useState<{ id: string; label: string } | null>(null);
+  const [serviceStartDate, setServiceStartDate] = useState('');
+  const [serviceEndDate, setServiceEndDate] = useState('');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('ALL');
+  const [serviceSortDir, setServiceSortDir] = useState<'desc' | 'asc'>('desc');
 
   // ── Fleet summary (KPI cards di atas, lintas-kendaraan) ─────────────
   const { data: fleetSummary } = useQuery({
@@ -254,7 +258,23 @@ export const GaVehiclePage = () => {
     enabled: !!selectedId,
   });
 
-  const serviceCostSummary = useMemo(() => buildServiceCostSummary(serviceLogs), [serviceLogs]);
+  const filteredServiceLogs = useMemo(() => {
+    return serviceLogs
+      .filter((log) => {
+        const date = String(log?.tanggal ?? '').slice(0, 10);
+        if (serviceStartDate && date < serviceStartDate) return false;
+        if (serviceEndDate && date > serviceEndDate) return false;
+        if (serviceTypeFilter !== 'ALL' && classifyServiceCost(log) !== serviceTypeFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const da = new Date(a?.tanggal ?? 0).getTime();
+        const db = new Date(b?.tanggal ?? 0).getTime();
+        return serviceSortDir === 'desc' ? db - da : da - db;
+      });
+  }, [serviceLogs, serviceStartDate, serviceEndDate, serviceTypeFilter, serviceSortDir]);
+
+  const serviceCostSummary = useMemo(() => buildServiceCostSummary(filteredServiceLogs), [filteredServiceLogs]);
 
   const deleteLogMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/services/${id}`),
@@ -802,15 +822,38 @@ export const GaVehiclePage = () => {
               {tab === 'service' && (
                 <>
                   <div className="card p-0 overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                      <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <Wrench size={16} className="text-teal-600" /> Riwayat Service
-                      </h2>
+                    <div className="flex flex-col gap-3 p-4 border-b border-gray-100 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                          <Wrench size={16} className="text-teal-600" /> Riwayat Service
+                        </h2>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Filter periode + jenis service. Ringkasan biaya di atas ikut berubah sesuai filter ini.
+                        </p>
+                      </div>
                       {canEdit && (
-                        <button onClick={() => setShowServiceModal(true)} className="btn-primary bg-teal-600 hover:bg-teal-700">
+                        <button onClick={() => setShowServiceModal(true)} className="btn-primary bg-teal-600 hover:bg-teal-700 w-fit">
                           <Plus size={14} /> Tambah
                         </button>
                       )}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 border-b border-gray-100 bg-gray-50/60">
+                      <Field label="Dari Tanggal" type="date" value={serviceStartDate} onChange={setServiceStartDate} />
+                      <Field label="Sampai Tanggal" type="date" value={serviceEndDate} onChange={setServiceEndDate} />
+                      <SelectField label="Jenis Biaya" value={serviceTypeFilter} onChange={setServiceTypeFilter} options={['ALL', 'oli', 'ban', 'rem', 'elektrikal', 'ac', 'service', 'lainnya']} />
+                      <SelectField label="Urut Tanggal" value={serviceSortDir} onChange={(v) => setServiceSortDir(v as 'desc' | 'asc')} options={['desc', 'asc']} />
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => { setServiceStartDate(''); setServiceEndDate(''); setServiceTypeFilter('ALL'); setServiceSortDir('desc'); }}
+                          className="w-full px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                          Reset Filter
+                        </button>
+                      </div>
+                    </div>
+                    <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                      Tampil {filteredServiceLogs.length} dari {serviceLogs.length} catatan · Total periode {formatRupiah(serviceCostSummary.total)}
                     </div>
                     <div className="table-responsive">
                       <table className="data-table">
@@ -822,9 +865,9 @@ export const GaVehiclePage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {serviceLogs.length === 0 ? (
-                            <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada riwayat service.</td></tr>
-                          ) : serviceLogs.map((l) => (
+                          {filteredServiceLogs.length === 0 ? (
+                            <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada riwayat service untuk filter ini.</td></tr>
+                          ) : filteredServiceLogs.map((l) => (
                             <tr key={l.id}>
                               <td className="text-gray-500 whitespace-nowrap">{formatDate(l.tanggal)}</td>
                               <td><span className="badge badge-blue">{l.jenisService}</span></td>
