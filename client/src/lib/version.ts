@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.17.0';
-export const APP_BUILD_DATE = '2026-07-28';
+export const APP_VERSION = '3.18.0';
+export const APP_BUILD_DATE = '2026-07-31';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.18.0',
+    date: '2026-07-31',
+    title: 'Inspeksi Berkala Kendaraan — Komprehensif',
+    changes: [
+      'Checklist inspeksi diperluas dari 12 item datar jadi 33 sub-item terkelompok dalam 6 kategori (Mesin & Cairan, Kelistrikan, Rem & Kemudi, Ban & Roda, Keselamatan, Lain-lain) dengan tampilan accordion per kategori',
+      'Foto bukti visual per kategori inspeksi (opsional, maks 5 MB/foto) — tersimpan & tampil di riwayat inspeksi',
+      'Nama inspektor tercatat: pilih dari daftar user atau ketik manual untuk inspektor di luar sistem',
+      'Level BBM saat inspeksi (Kosong / Seperempat / Setengah / Tiga Perempat / Penuh)',
+      'Jadwal inspeksi berikutnya dihitung otomatis (default 30 hari, interval bisa diubah) + reminder status TERLAMBAT/segera jatuh tempo, pola sama dengan pajak & asuransi',
+      'KPI armada baru: Inspeksi Jatuh Tempo (lewat / <30 hari / belum pernah diinspeksi)',
+      'Riwayat inspeksi bisa dibuka per baris untuk melihat detail checklist per kategori + foto; data inspeksi format lama tetap terbaca di grup "Checklist (format lama)"',
+    ],
+  },
   {
     version: '3.17.0',
     date: '2026-07-28',

@@ -2,13 +2,14 @@
 // kendaraan (1-1), driver assignment, pajak/STNK/KIR, asuransi, log BBM,
 // inspeksi berkala, insiden/kecelakaan, riwayat service, dan pengajuan
 // service (approval flow). Dashboard armada (KPI cards) di atas.
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import type { FormEvent } from 'react';
 import {
   Search, Car, Loader2, Save, Plus, Trash2, Wrench, ClipboardList,
   Check, X, XCircle, UserCog, FileWarning, ShieldCheck, Fuel,
   ClipboardCheck, TriangleAlert, TrendingUp, Users, QrCode,
-  FileCheck2, Pencil, BarChart3,
+  FileCheck2, Pencil, BarChart3, ChevronDown, ChevronRight,
+  CalendarClock, Camera,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
@@ -61,10 +62,76 @@ const INSPECTION_RESULT_BADGE: Record<string, string> = {
   TIDAK_LAYAK: 'bg-red-50 text-red-700 ring-1 ring-red-200',
 };
 const CHECKPOINT_LABELS: Record<string, string> = {
+  // Format LAMA (12 item datar) — dipertahankan agar riwayat inspeksi lama
+  // tetap tampil dengan label yang benar, bukan raw key.
   ban: 'Ban', rem: 'Rem', oli: 'Oli', lampu: 'Lampu', klakson: 'Klakson', wiper: 'Wiper',
   kaca_spion: 'Kaca Spion', sabuk_pengaman: 'Sabuk Pengaman', ac: 'AC', aki: 'Aki',
   radiator: 'Radiator', kelengkapan_p3k_apar: 'Kelengkapan P3K/APAR',
+  // Format BARU (checklist detail per kategori).
+  oli_mesin: 'Oli Mesin', oli_rem: 'Oli Rem', air_radiator: 'Air Radiator / Coolant',
+  air_aki: 'Air Aki', air_wiper: 'Air Wiper',
+  lampu_depan: 'Lampu Depan', lampu_belakang: 'Lampu Belakang', lampu_sein: 'Lampu Sein',
+  lampu_rem: 'Lampu Rem', lampu_mundur: 'Lampu Mundur',
+  rem_depan: 'Rem Depan', rem_belakang: 'Rem Belakang', rem_tangan: 'Rem Tangan',
+  kemudi_suspensi: 'Kemudi / Suspensi',
+  ban_depan: 'Ban Depan', ban_belakang: 'Ban Belakang', ban_serep: 'Ban Serep',
+  tekanan_ban: 'Tekanan Ban', velg: 'Velg',
+  p3k: 'P3K', apar: 'APAR', segitiga_pengaman: 'Segitiga Pengaman',
+  dongkrak: 'Dongkrak', kunci_roda: 'Kunci Roda',
+  kaca_depan: 'Kaca Depan', kaca_belakang: 'Kaca Belakang', body_cat: 'Body / Cat',
+  dashboard_indikator: 'Dashboard / Indikator',
 };
+
+const CHECK_STATE_LABELS: Record<string, string> = {
+  OK: 'OK', PERLU_PERHATIAN: 'Perhatian', RUSAK: 'Rusak',
+};
+const CHECK_STATE_BADGE: Record<string, string> = {
+  OK: 'bg-green-50 text-green-700 ring-1 ring-green-200',
+  PERLU_PERHATIAN: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+  RUSAK: 'bg-red-50 text-red-700 ring-1 ring-red-200',
+};
+
+const FUEL_LEVELS = ['KOSONG', 'SEPEREMPAT', 'SETENGAH', 'TIGA_PEREMPAT', 'PENUH'] as const;
+const FUEL_LEVEL_LABELS: Record<string, string> = {
+  KOSONG: 'Kosong (E)', SEPEREMPAT: 'Seperempat (1/4)', SETENGAH: 'Setengah (1/2)',
+  TIGA_PEREMPAT: 'Tiga Perempat (3/4)', PENUH: 'Penuh (F)',
+};
+
+interface InspectionCategory { key: string; label: string; items: { key: string; label: string }[] }
+
+/** Fallback struktur kategori kalau endpoint /inspection-categories belum tersedia. */
+const INSPECTION_CATEGORY_FALLBACK: InspectionCategory[] = [
+  { key: 'mesin', label: 'Mesin & Cairan', items: [
+    { key: 'oli_mesin', label: 'Oli Mesin' }, { key: 'oli_rem', label: 'Oli Rem' },
+    { key: 'air_radiator', label: 'Air Radiator / Coolant' }, { key: 'air_aki', label: 'Air Aki' },
+    { key: 'air_wiper', label: 'Air Wiper' },
+  ] },
+  { key: 'kelistrikan', label: 'Kelistrikan', items: [
+    { key: 'lampu_depan', label: 'Lampu Depan' }, { key: 'lampu_belakang', label: 'Lampu Belakang' },
+    { key: 'lampu_sein', label: 'Lampu Sein' }, { key: 'lampu_rem', label: 'Lampu Rem' },
+    { key: 'lampu_mundur', label: 'Lampu Mundur' }, { key: 'klakson', label: 'Klakson' },
+  ] },
+  { key: 'rem_kemudi', label: 'Rem & Kemudi', items: [
+    { key: 'rem_depan', label: 'Rem Depan' }, { key: 'rem_belakang', label: 'Rem Belakang' },
+    { key: 'rem_tangan', label: 'Rem Tangan' }, { key: 'kemudi_suspensi', label: 'Kemudi / Suspensi' },
+  ] },
+  { key: 'ban_roda', label: 'Ban & Roda', items: [
+    { key: 'ban_depan', label: 'Ban Depan' }, { key: 'ban_belakang', label: 'Ban Belakang' },
+    { key: 'ban_serep', label: 'Ban Serep' }, { key: 'tekanan_ban', label: 'Tekanan Ban' },
+    { key: 'velg', label: 'Velg' },
+  ] },
+  { key: 'keselamatan', label: 'Keselamatan', items: [
+    { key: 'sabuk_pengaman', label: 'Sabuk Pengaman' }, { key: 'p3k', label: 'P3K' },
+    { key: 'apar', label: 'APAR' }, { key: 'segitiga_pengaman', label: 'Segitiga Pengaman' },
+    { key: 'dongkrak', label: 'Dongkrak' }, { key: 'kunci_roda', label: 'Kunci Roda' },
+  ] },
+  { key: 'lain', label: 'Lain-lain', items: [
+    { key: 'kaca_spion', label: 'Kaca Spion' }, { key: 'kaca_depan', label: 'Kaca Depan' },
+    { key: 'kaca_belakang', label: 'Kaca Belakang' }, { key: 'wiper', label: 'Wiper' },
+    { key: 'ac', label: 'AC' }, { key: 'body_cat', label: 'Body / Cat' },
+    { key: 'dashboard_indikator', label: 'Dashboard / Indikator' },
+  ] },
+];
 
 const INCIDENT_SEVERITIES = ['RINGAN', 'SEDANG', 'BERAT'] as const;
 const INCIDENT_SEVERITY_BADGE: Record<string, string> = {
@@ -159,6 +226,7 @@ export const GaVehiclePage = () => {
   const [deleteInsurance, setDeleteInsurance] = useState<{ id: string; label: string } | null>(null);
   const [deleteFuel, setDeleteFuel] = useState<{ id: string; label: string } | null>(null);
   const [deleteInspection, setDeleteInspection] = useState<{ id: string; label: string } | null>(null);
+  const [expandedInspection, setExpandedInspection] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showTireModal, setShowTireModal] = useState<'new' | any>(false);
@@ -355,6 +423,23 @@ export const GaVehiclePage = () => {
     onSuccess: () => { toast.success('Data inspeksi dihapus.'); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-inspections', selectedId] }); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal hapus data inspeksi.'),
   });
+
+  // Jadwal inspeksi berikutnya = nextDueDate dari inspeksi TERBARU kendaraan ini.
+  // Pola status sama dgn pajak/asuransi: TERLAMBAT / <=30 hari lagi / aman.
+  const nextInspection = useMemo(() => {
+    const latest = inspections[0];
+    if (!latest?.nextDueDate) return null;
+    const due = new Date(latest.nextDueDate);
+    if (Number.isNaN(due.getTime())) return null;
+    const diffMs = due.getTime() - Date.now();
+    const days = Math.abs(Math.round(diffMs / (24 * 3600 * 1000)));
+    return {
+      due: latest.nextDueDate as string,
+      days,
+      overdue: diffMs < 0,
+      dueSoon: diffMs >= 0 && diffMs <= 30 * 24 * 3600 * 1000,
+    };
+  }, [inspections]);
   const deleteTireMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/tires/${id}`),
     onSuccess: () => { toast.success('Data ban dihapus.'); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-tires', selectedId] }); },
@@ -400,6 +485,12 @@ export const GaVehiclePage = () => {
           <FleetKpi icon={<FileWarning size={16} className="text-red-600" />} iconBg="bg-red-50" label="Pajak Jatuh Tempo" value={fleetSummary.taxExpired + fleetSummary.taxExpiringSoon} sub={`${fleetSummary.taxExpired} lewat, ${fleetSummary.taxExpiringSoon} <30 hari`} />
           <FleetKpi icon={<ShieldCheck size={16} className="text-amber-600" />} iconBg="bg-amber-50" label="Asuransi Jatuh Tempo" value={fleetSummary.insuranceExpired + fleetSummary.insuranceExpiringSoon} sub={`${fleetSummary.insuranceExpired} lewat, ${fleetSummary.insuranceExpiringSoon} <30 hari`} />
           <FleetKpi icon={<TriangleAlert size={16} className="text-orange-600" />} iconBg="bg-orange-50" label="Insiden Terbuka" value={fleetSummary.openIncidents} />
+          <FleetKpi
+            icon={<ClipboardCheck size={16} className="text-emerald-600" />} iconBg="bg-emerald-50"
+            label="Inspeksi Jatuh Tempo"
+            value={(fleetSummary.inspectionOverdue ?? 0) + (fleetSummary.inspectionDueSoon ?? 0)}
+            sub={`${fleetSummary.inspectionOverdue ?? 0} lewat, ${fleetSummary.inspectionDueSoon ?? 0} <30 hari, ${fleetSummary.inspectionNeverDone ?? 0} belum pernah`}
+          />
           <FleetKpi icon={<Wrench size={16} className="text-teal-600" />} iconBg="bg-teal-50" label="Biaya Service Bln Ini" value={formatRupiah(fleetSummary.serviceCostThisMonth)} isText />
           <FleetKpi icon={<Fuel size={16} className="text-purple-600" />} iconBg="bg-purple-50" label="Biaya BBM Bln Ini" value={formatRupiah(fleetSummary.fuelCostThisMonth)} isText />
         </div>
@@ -748,32 +839,76 @@ export const GaVehiclePage = () => {
                       </button>
                     )}
                   </div>
+
+                  {/* Reminder jadwal inspeksi berikutnya (dari inspeksi terakhir) */}
+                  {nextInspection && (
+                    <div className={cn(
+                      'flex items-center gap-2 px-4 py-2.5 text-xs border-b border-gray-100',
+                      nextInspection.overdue ? 'bg-red-50 text-red-700'
+                        : nextInspection.dueSoon ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-teal-800',
+                    )}>
+                      <CalendarClock size={14} />
+                      Jadwal inspeksi berikutnya: <strong>{formatDate(nextInspection.due)}</strong>
+                      <span className="ml-1">
+                        {nextInspection.overdue ? `— TERLAMBAT ${nextInspection.days} hari`
+                          : nextInspection.dueSoon ? `— ${nextInspection.days} hari lagi` : `— ${nextInspection.days} hari lagi`}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="table-responsive">
                     <table className="data-table">
                       <thead>
                         <tr>
+                          <th className="w-8"></th>
                           <th>Tanggal</th><th className="text-right">Odometer</th><th className="text-center">Hasil</th>
-                          <th>Catatan</th><th className="w-10"></th>
+                          <th>Inspektor</th><th className="text-center">BBM</th><th>Inspeksi Berikutnya</th>
+                          <th className="text-center">Foto</th><th>Catatan</th><th className="w-10"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {inspections.length === 0 ? (
-                          <tr><td colSpan={5} className="py-10 text-center text-sm text-gray-400">Belum ada data inspeksi.</td></tr>
+                          <tr><td colSpan={10} className="py-10 text-center text-sm text-gray-400">Belum ada data inspeksi.</td></tr>
                         ) : inspections.map((insp: any) => (
-                          <tr key={insp.id}>
-                            <td className="text-gray-500 whitespace-nowrap">{formatDate(insp.tanggal)}</td>
-                            <td className="text-right font-mono tabular-nums text-gray-600">{insp.odometer != null ? insp.odometer.toLocaleString('id-ID') : '—'}</td>
-                            <td className="text-center"><span className={cn('inline-block text-xs font-medium px-2 py-0.5 rounded-full', INSPECTION_RESULT_BADGE[insp.overallResult])}>{INSPECTION_RESULT_LABELS[insp.overallResult] ?? insp.overallResult}</span></td>
-                            <td className="text-gray-600 text-sm">{insp.notes || '—'}</td>
-                            <td>
-                              {canEdit && (
-                                <button onClick={() => setDeleteInspection({ id: insp.id, label: formatDate(insp.tanggal) })}
-                                  className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
-                                  <Trash2 size={15} />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
+                          <Fragment key={insp.id}>
+                            <tr className="cursor-pointer hover:bg-gray-50" onClick={() => setExpandedInspection(expandedInspection === insp.id ? null : insp.id)}>
+                              <td className="text-gray-400">
+                                {expandedInspection === insp.id ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                              </td>
+                              <td className="text-gray-500 whitespace-nowrap">{formatDate(insp.tanggal)}</td>
+                              <td className="text-right font-mono tabular-nums text-gray-600">{insp.odometer != null ? insp.odometer.toLocaleString('id-ID') : '—'}</td>
+                              <td className="text-center"><span className={cn('inline-block text-xs font-medium px-2 py-0.5 rounded-full', INSPECTION_RESULT_BADGE[insp.overallResult])}>{INSPECTION_RESULT_LABELS[insp.overallResult] ?? insp.overallResult}</span></td>
+                              <td className="text-gray-600 text-sm">{insp.inspectorName || '—'}</td>
+                              <td className="text-center text-gray-600 text-xs">{insp.fuelLevel ? (FUEL_LEVEL_LABELS[insp.fuelLevel] ?? insp.fuelLevel) : '—'}</td>
+                              <td className={cn('whitespace-nowrap text-sm', dueBadgeClass(insp.nextDueDate, true))}>{insp.nextDueDate ? formatDate(insp.nextDueDate) : '—'}</td>
+                              <td className="text-center text-xs text-gray-500">
+                                {insp.photos?.length ? (
+                                  <span className="inline-flex items-center gap-1 text-teal-600"><Camera size={13} /> {insp.photos.length}</span>
+                                ) : '—'}
+                              </td>
+                              <td className="text-gray-600 text-sm max-w-xs truncate">{insp.notes || '—'}</td>
+                              <td>
+                                {canEdit && (
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteInspection({ id: insp.id, label: formatDate(insp.tanggal) }); }}
+                                    className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
+                                    <Trash2 size={15} />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedInspection === insp.id && (
+                              <tr>
+                                <td colSpan={10} className="p-0">
+                                  <InspectionDetail
+                                    assetId={selectedId!}
+                                    inspection={insp}
+                                    canEdit={canEdit}
+                                    onPhotoDeleted={() => queryClient.invalidateQueries({ queryKey: ['ga-vehicle-inspections', selectedId] })}
+                                  />
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
                         ))}
                       </tbody>
                     </table>
@@ -1620,14 +1755,37 @@ function FuelModal({ assetId, onClose, onSaved }: { assetId: string; onClose: ()
 }
 
 function InspectionModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
-  const { data: checkpoints = [] } = useQuery<string[]>({
-    queryKey: ['ga-inspection-checkpoints'],
-    queryFn: async () => (await api.get('/ga/vehicle/inspection-checkpoints')).data,
+  const { data: categories = INSPECTION_CATEGORY_FALLBACK } = useQuery<InspectionCategory[]>({
+    queryKey: ['ga-inspection-categories'],
+    queryFn: async () => {
+      const data = (await api.get('/ga/vehicle/inspection-categories')).data;
+      return Array.isArray(data) && data.length > 0 ? data : INSPECTION_CATEGORY_FALLBACK;
+    },
   });
-  const [tanggal, setTanggal] = useState('');
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ['ga-users-inspector-picker'],
+    queryFn: async () => (await api.get('/users', { params: { limit: 200 } })).data?.data ?? [],
+  });
+
+  const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10));
   const [odometer, setOdometer] = useState('');
   const [notes, setNotes] = useState('');
+  const [inspectorUserId, setInspectorUserId] = useState('');
+  const [inspectorName, setInspectorName] = useState('');
+  const [fuelLevel, setFuelLevel] = useState<string>('');
+  const [intervalDays, setIntervalDays] = useState('30');
   const [checklist, setChecklist] = useState<Record<string, 'OK' | 'PERLU_PERHATIAN' | 'RUSAK'>>({});
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
+  const [photos, setPhotos] = useState<Record<string, { file: File; preview: string }>>({});
+
+  // Kategori pertama terbuka otomatis supaya user langsung lihat isinya.
+  useEffect(() => {
+    if (categories.length > 0 && Object.keys(openCats).length === 0) {
+      setOpenCats({ [categories[0]!.key]: true });
+    }
+  }, [categories, openCats]);
+
+  const allItems = useMemo(() => categories.flatMap((c) => c.items), [categories]);
 
   const overallResult = useMemo(() => {
     const values = Object.values(checklist);
@@ -1636,47 +1794,222 @@ function InspectionModal({ assetId, onClose, onSaved }: { assetId: string; onClo
     return 'BAIK';
   }, [checklist]);
 
+  const nextDueDate = useMemo(() => {
+    if (!tanggal) return '';
+    const days = Number(intervalDays);
+    if (!Number.isFinite(days) || days <= 0) return '';
+    const d = new Date(tanggal);
+    if (Number.isNaN(d.getTime())) return '';
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }, [tanggal, intervalDays]);
+
+  const filledCount = Object.keys(checklist).length;
+
   const mut = useMutation({
-    mutationFn: () => api.post(`/ga/vehicle/assets/${assetId}/inspections`, {
-      tanggal, odometer: numOrNull(odometer), checklist, overallResult, notes: notes || null,
-    }),
+    mutationFn: async () => {
+      const created = await api.post(`/ga/vehicle/assets/${assetId}/inspections`, {
+        tanggal,
+        odometer: numOrNull(odometer),
+        checklist,
+        overallResult,
+        notes: notes || null,
+        inspectorUserId: inspectorUserId || null,
+        inspectorName: inspectorName || (users.find((u: any) => u.id === inspectorUserId)?.fullName ?? null),
+        fuelLevel: fuelLevel || null,
+        intervalDays: numOrNull(intervalDays),
+        nextDueDate: nextDueDate || null,
+      });
+      // Upload foto per kategori SETELAH inspeksi tersimpan (butuh id).
+      const inspectionId = created.data?.id;
+      const entries = Object.entries(photos);
+      if (inspectionId && entries.length > 0) {
+        let failed = 0;
+        for (const [category, { file }] of entries) {
+          try {
+            const fd = new FormData();
+            fd.append('photo', file);
+            fd.append('category', category);
+            // Jangan set Content-Type manual — axios yang atur boundary multipart.
+            await api.post(`/ga/vehicle/assets/${assetId}/inspections/${inspectionId}/photos`, fd);
+          } catch {
+            failed += 1;
+          }
+        }
+        if (failed > 0) toast.warning(`${failed} foto gagal diunggah. Inspeksi tetap tersimpan.`);
+      }
+      return created;
+    },
     onSuccess: () => { toast.success('Inspeksi disimpan.'); onSaved(); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan inspeksi.'),
   });
+
   const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
   const setPoint = (key: string, value: 'OK' | 'PERLU_PERHATIAN' | 'RUSAK') => setChecklist((prev) => ({ ...prev, [key]: value }));
+  const setCategoryAll = (cat: InspectionCategory, value: 'OK' | 'PERLU_PERHATIAN' | 'RUSAK') => {
+    setChecklist((prev) => {
+      const next = { ...prev };
+      cat.items.forEach((it) => { next[it.key] = value; });
+      return next;
+    });
+  };
+  const pickPhoto = (category: string, f: File | null) => {
+    if (!f) {
+      setPhotos((prev) => { const next = { ...prev }; delete next[category]; return next; });
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+      toast.error('Format foto harus JPG, PNG, atau WEBP.');
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran foto maksimal 5 MB.');
+      return;
+    }
+    setPhotos((prev) => ({ ...prev, [category]: { file: f, preview: URL.createObjectURL(f) } }));
+  };
 
   return (
     <ModalShell title="Inspeksi Berkala" icon={<ClipboardCheck size={16} className="text-teal-600" />} onClose={onClose} wide>
       <form onSubmit={submit} className="p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Field label="Tanggal" type="date" value={tanggal} onChange={setTanggal} />
           <Field label="Odometer" type="number" value={odometer} onChange={setOdometer} />
+          <label className="block">
+            <span className="block text-xs font-medium text-gray-500 mb-1">Level BBM</span>
+            <select
+              value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="">— Pilih —</option>
+              {FUEL_LEVELS.map((lv) => <option key={lv} value={lv}>{FUEL_LEVEL_LABELS[lv]}</option>)}
+            </select>
+          </label>
+          <Field label="Interval Inspeksi (hari)" type="number" value={intervalDays} onChange={setIntervalDays} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="block text-xs font-medium text-gray-500 mb-1">Inspektor</span>
+            <SearchableSelect
+              value={inspectorUserId}
+              onChange={(v: string) => {
+                setInspectorUserId(v);
+                setInspectorName(users.find((u: any) => u.id === v)?.fullName ?? '');
+              }}
+              options={users.map((u: any) => ({ value: u.id, label: u.fullName }))}
+              placeholder="Pilih inspektor..."
+            />
+          </label>
+          <Field label="Nama Inspektor (bila di luar daftar user)" value={inspectorName} onChange={setInspectorName} />
+        </div>
+
+        <div className="rounded-lg bg-teal-50 ring-1 ring-teal-100 px-3 py-2 text-xs text-teal-800 flex items-center gap-2">
+          <CalendarClock size={14} />
+          Jadwal inspeksi berikutnya: <strong>{nextDueDate ? formatDate(nextDueDate) : '—'}</strong>
         </div>
 
         <div>
-          <span className="block text-xs font-medium text-gray-500 mb-2">Checklist Komponen</span>
-          <div className="grid grid-cols-2 gap-2">
-            {checkpoints.map((cp) => (
-              <div key={cp} className="flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg">
-                <span className="text-sm text-gray-700">{CHECKPOINT_LABELS[cp] ?? cp}</span>
-                <div className="flex items-center gap-1">
-                  {(['OK', 'PERLU_PERHATIAN', 'RUSAK'] as const).map((v) => (
-                    <button
-                      key={v} type="button" onClick={() => setPoint(cp, v)}
-                      className={cn(
-                        'text-[10px] font-medium px-2 py-1 rounded-full',
-                        checklist[cp] === v
-                          ? v === 'OK' ? 'bg-green-600 text-white' : v === 'PERLU_PERHATIAN' ? 'bg-amber-500 text-white' : 'bg-red-600 text-white'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
+          <div className="flex items-center justify-between mb-2">
+            <span className="block text-xs font-medium text-gray-500">Checklist Komponen (per kategori)</span>
+            <span className="text-[11px] text-gray-400">{filledCount}/{allItems.length} terisi</span>
+          </div>
+          <div className="space-y-2">
+            {categories.map((cat) => {
+              const isOpen = !!openCats[cat.key];
+              const catFilled = cat.items.filter((it) => checklist[it.key]).length;
+              const catWorst = cat.items.some((it) => checklist[it.key] === 'RUSAK') ? 'RUSAK'
+                : cat.items.some((it) => checklist[it.key] === 'PERLU_PERHATIAN') ? 'PERLU_PERHATIAN'
+                  : catFilled > 0 ? 'OK' : null;
+              return (
+                <div key={cat.key} className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOpenCats((prev) => ({ ...prev, [cat.key]: !prev[cat.key] }))}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                      {isOpen ? <ChevronDown size={15} className="text-gray-400" /> : <ChevronRight size={15} className="text-gray-400" />}
+                      {cat.label}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {catWorst && (
+                        <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', CHECK_STATE_BADGE[catWorst])}>
+                          {CHECK_STATE_LABELS[catWorst]}
+                        </span>
                       )}
-                    >
-                      {v === 'OK' ? 'OK' : v === 'PERLU_PERHATIAN' ? 'Perhatian' : 'Rusak'}
-                    </button>
-                  ))}
+                      <span className="text-[11px] text-gray-400">{catFilled}/{cat.items.length}</span>
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-center gap-2 pb-1">
+                        <span className="text-[11px] text-gray-400">Tandai semua:</span>
+                        {(['OK', 'PERLU_PERHATIAN', 'RUSAK'] as const).map((v) => (
+                          <button
+                            key={v} type="button" onClick={() => setCategoryAll(cat, v)}
+                            className="text-[10px] font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          >
+                            {CHECK_STATE_LABELS[v]}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {cat.items.map((it) => (
+                          <div key={it.key} className="flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg">
+                            <span className="text-sm text-gray-700">{it.label}</span>
+                            <div className="flex items-center gap-1">
+                              {(['OK', 'PERLU_PERHATIAN', 'RUSAK'] as const).map((v) => (
+                                <button
+                                  key={v} type="button" onClick={() => setPoint(it.key, v)}
+                                  className={cn(
+                                    'text-[10px] font-medium px-2 py-1 rounded-full',
+                                    checklist[it.key] === v
+                                      ? v === 'OK' ? 'bg-green-600 text-white' : v === 'PERLU_PERHATIAN' ? 'bg-amber-500 text-white' : 'bg-red-600 text-white'
+                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
+                                  )}
+                                >
+                                  {CHECK_STATE_LABELS[v]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Foto bukti visual — 1 per kategori */}
+                      <div className="pt-1">
+                        {photos[cat.key] ? (
+                          <div className="flex items-center gap-3">
+                            <div className="relative inline-block">
+                              <img src={photos[cat.key]!.preview} alt={`Foto ${cat.label}`} className="h-20 rounded-lg border border-gray-200 object-cover" />
+                              <button
+                                type="button" onClick={() => pickPhoto(cat.key, null)} title="Batalkan foto"
+                                className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-gray-700 text-white hover:bg-red-600"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                            <span className="text-[11px] text-gray-400">Foto diunggah setelah inspeksi disimpan.</span>
+                          </div>
+                        ) : (
+                          <label className="flex items-center gap-2 w-fit px-3 py-2 text-xs border border-dashed border-gray-300 rounded-lg cursor-pointer text-gray-500 hover:bg-gray-50 hover:border-teal-400">
+                            <Camera size={14} className="text-gray-400" />
+                            Foto bukti {cat.label} (opsional, maks 5 MB)
+                            <input
+                              type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                              onChange={(e) => pickPhoto(cat.key, e.target.files?.[0] ?? null)}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -1691,12 +2024,119 @@ function InspectionModal({ assetId, onClose, onSaved }: { assetId: string; onClo
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-          <button type="submit" disabled={mut.isPending || !tanggal} className="btn-primary bg-teal-600 hover:bg-teal-700">
+          <button type="submit" disabled={mut.isPending || !tanggal || filledCount === 0} className="btn-primary bg-teal-600 hover:bg-teal-700">
             {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
           </button>
         </div>
       </form>
     </ModalShell>
+  );
+}
+
+/** Detail satu inspeksi (checklist per kategori + foto) di baris riwayat. */
+function InspectionDetail({ assetId, inspection, canEdit, onPhotoDeleted }: {
+  assetId: string;
+  inspection: any;
+  canEdit: boolean;
+  onPhotoDeleted: () => void;
+}) {
+  const { data: categories = INSPECTION_CATEGORY_FALLBACK } = useQuery<InspectionCategory[]>({
+    queryKey: ['ga-inspection-categories'],
+    queryFn: async () => {
+      const data = (await api.get('/ga/vehicle/inspection-categories')).data;
+      return Array.isArray(data) && data.length > 0 ? data : INSPECTION_CATEGORY_FALLBACK;
+    },
+  });
+
+  const deletePhoto = useMutation({
+    mutationFn: (photoId: string) => api.delete(`/ga/vehicle/assets/${assetId}/inspections/${inspection.id}/photos/${photoId}`),
+    onSuccess: () => { toast.success('Foto dihapus.'); onPhotoDeleted(); },
+    onError: () => toast.error('Gagal menghapus foto.'),
+  });
+
+  const checklist: Record<string, string> = inspection.checklist ?? {};
+  const photos: any[] = inspection.photos ?? [];
+
+  // Kelompokkan checklist ke kategori yang dikenal. Item yang tak masuk kategori
+  // mana pun (format LAMA 12-item) ditampilkan di grup "Checklist (format lama)"
+  // supaya data historis tetap terbaca, tidak hilang/blank.
+  const knownKeys = new Set(categories.flatMap((c) => c.items.map((i) => i.key)));
+  const legacyKeys = Object.keys(checklist).filter((k) => !knownKeys.has(k));
+
+  const photosByCategory = photos.reduce<Record<string, any[]>>((acc, p) => {
+    (acc[p.category] ||= []).push(p);
+    return acc;
+  }, {});
+
+  const renderItems = (keys: string[]) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+      {keys.map((k) => (
+        <div key={k} className="flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg">
+          <span className="text-xs text-gray-600">{CHECKPOINT_LABELS[k] ?? k}</span>
+          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', CHECK_STATE_BADGE[checklist[k]!] ?? 'bg-gray-100 text-gray-500')}>
+            {CHECK_STATE_LABELS[checklist[k]!] ?? checklist[k]}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="p-4 bg-gray-50 space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div><span className="text-gray-400 block">Inspektor</span><span className="text-gray-800">{inspection.inspectorName || '—'}</span></div>
+        <div><span className="text-gray-400 block">Level BBM</span><span className="text-gray-800">{inspection.fuelLevel ? (FUEL_LEVEL_LABELS[inspection.fuelLevel] ?? inspection.fuelLevel) : '—'}</span></div>
+        <div><span className="text-gray-400 block">Inspeksi Berikutnya</span><span className={cn(dueBadgeClass(inspection.nextDueDate, true))}>{inspection.nextDueDate ? formatDate(inspection.nextDueDate) : '—'}</span></div>
+        <div><span className="text-gray-400 block">Odometer</span><span className="text-gray-800 font-mono tabular-nums">{inspection.odometer != null ? Number(inspection.odometer).toLocaleString('id-ID') : '—'}</span></div>
+      </div>
+
+      {categories.map((cat) => {
+        const keys = cat.items.map((i) => i.key).filter((k) => checklist[k]);
+        const catPhotos = photosByCategory[cat.key] ?? [];
+        if (keys.length === 0 && catPhotos.length === 0) return null;
+        return (
+          <div key={cat.key}>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{cat.label}</p>
+            {keys.length > 0 && renderItems(keys)}
+            {catPhotos.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {catPhotos.map((ph) => (
+                  <div key={ph.id} className="relative group">
+                    <img src={`/uploads/${ph.filePath}`} alt={`Foto ${cat.label}`} className="h-24 w-32 object-cover rounded-lg border border-gray-200" />
+                    {canEdit && (
+                      <button
+                        type="button" onClick={() => deletePhoto.mutate(ph.id)} title="Hapus foto"
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {legacyKeys.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Checklist (format lama)</p>
+          {renderItems(legacyKeys)}
+        </div>
+      )}
+
+      {Object.keys(checklist).length === 0 && (
+        <p className="text-xs text-gray-400">Checklist tidak tersedia untuk inspeksi ini.</p>
+      )}
+
+      {inspection.notes && (
+        <div>
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Catatan</p>
+          <p className="text-xs text-gray-700">{inspection.notes}</p>
+        </div>
+      )}
+    </div>
   );
 }
 

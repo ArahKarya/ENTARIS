@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.17.0';
-export const APP_BUILD_DATE = '2026-07-28';
+export const APP_VERSION = '3.18.0';
+export const APP_BUILD_DATE = '2026-07-31';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {

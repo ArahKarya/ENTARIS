@@ -3,6 +3,10 @@
 // Auth + RBAC ditangani di mount (index.ts), bukan di file ini.
 
 import { Router } from 'express';
+import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs/promises';
+import multer from 'multer';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
@@ -12,6 +16,19 @@ import { handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
 
 const router = Router();
+
+const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
+const INSPECTION_PHOTOS_DIR = path.join(UPLOADS_DIR, 'ga', 'inspections');
+
+// Upload foto inspeksi — pola sama dgn foto aset (memory storage, 5MB, image only).
+const inspectionPhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 // ── Zod schemas ──────────────────────────────────────────────────────
 const VEHICLE_FUEL_TYPES = [
@@ -107,10 +124,95 @@ const VehicleFuelLogSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+// ── Inspeksi berkala: checklist detail per kategori ──────────────────
+// Struktur baru = kategori + sub-item. Key sub-item tetap flat di JSON
+// `checklist` (Record<string, 'OK'|'PERLU_PERHATIAN'|'RUSAK'>) supaya data
+// inspeksi LAMA (12 checkpoint datar) tetap terbaca tanpa migrasi data.
+const VEHICLE_INSPECTION_CATEGORIES = [
+  {
+    key: 'mesin',
+    label: 'Mesin & Cairan',
+    items: [
+      { key: 'oli_mesin', label: 'Oli Mesin' },
+      { key: 'oli_rem', label: 'Oli Rem' },
+      { key: 'air_radiator', label: 'Air Radiator / Coolant' },
+      { key: 'air_aki', label: 'Air Aki' },
+      { key: 'air_wiper', label: 'Air Wiper' },
+    ],
+  },
+  {
+    key: 'kelistrikan',
+    label: 'Kelistrikan',
+    items: [
+      { key: 'lampu_depan', label: 'Lampu Depan' },
+      { key: 'lampu_belakang', label: 'Lampu Belakang' },
+      { key: 'lampu_sein', label: 'Lampu Sein' },
+      { key: 'lampu_rem', label: 'Lampu Rem' },
+      { key: 'lampu_mundur', label: 'Lampu Mundur' },
+      { key: 'klakson', label: 'Klakson' },
+    ],
+  },
+  {
+    key: 'rem_kemudi',
+    label: 'Rem & Kemudi',
+    items: [
+      { key: 'rem_depan', label: 'Rem Depan' },
+      { key: 'rem_belakang', label: 'Rem Belakang' },
+      { key: 'rem_tangan', label: 'Rem Tangan' },
+      { key: 'kemudi_suspensi', label: 'Kemudi / Suspensi' },
+    ],
+  },
+  {
+    key: 'ban_roda',
+    label: 'Ban & Roda',
+    items: [
+      { key: 'ban_depan', label: 'Ban Depan' },
+      { key: 'ban_belakang', label: 'Ban Belakang' },
+      { key: 'ban_serep', label: 'Ban Serep' },
+      { key: 'tekanan_ban', label: 'Tekanan Ban' },
+      { key: 'velg', label: 'Velg' },
+    ],
+  },
+  {
+    key: 'keselamatan',
+    label: 'Keselamatan',
+    items: [
+      { key: 'sabuk_pengaman', label: 'Sabuk Pengaman' },
+      { key: 'p3k', label: 'P3K' },
+      { key: 'apar', label: 'APAR' },
+      { key: 'segitiga_pengaman', label: 'Segitiga Pengaman' },
+      { key: 'dongkrak', label: 'Dongkrak' },
+      { key: 'kunci_roda', label: 'Kunci Roda' },
+    ],
+  },
+  {
+    key: 'lain',
+    label: 'Lain-lain',
+    items: [
+      { key: 'kaca_spion', label: 'Kaca Spion' },
+      { key: 'kaca_depan', label: 'Kaca Depan' },
+      { key: 'kaca_belakang', label: 'Kaca Belakang' },
+      { key: 'wiper', label: 'Wiper' },
+      { key: 'ac', label: 'AC' },
+      { key: 'body_cat', label: 'Body / Cat' },
+      { key: 'dashboard_indikator', label: 'Dashboard / Indikator' },
+    ],
+  },
+] as const;
+
+const VEHICLE_INSPECTION_CATEGORY_KEYS = VEHICLE_INSPECTION_CATEGORIES.map((c) => c.key) as unknown as string[];
+
+// Checkpoint format LAMA (12 item datar) — dipertahankan supaya riwayat inspeksi
+// lama tetap punya label yang benar di FE. Endpoint checkpoints legacy tetap ada.
 const VEHICLE_INSPECTION_CHECKPOINTS = [
   'ban', 'rem', 'oli', 'lampu', 'klakson', 'wiper', 'kaca_spion', 'sabuk_pengaman',
   'ac', 'aki', 'radiator', 'kelengkapan_p3k_apar',
 ] as const;
+
+const VEHICLE_FUEL_LEVELS = ['KOSONG', 'SEPEREMPAT', 'SETENGAH', 'TIGA_PEREMPAT', 'PENUH'] as const;
+
+/** Interval default jadwal inspeksi berikutnya (hari). */
+const INSPECTION_DEFAULT_INTERVAL_DAYS = 30;
 
 const VehicleInspectionSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi.'),
@@ -118,6 +220,11 @@ const VehicleInspectionSchema = z.object({
   checklist: z.record(z.string(), z.enum(['OK', 'PERLU_PERHATIAN', 'RUSAK'])),
   overallResult: z.enum(VEHICLE_INSPECTION_RESULTS),
   notes: z.string().optional().nullable(),
+  inspectorName: z.string().max(150).optional().nullable(),
+  inspectorUserId: z.string().max(100).optional().nullable(),
+  fuelLevel: z.enum(VEHICLE_FUEL_LEVELS).optional().nullable(),
+  nextDueDate: z.string().optional().nullable(),
+  intervalDays: z.number().int().min(1).max(730).optional().nullable(),
 });
 
 const VehicleIncidentSchema = z.object({
@@ -694,11 +801,17 @@ router.get('/inspection-checkpoints', async (_req, res) => {
   return res.json(VEHICLE_INSPECTION_CHECKPOINTS);
 });
 
+/** Struktur checklist detail per kategori (dipakai modal inspeksi baru). */
+router.get('/inspection-categories', async (_req, res) => {
+  return res.json(VEHICLE_INSPECTION_CATEGORIES);
+});
+
 router.get('/assets/:id/inspections', async (req, res) => {
   try {
     const items = await prisma.gaVehicleInspection.findMany({
       where: { assetId: String(req.params.id) },
       orderBy: { tanggal: 'desc' },
+      include: { photos: { orderBy: { createdAt: 'asc' } } },
     });
     return res.json(items);
   } catch (error) {
@@ -710,16 +823,34 @@ router.post('/assets/:id/inspections', async (req: AuthRequest, res) => {
   const input = validateBody(VehicleInspectionSchema, req.body, res);
   if (!input) return;
   try {
+    const tanggal = new Date(input.tanggal);
+    // Jadwal inspeksi berikutnya: pakai tanggal eksplisit kalau dikirim,
+    // kalau tidak hitung otomatis = tanggal + interval (default 30 hari).
+    let nextDueDate: Date | null = null;
+    if (input.nextDueDate) {
+      const parsed = new Date(input.nextDueDate);
+      if (!Number.isNaN(parsed.getTime())) nextDueDate = parsed;
+    }
+    if (!nextDueDate && !Number.isNaN(tanggal.getTime())) {
+      const days = input.intervalDays ?? INSPECTION_DEFAULT_INTERVAL_DAYS;
+      nextDueDate = new Date(tanggal.getTime() + days * 24 * 3600 * 1000);
+    }
+
     const created = await prisma.gaVehicleInspection.create({
       data: {
         assetId: String(req.params.id),
-        tanggal: new Date(input.tanggal),
+        tanggal,
         odometer: input.odometer ?? null,
         checklist: input.checklist,
         overallResult: input.overallResult,
         notes: input.notes ?? null,
+        inspectorName: input.inspectorName ?? null,
+        inspectorUserId: input.inspectorUserId ?? null,
+        fuelLevel: input.fuelLevel ?? null,
+        nextDueDate,
         inspectedById: req.user!.userId,
       },
+      include: { photos: true },
     });
     return res.status(201).json(created);
   } catch (error) {
@@ -729,10 +860,68 @@ router.post('/assets/:id/inspections', async (req: AuthRequest, res) => {
 
 router.delete('/assets/:id/inspections/:iid', async (req, res) => {
   try {
+    // Bersihkan file foto fisik dulu; row-nya ikut terhapus lewat cascade FK.
+    const photos = await prisma.gaVehicleInspectionPhoto.findMany({
+      where: { inspectionId: String(req.params.iid) },
+      select: { filePath: true },
+    });
+    await Promise.all(
+      photos.map((p) => fs.unlink(path.join(UPLOADS_DIR, p.filePath)).catch(() => undefined)),
+    );
     await prisma.gaVehicleInspection.delete({ where: { id: String(req.params.iid) } });
     return res.status(204).end();
   } catch (error) {
     return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/inspections/:iid', 'Gagal hapus data inspeksi.');
+  }
+});
+
+// ── Foto bukti inspeksi (1 foto per kategori checklist) ──────────────
+router.post('/assets/:id/inspections/:iid/photos', inspectionPhotoUpload.single('photo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'File wajib diupload.' });
+  const category = String(req.body.category ?? '').trim();
+  if (!category) return res.status(400).json({ error: 'Kategori foto wajib diisi.' });
+  if (!VEHICLE_INSPECTION_CATEGORY_KEYS.includes(category)) {
+    return res.status(400).json({ error: 'Kategori foto tidak dikenal.' });
+  }
+
+  try {
+    const inspection = await prisma.gaVehicleInspection.findUnique({
+      where: { id: String(req.params.iid) },
+      select: { id: true, assetId: true },
+    });
+    if (!inspection || inspection.assetId !== String(req.params.id)) {
+      return res.status(404).json({ error: 'Data inspeksi tidak ditemukan.' });
+    }
+
+    await fs.mkdir(INSPECTION_PHOTOS_DIR, { recursive: true });
+    const ext = req.file.mimetype === 'image/png' ? '.png' : req.file.mimetype === 'image/webp' ? '.webp' : '.jpg';
+    const name = `${crypto.randomUUID()}${ext}`;
+    await fs.writeFile(path.join(INSPECTION_PHOTOS_DIR, name), req.file.buffer);
+
+    const photo = await prisma.gaVehicleInspectionPhoto.create({
+      data: {
+        inspectionId: inspection.id,
+        category,
+        filePath: path.join('ga', 'inspections', name),
+        caption: (req.body.caption as string) || null,
+      },
+    });
+    return res.status(201).json(photo);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/inspections/:iid/photos', 'Gagal upload foto inspeksi.');
+  }
+});
+
+router.delete('/assets/:id/inspections/:iid/photos/:pid', async (req, res) => {
+  try {
+    const photo = await prisma.gaVehicleInspectionPhoto.findUnique({ where: { id: String(req.params.pid) } });
+    if (photo) {
+      await fs.unlink(path.join(UPLOADS_DIR, photo.filePath)).catch(() => undefined);
+      await prisma.gaVehicleInspectionPhoto.delete({ where: { id: photo.id } });
+    }
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/inspections/:iid/photos/:pid', 'Gagal hapus foto inspeksi.');
   }
 });
 
@@ -994,6 +1183,27 @@ router.get('/fleet-summary', async (req: AuthRequest, res) => {
       prisma.gaVehicleFuelLog.aggregate({ where: { tanggal: { gte: monthStart } }, _sum: { totalCost: true } }),
     ]);
 
+    // Reminder inspeksi berkala: pola sama dgn pajak/asuransi (EXPIRED/EXPIRING).
+    // Hanya inspeksi TERAKHIR per kendaraan yang dihitung supaya riwayat lama
+    // tidak ikut menaikkan angka jatuh tempo.
+    const inspections = await prisma.gaVehicleInspection.findMany({
+      where: { nextDueDate: { not: null }, asset: assetWhere },
+      select: { assetId: true, tanggal: true, nextDueDate: true },
+      orderBy: { tanggal: 'desc' },
+    });
+    const latestPerAsset = new Map<string, Date>();
+    for (const insp of inspections) {
+      if (!latestPerAsset.has(insp.assetId) && insp.nextDueDate) {
+        latestPerAsset.set(insp.assetId, insp.nextDueDate);
+      }
+    }
+    let inspectionOverdue = 0;
+    let inspectionDueSoon = 0;
+    for (const due of latestPerAsset.values()) {
+      if (due < now) inspectionOverdue += 1;
+      else if (due <= soon) inspectionDueSoon += 1;
+    }
+
     return res.json({
       totalVehicles,
       taxExpiringSoon,
@@ -1001,6 +1211,9 @@ router.get('/fleet-summary', async (req: AuthRequest, res) => {
       insuranceExpiringSoon,
       insuranceExpired,
       openIncidents,
+      inspectionOverdue,
+      inspectionDueSoon,
+      inspectionNeverDone: Math.max(totalVehicles - latestPerAsset.size, 0),
       serviceCostThisMonth: Number(serviceThisMonth._sum.biaya ?? 0),
       fuelCostThisMonth: Number(fuelThisMonth._sum.totalCost ?? 0),
     });

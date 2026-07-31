@@ -149,6 +149,16 @@ Aplikasi frontend **standalone** di `eam.panganmasadepan.com`, tapi **tetap satu
 - **QR aset publik** tetap bisa diakses tanpa login (scan barcode aset fisik).
 - Modul GA di ERP utama **tetap aktif** dan tersinkron real-time dua arah dengan EAM (data & aksi lewat API + DB yang sama, bukan salinan/replika).
 
+#### 6.1.1 Manajemen Kendaraan (Fleet)
+
+Tersedia identik di ERP utama (menu EAM) maupun aplikasi EAM — data & API sama.
+
+- **Data kendaraan** (plat, merek, tipe, mesin/rangka, BBM, kapasitas tangki, odometer) + penugasan driver/PIC.
+- **Pajak & STNK/KIR, Asuransi** dengan lampiran dokumen dan reminder jatuh tempo.
+- **Log BBM**, **monitoring ban per posisi** (nomor seri), **log ganti oli** dengan target odometer berikutnya.
+- **Inspeksi berkala komprehensif** — checklist 33 sub-item dalam 6 kategori (Mesin & Cairan, Kelistrikan, Rem & Kemudi, Ban & Roda, Keselamatan, Lain-lain) dengan 3 status per sub-item (OK / Perlu Perhatian / Rusak), **foto bukti per kategori**, **nama inspektor**, **level BBM saat inspeksi**, dan **jadwal inspeksi berikutnya otomatis** (default 30 hari) lengkap dengan reminder jatuh tempo serta KPI armada "Inspeksi Jatuh Tempo". Riwayat inspeksi format lama tetap terbaca.
+- **Insiden/kecelakaan**, **riwayat service**, **pengajuan service** dengan flow approval, dan **Report Kendaraan** (analisis biaya & kepatuhan per armada).
+
 ### 7. Laporan & Analisa
 
 Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung ke detail transaksi sumber. **10 laporan keuangan** siap pakai:

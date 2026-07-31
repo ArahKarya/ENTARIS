@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.18.0] - 2026-07-31
+
+### Inspeksi Berkala Kendaraan — Komprehensif
+
+Fitur Inspeksi Berkala di modul Kendaraan (ERP `client/` + EAM `client-eam/`) diperluas dari checklist 12 item datar menjadi inspeksi komprehensif: checklist detail per kategori, foto bukti per kategori, nama inspektor, level BBM, dan jadwal inspeksi berikutnya otomatis.
+
+**Ditambahkan**:
+- Checklist detail 33 sub-item dalam 6 kategori (Mesin & Cairan, Kelistrikan, Rem & Kemudi, Ban & Roda, Keselamatan, Lain-lain) — UI accordion per kategori dengan tombol "tandai semua" per kategori, bukan grid datar 2 kolom
+- Foto bukti per kategori inspeksi (1 foto/kategori, JPG/PNG/WEBP maks 5 MB) — tabel `ga_vehicle_inspection_photos`, endpoint `POST/DELETE /api/ga/vehicle/assets/:id/inspections/:iid/photos`, file di `uploads/ga/inspections/`
+- Kolom `inspector_name`, `inspector_user_id`, `fuel_level` (enum `GaVehicleFuelLevel`: KOSONG/SEPEREMPAT/SETENGAH/TIGA_PEREMPAT/PENUH), `next_due_date` di `ga_vehicle_inspections`
+- Jadwal inspeksi berikutnya dihitung otomatis saat simpan (default interval 30 hari, dapat diubah per inspeksi) + banner reminder status TERLAMBAT / segera jatuh tempo di tab Inspeksi
+- KPI armada "Inspeksi Jatuh Tempo" di `GET /api/ga/vehicle/fleet-summary` (`inspectionOverdue`, `inspectionDueSoon`, `inspectionNeverDone`) — dihitung dari inspeksi terakhir per kendaraan
+- Endpoint `GET /api/ga/vehicle/inspection-categories` (struktur kategori + sub-item untuk FE)
+- Baris riwayat inspeksi bisa di-expand: detail checklist per kategori, foto, inspektor, BBM, jadwal berikutnya
+
+**Kompatibilitas data lama**: checklist tetap disimpan sebagai JSON flat (`{key: OK|PERLU_PERHATIAN|RUSAK}`), jadi inspeksi format lama (12 item) tetap terbaca. Sub-item yang tidak dikenal kategori baru ditampilkan di grup "Checklist (format lama)", bukan blank/error. Endpoint lama `GET /api/ga/vehicle/inspection-checkpoints` tetap ada. Migrasi `20260731000000_ga_vehicle_inspection_detail.sql` additive-only & idempotent (semua kolom baru nullable, backfill `next_due_date` = tanggal + 30 hari untuk data lama).
+
 ## [3.17.0] - 2026-07-28
 
 ### EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo

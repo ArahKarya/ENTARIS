@@ -2166,6 +2166,13 @@ enum GaVehicleInspectionResult {
   PERLU_PERHATIAN
   TIDAK_LAYAK
 }
+enum GaVehicleFuelLevel {
+  KOSONG
+  SEPEREMPAT
+  SETENGAH
+  TIGA_PEREMPAT
+  PENUH
+}
 enum GaVehicleIncidentSeverity {
   RINGAN
   SEDANG
@@ -2781,11 +2788,32 @@ model GaVehicleInspection {
   checklist     Json
   overallResult GaVehicleInspectionResult  @map("overall_result")
   notes         String?
+  inspectorName String?                    @map("inspector_name")
+  inspectorUserId String?                  @map("inspector_user_id")
+  fuelLevel     GaVehicleFuelLevel?        @map("fuel_level")
+  nextDueDate   DateTime?                  @map("next_due_date")
   inspectedById String?                    @map("inspected_by_id")
   createdAt     DateTime                   @default(now()) @map("created_at")
   asset         GaAsset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  photos        GaVehicleInspectionPhoto[]
   @@index([assetId, tanggal])
+  @@index([nextDueDate])
   @@map("ga_vehicle_inspections")
+}
+
+/// Foto bukti visual per KATEGORI checklist inspeksi (mesin/kelistrikan/rem/ban/
+/// keselamatan/lain). Satu inspeksi bisa punya beberapa foto, satu per kategori
+/// (tidak per sub-item — terlalu granular).
+model GaVehicleInspectionPhoto {
+  id           String              @id @default(cuid())
+  inspectionId String              @map("inspection_id")
+  category     String
+  filePath     String              @map("file_path")
+  caption      String?
+  createdAt    DateTime            @default(now()) @map("created_at")
+  inspection   GaVehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  @@index([inspectionId])
+  @@map("ga_vehicle_inspection_photos")
 }
 
 model GaVehicleIncident {
