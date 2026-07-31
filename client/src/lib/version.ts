@@ -3,7 +3,7 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.18.0';
+export const APP_VERSION = '3.18.1';
 export const APP_BUILD_DATE = '2026-07-31';
 export const APP_NAME = 'ERP PMD';
 
@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.18.1',
+    date: '2026-07-31',
+    title: 'Export PDF Hasil Inspeksi Berkala Kendaraan',
+    changes: [
+      'Tombol "PDF" di tiap baris riwayat inspeksi kendaraan: unduh hasil satu inspeksi sebagai dokumen PDF siap cetak/arsip',
+      'Isi PDF: identitas kendaraan, tanggal & odometer, inspektor, level BBM, hasil keseluruhan, jadwal inspeksi berikutnya, checklist per kategori dengan status berwarna (OK/Perlu Perhatian/Rusak), catatan, dan foto bukti per kategori',
+      'Checklist inspeksi format lama tetap ikut tercetak di grup "Checklist (format lama)"',
+      'Foto inspeksi kini diambil lewat endpoint ber-hak-akses (sebelumnya URL /uploads langsung yang tidak ter-serve sehingga gambar tidak tampil)',
+    ],
+  },
   {
     version: '3.18.0',
     date: '2026-07-31',

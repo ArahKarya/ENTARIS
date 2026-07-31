@@ -912,6 +912,36 @@ router.post('/assets/:id/inspections/:iid/photos', inspectionPhotoUpload.single(
   }
 });
 
+// GET file foto inspeksi. /uploads/* TIDAK di-serve sebagai static (request ke
+// sana jatuh ke SPA fallback dan mengembalikan index.html), jadi file dibaca
+// lewat endpoint ber-RBAC ini — dipakai <img> di riwayat maupun export PDF.
+router.get('/assets/:id/inspections/:iid/photos/:pid/file', async (req, res) => {
+  try {
+    const photo = await prisma.gaVehicleInspectionPhoto.findFirst({
+      where: { id: String(req.params.pid), inspectionId: String(req.params.iid) },
+      select: { filePath: true, inspection: { select: { assetId: true } } },
+    });
+    if (!photo || photo.inspection.assetId !== String(req.params.id)) {
+      return res.status(404).json({ error: 'Foto tidak ditemukan.' });
+    }
+
+    // Path-traversal guard: file hasil resolve wajib tetap di dalam UPLOADS_DIR.
+    const full = path.normalize(path.join(UPLOADS_DIR, photo.filePath));
+    if (!full.startsWith(UPLOADS_DIR + path.sep)) {
+      return res.status(400).json({ error: 'Path file tidak valid.' });
+    }
+
+    const ext = path.extname(full).toLowerCase();
+    const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    return res.sendFile(full);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/inspections/:iid/photos/:pid/file', 'Gagal mengambil foto inspeksi.');
+  }
+});
+
 router.delete('/assets/:id/inspections/:iid/photos/:pid', async (req, res) => {
   try {
     const photo = await prisma.gaVehicleInspectionPhoto.findUnique({ where: { id: String(req.params.pid) } });

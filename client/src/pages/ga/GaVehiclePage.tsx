@@ -3,24 +3,28 @@
 // inspeksi berkala, insiden/kecelakaan, riwayat service, dan pengajuan
 // service (approval flow). Dashboard armada (KPI cards) di atas.
 import { useState, useMemo, useEffect, Fragment } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, MouseEvent as ReactMouseEvent } from 'react';
 import {
   Search, Car, Loader2, Save, Plus, Trash2, Wrench, ClipboardList,
   Check, X, XCircle, UserCog, FileWarning, ShieldCheck, Fuel,
   ClipboardCheck, TriangleAlert, TrendingUp, Users, QrCode,
   FileCheck2, Pencil, BarChart3, ChevronDown, ChevronRight,
-  CalendarClock, Camera,
+  CalendarClock, Camera, FileDown,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { pdf } from '@react-pdf/renderer';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
-import { can, cap } from '../../lib/permissions';
+import { can, cap, getStoredUser } from '../../lib/permissions';
 import { formatRupiah, formatDate } from '../../lib/formatters';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AssetPhotoSection } from '../../components/AssetPhotoSection';
 import SearchableSelect from '../../components/SearchableSelect';
 import GaAssetQRModal from '../../components/GaAssetQRModal';
 import GaVehicleReportTab from '../../components/GaVehicleReportTab';
+import InspectionDetailPDF from '../../lib/pdf/InspectionDetailPDF';
+import type { InspectionPdfAsset, InspectionPdfPhoto } from '../../lib/pdf/InspectionDetailPDF';
+import { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
 import { toast } from 'sonner';
 
 const FUEL_TYPES = ['BENSIN', 'SOLAR', 'PERTAMAX', 'PERTALITE', 'DEX', 'LPG', 'LISTRIK', 'HYBRID', 'LAINNYA'] as const;
@@ -888,12 +892,26 @@ export const GaVehiclePage = () => {
                               </td>
                               <td className="text-gray-600 text-sm max-w-xs truncate">{insp.notes || '—'}</td>
                               <td>
-                                {canEdit && (
-                                  <button onClick={(e) => { e.stopPropagation(); setDeleteInspection({ id: insp.id, label: formatDate(insp.tanggal) }); }}
-                                    className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
-                                    <Trash2 size={15} />
-                                  </button>
-                                )}
+                                <div className="flex items-center justify-end gap-1">
+                                  <InspectionPdfButton
+                                    assetId={selectedId!}
+                                    inspection={insp}
+                                    asset={{
+                                      code: selectedAsset.code,
+                                      name: selectedAsset.name,
+                                      noPlat: vehicleData?.noPlat ?? null,
+                                      brand: vehicleData?.brand ?? null,
+                                      tipe: vehicleData?.tipe ?? null,
+                                      categoryName: selectedAsset.category?.name ?? null,
+                                    }}
+                                  />
+                                  {canEdit && (
+                                    <button onClick={(e) => { e.stopPropagation(); setDeleteInspection({ id: insp.id, label: formatDate(insp.tanggal) }); }}
+                                      className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors" title="Hapus">
+                                      <Trash2 size={15} />
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                             {expandedInspection === insp.id && (
@@ -1491,6 +1509,24 @@ function RejectModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (re
   );
 }
 
+// Ambil file foto inspeksi lewat endpoint ber-RBAC lalu ubah jadi data URL.
+// @react-pdf/renderer butuh sumber gambar yang bisa diambil tanpa kredensial
+// cookie saat render, jadi byte-nya di-inline dulu di sini.
+async function fetchInspectionPhotoDataUrl(
+  assetId: string, inspectionId: string, photoId: string,
+): Promise<string> {
+  const res = await api.get(
+    `/ga/vehicle/assets/${assetId}/inspections/${inspectionId}/photos/${photoId}/file`,
+    { responseType: 'blob' },
+  );
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Gagal membaca file foto.'));
+    reader.readAsDataURL(res.data as Blob);
+  });
+}
+
 // Upload dokumen pendukung (scan STNK/KIR/dsb) untuk record pajak/asuransi.
 // Alur: (1) buat GaDocument baru (auto-generate code dari document type),
 // (2) upload file jadi versi 1, (3) PATCH record pajak/asuransi dengan
@@ -2033,6 +2069,79 @@ function InspectionModal({ assetId, onClose, onSaved }: { assetId: string; onClo
   );
 }
 
+/** Tombol export PDF hasil satu inspeksi (per baris riwayat). */
+function InspectionPdfButton({ assetId, inspection, asset }: {
+  assetId: string;
+  inspection: any;
+  asset: InspectionPdfAsset;
+}) {
+  const [busy, setBusy] = useState(false);
+  const company = useCompanyPDF();
+  const queryClient = useQueryClient();
+
+  const handleClick = async (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    setBusy(true);
+    try {
+      // Kategori dipakai untuk urutan & label; ambil dari cache kalau sudah ada.
+      let categories = queryClient.getQueryData<InspectionCategory[]>(['ga-inspection-categories']);
+      if (!categories || categories.length === 0) {
+        const data = (await api.get('/ga/vehicle/inspection-categories')).data;
+        categories = Array.isArray(data) && data.length > 0 ? data : INSPECTION_CATEGORY_FALLBACK;
+        queryClient.setQueryData(['ga-inspection-categories'], categories);
+      }
+
+      const rawPhotos: any[] = inspection.photos ?? [];
+      const photos: InspectionPdfPhoto[] = [];
+      let failedPhotos = 0;
+      for (const ph of rawPhotos) {
+        try {
+          const src = await fetchInspectionPhotoDataUrl(assetId, inspection.id, ph.id);
+          photos.push({ category: ph.category, src, caption: ph.caption ?? null });
+        } catch {
+          failedPhotos += 1;
+        }
+      }
+      if (failedPhotos > 0) toast.warning(`${failedPhotos} foto gagal dimuat, PDF tetap dibuat.`);
+
+      const blob = await pdf(
+        <InspectionDetailPDF
+          inspection={inspection}
+          asset={asset}
+          categories={categories!}
+          photos={photos}
+          company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
+          printedBy={getStoredUser()?.fullName ?? 'Pengguna'}
+          generatedAt={new Date()}
+        />,
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const tgl = String(inspection.tanggal ?? '').slice(0, 10);
+      a.download = `Inspeksi_${asset.noPlat || asset.code}_${tgl}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error ?? 'Gagal membuat PDF inspeksi.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button" onClick={handleClick} disabled={busy} title="Download PDF hasil inspeksi"
+      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded border border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100 disabled:opacity-50 transition-colors"
+    >
+      {busy ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />} PDF
+    </button>
+  );
+}
+
 /** Detail satu inspeksi (checklist per kategori + foto) di baris riwayat. */
 function InspectionDetail({ assetId, inspection, canEdit, onPhotoDeleted }: {
   assetId: string;
@@ -2102,7 +2211,11 @@ function InspectionDetail({ assetId, inspection, canEdit, onPhotoDeleted }: {
               <div className="flex flex-wrap gap-2 mt-2">
                 {catPhotos.map((ph) => (
                   <div key={ph.id} className="relative group">
-                    <img src={`/uploads/${ph.filePath}`} alt={`Foto ${cat.label}`} className="h-24 w-32 object-cover rounded-lg border border-gray-200" />
+                    <img
+                      src={`${api.defaults.baseURL ?? '/api'}/ga/vehicle/assets/${assetId}/inspections/${inspection.id}/photos/${ph.id}/file`}
+                      alt={`Foto ${cat.label}`}
+                      className="h-24 w-32 object-cover rounded-lg border border-gray-200"
+                    />
                     {canEdit && (
                       <button
                         type="button" onClick={() => deletePhoto.mutate(ph.id)} title="Hapus foto"

@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.18.1] - 2026-07-31
+
+### Export PDF Hasil Inspeksi Berkala Kendaraan
+
+Riwayat inspeksi kendaraan kini bisa diunduh sebagai dokumen PDF per record — sebelumnya hasil inspeksi hanya bisa dilihat di layar, dan PDF "Report Kendaraan" yang ada cuma memuat satu baris ringkas inspeksi terakhir (ringkasan TCO/biaya, bukan detail checklist).
+
+**Ditambahkan**:
+- `client/src/lib/pdf/InspectionDetailPDF.tsx` + `client-eam/src/lib/pdf/InspectionDetailPDF.tsx` (identik) — dokumen A4 @react-pdf/renderer berisi header perusahaan + logo, ringkasan (hasil keseluruhan, odometer, level BBM, jadwal inspeksi berikutnya), identitas kendaraan, tabel checklist per kategori dengan status berwarna (OK hijau / Perlu Perhatian amber / Rusak merah), catatan, grid foto bukti per kategori, dan footer "dicetak oleh <user> · <tanggal cetak>" + nomor halaman
+- Tombol "PDF" per baris di tabel riwayat inspeksi (tab Inspeksi, `GaVehiclePage.tsx` ERP + EAM) — nama file `Inspeksi_<plat|kode>_<tanggal>.pdf`
+- `GET /api/ga/vehicle/assets/:id/inspections/:iid/photos/:pid/file` — serve file foto inspeksi lewat route ber-RBAC dengan path-traversal guard
+
+**Diperbaiki**:
+- Foto bukti inspeksi sebelumnya dirujuk sebagai `/uploads/<filePath>` langsung, padahal `/uploads/*` tidak di-serve sebagai static oleh backend (request jatuh ke SPA fallback dan mengembalikan `index.html`), sehingga gambar tidak pernah tampil. Kini `<img>` di riwayat dan gambar di PDF sama-sama memakai endpoint file di atas (di PDF byte-nya di-inline sebagai data URL).
+
+**Kompatibilitas**: checklist format lama (12 item datar) tetap tercetak di PDF pada grup "Checklist (format lama)"; tidak ada perubahan skema DB.
+
 ## [3.18.0] - 2026-07-31
 
 ### Inspeksi Berkala Kendaraan — Komprehensif
