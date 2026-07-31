@@ -6,10 +6,9 @@
  * nilai warna tema di-mirror manual di sini — SATU tempat, bukan hardcode
  * tersebar di tiap file PDF seperti sebelumnya.
  *
- * Sinkron dengan index.css (light mode):
- *   --primary     oklch(0.42 0.13 245)  -> #00508e (steel blue)
- *   --background  putih
- *   --foreground  near-black
+ * CATATAN WARNA: PDF sengaja memakai ABU-ABU NETRAL (#374151 gray-700),
+ * BUKAN steel blue tema web. Dokumen resmi/cetak (invoice, surat jalan)
+ * harus netral supaya logo & isi tidak tenggelam oleh warna brand.
  *
  * Kalau tema UI berubah, ubah HANYA berkas ini.
  */
@@ -17,9 +16,9 @@
 /** Palet berwarna — dipakai laporan analitik & dokumen layar/arsip digital. */
 export const C = {
   // Brand
-  primary: '#00508e',   // = oklch(0.42 0.13 245)
-  primaryLt: '#e4f0fb',
-  accent: '#1e6fb8',
+  primary: '#374151',   // gray-700 — netral dokumen cetak
+  primaryLt: '#f3f4f6',  // gray-100
+  accent: '#4b5563',     // gray-600
 
   // Netral
   dark: '#111827',
