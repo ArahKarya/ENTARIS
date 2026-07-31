@@ -8,7 +8,7 @@ import {
   Search, Car, Loader2, Save, Plus, Trash2, Wrench, ClipboardList,
   Check, X, XCircle, UserCog, FileWarning, ShieldCheck, Fuel,
   ClipboardCheck, TriangleAlert, TrendingUp, Users, QrCode,
-  FileCheck2, Pencil,
+  FileCheck2, Pencil, BarChart3,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
@@ -19,6 +19,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AssetPhotoSection } from '../../components/AssetPhotoSection';
 import SearchableSelect from '../../components/SearchableSelect';
 import GaAssetQRModal from '../../components/GaAssetQRModal';
+import GaVehicleReportTab from '../../components/GaVehicleReportTab';
 import { toast } from 'sonner';
 
 const FUEL_TYPES = ['BENSIN', 'SOLAR', 'PERTAMAX', 'PERTALITE', 'DEX', 'LPG', 'LISTRIK', 'HYBRID', 'LAINNYA'] as const;
@@ -88,7 +89,7 @@ const SR_STATUS_BADGE: Record<string, string> = {
 };
 
 interface Asset { id: string; code: string; name: string; category?: { name?: string } | null }
-type Tab = 'data' | 'pajak' | 'asuransi' | 'bbm' | 'inspeksi' | 'ban' | 'oli' | 'insiden' | 'service';
+type Tab = 'data' | 'pajak' | 'asuransi' | 'bbm' | 'inspeksi' | 'ban' | 'oli' | 'insiden' | 'service' | 'report';
 
 const numOrNull = (v: string): number | null => {
   if (v === '' || v == null) return null;
@@ -382,6 +383,7 @@ export const GaVehiclePage = () => {
     { key: 'oli', label: 'Oli', icon: <Fuel size={14} /> },
     { key: 'insiden', label: 'Insiden', icon: <TriangleAlert size={14} /> },
     { key: 'service', label: 'Service Lain', icon: <Wrench size={14} /> },
+    { key: 'report', label: 'Report', icon: <BarChart3 size={14} /> },
   ];
 
   return (
@@ -931,6 +933,11 @@ export const GaVehiclePage = () => {
                     </div>
                   </div>
                 </>
+              )}
+
+              {/* ── TAB: Report (analisis TCO, kepatuhan, kondisi) ── */}
+              {tab === 'report' && selectedId && (
+                <GaVehicleReportTab assetId={selectedId} />
               )}
             </>
           )}

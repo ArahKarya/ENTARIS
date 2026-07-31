@@ -1009,4 +1009,486 @@ router.get('/fleet-summary', async (req: AuthRequest, res) => {
   }
 });
 
+// ── Report Kendaraan — analisis komprehensif ─────────────────────────
+// Agregat cost breakdown + compliance + condition. Semua read-only dari
+// tabel existing (tidak ada migrasi). Query di-batch via Promise.all agar
+// tidak N+1; fleet-report memakai agregasi in-memory dari satu batch query
+// per tabel sehingga jumlah query tetap konstan berapa pun jumlah kendaraan.
+
+type ReportPeriod = { from: Date; to: Date; months: number };
+
+/** Parse ?from=&to= (YYYY-MM-DD). Default: 12 bulan terakhir. */
+function parseReportPeriod(fromRaw: unknown, toRaw: unknown): ReportPeriod {
+  const now = new Date();
+  const parse = (v: unknown): Date | null => {
+    if (!v) return null;
+    const d = new Date(String(v));
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+  const toParsed = parse(toRaw);
+  const to = toParsed ? new Date(toParsed.getFullYear(), toParsed.getMonth(), toParsed.getDate(), 23, 59, 59, 999)
+    : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const fromParsed = parse(fromRaw);
+  const from = fromParsed ? new Date(fromParsed.getFullYear(), fromParsed.getMonth(), fromParsed.getDate(), 0, 0, 0, 0)
+    : new Date(to.getFullYear(), to.getMonth() - 11, 1, 0, 0, 0, 0);
+  const msPerMonth = 30.44 * 24 * 3600 * 1000;
+  const months = Math.max(1, Math.round((to.getTime() - from.getTime()) / msPerMonth));
+  return { from, to, months };
+}
+
+const monthKey = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const dec = (v: Prisma.Decimal | number | null | undefined): number => Number(v ?? 0);
+
+type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident';
+const COST_CATEGORIES: CostCategory[] = ['service', 'fuel', 'tax', 'insurance', 'incident'];
+
+function emptyBreakdown(): Record<CostCategory, number> {
+  return { service: 0, fuel: 0, tax: 0, insurance: 0, incident: 0 };
+}
+
+/** Rakit trend bulanan kontinu (bulan tanpa data tetap muncul dengan 0). */
+function buildMonthlyTrend(
+  period: ReportPeriod,
+  rows: { month: string; category: CostCategory; amount: number }[],
+) {
+  const buckets = new Map<string, Record<CostCategory, number> & { total: number }>();
+  const cursor = new Date(period.from.getFullYear(), period.from.getMonth(), 1);
+  const last = new Date(period.to.getFullYear(), period.to.getMonth(), 1);
+  while (cursor <= last) {
+    buckets.set(monthKey(cursor), { ...emptyBreakdown(), total: 0 });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  for (const r of rows) {
+    const bucket = buckets.get(r.month);
+    if (!bucket) continue;
+    bucket[r.category] += r.amount;
+    bucket.total += r.amount;
+  }
+  return [...buckets.entries()].map(([month, v]) => ({ month, ...v }));
+}
+
+/** Status kepatuhan dokumen: EXPIRED / EXPIRING (<30 hari) / OK. */
+function complianceState(dueDate: Date | null | undefined, now: Date): 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE' {
+  if (!dueDate) return 'NONE';
+  const days = Math.floor((dueDate.getTime() - now.getTime()) / (24 * 3600 * 1000));
+  if (days < 0) return 'EXPIRED';
+  if (days <= 30) return 'EXPIRING';
+  return 'OK';
+}
+
+const daysUntil = (d: Date | null | undefined, now: Date): number | null =>
+  d ? Math.floor((d.getTime() - now.getTime()) / (24 * 3600 * 1000)) : null;
+
+router.get('/assets/:id/report', async (req: AuthRequest, res) => {
+  const assetId = String(req.params.id);
+  const period = parseReportPeriod(req.query.from, req.query.to);
+  const range = { gte: period.from, lte: period.to };
+  const now = new Date();
+
+  try {
+    const asset = await prisma.gaAsset.findUnique({
+      where: { id: assetId },
+      include: { category: { select: { id: true, name: true } }, vehicleData: true },
+    });
+    if (!asset) return res.status(404).json({ error: 'Aset tidak ditemukan.' });
+
+    const [services, fuels, taxes, insurances, incidents, lastInspection, activeTires, lastOil] = await Promise.all([
+      prisma.gaVehicleServiceLog.findMany({
+        where: { assetId, tanggal: range },
+        select: { tanggal: true, biaya: true, jenisService: true, odometer: true },
+        orderBy: { tanggal: 'asc' },
+      }),
+      prisma.gaVehicleFuelLog.findMany({
+        where: { assetId, tanggal: range },
+        select: { tanggal: true, totalCost: true, liters: true, odometer: true },
+        orderBy: { tanggal: 'asc' },
+      }),
+      prisma.gaVehicleTax.findMany({
+        where: { assetId },
+        select: { type: true, amount: true, paidAt: true, dueDate: true, status: true, periodYear: true },
+        orderBy: { dueDate: 'desc' },
+      }),
+      prisma.gaVehicleInsurance.findMany({
+        where: { assetId },
+        select: { type: true, provider: true, premium: true, startDate: true, endDate: true, status: true },
+        orderBy: { endDate: 'desc' },
+      }),
+      prisma.gaVehicleIncident.findMany({
+        where: { assetId },
+        select: { tanggal: true, severity: true, status: true, actualCost: true, estimatedCost: true, description: true },
+        orderBy: { tanggal: 'desc' },
+      }),
+      prisma.gaVehicleInspection.findFirst({
+        where: { assetId },
+        orderBy: { tanggal: 'desc' },
+        select: { tanggal: true, overallResult: true, odometer: true, notes: true },
+      }),
+      prisma.gaVehicleTire.findMany({
+        where: { assetId, status: 'ACTIVE' },
+        select: { position: true, brand: true, serialNumber: true, installedAt: true, installedOdometer: true },
+        orderBy: { position: 'asc' },
+      }),
+      prisma.gaVehicleOilLog.findFirst({
+        where: { assetId },
+        orderBy: { tanggal: 'desc' },
+        select: { tanggal: true, odometer: true, nextOdometerDue: true, brand: true, volume: true },
+      }),
+    ]);
+
+    // ── TCO breakdown periode ──
+    const breakdown = emptyBreakdown();
+    const trendRows: { month: string; category: CostCategory; amount: number }[] = [];
+
+    for (const s of services) {
+      const amount = dec(s.biaya);
+      breakdown.service += amount;
+      if (amount) trendRows.push({ month: monthKey(s.tanggal), category: 'service', amount });
+    }
+    for (const f of fuels) {
+      const amount = dec(f.totalCost);
+      breakdown.fuel += amount;
+      if (amount) trendRows.push({ month: monthKey(f.tanggal), category: 'fuel', amount });
+    }
+    // Pajak: pakai paidAt sebagai tanggal biaya (hanya yang benar-benar dibayar di periode).
+    for (const t of taxes) {
+      if (!t.paidAt || t.paidAt < period.from || t.paidAt > period.to) continue;
+      const amount = dec(t.amount);
+      breakdown.tax += amount;
+      if (amount) trendRows.push({ month: monthKey(t.paidAt), category: 'tax', amount });
+    }
+    // Asuransi: premi diakui di bulan startDate polis yang mulai dalam periode.
+    for (const i of insurances) {
+      if (i.startDate < period.from || i.startDate > period.to) continue;
+      const amount = dec(i.premium);
+      breakdown.insurance += amount;
+      if (amount) trendRows.push({ month: monthKey(i.startDate), category: 'insurance', amount });
+    }
+    // Insiden: actualCost bila ada, fallback estimatedCost.
+    for (const inc of incidents) {
+      if (inc.tanggal < period.from || inc.tanggal > period.to) continue;
+      const amount = inc.actualCost != null ? dec(inc.actualCost) : dec(inc.estimatedCost);
+      breakdown.incident += amount;
+      if (amount) trendRows.push({ month: monthKey(inc.tanggal), category: 'incident', amount });
+    }
+
+    const totalCost = COST_CATEGORIES.reduce((sum, k) => sum + breakdown[k], 0);
+
+    // ── Cost per KM: pakai rentang odometer dari log service/fuel/oil dalam periode ──
+    const odometers = [
+      ...services.map((s) => s.odometer),
+      ...fuels.map((f) => f.odometer),
+    ].filter((v): v is number => typeof v === 'number' && v > 0);
+    const odoMin = odometers.length ? Math.min(...odometers) : null;
+    const odoMax = odometers.length ? Math.max(...odometers) : null;
+    const distanceKm = odoMin != null && odoMax != null && odoMax > odoMin ? odoMax - odoMin : null;
+    const totalLiters = fuels.reduce((sum, f) => sum + dec(f.liters), 0);
+
+    // ── Compliance ──
+    const activeTaxes = taxes.filter((t) => t.status === 'ACTIVE');
+    const activeInsurances = insurances.filter((i) => i.status === 'ACTIVE');
+    const openIncidents = incidents.filter((i) => i.status === 'DILAPORKAN' || i.status === 'DALAM_PROSES');
+
+    const compliance = {
+      taxes: activeTaxes.map((t) => ({
+        type: t.type,
+        periodYear: t.periodYear,
+        dueDate: t.dueDate,
+        paidAt: t.paidAt,
+        amount: dec(t.amount),
+        state: complianceState(t.dueDate, now),
+        daysRemaining: daysUntil(t.dueDate, now),
+      })),
+      insurances: activeInsurances.map((i) => ({
+        type: i.type,
+        provider: i.provider,
+        endDate: i.endDate,
+        premium: dec(i.premium),
+        state: complianceState(i.endDate, now),
+        daysRemaining: daysUntil(i.endDate, now),
+      })),
+      openIncidents: openIncidents.map((i) => ({
+        tanggal: i.tanggal,
+        severity: i.severity,
+        status: i.status,
+        description: i.description,
+        cost: i.actualCost != null ? dec(i.actualCost) : dec(i.estimatedCost),
+      })),
+      issueCount:
+        activeTaxes.filter((t) => complianceState(t.dueDate, now) !== 'OK').length +
+        activeInsurances.filter((i) => complianceState(i.endDate, now) !== 'OK').length +
+        openIncidents.length,
+    };
+
+    // ── Kondisi ──
+    const odometerTerakhir = asset.vehicleData?.odometerTerakhir ?? null;
+    const oilRemainingKm =
+      lastOil && odometerTerakhir != null ? lastOil.nextOdometerDue - odometerTerakhir : null;
+
+    return res.json({
+      period: { from: period.from, to: period.to, months: period.months },
+      asset: {
+        id: asset.id,
+        code: asset.code,
+        name: asset.name,
+        categoryName: asset.category?.name ?? null,
+        status: asset.status,
+        condition: asset.condition,
+        noPlat: asset.vehicleData?.noPlat ?? null,
+        brand: asset.vehicleData?.brand ?? null,
+        tipe: asset.vehicleData?.tipe ?? null,
+        tahunProduksi: asset.vehicleData?.tahunProduksi ?? null,
+        odometerTerakhir,
+      },
+      tco: {
+        breakdown,
+        totalCost,
+        costPerMonth: totalCost / period.months,
+        distanceKm,
+        costPerKm: distanceKm ? totalCost / distanceKm : null,
+        fuelCostPerKm: distanceKm ? breakdown.fuel / distanceKm : null,
+        totalLiters,
+        kmPerLiter: distanceKm && totalLiters > 0 ? distanceKm / totalLiters : null,
+        counts: {
+          service: services.length,
+          fuel: fuels.length,
+          tax: taxes.filter((t) => t.paidAt && t.paidAt >= period.from && t.paidAt <= period.to).length,
+          insurance: insurances.filter((i) => i.startDate >= period.from && i.startDate <= period.to).length,
+          incident: incidents.filter((i) => i.tanggal >= period.from && i.tanggal <= period.to).length,
+        },
+      },
+      monthlyTrend: buildMonthlyTrend(period, trendRows),
+      compliance,
+      condition: {
+        lastInspection: lastInspection
+          ? {
+              tanggal: lastInspection.tanggal,
+              overallResult: lastInspection.overallResult,
+              odometer: lastInspection.odometer,
+              notes: lastInspection.notes,
+            }
+          : null,
+        activeTires: activeTires.map((t) => ({
+          position: t.position,
+          brand: t.brand,
+          serialNumber: t.serialNumber,
+          installedAt: t.installedAt,
+          installedOdometer: t.installedOdometer,
+          usageKm:
+            t.installedOdometer != null && odometerTerakhir != null
+              ? Math.max(0, odometerTerakhir - t.installedOdometer)
+              : null,
+        })),
+        activeTireCount: activeTires.length,
+        lastOil: lastOil
+          ? {
+              tanggal: lastOil.tanggal,
+              odometer: lastOil.odometer,
+              nextOdometerDue: lastOil.nextOdometerDue,
+              brand: lastOil.brand,
+              volume: dec(lastOil.volume),
+              remainingKm: oilRemainingKm,
+              isDue: oilRemainingKm != null ? oilRemainingKm <= 0 : null,
+            }
+          : null,
+      },
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/assets/:id/report', 'Gagal menyusun report kendaraan.');
+  }
+});
+
+router.get('/fleet-report', async (req: AuthRequest, res) => {
+  const period = parseReportPeriod(req.query.from, req.query.to);
+  const range = { gte: period.from, lte: period.to };
+  const now = new Date();
+  const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
+
+  try {
+    const assetWhere: Prisma.GaAssetWhereInput = {
+      ...(categoryId ? { categoryId } : {}),
+      vehicleData: { isNot: null },
+    };
+    const assets = await prisma.gaAsset.findMany({
+      where: assetWhere,
+      select: {
+        id: true, code: true, name: true, status: true, condition: true,
+        category: { select: { name: true } },
+        vehicleData: { select: { noPlat: true, brand: true, tipe: true, odometerTerakhir: true } },
+      },
+      orderBy: { code: 'asc' },
+    });
+    const assetIds = assets.map((a) => a.id);
+
+    if (assetIds.length === 0) {
+      return res.json({
+        period: { from: period.from, to: period.to, months: period.months },
+        vehicles: [],
+        totals: { ...emptyBreakdown(), totalCost: 0, vehicleCount: 0, costPerVehicle: 0 },
+        distribution: [],
+        topSpenders: [],
+        monthlyTrend: buildMonthlyTrend(period, []),
+        compliance: { taxIssues: 0, insuranceIssues: 0, openIncidents: 0, vehiclesWithIssues: 0 },
+      });
+    }
+
+    const idFilter = { in: assetIds };
+    const [serviceRows, fuelRows, taxRows, insuranceRows, incidentRows, activeTaxes, activeInsurances, openIncidents] =
+      await Promise.all([
+        prisma.gaVehicleServiceLog.findMany({
+          where: { assetId: idFilter, tanggal: range },
+          select: { assetId: true, tanggal: true, biaya: true },
+        }),
+        prisma.gaVehicleFuelLog.findMany({
+          where: { assetId: idFilter, tanggal: range },
+          select: { assetId: true, tanggal: true, totalCost: true, liters: true },
+        }),
+        prisma.gaVehicleTax.findMany({
+          where: { assetId: idFilter, paidAt: range },
+          select: { assetId: true, paidAt: true, amount: true },
+        }),
+        prisma.gaVehicleInsurance.findMany({
+          where: { assetId: idFilter, startDate: range },
+          select: { assetId: true, startDate: true, premium: true },
+        }),
+        prisma.gaVehicleIncident.findMany({
+          where: { assetId: idFilter, tanggal: range },
+          select: { assetId: true, tanggal: true, actualCost: true, estimatedCost: true },
+        }),
+        prisma.gaVehicleTax.findMany({
+          where: { assetId: idFilter, status: 'ACTIVE' },
+          select: { assetId: true, dueDate: true },
+        }),
+        prisma.gaVehicleInsurance.findMany({
+          where: { assetId: idFilter, status: 'ACTIVE' },
+          select: { assetId: true, endDate: true },
+        }),
+        prisma.gaVehicleIncident.findMany({
+          where: { assetId: idFilter, status: { in: ['DILAPORKAN', 'DALAM_PROSES'] } },
+          select: { assetId: true },
+        }),
+      ]);
+
+    const perAsset = new Map<string, Record<CostCategory, number>>();
+    const litersByAsset = new Map<string, number>();
+    const trendRows: { month: string; category: CostCategory; amount: number }[] = [];
+    const bump = (assetId: string, category: CostCategory, amount: number, tanggal: Date) => {
+      if (!perAsset.has(assetId)) perAsset.set(assetId, emptyBreakdown());
+      perAsset.get(assetId)![category] += amount;
+      if (amount) trendRows.push({ month: monthKey(tanggal), category, amount });
+    };
+
+    for (const r of serviceRows) bump(r.assetId, 'service', dec(r.biaya), r.tanggal);
+    for (const r of fuelRows) {
+      bump(r.assetId, 'fuel', dec(r.totalCost), r.tanggal);
+      litersByAsset.set(r.assetId, (litersByAsset.get(r.assetId) ?? 0) + dec(r.liters));
+    }
+    for (const r of taxRows) if (r.paidAt) bump(r.assetId, 'tax', dec(r.amount), r.paidAt);
+    for (const r of insuranceRows) bump(r.assetId, 'insurance', dec(r.premium), r.startDate);
+    for (const r of incidentRows) {
+      bump(r.assetId, 'incident', r.actualCost != null ? dec(r.actualCost) : dec(r.estimatedCost), r.tanggal);
+    }
+
+    // Compliance per aset
+    const taxIssueByAsset = new Map<string, number>();
+    for (const t of activeTaxes) {
+      if (complianceState(t.dueDate, now) === 'OK') continue;
+      taxIssueByAsset.set(t.assetId, (taxIssueByAsset.get(t.assetId) ?? 0) + 1);
+    }
+    const insIssueByAsset = new Map<string, number>();
+    for (const i of activeInsurances) {
+      if (complianceState(i.endDate, now) === 'OK') continue;
+      insIssueByAsset.set(i.assetId, (insIssueByAsset.get(i.assetId) ?? 0) + 1);
+    }
+    const incidentByAsset = new Map<string, number>();
+    for (const i of openIncidents) incidentByAsset.set(i.assetId, (incidentByAsset.get(i.assetId) ?? 0) + 1);
+
+    // Tanggal jatuh tempo terdekat per aset (untuk badge di tabel)
+    const nearestTax = new Map<string, Date>();
+    for (const t of activeTaxes) {
+      const cur = nearestTax.get(t.assetId);
+      if (!cur || t.dueDate < cur) nearestTax.set(t.assetId, t.dueDate);
+    }
+    const nearestIns = new Map<string, Date>();
+    for (const i of activeInsurances) {
+      const cur = nearestIns.get(i.assetId);
+      if (!cur || i.endDate < cur) nearestIns.set(i.assetId, i.endDate);
+    }
+
+    const vehicles = assets.map((a) => {
+      const b = perAsset.get(a.id) ?? emptyBreakdown();
+      const totalCost = COST_CATEGORIES.reduce((sum, k) => sum + b[k], 0);
+      const taxDue = nearestTax.get(a.id) ?? null;
+      const insDue = nearestIns.get(a.id) ?? null;
+      return {
+        assetId: a.id,
+        code: a.code,
+        name: a.name,
+        noPlat: a.vehicleData?.noPlat ?? null,
+        brand: a.vehicleData?.brand ?? null,
+        tipe: a.vehicleData?.tipe ?? null,
+        categoryName: a.category?.name ?? null,
+        status: a.status,
+        condition: a.condition,
+        odometerTerakhir: a.vehicleData?.odometerTerakhir ?? null,
+        breakdown: b,
+        totalCost,
+        costPerMonth: totalCost / period.months,
+        totalLiters: litersByAsset.get(a.id) ?? 0,
+        taxState: complianceState(taxDue, now),
+        taxDueDate: taxDue,
+        insuranceState: complianceState(insDue, now),
+        insuranceEndDate: insDue,
+        openIncidentCount: incidentByAsset.get(a.id) ?? 0,
+        issueCount:
+          (taxIssueByAsset.get(a.id) ?? 0) + (insIssueByAsset.get(a.id) ?? 0) + (incidentByAsset.get(a.id) ?? 0),
+      };
+    });
+
+    const totals = vehicles.reduce(
+      (acc, v) => {
+        for (const k of COST_CATEGORIES) acc[k] += v.breakdown[k];
+        acc.totalCost += v.totalCost;
+        return acc;
+      },
+      { ...emptyBreakdown(), totalCost: 0 },
+    );
+
+    const distribution = COST_CATEGORIES.map((k) => ({
+      category: k,
+      amount: totals[k],
+      percentage: totals.totalCost > 0 ? (totals[k] / totals.totalCost) * 100 : 0,
+    }));
+
+    const topSpenders = [...vehicles]
+      .filter((v) => v.totalCost > 0)
+      .sort((a, b) => b.totalCost - a.totalCost)
+      .slice(0, 10)
+      .map((v) => ({
+        assetId: v.assetId, code: v.code, name: v.name, noPlat: v.noPlat,
+        totalCost: v.totalCost, costPerMonth: v.costPerMonth, breakdown: v.breakdown,
+      }));
+
+    return res.json({
+      period: { from: period.from, to: period.to, months: period.months },
+      vehicles,
+      totals: {
+        ...totals,
+        vehicleCount: vehicles.length,
+        costPerVehicle: vehicles.length ? totals.totalCost / vehicles.length : 0,
+      },
+      distribution,
+      topSpenders,
+      monthlyTrend: buildMonthlyTrend(period, trendRows),
+      compliance: {
+        taxIssues: [...taxIssueByAsset.values()].reduce((a, b) => a + b, 0),
+        insuranceIssues: [...insIssueByAsset.values()].reduce((a, b) => a + b, 0),
+        openIncidents: openIncidents.length,
+        vehiclesWithIssues: vehicles.filter((v) => v.issueCount > 0).length,
+      },
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/fleet-report', 'Gagal menyusun report armada.');
+  }
+});
+
 export default router;

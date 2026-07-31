@@ -10,6 +10,7 @@ import {
   Building2,
   ClipboardList,
   PackageSearch,
+  BarChart3,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -42,6 +43,7 @@ const allNavItems: NavItem[] = [
   { icon: Bell, label: 'Notifikasi', href: '/notifications' },
   { icon: Boxes, label: 'Aset', href: '/ga/assets', module: 'ga_assets' },
   { icon: Car, label: 'Kendaraan', href: '/ga/vehicle', module: 'ga_vehicle' },
+  { icon: BarChart3, label: 'Report Armada', href: '/ga/vehicle/report', module: 'ga_vehicle' },
   { icon: Building2Ga, label: 'Gedung & Sewa', href: '/ga/building', module: 'ga_building' },
   { icon: ScanLine, label: 'Equipment & Kalibrasi', href: '/ga/equipment', module: 'ga_equipment' },
   { icon: Wrench, label: 'Maintenance / WO', href: '/ga/maintenance', module: 'ga_maintenance' },
