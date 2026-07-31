@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { C, BADGE } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
@@ -18,7 +18,10 @@ const S = StyleSheet.create({
   },
 
   // ── Report header ──
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
+  companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
+  companyInfo: { flexDirection: 'column' as const },
   companyName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.primary },
   companyMeta: { fontSize: 7, color: C.muted, marginTop: 1 },
   reportTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: C.dark, textAlign: 'right' },
@@ -72,7 +75,7 @@ function today(): string {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export interface CompanyInfo { name: string; address?: string | null; taxId?: string | null; }
+export interface CompanyInfo { name: string; address?: string | null; taxId?: string | null; logoUrl?: string | null; }
 
 // ── Trial Balance ─────────────────────────────────────────────────────────────
 export interface TrialBalanceRow {
@@ -391,10 +394,13 @@ function ReportHeader({ company, title, period }: { company: CompanyInfo; title:
   return (
     <>
       <View style={S.headerRow} fixed>
-        <View>
-          <Text style={S.companyName}>{company.name}</Text>
-          {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-          {company.taxId   && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+        <View style={S.companyBlock}>
+          {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
+          <View style={S.companyInfo}>
+            <Text style={S.companyName}>{company.name}</Text>
+            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
+            {company.taxId   && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+          </View>
         </View>
         <View>
           <Text style={S.reportTitle}>{title}</Text>

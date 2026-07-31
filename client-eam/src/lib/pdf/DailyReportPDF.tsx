@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import type { CompanyInfo } from './ReportPDF';
 import { C } from './theme';
 
@@ -7,7 +7,10 @@ Font.registerHyphenationCallback((word) => [word]);
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 7.5, color: C.dark, paddingTop: 30, paddingBottom: 50, paddingHorizontal: 30, backgroundColor: C.white },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
+  companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
+  companyInfo: { flexDirection: 'column' as const },
   companyName: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: C.primary },
   companyMeta: { fontSize: 6.5, color: C.muted, marginTop: 1 },
   reportTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.dark, textAlign: 'right' },
@@ -50,10 +53,13 @@ function Header({ company, date }: { company: CompanyInfo; date: string }) {
   return (
     <>
       <View style={S.headerRow} fixed>
-        <View>
-          <Text style={S.companyName}>{company.name}</Text>
-          {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-          {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+        <View style={S.companyBlock}>
+          {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
+          <View style={S.companyInfo}>
+            <Text style={S.companyName}>{company.name}</Text>
+            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
+            {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+          </View>
         </View>
         <View>
           <Text style={S.reportTitle}>LAPORAN HARIAN</Text>

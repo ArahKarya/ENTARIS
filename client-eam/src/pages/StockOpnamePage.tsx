@@ -93,7 +93,7 @@ export function StockOpnamePage() {
                       unitCost: Number(i.unitCost),
                       totalValue: Number(i.totalValue),
                     }))}
-                    company={{ name: companySettings?.companyName || 'Perusahaan', address: companySettings?.address }}
+                    company={{ name: companySettings?.companyName || 'Perusahaan', address: companySettings?.address, logoUrl: companySettings?.logoUrl }}
                   />
                 }
                 fileName={`stok-opname-${detail.opnameNumber}.pdf`}
