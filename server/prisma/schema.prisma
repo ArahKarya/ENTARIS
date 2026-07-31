@@ -53,6 +53,8 @@ model Account {
   fixedAssetsAsAccDep     FixedAsset[]             @relation("AccumulatedDepAccount")
   productionCostStandards ProductionCostStandard[] @relation("CostStandardAccount")
   productionRunCosts      ProductionRunCost[]      @relation("RunCostAccount")
+  gaVehicleServiceExpense GaVehicleServiceLog[]    @relation("GaVehicleServiceExpense")
+  gaVehicleServiceCredit  GaVehicleServiceLog[]    @relation("GaVehicleServiceCredit")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -147,6 +149,7 @@ model JournalEntry {
   customerDepositApplication CustomerDepositApplication?
   depreciationEntries        DepreciationEntry[]
   cogsBackfillSettlements    CogsBackfillSettlement[]    @relation("CogsBackfillJE")
+  gaVehicleServiceLog        GaVehicleServiceLog?        @relation("GaVehicleServiceJournal")
   submittedAt                DateTime?                   @map("submitted_at")
   cancelledAt                DateTime?                   @map("cancelled_at")
   createdAt                  DateTime                    @default(now()) @map("created_at")
@@ -1158,12 +1161,12 @@ model ProductionRun {
   // Semua opsional: run lama / tanpa data OEE tetap valid.
   machineId           String?                @map("machine_id")
   machine             Machine?               @relation("RunMachine", fields: [machineId], references: [id])
-  shift               String?                // "1" | "2" | "3" (atau Pagi/Siang/Malam)
-  shiftLead           String?                @map("shift_lead")        // kepala shift (teks bebas)
-  manpowerCount       Int?                   @map("manpower_count")    // jumlah MP (orang)
-  startAt             DateTime?              @map("start_at")          // mulai produksi
-  endAt               DateTime?              @map("end_at")            // selesai produksi
-  goodQty             Decimal?               @map("good_qty") @db.Decimal(15, 3)   // output good (utk Quality)
+  shift               String? // "1" | "2" | "3" (atau Pagi/Siang/Malam)
+  shiftLead           String?                @map("shift_lead") // kepala shift (teks bebas)
+  manpowerCount       Int?                   @map("manpower_count") // jumlah MP (orang)
+  startAt             DateTime?              @map("start_at") // mulai produksi
+  endAt               DateTime?              @map("end_at") // selesai produksi
+  goodQty             Decimal?               @map("good_qty") @db.Decimal(15, 3) // output good (utk Quality)
   rejectQty           Decimal?               @map("reject_qty") @db.Decimal(15, 3) // afkir/reject
   downtimeMin         Decimal?               @map("downtime_min") @db.Decimal(10, 2) // total downtime (menit)
   availabilityPct     Decimal?               @map("availability_pct") @db.Decimal(5, 2)
@@ -1197,18 +1200,18 @@ model ProductionRun {
 
 // Master mesin produksi — dipakai untuk OEE (kapasitas ideal utk Performance).
 model Machine {
-  id               String               @id @default(uuid())
-  code             String               @unique
+  id               String                 @id @default(uuid())
+  code             String                 @unique
   name             String
-  idealRatePerHour Decimal?             @map("ideal_rate_per_hour") @db.Decimal(15, 3) // kapasitas ideal (kg/jam)
-  unit             String               @default("kg")
-  isActive         Boolean              @default(true) @map("is_active")
+  idealRatePerHour Decimal?               @map("ideal_rate_per_hour") @db.Decimal(15, 3) // kapasitas ideal (kg/jam)
+  unit             String                 @default("kg")
+  isActive         Boolean                @default(true) @map("is_active")
   notes            String?
   productionRuns   ProductionRun[]        @relation("RunMachine")
   runMachines      ProductionRunMachine[]
   downtimes        ProductionDowntime[]
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@map("machines")
@@ -1221,7 +1224,7 @@ model ProductionDowntime {
   productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
   machineId       String?       @map("machine_id")
   machine         Machine?      @relation(fields: [machineId], references: [id])
-  category        String        // Breakdown | Setup | Material | Lain
+  category        String // Breakdown | Setup | Material | Lain
   reason          String?
   durationMin     Decimal       @map("duration_min") @db.Decimal(10, 2)
   createdAt       DateTime      @default(now()) @map("created_at")
@@ -1241,9 +1244,9 @@ model ProductionRunMachine {
   machine         Machine       @relation(fields: [machineId], references: [id])
   startAt         DateTime?     @map("start_at")
   endAt           DateTime?     @map("end_at")
-  runMin          Decimal?      @map("run_min") @db.Decimal(10, 2)        // jam jalan efektif (on − istirahat − downtime)
+  runMin          Decimal?      @map("run_min") @db.Decimal(10, 2) // jam jalan efektif (on − istirahat − downtime)
   downtimeMin     Decimal?      @map("downtime_min") @db.Decimal(10, 2)
-  allocatedQty    Decimal?      @map("allocated_qty") @db.Decimal(15, 3)  // output dialokasi proporsional runMin
+  allocatedQty    Decimal?      @map("allocated_qty") @db.Decimal(15, 3) // output dialokasi proporsional runMin
   availabilityPct Decimal?      @map("availability_pct") @db.Decimal(5, 2)
   performancePct  Decimal?      @map("performance_pct") @db.Decimal(5, 2)
   qualityPct      Decimal?      @map("quality_pct") @db.Decimal(5, 2)
@@ -2052,32 +2055,38 @@ enum GaAssetStatus {
   RETIRED
   LOST
 }
+
 enum GaAssetCondition {
   GOOD
   FAIR
   POOR
   BROKEN
 }
+
 enum GaDocumentStatus {
   ACTIVE
   EXPIRED
   REVOKED
   ARCHIVED
 }
+
 enum GaInventoryType {
   SPAREPART
   CONSUMABLE
 }
+
 enum GaMovementType {
   IN
   OUT
   TRANSFER
   ADJUSTMENT
 }
+
 enum GaWorkOrderType {
   PREVENTIVE
   CORRECTIVE
 }
+
 enum GaWorkOrderStatus {
   OPEN
   ASSIGNED
@@ -2086,16 +2095,19 @@ enum GaWorkOrderStatus {
   CLOSED
   CANCELLED
 }
+
 enum GaWorkOrderPriority {
   LOW
   MEDIUM
   HIGH
   URGENT
 }
+
 enum GaWorkOrderPhotoType {
   BEFORE
   AFTER
 }
+
 enum GaMaterialRequestStatus {
   DRAFT
   SUBMITTED
@@ -2104,6 +2116,7 @@ enum GaMaterialRequestStatus {
   FULFILLED
   CANCELLED
 }
+
 enum GaProcurementStatus {
   REQUESTED
   QUOTED
@@ -2111,6 +2124,7 @@ enum GaProcurementStatus {
   RECEIVED
   CANCELLED
 }
+
 enum GaVehicleFuelType {
   BENSIN
   SOLAR
@@ -2122,6 +2136,7 @@ enum GaVehicleFuelType {
   HYBRID
   LAINNYA
 }
+
 enum GaVehicleServiceType {
   OLI
   TUNE_UP
@@ -2132,6 +2147,7 @@ enum GaVehicleServiceType {
   AC
   LAINNYA
 }
+
 enum GaVehicleServiceRequestStatus {
   SUBMITTED
   APPROVED
@@ -2139,33 +2155,39 @@ enum GaVehicleServiceRequestStatus {
   COMPLETED
   CANCELLED
 }
+
 enum GaVehicleTaxType {
   STNK_TAHUNAN
   STNK_5_TAHUNAN
   KIR
   PAJAK_KENDARAAN
 }
+
 enum GaVehicleTaxStatus {
   ACTIVE
   EXPIRED
   IN_PROCESS
 }
+
 enum GaVehicleInsuranceType {
   ALL_RISK
   TLO
   KECELAKAAN_DIRI
   LAINNYA
 }
+
 enum GaVehicleInsuranceStatus {
   ACTIVE
   EXPIRED
   CANCELLED
 }
+
 enum GaVehicleInspectionResult {
   BAIK
   PERLU_PERHATIAN
   TIDAK_LAYAK
 }
+
 enum GaVehicleFuelLevel {
   KOSONG
   SEPEREMPAT
@@ -2173,17 +2195,20 @@ enum GaVehicleFuelLevel {
   TIGA_PEREMPAT
   PENUH
 }
+
 enum GaVehicleIncidentSeverity {
   RINGAN
   SEDANG
   BERAT
 }
+
 enum GaVehicleIncidentStatus {
   DILAPORKAN
   DALAM_PROSES
   SELESAI
   KLAIM_ASURANSI
 }
+
 enum GaVehicleTirePosition {
   DEPAN_KIRI
   DEPAN_KANAN
@@ -2195,11 +2220,13 @@ enum GaVehicleTirePosition {
   BELAKANG_KANAN_LUAR
   CADANGAN
 }
+
 enum GaVehicleTireStatus {
   ACTIVE
   ARCHIVED
   SPARE
 }
+
 enum GaBuildingType {
   KANTOR
   GUDANG
@@ -2209,12 +2236,14 @@ enum GaBuildingType {
   RUKO
   LAINNYA
 }
+
 enum GaBuildingOwnership {
   MILIK_SENDIRI
   SEWA_MASUK
   SEWA_KELUAR
   PINJAM_PAKAI
 }
+
 enum GaLandCertificateType {
   HM
   HGB
@@ -2223,93 +2252,102 @@ enum GaLandCertificateType {
   GIRIK
   BELUM_SERTIFIKAT
 }
+
 enum GaBuildingRentalArah {
   SEWA_MASUK
   SEWA_KELUAR
 }
+
 enum GaBuildingRentalPeriode {
   BULANAN
   TAHUNAN
 }
+
 enum GaBuildingRentalStatus {
   AKTIF
   BERAKHIR
   DIBATALKAN
 }
+
 enum GaWeighingUnit {
   KG
   GRAM
   TON
   LBS
 }
+
 enum GaCalibrationResult {
   PASS
   FAIL
   CONDITIONAL
 }
+
 enum GaCalibrationMode {
   ON_SITE
   SHIPPED
 }
 
 model GaBranch {
-  id        String        @id @default(cuid())
-  code      String        @unique
-  name      String
-  address   String?
-  isActive  Boolean       @default(true) @map("is_active")
-  createdAt DateTime      @default(now()) @map("created_at")
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  address     String?
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_at")
   costCenters GaCostCenter[]
-  assets    GaAsset[]
-  locations GaLocation[]
+  assets      GaAsset[]
+  locations   GaLocation[]
+
   @@map("ga_branches")
 }
 
 model GaCostCenter {
-  id       String   @id @default(cuid())
-  code     String   @unique
+  id       String    @id @default(cuid())
+  code     String    @unique
   name     String
-  branchId String   @map("branch_id")
-  isActive Boolean  @default(true) @map("is_active")
-  branch   GaBranch @relation(fields: [branchId], references: [id])
+  branchId String    @map("branch_id")
+  isActive Boolean   @default(true) @map("is_active")
+  branch   GaBranch  @relation(fields: [branchId], references: [id])
   assets   GaAsset[]
+
   @@index([branchId])
   @@map("ga_cost_centers")
 }
 
 model GaAssetCategory {
-  id                         String  @id @default(cuid())
-  code                       String  @unique
+  id                         String    @id @default(cuid())
+  code                       String    @unique
   name                       String
-  customFieldsSchema         Json?   @map("custom_fields_schema")
-  maintenanceChecklistSchema Json?   @map("maintenance_checklist_schema")
-  isActive                   Boolean @default(true) @map("is_active")
+  customFieldsSchema         Json?     @map("custom_fields_schema")
+  maintenanceChecklistSchema Json?     @map("maintenance_checklist_schema")
+  isActive                   Boolean   @default(true) @map("is_active")
   assets                     GaAsset[]
+
   @@map("ga_asset_categories")
 }
 
 model GaAsset {
-  id                           String           @id @default(cuid())
-  code                         String           @unique
+  id                           String                    @id @default(cuid())
+  code                         String                    @unique
   name                         String
-  categoryId                   String           @map("category_id")
-  branchId                     String           @map("branch_id")
-  costCenterId                 String?          @map("cost_center_id")
-  picUserId                    String?          @map("pic_user_id")
-  serialNumber                 String?          @map("serial_number")
-  acquisitionDate              DateTime?        @map("acquisition_date")
-  acquisitionCost              Decimal?         @map("acquisition_cost") @db.Decimal(18, 2)
-  status                       GaAssetStatus    @default(ACTIVE)
-  condition                    GaAssetCondition @default(GOOD)
+  categoryId                   String                    @map("category_id")
+  branchId                     String                    @map("branch_id")
+  costCenterId                 String?                   @map("cost_center_id")
+  picUserId                    String?                   @map("pic_user_id")
+  serialNumber                 String?                   @map("serial_number")
+  acquisitionDate              DateTime?                 @map("acquisition_date")
+  acquisitionCost              Decimal?                  @map("acquisition_cost") @db.Decimal(18, 2)
+  status                       GaAssetStatus             @default(ACTIVE)
+  condition                    GaAssetCondition          @default(GOOD)
   location                     String?
   notes                        String?
-  customFields                 Json?            @map("custom_fields")
-  maintenanceChecklistOverride Json?            @map("maintenance_checklist_override")
-  createdAt                    DateTime         @default(now()) @map("created_at")
-  updatedAt                    DateTime         @updatedAt @map("updated_at")
-  category                     GaAssetCategory  @relation(fields: [categoryId], references: [id])
-  branch                       GaBranch         @relation(fields: [branchId], references: [id])
-  costCenter                   GaCostCenter?    @relation(fields: [costCenterId], references: [id])
+  customFields                 Json?                     @map("custom_fields")
+  maintenanceChecklistOverride Json?                     @map("maintenance_checklist_override")
+  createdAt                    DateTime                  @default(now()) @map("created_at")
+  updatedAt                    DateTime                  @updatedAt @map("updated_at")
+  category                     GaAssetCategory           @relation(fields: [categoryId], references: [id])
+  branch                       GaBranch                  @relation(fields: [branchId], references: [id])
+  costCenter                   GaCostCenter?             @relation(fields: [costCenterId], references: [id])
   photos                       GaAssetPhoto[]
   qr                           GaAssetQr?
   documents                    GaDocument[]
@@ -2331,6 +2369,7 @@ model GaAsset {
   vehicleIncidents             GaVehicleIncident[]
   vehicleTires                 GaVehicleTire[]
   vehicleOilLogs               GaVehicleOilLog[]
+
   @@index([categoryId])
   @@index([branchId])
   @@index([picUserId])
@@ -2346,6 +2385,7 @@ model GaAssetPhoto {
   orderIdx  Int      @default(0) @map("order_idx")
   createdAt DateTime @default(now()) @map("created_at")
   asset     GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@index([assetId])
   @@map("ga_asset_photos")
 }
@@ -2356,6 +2396,7 @@ model GaAssetQr {
   qrCode    String   @unique @map("qr_code")
   createdAt DateTime @default(now()) @map("created_at")
   asset     GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@map("ga_asset_qrs")
 }
 
@@ -2367,31 +2408,33 @@ model GaDocumentType {
   customFieldsSchema Json?        @map("custom_fields_schema")
   isActive           Boolean      @default(true) @map("is_active")
   documents          GaDocument[]
+
   @@map("ga_document_types")
 }
 
 model GaDocument {
-  id              String             @id @default(cuid())
-  code            String             @unique
-  title           String
-  typeId          String             @map("type_id")
-  assetId         String?            @map("asset_id")
-  issuedBy        String?            @map("issued_by")
-  issuedNumber    String?            @map("issued_number")
-  effectiveDate   DateTime?          @map("effective_date")
-  expiryDate      DateTime?          @map("expiry_date")
-  status          GaDocumentStatus   @default(ACTIVE)
-  customFields    Json?              @map("custom_fields")
-  createdBy       String?            @map("created_by")
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
-  type            GaDocumentType     @relation(fields: [typeId], references: [id])
-  asset           GaAsset?           @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  versions        GaDocumentVersion[]
-  buildingRentals GaBuildingRental[]
-  calibrationLog  GaCalibrationLog?
+  id                String               @id @default(cuid())
+  code              String               @unique
+  title             String
+  typeId            String               @map("type_id")
+  assetId           String?              @map("asset_id")
+  issuedBy          String?              @map("issued_by")
+  issuedNumber      String?              @map("issued_number")
+  effectiveDate     DateTime?            @map("effective_date")
+  expiryDate        DateTime?            @map("expiry_date")
+  status            GaDocumentStatus     @default(ACTIVE)
+  customFields      Json?                @map("custom_fields")
+  createdBy         String?              @map("created_by")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  type              GaDocumentType       @relation(fields: [typeId], references: [id])
+  asset             GaAsset?             @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  versions          GaDocumentVersion[]
+  buildingRentals   GaBuildingRental[]
+  calibrationLog    GaCalibrationLog?
   vehicleTaxes      GaVehicleTax[]
   vehicleInsurances GaVehicleInsurance[]
+
   @@index([typeId])
   @@index([assetId])
   @@index([expiryDate])
@@ -2409,49 +2452,53 @@ model GaDocumentVersion {
   notes      String?
   createdAt  DateTime   @default(now()) @map("created_at")
   document   GaDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
   @@unique([documentId, versionNo])
   @@index([documentId])
   @@map("ga_document_versions")
 }
 
 model GaInventoryCategory {
-  id    String          @id @default(cuid())
-  code  String          @unique
+  id    String            @id @default(cuid())
+  code  String            @unique
   name  String
   type  GaInventoryType
   items GaInventoryItem[]
+
   @@map("ga_inventory_categories")
 }
 
 model GaLocation {
-  id             String              @id @default(cuid())
-  code           String              @unique
-  name           String
-  branchId       String              @map("branch_id")
-  branch         GaBranch            @relation(fields: [branchId], references: [id])
-  stocks         GaStockByLocation[]
-  movsFrom       GaInventoryMovement[] @relation("GaMovFrom")
-  movsTo         GaInventoryMovement[] @relation("GaMovTo")
-  workOrderParts GaWorkOrderPart[]
+  id                   String                  @id @default(cuid())
+  code                 String                  @unique
+  name                 String
+  branchId             String                  @map("branch_id")
+  branch               GaBranch                @relation(fields: [branchId], references: [id])
+  stocks               GaStockByLocation[]
+  movsFrom             GaInventoryMovement[]   @relation("GaMovFrom")
+  movsTo               GaInventoryMovement[]   @relation("GaMovTo")
+  workOrderParts       GaWorkOrderPart[]
   materialRequestItems GaMaterialRequestItem[]
+
   @@index([branchId])
   @@map("ga_locations")
 }
 
 model GaInventoryItem {
-  id             String              @id @default(cuid())
-  sku            String              @unique
-  name           String
-  categoryId     String              @map("category_id")
-  uom            String
-  minStock       Decimal             @default(0) @map("min_stock") @db.Decimal(12, 2)
-  isActive       Boolean             @default(true) @map("is_active")
-  createdAt      DateTime            @default(now()) @map("created_at")
-  category       GaInventoryCategory @relation(fields: [categoryId], references: [id])
-  stocks         GaStockByLocation[]
-  movements      GaInventoryMovement[]
-  workOrderParts GaWorkOrderPart[]
+  id                   String                  @id @default(cuid())
+  sku                  String                  @unique
+  name                 String
+  categoryId           String                  @map("category_id")
+  uom                  String
+  minStock             Decimal                 @default(0) @map("min_stock") @db.Decimal(12, 2)
+  isActive             Boolean                 @default(true) @map("is_active")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  category             GaInventoryCategory     @relation(fields: [categoryId], references: [id])
+  stocks               GaStockByLocation[]
+  movements            GaInventoryMovement[]
+  workOrderParts       GaWorkOrderPart[]
   materialRequestItems GaMaterialRequestItem[]
+
   @@index([categoryId])
   @@map("ga_inventory_items")
 }
@@ -2464,95 +2511,99 @@ model GaStockByLocation {
   updatedAt  DateTime        @updatedAt @map("updated_at")
   item       GaInventoryItem @relation(fields: [itemId], references: [id])
   location   GaLocation      @relation(fields: [locationId], references: [id])
+
   @@unique([itemId, locationId])
   @@index([itemId])
   @@map("ga_stock_by_location")
 }
 
 model GaInventoryMovement {
-  id             String          @id @default(cuid())
-  itemId         String          @map("item_id")
+  id             String           @id @default(cuid())
+  itemId         String           @map("item_id")
   type           GaMovementType
-  quantity       Decimal         @db.Decimal(12, 2)
-  fromLocationId String?         @map("from_location_id")
-  toLocationId   String?         @map("to_location_id")
-  referenceNo    String?         @map("reference_no")
+  quantity       Decimal          @db.Decimal(12, 2)
+  fromLocationId String?          @map("from_location_id")
+  toLocationId   String?          @map("to_location_id")
+  referenceNo    String?          @map("reference_no")
   notes          String?
-  createdBy      String          @map("created_by")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  item           GaInventoryItem @relation(fields: [itemId], references: [id])
-  fromLocation   GaLocation?     @relation("GaMovFrom", fields: [fromLocationId], references: [id])
-  toLocation     GaLocation?     @relation("GaMovTo", fields: [toLocationId], references: [id])
+  createdBy      String           @map("created_by")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  item           GaInventoryItem  @relation(fields: [itemId], references: [id])
+  fromLocation   GaLocation?      @relation("GaMovFrom", fields: [fromLocationId], references: [id])
+  toLocation     GaLocation?      @relation("GaMovTo", fields: [toLocationId], references: [id])
   workOrderPart  GaWorkOrderPart?
+
   @@index([itemId])
   @@index([createdAt])
   @@map("ga_inventory_movements")
 }
 
 model GaMaintenanceSchedule {
-  id            String      @id @default(cuid())
-  assetId       String      @map("asset_id")
-  intervalDays  Int?        @map("interval_days")
-  intervalHours Int?        @map("interval_hours")
-  intervalKm    Int?        @map("interval_km")
-  lastDoneAtKm  Int?        @map("last_done_at_km")
-  nextDueAtKm   Int?        @map("next_due_at_km")
-  nextDueAt     DateTime    @map("next_due_at")
-  lastDoneAt    DateTime?   @map("last_done_at")
-  isActive      Boolean     @default(true) @map("is_active")
+  id            String        @id @default(cuid())
+  assetId       String        @map("asset_id")
+  intervalDays  Int?          @map("interval_days")
+  intervalHours Int?          @map("interval_hours")
+  intervalKm    Int?          @map("interval_km")
+  lastDoneAtKm  Int?          @map("last_done_at_km")
+  nextDueAtKm   Int?          @map("next_due_at_km")
+  nextDueAt     DateTime      @map("next_due_at")
+  lastDoneAt    DateTime?     @map("last_done_at")
+  isActive      Boolean       @default(true) @map("is_active")
   notes         String?
-  createdBy     String      @map("created_by")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-  asset         GaAsset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdBy     String        @map("created_by")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  asset         GaAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
   workOrders    GaWorkOrder[]
+
   @@index([assetId])
   @@index([nextDueAt, isActive])
   @@map("ga_maintenance_schedules")
 }
 
 model GaWorkOrder {
-  id             String                 @id @default(cuid())
-  code           String                 @unique
-  assetId        String                 @map("asset_id")
-  type           GaWorkOrderType
-  status         GaWorkOrderStatus      @default(OPEN)
-  priority       GaWorkOrderPriority    @default(MEDIUM)
-  title          String
-  description    String?
-  reportedById   String?                @map("reported_by_id")
-  reportedAt     DateTime               @default(now()) @map("reported_at")
-  assignedToId   String?                @map("assigned_to_id")
-  assignedAt     DateTime?              @map("assigned_at")
-  assignedById   String?                @map("assigned_by_id")
-  startedAt      DateTime?              @map("started_at")
-  completedAt    DateTime?              @map("completed_at")
-  completedById  String?                @map("completed_by_id")
-  resolution     String?
-  wasLate        Boolean                @default(false) @map("was_late")
-  closedAt       DateTime?              @map("closed_at")
-  closedById     String?                @map("closed_by_id")
-  cancelledAt    DateTime?              @map("cancelled_at")
-  cancelledById  String?                @map("cancelled_by_id")
-  cancelReason   String?                @map("cancel_reason")
-  scheduleId     String?                @map("schedule_id")
-  dueAt          DateTime?              @map("due_at")
-  laborHours     Decimal?               @map("labor_hours") @db.Decimal(6, 2)
-  laborCost      Decimal?               @map("labor_cost") @db.Decimal(14, 2)
-  externalVendor String?                @map("external_vendor")
-  externalCost   Decimal?               @db.Decimal(14, 2) @map("external_cost")
-  component      String?
-  checklist      Json?
-  createdAt      DateTime               @default(now()) @map("created_at")
-  updatedAt      DateTime               @updatedAt @map("updated_at")
-  asset          GaAsset                @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  schedule       GaMaintenanceSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
-  photos         GaWorkOrderPhoto[]
-  parts          GaWorkOrderPart[]
-  materialRequests GaMaterialRequest[]
+  id                String                   @id @default(cuid())
+  code              String                   @unique
+  assetId           String                   @map("asset_id")
+  type              GaWorkOrderType
+  status            GaWorkOrderStatus        @default(OPEN)
+  priority          GaWorkOrderPriority      @default(MEDIUM)
+  title             String
+  description       String?
+  reportedById      String?                  @map("reported_by_id")
+  reportedAt        DateTime                 @default(now()) @map("reported_at")
+  assignedToId      String?                  @map("assigned_to_id")
+  assignedAt        DateTime?                @map("assigned_at")
+  assignedById      String?                  @map("assigned_by_id")
+  startedAt         DateTime?                @map("started_at")
+  completedAt       DateTime?                @map("completed_at")
+  completedById     String?                  @map("completed_by_id")
+  resolution        String?
+  wasLate           Boolean                  @default(false) @map("was_late")
+  closedAt          DateTime?                @map("closed_at")
+  closedById        String?                  @map("closed_by_id")
+  cancelledAt       DateTime?                @map("cancelled_at")
+  cancelledById     String?                  @map("cancelled_by_id")
+  cancelReason      String?                  @map("cancel_reason")
+  scheduleId        String?                  @map("schedule_id")
+  dueAt             DateTime?                @map("due_at")
+  laborHours        Decimal?                 @map("labor_hours") @db.Decimal(6, 2)
+  laborCost         Decimal?                 @map("labor_cost") @db.Decimal(14, 2)
+  externalVendor    String?                  @map("external_vendor")
+  externalCost      Decimal?                 @map("external_cost") @db.Decimal(14, 2)
+  component         String?
+  checklist         Json?
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  asset             GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  schedule          GaMaintenanceSchedule?   @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  photos            GaWorkOrderPhoto[]
+  parts             GaWorkOrderPart[]
+  materialRequests  GaMaterialRequest[]
   vehicleServiceLog GaVehicleServiceLog?
   vehicleServiceReq GaVehicleServiceRequest?
-  calibrationLog GaCalibrationLog?
+  calibrationLog    GaCalibrationLog?
+
   @@index([assetId])
   @@index([status])
   @@index([assignedToId])
@@ -2569,6 +2620,7 @@ model GaWorkOrderPhoto {
   caption     String?
   createdAt   DateTime             @default(now()) @map("created_at")
   workOrder   GaWorkOrder          @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
   @@index([workOrderId])
   @@map("ga_work_order_photos")
 }
@@ -2586,34 +2638,36 @@ model GaWorkOrderPart {
   inventoryItem       GaInventoryItem      @relation(fields: [inventoryItemId], references: [id])
   fromLocation        GaLocation?          @relation(fields: [fromLocationId], references: [id])
   movement            GaInventoryMovement? @relation(fields: [inventoryMovementId], references: [id])
+
   @@index([workOrderId])
   @@index([inventoryItemId])
   @@map("ga_work_order_parts")
 }
 
 model GaMaterialRequest {
-  id            String                  @id @default(cuid())
-  code          String                  @unique
-  status        GaMaterialRequestStatus @default(DRAFT)
-  workOrderId   String?                 @map("work_order_id")
-  assetId       String?                 @map("asset_id")
-  machineTarget String?                 @map("machine_target")
-  notes         String?
-  requestedById String                  @map("requested_by_id")
-  requestedAt   DateTime                @default(now()) @map("requested_at")
-  approvedById  String?                 @map("approved_by_id")
-  approvedAt    DateTime?               @map("approved_at")
-  rejectedById  String?                 @map("rejected_by_id")
-  rejectedAt    DateTime?               @map("rejected_at")
-  rejectReason  String?                 @map("reject_reason")
+  id              String                  @id @default(cuid())
+  code            String                  @unique
+  status          GaMaterialRequestStatus @default(DRAFT)
+  workOrderId     String?                 @map("work_order_id")
+  assetId         String?                 @map("asset_id")
+  machineTarget   String?                 @map("machine_target")
+  notes           String?
+  requestedById   String                  @map("requested_by_id")
+  requestedAt     DateTime                @default(now()) @map("requested_at")
+  approvedById    String?                 @map("approved_by_id")
+  approvedAt      DateTime?               @map("approved_at")
+  rejectedById    String?                 @map("rejected_by_id")
+  rejectedAt      DateTime?               @map("rejected_at")
+  rejectReason    String?                 @map("reject_reason")
   // Forward-compat OPSI B (nullable, tidak dipakai sekarang): link ke PO/GL resmi.
-  purchaseOrderId String?               @map("purchase_order_id")
-  glAccountId     String?               @map("gl_account_id")
-  createdAt     DateTime                @default(now()) @map("created_at")
-  updatedAt     DateTime                @updatedAt @map("updated_at")
-  workOrder     GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
-  asset         GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  items         GaMaterialRequestItem[]
+  purchaseOrderId String?                 @map("purchase_order_id")
+  glAccountId     String?                 @map("gl_account_id")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  workOrder       GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  asset           GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  items           GaMaterialRequestItem[]
+
   @@index([status])
   @@index([workOrderId])
   @@index([assetId])
@@ -2621,91 +2675,104 @@ model GaMaterialRequest {
 }
 
 model GaMaterialRequestItem {
-  id                   String              @id @default(cuid())
-  materialRequestId    String              @map("material_request_id")
-  inventoryItemId      String?             @map("inventory_item_id")
-  itemName             String              @map("item_name")
-  sku                  String?
-  uom                  String
-  quantity             Decimal             @db.Decimal(12, 2)
-  notes                String?
+  id                     String              @id @default(cuid())
+  materialRequestId      String              @map("material_request_id")
+  inventoryItemId        String?             @map("inventory_item_id")
+  itemName               String              @map("item_name")
+  sku                    String?
+  uom                    String
+  quantity               Decimal             @db.Decimal(12, 2)
+  notes                  String?
   // Procurement (diisi bertahap saat pengadaan sparepart).
-  vendorName           String?             @map("vendor_name")
-  unitPrice            Decimal             @default(0) @db.Decimal(14, 2) @map("unit_price")
-  poNumber             String?             @map("po_number")
-  procurementStatus    GaProcurementStatus @default(REQUESTED) @map("procurement_status")
-  receivedQty          Decimal             @default(0) @db.Decimal(12, 2) @map("received_qty")
-  receivedAt           DateTime?           @map("received_at")
-  receivedIntoLocationId String?           @map("received_into_location_id")
-  createdAt            DateTime            @default(now()) @map("created_at")
-  updatedAt            DateTime            @updatedAt @map("updated_at")
-  materialRequest      GaMaterialRequest   @relation(fields: [materialRequestId], references: [id], onDelete: Cascade)
-  inventoryItem        GaInventoryItem?    @relation(fields: [inventoryItemId], references: [id])
-  receivedIntoLocation GaLocation?         @relation(fields: [receivedIntoLocationId], references: [id])
+  vendorName             String?             @map("vendor_name")
+  unitPrice              Decimal             @default(0) @map("unit_price") @db.Decimal(14, 2)
+  poNumber               String?             @map("po_number")
+  procurementStatus      GaProcurementStatus @default(REQUESTED) @map("procurement_status")
+  receivedQty            Decimal             @default(0) @map("received_qty") @db.Decimal(12, 2)
+  receivedAt             DateTime?           @map("received_at")
+  receivedIntoLocationId String?             @map("received_into_location_id")
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  materialRequest        GaMaterialRequest   @relation(fields: [materialRequestId], references: [id], onDelete: Cascade)
+  inventoryItem          GaInventoryItem?    @relation(fields: [inventoryItemId], references: [id])
+  receivedIntoLocation   GaLocation?         @relation(fields: [receivedIntoLocationId], references: [id])
+
   @@index([materialRequestId])
   @@index([inventoryItemId])
   @@map("ga_material_request_items")
 }
 
 model GaVehicleData {
-  id               String           @id @default(cuid())
-  assetId          String           @unique @map("asset_id")
-  noPlat           String?          @unique @map("no_plat")
+  id               String             @id @default(cuid())
+  assetId          String             @unique @map("asset_id")
+  noPlat           String?            @unique @map("no_plat")
   brand            String?
   tipe             String?
-  tahunProduksi    Int?             @map("tahun_produksi")
-  noMesin          String?          @map("no_mesin")
-  noRangka         String?          @map("no_rangka")
+  tahunProduksi    Int?               @map("tahun_produksi")
+  noMesin          String?            @map("no_mesin")
+  noRangka         String?            @map("no_rangka")
   jenisBBM         GaVehicleFuelType? @map("jenis_bbm")
-  kapasitasTangki  Decimal?         @map("kapasitas_tangki") @db.Decimal(8, 2)
+  kapasitasTangki  Decimal?           @map("kapasitas_tangki") @db.Decimal(8, 2)
   warna            String?
-  odometerSaatBeli Int?             @map("odometer_saat_beli")
-  odometerTerakhir Int?             @map("odometer_terakhir")
+  odometerSaatBeli Int?               @map("odometer_saat_beli")
+  odometerTerakhir Int?               @map("odometer_terakhir")
   notes            String?
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
-  asset            GaAsset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  asset            GaAsset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@map("ga_vehicle_data")
 }
 
 model GaVehicleServiceLog {
-  id           String               @id @default(cuid())
-  assetId      String               @map("asset_id")
-  tanggal      DateTime
-  odometer     Int?
-  jenisService GaVehicleServiceType @map("jenis_service")
-  deskripsi    String
-  bengkel      String?
-  biaya        Decimal?             @db.Decimal(14, 2)
-  workOrderId  String?              @unique @map("work_order_id")
-  createdById  String?              @map("created_by_id")
-  createdAt    DateTime             @default(now()) @map("created_at")
-  asset        GaAsset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  workOrder    GaWorkOrder?         @relation(fields: [workOrderId], references: [id])
-  serviceRequest GaVehicleServiceRequest?
+  id              String                   @id @default(cuid())
+  assetId         String                   @map("asset_id")
+  tanggal         DateTime
+  odometer        Int?
+  jenisService    GaVehicleServiceType     @map("jenis_service")
+  deskripsi       String
+  bengkel         String?
+  biaya           Decimal?                 @db.Decimal(14, 2)
+  workOrderId     String?                  @unique @map("work_order_id")
+  journalEntryId  String?                  @unique @map("journal_entry_id")
+  accountId       String?                  @map("account_id")
+  creditAccountId String?                  @map("credit_account_id")
+  source          String                   @default("EAM")
+  externalRef     String?                  @unique @map("external_ref")
+  createdById     String?                  @map("created_by_id")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  asset           GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  workOrder       GaWorkOrder?             @relation(fields: [workOrderId], references: [id])
+  journalEntry    JournalEntry?            @relation("GaVehicleServiceJournal", fields: [journalEntryId], references: [id])
+  account         Account?                 @relation("GaVehicleServiceExpense", fields: [accountId], references: [id])
+  creditAccount   Account?                 @relation("GaVehicleServiceCredit", fields: [creditAccountId], references: [id])
+  serviceRequest  GaVehicleServiceRequest?
+
   @@index([assetId, tanggal])
+  @@index([source])
   @@map("ga_vehicle_service_logs")
 }
 
 model GaVehicleServiceRequest {
-  id             String                      @id @default(cuid())
-  assetId        String                      @map("asset_id")
-  requestedById  String                      @map("requested_by_id")
-  jenisService   GaVehicleServiceType        @map("jenis_service")
+  id             String                        @id @default(cuid())
+  assetId        String                        @map("asset_id")
+  requestedById  String                        @map("requested_by_id")
+  jenisService   GaVehicleServiceType          @map("jenis_service")
   odometer       Int?
   deskripsi      String
-  urgensi        GaWorkOrderPriority         @default(MEDIUM)
+  urgensi        GaWorkOrderPriority           @default(MEDIUM)
   status         GaVehicleServiceRequestStatus @default(SUBMITTED)
-  approvedById   String?                     @map("approved_by_id")
-  approvedAt     DateTime?                   @map("approved_at")
-  rejectedReason String?                     @map("rejected_reason")
-  workOrderId    String?                     @unique @map("work_order_id")
-  serviceLogId   String?                     @unique @map("service_log_id")
-  createdAt      DateTime                    @default(now()) @map("created_at")
-  updatedAt      DateTime                    @updatedAt @map("updated_at")
-  asset          GaAsset                     @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  workOrder      GaWorkOrder?                @relation(fields: [workOrderId], references: [id])
-  serviceLog     GaVehicleServiceLog?        @relation(fields: [serviceLogId], references: [id])
+  approvedById   String?                       @map("approved_by_id")
+  approvedAt     DateTime?                     @map("approved_at")
+  rejectedReason String?                       @map("rejected_reason")
+  workOrderId    String?                       @unique @map("work_order_id")
+  serviceLogId   String?                       @unique @map("service_log_id")
+  createdAt      DateTime                      @default(now()) @map("created_at")
+  updatedAt      DateTime                      @updatedAt @map("updated_at")
+  asset          GaAsset                       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  workOrder      GaWorkOrder?                  @relation(fields: [workOrderId], references: [id])
+  serviceLog     GaVehicleServiceLog?          @relation(fields: [serviceLogId], references: [id])
+
   @@index([assetId])
   @@index([status])
   @@index([requestedById])
@@ -2719,83 +2786,87 @@ model GaVehicleServiceRequest {
 // (pajak tahun ini vs tahun lalu, polis lama vs baru, log BBM per pengisian).
 
 model GaVehicleTax {
-  id            String              @id @default(cuid())
-  assetId       String              @map("asset_id")
-  type          GaVehicleTaxType
-  periodYear    Int                 @map("period_year")
-  amount        Decimal?            @db.Decimal(14, 2)
-  paidAt        DateTime?           @map("paid_at")
-  dueDate       DateTime            @map("due_date")
-  status        GaVehicleTaxStatus  @default(ACTIVE)
-  documentId    String?             @map("document_id")
-  notes         String?
-  createdById   String?             @map("created_by_id")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  updatedAt     DateTime            @updatedAt @map("updated_at")
-  asset         GaAsset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  document      GaDocument?         @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  id          String             @id @default(cuid())
+  assetId     String             @map("asset_id")
+  type        GaVehicleTaxType
+  periodYear  Int                @map("period_year")
+  amount      Decimal?           @db.Decimal(14, 2)
+  paidAt      DateTime?          @map("paid_at")
+  dueDate     DateTime           @map("due_date")
+  status      GaVehicleTaxStatus @default(ACTIVE)
+  documentId  String?            @map("document_id")
+  notes       String?
+  createdById String?            @map("created_by_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  asset       GaAsset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document    GaDocument?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
   @@index([assetId])
   @@index([dueDate, status])
   @@map("ga_vehicle_taxes")
 }
 
 model GaVehicleInsurance {
-  id            String                    @id @default(cuid())
-  assetId       String                    @map("asset_id")
+  id            String                   @id @default(cuid())
+  assetId       String                   @map("asset_id")
   type          GaVehicleInsuranceType
   provider      String
-  policyNumber  String?                   @map("policy_number")
-  premium       Decimal?                  @db.Decimal(14, 2)
-  coverageValue Decimal?                  @map("coverage_value") @db.Decimal(16, 2)
-  startDate     DateTime                  @map("start_date")
-  endDate       DateTime                  @map("end_date")
-  status        GaVehicleInsuranceStatus  @default(ACTIVE)
-  documentId    String?                   @map("document_id")
+  policyNumber  String?                  @map("policy_number")
+  premium       Decimal?                 @db.Decimal(14, 2)
+  coverageValue Decimal?                 @map("coverage_value") @db.Decimal(16, 2)
+  startDate     DateTime                 @map("start_date")
+  endDate       DateTime                 @map("end_date")
+  status        GaVehicleInsuranceStatus @default(ACTIVE)
+  documentId    String?                  @map("document_id")
   notes         String?
-  createdById   String?                   @map("created_by_id")
-  createdAt     DateTime                  @default(now()) @map("created_at")
-  updatedAt     DateTime                  @updatedAt @map("updated_at")
-  asset         GaAsset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  document      GaDocument?               @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  createdById   String?                  @map("created_by_id")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+  asset         GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document      GaDocument?              @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
   @@index([assetId])
   @@index([endDate, status])
   @@map("ga_vehicle_insurances")
 }
 
 model GaVehicleFuelLog {
-  id            String    @id @default(cuid())
-  assetId       String    @map("asset_id")
+  id            String   @id @default(cuid())
+  assetId       String   @map("asset_id")
   tanggal       DateTime
   odometer      Int?
-  liters        Decimal   @db.Decimal(8, 2)
-  pricePerLiter Decimal?  @map("price_per_liter") @db.Decimal(10, 2)
-  totalCost     Decimal   @map("total_cost") @db.Decimal(14, 2)
+  liters        Decimal  @db.Decimal(8, 2)
+  pricePerLiter Decimal? @map("price_per_liter") @db.Decimal(10, 2)
+  totalCost     Decimal  @map("total_cost") @db.Decimal(14, 2)
   spbu          String?
-  driverName    String?   @map("driver_name")
+  driverName    String?  @map("driver_name")
   notes         String?
-  createdById   String?   @map("created_by_id")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  asset         GaAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdById   String?  @map("created_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  asset         GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@index([assetId, tanggal])
   @@map("ga_vehicle_fuel_logs")
 }
 
 model GaVehicleInspection {
-  id            String                     @id @default(cuid())
-  assetId       String                     @map("asset_id")
-  tanggal       DateTime
-  odometer      Int?
-  checklist     Json
-  overallResult GaVehicleInspectionResult  @map("overall_result")
-  notes         String?
-  inspectorName String?                    @map("inspector_name")
-  inspectorUserId String?                  @map("inspector_user_id")
-  fuelLevel     GaVehicleFuelLevel?        @map("fuel_level")
-  nextDueDate   DateTime?                  @map("next_due_date")
-  inspectedById String?                    @map("inspected_by_id")
-  createdAt     DateTime                   @default(now()) @map("created_at")
-  asset         GaAsset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  photos        GaVehicleInspectionPhoto[]
+  id              String                     @id @default(cuid())
+  assetId         String                     @map("asset_id")
+  tanggal         DateTime
+  odometer        Int?
+  checklist       Json
+  overallResult   GaVehicleInspectionResult  @map("overall_result")
+  notes           String?
+  inspectorName   String?                    @map("inspector_name")
+  inspectorUserId String?                    @map("inspector_user_id")
+  fuelLevel       GaVehicleFuelLevel?        @map("fuel_level")
+  nextDueDate     DateTime?                  @map("next_due_date")
+  inspectedById   String?                    @map("inspected_by_id")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  asset           GaAsset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  photos          GaVehicleInspectionPhoto[]
+
   @@index([assetId, tanggal])
   @@index([nextDueDate])
   @@map("ga_vehicle_inspections")
@@ -2812,26 +2883,28 @@ model GaVehicleInspectionPhoto {
   caption      String?
   createdAt    DateTime            @default(now()) @map("created_at")
   inspection   GaVehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
   @@index([inspectionId])
   @@map("ga_vehicle_inspection_photos")
 }
 
 model GaVehicleIncident {
-  id           String                   @id @default(cuid())
-  assetId      String                   @map("asset_id")
-  tanggal      DateTime
-  location     String?
-  driverName   String?                  @map("driver_name")
-  description  String
-  severity     GaVehicleIncidentSeverity
-  status       GaVehicleIncidentStatus  @default(DILAPORKAN)
-  estimatedCost Decimal?                @map("estimated_cost") @db.Decimal(14, 2)
-  actualCost   Decimal?                 @map("actual_cost") @db.Decimal(14, 2)
-  insuranceClaimNo String?              @map("insurance_claim_no")
-  reportedById String?                  @map("reported_by_id")
-  createdAt    DateTime                 @default(now()) @map("created_at")
-  updatedAt    DateTime                 @updatedAt @map("updated_at")
-  asset        GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id               String                    @id @default(cuid())
+  assetId          String                    @map("asset_id")
+  tanggal          DateTime
+  location         String?
+  driverName       String?                   @map("driver_name")
+  description      String
+  severity         GaVehicleIncidentSeverity
+  status           GaVehicleIncidentStatus   @default(DILAPORKAN)
+  estimatedCost    Decimal?                  @map("estimated_cost") @db.Decimal(14, 2)
+  actualCost       Decimal?                  @map("actual_cost") @db.Decimal(14, 2)
+  insuranceClaimNo String?                   @map("insurance_claim_no")
+  reportedById     String?                   @map("reported_by_id")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+  asset            GaAsset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@index([assetId, tanggal])
   @@index([status])
   @@map("ga_vehicle_incidents")
@@ -2857,6 +2930,7 @@ model GaVehicleTire {
   createdAt         DateTime              @default(now()) @map("created_at")
   updatedAt         DateTime              @updatedAt @map("updated_at")
   asset             GaAsset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@unique([assetId, position])
   @@index([assetId])
   @@index([serialNumber])
@@ -2864,111 +2938,116 @@ model GaVehicleTire {
 }
 
 model GaVehicleOilLog {
-  id              String    @id @default(cuid())
-  assetId         String    @map("asset_id")
+  id              String   @id @default(cuid())
+  assetId         String   @map("asset_id")
   tanggal         DateTime
   odometer        Int
-  nextOdometerDue Int       @map("next_odometer_due")
+  nextOdometerDue Int      @map("next_odometer_due")
   brand           String
-  volume          Decimal   @db.Decimal(5, 2)
+  volume          Decimal  @db.Decimal(5, 2)
   notes           String?
-  createdById     String?   @map("created_by_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  asset           GaAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdById     String?  @map("created_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  asset           GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@index([assetId, tanggal])
   @@map("ga_vehicle_oil_logs")
 }
 
 model GaBuildingData {
-  id                String               @id @default(cuid())
-  assetId           String               @unique @map("asset_id")
+  id                String                 @id @default(cuid())
+  assetId           String                 @unique @map("asset_id")
   jenis             GaBuildingType
-  ownership         GaBuildingOwnership  @default(MILIK_SENDIRI)
-  luasTanah         Decimal?             @map("luas_tanah") @db.Decimal(12, 2)
-  luasBangunan      Decimal?             @map("luas_bangunan") @db.Decimal(12, 2)
-  jumlahLantai      Int?                 @map("jumlah_lantai")
-  tahunBangun       Int?                 @map("tahun_bangun")
-  tahunRenovasi     Int?                 @map("tahun_renovasi")
-  alamatLengkap     String?              @map("alamat_lengkap")
+  ownership         GaBuildingOwnership    @default(MILIK_SENDIRI)
+  luasTanah         Decimal?               @map("luas_tanah") @db.Decimal(12, 2)
+  luasBangunan      Decimal?               @map("luas_bangunan") @db.Decimal(12, 2)
+  jumlahLantai      Int?                   @map("jumlah_lantai")
+  tahunBangun       Int?                   @map("tahun_bangun")
+  tahunRenovasi     Int?                   @map("tahun_renovasi")
+  alamatLengkap     String?                @map("alamat_lengkap")
   kelurahan         String?
   kecamatan         String?
   kota              String?
   provinsi          String?
-  kodePos           String?              @map("kode_pos")
+  kodePos           String?                @map("kode_pos")
   certificateType   GaLandCertificateType? @map("certificate_type")
-  certificateNumber String?              @map("certificate_number")
-  njopTanah         Decimal?             @map("njop_tanah") @db.Decimal(16, 2)
-  njopBangunan      Decimal?             @map("njop_bangunan") @db.Decimal(16, 2)
+  certificateNumber String?                @map("certificate_number")
+  njopTanah         Decimal?               @map("njop_tanah") @db.Decimal(16, 2)
+  njopBangunan      Decimal?               @map("njop_bangunan") @db.Decimal(16, 2)
   notes             String?
-  createdAt         DateTime             @default(now()) @map("created_at")
-  updatedAt         DateTime             @updatedAt @map("updated_at")
-  asset             GaAsset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  asset             GaAsset                @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@index([jenis])
   @@index([ownership])
   @@map("ga_building_data")
 }
 
 model GaBuildingRental {
-  id           String                @id @default(cuid())
-  assetId      String                @map("asset_id")
+  id           String                  @id @default(cuid())
+  assetId      String                  @map("asset_id")
   arah         GaBuildingRentalArah
   pihak        String
   kontak       String?
-  nilaiSewa    Decimal               @map("nilai_sewa") @db.Decimal(16, 2)
+  nilaiSewa    Decimal                 @map("nilai_sewa") @db.Decimal(16, 2)
   periode      GaBuildingRentalPeriode
-  tanggalMulai DateTime              @map("tanggal_mulai")
-  tanggalAkhir DateTime              @map("tanggal_akhir")
-  status       GaBuildingRentalStatus @default(AKTIF)
-  documentId   String?               @map("document_id")
+  tanggalMulai DateTime                @map("tanggal_mulai")
+  tanggalAkhir DateTime                @map("tanggal_akhir")
+  status       GaBuildingRentalStatus  @default(AKTIF)
+  documentId   String?                 @map("document_id")
   notes        String?
-  createdById  String?               @map("created_by_id")
-  createdAt    DateTime              @default(now()) @map("created_at")
-  updatedAt    DateTime              @updatedAt @map("updated_at")
-  asset        GaAsset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  document     GaDocument?           @relation(fields: [documentId], references: [id])
+  createdById  String?                 @map("created_by_id")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  asset        GaAsset                 @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document     GaDocument?             @relation(fields: [documentId], references: [id])
+
   @@index([assetId, status])
   @@index([tanggalAkhir])
   @@map("ga_building_rentals")
 }
 
 model GaEquipmentData {
-  id                 String        @id @default(cuid())
-  assetId            String        @unique @map("asset_id")
-  maxCapacity        Decimal?      @map("max_capacity") @db.Decimal(12, 3)
+  id                 String          @id @default(cuid())
+  assetId            String          @unique @map("asset_id")
+  maxCapacity        Decimal?        @map("max_capacity") @db.Decimal(12, 3)
   unit               GaWeighingUnit?
-  accuracy           Decimal?      @db.Decimal(10, 4)
-  classLabel         String?       @map("class_label")
-  defaultCalibrator  String?       @map("default_calibrator")
-  intervalMonths     Int           @default(12) @map("interval_months")
-  lastCalibratedAt   DateTime?     @map("last_calibrated_at")
-  nextCalibrationDue DateTime?     @map("next_calibration_due")
+  accuracy           Decimal?        @db.Decimal(10, 4)
+  classLabel         String?         @map("class_label")
+  defaultCalibrator  String?         @map("default_calibrator")
+  intervalMonths     Int             @default(12) @map("interval_months")
+  lastCalibratedAt   DateTime?       @map("last_calibrated_at")
+  nextCalibrationDue DateTime?       @map("next_calibration_due")
   notes              String?
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
-  asset              GaAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  asset              GaAsset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
   @@index([nextCalibrationDue])
   @@map("ga_equipment_data")
 }
 
 model GaCalibrationLog {
-  id           String            @id @default(cuid())
-  assetId      String            @map("asset_id")
+  id           String              @id @default(cuid())
+  assetId      String              @map("asset_id")
   tanggal      DateTime
   lembaga      String
-  noSertifikat String            @map("no_sertifikat")
-  mode         GaCalibrationMode @default(ON_SITE)
-  biaya        Decimal?          @db.Decimal(14, 2)
+  noSertifikat String              @map("no_sertifikat")
+  mode         GaCalibrationMode   @default(ON_SITE)
+  biaya        Decimal?            @db.Decimal(14, 2)
   hasil        GaCalibrationResult
   deviasi      String?
-  rangeTested  String?           @map("range_tested")
-  validUntil   DateTime          @map("valid_until")
-  documentId   String?           @unique @map("document_id")
-  workOrderId  String?           @unique @map("work_order_id")
-  createdById  String?           @map("created_by_id")
-  createdAt    DateTime          @default(now()) @map("created_at")
-  asset        GaAsset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  document     GaDocument?       @relation(fields: [documentId], references: [id])
-  workOrder    GaWorkOrder?      @relation(fields: [workOrderId], references: [id])
+  rangeTested  String?             @map("range_tested")
+  validUntil   DateTime            @map("valid_until")
+  documentId   String?             @unique @map("document_id")
+  workOrderId  String?             @unique @map("work_order_id")
+  createdById  String?             @map("created_by_id")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  asset        GaAsset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document     GaDocument?         @relation(fields: [documentId], references: [id])
+  workOrder    GaWorkOrder?        @relation(fields: [workOrderId], references: [id])
+
   @@index([assetId, tanggal])
   @@index([validUntil])
   @@map("ga_calibration_logs")
@@ -2996,14 +3075,14 @@ model AiToolConfig {
 /// hanya menyimpan toggle on/off layer agentic + service token untuk auth AIRA
 /// ke ERP Tool Router (Bearer).
 model AiSetting {
-  id             String   @id @default(uuid())
-  agenticEnabled Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
-  serviceToken   String?  @map("service_token") // token AIRA → ERP Tool Router (Bearer)
+  id               String   @id @default(uuid())
+  agenticEnabled   Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
+  serviceToken     String?  @map("service_token") // token AIRA → ERP Tool Router (Bearer)
   // M2-A4: channel aktif (web|telegram|whatsapp). Kosong = SEMUA aktif (fail-safe).
-  activeChannels String[] @default([]) @map("active_channels")
+  activeChannels   String[] @default([]) @map("active_channels")
   // M2-A4: scope modul (group bisnis) yang boleh dipakai AIRA. Kosong = SEMUA (fail-safe).
   whitelistModules String[] @default([]) @map("whitelist_modules")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("ai_settings")
 }
@@ -3025,11 +3104,11 @@ model AiWhitelist {
 /// Idempotency log: tiap run AIRA yang sudah dieksekusi (anti-replay A3).
 /// runId = UUID unik per-run AIRA, sekali pakai.
 model AiExecutedRun {
-  id          String   @id @default(uuid())
-  runId       String   @unique @map("run_id")
-  tool        String
-  executedAt  DateTime @default(now()) @map("executed_at")
-  ref         String?  // journalId / docId hasil eksekusi (opsional)
+  id         String   @id @default(uuid())
+  runId      String   @unique @map("run_id")
+  tool       String
+  executedAt DateTime @default(now()) @map("executed_at")
+  ref        String? // journalId / docId hasil eksekusi (opsional)
 
   @@map("ai_executed_runs")
 }

@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
+import { postVehicleServiceJournalInTx, cancelVehicleServiceJournalInTx } from '../../services/gaVehicleServiceJournal';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
@@ -63,6 +64,10 @@ const VehicleServiceLogSchema = z.object({
   deskripsi: z.string().min(1).max(500),
   bengkel: z.string().max(200).optional().nullable(),
   biaya: z.number().nonnegative().optional().nullable(),
+  // Integrasi GL: kalau true, sistem membuat jurnal DR beban / CR kas-bank
+  postJournal: z.boolean().optional(),
+  accountId: z.string().uuid().optional().nullable(),
+  creditAccountId: z.string().uuid().optional().nullable(),
 });
 
 const VehicleServiceRequestSchema = z.object({
@@ -326,6 +331,9 @@ router.get('/assets/:id/services', async (req, res) => {
       orderBy: { tanggal: 'desc' },
       include: {
         workOrder: { select: { id: true, code: true } },
+        journalEntry: { select: { id: true, entryNumber: true, status: true } },
+        account: { select: { accountNumber: true, name: true } },
+        creditAccount: { select: { accountNumber: true, name: true } },
       },
     });
     return res.json(logs);
@@ -339,34 +347,90 @@ router.post('/assets/:id/services', async (req: AuthRequest, res) => {
   if (!input) return;
 
   const assetId = String(req.params.id);
-  try {
-    const created = await prisma.gaVehicleServiceLog.create({
-      data: {
-        assetId,
-        tanggal: new Date(input.tanggal),
-        odometer: input.odometer ?? null,
-        jenisService: input.jenisService,
-        deskripsi: input.deskripsi,
-        bengkel: input.bengkel ?? null,
-        biaya: input.biaya != null ? new Prisma.Decimal(input.biaya) : null,
-        createdById: req.user!.userId,
-      },
-    });
+  const wantJournal = input.postJournal === true;
+  if (wantJournal && !(Number(input.biaya ?? 0) > 0)) {
+    return res.status(400).json({ error: 'Biaya harus > 0 untuk diposting ke jurnal.' });
+  }
 
-    // Auto-update odometer terakhir on GaVehicleData if greater
-    if (input.odometer != null) {
-      const vd = await prisma.gaVehicleData.findUnique({ where: { assetId } });
-      if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
-        await prisma.gaVehicleData.update({
-          where: { assetId },
-          data: { odometerTerakhir: input.odometer },
+  try {
+    const created = await prisma.$transaction(async (tx) => {
+      const log = await tx.gaVehicleServiceLog.create({
+        data: {
+          assetId,
+          tanggal: new Date(input.tanggal),
+          odometer: input.odometer ?? null,
+          jenisService: input.jenisService,
+          deskripsi: input.deskripsi,
+          bengkel: input.bengkel ?? null,
+          biaya: input.biaya != null ? new Prisma.Decimal(input.biaya) : null,
+          source: 'EAM',
+          createdById: req.user!.userId,
+        },
+      });
+
+      // Auto-update odometer terakhir on GaVehicleData if greater
+      if (input.odometer != null) {
+        const vd = await tx.gaVehicleData.findUnique({ where: { assetId } });
+        if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
+          await tx.gaVehicleData.update({
+            where: { assetId },
+            data: { odometerTerakhir: input.odometer },
+          });
+        }
+      }
+
+      if (wantJournal) {
+        await postVehicleServiceJournalInTx(tx, {
+          serviceLogId: log.id,
+          accountId: input.accountId ?? null,
+          creditAccountId: input.creditAccountId ?? null,
+          userId: req.user!.userId,
         });
       }
-    }
+
+      return tx.gaVehicleServiceLog.findUnique({
+        where: { id: log.id },
+        include: {
+          journalEntry: { select: { id: true, entryNumber: true, status: true } },
+          account: { select: { accountNumber: true, name: true } },
+          creditAccount: { select: { accountNumber: true, name: true } },
+        },
+      });
+    }, { timeout: 20000 });
 
     return res.status(201).json(created);
   } catch (error) {
     return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/services', 'Gagal simpan service log.');
+  }
+});
+
+// POST /ga/vehicle/assets/:id/services/:sid/journal — posting menyusul untuk log yang belum berjurnal
+router.post('/assets/:id/services/:sid/journal', async (req: AuthRequest, res) => {
+  const body = req.body ?? {};
+  try {
+    const entry = await prisma.$transaction(async (tx) => {
+      return postVehicleServiceJournalInTx(tx, {
+        serviceLogId: String(req.params.sid),
+        accountId: body.accountId ?? null,
+        creditAccountId: body.creditAccountId ?? null,
+        userId: req.user!.userId,
+      });
+    }, { timeout: 20000 });
+    return res.status(201).json({ message: `Jurnal ${entry.entryNumber} berhasil dibuat.`, journalEntry: entry });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/services/:sid/journal', 'Gagal posting jurnal.');
+  }
+});
+
+// DELETE .../journal — batalkan jurnal service log (soft-cancel + lepas tautan)
+router.delete('/assets/:id/services/:sid/journal', async (req: AuthRequest, res) => {
+  try {
+    const entry = await prisma.$transaction(async (tx) => {
+      return cancelVehicleServiceJournalInTx(tx, String(req.params.sid));
+    }, { timeout: 20000 });
+    return res.json({ message: `Jurnal ${entry.entryNumber} dibatalkan.` });
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/services/:sid/journal', 'Gagal membatalkan jurnal.');
   }
 });
 
@@ -375,6 +439,23 @@ router.patch('/assets/:id/services/:sid', async (req, res) => {
   if (!input) return;
 
   try {
+    // Guard: log yang sudah punya jurnal aktif tidak boleh diubah nilainya —
+    // GL akan desync. Batalkan jurnalnya dulu lewat DELETE .../journal.
+    const existing = await prisma.gaVehicleServiceLog.findUnique({
+      where: { id: String(req.params.sid) },
+      select: { journalEntryId: true },
+    });
+    if (existing?.journalEntryId) {
+      const touchesGl =
+        input.biaya !== undefined || input.tanggal !== undefined || input.deskripsi !== undefined;
+      if (touchesGl) {
+        return res.status(400).json({
+          error:
+            'Service log ini sudah diposting ke jurnal. Batalkan jurnalnya dulu sebelum mengubah biaya/tanggal/deskripsi.',
+        });
+      }
+    }
+
     const data: Prisma.GaVehicleServiceLogUpdateInput = {};
     if (input.tanggal) data.tanggal = new Date(input.tanggal);
     if (input.odometer !== undefined) data.odometer = input.odometer ?? null;
@@ -397,6 +478,15 @@ router.patch('/assets/:id/services/:sid', async (req, res) => {
 
 router.delete('/assets/:id/services/:sid', async (req, res) => {
   try {
+    const existing = await prisma.gaVehicleServiceLog.findUnique({
+      where: { id: String(req.params.sid) },
+      select: { journalEntryId: true },
+    });
+    if (existing?.journalEntryId) {
+      return res.status(400).json({
+        error: 'Service log ini sudah diposting ke jurnal. Batalkan jurnalnya dulu sebelum menghapus log.',
+      });
+    }
     await prisma.gaVehicleServiceLog.delete({ where: { id: String(req.params.sid) } });
     return res.status(204).end();
   } catch (error) {

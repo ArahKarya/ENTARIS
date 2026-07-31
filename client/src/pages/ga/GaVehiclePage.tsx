@@ -349,6 +349,15 @@ export const GaVehiclePage = () => {
 
   const serviceCostSummary = useMemo(() => buildServiceCostSummary(filteredServiceLogs), [filteredServiceLogs]);
 
+  const postJournalMut = useMutation({
+    mutationFn: (id: string) => api.post(`/ga/vehicle/assets/${selectedId}/services/${id}/journal`, {}),
+    onSuccess: (r: any) => {
+      toast.success(r?.data?.message || 'Jurnal berhasil dibuat.');
+      queryClient.invalidateQueries({ queryKey: ['ga-vehicle-services', selectedId] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal posting jurnal.'),
+  });
+
   const deleteLogMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/services/${id}`),
     onSuccess: () => {
@@ -1016,12 +1025,12 @@ export const GaVehiclePage = () => {
                           <tr>
                             <th>Tanggal</th><th>Jenis</th><th>Deskripsi</th>
                             <th className="text-right">Odometer</th><th>Bengkel</th>
-                            <th className="text-right">Biaya</th><th className="w-10"></th>
+                            <th className="text-right">Biaya</th><th>Jurnal</th><th className="w-10"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {filteredServiceLogs.length === 0 ? (
-                            <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada riwayat service untuk filter ini.</td></tr>
+                            <tr><td colSpan={8} className="py-10 text-center text-sm text-gray-400">Belum ada riwayat service untuk filter ini.</td></tr>
                           ) : filteredServiceLogs.map((l) => (
                             <tr key={l.id}>
                               <td className="text-gray-500 whitespace-nowrap">{formatDate(l.tanggal)}</td>
@@ -1030,6 +1039,25 @@ export const GaVehiclePage = () => {
                               <td className="text-right font-mono tabular-nums text-gray-600">{l.odometer != null ? l.odometer.toLocaleString('id-ID') : '—'}</td>
                               <td className="text-gray-600">{l.bengkel ?? '—'}</td>
                               <td className="text-right font-mono tabular-nums text-gray-900">{l.biaya != null ? formatRupiah(Number(l.biaya)) : '—'}</td>
+                              <td className="whitespace-nowrap">
+                                {l.journalEntry ? (
+                                  <span className="badge badge-green" title={`${l.account?.accountNumber ?? ''} ${l.account?.name ?? ''}`}>
+                                    {l.journalEntry.entryNumber}
+                                  </span>
+                                ) : l.source && l.source !== 'EAM' ? (
+                                  <span className="badge badge-gray" title="Data historis — sudah tercatat di GL lewat input manual">Historis</span>
+                                ) : canEdit && Number(l.biaya ?? 0) > 0 ? (
+                                  <button
+                                    onClick={() => postJournalMut.mutate(l.id)}
+                                    disabled={postJournalMut.isPending}
+                                    className="text-xs font-medium text-teal-600 hover:text-teal-700 hover:underline disabled:opacity-50"
+                                  >
+                                    Posting
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-300">—</span>
+                                )}
+                              </td>
                               <td>
                                 {canEdit && (
                                   <button onClick={() => setDeleteLog({ id: l.id, label: `${formatDate(l.tanggal)} — ${l.deskripsi}` })}
@@ -1432,12 +1460,47 @@ function ModalShell({ title, icon, onClose, children, wide }: { title: string; i
 
 function ServiceLogModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState({ tanggal: '', odometer: '', jenisService: 'SERVIS_BERKALA', deskripsi: '', bengkel: '', biaya: '' });
+  const [postJournal, setPostJournal] = useState(false);
+  const [accountId, setAccountId] = useState('');
+  const [creditAccountId, setCreditAccountId] = useState('');
+
+  // Daftar akun untuk dropdown jurnal (hanya dimuat saat opsi jurnal dipakai)
+  const { data: coaFlat = [] } = useQuery<any[]>({
+    queryKey: ['coa-flat'],
+    queryFn: async () => (await api.get('/coa/flat')).data,
+    enabled: postJournal,
+    staleTime: 5 * 60 * 1000,
+  });
+  const expenseOptions = useMemo(
+    () => coaFlat
+      .filter((a) => !a.isGroup && String(a.accountNumber).startsWith('6.'))
+      .map((a) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
+    [coaFlat],
+  );
+  const sourceOptions = useMemo(
+    () => coaFlat
+      .filter((a) => !a.isGroup && (String(a.accountNumber).startsWith('1.1.') || String(a.accountNumber) === '2.1.1'))
+      .map((a) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
+    [coaFlat],
+  );
+
+  // Default cerdas: BBM/parkir/tol -> 6.3, selain itu 6.7
+  useEffect(() => {
+    if (!postJournal || accountId || expenseOptions.length === 0) return;
+    const wantNumber = /bbm|bensin|solar|parkir|tol|pertalite|pertamax/i.test(f.deskripsi) ? '6.3' : '6.7';
+    const found = expenseOptions.find((o) => o.label.startsWith(`${wantNumber} `));
+    if (found) setAccountId(found.value);
+  }, [postJournal, expenseOptions, f.deskripsi, accountId]);
+
   const mut = useMutation({
     mutationFn: () => api.post(`/ga/vehicle/assets/${assetId}/services`, {
       tanggal: f.tanggal, odometer: numOrNull(f.odometer), jenisService: f.jenisService,
       deskripsi: f.deskripsi, bengkel: f.bengkel || null, biaya: numOrNull(f.biaya),
+      postJournal,
+      accountId: postJournal ? (accountId || null) : null,
+      creditAccountId: postJournal ? (creditAccountId || null) : null,
     }),
-    onSuccess: () => { toast.success('Service log ditambahkan.'); onSaved(); },
+    onSuccess: () => { toast.success(postJournal ? 'Service log tersimpan + jurnal dibuat.' : 'Service log ditambahkan.'); onSaved(); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan service log.'),
   });
   const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
@@ -1452,6 +1515,51 @@ function ServiceLogModal({ assetId, onClose, onSaved }: { assetId: string; onClo
           <Field label="Biaya" type="number" value={f.biaya} onChange={(v) => setF({ ...f, biaya: v })} />
         </div>
         <Field label="Bengkel" value={f.bengkel} onChange={(v) => setF({ ...f, bengkel: v })} />
+
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={postJournal}
+              onChange={(e) => setPostJournal(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-gray-800">Catat ke jurnal keuangan</span>
+              <span className="block text-xs text-gray-500">
+                Membuat jurnal otomatis: debit akun beban, kredit kas/bank. Jangan dicentang bila biaya ini sudah diinput manual di modul Keuangan.
+              </span>
+            </span>
+          </label>
+
+          {postJournal && (
+            <div className="space-y-3 pt-1">
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-500 mb-1">Akun Beban (Debit)</span>
+                <select
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">— pilih akun beban —</option>
+                  {expenseOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-500 mb-1">Sumber Dana (Kredit)</span>
+                <select
+                  value={creditAccountId}
+                  onChange={(e) => setCreditAccountId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">— default: kas utama —</option>
+                  {sourceOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
           <button type="submit" disabled={mut.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700">
