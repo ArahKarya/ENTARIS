@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { CARBON as C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -7,11 +8,6 @@ Font.registerHyphenationCallback((word) => [word]);
 // Background fills don't transfer reliably to 2nd/3rd copies on NCR
 // (carbonless) or carbon-paper forms, so we avoid them entirely and rely
 // on heavier borders + bold weight for visual hierarchy.
-const C = {
-  black: '#000000',
-  white: '#ffffff',
-};
-
 const S = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',

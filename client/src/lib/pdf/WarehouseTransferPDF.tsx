@@ -1,9 +1,8 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { CARBON as C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
-
-const C = { black: '#000000', white: '#ffffff' };
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 10, color: C.black, paddingTop: 32, paddingBottom: 24, paddingHorizontal: 32, backgroundColor: C.white },

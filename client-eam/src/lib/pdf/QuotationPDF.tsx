@@ -1,34 +1,35 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import type { CompanyPDF } from './useCompanyPDF';
+import { C } from './theme';
 
 const S = StyleSheet.create({
-  page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: '#1f2937' },
+  page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: C.dark },
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   logo: { width: 72, height: 72, objectFit: 'contain' },
   companyBlock: { flex: 1, marginLeft: 12 },
-  companyName: { fontSize: 13, fontWeight: 700, color: '#0f172a' },
-  companyMeta: { fontSize: 8, color: '#475569', marginTop: 2 },
+  companyName: { fontSize: 13, fontWeight: 700, color: C.dark },
+  companyMeta: { fontSize: 8, color: C.mid, marginTop: 2 },
   titleBlock: { alignItems: 'flex-end' },
-  title: { fontSize: 16, fontWeight: 700, color: '#1d4ed8', letterSpacing: 1 },
-  disclaimer: { fontSize: 7, color: '#94a3b8', textTransform: 'uppercase', marginTop: 2 },
+  title: { fontSize: 16, fontWeight: 700, color: C.primary, letterSpacing: 1 },
+  disclaimer: { fontSize: 7, color: C.faint, textTransform: 'uppercase', marginTop: 2 },
   // Validity / status box
-  validityBox: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 4, padding: 6, marginTop: 6 },
-  validityLabel: { fontSize: 7, color: '#64748b', textTransform: 'uppercase' },
-  validityValue: { fontSize: 10, color: '#0f172a', fontWeight: 700 },
+  validityBox: { borderWidth: 1, borderColor: C.border, borderRadius: 4, padding: 6, marginTop: 6 },
+  validityLabel: { fontSize: 7, color: C.muted, textTransform: 'uppercase' },
+  validityValue: { fontSize: 10, color: C.dark, fontWeight: 700 },
   statusBadge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3, marginTop: 4, alignSelf: 'flex-start', textTransform: 'uppercase', fontWeight: 700 },
   // Meta row
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
   metaCol: { flex: 1, paddingRight: 12 },
-  metaLabel: { fontSize: 7, color: '#64748b', textTransform: 'uppercase', marginBottom: 2 },
-  metaValue: { fontSize: 9, color: '#0f172a' },
+  metaLabel: { fontSize: 7, color: C.muted, textTransform: 'uppercase', marginBottom: 2 },
+  metaValue: { fontSize: 9, color: C.dark },
   bold: { fontWeight: 700 },
   // Items table
-  table: { marginTop: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  thead: { flexDirection: 'row', backgroundColor: '#f8fafc', paddingVertical: 6, paddingHorizontal: 4 },
-  th: { fontSize: 7.5, fontWeight: 700, color: '#475569', textTransform: 'uppercase' },
-  tr: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 0.5, borderColor: '#f1f5f9' },
+  table: { marginTop: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
+  thead: { flexDirection: 'row', backgroundColor: C.bgLight, paddingVertical: 6, paddingHorizontal: 4 },
+  th: { fontSize: 7.5, fontWeight: 700, color: C.mid, textTransform: 'uppercase' },
+  tr: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 0.5, borderColor: C.bgLight },
   td: { fontSize: 8.5 },
   // Column widths
   colNo: { width: '5%' },
@@ -40,22 +41,22 @@ const S = StyleSheet.create({
   totalsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
   totalsBox: { width: '50%' },
   totalLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
-  totalLabel: { fontSize: 9, color: '#475569' },
-  totalValue: { fontSize: 9, color: '#0f172a', fontFamily: 'Courier' },
-  grandRow: { borderTopWidth: 1, borderColor: '#e2e8f0', marginTop: 4, paddingTop: 4, flexDirection: 'row', justifyContent: 'space-between' },
-  grandLabel: { fontSize: 11, fontWeight: 700, color: '#0f172a' },
-  grandValue: { fontSize: 11, fontWeight: 700, color: '#1d4ed8', fontFamily: 'Courier' },
+  totalLabel: { fontSize: 9, color: C.mid },
+  totalValue: { fontSize: 9, color: C.dark, fontFamily: 'Courier' },
+  grandRow: { borderTopWidth: 1, borderColor: C.border, marginTop: 4, paddingTop: 4, flexDirection: 'row', justifyContent: 'space-between' },
+  grandLabel: { fontSize: 11, fontWeight: 700, color: C.dark },
+  grandValue: { fontSize: 11, fontWeight: 700, color: C.primary, fontFamily: 'Courier' },
   // Notes / Terms
   section: { marginTop: 14 },
-  sectionTitle: { fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 4 },
-  sectionBody: { fontSize: 8.5, color: '#334155', lineHeight: 1.4 },
+  sectionTitle: { fontSize: 9, fontWeight: 700, color: C.dark, marginBottom: 4 },
+  sectionBody: { fontSize: 8.5, color: C.mid, lineHeight: 1.4 },
   // Signatures
   sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 36 },
   sigBox: { width: '40%', alignItems: 'center' },
-  sigLabel: { fontSize: 8, color: '#475569', marginBottom: 30 },
-  sigName: { fontSize: 8, color: '#1f2937', borderTopWidth: 0.5, borderColor: '#94a3b8', paddingTop: 4, width: '100%', textAlign: 'center' },
+  sigLabel: { fontSize: 8, color: C.mid, marginBottom: 30 },
+  sigName: { fontSize: 8, color: C.dark, borderTopWidth: 0.5, borderColor: C.faint, paddingTop: 4, width: '100%', textAlign: 'center' },
   // Footer
-  footerNote: { marginTop: 24, fontSize: 7.5, color: '#64748b', textAlign: 'center', fontStyle: 'italic' },
+  footerNote: { marginTop: 24, fontSize: 7.5, color: C.muted, textAlign: 'center', fontStyle: 'italic' },
 });
 
 interface QuotationItem {
@@ -115,12 +116,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 const statusColor = (status: string): string => {
   switch (status) {
-    case 'Accepted': return '#16a34a';
-    case 'Rejected': return '#dc2626';
-    case 'Expired': return '#d97706';
-    case 'Cancelled': return '#6b7280';
-    case 'Sent': return '#2563eb';
-    default: return '#6b7280';
+    case 'Accepted': return C.green;
+    case 'Rejected': return C.red;
+    case 'Expired': return C.amber;
+    case 'Cancelled': return C.muted;
+    case 'Sent': return C.accent;
+    default: return C.muted;
   }
 };
 
@@ -149,7 +150,7 @@ const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
         {/* Header */}
         <View style={S.header}>
           <View style={{ flexDirection: 'row', flex: 1 }}>
-            {company.logoUrl ? <Image src={company.logoUrl} style={S.logo} /> : <View style={[S.logo, { borderWidth: 0.5, borderColor: '#cbd5e1' }]} />}
+            {company.logoUrl ? <Image src={company.logoUrl} style={S.logo} /> : <View style={[S.logo, { borderWidth: 0.5, borderColor: C.border }]} />}
             <View style={S.companyBlock}>
               <Text style={S.companyName}>{company.name}</Text>
               {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
@@ -203,7 +204,7 @@ const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
               <Text style={[S.td, S.colNo]}>{i + 1}</Text>
               <View style={[S.colItem]}>
                 <Text style={S.td}>{it.itemName}</Text>
-                {it.description ? <Text style={[S.td, { color: '#64748b', fontSize: 7.5 }]}>{it.description}</Text> : null}
+                {it.description ? <Text style={[S.td, { color: C.muted, fontSize: 7.5 }]}>{it.description}</Text> : null}
               </View>
               <Text style={[S.td, S.colQty]}>{it.quantity} {it.unit}</Text>
               <Text style={[S.td, S.colPrice]}>{formatRupiah(it.rate)}</Text>

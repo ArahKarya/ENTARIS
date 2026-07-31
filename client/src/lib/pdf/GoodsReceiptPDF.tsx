@@ -1,11 +1,10 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { CARBON as C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
 
 // Dot-matrix carbon-friendly palette (same as DO PDF).
-const C = { black: '#000000', white: '#ffffff' };
-
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 10, color: C.black, paddingTop: 32, paddingBottom: 24, paddingHorizontal: 32, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },

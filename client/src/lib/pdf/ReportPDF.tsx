@@ -1,23 +1,10 @@
 import React from 'react';
 import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { C, BADGE } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
-const C = {
-  primary:   '#374151',
-  primaryLt: '#f3f4f6',
-  dark:      '#111827',
-  mid:       '#374151',
-  muted:     '#6b7280',
-  faint:     '#9ca3af',
-  border:    '#e5e7eb',
-  bgLight:   '#f9fafb',
-  white:     '#ffffff',
-  red:       '#dc2626',
-  green:     '#16a34a',
-};
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   page: {
@@ -46,7 +33,7 @@ const S = StyleSheet.create({
   // ── Data rows ──
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
-  rowGroup: { flexDirection: 'row', backgroundColor: '#eff6ff', paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.primaryLt },
+  rowGroup: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.primaryLt },
   rowTotal: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.primary },
   rowGrandTotal: { flexDirection: 'row', backgroundColor: C.primary, paddingVertical: 7, paddingHorizontal: 8, marginTop: 4 },
 
@@ -171,7 +158,7 @@ export const ProfitLossPDF: React.FC<PLPDFProps> = ({ company, period, revenue, 
       {/* Net profit */}
       <View style={S.rowGrandTotal} wrap={false}>
         <Text style={S.colGTLabel}>LABA BERSIH</Text>
-        <Text style={[S.colTotalWhite, { color: Number(netProfit) >= 0 ? '#86efac' : '#fca5a5' }]}>
+        <Text style={[S.colTotalWhite, { color: Number(netProfit) >= 0 ? BADGE.greenSoft : BADGE.redSoft }]}>
           {idr(Number(netProfit))}
         </Text>
       </View>
@@ -378,8 +365,8 @@ export const AgingPDF: React.FC<AgingPDFProps> = ({ company, type, rows, totals 
             <Text style={[S.colLabel, { flex: 1 }]}>{r.name}</Text>
             <Text style={[S.colBalance, { width: w }]}>{idr(r.current)}</Text>
             <Text style={[S.colBalance, { width: w }]}>{idr(r.d1_30)}</Text>
-            <Text style={[S.colBalance, { width: w, color: r.d31_60 > 0 ? '#d97706' : C.muted }]}>{idr(r.d31_60)}</Text>
-            <Text style={[S.colBalance, { width: w, color: r.d61_90 > 0 ? '#ea580c' : C.muted }]}>{idr(r.d61_90)}</Text>
+            <Text style={[S.colBalance, { width: w, color: r.d31_60 > 0 ? C.amber : C.muted }]}>{idr(r.d31_60)}</Text>
+            <Text style={[S.colBalance, { width: w, color: r.d61_90 > 0 ? C.orange : C.muted }]}>{idr(r.d61_90)}</Text>
             <Text style={[S.colBalance, { width: w, color: r.d91_plus > 0 ? C.red : C.muted }]}>{idr(r.d91_plus)}</Text>
             <Text style={[S.colTotalBold, { width: w }]}>{idr(r.total)}</Text>
           </View>
