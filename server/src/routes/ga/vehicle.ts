@@ -507,6 +507,38 @@ router.delete('/assets/:id/services/:sid', async (req, res) => {
 // SERVICE REQUEST (Pengajuan service dengan flow approval)
 // ═══════════════════════════════════════════════════════════════════
 
+// ─── Auto Work Order dari pengajuan servis ───────────────────────────
+/** Generate next WO code WO-YYYY-NNNN (advisory lock sama dgn maintenance.ts). */
+async function generateWorkOrderCodeTx(tx: Prisma.TransactionClient): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `WO-${year}-`;
+  const lockKey = 0xa70000 + (year - 2000);
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
+
+  const latest = await tx.gaWorkOrder.findFirst({
+    where: { code: { startsWith: prefix } },
+    orderBy: { code: 'desc' },
+    select: { code: true },
+  });
+  const lastSeq = latest ? parseInt(latest.code.slice(prefix.length), 10) : 0;
+  const next = Number.isFinite(lastSeq) ? lastSeq + 1 : 1;
+  return `${prefix}${String(next).padStart(4, '0')}`;
+}
+
+const SERVICE_TYPE_LABEL: Record<string, string> = {
+  OLI: 'Ganti Oli',
+  TUNE_UP: 'Tune Up',
+  SERVIS_BERKALA: 'Servis Berkala',
+  PERBAIKAN: 'Perbaikan',
+  GANTI_BAN: 'Ganti Ban',
+  ELEKTRIKAL: 'Perbaikan Elektrikal',
+  AC: 'Servis AC',
+  LAINNYA: 'Servis Lainnya',
+};
+
+/** Servis rutin = PREVENTIVE, sisanya CORRECTIVE. */
+const PREVENTIVE_SERVICE_TYPES = new Set(['OLI', 'TUNE_UP', 'SERVIS_BERKALA']);
+
 // Submit pengajuan
 router.post('/assets/:id/service-requests', async (req: AuthRequest, res) => {
   const input = validateBody(VehicleServiceRequestSchema, req.body, res);
@@ -590,15 +622,66 @@ router.patch('/service-requests/:id/approve', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: `Tidak bisa approve dari status ${sr.status}.` });
     }
 
-    const updated = await prisma.gaVehicleServiceRequest.update({
-      where: { id: sr.id },
-      data: {
-        status: 'APPROVED',
-        approvedById: req.user!.userId,
-        approvedAt: new Date(),
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      // WO dibuat sekali saja — kalau sudah ada, pakai yang lama (idempoten).
+      let workOrderId = sr.workOrderId;
+      let workOrderCode: string | null = null;
+
+      if (workOrderId) {
+        const existing = await tx.gaWorkOrder.findUnique({
+          where: { id: workOrderId },
+          select: { code: true },
+        });
+        workOrderCode = existing?.code ?? null;
+      } else {
+        const asset = await tx.gaAsset.findUnique({
+          where: { id: sr.assetId },
+          select: {
+            name: true,
+            code: true,
+            vehicleData: { select: { noPlat: true } },
+          },
+        });
+        const plat = asset?.vehicleData?.noPlat || asset?.code || '';
+        const label = SERVICE_TYPE_LABEL[sr.jenisService] || 'Servis Kendaraan';
+        const code = await generateWorkOrderCodeTx(tx);
+
+        const wo = await tx.gaWorkOrder.create({
+          data: {
+            code,
+            assetId: sr.assetId,
+            type: PREVENTIVE_SERVICE_TYPES.has(sr.jenisService) ? 'PREVENTIVE' : 'CORRECTIVE',
+            status: 'OPEN',
+            priority: sr.urgensi,
+            title: plat ? `${label} - ${plat}` : label,
+            description:
+              `${sr.deskripsi}\n\n[Dibuat otomatis dari pengajuan servis` +
+              (sr.odometer != null ? ` | Odometer: ${sr.odometer} km` : '') +
+              `]`,
+            reportedById: sr.requestedById,
+            reportedAt: sr.createdAt,
+          },
+          select: { id: true, code: true },
+        });
+        workOrderId = wo.id;
+        workOrderCode = wo.code;
+      }
+
+      const updated = await tx.gaVehicleServiceRequest.update({
+        where: { id: sr.id },
+        data: {
+          status: 'APPROVED',
+          approvedById: req.user!.userId,
+          approvedAt: new Date(),
+          workOrderId,
+        },
+        select: { id: true, status: true },
+      });
+
+      return { ...updated, workOrderId, workOrderCode };
     });
-    return res.json({ id: updated.id, status: updated.status });
+
+    return res.json(result);
   } catch (error) {
     return handleRouteError(res, error, 'PATCH /ga/vehicle/service-requests/:id/approve', 'Gagal approve.');
   }
