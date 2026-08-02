@@ -29,7 +29,7 @@ import { BusinessError } from '../utils/errors';
 
 type Tx = Prisma.TransactionClient;
 
-export const ACC_VEHICLE_TAX = '6.7'; // Beban Pemeliharaan Kendaraan — akun yang dipakai historis utk STNK/KIR (6.17 = PPh, bukan pajak kendaraan)
+export const ACC_VEHICLE_TAX = '6.41'; // Beban Pajak & Perizinan Kendaraan (STNK/KIR/pajak kendaraan). CATATAN: 6.17 = Beban PPh, BUKAN pajak kendaraan. Historis pra-Agu2026 masuk 6.7 Pemeliharaan.
 export const ACC_VEHICLE_MAINTENANCE = '6.7'; // Beban Pemeliharaan Kendaraan
 export const ACC_AP = '2.1.1'; // Hutang Usaha
 export const ACC_CASH_FALLBACK = '1.1.1';
