@@ -204,6 +204,7 @@ router.get('/', async (req: AuthRequest, res) => {
           costCenter: { select: { code: true, name: true } },
           qr: { select: { qrCode: true } },
           fixedAsset: { select: { id: true, assetNumber: true, bookValue: true } },
+          vehicleData: { select: { noPlat: true } },
         },
       }),
       prisma.gaAsset.count({ where }),
