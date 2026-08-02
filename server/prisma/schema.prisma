@@ -2169,6 +2169,14 @@ enum GaVehicleTaxStatus {
   IN_PROCESS
 }
 
+enum GaVehicleTaxRequestStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
 enum GaVehicleInsuranceType {
   ALL_RISK
   TLO
@@ -2363,6 +2371,7 @@ model GaAsset {
   calibrationLogs              GaCalibrationLog[]
   materialRequests             GaMaterialRequest[]
   vehicleTaxes                 GaVehicleTax[]
+  vehicleTaxRequests           GaVehicleTaxRequest[]
   vehicleInsurances            GaVehicleInsurance[]
   vehicleFuelLogs              GaVehicleFuelLog[]
   vehicleInspections           GaVehicleInspection[]
@@ -2801,10 +2810,37 @@ model GaVehicleTax {
   updatedAt   DateTime           @updatedAt @map("updated_at")
   asset       GaAsset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
   document    GaDocument?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  request     GaVehicleTaxRequest?
 
   @@index([assetId])
   @@index([dueDate, status])
   @@map("ga_vehicle_taxes")
+}
+
+model GaVehicleTaxRequest {
+  id              String                    @id @default(cuid())
+  assetId         String                    @map("asset_id")
+  requestedById   String                    @map("requested_by_id")
+  type            GaVehicleTaxType
+  periodYear      Int                       @map("period_year")
+  estimatedAmount Decimal?                  @map("estimated_amount") @db.Decimal(14, 2)
+  dueDate         DateTime                  @map("due_date")
+  deskripsi       String?
+  urgensi         GaWorkOrderPriority       @default(MEDIUM)
+  status          GaVehicleTaxRequestStatus @default(SUBMITTED)
+  approvedById    String?                   @map("approved_by_id")
+  approvedAt      DateTime?                 @map("approved_at")
+  rejectedReason  String?                   @map("rejected_reason")
+  taxId           String?                   @unique @map("tax_id")
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+  asset           GaAsset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tax             GaVehicleTax?             @relation(fields: [taxId], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([status])
+  @@index([requestedById])
+  @@map("ga_vehicle_tax_requests")
 }
 
 model GaVehicleInsurance {

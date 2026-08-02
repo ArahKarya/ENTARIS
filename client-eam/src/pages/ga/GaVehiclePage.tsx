@@ -232,6 +232,8 @@ export const GaVehiclePage = () => {
   const [deleteInspection, setDeleteInspection] = useState<{ id: string; label: string } | null>(null);
   const [expandedInspection, setExpandedInspection] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [showTaxRequestModal, setShowTaxRequestModal] = useState(false);
+  const [rejectTaxTarget, setRejectTaxTarget] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showTireModal, setShowTireModal] = useState<'new' | any>(false);
   const [showOilModal, setShowOilModal] = useState(false);
@@ -399,6 +401,36 @@ export const GaVehiclePage = () => {
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${selectedId}/taxes/${id}`),
     onSuccess: () => { toast.success('Data pajak dihapus.'); queryClient.invalidateQueries({ queryKey: ['ga-vehicle-taxes', selectedId] }); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal hapus data pajak.'),
+  });
+
+  // ── Pengajuan pajak/STNK (flow approval, pola sama dgn service request) ──
+  const { data: taxRequests = [] } = useQuery<any[]>({
+    queryKey: ['ga-vehicle-tax-requests', selectedId],
+    queryFn: async () => (await api.get('/ga/vehicle/tax-requests', { params: { assetId: selectedId } })).data,
+    enabled: !!selectedId,
+  });
+
+  const invalidateTaxRequests = () => {
+    queryClient.invalidateQueries({ queryKey: ['ga-vehicle-tax-requests', selectedId] });
+    queryClient.invalidateQueries({ queryKey: ['ga-vehicle-taxes', selectedId] });
+    queryClient.invalidateQueries({ queryKey: ['ga-fleet-summary'] });
+  };
+
+  const approveTaxReq = useMutation({
+    mutationFn: (id: string) => api.patch(`/ga/vehicle/tax-requests/${id}/approve`),
+    onSuccess: () => { toast.success('Pengajuan pajak disetujui. Record pajak dibuat (status IN_PROCESS).'); invalidateTaxRequests(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal approve pengajuan pajak.'),
+  });
+  const rejectTaxReq = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.patch(`/ga/vehicle/tax-requests/${id}/reject`, { reason }),
+    onSuccess: () => { toast.success('Pengajuan pajak ditolak.'); invalidateTaxRequests(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal reject pengajuan pajak.'),
+  });
+  const cancelTaxReq = useMutation({
+    mutationFn: (id: string) => api.patch(`/ga/vehicle/tax-requests/${id}/cancel`),
+    onSuccess: () => { toast.success('Pengajuan pajak dibatalkan.'); invalidateTaxRequests(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal cancel pengajuan pajak.'),
   });
 
   // ── Asuransi ──────────────────────────────────────────────────────
@@ -698,6 +730,63 @@ export const GaVehiclePage = () => {
                                   </button>
                                 </div>
                               )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ── TAB: Pajak & STNK — Pengajuan (flow approval) ── */}
+              {tab === 'pajak' && (
+                <div className="card p-0 overflow-hidden mt-4">
+                  <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                    <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <ClipboardList size={16} className="text-teal-600" /> Pengajuan Pajak / STNK
+                    </h2>
+                    <button onClick={() => setShowTaxRequestModal(true)} className="btn-primary bg-teal-600 hover:bg-teal-700">
+                      <Plus size={14} /> Ajukan
+                    </button>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Jenis</th><th className="text-center">Tahun</th><th>Jatuh Tempo</th>
+                          <th className="text-right">Estimasi Biaya</th><th className="text-center">Urgensi</th>
+                          <th className="text-center">Status</th><th className="w-20"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {taxRequests.length === 0 ? (
+                          <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Belum ada pengajuan pajak.</td></tr>
+                        ) : taxRequests.map((r: any) => (
+                          <tr key={r.id}>
+                            <td><span className="badge badge-blue">{TAX_TYPE_LABELS[r.type] ?? r.type}</span></td>
+                            <td className="text-center text-gray-600">{r.periodYear}</td>
+                            <td className="whitespace-nowrap text-sm text-gray-600">{formatDate(r.dueDate)}</td>
+                            <td className="text-right font-mono tabular-nums text-gray-900">{r.estimatedAmount != null ? formatRupiah(Number(r.estimatedAmount)) : '—'}</td>
+                            <td className="text-center"><span className="badge badge-gray">{r.urgensi}</span></td>
+                            <td className="text-center">
+                              <span className={`badge ${SR_STATUS_BADGE[r.status] ?? 'badge-gray'}`}>{r.status}</span>
+                              {r.status === 'REJECTED' && r.rejectedReason && (
+                                <div className="text-[11px] text-red-500 mt-0.5">{r.rejectedReason}</div>
+                              )}
+                            </td>
+                            <td>
+                              <div className="flex items-center gap-0.5">
+                                {canApprove && r.status === 'SUBMITTED' && (
+                                  <>
+                                    <button onClick={() => approveTaxReq.mutate(r.id)} className="p-1.5 hover:bg-green-50 rounded text-gray-400 hover:text-green-600" title="Setujui"><Check size={15} /></button>
+                                    <button onClick={() => setRejectTaxTarget(r.id)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500" title="Tolak"><X size={15} /></button>
+                                  </>
+                                )}
+                                {!canApprove && r.status === 'SUBMITTED' && (
+                                  <button onClick={() => cancelTaxReq.mutate(r.id)} className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700" title="Batalkan"><X size={15} /></button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1205,6 +1294,21 @@ export const GaVehiclePage = () => {
       )}
 
       {/* Reject modal */}
+      {showTaxRequestModal && selectedId && (
+        <TaxRequestModal
+          assetId={selectedId}
+          onClose={() => setShowTaxRequestModal(false)}
+          onSaved={() => { setShowTaxRequestModal(false); invalidateTaxRequests(); }}
+        />
+      )}
+
+      {rejectTaxTarget && (
+        <RejectModal
+          onClose={() => setRejectTaxTarget(null)}
+          onSubmit={(reason) => { rejectTaxReq.mutate({ id: rejectTaxTarget, reason }); setRejectTaxTarget(null); }}
+        />
+      )}
+
       {rejectTarget && (
         <RejectModal
           onClose={() => setRejectTarget(null)}
@@ -1594,6 +1698,62 @@ function ServiceRequestModal({ assetId, onClose, onSaved }: { assetId: string; o
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
           <button type="submit" disabled={mut.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700">
             {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Kirim
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+// Pengajuan pajak/STNK/KIR — mengikuti pola ServiceRequestModal. Setelah
+// di-approve, backend otomatis membuat record GaVehicleTax status IN_PROCESS.
+function TaxRequestModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState<Record<string, string>>({
+    type: 'STNK_TAHUNAN',
+    periodYear: String(new Date().getFullYear()),
+    estimatedAmount: '',
+    dueDate: '',
+    deskripsi: '',
+    urgensi: 'MEDIUM',
+  });
+
+  const save = useMutation({
+    mutationFn: () => api.post(`/ga/vehicle/assets/${assetId}/tax-requests`, {
+      type: form.type,
+      periodYear: Number(form.periodYear),
+      estimatedAmount: numOrNull(form.estimatedAmount),
+      dueDate: form.dueDate,
+      deskripsi: form.deskripsi || null,
+      urgensi: form.urgensi,
+    }),
+    onSuccess: () => { toast.success('Pengajuan pajak terkirim.'); onSaved(); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal mengirim pengajuan pajak.'),
+  });
+
+  const set = (k: string) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!form.dueDate) { toast.error('Jatuh tempo wajib diisi.'); return; }
+    save.mutate();
+  };
+
+  return (
+    <ModalShell title="Ajukan Pajak / STNK" icon={<FileWarning size={16} className="text-teal-600" />} onClose={onClose}>
+      <form onSubmit={submit} className="p-5 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField label="Jenis" value={form.type} onChange={set('type')}
+            options={Object.keys(TAX_TYPE_LABELS)} />
+          <Field label="Tahun Periode" type="number" value={form.periodYear} onChange={set('periodYear')} />
+          <Field label="Jatuh Tempo" type="date" value={form.dueDate} onChange={set('dueDate')} />
+          <Field label="Estimasi Biaya" type="number" value={form.estimatedAmount} onChange={set('estimatedAmount')} />
+          <SelectField label="Urgensi" value={form.urgensi} onChange={set('urgensi')}
+            options={['LOW', 'MEDIUM', 'HIGH', 'URGENT']} />
+        </div>
+        <Field label="Keterangan" value={form.deskripsi} onChange={set('deskripsi')} />
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
+          <button type="submit" disabled={save.isPending} className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50">
+            {save.isPending ? 'Mengirim...' : 'Kirim Pengajuan'}
           </button>
         </div>
       </form>

@@ -13,7 +13,7 @@ import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
 import { postVehicleServiceJournalInTx, cancelVehicleServiceJournalInTx } from '../../services/gaVehicleServiceJournal';
 import { validateBody } from '../../utils/validate';
-import { handleRouteError } from '../../utils/errors';
+import { handleRouteError, BusinessError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
 
 const router = Router();
@@ -103,6 +103,15 @@ const VehicleTaxSchema = z.object({
   status: z.enum(VEHICLE_TAX_STATUSES).default('ACTIVE'),
   documentId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+});
+
+const VehicleTaxRequestSchema = z.object({
+  type: z.enum(VEHICLE_TAX_TYPES),
+  periodYear: z.number().int().min(2000).max(2100),
+  estimatedAmount: z.number().nonnegative().optional().nullable(),
+  dueDate: z.string().min(1, 'Jatuh tempo wajib diisi.'),
+  deskripsi: z.string().max(1000).optional().nullable(),
+  urgensi: z.enum(WORK_ORDER_PRIORITIES).default('MEDIUM'),
 });
 
 const VehicleInsuranceSchema = z.object({
@@ -746,6 +755,163 @@ router.delete('/assets/:id/taxes/:tid', async (req, res) => {
     return res.status(204).end();
   } catch (error) {
     return handleRouteError(res, error, 'DELETE /ga/vehicle/assets/:id/taxes/:tid', 'Gagal hapus data pajak.');
+  }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════
+// TAX REQUEST (Pengajuan pajak/STNK/KIR dengan flow approval)
+// Approve => otomatis membuat record GaVehicleTax status IN_PROCESS.
+// ═══════════════════════════════════════════════════════════════════
+
+router.post('/assets/:id/tax-requests', async (req: AuthRequest, res) => {
+  const input = validateBody(VehicleTaxRequestSchema, req.body, res);
+  if (!input) return;
+
+  try {
+    const created = await prisma.gaVehicleTaxRequest.create({
+      data: {
+        assetId: String(req.params.id),
+        requestedById: req.user!.userId,
+        type: input.type,
+        periodYear: input.periodYear,
+        estimatedAmount: input.estimatedAmount ?? null,
+        dueDate: new Date(input.dueDate),
+        deskripsi: input.deskripsi ?? null,
+        urgensi: input.urgensi,
+        status: 'SUBMITTED',
+      },
+    });
+    return res.status(201).json({ id: created.id, status: created.status });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/tax-requests', 'Gagal mengirim pengajuan pajak.');
+  }
+});
+
+router.get('/tax-requests', async (req: AuthRequest, res) => {
+  try {
+    const where: Prisma.GaVehicleTaxRequestWhereInput = {};
+    if (req.query.status) where.status = req.query.status as never;
+    if (req.query.assetId) where.assetId = String(req.query.assetId);
+    if (req.query.mine === 'true' && req.user) where.requestedById = req.user.userId;
+
+    const items = await prisma.gaVehicleTaxRequest.findMany({
+      where,
+      orderBy: [{ status: 'asc' }, { urgensi: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        asset: { select: { id: true, code: true, name: true } },
+        tax: { select: { id: true, status: true, periodYear: true } },
+      },
+    });
+    return res.json(items);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/tax-requests', 'Gagal mengambil pengajuan pajak.');
+  }
+});
+
+router.get('/tax-requests/:id', async (req, res) => {
+  try {
+    const item = await prisma.gaVehicleTaxRequest.findUnique({
+      where: { id: String(req.params.id) },
+      include: {
+        asset: {
+          select: {
+            id: true, code: true, name: true,
+            vehicleData: { select: { noPlat: true, brand: true, tipe: true } },
+          },
+        },
+        tax: true,
+      },
+    });
+    if (!item) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    return res.json(item);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/tax-requests/:id', 'Gagal mengambil pengajuan pajak.');
+  }
+});
+
+// Approve — buat record pajak IN_PROCESS lalu tautkan (atomik).
+router.patch('/tax-requests/:id/approve', async (req: AuthRequest, res) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const tr = await tx.gaVehicleTaxRequest.findUnique({ where: { id: String(req.params.id) } });
+      if (!tr) throw new BusinessError('Pengajuan tidak ditemukan.');
+      if (tr.status !== 'SUBMITTED') throw new BusinessError(`Tidak bisa approve dari status ${tr.status}.`);
+
+      const tax = await tx.gaVehicleTax.create({
+        data: {
+          assetId: tr.assetId,
+          type: tr.type,
+          periodYear: tr.periodYear,
+          amount: tr.estimatedAmount,
+          dueDate: tr.dueDate,
+          status: 'IN_PROCESS',
+          notes: tr.deskripsi ? `Dari pengajuan: ${tr.deskripsi}` : 'Dibuat dari pengajuan pajak.',
+          createdById: tr.requestedById,
+        },
+      });
+
+      const updated = await tx.gaVehicleTaxRequest.update({
+        where: { id: tr.id },
+        data: {
+          status: 'APPROVED',
+          approvedById: req.user!.userId,
+          approvedAt: new Date(),
+          taxId: tax.id,
+        },
+      });
+      return { id: updated.id, status: updated.status, taxId: tax.id };
+    });
+    return res.json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/tax-requests/:id/approve', 'Gagal approve pengajuan pajak.');
+  }
+});
+
+router.patch('/tax-requests/:id/reject', async (req: AuthRequest, res) => {
+  const input = validateBody(RejectServiceRequestSchema, req.body, res);
+  if (!input) return;
+
+  try {
+    const tr = await prisma.gaVehicleTaxRequest.findUnique({
+      where: { id: String(req.params.id) },
+      select: { id: true, status: true },
+    });
+    if (!tr) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    if (tr.status !== 'SUBMITTED') return res.status(400).json({ error: `Tidak bisa reject dari status ${tr.status}.` });
+
+    const updated = await prisma.gaVehicleTaxRequest.update({
+      where: { id: tr.id },
+      data: {
+        status: 'REJECTED',
+        approvedById: req.user!.userId,
+        approvedAt: new Date(),
+        rejectedReason: input.reason,
+      },
+    });
+    return res.json({ id: updated.id, status: updated.status });
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/tax-requests/:id/reject', 'Gagal reject pengajuan pajak.');
+  }
+});
+
+router.patch('/tax-requests/:id/cancel', async (req: AuthRequest, res) => {
+  try {
+    const tr = await prisma.gaVehicleTaxRequest.findUnique({
+      where: { id: String(req.params.id) },
+      select: { id: true, status: true, requestedById: true },
+    });
+    if (!tr) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    if (tr.requestedById !== req.user!.userId) return res.status(403).json({ error: 'Hanya pengaju yang bisa membatalkan.' });
+    if (tr.status !== 'SUBMITTED') return res.status(400).json({ error: `Tidak bisa cancel dari status ${tr.status}.` });
+
+    const updated = await prisma.gaVehicleTaxRequest.update({
+      where: { id: tr.id },
+      data: { status: 'CANCELLED' },
+    });
+    return res.json({ id: updated.id, status: updated.status });
+  } catch (error) {
+    return handleRouteError(res, error, 'PATCH /ga/vehicle/tax-requests/:id/cancel', 'Gagal cancel pengajuan pajak.');
   }
 });
 
