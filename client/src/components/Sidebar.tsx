@@ -125,6 +125,7 @@ const allNavItems: NavItem[] = [
     label: 'Bank & Kas',
     children: [
       { icon: CreditCard, label: 'Transaksi Bank/Kas', href: '/payments', module: 'payment' },
+      { icon: Receipt, label: 'Tagihan GA', href: '/ga/finance', module: 'ga_finance' },
       { icon: Scale, label: 'Rekonsiliasi Bank', href: '/reconciliation', module: 'reconciliation' },
       { icon: Repeat, label: 'Transaksi Berulang', href: '/recurring', module: 'recurring' },
       { icon: Landmark, label: 'Uang Jaminan Proyek', href: '/project-guarantees', module: 'project_guarantee' },

@@ -54,6 +54,10 @@ model Account {
   productionCostStandards ProductionCostStandard[] @relation("CostStandardAccount")
   productionRunCosts      ProductionRunCost[]      @relation("RunCostAccount")
   gaVehicleServiceExpense GaVehicleServiceLog[]    @relation("GaVehicleServiceExpense")
+  gaVehicleTaxExpense     GaVehicleTax[]           @relation("GaVehicleTaxExpense")
+  gaVehicleTaxCredit      GaVehicleTax[]           @relation("GaVehicleTaxCredit")
+  gaMaterialRequestExpense GaMaterialRequest[]     @relation("GaMaterialRequestExpense")
+  gaMaterialRequestCredit  GaMaterialRequest[]     @relation("GaMaterialRequestCredit")
   gaVehicleServiceCredit  GaVehicleServiceLog[]    @relation("GaVehicleServiceCredit")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
@@ -150,6 +154,8 @@ model JournalEntry {
   depreciationEntries        DepreciationEntry[]
   cogsBackfillSettlements    CogsBackfillSettlement[]    @relation("CogsBackfillJE")
   gaVehicleServiceLog        GaVehicleServiceLog?        @relation("GaVehicleServiceJournal")
+  gaVehicleTax               GaVehicleTax?               @relation("GaVehicleTaxJournal")
+  gaMaterialRequest          GaMaterialRequest?          @relation("GaMaterialRequestJournal")
   submittedAt                DateTime?                   @map("submitted_at")
   cancelledAt                DateTime?                   @map("cancelled_at")
   createdAt                  DateTime                    @default(now()) @map("created_at")
@@ -592,6 +598,9 @@ model PurchaseInvoice {
   // STT (GoodsReceipt) header-level back-relation. PI created from STT.
   // 1 STT → at most 1 active PI; many lines billed at once.
   goodsReceipt        GoodsReceipt?              @relation("PIFromGR")
+  gaVehicleTaxes      GaVehicleTax[]             @relation("GaVehicleTaxInvoice")
+  gaServiceLogs       GaVehicleServiceLog[]      @relation("GaServiceLogInvoice")
+  gaMaterialRequests  GaMaterialRequest[]        @relation("GaMaterialRequestInvoice")
   // Marks PIs migrated to the new "stock-from-STT" flow as legacy/backfilled
   // (their JV still posts DR Persediaan / CR Hutang Usaha for historical truth).
   isLegacyStockFlow   Boolean                    @default(false) @map("is_legacy_stock_flow")
@@ -2114,6 +2123,7 @@ enum GaMaterialRequestStatus {
   APPROVED
   REJECTED
   FULFILLED
+  PAID
   CANCELLED
 }
 
@@ -2167,6 +2177,7 @@ enum GaVehicleTaxStatus {
   ACTIVE
   EXPIRED
   IN_PROCESS
+  PAID
 }
 
 enum GaVehicleTaxRequestStatus {
@@ -2671,11 +2682,22 @@ model GaMaterialRequest {
   // Forward-compat OPSI B (nullable, tidak dipakai sekarang): link ke PO/GL resmi.
   purchaseOrderId String?                 @map("purchase_order_id")
   glAccountId     String?                 @map("gl_account_id")
+  // Linkage keuangan (diisi Akuntan saat bayar di ERP).
+  journalEntryId    String?               @unique @map("journal_entry_id")
+  purchaseInvoiceId String?               @map("purchase_invoice_id")
+  creditAccountId   String?               @map("credit_account_id")
+  paidById          String?               @map("paid_by_id")
+  paidAt            DateTime?             @map("paid_at")
+  paidAmount        Decimal?              @map("paid_amount") @db.Decimal(14, 2)
   createdAt       DateTime                @default(now()) @map("created_at")
   updatedAt       DateTime                @updatedAt @map("updated_at")
   workOrder       GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
   asset           GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
   items           GaMaterialRequestItem[]
+  journalEntry    JournalEntry?           @relation("GaMaterialRequestJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice PurchaseInvoice?        @relation("GaMaterialRequestInvoice", fields: [purchaseInvoiceId], references: [id])
+  glAccount       Account?                @relation("GaMaterialRequestExpense", fields: [glAccountId], references: [id])
+  creditAccount   Account?                @relation("GaMaterialRequestCredit", fields: [creditAccountId], references: [id])
 
   @@index([status])
   @@index([workOrderId])
@@ -2744,6 +2766,7 @@ model GaVehicleServiceLog {
   biaya           Decimal?                 @db.Decimal(14, 2)
   workOrderId     String?                  @unique @map("work_order_id")
   journalEntryId  String?                  @unique @map("journal_entry_id")
+  purchaseInvoiceId String?                @map("purchase_invoice_id")
   accountId       String?                  @map("account_id")
   creditAccountId String?                  @map("credit_account_id")
   source          String                   @default("EAM")
@@ -2753,6 +2776,7 @@ model GaVehicleServiceLog {
   asset           GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
   workOrder       GaWorkOrder?             @relation(fields: [workOrderId], references: [id])
   journalEntry    JournalEntry?            @relation("GaVehicleServiceJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice PurchaseInvoice?         @relation("GaServiceLogInvoice", fields: [purchaseInvoiceId], references: [id])
   account         Account?                 @relation("GaVehicleServiceExpense", fields: [accountId], references: [id])
   creditAccount   Account?                 @relation("GaVehicleServiceCredit", fields: [creditAccountId], references: [id])
   serviceRequest  GaVehicleServiceRequest?
@@ -2806,11 +2830,22 @@ model GaVehicleTax {
   documentId  String?            @map("document_id")
   notes       String?
   createdById String?            @map("created_by_id")
+  // Linkage keuangan (diisi Akuntan saat bayar di ERP).
+  paidAmount        Decimal?     @map("paid_amount") @db.Decimal(14, 2)
+  paidById          String?      @map("paid_by_id")
+  journalEntryId    String?      @unique @map("journal_entry_id")
+  purchaseInvoiceId String?      @map("purchase_invoice_id")
+  accountId         String?      @map("account_id")
+  creditAccountId   String?      @map("credit_account_id")
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
   asset       GaAsset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
   document    GaDocument?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
   request     GaVehicleTaxRequest?
+  journalEntry    JournalEntry?    @relation("GaVehicleTaxJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice PurchaseInvoice? @relation("GaVehicleTaxInvoice", fields: [purchaseInvoiceId], references: [id])
+  account         Account?         @relation("GaVehicleTaxExpense", fields: [accountId], references: [id])
+  creditAccount   Account?         @relation("GaVehicleTaxCredit", fields: [creditAccountId], references: [id])
 
   @@index([assetId])
   @@index([dueDate, status])

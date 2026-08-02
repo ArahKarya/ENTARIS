@@ -49,6 +49,7 @@ import { GaInventoryPage } from './pages/ga/GaInventoryPage';
 import { GaMaintenancePage } from './pages/ga/GaMaintenancePage';
 import { GaMaterialRequestPage } from './pages/ga/GaMaterialRequestPage';
 import { GaVehiclePage } from './pages/ga/GaVehiclePage';
+import { GaFinancePage } from './pages/ga/GaFinancePage';
 import { GaFleetReportPage } from './pages/ga/GaFleetReportPage';
 import { GaBuildingPage } from './pages/ga/GaBuildingPage';
 import { GaEquipmentPage } from './pages/ga/GaEquipmentPage';
@@ -144,6 +145,7 @@ function App() {
             <Route path="/ga/building" element={<PermRoute module="ga_building"><GaBuildingPage /></PermRoute>} />
             <Route path="/ga/equipment" element={<PermRoute module="ga_equipment"><GaEquipmentPage /></PermRoute>} />
             <Route path="/ga/master" element={<PermRoute module="ga_master"><GaMasterPage /></PermRoute>} />
+            <Route path="/ga/finance" element={<PermRoute module="ga_finance"><GaFinancePage /></PermRoute>} />
             <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
             <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
             <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />
