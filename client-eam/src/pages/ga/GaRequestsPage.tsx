@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  ClipboardCheck, Loader2, Plus, Wrench, ReceiptText, Check, X, Ban, AlertTriangle,
+  Loader2, Plus, Wrench, ReceiptText, Check, X, Ban, AlertTriangle,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { formatDate, formatRupiah } from '../../lib/formatters';
@@ -22,7 +22,8 @@ type KindFilter = '' | 'SERVICE' | 'TAX';
  * pajak/STNK/KIR (tanpa harus buka halaman kendaraan dulu) sekaligus memantau
  * status semua pengajuan. Approve/reject dikerjakan dari sini juga.
  */
-export function GaRequestsPage() {
+/** Dipakai sebagai TAB di dalam halaman Maintenance & Work Order. */
+export function RequestsTab() {
   const canEdit = can('ga_vehicle', 'edit');
   const queryClient = useQueryClient();
 
@@ -121,16 +122,12 @@ export function GaRequestsPage() {
   }, [rows]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <ClipboardCheck className="text-teal-600" /> Pengajuan
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Ajukan servis kendaraan atau pajak/STNK/KIR langsung dari sini, dan pantau statusnya sampai selesai.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-gray-500">
+          Ajukan servis kendaraan atau pajak/STNK/KIR di sini; setelah disetujui, tindak lanjutnya
+          muncul sebagai Work Order / catatan pajak.
+        </p>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
             <button
@@ -150,7 +147,7 @@ export function GaRequestsPage() {
       </div>
 
       {/* Ringkasan */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Menunggu Approval" value={counts.submitted} tone="blue" />
         <StatCard label="Mendesak" value={counts.urgent} tone="red" icon={<AlertTriangle size={14} />} />
         <StatCard label="Disetujui" value={counts.approved} tone="teal" />
@@ -158,7 +155,7 @@ export function GaRequestsPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
           <Chip active={statusFilter === ''} onClick={() => setStatusFilter('')}>Semua Status</Chip>
           {REQ_STATUS_FILTERS.map((s) => (

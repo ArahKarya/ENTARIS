@@ -15,7 +15,6 @@ import { GaDocumentsPage } from './pages/ga/GaDocumentsPage';
 import { GaInventoryPage } from './pages/ga/GaInventoryPage';
 import { GaMaintenancePage } from './pages/ga/GaMaintenancePage';
 import { GaMaterialRequestPage } from './pages/ga/GaMaterialRequestPage';
-import { GaRequestsPage } from './pages/ga/GaRequestsPage';
 import { GaVehiclePage } from './pages/ga/GaVehiclePage';
 import { GaFleetReportPage } from './pages/ga/GaFleetReportPage';
 import { GaBuildingPage } from './pages/ga/GaBuildingPage';
@@ -84,7 +83,8 @@ function App() {
             <Route path="/ga/inventory" element={<PermRoute module="ga_inventory"><GaInventoryPage /></PermRoute>} />
             <Route path="/ga/maintenance" element={<PermRoute module="ga_maintenance"><GaMaintenancePage /></PermRoute>} />
             <Route path="/ga/material-requests" element={<PermRoute module="ga_material_request"><GaMaterialRequestPage /></PermRoute>} />
-            <Route path="/ga/requests" element={<PermRoute module="ga_vehicle"><GaRequestsPage /></PermRoute>} />
+            {/* Panel pengajuan sudah dilebur jadi tab di Maintenance/WO. */}
+            <Route path="/ga/requests" element={<Navigate to="/ga/maintenance" replace />} />
             <Route path="/ga/vehicle" element={<PermRoute module="ga_vehicle"><GaVehiclePage /></PermRoute>} />
             <Route path="/ga/vehicle/report" element={<PermRoute module="ga_vehicle"><GaFleetReportPage /></PermRoute>} />
             <Route path="/ga/building" element={<PermRoute module="ga_building"><GaBuildingPage /></PermRoute>} />

@@ -17,7 +17,6 @@ import {
   ClipboardList,
   PackageSearch,
   BarChart3,
-  ClipboardCheck,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -49,7 +48,6 @@ const allNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Bell, label: 'Notifikasi', href: '/notifications' },
   { icon: Boxes, label: 'Aset', href: '/ga/assets', module: 'ga_assets' },
-  { icon: ClipboardCheck, label: 'Pengajuan', href: '/ga/requests', module: 'ga_vehicle' },
   { icon: Car, label: 'Kendaraan', href: '/ga/vehicle', module: 'ga_vehicle' },
   { icon: BarChart3, label: 'Report Armada', href: '/ga/vehicle/report', module: 'ga_vehicle' },
   { icon: Building2Ga, label: 'Gedung & Sewa', href: '/ga/building', module: 'ga_building' },
