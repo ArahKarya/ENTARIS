@@ -129,6 +129,9 @@ router.post('/', async (req: AuthRequest, res) => {
         for (const r of rows) perWarehouseStock.set(r.itemId, Number(r.currentStock));
       }
 
+      // Revaluasi: item yang nilai satuannya diubah manual lewat form opname.
+      const revaluations: { itemId: string; oldCost: number; newCost: number }[] = [];
+
       // Build opname items with difference calculation
       const opnameItems = body.items.map((input: any) => {
         const item = itemMap.get(input.itemId)!;
@@ -137,7 +140,14 @@ router.post('/', async (req: AuthRequest, res) => {
           : Number(item.currentStock);
         const actualStock = input.actualStock;
         const diff = new Decimal(actualStock).minus(new Decimal(systemStock)).toDecimalPlaces(3).toNumber();
-        const unitCost = Number(item.averageCost);
+        const oldCost = Number(item.averageCost);
+        const hasManualCost = input.unitCost !== undefined && input.unitCost !== null;
+        const unitCost = hasManualCost
+          ? new Decimal(input.unitCost).toDecimalPlaces(2).toNumber()
+          : oldCost;
+        if (hasManualCost && unitCost !== oldCost) {
+          revaluations.push({ itemId: input.itemId, oldCost, newCost: unitCost });
+        }
         const totalValue = new Decimal(Math.abs(diff)).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
 
         return {
@@ -153,6 +163,8 @@ router.post('/', async (req: AuthRequest, res) => {
 
       // Filter items with actual difference
       const itemsWithDiff = opnameItems.filter((i: any) => i.difference !== 0);
+      // Opname perlu diproses kalau ada selisih qty ATAU ada revaluasi nilai.
+      const needsProcessing = itemsWithDiff.length > 0 || revaluations.length > 0;
 
       // Create the StockOpname record
       const so = await tx.stockOpname.create({
@@ -168,8 +180,8 @@ router.post('/', async (req: AuthRequest, res) => {
         },
       });
 
-      // Process adjustments for items with difference
-      if (itemsWithDiff.length > 0) {
+      // Process adjustments for items with difference / revaluation
+      if (needsProcessing) {
         const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
         const varianceAccount = await systemAccounts.getAccount('INVENTORY_VARIANCE');
         // Stock opname applies to one warehouse per session. Prefer the
@@ -185,6 +197,41 @@ router.post('/', async (req: AuthRequest, res) => {
 
         const journalItems: { accountId: string; debit: number; credit: number; description: string }[] = [];
         const movementIds: { itemId: string; movementId: string }[] = [];
+
+        // ── Revaluasi nilai persediaan ───────────────────────────────────
+        // Nilai buku persediaan = qty x averageCost. averageCost bersifat
+        // GLOBAL per item (bukan per gudang), jadi perubahan cost dijurnal
+        // atas SELURUH stok item, memakai qty SEBELUM penyesuaian opname.
+        // Selisih qty di bawah lalu dinilai memakai cost yang baru.
+        for (const rev of revaluations) {
+          const item = itemMap.get(rev.itemId)!;
+          const qtyBefore = new Decimal(Number(item.currentStock));
+          const delta = qtyBefore
+            .mul(new Decimal(rev.newCost).minus(new Decimal(rev.oldCost)))
+            .toDecimalPlaces(2)
+            .toNumber();
+
+          await tx.inventoryItem.update({
+            where: { id: rev.itemId },
+            data: { averageCost: rev.newCost },
+          });
+
+          if (delta === 0) continue;
+
+          const invAcctId = item.accountId || defaultInvAccount.id;
+          const desc = `Revaluasi nilai ${item.name} (${rev.oldCost} -> ${rev.newCost}): ${opnameNumber}`;
+          if (delta > 0) {
+            journalItems.push(
+              { accountId: invAcctId, debit: delta, credit: 0, description: desc },
+              { accountId: varianceAccount.id, debit: 0, credit: delta, description: desc },
+            );
+          } else {
+            journalItems.push(
+              { accountId: varianceAccount.id, debit: -delta, credit: 0, description: desc },
+              { accountId: invAcctId, debit: 0, credit: -delta, description: desc },
+            );
+          }
+        }
 
         for (const opItem of itemsWithDiff) {
           const item = itemMap.get(opItem.itemId)!;

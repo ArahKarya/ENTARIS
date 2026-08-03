@@ -247,6 +247,8 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
   const [notes, setNotes] = useState('');
   const [search, setSearch] = useState('');
   const [actualStocks, setActualStocks] = useState<Record<string, string>>({});
+  // Nilai satuan manual per item. Kosong = pakai averageCost item apa adanya.
+  const [unitCosts, setUnitCosts] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   // Load all active items. When a warehouse is picked, the endpoint returns
@@ -279,28 +281,52 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
     return Number(val) || 0;
   };
 
+  const handleCostChange = (itemId: string, value: string) => {
+    setUnitCosts((prev) => ({ ...prev, [itemId]: value }));
+  };
+
+  // Nilai satuan yang dipakai untuk perhitungan: input manual bila diisi,
+  // kalau tidak pakai HPP rata-rata (averageCost) item.
+  const getUnitCost = (itemId: string, avgCost: number): number => {
+    const val = unitCosts[itemId];
+    if (val === undefined || val === '') return avgCost;
+    return Number(val) || 0;
+  };
+
   const summary = useMemo(() => {
     let surplus = 0;
     let deficit = 0;
     let changed = 0;
+    let revalued = 0;
     for (const item of items) {
-      const actual = getActualStock(item.id, Number(item.currentStock));
-      const diff = actual - Number(item.currentStock);
+      const systemStock = Number(item.currentStock);
+      const avgCost = Number(item.averageCost);
+      const cost = getUnitCost(item.id, avgCost);
+      const actual = getActualStock(item.id, systemStock);
+      const diff = actual - systemStock;
       if (diff !== 0) {
         changed++;
-        const val = Math.abs(diff) * Number(item.averageCost);
+        const val = Math.abs(diff) * cost;
         if (diff > 0) surplus += val;
         else deficit += val;
       }
+      // Revaluasi: perubahan nilai satuan dikenakan ke SELURUH stok saat ini.
+      if (cost !== avgCost) {
+        revalued++;
+        const delta = systemStock * (cost - avgCost);
+        if (delta > 0) surplus += delta;
+        else deficit += -delta;
+      }
     }
-    return { surplus, deficit, changed };
-  }, [items, actualStocks]);
+    return { surplus, deficit, changed, revalued };
+  }, [items, actualStocks, unitCosts]);
 
   const handleSubmit = async () => {
     // Build items array — include ALL items (even unchanged for audit trail)
     const opnameItems = items.map((item: any) => ({
       itemId: item.id,
       actualStock: getActualStock(item.id, Number(item.currentStock)),
+      unitCost: getUnitCost(item.id, Number(item.averageCost)),
     }));
 
     if (opnameItems.length === 0) {
@@ -407,18 +433,22 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
                 <th className="text-right">Stok Sistem</th>
                 <th className="text-right w-36">Stok Aktual</th>
                 <th className="text-right">Selisih</th>
+                <th className="text-right w-40">Nilai/Satuan</th>
                 <th className="text-right">Nilai Selisih</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.map((item: any) => {
                 const systemStock = Number(item.currentStock);
+                const avgCost = Number(item.averageCost);
                 const actual = getActualStock(item.id, systemStock);
+                const cost = getUnitCost(item.id, avgCost);
                 const diff = actual - systemStock;
-                const val = Math.abs(diff) * Number(item.averageCost);
+                const costChanged = cost !== avgCost;
+                const val = Math.abs(diff) * cost;
 
                 return (
-                  <tr key={item.id} className={diff > 0 ? 'bg-green-50 dark:bg-green-950/20' : diff < 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}>
+                  <tr key={item.id} className={diff > 0 ? 'bg-green-50 dark:bg-green-950/20' : diff < 0 ? 'bg-red-50 dark:bg-red-950/20' : costChanged ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
                     <td className="font-mono">{item.code}</td>
                     <td>{item.name}</td>
                     <td>{item.unit}</td>
@@ -437,8 +467,20 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
                     <td className={`text-right tabular-nums font-semibold ${diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : ''}`}>
                       {diff !== 0 ? (diff > 0 ? '+' : '') + formatNumber(diff) : '—'}
                     </td>
+                    <td>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        className={`input w-full text-right tabular-nums ${costChanged ? 'border-amber-500' : ''}`}
+                        placeholder={formatNumber(avgCost)}
+                        value={unitCosts[item.id] ?? ''}
+                        onChange={(e) => handleCostChange(item.id, e.target.value)}
+                        title="Kosongkan untuk memakai HPP rata-rata. Diisi = revaluasi nilai persediaan."
+                      />
+                    </td>
                     <td className="text-right tabular-nums whitespace-nowrap">
-                      {diff !== 0 ? formatRupiah(val) : '—'}
+                      {diff !== 0 ? formatRupiah(val) : costChanged ? formatRupiah(systemStock * (cost - avgCost)) : '—'}
                     </td>
                   </tr>
                 );

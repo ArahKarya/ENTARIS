@@ -792,6 +792,10 @@ export const UpdateServiceItemSchema = CreateServiceItemSchema.partial().extend(
 const StockOpnameItemSchema = z.object({
   itemId: z.string().uuid('Item ID harus UUID yang valid.'),
   actualStock: z.coerce.number().min(0, 'Stok aktual tidak boleh negatif.'),
+  // Nilai satuan manual (opsional). Bila diisi dan berbeda dari averageCost
+  // item, opname akan MEREVALUASI nilai persediaan: averageCost item di-set
+  // ke nilai ini dan selisih nilainya dijurnal ke akun Selisih Persediaan.
+  unitCost: z.coerce.number().min(0, 'Nilai satuan tidak boleh negatif.').optional(),
   notes: z.string().nullable().optional(),
 });
 
