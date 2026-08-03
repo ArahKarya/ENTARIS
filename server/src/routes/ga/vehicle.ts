@@ -815,13 +815,27 @@ router.patch('/assets/:id/taxes/:tid', async (req, res) => {
   const input = validateBody(VehicleTaxSchema.partial(), req.body, res);
   if (!input) return;
   try {
+    // Guard keuangan: kalau record pajak sudah masuk antrian/pembukuan
+    // (IN_PROCESS / sudah terjurnal / sudah ada faktur), edit data aset
+    // TIDAK boleh menurunkan statusnya kembali ke ACTIVE — itu bikin
+    // tagihan hilang dari antrian Tagihan GA.
+    const current = await prisma.gaVehicleTax.findUnique({
+      where: { id: String(req.params.tid) },
+      select: { status: true, journalEntryId: true, purchaseInvoiceId: true },
+    });
+    if (!current) return res.status(404).json({ error: 'Data pajak tidak ditemukan.' });
+    const terkunci =
+      current.status === 'IN_PROCESS' ||
+      current.journalEntryId != null ||
+      current.purchaseInvoiceId != null;
+
     const data: Prisma.GaVehicleTaxUpdateInput = {};
     if (input.type) data.type = input.type;
     if (input.periodYear !== undefined) data.periodYear = input.periodYear;
     if (input.amount !== undefined) data.amount = input.amount != null ? new Prisma.Decimal(input.amount) : null;
     if (input.paidAt !== undefined) data.paidAt = input.paidAt ? new Date(input.paidAt) : null;
     if (input.dueDate) data.dueDate = new Date(input.dueDate);
-    if (input.status) data.status = input.status;
+    if (input.status && !terkunci) data.status = input.status;
     if (input.documentId !== undefined) data.document = input.documentId ? { connect: { id: input.documentId } } : { disconnect: true };
     if (input.notes !== undefined) data.notes = input.notes ?? null;
 

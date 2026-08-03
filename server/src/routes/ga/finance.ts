@@ -60,9 +60,24 @@ router.get('/bills', async (req: AuthRequest, res) => {
     const [taxes, logs, mrs] = await Promise.all([
       kind === 'ALL' || kind === 'VEHICLE_TAX'
         ? prisma.gaVehicleTax.findMany({
+            // Antrian pajak TIDAK boleh bergantung pada string status saja:
+            // edit data aset di EAM bisa menimpa status kembali ke ACTIVE
+            // (default schema) sehingga tagihan hilang dari antrian.
+            // Sumber kebenaran = belum terjurnal & berasal dari pengajuan
+            // yang sudah di-approve (atau sudah ditandai IN_PROCESS).
             where: includePaid
-              ? { status: { in: ['IN_PROCESS', 'PAID'] } }
-              : { status: 'IN_PROCESS', journalEntryId: null },
+              ? {
+                  OR: [
+                    { status: { in: ['IN_PROCESS', 'PAID'] } },
+                    { journalEntryId: { not: null } },
+                    { request: { status: 'APPROVED' } },
+                  ],
+                }
+              : {
+                  journalEntryId: null,
+                  purchaseInvoiceId: null,
+                  OR: [{ status: 'IN_PROCESS' }, { request: { status: 'APPROVED' } }],
+                },
             include: {
               asset: { select: { id: true, code: true, name: true } },
               journalEntry: { select: { id: true, entryNumber: true, status: true } },
