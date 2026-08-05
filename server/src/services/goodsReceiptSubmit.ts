@@ -140,6 +140,20 @@ export async function submitGoodsReceiptInTx(
       : provided > 0
         ? new Decimal(provided)
         : new Decimal(invItem.averageCost.toString());
+
+    // GUARD WAC: barang MILIK SENDIRI tidak boleh masuk dengan nilai 0.
+    // Mutasi In ber-unit_cost 0 mendilusi WAC jadi 0, lalu mutasi Out
+    // berikutnya keluar dengan nilai pasar → saldo GL persediaan minus
+    // (kasus 1.4.71 Repro, Agu 2026). Barang titipan (isCustomerOwned)
+    // dikecualikan karena memang bukan aset perusahaan.
+    if (!isCustomerOwned && unitCost.lte(0)) {
+      throw new BusinessError(
+        `Harga satuan untuk '${invItem.name}' belum ada (nilai 0). ` +
+          `Isi harga di STT, atau tandai STT ini sebagai Barang Titipan Pelanggan ` +
+          `bila barang bukan milik perusahaan.`,
+      );
+    }
+
     const totalValue = qty.times(unitCost).toDecimalPlaces(2);
 
     // Stock movement In
