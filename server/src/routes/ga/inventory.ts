@@ -17,6 +17,10 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { z } from 'zod';
+import multer from 'multer';
+import crypto from 'crypto';
+import path from 'path';
+import { promises as fs } from 'fs';
 import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
@@ -24,6 +28,20 @@ import { handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
 
 const router = Router();
+
+// ── Gambar item (1 foto per item, disimpan di uploads/ga/items) ────────
+const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
+const ITEM_IMAGES_DIR = path.join(UPLOADS_DIR, 'ga', 'items');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
+
 
 // ── Schemas (inline — GA-specific, kept out of shared schemas.ts) ──────
 const InventoryItemSchema = z.object({
@@ -94,6 +112,7 @@ router.get('/items', async (req: AuthRequest, res) => {
         name: it.name,
         uom: it.uom,
         minStock: minStock.toNumber(),
+        imagePath: it.imagePath,
         isActive: it.isActive,
         category: it.category,
         totalStock: totalStock.toNumber(),
@@ -161,6 +180,55 @@ router.put('/items/:id', async (req: AuthRequest, res) => {
     return res.json({ id: updated.id });
   } catch (error) {
     return handleRouteError(res, error, 'PUT /ga/inventory/items/:id', 'Gagal update item.');
+  }
+});
+
+// POST /api/ga/inventory/items/:id/image — upload/ganti gambar item.
+router.post('/items/:id/image', upload.single('image'), async (req: AuthRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'File gambar wajib diupload (JPG/PNG/WEBP, maks 5 MB).' });
+  try {
+    const item = await prisma.gaInventoryItem.findUnique({
+      where: { id: String(req.params.id) },
+      select: { id: true, imagePath: true },
+    });
+    if (!item) return res.status(404).json({ error: 'Item tidak ditemukan.' });
+
+    await fs.mkdir(ITEM_IMAGES_DIR, { recursive: true });
+    const ext = req.file.mimetype === 'image/png' ? '.png' : req.file.mimetype === 'image/webp' ? '.webp' : '.jpg';
+    const name = `${crypto.randomUUID()}${ext}`;
+    await fs.writeFile(path.join(ITEM_IMAGES_DIR, name), req.file.buffer);
+
+    // Hapus file lama supaya tidak menumpuk.
+    if (item.imagePath) {
+      await fs.unlink(path.join(UPLOADS_DIR, item.imagePath)).catch(() => undefined);
+    }
+
+    const imagePath = path.join('ga', 'items', name);
+    await prisma.gaInventoryItem.update({
+      where: { id: item.id },
+      data: { imagePath },
+    });
+    return res.status(201).json({ id: item.id, imagePath });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/inventory/items/:id/image', 'Gagal upload gambar item.');
+  }
+});
+
+// DELETE /api/ga/inventory/items/:id/image — hapus gambar item.
+router.delete('/items/:id/image', async (req: AuthRequest, res) => {
+  try {
+    const item = await prisma.gaInventoryItem.findUnique({
+      where: { id: String(req.params.id) },
+      select: { id: true, imagePath: true },
+    });
+    if (!item) return res.status(404).json({ error: 'Item tidak ditemukan.' });
+    if (item.imagePath) {
+      await fs.unlink(path.join(UPLOADS_DIR, item.imagePath)).catch(() => undefined);
+      await prisma.gaInventoryItem.update({ where: { id: item.id }, data: { imagePath: null } });
+    }
+    return res.status(204).end();
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /ga/inventory/items/:id/image', 'Gagal menghapus gambar item.');
   }
 });
 

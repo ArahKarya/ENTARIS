@@ -2511,6 +2511,7 @@ model GaInventoryItem {
   categoryId           String                  @map("category_id")
   uom                  String
   minStock             Decimal                 @default(0) @map("min_stock") @db.Decimal(12, 2)
+  imagePath            String?                 @map("image_path")
   isActive             Boolean                 @default(true) @map("is_active")
   createdAt            DateTime                @default(now()) @map("created_at")
   category             GaInventoryCategory     @relation(fields: [categoryId], references: [id])

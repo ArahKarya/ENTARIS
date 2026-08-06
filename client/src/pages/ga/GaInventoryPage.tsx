@@ -8,6 +8,8 @@ import {
   ArrowLeftRight,
   AlertTriangle,
   X,
+  ImagePlus,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -41,6 +43,7 @@ interface InventoryItem {
   name: string;
   uom: string;
   minStock: number;
+  imagePath?: string | null;
   isActive: boolean;
   totalStock: number;
   lowStock: boolean;
@@ -110,6 +113,10 @@ export const GaInventoryPage = () => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [itemForm, setItemForm] = useState<ItemFormState>(EMPTY_ITEM);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
   const [movementForm, setMovementForm] = useState<MovementFormState>(EMPTY_MOVEMENT);
@@ -156,9 +163,22 @@ export const GaInventoryPage = () => {
       if (payload.id) return api.put(`/ga/inventory/items/${payload.id}`, body);
       return api.post('/ga/inventory/items', body);
     },
-    onSuccess: () => {
+    onSuccess: async (res: any) => {
+      const itemId = editItem?.id ?? res?.data?.id;
+      try {
+        if (itemId && imageFile) {
+          const fd = new FormData();
+          fd.append('image', imageFile);
+          await api.post(`/ga/inventory/items/${itemId}/image`, fd);
+        } else if (itemId && removeImage) {
+          await api.delete(`/ga/inventory/items/${itemId}/image`);
+        }
+      } catch {
+        toast.error('Item tersimpan, tapi gambar gagal diupload.');
+      }
       toast.success(editItem ? 'Item diperbarui.' : 'Item dibuat.');
       setIsItemModalOpen(false);
+      resetImageState();
       invalidateItems();
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal menyimpan item.'),
@@ -185,9 +205,28 @@ export const GaInventoryPage = () => {
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal mencatat pergerakan.'),
   });
 
+  const resetImageState = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(false);
+  };
+
+  const handleImagePick = (file: File | null) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error('Ukuran gambar maksimal 5 MB.');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
+      return toast.error('Format gambar harus JPG, PNG, atau WEBP.');
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+  };
+
   const openCreateItem = () => {
     setEditItem(null);
     setItemForm(EMPTY_ITEM);
+    resetImageState();
     setIsItemModalOpen(true);
   };
 
@@ -200,6 +239,7 @@ export const GaInventoryPage = () => {
       uom: it.uom,
       minStock: String(it.minStock),
     });
+    resetImageState();
     setIsItemModalOpen(true);
   };
 
@@ -319,6 +359,7 @@ export const GaInventoryPage = () => {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th scope="col" className="w-14">Foto</th>
                     <th scope="col">SKU</th>
                     <th scope="col">Nama</th>
                     <th scope="col">Kategori</th>
@@ -331,14 +372,14 @@ export const GaInventoryPage = () => {
                 <tbody>
                   {itemsLoading ? (
                     <tr>
-                      <td colSpan={canEdit ? 7 : 6} className="py-16 text-center text-gray-400">
+                      <td colSpan={canEdit ? 8 : 7} className="py-16 text-center text-gray-400">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
                         Memuat data item...
                       </td>
                     </tr>
                   ) : filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={canEdit ? 7 : 6} className="py-16 text-center">
+                      <td colSpan={canEdit ? 8 : 7} className="py-16 text-center">
                         <Package className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                         <p className="text-sm text-gray-400">Belum ada item.</p>
                         {canEdit && (
@@ -354,6 +395,20 @@ export const GaInventoryPage = () => {
                   ) : (
                     filteredItems.map((it) => (
                       <tr key={it.id}>
+                        <td>
+                          {it.imagePath ? (
+                            <img
+                              src={`/uploads/${it.imagePath}`}
+                              alt={it.name}
+                              onClick={() => setPreviewImage(`/uploads/${it.imagePath}`)}
+                              className="w-10 h-10 object-cover rounded-lg border border-gray-200 cursor-zoom-in"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg border border-dashed border-gray-200 flex items-center justify-center text-gray-300">
+                              <Package size={16} />
+                            </div>
+                          )}
+                        </td>
                         <td className="whitespace-nowrap">
                           <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">
                             {it.sku}
@@ -554,10 +609,61 @@ export const GaInventoryPage = () => {
                   Catatan: kategori hanya bisa diatur ulang dengan memilih ulang dari daftar.
                 </p>
               )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gambar Item</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-20 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center shrink-0">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : editItem?.imagePath && !removeImage ? (
+                      <img
+                        src={`/uploads/${editItem.imagePath}`}
+                        alt={editItem.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package size={22} className="text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+                      <ImagePlus size={14} />
+                      {imagePreview || (editItem?.imagePath && !removeImage) ? 'Ganti Gambar' : 'Pilih Gambar'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          handleImagePick(e.target.files?.[0] ?? null);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {(imagePreview || (editItem?.imagePath && !removeImage)) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (imagePreview) URL.revokeObjectURL(imagePreview);
+                          setImageFile(null);
+                          setImagePreview(null);
+                          setRemoveImage(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 size={13} /> Hapus gambar
+                      </button>
+                    )}
+                    <span className="text-[11px] text-gray-400">JPG/PNG/WEBP, maks 5 MB.</span>
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsItemModalOpen(false)}
+                  onClick={() => {
+                    setIsItemModalOpen(false);
+                    resetImageState();
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   Batal
@@ -716,6 +822,22 @@ export const GaInventoryPage = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Image lightbox */}
+      {previewImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6 cursor-zoom-out"
+        >
+          <img
+            src={previewImage}
+            alt="Pratinjau gambar item"
+            className="max-w-full max-h-full rounded-lg shadow-xl"
+          />
         </div>
       )}
     </div>
