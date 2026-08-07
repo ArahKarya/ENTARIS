@@ -214,6 +214,32 @@ router.post('/items/:id/image', upload.single('image'), async (req: AuthRequest,
   }
 });
 
+// GET /api/ga/inventory/items/:id/image — serve file gambar item.
+router.get('/items/:id/image', async (req, res) => {
+  try {
+    const item = await prisma.gaInventoryItem.findUnique({
+      where: { id: String(req.params.id) },
+      select: { imagePath: true },
+    });
+    if (!item?.imagePath) return res.status(404).json({ error: 'Gambar tidak ditemukan.' });
+
+    // Path-traversal guard: file hasil resolve wajib tetap di dalam UPLOADS_DIR.
+    const full = path.normalize(path.join(UPLOADS_DIR, item.imagePath));
+    if (!full.startsWith(UPLOADS_DIR + path.sep)) {
+      return res.status(400).json({ error: 'Path file tidak valid.' });
+    }
+
+    const ext = path.extname(full).toLowerCase();
+    const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    return res.sendFile(full);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/inventory/items/:id/image', 'Gagal mengambil gambar item.');
+  }
+});
+
 // DELETE /api/ga/inventory/items/:id/image — hapus gambar item.
 router.delete('/items/:id/image', async (req: AuthRequest, res) => {
   try {

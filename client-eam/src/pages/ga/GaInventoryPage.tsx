@@ -25,6 +25,11 @@ import { formatDate } from '../../lib/formatters';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
 
+// URL gambar item: dilayani backend (bukan static /uploads).
+// imagePath dipakai sbg cache-buster supaya ganti gambar langsung terlihat.
+const itemImageUrl = (id: string, imagePath?: string | null) =>
+  `${api.defaults.baseURL ?? '/api'}/ga/inventory/items/${id}/image?v=${encodeURIComponent(imagePath ?? '')}`;
+
 // GA Inventory — sparepart/consumable stock milik General Affairs,
 // TERPISAH dari persediaan akuntansi ERP (tanpa jurnal/GL).
 // Endpoint base: /ga/inventory.
@@ -929,9 +934,9 @@ export const GaInventoryPage = () => {
                         <td>
                           {it.imagePath ? (
                             <img
-                              src={`/uploads/${it.imagePath}`}
+                              src={itemImageUrl(it.id, it.imagePath)}
                               alt={it.name}
-                              onClick={() => setPreviewImage(`/uploads/${it.imagePath}`)}
+                              onClick={() => setPreviewImage(itemImageUrl(it.id, it.imagePath))}
                               className="w-10 h-10 object-cover rounded-lg border border-gray-200 cursor-zoom-in"
                             />
                           ) : (
@@ -1148,7 +1153,7 @@ export const GaInventoryPage = () => {
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                     ) : editItem?.imagePath && !removeImage ? (
                       <img
-                        src={`/uploads/${editItem.imagePath}`}
+                        src={itemImageUrl(editItem.id, editItem.imagePath)}
                         alt={editItem.name}
                         className="w-full h-full object-cover"
                       />
