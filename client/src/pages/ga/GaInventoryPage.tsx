@@ -10,6 +10,13 @@ import {
   X,
   ImagePlus,
   Trash2,
+  LayoutDashboard,
+  Wrench,
+  Download,
+  ClipboardCheck,
+  MapPin,
+  Boxes,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -94,7 +101,38 @@ const MOVEMENT_BADGE: Record<MovementType, string> = {
   ADJUSTMENT: 'badge-yellow',
 };
 
+interface DashboardData {
+  summary: {
+    totalItems: number;
+    activeItems: number;
+    totalQty: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+    locationCount: number;
+    categoryCount: number;
+    movements30d: number;
+    itemsMoved30d: number;
+  };
+  movementTotals: Record<MovementType, { count: number; qty: number }>;
+  byCategory: { name: string; type: string; items: number; qty: number }[];
+  byLocation: { code: string; name: string; items: number; qty: number }[];
+  lowStockItems: {
+    id: string; sku: string; name: string; uom: string; category: string;
+    totalStock: number; minStock: number; shortfall: number;
+  }[];
+  recentMovements: Movement[];
+}
+
+interface OpnameFormState {
+  itemId: string;
+  locationId: string;
+  quantity: string;
+  notes: string;
+}
+
 const EMPTY_ITEM: ItemFormState = { sku: '', name: '', categoryId: '', uom: '', minStock: '0' };
+
+const EMPTY_OPNAME: OpnameFormState = { itemId: '', locationId: '', quantity: '', notes: '' };
 
 const EMPTY_MOVEMENT: MovementFormState = {
   itemId: '',
@@ -107,8 +145,12 @@ const EMPTY_MOVEMENT: MovementFormState = {
 };
 
 export const GaInventoryPage = () => {
-  const [tab, setTab] = useState<'items' | 'movements'>('items');
+  const [tab, setTab] = useState<'dashboard' | 'items' | 'movements' | 'tools'>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [isOpnameModalOpen, setIsOpnameModalOpen] = useState(false);
+  const [opnameForm, setOpnameForm] = useState<OpnameFormState>(EMPTY_OPNAME);
+  const [exporting, setExporting] = useState<string | null>(null);
 
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
@@ -144,10 +186,18 @@ export const GaInventoryPage = () => {
     queryFn: async () => (await api.get('/ga/inventory/movements')).data,
   });
 
-  const invalidateItems = () =>
+  const { data: dashboard, isLoading: dashboardLoading } = useQuery<DashboardData>({
+    queryKey: ['ga-inventory-dashboard'],
+    queryFn: async () => (await api.get('/ga/inventory/dashboard')).data,
+  });
+
+  const invalidateItems = () => {
     queryClient.invalidateQueries({ queryKey: ['ga-inventory-items'] });
+    queryClient.invalidateQueries({ queryKey: ['ga-inventory-dashboard'] });
+  };
   const invalidateMovements = () => {
     queryClient.invalidateQueries({ queryKey: ['ga-inventory-movements'] });
+    queryClient.invalidateQueries({ queryKey: ['ga-inventory-dashboard'] });
     invalidateItems();
   };
 
@@ -204,6 +254,80 @@ export const GaInventoryPage = () => {
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal mencatat pergerakan.'),
   });
+
+  const opnameMutation = useMutation({
+    mutationFn: async (payload: OpnameFormState) =>
+      api.post('/ga/inventory/stock-set', {
+        itemId: payload.itemId,
+        locationId: payload.locationId,
+        quantity: Number(payload.quantity),
+        notes: payload.notes || null,
+      }),
+    onSuccess: (res: any) => {
+      const d = res?.data;
+      if (d && d.changed === false) toast.info('Stok sudah sesuai, tidak ada penyesuaian.');
+      else
+        toast.success(
+          `Opname tersimpan. ${d?.before ?? '?'} → ${d?.after ?? '?'} (selisih ${d?.delta > 0 ? '+' : ''}${d?.delta ?? 0}).`,
+        );
+      setIsOpnameModalOpen(false);
+      setOpnameForm(EMPTY_OPNAME);
+      invalidateMovements();
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal menyimpan opname.'),
+  });
+
+  // Detail item terpilih di form opname → tampilkan stok sistem & selisih.
+  const { data: opnameItemDetail } = useQuery<{
+    stocks: { quantity: number; location: { id: string; code: string; name: string } }[];
+  }>({
+    queryKey: ['ga-inventory-item-detail', opnameForm.itemId],
+    queryFn: async () => (await api.get(`/ga/inventory/items/${opnameForm.itemId}`)).data,
+    enabled: Boolean(opnameForm.itemId) && isOpnameModalOpen,
+  });
+
+  const opnameSelected = useMemo(
+    () => items.find((it) => it.id === opnameForm.itemId) ?? null,
+    [items, opnameForm.itemId],
+  );
+
+  const opnameCurrentStock = useMemo(() => {
+    if (!opnameForm.locationId || !opnameItemDetail?.stocks) return 0;
+    const row = opnameItemDetail.stocks.find((s) => s.location?.id === opnameForm.locationId);
+    return row ? Number(row.quantity) : 0;
+  }, [opnameItemDetail, opnameForm.locationId]);
+
+  const opnameDelta =
+    opnameForm.quantity === '' ? 0 : Number(opnameForm.quantity) - opnameCurrentStock;
+
+  const handleExport = async (type: 'items' | 'movements') => {
+    setExporting(type);
+    try {
+      const res = await api.get(`/ga/inventory/export?type=${type}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ga-inventory-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('File CSV diunduh.');
+    } catch {
+      toast.error('Gagal mengunduh file.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleOpnameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!opnameForm.itemId) return toast.error('Item wajib dipilih.');
+    if (!opnameForm.locationId) return toast.error('Lokasi wajib dipilih.');
+    if (opnameForm.quantity === '' || Number(opnameForm.quantity) < 0)
+      return toast.error('Stok hasil hitung wajib diisi (tidak boleh negatif).');
+    opnameMutation.mutate(opnameForm);
+  };
 
   const resetImageState = () => {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -293,7 +417,7 @@ export const GaInventoryPage = () => {
             Stok sparepart & consumable General Affairs (terpisah dari persediaan akuntansi).
           </p>
         </div>
-        {canEdit && (
+        {canEdit && (tab === 'items' || tab === 'movements') && (
           <div className="flex gap-2 self-start">
             {tab === 'items' ? (
               <button className="btn-primary" onClick={openCreateItem}>
@@ -308,7 +432,7 @@ export const GaInventoryPage = () => {
         )}
       </div>
 
-      {lowStockCount > 0 && (
+      {lowStockCount > 0 && tab !== 'dashboard' && (
         <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
           <AlertTriangle size={15} />
           {lowStockCount} item di bawah stok minimum.
@@ -316,30 +440,421 @@ export const GaInventoryPage = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
-        <button
-          onClick={() => setTab('items')}
-          className={cn(
-            'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-            tab === 'items'
-              ? 'border-teal-600 text-teal-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700',
-          )}
-        >
-          Item
-        </button>
-        <button
-          onClick={() => setTab('movements')}
-          className={cn(
-            'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-            tab === 'movements'
-              ? 'border-teal-600 text-teal-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700',
-          )}
-        >
-          Pergerakan
-        </button>
+      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
+        {([
+          { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { key: 'items', label: 'Item', icon: Package },
+          { key: 'movements', label: 'Pergerakan', icon: ArrowLeftRight },
+          { key: 'tools', label: 'Tools', icon: Wrench },
+        ] as const).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 whitespace-nowrap',
+              tab === key
+                ? 'border-teal-600 text-teal-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
+            )}
+          >
+            <Icon size={14} /> {label}
+          </button>
+        ))}
       </div>
+
+      {/* ── Dashboard ───────────────────────────────────────────── */}
+      {tab === 'dashboard' && (
+        <>
+          {dashboardLoading || !dashboard ? (
+            <div className="py-20 text-center text-gray-400">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
+              Memuat ringkasan stok...
+            </div>
+          ) : (
+            <>
+              {/* Kartu ringkasan */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  {
+                    label: 'Total Item',
+                    value: dashboard.summary.totalItems.toLocaleString('id-ID'),
+                    sub: `${dashboard.summary.activeItems} aktif`,
+                    icon: Package,
+                    color: 'text-teal-600 bg-teal-50',
+                  },
+                  {
+                    label: 'Total Kuantitas',
+                    value: dashboard.summary.totalQty.toLocaleString('id-ID'),
+                    sub: `${dashboard.summary.locationCount} lokasi`,
+                    icon: Boxes,
+                    color: 'text-blue-600 bg-blue-50',
+                  },
+                  {
+                    label: 'Stok Rendah',
+                    value: dashboard.summary.lowStockCount.toLocaleString('id-ID'),
+                    sub: `${dashboard.summary.outOfStockCount} habis`,
+                    icon: AlertTriangle,
+                    color:
+                      dashboard.summary.lowStockCount > 0
+                        ? 'text-amber-600 bg-amber-50'
+                        : 'text-gray-400 bg-gray-50',
+                  },
+                  {
+                    label: 'Mutasi 30 Hari',
+                    value: dashboard.summary.movements30d.toLocaleString('id-ID'),
+                    sub: `${dashboard.summary.itemsMoved30d} item bergerak`,
+                    icon: TrendingUp,
+                    color: 'text-violet-600 bg-violet-50',
+                  },
+                ].map((c) => (
+                  <div
+                    key={c.label}
+                    className="bg-white border border-gray-200 rounded-xl px-4 py-3.5 flex items-start gap-3"
+                  >
+                    <span className={cn('p-2 rounded-lg shrink-0', c.color)}>
+                      <c.icon size={16} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
+                        {c.label}
+                      </p>
+                      <p className="text-xl font-semibold text-gray-900 tabular-nums leading-tight mt-0.5">
+                        {c.value}
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mutasi per tipe (30 hari) */}
+              <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                  Aktivitas Mutasi — 30 Hari Terakhir
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {(['IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'] as MovementType[]).map((t) => {
+                    const d = dashboard.movementTotals[t] ?? { count: 0, qty: 0 };
+                    return (
+                      <div key={t} className="border border-gray-100 rounded-lg px-3 py-2.5">
+                        <span className={cn('badge', MOVEMENT_BADGE[t])}>{MOVEMENT_LABEL[t]}</span>
+                        <p className="text-lg font-semibold text-gray-900 tabular-nums mt-1.5">
+                          {d.qty.toLocaleString('id-ID')}
+                        </p>
+                        <p className="text-[11px] text-gray-400">{d.count} transaksi</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Stok per lokasi */}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                    <MapPin size={15} className="text-gray-400" />
+                    <h3 className="text-sm font-semibold text-gray-800">Stok per Lokasi</h3>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Lokasi</th>
+                          <th scope="col" className="text-right">Item</th>
+                          <th scope="col" className="text-right">Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboard.byLocation.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="py-10 text-center text-sm text-gray-400">
+                              Belum ada lokasi.
+                            </td>
+                          </tr>
+                        ) : (
+                          dashboard.byLocation.map((l) => (
+                            <tr key={l.code}>
+                              <td>
+                                <span className="font-medium text-gray-800">{l.name}</span>
+                                <span className="block text-[11px] text-gray-400 font-mono">
+                                  {l.code}
+                                </span>
+                              </td>
+                              <td className="text-right text-gray-600 tabular-nums">{l.items}</td>
+                              <td className="text-right font-mono font-medium text-gray-900 tabular-nums">
+                                {l.qty.toLocaleString('id-ID')}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Stok per kategori */}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                    <Boxes size={15} className="text-gray-400" />
+                    <h3 className="text-sm font-semibold text-gray-800">Stok per Kategori</h3>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Kategori</th>
+                          <th scope="col" className="text-right">Item</th>
+                          <th scope="col" className="text-right">Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboard.byCategory.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="py-10 text-center text-sm text-gray-400">
+                              Belum ada kategori terpakai.
+                            </td>
+                          </tr>
+                        ) : (
+                          dashboard.byCategory.map((c) => (
+                            <tr key={c.name}>
+                              <td>
+                                <span className="font-medium text-gray-800">{c.name}</span>
+                                <span className="block text-[11px] text-gray-400">{c.type}</span>
+                              </td>
+                              <td className="text-right text-gray-600 tabular-nums">{c.items}</td>
+                              <td className="text-right font-mono font-medium text-gray-900 tabular-nums">
+                                {c.qty.toLocaleString('id-ID')}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Item stok rendah */}
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                  <AlertTriangle size={15} className="text-amber-500" />
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    Item di Bawah Stok Minimum
+                  </h3>
+                </div>
+                <div className="table-responsive">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">SKU</th>
+                        <th scope="col">Nama</th>
+                        <th scope="col">Kategori</th>
+                        <th scope="col" className="text-right">Stok</th>
+                        <th scope="col" className="text-right">Minimum</th>
+                        <th scope="col" className="text-right">Kurang</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.lowStockItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-10 text-center text-sm text-gray-400">
+                            Semua item aman di atas stok minimum. ✓
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboard.lowStockItems.map((it) => (
+                          <tr key={it.id}>
+                            <td className="font-mono text-xs text-gray-600">{it.sku}</td>
+                            <td className="font-medium text-gray-800">{it.name}</td>
+                            <td className="text-gray-500 text-xs">{it.category}</td>
+                            <td className="text-right font-mono tabular-nums text-gray-900">
+                              {it.totalStock.toLocaleString('id-ID')} {it.uom}
+                            </td>
+                            <td className="text-right font-mono tabular-nums text-gray-500">
+                              {it.minStock.toLocaleString('id-ID')}
+                            </td>
+                            <td className="text-right font-mono tabular-nums font-semibold text-amber-600">
+                              {it.shortfall.toLocaleString('id-ID')}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mutasi terakhir */}
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ArrowLeftRight size={15} className="text-gray-400" />
+                    <h3 className="text-sm font-semibold text-gray-800">Mutasi Terakhir</h3>
+                  </div>
+                  <button
+                    onClick={() => setTab('movements')}
+                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    Lihat semua →
+                  </button>
+                </div>
+                <div className="table-responsive">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Tanggal</th>
+                        <th scope="col" className="text-center">Tipe</th>
+                        <th scope="col">Item</th>
+                        <th scope="col" className="text-right">Qty</th>
+                        <th scope="col">Referensi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.recentMovements.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-10 text-center text-sm text-gray-400">
+                            Belum ada pergerakan.
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboard.recentMovements.map((m) => (
+                          <tr key={m.id}>
+                            <td className="text-gray-500 whitespace-nowrap">
+                              {formatDate(m.createdAt)}
+                            </td>
+                            <td className="text-center">
+                              <span className={cn('badge', MOVEMENT_BADGE[m.type])}>
+                                {MOVEMENT_LABEL[m.type]}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="font-medium text-gray-800">
+                                {m.item?.name ?? '—'}
+                              </span>
+                              {m.item?.sku && (
+                                <span className="block text-[11px] text-gray-400 font-mono">
+                                  {m.item.sku}
+                                </span>
+                              )}
+                            </td>
+                            <td className="text-right font-mono tabular-nums text-gray-900">
+                              {m.quantity.toLocaleString('id-ID')} {m.item?.uom ?? ''}
+                            </td>
+                            <td className="text-gray-500 text-xs">
+                              {m.referenceNo || <span className="text-gray-300">—</span>}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Tools ───────────────────────────────────────────────── */}
+      {tab === 'tools' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Stok opname cepat */}
+          <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="p-2 rounded-lg bg-teal-50 text-teal-600">
+                <ClipboardCheck size={16} />
+              </span>
+              <h3 className="text-sm font-semibold text-gray-800">Stok Opname Cepat</h3>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-3">
+              Set stok hasil hitung fisik langsung per item &amp; lokasi. Selisih terhadap stok
+              sistem otomatis tercatat sebagai mutasi <strong>Penyesuaian</strong>, jadi riwayat
+              tetap utuh.
+            </p>
+            <button
+              className="btn-primary"
+              disabled={!canEdit}
+              onClick={() => {
+                setOpnameForm(EMPTY_OPNAME);
+                setIsOpnameModalOpen(true);
+              }}
+            >
+              <ClipboardCheck size={15} /> Mulai Opname
+            </button>
+            {!canEdit && (
+              <p className="text-[11px] text-gray-400 mt-2">Butuh izin edit inventory GA.</p>
+            )}
+          </div>
+
+          {/* Export CSV */}
+          <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                <Download size={16} />
+              </span>
+              <h3 className="text-sm font-semibold text-gray-800">Export Data</h3>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-3">
+              Unduh daftar item (lengkap stok &amp; status) atau riwayat mutasi dalam format CSV
+              (pemisah titik-koma, siap dibuka di Excel).
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="btn-secondary"
+                onClick={() => handleExport('items')}
+                disabled={exporting !== null}
+              >
+                {exporting === 'items' ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Download size={15} />
+                )}
+                Daftar Item
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => handleExport('movements')}
+                disabled={exporting !== null}
+              >
+                {exporting === 'movements' ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Download size={15} />
+                )}
+                Riwayat Mutasi
+              </button>
+            </div>
+          </div>
+
+          {/* Info kalkulasi stok */}
+          <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 md:col-span-2">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="p-2 rounded-lg bg-gray-100 text-gray-500">
+                <Boxes size={16} />
+              </span>
+              <h3 className="text-sm font-semibold text-gray-800">Cara Stok Dihitung</h3>
+            </div>
+            <ul className="text-xs text-gray-600 leading-relaxed space-y-1 list-disc pl-4">
+              <li>
+                <strong>Total Stok</strong> = penjumlahan stok semua lokasi, murni turunan dari
+                mutasi. Tidak bisa diketik manual di form item.
+              </li>
+              <li>
+                <strong>Stok Minimum</strong> hanya ambang peringatan — mengisinya tidak menambah
+                stok.
+              </li>
+              <li>
+                Menambah stok pertama kali: tab <strong>Pergerakan</strong> → Catat Pergerakan →
+                tipe <strong>Masuk</strong>.
+              </li>
+              <li>
+                Inventory GA <strong>tidak</strong> membuat jurnal/GL — terpisah dari persediaan
+                akuntansi ERP.
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {tab === 'items' && (
         <>
@@ -818,6 +1333,134 @@ export const GaInventoryPage = () => {
                 >
                   {createMovementMutation.isPending && <Loader2 size={15} className="animate-spin" />}
                   Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Stok Opname */}
+      {isOpnameModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Stok Opname Cepat</h2>
+              <button
+                onClick={() => setIsOpnameModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Tutup"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleOpnameSubmit} className="px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Item <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={opnameForm.itemId}
+                  onChange={(e) => setOpnameForm((f) => ({ ...f, itemId: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Pilih item...</option>
+                  {items.map((it) => (
+                    <option key={it.id} value={it.id}>
+                      {it.sku} · {it.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lokasi <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={opnameForm.locationId}
+                  onChange={(e) => setOpnameForm((f) => ({ ...f, locationId: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Pilih lokasi...</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.code} · {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {opnameSelected && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Stok sistem di lokasi ini</span>
+                    <span className="font-mono font-medium text-gray-900 tabular-nums">
+                      {opnameCurrentStock.toLocaleString('id-ID')} {opnameSelected.uom}
+                    </span>
+                  </div>
+                  {opnameForm.quantity !== '' && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Selisih</span>
+                      <span
+                        className={cn(
+                          'font-mono font-semibold tabular-nums',
+                          opnameDelta === 0
+                            ? 'text-gray-500'
+                            : opnameDelta > 0
+                              ? 'text-emerald-600'
+                              : 'text-red-600',
+                        )}
+                      >
+                        {opnameDelta > 0 ? '+' : ''}
+                        {opnameDelta.toLocaleString('id-ID')} {opnameSelected.uom}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Stok Hasil Hitung Fisik <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={opnameForm.quantity}
+                  onChange={(e) => setOpnameForm((f) => ({ ...f, quantity: e.target.value }))}
+                  placeholder="0"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Isi angka riil hasil hitung di gudang. Selisih dicatat sebagai mutasi Penyesuaian.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                <input
+                  type="text"
+                  value={opnameForm.notes}
+                  onChange={(e) => setOpnameForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="mis. Opname bulanan Agustus"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOpnameModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button type="submit" disabled={opnameMutation.isPending} className="btn-primary">
+                  {opnameMutation.isPending && <Loader2 size={15} className="animate-spin" />}
+                  Simpan Opname
                 </button>
               </div>
             </form>

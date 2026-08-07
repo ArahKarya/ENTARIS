@@ -394,4 +394,274 @@ router.get('/low-stock', async (_req, res) => {
   }
 });
 
+// ── Dashboard ──────────────────────────────────────────────────────
+// GET /api/ga/inventory/dashboard — ringkasan stok untuk kartu & grafik.
+//   Semua angka dihitung on-the-fly dari GaStockByLocation & GaInventoryMovement
+//   (tidak ada kolom cache), jadi selalu konsisten dengan mutasi.
+router.get('/dashboard', async (_req, res) => {
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+
+    const [items, locations, movements30, recent] = await Promise.all([
+      prisma.gaInventoryItem.findMany({
+        include: {
+          category: { select: { id: true, code: true, name: true, type: true } },
+          stocks: { select: { quantity: true, locationId: true } },
+        },
+      }),
+      prisma.gaLocation.findMany({
+        orderBy: { code: 'asc' },
+        select: { id: true, code: true, name: true },
+      }),
+      prisma.gaInventoryMovement.findMany({
+        where: { createdAt: { gte: since } },
+        select: { type: true, quantity: true, itemId: true },
+      }),
+      prisma.gaInventoryMovement.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        include: {
+          item: { select: { sku: true, name: true, uom: true } },
+          fromLocation: { select: { code: true } },
+          toLocation: { select: { code: true } },
+        },
+      }),
+    ]);
+
+    let totalQty = new Decimal(0);
+    let lowStock = 0;
+    let outOfStock = 0;
+    let activeItems = 0;
+
+    const byCategory = new Map<string, { name: string; type: string; items: number; qty: Decimal }>();
+    const byLocation = new Map<string, { code: string; name: string; items: number; qty: Decimal }>();
+    for (const loc of locations) {
+      byLocation.set(loc.id, { code: loc.code, name: loc.name, items: 0, qty: new Decimal(0) });
+    }
+
+    const lowList: {
+      id: string; sku: string; name: string; uom: string; category: string;
+      totalStock: number; minStock: number; shortfall: number;
+    }[] = [];
+
+    for (const it of items) {
+      const total = sumStock(it.stocks);
+      const min = new Decimal(it.minStock.toString());
+      totalQty = totalQty.plus(total);
+      if (it.isActive) activeItems += 1;
+      if (total.lessThanOrEqualTo(0)) outOfStock += 1;
+      if (total.lessThan(min)) {
+        lowStock += 1;
+        lowList.push({
+          id: it.id, sku: it.sku, name: it.name, uom: it.uom,
+          category: it.category?.name ?? '—',
+          totalStock: total.toNumber(),
+          minStock: min.toNumber(),
+          shortfall: min.minus(total).toNumber(),
+        });
+      }
+
+      const catKey = it.categoryId;
+      const cat = byCategory.get(catKey) ?? {
+        name: it.category?.name ?? '—',
+        type: String(it.category?.type ?? '—'),
+        items: 0,
+        qty: new Decimal(0),
+      };
+      cat.items += 1;
+      cat.qty = cat.qty.plus(total);
+      byCategory.set(catKey, cat);
+
+      for (const s of it.stocks) {
+        const bucket = byLocation.get(s.locationId);
+        if (!bucket) continue;
+        const q = new Decimal(s.quantity.toString());
+        bucket.qty = bucket.qty.plus(q);
+        if (!q.isZero()) bucket.items += 1;
+      }
+    }
+
+    const movementTotals: Record<string, { count: number; qty: number }> = {
+      IN: { count: 0, qty: 0 },
+      OUT: { count: 0, qty: 0 },
+      TRANSFER: { count: 0, qty: 0 },
+      ADJUSTMENT: { count: 0, qty: 0 },
+    };
+    const movedItems = new Set<string>();
+    for (const m of movements30) {
+      const bucket = movementTotals[m.type];
+      if (bucket) {
+        bucket.count += 1;
+        bucket.qty += new Decimal(m.quantity.toString()).abs().toNumber();
+      }
+      movedItems.add(m.itemId);
+    }
+
+    return res.json({
+      summary: {
+        totalItems: items.length,
+        activeItems,
+        totalQty: totalQty.toNumber(),
+        lowStockCount: lowStock,
+        outOfStockCount: outOfStock,
+        locationCount: locations.length,
+        categoryCount: byCategory.size,
+        movements30d: movements30.length,
+        itemsMoved30d: movedItems.size,
+      },
+      movementTotals,
+      byCategory: Array.from(byCategory.values())
+        .map((c) => ({ ...c, qty: c.qty.toNumber() }))
+        .sort((a, b) => b.qty - a.qty),
+      byLocation: Array.from(byLocation.values())
+        .map((l) => ({ ...l, qty: l.qty.toNumber() }))
+        .sort((a, b) => b.qty - a.qty),
+      lowStockItems: lowList.sort((a, b) => b.shortfall - a.shortfall).slice(0, 10),
+      recentMovements: recent.map((m) => ({
+        id: m.id,
+        type: m.type,
+        quantity: new Decimal(m.quantity.toString()).toNumber(),
+        createdAt: m.createdAt,
+        item: m.item,
+        fromLocation: m.fromLocation,
+        toLocation: m.toLocation,
+        referenceNo: m.referenceNo,
+      })),
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/inventory/dashboard', 'Gagal mengambil ringkasan stok.');
+  }
+});
+
+// ── Tools ──────────────────────────────────────────────────────────
+// GET /api/ga/inventory/export?type=items|movements — unduh CSV.
+router.get('/export', async (req, res) => {
+  const type = String(req.query.type || 'items');
+  const csvCell = (v: unknown) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  try {
+    let rows: (string | number)[][];
+    let filename: string;
+
+    if (type === 'movements') {
+      const movements = await prisma.gaInventoryMovement.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5000,
+        include: {
+          item: { select: { sku: true, name: true, uom: true } },
+          fromLocation: { select: { code: true } },
+          toLocation: { select: { code: true } },
+        },
+      });
+      rows = [['Tanggal', 'Tipe', 'SKU', 'Nama Item', 'Qty', 'Satuan', 'Dari', 'Ke', 'Referensi', 'Catatan']];
+      for (const m of movements) {
+        rows.push([
+          m.createdAt.toISOString().slice(0, 19).replace('T', ' '),
+          m.type,
+          m.item?.sku ?? '',
+          m.item?.name ?? '',
+          new Decimal(m.quantity.toString()).toNumber(),
+          m.item?.uom ?? '',
+          m.fromLocation?.code ?? '',
+          m.toLocation?.code ?? '',
+          m.referenceNo ?? '',
+          m.notes ?? '',
+        ]);
+      }
+      filename = 'ga-inventory-movements';
+    } else {
+      const items = await prisma.gaInventoryItem.findMany({
+        orderBy: { sku: 'asc' },
+        include: {
+          category: { select: { name: true, type: true } },
+          stocks: { select: { quantity: true } },
+        },
+      });
+      rows = [['SKU', 'Nama', 'Kategori', 'Tipe', 'Satuan', 'Total Stok', 'Stok Minimum', 'Status', 'Aktif']];
+      for (const it of items) {
+        const total = sumStock(it.stocks);
+        const min = new Decimal(it.minStock.toString());
+        rows.push([
+          it.sku,
+          it.name,
+          it.category?.name ?? '',
+          String(it.category?.type ?? ''),
+          it.uom,
+          total.toNumber(),
+          min.toNumber(),
+          total.lessThan(min) ? 'Stok rendah' : 'Aman',
+          it.isActive ? 'Ya' : 'Tidak',
+        ]);
+      }
+      filename = 'ga-inventory-items';
+    }
+
+    const csv = '\uFEFF' + rows.map((r) => r.map(csvCell).join(';')).join('\r\n');
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}-${stamp}.csv"`);
+    return res.send(csv);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/inventory/export', 'Gagal mengekspor data.');
+  }
+});
+
+// POST /api/ga/inventory/stock-set — opname cepat: set stok ABSOLUT per lokasi.
+//   Selisih terhadap stok sistem dicatat sebagai movement ADJUSTMENT (boleh minus),
+//   supaya total stok tetap 100% turunan dari log mutasi.
+const StockSetSchema = z.object({
+  itemId: z.string().min(1),
+  locationId: z.string().min(1),
+  quantity: z.number().nonnegative('Stok hasil opname tidak boleh negatif.'),
+  notes: z.string().optional().nullable(),
+});
+
+router.post('/stock-set', async (req: AuthRequest, res) => {
+  const input = validateBody(StockSetSchema, req.body, res);
+  if (!input) return;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const target = new Decimal(input.quantity);
+      const existing = await tx.gaStockByLocation.findUnique({
+        where: { itemId_locationId: { itemId: input.itemId, locationId: input.locationId } },
+      });
+      const current = existing ? new Decimal(existing.quantity.toString()) : new Decimal(0);
+      const delta = target.minus(current);
+      if (delta.isZero()) return { changed: false, delta: 0, before: current.toNumber(), after: target.toNumber() };
+
+      if (existing) {
+        await tx.gaStockByLocation.update({
+          where: { id: existing.id },
+          data: { quantity: target.toString() },
+        });
+      } else {
+        await tx.gaStockByLocation.create({
+          data: { itemId: input.itemId, locationId: input.locationId, quantity: target.toString() },
+        });
+      }
+
+      await tx.gaInventoryMovement.create({
+        data: {
+          itemId: input.itemId,
+          type: 'ADJUSTMENT',
+          quantity: delta.toString(),
+          toLocationId: input.locationId,
+          referenceNo: 'OPNAME',
+          notes: input.notes || `Opname: ${current.toString()} → ${target.toString()}`,
+          createdBy: req.user!.userId,
+        },
+      });
+
+      return { changed: true, delta: delta.toNumber(), before: current.toNumber(), after: target.toNumber() };
+    });
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ga/inventory/stock-set', 'Gagal menyimpan hasil opname.');
+  }
+});
+
 export default router;
