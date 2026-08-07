@@ -76,6 +76,10 @@ router.get('/bills', async (req: AuthRequest, res) => {
               : {
                   journalEntryId: null,
                   purchaseInvoiceId: null,
+                  // status PAID = sudah dibayar & dicatat manual di modul
+                  // keuangan ERP (tanpa jurnal dari GA). Jangan masuk antrian
+                  // pending — kalau diposting lagi jadi dobel beban.
+                  status: { not: 'PAID' },
                   OR: [{ status: 'IN_PROCESS' }, { request: { status: 'APPROVED' } }],
                 },
             include: {

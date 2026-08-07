@@ -829,6 +829,19 @@ router.patch('/assets/:id/taxes/:tid', async (req, res) => {
       current.journalEntryId != null ||
       current.purchaseInvoiceId != null;
 
+    // Kalau user memang minta ganti status tapi record terkunci → tolak
+    // eksplisit, jangan diam-diam skip (bikin user bingung "kok gak berubah").
+    if (input.status && input.status !== current.status && terkunci) {
+      const alasan = current.journalEntryId
+        ? 'sudah terjurnal di pembukuan'
+        : current.purchaseInvoiceId
+          ? 'sudah punya faktur pembelian'
+          : 'sudah masuk antrian Tagihan GA (IN_PROCESS)';
+      return res.status(409).json({
+        error: `Status tidak bisa diubah ke ${input.status}: data pajak ini ${alasan}. Batalkan dulu jurnal/faktur terkait di menu Tagihan GA, baru status bisa diubah.`,
+      });
+    }
+
     const data: Prisma.GaVehicleTaxUpdateInput = {};
     if (input.type) data.type = input.type;
     if (input.periodYear !== undefined) data.periodYear = input.periodYear;
