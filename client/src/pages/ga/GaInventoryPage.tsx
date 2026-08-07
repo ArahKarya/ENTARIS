@@ -432,6 +432,17 @@ export const GaInventoryPage = () => {
         )}
       </div>
 
+      {locations.length === 0 && (
+        <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+          <span>
+            Belum ada <strong>Lokasi Gudang</strong>. Stok tidak bisa diinput sampai lokasi dibuat —
+            buka menu <strong>GA · Master Data → tab Lokasi</strong> lalu tambah minimal satu lokasi
+            (mis. GD-SPAREPART).
+          </span>
+        </div>
+      )}
+
       {lowStockCount > 0 && tab !== 'dashboard' && (
         <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
           <AlertTriangle size={15} />
@@ -773,7 +784,7 @@ export const GaInventoryPage = () => {
             </p>
             <button
               className="btn-primary"
-              disabled={!canEdit}
+              disabled={!canEdit || locations.length === 0}
               onClick={() => {
                 setOpnameForm(EMPTY_OPNAME);
                 setIsOpnameModalOpen(true);
@@ -781,6 +792,11 @@ export const GaInventoryPage = () => {
             >
               <ClipboardCheck size={15} /> Mulai Opname
             </button>
+            {locations.length === 0 && (
+              <p className="text-[11px] text-red-500 mt-2">
+                Buat Lokasi Gudang dulu di GA · Master Data → tab Lokasi.
+              </p>
+            )}
             {!canEdit && (
               <p className="text-[11px] text-gray-400 mt-2">Butuh izin edit inventory GA.</p>
             )}
