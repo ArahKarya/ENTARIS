@@ -96,9 +96,9 @@ const S = StyleSheet.create({
 
   // ── Signatures ─────────────────────────────────────────────────────
   sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 28 },
-  sigBox: { width: '30%', alignItems: 'center' },
+  sigBox: { width: '23%', alignItems: 'center' },
   sigLine: { height: 1, backgroundColor: C.black, marginTop: 40, marginBottom: 4, width: '100%' },
-  sigLabel: { fontSize: 10, color: C.black, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
+  sigLabel: { fontSize: 9, color: C.black, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
 
   // Print metadata moved to top because dot-matrix continuous form often
   // crops the bottom margin. Placed under the title block, right-aligned.
@@ -250,6 +250,10 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
         <View style={S.sigBox}>
           <View style={S.sigLine} />
           <Text style={S.sigLabel}>SUPIR</Text>
+        </View>
+        <View style={S.sigBox}>
+          <View style={S.sigLine} />
+          <Text style={S.sigLabel}>VERIFIKASI FISIK{'\n'}(SECURITY)</Text>
         </View>
         <View style={S.sigBox}>
           <View style={S.sigLine} />
