@@ -283,6 +283,12 @@ export async function submitSalesReturnInTx(
     });
     customerDepositId = deposit.id;
     await tx.salesReturn.update({ where: { id: salesReturn.id }, data: { customerDepositId } });
+    // Keep the cached deposit balance on the party in sync so the invoice UI
+    // can offer 'Gunakan Uang Muka' for credit created by this return.
+    await tx.party.update({
+      where: { id: invoice.partyId },
+      data: { customerDepositBalance: { increment: creditPortionNum } },
+    });
   }
 
   // ── Stock-in + COGS reversal for restock lines ──

@@ -84,9 +84,14 @@ export async function cancelSalesReturnInTx(
 
   // Cancel the customer-deposit Payment (liability already reversed via main JE).
   if (ret.customerDepositId) {
-    await tx.payment.update({
+    const dep = await tx.payment.update({
       where: { id: ret.customerDepositId },
       data: { status: 'Cancelled', cancelledAt: new Date() },
+    });
+    // Mirror of submitSalesReturnInTx: roll back the cached deposit balance.
+    await tx.party.update({
+      where: { id: ret.partyId },
+      data: { customerDepositBalance: { decrement: Number(dep.amount) } },
     });
   }
 
