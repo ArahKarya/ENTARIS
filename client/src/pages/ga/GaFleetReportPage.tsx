@@ -16,9 +16,12 @@ import { exportToExcel } from '../../lib/exportExcel';
 import { toast } from 'sonner';
 
 type ComplianceState = 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE';
-type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident';
+type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident' | 'workorder';
 
-interface Breakdown { service: number; fuel: number; tax: number; insurance: number; incident: number }
+interface Breakdown {
+  service: number; fuel: number; tax: number; insurance: number; incident: number;
+  workorder: number;
+}
 
 interface FleetVehicle {
   assetId: string;
@@ -40,6 +43,9 @@ interface FleetVehicle {
   insuranceState: ComplianceState;
   insuranceEndDate: string | null;
   openIncidentCount: number;
+  workOrderCount: number;
+  openWorkOrderCount: number;
+  materialRequestCount: number;
   issueCount: number;
 }
 
@@ -50,7 +56,7 @@ interface FleetReport {
   distribution: { category: CostCategory; amount: number; percentage: number }[];
   topSpenders: { assetId: string; code: string; name: string; noPlat: string | null; totalCost: number; costPerMonth: number; breakdown: Breakdown }[];
   monthlyTrend: (Breakdown & { month: string; total: number })[];
-  compliance: { taxIssues: number; insuranceIssues: number; openIncidents: number; vehiclesWithIssues: number };
+  compliance: { taxIssues: number; insuranceIssues: number; openIncidents: number; openWorkOrders: number; vehiclesWithIssues: number };
 }
 
 const CAT_LABEL: Record<CostCategory, string> = {
@@ -59,6 +65,7 @@ const CAT_LABEL: Record<CostCategory, string> = {
   tax: 'Pajak Kendaraan',
   insurance: 'Asuransi',
   incident: 'Insiden & Perbaikan',
+  workorder: 'Work Order & Sparepart',
 };
 
 const CAT_BAR: Record<CostCategory, string> = {
@@ -67,6 +74,7 @@ const CAT_BAR: Record<CostCategory, string> = {
   tax: 'bg-amber-500',
   insurance: 'bg-violet-500',
   incident: 'bg-rose-500',
+  workorder: 'bg-emerald-600',
 };
 
 const STATE_BADGE: Record<ComplianceState, string> = {
@@ -155,6 +163,7 @@ export function GaFleetReportPage() {
           'Pajak': v.breakdown.tax,
           'Asuransi': v.breakdown.insurance,
           'Insiden': v.breakdown.incident,
+          'Work Order & Sparepart': v.breakdown.workorder,
           'Total Biaya': v.totalCost,
           'Biaya/Bulan': Math.round(v.costPerMonth),
           'Liter BBM': v.totalLiters,
@@ -163,6 +172,9 @@ export function GaFleetReportPage() {
           'Status Asuransi': STATE_LABEL[v.insuranceState],
           'Akhir Asuransi': v.insuranceEndDate ? formatDate(v.insuranceEndDate) : '',
           'Insiden Terbuka': v.openIncidentCount,
+          'Jumlah WO': v.workOrderCount,
+          'WO Terbuka': v.openWorkOrderCount,
+          'Jumlah MR Dibayar': v.materialRequestCount,
           'Total Isu': v.issueCount,
         })),
         `Report-Armada-${new Date().toISOString().slice(0, 10)}`,
@@ -262,7 +274,7 @@ export function GaFleetReportPage() {
           icon={<TriangleAlert size={16} className={compliance.vehiclesWithIssues ? 'text-red-600' : 'text-green-600'} />}
           iconBg={compliance.vehiclesWithIssues ? 'bg-red-50' : 'bg-green-50'}
           label="Kendaraan Bermasalah" value={String(compliance.vehiclesWithIssues)}
-          sub={`${compliance.taxIssues} pajak · ${compliance.insuranceIssues} asuransi · ${compliance.openIncidents} insiden`}
+          sub={`${compliance.taxIssues} pajak · ${compliance.insuranceIssues} asuransi · ${compliance.openIncidents} insiden · ${compliance.openWorkOrders} WO terbuka`}
         />
       </div>
 
@@ -380,6 +392,7 @@ export function GaFleetReportPage() {
                 <th className="text-right">Pajak</th>
                 <th className="text-right">Asuransi</th>
                 <th className="text-right">Insiden</th>
+                <th className="text-right">Work Order</th>
                 <th className="text-right"><SortHeader label="Total" active={sortKey === 'totalCost'} dir={sortDir} onClick={() => toggleSort('totalCost')} align="right" /></th>
                 <th className="text-right"><SortHeader label="/Bulan" active={sortKey === 'costPerMonth'} dir={sortDir} onClick={() => toggleSort('costPerMonth')} align="right" /></th>
                 <th className="text-center">Pajak</th>
@@ -389,7 +402,7 @@ export function GaFleetReportPage() {
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={11} className="py-10 text-center text-sm text-gray-400">Tidak ada kendaraan yang cocok.</td></tr>
+                <tr><td colSpan={12} className="py-10 text-center text-sm text-gray-400">Tidak ada kendaraan yang cocok.</td></tr>
               ) : rows.map((v) => (
                 <tr key={v.assetId}>
                   <td>
@@ -403,6 +416,12 @@ export function GaFleetReportPage() {
                   <td className="text-right text-gray-600">{v.breakdown.tax ? formatRupiah(v.breakdown.tax) : '—'}</td>
                   <td className="text-right text-gray-600">{v.breakdown.insurance ? formatRupiah(v.breakdown.insurance) : '—'}</td>
                   <td className="text-right text-gray-600">{v.breakdown.incident ? formatRupiah(v.breakdown.incident) : '—'}</td>
+                  <td className="text-right text-gray-600">
+                    {v.breakdown.workorder ? formatRupiah(v.breakdown.workorder) : '—'}
+                    {v.openWorkOrderCount > 0 && (
+                      <span className="ml-1 badge badge-amber" title="Work order belum selesai">{v.openWorkOrderCount}</span>
+                    )}
+                  </td>
                   <td className="text-right font-semibold text-gray-900">{formatRupiah(v.totalCost)}</td>
                   <td className="text-right text-gray-600">{formatRupiah(v.costPerMonth)}</td>
                   <td className="text-center">
@@ -428,6 +447,7 @@ export function GaFleetReportPage() {
                   <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.tax, 0))}</td>
                   <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.insurance, 0))}</td>
                   <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.incident, 0))}</td>
+                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.workorder, 0))}</td>
                   <td className="text-right text-teal-700">{formatRupiah(rows.reduce((s, v) => s + v.totalCost, 0))}</td>
                   <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.costPerMonth, 0))}</td>
                   <td colSpan={3} />

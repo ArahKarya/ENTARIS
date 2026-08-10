@@ -1648,11 +1648,13 @@ function parseReportPeriod(fromRaw: unknown, toRaw: unknown): ReportPeriod {
 const monthKey = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const dec = (v: Prisma.Decimal | number | null | undefined): number => Number(v ?? 0);
 
-type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident';
-const COST_CATEGORIES: CostCategory[] = ['service', 'fuel', 'tax', 'insurance', 'incident'];
+type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident' | 'workorder';
+const COST_CATEGORIES: CostCategory[] = [
+  'service', 'fuel', 'tax', 'insurance', 'incident', 'workorder',
+];
 
 function emptyBreakdown(): Record<CostCategory, number> {
-  return { service: 0, fuel: 0, tax: 0, insurance: 0, incident: 0 };
+  return { service: 0, fuel: 0, tax: 0, insurance: 0, incident: 0, workorder: 0 };
 }
 
 /** Rakit trend bulanan kontinu (bulan tanpa data tetap muncul dengan 0). */
@@ -1941,7 +1943,10 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
     }
 
     const idFilter = { in: assetIds };
-    const [serviceRows, fuelRows, taxRows, insuranceRows, incidentRows, activeTaxes, activeInsurances, openIncidents] =
+    const [
+      serviceRows, fuelRows, taxRows, insuranceRows, incidentRows,
+      activeTaxes, activeInsurances, openIncidents, workOrderRows, materialRows,
+    ] =
       await Promise.all([
         prisma.gaVehicleServiceLog.findMany({
           where: { assetId: idFilter, tanggal: range },
@@ -1975,6 +1980,27 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
           where: { assetId: idFilter, status: { in: ['DILAPORKAN', 'DALAM_PROSES'] } },
           select: { assetId: true },
         }),
+        // Work Order: biaya jasa (labor + vendor eksternal) + sparepart yang dipakai.
+        prisma.gaWorkOrder.findMany({
+          where: { assetId: idFilter, status: { not: 'CANCELLED' } },
+          select: {
+            id: true, assetId: true, status: true,
+            reportedAt: true, completedAt: true, closedAt: true,
+            laborCost: true, externalCost: true,
+            parts: { select: { quantity: true, unitCost: true } },
+          },
+        }),
+        // Material Request yang sudah DIBAYAR (pengadaan sparepart lewat jalur MR).
+        prisma.gaMaterialRequest.findMany({
+          where: {
+            status: 'PAID',
+            OR: [{ assetId: idFilter }, { workOrder: { assetId: idFilter } }],
+          },
+          select: {
+            assetId: true, paidAmount: true, paidAt: true, requestedAt: true,
+            workOrder: { select: { assetId: true } },
+          },
+        }),
       ]);
 
     const perAsset = new Map<string, Record<CostCategory, number>>();
@@ -1995,6 +2021,36 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
     for (const r of insuranceRows) bump(r.assetId, 'insurance', dec(r.premium), r.startDate);
     for (const r of incidentRows) {
       bump(r.assetId, 'incident', r.actualCost != null ? dec(r.actualCost) : dec(r.estimatedCost), r.tanggal);
+    }
+
+    // ── Work Order (jasa + sparepart) ──
+    // CATATAN: di PMD, biaya sparepart/jasa WO dibayar lewat Material Request (MR)
+    // status PAID. Jadi SATU kategori 'workorder' saja = labor + vendor eksternal
+    // + parts gudang + MR PAID, supaya tidak dobel hitung.
+    const woCountByAsset = new Map<string, number>();
+    const woOpenByAsset = new Map<string, number>();
+    for (const w of workOrderRows) {
+      if (w.status !== 'CLOSED') {
+        woOpenByAsset.set(w.assetId, (woOpenByAsset.get(w.assetId) ?? 0) + 1);
+      }
+      const at = w.closedAt ?? w.completedAt ?? w.reportedAt;
+      if (at < period.from || at > period.to) continue;
+      const partCost = w.parts.reduce((s, p) => s + dec(p.quantity) * dec(p.unitCost), 0);
+      const amount = dec(w.laborCost) + dec(w.externalCost) + partCost;
+      woCountByAsset.set(w.assetId, (woCountByAsset.get(w.assetId) ?? 0) + 1);
+      if (amount) bump(w.assetId, 'workorder', amount, at);
+    }
+
+    // MR PAID → masuk kategori 'workorder' yang sama (bukan kategori terpisah).
+    const mrCountByAsset = new Map<string, number>();
+    for (const m of materialRows) {
+      const targetAsset = m.assetId ?? m.workOrder?.assetId ?? null;
+      if (!targetAsset || !assetIds.includes(targetAsset)) continue;
+      const at = m.paidAt ?? m.requestedAt;
+      if (at < period.from || at > period.to) continue;
+      const amount = dec(m.paidAmount);
+      mrCountByAsset.set(targetAsset, (mrCountByAsset.get(targetAsset) ?? 0) + 1);
+      if (amount) bump(targetAsset, 'workorder', amount, at);
     }
 
     // Compliance per aset
@@ -2048,8 +2104,12 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
         insuranceState: complianceState(insDue, now),
         insuranceEndDate: insDue,
         openIncidentCount: incidentByAsset.get(a.id) ?? 0,
+        workOrderCount: woCountByAsset.get(a.id) ?? 0,
+        openWorkOrderCount: woOpenByAsset.get(a.id) ?? 0,
+        materialRequestCount: mrCountByAsset.get(a.id) ?? 0,
         issueCount:
-          (taxIssueByAsset.get(a.id) ?? 0) + (insIssueByAsset.get(a.id) ?? 0) + (incidentByAsset.get(a.id) ?? 0),
+          (taxIssueByAsset.get(a.id) ?? 0) + (insIssueByAsset.get(a.id) ?? 0) + (incidentByAsset.get(a.id) ?? 0)
+          + (woOpenByAsset.get(a.id) ?? 0),
       };
     });
 
@@ -2092,6 +2152,7 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
         taxIssues: [...taxIssueByAsset.values()].reduce((a, b) => a + b, 0),
         insuranceIssues: [...insIssueByAsset.values()].reduce((a, b) => a + b, 0),
         openIncidents: openIncidents.length,
+        openWorkOrders: [...woOpenByAsset.values()].reduce((a, b) => a + b, 0),
         vehiclesWithIssues: vehicles.filter((v) => v.issueCount > 0).length,
       },
     });
