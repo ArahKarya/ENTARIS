@@ -791,7 +791,14 @@ export const UpdateServiceItemSchema = CreateServiceItemSchema.partial().extend(
 // ─── Stok Opname ──────────────────────────────────────────────────────────────
 const StockOpnameItemSchema = z.object({
   itemId: z.string().uuid('Item ID harus UUID yang valid.'),
-  actualStock: z.coerce.number().min(0, 'Stok aktual tidak boleh negatif.'),
+  // Catatan: TIDAK divalidasi >=0 di sini. Form opname mengirim SEMUA item
+  // gudang untuk audit trail, termasuk item yang stok sistemnya sudah minus
+  // secara historis (belum disentuh user di sesi opname ini). Menolak nilai
+  // negatif di sini akan memblokir seluruh submit walau item minusnya bukan
+  // yang sedang di-opname. Guard sebenarnya (tolak input BARU yang negatif)
+  // ada di route: hanya reject actualStock<0 kalau nilainya BEDA dari stok
+  // sistem saat ini (artinya user aktif mengetik angka negatif).
+  actualStock: z.coerce.number(),
   // Nilai satuan manual (opsional). Bila diisi dan berbeda dari averageCost
   // item, opname akan MEREVALUASI nilai persediaan: averageCost item di-set
   // ke nilai ini dan selisih nilainya dijurnal ke akun Selisih Persediaan.

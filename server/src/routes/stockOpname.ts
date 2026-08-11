@@ -139,7 +139,17 @@ router.post('/', async (req: AuthRequest, res) => {
           ? (perWarehouseStock.get(input.itemId) ?? 0)
           : Number(item.currentStock);
         const actualStock = input.actualStock;
-        const diff = new Decimal(actualStock).minus(new Decimal(systemStock)).toDecimalPlaces(3).toNumber();
+        // Guard nilai negatif HANYA jika user benar-benar mengubah angka ini
+        // (actualStock berbeda dari systemStock). Item yang tidak disentuh
+        // (actualStock === systemStock lama, termasuk sudah minus historis)
+        // tetap boleh lolos — form opname selalu kirim semua item untuk audit
+        // trail, jadi item minus historis di gudang lain tak boleh memblokir
+        // submit opname pada item yang memang sedang dihitung.
+        const diffFromSystem = new Decimal(actualStock).minus(new Decimal(systemStock)).toDecimalPlaces(3).toNumber();
+        if (actualStock < 0 && diffFromSystem !== 0) {
+          throw new BusinessError(`Stok aktual "${item.name}" tidak boleh negatif.`);
+        }
+        const diff = diffFromSystem;
         const oldCost = Number(item.averageCost);
         const hasManualCost = input.unitCost !== undefined && input.unitCost !== null;
         const unitCost = hasManualCost
