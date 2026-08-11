@@ -101,10 +101,15 @@ router.get('/:id', async (req, res) => {
     });
     if (!run) return res.status(404).json({ error: 'Data proses produksi tidak ditemukan.' });
 
-    // Fetch related journal entry for GL info
-    const jvNumber = `JV-${run.runNumber}`;
-    const journal = await prisma.journalEntry.findUnique({
-      where: { entryNumber: jvNumber },
+    // Fetch related journal entry for GL info.
+    // Editing a posted PR creates revision journals (JV-<runNumber>-R1, -R2, …)
+    // sharing the same prefix; the original JV-<runNumber> becomes Cancelled.
+    // Show the newest ACTIVE (non-Cancelled) journal by that prefix so the UI
+    // reflects the current GL state instead of always the first-ever posting.
+    const jvPrefix = `JV-${run.runNumber}`;
+    const journal = await prisma.journalEntry.findFirst({
+      where: { entryNumber: { startsWith: jvPrefix }, status: { not: 'Cancelled' } },
+      orderBy: { entryNumber: 'desc' },
       include: {
         items: {
           include: { account: { select: { id: true, accountNumber: true, name: true } } },
