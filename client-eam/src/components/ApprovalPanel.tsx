@@ -145,10 +145,13 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   });
 
   // Map id → {name, unit} utk detail produksi (payload simpan id).
+  // limit=500: endpoint /inventory/items juga paginated (default 100) — sama
+  // seperti party map di bawah, hindari item hilang dari lookup kalau count
+  // tumbuh melewati 100.
   const { data: itemMap = {} } = useQuery<Record<string, { name: string; unit: string }>>({
     queryKey: ['inventory-items-namemap'],
     queryFn: async () => {
-      const raw = (await api.get('/inventory/items')).data;
+      const raw = (await api.get('/inventory/items?limit=500')).data;
       const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
       const m: Record<string, { name: string; unit: string }> = {};
       for (const it of list) m[it.id] = { name: it.name, unit: it.unit };
@@ -160,10 +163,13 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const itemUnit = (id: string) => itemMap[id]?.unit ?? 'kg';
 
   // Name maps untuk perkaya detail (supplier, gudang, mesin) — payload simpan id.
+  // limit=500 (bukan default paginated 100) supaya SEMUA party ke-load untuk
+  // lookup map — kalau tidak, party di luar 100 nama pertama (urut alfabetis)
+  // hilang dari map dan tampil sebagai '—' walau partyId di payload valid.
   const { data: partyMap = {} } = useQuery<Record<string, string>>({
     queryKey: ['parties-namemap'],
     queryFn: async () => {
-      const raw = (await api.get('/parties')).data;
+      const raw = (await api.get('/parties?limit=500')).data;
       const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
       const m: Record<string, string> = {};
       for (const p of list) m[p.id] = p.name;
