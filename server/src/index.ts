@@ -266,6 +266,12 @@ app.use('/api/ai/chat', aiChatRoutes);
 //                  refresh/buka-tutup tab. Karena index.html merujuk asset
 //                  ber-hash, perubahan apa pun otomatis ter-pull saat HTML
 //                  baru diambil — tidak butuh Ctrl-Shift-R lagi.
+// ─── Serve Uploaded Files (foto WO, item GA, dokumen, dll) ────────────────────
+// Frontend memanggil path statis /uploads/<...> langsung (bukan lewat API),
+// jadi harus di-serve sebelum SPA fallback catch-all agar tidak balik index.html.
+const uploadsDir = path.resolve(process.env.UPLOADS_DIR || './uploads');
+app.use('/uploads', express.static(uploadsDir));
+
 const clientDist = path.resolve(__dirname, '../../client/dist');
 app.use(express.static(clientDist, {
   setHeaders: (res, filePath) => {
