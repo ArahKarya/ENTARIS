@@ -560,7 +560,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                         if (sl?.alreadyInvoiced) warn.push(`${sl.sttNumber} sudah ditagih di ${sl.alreadyInvoiced}`);
                         if (sl?.sttStatus === 'Cancelled') warn.push(`${sl.sttNumber} berstatus DIBATALKAN`);
                         const q = Number(it.timbanganDiterima ?? it.quantity ?? 0);
-                        if (sl && Math.abs(q - Number(sl.quantity)) > 0.5) warn.push(`${sl.sttNumber}: qty invoice ${fmtNum(q)} ≠ STT ${fmtNum(Number(sl.quantity))}`);
+                        if (sl && Math.abs(q + Number(it.refaksi ?? 0) - Number(sl.quantity)) > 0.5) warn.push(`${sl.sttNumber}: diterima ${fmtNum(q)} + refaksi ${fmtNum(Number(it.refaksi ?? 0))} ≠ STT ${fmtNum(Number(sl.quantity))}`);
                         if (!it.goodsReceiptItemId && it.inventoryItemId) warn.push(`${it.itemName}: tidak terhubung STT`);
                       }
                       return (
@@ -628,7 +628,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                                 const last = lastSame ?? hist[0];
                                 const rate = Number(it.rate ?? 0);
                                 const diff = last ? rate - last.rate : 0;
-                                const qtyMismatch = sl && Math.abs(qty - Number(sl.quantity)) > 0.5;
+                                const qtyMismatch = sl && Math.abs(qty + Number(it.refaksi ?? 0) - Number(sl.quantity)) > 0.5;
                                 const tax: string[] = [];
                                 if (Number(it.discount ?? 0) > 0) tax.push(`disk ${it.discount}%`);
                                 if (Number(it.taxPct ?? 0) > 0) tax.push(`PPN ${it.taxPct}%`);
