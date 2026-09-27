@@ -191,6 +191,98 @@ router.get('/profitability-per-sku', async (req, res) => {
   }
 });
 
+// GET /api/reports/production-cost-summary — Modal per Periode (laporan manajemen).
+// Per output utama × gudang: kg bahan, nilai bahan (REAL, dari batch/invoice),
+// kg output, rendemen, modal bahan baku murni/kg (WAC 2 = nilai bahan ÷ kg output)
+// vs HPP GL/kg (nilai yang diposting = bahan − NRV produk samping + biaya konversi).
+// Informasi saja — tidak membuat jurnal.
+router.get('/production-cost-summary', async (req, res) => {
+  try {
+    const start = parseQueryDate(req.query.startDate) ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const end = parseQueryDate(req.query.endDate, true) ?? new Date();
+    const warehouseId = typeof req.query.warehouseId === 'string' && req.query.warehouseId ? req.query.warehouseId : null;
+
+    const rows = await prisma.$queryRaw<Array<{
+      run_id: string; run_number: string; date: Date; output_name: string | null; warehouse_name: string | null;
+      warehouse_id: string | null; input_kg: string | null; input_rp: string | null; main_kg: string | null;
+      main_rp: string | null; bp_kg: string | null; bp_rp: string | null; cost_rp: string | null;
+    }>>`
+      WITH runs AS (
+        SELECT pr.id, pr.run_number, pr.date FROM production_runs pr
+        WHERE NOT pr.is_cancelled AND pr.date >= ${start} AND pr.date <= ${end}
+      ),
+      main_items AS (
+        SELECT DISTINCT i.production_run_id run_id, i.item_id FROM production_run_items i
+        JOIN runs r ON r.id = i.production_run_id
+        WHERE i.line_type = 'Output' AND NOT i.is_by_product
+      ),
+      mv AS (
+        SELECT sm.reference_id run_id, sm.movement_type::text mt, sm.item_id, sm.warehouse_id,
+               sm.quantity::numeric q, sm.total_value::numeric tv,
+               EXISTS (SELECT 1 FROM main_items m WHERE m.run_id = sm.reference_id AND m.item_id = sm.item_id) is_main
+        FROM stock_movements sm JOIN runs r ON r.id = sm.reference_id
+        WHERE NOT sm.is_cancelled
+      )
+      SELECT r.id run_id, r.run_number, r.date,
+        (SELECT string_agg(DISTINCT ii.name, ' + ') FROM main_items m JOIN inventory_items ii ON ii.id = m.item_id WHERE m.run_id = r.id) output_name,
+        (SELECT string_agg(DISTINCT w.name, ', ') FROM mv JOIN warehouses w ON w.id = mv.warehouse_id WHERE mv.run_id = r.id AND mv.mt = 'In' AND mv.is_main) warehouse_name,
+        (SELECT min(mv.warehouse_id) FROM mv WHERE mv.run_id = r.id AND mv.mt = 'In' AND mv.is_main) warehouse_id,
+        (SELECT sum(q) FROM mv WHERE mv.run_id = r.id AND mt = 'Out')::text input_kg,
+        (SELECT sum(tv) FROM mv WHERE mv.run_id = r.id AND mt = 'Out')::text input_rp,
+        (SELECT sum(q) FROM mv WHERE mv.run_id = r.id AND mt = 'In' AND is_main)::text main_kg,
+        (SELECT sum(tv) FROM mv WHERE mv.run_id = r.id AND mt = 'In' AND is_main)::text main_rp,
+        (SELECT sum(q) FROM mv WHERE mv.run_id = r.id AND mt = 'In' AND NOT is_main)::text bp_kg,
+        (SELECT sum(tv) FROM mv WHERE mv.run_id = r.id AND mt = 'In' AND NOT is_main)::text bp_rp,
+        (SELECT sum(c.total_amount) FROM production_run_costs c WHERE c.production_run_id = r.id)::text cost_rp
+      FROM runs r ORDER BY r.date, r.run_number
+    `;
+
+    const n = (v: string | null) => (v == null ? 0 : Number(v));
+    const runs = rows
+      .filter((r) => !warehouseId || r.warehouse_id === warehouseId)
+      .filter((r) => n(r.main_kg) > 0)
+      .map((r) => {
+        const inputKg = n(r.input_kg), inputRp = n(r.input_rp), mainKg = n(r.main_kg), mainRp = n(r.main_rp);
+        return {
+          runId: r.run_id, runNumber: r.run_number, date: r.date,
+          outputName: r.output_name ?? '-', warehouseName: r.warehouse_name ?? '-',
+          inputKg, inputRp, mainKg, mainRp, byproductKg: n(r.bp_kg), byproductRp: n(r.bp_rp), conversionCostRp: n(r.cost_rp),
+          yieldPct: inputKg > 0 ? (mainKg / inputKg) * 100 : 0,
+          inputPerKg: inputKg > 0 ? inputRp / inputKg : 0,
+          rawMaterialPerKg: mainKg > 0 ? inputRp / mainKg : 0,
+          glPerKg: mainKg > 0 ? mainRp / mainKg : 0,
+        };
+      });
+
+    type Agg = { outputName: string; warehouseName: string; runCount: number; inputKg: number; inputRp: number; mainKg: number; mainRp: number; byproductKg: number; byproductRp: number; conversionCostRp: number };
+    const groups = new Map<string, Agg>();
+    const total: Agg = { outputName: 'TOTAL', warehouseName: '', runCount: 0, inputKg: 0, inputRp: 0, mainKg: 0, mainRp: 0, byproductKg: 0, byproductRp: 0, conversionCostRp: 0 };
+    for (const r of runs) {
+      const key = `${r.outputName}|${r.warehouseName}`;
+      const g = groups.get(key) ?? { outputName: r.outputName, warehouseName: r.warehouseName, runCount: 0, inputKg: 0, inputRp: 0, mainKg: 0, mainRp: 0, byproductKg: 0, byproductRp: 0, conversionCostRp: 0 };
+      for (const t of [g, total]) {
+        t.runCount += 1; t.inputKg += r.inputKg; t.inputRp += r.inputRp; t.mainKg += r.mainKg; t.mainRp += r.mainRp;
+        t.byproductKg += r.byproductKg; t.byproductRp += r.byproductRp; t.conversionCostRp += r.conversionCostRp;
+      }
+      groups.set(key, g);
+    }
+    const derive = (g: Agg) => ({
+      ...g,
+      yieldPct: g.inputKg > 0 ? (g.mainKg / g.inputKg) * 100 : 0,
+      inputPerKg: g.inputKg > 0 ? g.inputRp / g.inputKg : 0,
+      rawMaterialPerKg: g.mainKg > 0 ? g.inputRp / g.mainKg : 0,
+      glPerKg: g.mainKg > 0 ? g.mainRp / g.mainKg : 0,
+    });
+    const summary = [...groups.values()].map(derive)
+      .sort((a, b) => a.warehouseName.localeCompare(b.warehouseName) || a.outputName.localeCompare(b.outputName));
+
+    return res.json({ period: { start, end }, summary, total: derive(total), runs });
+  } catch (error) {
+    logger.error({ error }, 'GET /reports/production-cost-summary error');
+    return res.status(500).json({ error: 'Gagal mengambil laporan modal produksi.' });
+  }
+});
+
 // GET /api/reports/payable-schedule — hutang jatuh tempo & jadwal pembayaran
 router.get('/payable-schedule', async (req, res) => {
   try {

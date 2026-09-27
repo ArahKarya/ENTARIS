@@ -60,6 +60,7 @@ import LedgerBook from './pages/reports/LedgerBook';
 import HealthCheckPage from './pages/HealthCheckPage';
 import HppReport from './pages/reports/HppReport';
 import ProfitabilityPerSku from './pages/reports/ProfitabilityPerSku';
+import ProductionCostSummary from './pages/reports/ProductionCostSummary';
 import PayableSchedule from './pages/reports/PayableSchedule';
 import ReceivableSchedule from './pages/reports/ReceivableSchedule';
 import FixedAssetsPage from './pages/FixedAssetsPage';
@@ -170,6 +171,7 @@ function App() {
             <Route path="/reports/ledger-book" element={<PermRoute module="reports"><LedgerBook /></PermRoute>} />
             <Route path="/reports/hpp" element={<PermRoute module="reports"><HppReport /></PermRoute>} />
             <Route path="/reports/profitability-per-sku" element={<PermRoute module="reports"><ProfitabilityPerSku /></PermRoute>} />
+            <Route path="/reports/production-cost-summary" element={<PermRoute module="reports"><ProductionCostSummary /></PermRoute>} />
             <Route path="/reports/oee" element={<PermRoute module="reports"><OeeReport /></PermRoute>} />
             <Route path="/reports/payable-schedule" element={<PermRoute module="reports"><PayableSchedule /></PermRoute>} />
             <Route path="/reports/receivable-schedule" element={<PermRoute module="reports"><ReceivableSchedule /></PermRoute>} />
