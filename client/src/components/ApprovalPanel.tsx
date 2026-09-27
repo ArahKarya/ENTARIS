@@ -6,6 +6,7 @@ import api from '../lib/api';
 import { formatRupiah } from '../lib/formatters';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
+import AttachmentPreview from './AttachmentPreview';
 
 export interface ApprovalRequest {
   id: string;
@@ -116,6 +117,14 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const [detailReq, setDetailReq] = useState<ApprovalRequest | null>(null);
   const [reasonModal, setReasonModal] = useState<{ mode: 'reject' | 'revision'; id: string } | null>(null);
   const [reasonText, setReasonText] = useState('');
+
+  // Detail pendukung dialog: STT sumber per baris + lampiran pengajuan & STT.
+  const { data: detailCtx, isLoading: detailCtxLoading } = useQuery<any>({
+    queryKey: ['approval-request-context', detailReq?.id],
+    queryFn: async () => (await api.get(`/approvals/requests/${detailReq!.id}/context`)).data,
+    enabled: !!detailReq && detailReq.documentType === 'PurchaseInvoice',
+    staleTime: 30 * 1000,
+  });
 
   // Deep-link: ambil pengajuan spesifik & buka detailnya langsung (sekali saja).
   const focusHandledRef = useRef<string | null>(null);
@@ -385,7 +394,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         const hppEst = isProd ? prodHppEstimate(p) : null;
         return (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailReq(null)}>
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className={cn('bg-white rounded-xl shadow-xl w-full max-h-[92vh] overflow-auto', (isProd || isDO) ? 'max-w-2xl' : 'max-w-6xl')} onClick={(e) => e.stopPropagation()}>
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Detail Pengajuan {docTypeLabel[detailReq.documentType] ?? ''}</h3>
@@ -539,34 +548,174 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                   </>
                 ) : (
                   <>
+                    {/* Ringkasan supplier & kontrol */}
+                    {(() => {
+                      const totalKg = piItems.filter((it) => String(it.unit ?? '').toLowerCase() === 'kg').reduce((a, it) => a + Number(it.timbanganDiterima ?? it.quantity ?? 0), 0);
+                      const totalTruk = piItems.reduce((a, it) => a + Number(it.timbanganTruk ?? 0), 0);
+                      const totalRef = piItems.reduce((a, it) => a + Number(it.refaksi ?? 0), 0);
+                      const sup = detailCtx?.supplier;
+                      const warn: string[] = [];
+                      for (const it of piItems) {
+                        const sl = it.goodsReceiptItemId ? detailCtx?.sttLines?.[it.goodsReceiptItemId] : null;
+                        if (sl?.alreadyInvoiced) warn.push(`${sl.sttNumber} sudah ditagih di ${sl.alreadyInvoiced}`);
+                        if (sl?.sttStatus === 'Cancelled') warn.push(`${sl.sttNumber} berstatus DIBATALKAN`);
+                        const q = Number(it.timbanganDiterima ?? it.quantity ?? 0);
+                        if (sl && Math.abs(q - Number(sl.quantity)) > 0.5) warn.push(`${sl.sttNumber}: qty invoice ${fmtNum(q)} ≠ STT ${fmtNum(Number(sl.quantity))}`);
+                        if (!it.goodsReceiptItemId && it.inventoryItemId) warn.push(`${it.itemName}: tidak terhubung STT`);
+                      }
+                      return (
+                        <>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400">Total Diterima</p>
+                              <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtNum(totalKg)} kg</p>
+                              {totalTruk > 0 && <p className="text-[10px] text-gray-500">truk {fmtNum(totalTruk)} · refaksi {fmtNum(totalRef)}{totalTruk > 0 ? ` (${(totalRef / totalTruk * 100).toFixed(2)}%)` : ''}</p>}
+                            </div>
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400">Harga Rata² / kg</p>
+                              <p className="text-sm font-semibold text-gray-900 tabular-nums">{totalKg > 0 ? formatRupiah(Math.round((pi?.grandTotal ?? 0) / totalKg)) : '—'}</p>
+                              <p className="text-[10px] text-gray-500">grand total ÷ kg diterima</p>
+                            </div>
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400">Hutang Berjalan Supplier</p>
+                              <p className="text-sm font-semibold text-gray-900 tabular-nums">{sup ? formatRupiah(sup.openOutstanding) : '—'}</p>
+                              <p className="text-[10px] text-gray-500">{sup ? `${sup.openInvoiceCount} invoice belum lunas` : ''}</p>
+                            </div>
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400">Deposit / Uang Muka</p>
+                              <p className={cn('text-sm font-semibold tabular-nums', (sup?.depositBalance ?? 0) > 0 ? 'text-emerald-700' : 'text-gray-900')}>{sup ? formatRupiah(sup.depositBalance) : '—'}</p>
+                              <p className="text-[10px] text-gray-500">{(sup?.depositBalance ?? 0) > 0 ? 'bisa dipotongkan' : ''}</p>
+                            </div>
+                          </div>
+                          {warn.length > 0 && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 space-y-0.5">
+                              <p className="font-semibold">⚠ Perlu dicek</p>
+                              {warn.map((w, k) => <p key={k}>• {w}</p>)}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
                     <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-1.5">Item Invoice</p>
-                      <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
-                        {piItems.length === 0 ? <p className="px-3 py-2 text-xs text-gray-400">—</p> :
-                          piItems.map((it, i) => {
-                            const qty = Number(it.timbanganDiterima ?? it.quantity ?? 0);
-                            const meta: string[] = [];
-                            if (it.kualitas) meta.push(`kualitas: ${it.kualitas}`);
-                            if (Number(it.timbanganTruk ?? 0) > 0) meta.push(`truk: ${fmtNum(Number(it.timbanganTruk))}`);
-                            if (Number(it.refaksi ?? 0) > 0) meta.push(`refaksi: ${fmtNum(Number(it.refaksi))}`);
-                            if (Number(it.discount ?? 0) > 0) meta.push(`disk ${it.discount}%`);
-                            if (Number(it.taxPct ?? 0) > 0) meta.push(`PPN ${it.taxPct}%`);
-                            if (Number(it.pphPct ?? 0) > 0) meta.push(`PPh ${it.pphPct}%`);
-                            if (Number(it.potonganItem ?? 0) > 0) meta.push(`potongan ${formatRupiah(Number(it.potonganItem))}`);
-                            if (it.nomorMobil) meta.push(`mobil: ${it.nomorMobil}`);
-                            return (
-                              <div key={i} className="px-3 py-2 text-xs">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-gray-800 font-medium">{it.itemName ?? '—'}</span>
-                                  <span className="font-mono tabular-nums text-gray-600">
-                                    {fmtNum(qty)} {it.unit ?? ''} × {formatRupiah(Number(it.rate ?? 0))} = {formatRupiah(Math.round(piLineTotal(it)))}
-                                  </span>
-                                </div>
-                                {meta.length > 0 && <div className="text-[10px] text-gray-400 mt-0.5">{meta.join(' · ')}</div>}
-                              </div>
-                            );
-                          })}
-                      </div>
+                      <p className="text-xs font-semibold text-gray-700 mb-1.5">Item Invoice ({piItems.length} baris)</p>
+                      {piItems.length === 0 ? <p className="text-xs text-gray-400">—</p> : (
+                        <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead className="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wide">
+                              <tr>
+                                <th className="px-2 py-2 text-left">#</th>
+                                <th className="px-2 py-2 text-left">STT</th>
+                                <th className="px-2 py-2 text-left">Item / Gudang</th>
+                                <th className="px-2 py-2 text-left">Mobil</th>
+                                <th className="px-2 py-2 text-right">KA %</th>
+                                <th className="px-2 py-2 text-right">Timb. Truk</th>
+                                <th className="px-2 py-2 text-right">Refaksi</th>
+                                <th className="px-2 py-2 text-right">Diterima</th>
+                                <th className="px-2 py-2 text-right">Harga</th>
+                                <th className="px-2 py-2 text-right">Harga Lalu</th>
+                                <th className="px-2 py-2 text-right">Pajak/Pot.</th>
+                                <th className="px-2 py-2 text-right">Subtotal</th>
+                                <th className="px-2 py-2 text-left">Keterangan</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {piItems.map((it, i) => {
+                                const qty = Number(it.timbanganDiterima ?? it.quantity ?? 0);
+                                const sl = it.goodsReceiptItemId ? detailCtx?.sttLines?.[it.goodsReceiptItemId] : null;
+                                const hist: any[] = it.inventoryItemId ? (detailCtx?.priceHistory?.[it.inventoryItemId] ?? []) : [];
+                                const lastSame = hist.find((h) => h.sameSupplier);
+                                const last = lastSame ?? hist[0];
+                                const rate = Number(it.rate ?? 0);
+                                const diff = last ? rate - last.rate : 0;
+                                const qtyMismatch = sl && Math.abs(qty - Number(sl.quantity)) > 0.5;
+                                const tax: string[] = [];
+                                if (Number(it.discount ?? 0) > 0) tax.push(`disk ${it.discount}%`);
+                                if (Number(it.taxPct ?? 0) > 0) tax.push(`PPN ${it.taxPct}%`);
+                                if (Number(it.pphPct ?? 0) > 0) tax.push(`PPh ${it.pphPct}%`);
+                                if (Number(it.potonganItem ?? 0) > 0) tax.push(`−${formatRupiah(Number(it.potonganItem))}`);
+                                const ket = it.description || sl?.description;
+                                const ref = Number(it.refaksi ?? 0);
+                                const truk = Number(it.timbanganTruk ?? 0);
+                                return (
+                                  <tr key={i} className={cn('align-top', (sl?.alreadyInvoiced || sl?.sttStatus === 'Cancelled') && 'bg-red-50')}>
+                                    <td className="px-2 py-2 text-gray-400">{i + 1}</td>
+                                    <td className="px-2 py-2 font-mono text-gray-700 whitespace-nowrap">
+                                      {sl?.sttNumber ?? <span className="text-gray-300">—</span>}
+                                      {sl?.sttDate && <div className="text-[10px] text-gray-400 font-sans">{new Date(sl.sttDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</div>}
+                                    </td>
+                                    <td className="px-2 py-2">
+                                      <div className="font-medium text-gray-800">{it.itemName ?? '—'}</div>
+                                      {it.warehouseId && <div className="text-[10px] text-gray-400">{warehouseMap[it.warehouseId] ?? 'gudang'}</div>}
+                                    </td>
+                                    <td className="px-2 py-2 whitespace-nowrap text-gray-600">{it.nomorMobil ?? '—'}</td>
+                                    <td className="px-2 py-2 text-right tabular-nums">{it.kualitas ?? '—'}</td>
+                                    <td className="px-2 py-2 text-right tabular-nums">{truk > 0 ? fmtNum(truk) : '—'}</td>
+                                    <td className="px-2 py-2 text-right tabular-nums">
+                                      {ref > 0 ? fmtNum(ref) : '—'}
+                                      {ref > 0 && truk > 0 && <div className="text-[10px] text-gray-400">{(ref / truk * 100).toFixed(2)}%</div>}
+                                    </td>
+                                    <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap">
+                                      <span className="font-medium">{fmtNum(qty)}</span> <span className="text-gray-400">{it.unit ?? ''}</span>
+                                      {sl && <div className={cn('text-[10px]', qtyMismatch ? 'text-red-600 font-semibold' : 'text-gray-400')}>STT {fmtNum(Number(sl.quantity))}</div>}
+                                    </td>
+                                    <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap">{formatRupiah(rate)}</td>
+                                    <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap">
+                                      {last ? (
+                                        <div title={hist.map((h) => `${h.invoiceNumber} · ${new Date(h.date).toLocaleDateString('id-ID')} · ${h.supplier} · ${formatRupiah(h.rate)}`).join('\n')}>
+                                          <span className="text-gray-600">{formatRupiah(last.rate)}</span>
+                                          {diff !== 0 && <span className={cn('ml-1 text-[10px] font-semibold', diff > 0 ? 'text-red-600' : 'text-emerald-600')}>{diff > 0 ? '▲' : '▼'}{formatRupiah(Math.abs(diff))}</span>}
+                                          <div className="text-[10px] text-gray-400">{lastSame ? 'supplier ini' : (last.supplier ?? 'lain')} · {new Date(last.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</div>
+                                        </div>
+                                      ) : <span className="text-gray-300">—</span>}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-[10px] text-gray-500">{tax.length ? tax.join(' · ') : '—'}</td>
+                                    <td className="px-2 py-2 text-right tabular-nums font-medium whitespace-nowrap">{formatRupiah(Math.round(piLineTotal(it)))}</td>
+                                    <td className="px-2 py-2 text-gray-600">
+                                      {ket ?? <span className="text-gray-300">—</span>}
+                                      {sl?.alreadyInvoiced && <div className="text-[10px] text-red-600 font-semibold">sudah di {sl.alreadyInvoiced}</div>}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      <p className="text-[10px] text-gray-400 mt-1">Harga Lalu = harga beli item sama pada invoice terakhir (supplier ini bila ada). Arahkan kursor untuk lihat 5 riwayat. ▲ merah = lebih mahal.</p>
+                    </div>
+                    {/* Lampiran: pengajuan + STT sumber */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-1.5">Lampiran</p>
+                      {detailCtxLoading ? (
+                        <p className="text-xs text-gray-400">Memuat lampiran…</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {(detailCtx?.requestAttachments?.length ?? 0) > 0 && (
+                            <div>
+                              <p className="text-[11px] text-gray-500 mb-1">Dari pengajuan ({detailCtx.requestAttachments.length})</p>
+                              <AttachmentPreview referenceType="approval_request" referenceId={detailReq.id} canDelete={false} />
+                            </div>
+                          )}
+                          {(detailCtx?.stts ?? []).map((s: any) => (
+                            <div key={s.id}>
+                              <p className="text-[11px] text-gray-500 mb-1">
+                                <span className="font-mono text-gray-700">{s.sttNumber}</span>
+                                {s.date && <> · {new Date(s.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</>}
+                                {s.nomorMobil && <> · {s.nomorMobil}</>}
+                                {s.driverName && <> · supir {s.driverName}</>}
+                                {s.status === 'Cancelled' && <span className="ml-1 text-red-600 font-medium">(STT dibatalkan)</span>}
+                              </p>
+                              {s.attachments?.length > 0
+                                ? <AttachmentPreview referenceType="goods_receipt" referenceId={s.id} canDelete={false} />
+                                : <p className="text-xs text-amber-600">Tidak ada lampiran di STT ini.</p>}
+                            </div>
+                          ))}
+                          {(detailCtx?.requestAttachments?.length ?? 0) === 0 && (detailCtx?.stts?.length ?? 0) === 0 && (
+                            <p className="text-xs text-amber-600">Tidak ada lampiran (pengajuan tidak terhubung ke STT & tidak ada file diunggah).</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {/* Totals (estimasi) */}
                     <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-1 text-xs">

@@ -94,6 +94,19 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
         },
       });
 
+      // Lampiran yang diunggah saat pengajuan → pindah ke dokumen yang baru dibuat.
+      if (createdDoc && request.documentType === 'PurchaseInvoice') {
+        try {
+          const moved = await prisma.transactionAttachment.updateMany({
+            where: { referenceType: 'approval_request', referenceId: request.id },
+            data: { referenceType: 'purchase_invoice', referenceId: createdDoc.id },
+          });
+          if (moved.count > 0) logger.info({ requestId: request.id, docId: createdDoc.id, n: moved.count }, 'Approval attachments moved to document');
+        } catch (e) {
+          logger.error(e, 'Gagal memindahkan lampiran pengajuan ke dokumen');
+        }
+      }
+
       await notifyUsers(prisma, {
         userIds: [request.requestedBy],
         type: 'approval_approved',

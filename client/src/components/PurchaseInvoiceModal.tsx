@@ -184,28 +184,36 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       // Resubmit mode: perbarui payload pengajuan & kirim ulang (status → Pending).
-      if (resubmitRequestId) {
-        const res = await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: data });
-        return { ...res.data, resubmitted: true };
-      }
-      const res = await api.post('/purchase/invoices', data);
-      const invoice = res.data;
-      // Pending approval (non-Admin): dokumen belum dibuat, jangan upload lampiran.
-      if (invoice?.pendingApproval) return invoice;
-      // Upload staged attachments (best-effort; failures logged but not rolled back)
-      if (stagedFiles.length > 0 && invoice?.id) {
+      // Upload staged files ke referensi tertentu. Pengajuan (dokumen belum dibuat)
+      // → simpan sbg lampiran 'approval_request'; saat disetujui server memindahkan
+      // lampiran ke invoice yang dibuat. Gagal upload → peringatan, bukan diam.
+      const uploadStaged = async (referenceType: string, referenceId: string) => {
+        if (stagedFiles.length === 0 || !referenceId) return;
         const fd = new FormData();
-        fd.append('referenceType', 'purchase_invoice');
-        fd.append('referenceId', invoice.id);
+        fd.append('referenceType', referenceType);
+        fd.append('referenceId', referenceId);
         for (const f of stagedFiles) fd.append('files', f);
         try {
           await api.post('/attachments/upload', fd, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
-        } catch (err) {
+        } catch (err: any) {
           console.warn('Upload lampiran gagal:', err);
+          toast.error('Lampiran gagal diunggah: ' + (err?.response?.data?.error ?? err?.message ?? 'error'));
         }
+      };
+      if (resubmitRequestId) {
+        const res = await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: data });
+        await uploadStaged('approval_request', resubmitRequestId);
+        return { ...res.data, resubmitted: true };
       }
+      const res = await api.post('/purchase/invoices', data);
+      const invoice = res.data;
+      if (invoice?.pendingApproval) {
+        await uploadStaged('approval_request', invoice?.request?.id);
+        return invoice;
+      }
+      if (invoice?.id) await uploadStaged('purchase_invoice', invoice.id);
       return invoice;
     },
     onSuccess: (result: any) => {
