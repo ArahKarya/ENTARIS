@@ -647,13 +647,36 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                       <span className="text-gray-500">Produk samping masuk (NRV)</span>
                       <span className="font-mono font-medium text-gray-700">{formatRupiah(run.glSummary.byproductValue)}</span>
                     </div>
-                    <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
-                      <span className="text-gray-600 font-medium">Selisih ke 5.1 (biaya konversi)</span>
-                      <span className={cn('font-mono font-semibold', run.glSummary.conversionDiff >= 0 ? 'text-green-700' : 'text-red-600')}>
-                        {formatRupiah(Math.abs(run.glSummary.conversionDiff))}
-                        {run.glSummary.conversionDiff >= 0 ? ' (CR)' : ' (DR)'}
-                      </span>
-                    </div>
+                    {(() => {
+                      const lines = (journal?.items ?? []).filter((it: any) => ['5.1', '5.12'].includes(it.account?.accountNumber));
+                      if (lines.length === 0) {
+                        return (
+                          <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
+                            <span className="text-gray-600 font-medium">Selisih (biaya konversi)</span>
+                            <span className="font-mono font-semibold text-gray-700">
+                              {formatRupiah(Math.abs(run.glSummary.conversionDiff))}{run.glSummary.conversionDiff >= 0 ? ' (CR)' : ' (DR)'}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="border-t border-gray-200 pt-2 space-y-1">
+                          {lines.map((it: any) => {
+                            const cr = Number(it.credit) > 0;
+                            return (
+                              <div key={it.id} className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">
+                                  {it.account.accountNumber === '5.12' ? 'Biaya konversi dibebankan (5.12)' : cr ? 'Sisa selisih ke HPP Beras (5.1)' : 'Rugi produksi (5.1)'}
+                                </span>
+                                <span className={cn('font-mono font-semibold', cr ? 'text-green-700' : 'text-red-600')}>
+                                  {formatRupiah(Number(cr ? it.credit : it.debit))}{cr ? ' (CR)' : ' (DR)'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </>
                 ) : (
                   <>

@@ -442,16 +442,40 @@ export async function editProductionRunInTx(
     });
   }
 
+  // Selisih: lihat aturan di productionRunSubmit.ts (5.12 s.d. biaya konversi, sisa 5.1).
   const diff = totalOutputCost.minus(totalInputCost).toDecimalPlaces(2).toNumber();
   if (Math.abs(diff) > 0) {
     const hppBerasAccount = await tx.account.findFirst({ where: { accountNumber: '5.1' } });
     const cogsAccount = hppBerasAccount || await systemAccounts.getAccount('COGS');
-    journalItems.push({
-      accountId: cogsAccount.id,
-      debit: diff > 0 ? 0 : Math.abs(diff),
-      credit: diff > 0 ? diff : 0,
-      description: `HPP ${diff > 0 ? 'konversi' : 'rugi'} produksi: ${oldRun.runNumber}`,
-    });
+    if (diff > 0) {
+      const conversionAccount = await tx.account.findFirst({ where: { accountNumber: '5.12', isActive: true } });
+      const convCost = totalCostInputSide.plus(totalCostOutputSide).toDecimalPlaces(2).toNumber();
+      const to512 = conversionAccount ? Math.min(diff, Math.max(convCost, 0)) : 0;
+      const to51 = new Decimal(diff).minus(to512).toDecimalPlaces(2).toNumber();
+      if (to512 > 0) {
+        journalItems.push({
+          accountId: conversionAccount!.id,
+          debit: 0,
+          credit: to512,
+          description: `Biaya konversi dibebankan: ${oldRun.runNumber}`,
+        });
+      }
+      if (to51 > 0) {
+        journalItems.push({
+          accountId: cogsAccount.id,
+          debit: 0,
+          credit: to51,
+          description: `HPP konversi produksi: ${oldRun.runNumber}`,
+        });
+      }
+    } else {
+      journalItems.push({
+        accountId: cogsAccount.id,
+        debit: Math.abs(diff),
+        credit: 0,
+        description: `HPP rugi produksi: ${oldRun.runNumber}`,
+      });
+    }
   }
 
   if (journalItems.length > 0) {

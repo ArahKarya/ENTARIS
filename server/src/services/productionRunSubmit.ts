@@ -470,19 +470,39 @@ export async function submitProductionRunInTx(
     });
   }
 
-  // Balance the JE: difference goes to HPP Beras (5.1) — gain on conversion (CR)
-  // when output > input, loss (DR) when input > output.
+  // Balance the JE.
+  // Selisih nilai output − input:
+  //   • porsi s.d. total biaya konversi (tarif estimasi) → CR 5.12 "Biaya Konversi
+  //     Dibebankan ke Persediaan" (keputusan 27-09-2026, PSAK 14: biaya konversi masuk
+  //     persediaan, lawannya dipisah dari HPP Beras supaya 5.1 murni HPP penjualan);
+  //   • sisa (mis. NRV produk samping > biaya bahan pada beras titipan BULOG, HPP di-clamp 0)
+  //     tetap → CR 5.1 HPP Beras (keputusan Jul-2026, alur lama dipertahankan);
+  //   • rugi produksi (diff < 0) tetap → DR 5.1.
   const diff = totalOutputCost.minus(totalInputCost).toDecimalPlaces(2).toNumber();
   if (Math.abs(diff) > 0) {
     const hppBerasAccount = await tx.account.findFirst({ where: { accountNumber: '5.1' } });
     const cogsAccount = hppBerasAccount || await systemAccounts.getAccount('COGS');
     if (diff > 0) {
-      journalItems.push({
-        accountId: cogsAccount.id,
-        debit: 0,
-        credit: diff,
-        description: `HPP konversi produksi: ${runNumber}`,
-      });
+      const conversionAccount = await tx.account.findFirst({ where: { accountNumber: '5.12', isActive: true } });
+      const convCost = totalCostInputSide.plus(totalCostOutputSide).toDecimalPlaces(2).toNumber();
+      const to512 = conversionAccount ? Math.min(diff, Math.max(convCost, 0)) : 0;
+      const to51 = new Decimal(diff).minus(to512).toDecimalPlaces(2).toNumber();
+      if (to512 > 0) {
+        journalItems.push({
+          accountId: conversionAccount!.id,
+          debit: 0,
+          credit: to512,
+          description: `Biaya konversi dibebankan: ${runNumber}`,
+        });
+      }
+      if (to51 > 0) {
+        journalItems.push({
+          accountId: cogsAccount.id,
+          debit: 0,
+          credit: to51,
+          description: `HPP konversi produksi: ${runNumber}`,
+        });
+      }
     } else {
       journalItems.push({
         accountId: cogsAccount.id,
