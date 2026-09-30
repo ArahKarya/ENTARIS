@@ -149,15 +149,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   });
 
   const [fromSTTMode, setFromSTTMode] = useState(false);
-  const [selectedSTTId, setSelectedSTTId] = useState('');
+  // Multi-pilih: 1 invoice bisa digabung dari beberapa STT sekaligus
+  // (mis. beberapa rit dari supplier yang sama pada tanggal berdekatan).
+  const [selectedSTTIds, setSelectedSTTIds] = useState<Set<string>>(new Set());
 
-  // Apply STT → items: lock qty/name/warehouse, rate kosong untuk diisi user
-  const applySTT = (sttId: string) => {
-    setSelectedSTTId(sttId);
-    if (!sttId) return;
-    const stt = (pendingSTTs ?? []).find((s: any) => s.id === sttId);
-    if (!stt) return;
-    const newItems: InvoiceItem[] = (stt.items ?? []).map((line: any) => ({
+  const sttLinesOf = (stt: any): InvoiceItem[] =>
+    (stt.items ?? []).map((line: any) => ({
       id: crypto.randomUUID(),
       itemType: 'material',
       itemName: line.itemName,
@@ -176,7 +173,31 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       nomorMobil: stt.nomorMobil ?? '',
       goodsReceiptItemId: line.id,
     }));
-    if (newItems.length > 0) setItems(newItems);
+
+  // Toggle satu STT: tambah/hapus baris-barisnya dari daftar item,
+  // tanpa mengganggu STT lain yang sudah dicentang lebih dulu.
+  const toggleSTT = (sttId: string) => {
+    const stt = (pendingSTTs ?? []).find((s: any) => s.id === sttId);
+    if (!stt) return;
+    setSelectedSTTIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sttId)) {
+        next.delete(sttId);
+        setItems((cur) => {
+          const grItemIds = new Set((stt.items ?? []).map((l: any) => l.id));
+          const rest = cur.filter((i) => !i.goodsReceiptItemId || !grItemIds.has(i.goodsReceiptItemId));
+          return rest.length > 0 ? rest : [defaultItem()];
+        });
+      } else {
+        next.add(sttId);
+        setItems((cur) => {
+          // Buang placeholder kosong bawaan modal sebelum menambah baris pertama.
+          const base = cur.filter((i) => i.goodsReceiptItemId || i.itemName || i.rate > 0);
+          return [...base, ...sttLinesOf(stt)];
+        });
+      }
+      return next;
+    });
   };
 
   const selectedParty = parties?.find((p: any) => p.id === partyId);
@@ -375,36 +396,40 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                       onChange={(e) => {
                         setFromSTTMode(e.target.checked);
                         if (!e.target.checked) {
-                          setSelectedSTTId('');
+                          setSelectedSTTIds(new Set());
                           setItems([defaultItem()]);
                         }
                       }}
                       className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
                     />
-                    Buat dari STT / BPB (Bukti Penerimaan Barang)
+                    Buat dari STT / BPB (Bukti Penerimaan Barang) — bisa pilih lebih dari 1
                   </label>
                   {fromSTTMode && (
-                    <div className="mt-2">
-                      <Select
-                        value={selectedSTTId}
-                        onChange={(e) => applySTT(e.target.value)}
-                        className="w-full"
-                      >
-                        <option value="">— Pilih STT yang mau di-invoice —</option>
-                        {(pendingSTTs ?? []).map((s: any) => (
-                          <option key={s.id} value={s.id}>
+                    <div className="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1">
+                      {(pendingSTTs ?? []).map((s: any) => (
+                        <label
+                          key={s.id}
+                          className="flex items-center gap-2 text-xs text-blue-900 bg-white/60 rounded px-2 py-1.5 cursor-pointer hover:bg-white"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSTTIds.has(s.id)}
+                            onChange={() => toggleSTT(s.id)}
+                            className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="flex-1">
                             {s.sttNumber} • {new Date(s.date).toLocaleDateString('id-ID')} • {s.items?.length ?? 0} item
-                          </option>
-                        ))}
-                      </Select>
+                          </span>
+                        </label>
+                      ))}
                       {(pendingSTTs ?? []).length === 0 && (
                         <p className="text-[11px] text-blue-600 mt-1">
                           Tidak ada STT pending untuk supplier ini. Buat STT/BPB dulu di menu Pembelian → BPB.
                         </p>
                       )}
-                      {selectedSTTId && (
+                      {selectedSTTIds.size > 0 && (
                         <p className="text-[11px] text-blue-700 mt-1.5">
-                          ✓ Items dari STT sudah di-load. Tinggal isi harga per baris. Stok tidak akan dibuat ulang oleh PI ini.
+                          ✓ {selectedSTTIds.size} STT dipilih, items sudah di-load. Tinggal isi harga per baris. Stok tidak akan dibuat ulang oleh PI ini.
                         </p>
                       )}
                     </div>
