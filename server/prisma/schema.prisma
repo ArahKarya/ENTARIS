@@ -597,7 +597,8 @@ model PurchaseInvoice {
   purchaseOrder       PurchaseOrder?             @relation("PIFromPO", fields: [purchaseOrderId], references: [id])
   // STT (GoodsReceipt) header-level back-relation. PI created from STT.
   // 1 STT → at most 1 active PI; many lines billed at once.
-  goodsReceipt        GoodsReceipt?              @relation("PIFromGR")
+  // 1 PI bisa menagih >1 STT sekaligus sejak 2026-09-30 (gabung nota).
+  goodsReceipts       GoodsReceipt[]             @relation("PIFromGR")
   gaVehicleTaxes      GaVehicleTax[]             @relation("GaVehicleTaxInvoice")
   gaServiceLogs       GaVehicleServiceLog[]      @relation("GaServiceLogInvoice")
   gaMaterialRequests  GaMaterialRequest[]        @relation("GaMaterialRequestInvoice")
@@ -1822,7 +1823,7 @@ model GoodsReceipt {
   driverName       String?            @map("driver_name")
   recipientName    String?            @map("recipient_name")
   // PI linkage — set ketika items difold ke invoice. 1 STT → 1 PI aktif.
-  invoiceId        String?            @unique @map("invoice_id")
+  invoiceId        String?            @map("invoice_id")
   invoice          PurchaseInvoice?   @relation("PIFromGR", fields: [invoiceId], references: [id])
   invoicedAt       DateTime?          @map("invoiced_at")
   // True kalau record ini dibuat via backfill script untuk PI legacy.
