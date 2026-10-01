@@ -15,7 +15,7 @@ const NEAR_ZERO_QTY = 0.0005;
  * Yang dikembalikan:
  *   - JV auto-settle (JV-YYYYMM-nnnn, narasi "Auto-settle COGS ...") → Cancelled + ALE
  *   - qtyPending/status antrean (cogs_backfill_queue) → seperti sebelum settle
- *   - averageCost item → dibalik sebesar differential yang pernah disesuaikan
+ *   (averageCost item dihitung ulang oleh pemanggil dari movement aktif, bukan di sini)
  *   - catatan cogs_backfill_settlements → dihapus
  *
  * Aman dipanggil kalau tidak ada settlement (return 0 tanpa tulis DB).
@@ -45,8 +45,7 @@ export async function reverseCogsSettlementsByTrigger(
     journalsCancelled++;
   }
 
-  // 2) Kembalikan antrean + averageCost per item (differential total per item)
-  const diffByItem = new Map<string, Decimal>();
+  // 2) Kembalikan antrean (qtyPending + status)
   for (const s of settlements) {
     const q = s.queue;
     const restoredPending = new Decimal(q.qtyPending.toString()).plus(s.qtySettled.toString());
@@ -61,29 +60,14 @@ export async function reverseCogsSettlementsByTrigger(
         settledAt: null,
       },
     });
-    // simpan diff per item (untuk balik averageCost)
-    const prev = diffByItem.get(q.inventoryItemId) ?? new Decimal(0);
-    // hanya settlement yang punya JV material yang menyesuaikan averageCost
-    if (s.journalEntryId) diffByItem.set(q.inventoryItemId, prev.plus(s.differential.toString()));
   }
 
   // 3) Hapus catatan settlement (setelah antrean dikembalikan)
   await tx.cogsBackfillSettlement.deleteMany({ where: { id: { in: settlements.map((s) => s.id) } } });
 
-  // 4) Balik penyesuaian averageCost: settle menghitung newAvg = (stok*avg - diff)/stok.
-  //    Kebalikan: avg' = (stok*avg + diff)/stok. Lewati kalau stok ~0.
-  for (const [itemId, diff] of diffByItem) {
-    if (diff.abs().lt(0.005)) continue;
-    const item = await tx.inventoryItem.findUnique({ where: { id: itemId }, select: { currentStock: true, averageCost: true } });
-    if (!item) continue;
-    const stock = new Decimal(item.currentStock.toString());
-    if (stock.abs().lte(NEAR_ZERO_QTY)) continue;
-    const newAvg = stock.mul(item.averageCost.toString()).plus(diff).div(stock).toDecimalPlaces(2);
-    await tx.inventoryItem.update({
-      where: { id: itemId },
-      data: { averageCost: newAvg.lt(0) ? 0 : newAvg.toNumber() },
-    });
-  }
+  // 4) averageCost TIDAK dibalik secara aritmetika di sini: nilai persediaan sudah berubah sejak
+  //    settle, sehingga pembalikan bisa meleset/terpotong ke 0. Pemanggil yang memang mengubah
+  //    stok (cancel/edit PR) sudah menghitung ulang averageCost dari movement masuk aktif.
 
   // 5) Hitung ulang cache saldo akun terdampak dari ledger
   if (affectedAccountIds.size > 0) await recalculateAccountBalances(tx, [...affectedAccountIds]);
