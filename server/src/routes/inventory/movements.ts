@@ -11,6 +11,7 @@ import { systemAccounts } from '../../services/systemAccounts';
 import { logger } from '../../lib/logger';
 import { calcWeightedAverage } from '../../utils/weightedAverage';
 import { settleCogsBackfillForItem } from '../../services/cogsBackfillService';
+import { reverseCogsSettlementsByTrigger } from '../../services/cogsBackfillReverse';
 import { adjustWarehouseStock } from '../../utils/warehouseStock';
 
 const router = Router();
@@ -310,6 +311,12 @@ router.put('/:id', async (req: AuthRequest, res) => {
       if (!oldMov) throw new BusinessError('Gerakan stok tidak ditemukan.');
       if (oldMov.isCancelled) throw new BusinessError('Gerakan stok sudah dibatalkan, tidak bisa diedit.');
 
+      // Reject if movement is linked to GoodsReceipt (STT): jurnal STT tak tertaut ke movement,
+      // edit per-baris meninggalkan jurnal yatim → wajib lewat halaman STT.
+      if (oldMov.referenceType === 'GoodsReceipt') {
+        throw new BusinessError('Gerakan stok dari STT tidak dapat diedit per baris. Batalkan atau revisi STT dari halaman STT.');
+      }
+
       // Reject if movement is linked to ProductionRun
       if (oldMov.referenceType === 'ProductionRun') {
         throw new BusinessError('Gerakan stok dari proses produksi tidak dapat diedit secara langsung.');
@@ -481,6 +488,21 @@ router.put('/:id', async (req: AuthRequest, res) => {
         },
       });
 
+      // 6b. Edit mengubah qty/biaya movement masuk → auto-settle COGS lama (kalau ada)
+      // jadi basi. Balik dulu, lalu settle ulang dari nilai baru bila masih stok-masuk.
+      await reverseCogsSettlementsByTrigger(tx, "StockMovement", oldMov.id);
+      if (newIsIn && newQty > 0) {
+        await settleCogsBackfillForItem(tx, {
+          itemId: oldMov.itemId,
+          qtyAvailable: newQty,
+          unitCostNow: newUnitCost,
+          fiscalYearId: oldMov.fiscalYearId,
+          userId: req.user!.userId,
+          settleDate: new Date(body.date),
+          source: { type: "StockMovement", refId: oldMov.id, refNo: oldMov.movementNumber },
+        });
+      }
+
       // 7. Recompute averageCost from all active In movements (H3). The POST
       // path updates WAC on receipt; an edit changes qty/cost of an In, so WAC
       // must be re-derived. Recompute from the authoritative set of active
@@ -520,6 +542,9 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
       });
       if (!movement) throw new BusinessError('Gerakan stok tidak ditemukan.');
       if (movement.isCancelled) throw new BusinessError('Gerakan stok sudah dibatalkan.');
+      if (movement.referenceType === 'GoodsReceipt') {
+        throw new BusinessError('Gerakan stok dari STT tidak dapat dibatalkan per baris. Batalkan STT dari halaman STT.');
+      }
 
       const isIn = movement.movementType === 'In' || movement.movementType === 'AdjustmentIn';
       const isOut = movement.movementType === 'Out' || movement.movementType === 'AdjustmentOut';
@@ -563,6 +588,8 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
         where: { id },
         data: { isCancelled: true },
       });
+      // Balik auto-settle COGS yang dipicu movement manual ini
+      await reverseCogsSettlementsByTrigger(tx, 'StockMovement', id);
     }, { timeout: 15000 });
 
     return res.json({ message: 'Gerakan stok berhasil dibatalkan.' });

@@ -3,6 +3,7 @@ import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { recalculateAccountBalances } from '../utils/accountBalance';
 import { cancelJournalsByPrefix } from '../utils/journalCancel';
+import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { calcWeightedAverage } from '../utils/weightedAverage';
 import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStock';
@@ -111,6 +112,8 @@ export async function editProductionRunInTx(
   // ─ 4. Cancel ALL active journals for this run (incl. earlier revisions) ─
   const oldJvNumber = `JV-${oldRun.runNumber}`;
   await cancelJournalsByPrefix(tx, oldJvNumber);
+  // Balik auto-settle COGS lama sebelum settle ulang dari data baru (hindari numpuk ganda)
+  await reverseCogsSettlementsByTrigger(tx, 'ProductionRun', runId);
 
   // ─ 5. Delete old line items + old cost components (Phase 3) ─────────────
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });

@@ -1,3 +1,4 @@
+import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
 import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';
 import { updateAccountBalance, recalcPartyOutstanding } from '../utils/accountBalance';
@@ -213,6 +214,9 @@ export async function cancelPurchaseInvoiceInTx(
       data: { isCancelled: true },
     });
   }
+
+  // Balik auto-settle COGS backfill yang dipicu PI ini
+  await reverseCogsSettlementsByTrigger(tx, 'PurchaseInvoice', invoice.id);
 
   // Release linked STT(s) back to "available for invoicing" state. STT items
   // dan stockMovements milik STT tidak disentuh (goods physically diterima).
