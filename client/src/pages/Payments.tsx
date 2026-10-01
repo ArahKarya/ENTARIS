@@ -16,6 +16,7 @@ import { Layers } from 'lucide-react';
 import VendorDepositModal from '../components/VendorDepositModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import PaymentDetailDrawer from '../components/PaymentDetailDrawer';
+import JournalDetailDrawer from '../components/JournalDetailDrawer';
 import { cap } from '../lib/permissions';
 
 interface CashTransaction {
@@ -28,6 +29,7 @@ interface CashTransaction {
   amount: number;
   status: string;
   source: 'payment' | 'journal';
+  journalEntryId?: string;
 }
 
 export const Payments = () => {
@@ -41,6 +43,7 @@ export const Payments = () => {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<CashTransaction | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -136,6 +139,7 @@ export const Payments = () => {
           amount: j.amount,
           status: j.status,
           source: 'journal',
+          journalEntryId: j.journalEntryId,
         });
       }
     }
@@ -253,8 +257,11 @@ export const Payments = () => {
                 return (
                   <tr
                     key={`${txn.source}-${txn.id}`}
-                    className={cn('cursor-pointer', txn.source === 'payment' && 'hover:bg-gray-50 dark:hover:bg-gray-800/30')}
-                    onClick={() => { if (txn.source === 'payment') setDetailId(txn.id); }}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                    onClick={() => {
+                      if (txn.source === 'payment') setDetailId(txn.id);
+                      else if (txn.journalEntryId) setJournalDetailId(txn.journalEntryId);
+                    }}
                   >
                     <td className="text-gray-500 whitespace-nowrap">{formatDate(txn.date)}</td>
                     <td className="whitespace-nowrap">
@@ -294,7 +301,8 @@ export const Payments = () => {
                     <td>
                       {txn.status === 'Cancelled' ? null : !canCancel ? null : (
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (txn.type === 'VendorDeposit') {
                               toast.info('Batalkan dari modul Uang Muka Vendor.');
                               navigate('/vendor-deposits');
@@ -364,6 +372,9 @@ export const Payments = () => {
       />
       {detailId && (
         <PaymentDetailDrawer paymentId={detailId} onClose={() => setDetailId(null)} />
+      )}
+      {journalDetailId && (
+        <JournalDetailDrawer journalEntryId={journalDetailId} onClose={() => setJournalDetailId(null)} />
       )}
     </div>
   );
