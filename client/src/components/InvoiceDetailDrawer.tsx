@@ -320,7 +320,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const sc = statusConfig[invoice?.status] ?? statusConfig.Draft;
 
   const isOverdue = invoice?.dueDate && new Date(invoice.dueDate) < new Date() && outstanding > 0;
-  const canCancel = invoice && invoice.status !== 'Cancelled' && invoice.status !== 'Paid';
+  const canCancel = invoice && invoice.status !== 'Cancelled' && (invoice.status !== 'Paid' || grandTotal === 0); // invoice Rp 0 (sumbangan) auto-Paid tapi tetap boleh dibatalkan
   const canEdit = invoice && invoice.status !== 'Cancelled';
 
   const startEditing = () => {

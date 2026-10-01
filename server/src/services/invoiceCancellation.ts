@@ -27,7 +27,8 @@ export async function cancelSalesInvoiceInTx(
   });
   if (!invoice) throw new BusinessError('Invoice tidak ditemukan.');
   if (invoice.status === 'Cancelled') throw new BusinessError('Invoice sudah dibatalkan.');
-  if (invoice.status === 'Paid') throw new BusinessError('Invoice sudah lunas, tidak bisa dibatalkan.');
+  // Invoice Rp 0 (sumbangan) otomatis Paid tanpa pembayaran → tetap boleh dibatalkan.
+  if (invoice.status === 'Paid' && Number(invoice.grandTotal) !== 0) throw new BusinessError('Invoice sudah lunas, tidak bisa dibatalkan.');
 
   const allocations = await tx.paymentAllocation.findMany({
     where: { invoiceType: 'SalesInvoice', invoiceId: invoice.id },
