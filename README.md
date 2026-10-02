@@ -1,6 +1,6 @@
 <div align="center">
 
-# ERP PMD — Penjualan, Pembelian, Inventori & Keuangan Terintegrasi
+# Simple ERP — Penjualan, Pembelian, Inventori & Keuangan Terintegrasi
 
 **ERP Self-Hosted untuk Pangan Masa Depan — kelola seluruh operasi perusahaan (penjualan, pembelian, gudang, keuangan) dalam satu sistem, dengan pembukuan double-entry otomatis di setiap transaksi. Multi-role, self-hosted via Docker, tanpa biaya lisensi bulanan.**
 
@@ -15,11 +15,11 @@
 
 > Produk **PT Arah Karya Sinergi** — untuk Pangan Masa Depan.
 
-**ERP PMD** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
+**Simple ERP** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
 Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
 
-## ✨ Kenapa ERP PMD
+## ✨ Kenapa Simple ERP
 
 | Masalah | Solusi |
 |---|---|

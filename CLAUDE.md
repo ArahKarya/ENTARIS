@@ -2,7 +2,7 @@
 
 ## Overview
 
-ERP PMD — sistem ERP penuh untuk mengelola operasi PT Pangan Masa Depan. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
+Simple ERP — sistem ERP penuh untuk mengelola operasi perusahaan (penjualan, pembelian, inventori, keuangan) untuk UKM hingga enterprise. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
 
 ## Tech Stack
 
