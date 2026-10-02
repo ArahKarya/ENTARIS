@@ -1,19 +1,15 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import type { CompanyInfo } from './ReportPDF';
+import { C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
-
-const C = {
-  primary: '#374151', primaryLt: '#f3f4f6',
-  dark: '#111827', mid: '#374151', muted: '#6b7280', faint: '#9ca3af',
-  border: '#e5e7eb', bgLight: '#f9fafb', white: '#ffffff',
-  red: '#dc2626', green: '#16a34a',
-};
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 7.5, color: C.dark, paddingTop: 30, paddingBottom: 50, paddingHorizontal: 30, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  companyBlock: { flexDirection: 'row', alignItems: 'flex-start' },
+  companyLogo: { width: 30, height: 30, objectFit: 'contain' as const, marginRight: 7 },
   companyName: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: C.primary },
   companyMeta: { fontSize: 6.5, color: C.muted, marginTop: 1 },
   reportTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.dark, textAlign: 'right' },
@@ -56,10 +52,15 @@ function Header({ company, date }: { company: CompanyInfo; date: string }) {
   return (
     <>
       <View style={S.headerRow} fixed>
-        <View>
-          <Text style={S.companyName}>{company.name}</Text>
-          {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-          {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+        <View style={S.companyBlock}>
+          {company.logoUrl && (
+            <Image style={S.companyLogo} src={company.logoUrl} />
+          )}
+          <View>
+            <Text style={S.companyName}>{company.name}</Text>
+            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
+            {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
+          </View>
         </View>
         <View>
           <Text style={S.reportTitle}>LAPORAN HARIAN</Text>

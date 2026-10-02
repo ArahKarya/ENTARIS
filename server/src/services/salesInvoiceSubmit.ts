@@ -216,7 +216,10 @@ export async function submitSalesInvoiceInTx(
       labelBiaya: body.labelBiaya || null,
       terms: body.terms || null,
       customerRefNo: body.customerRefNo || null,
-      status: 'Submitted',
+      // Invoice bernilai Rp 0 (sumbangan/sampel/bonus) tidak punya tagihan →
+      // langsung Paid supaya tidak menggantung sebagai invoice terbuka.
+      // Efek GL tetap: HPP + pengurangan persediaan lewat jurnal COGS.
+      status: grandTotalNum === 0 ? 'Paid' : 'Submitted',
       notes: body.notes || null,
       fiscalYearId: fiscalYear.id,
       createdBy: userId,

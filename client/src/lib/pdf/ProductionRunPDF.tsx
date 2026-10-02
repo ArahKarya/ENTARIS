@@ -1,9 +1,8 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { CARBON as C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
-
-const C = { black: '#000000', white: '#ffffff', grey: '#555555', light: '#cccccc' };
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 10, color: C.black, paddingTop: 32, paddingBottom: 24, paddingHorizontal: 32, backgroundColor: C.white },
@@ -26,7 +25,7 @@ const S = StyleSheet.create({
 
   sectionTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginTop: 10, marginBottom: 4, paddingBottom: 2, borderBottomWidth: 1, borderBottomColor: C.black },
 
-  tableHeader: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 1.2, borderBottomWidth: 1.2, borderColor: C.black, backgroundColor: '#f5f5f5' },
+  tableHeader: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 1.2, borderBottomWidth: 1.2, borderColor: C.black, backgroundColor: C.shade },
   tableHeaderText: { fontSize: 9.5, fontFamily: 'Helvetica-Bold' },
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 0.6, borderBottomColor: C.light },
   rowLast: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 1.2, borderBottomColor: C.black },

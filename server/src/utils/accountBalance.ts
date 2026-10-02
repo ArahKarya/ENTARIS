@@ -69,10 +69,15 @@ export async function recalculateAccountBalances(
   });
 
   for (const account of accounts) {
-    const totals = await tx.journalItem.aggregate({
+    // Source of truth = accounting_ledger_entries (ALE).
+    // Semua laporan resmi (Neraca, Laba Rugi, Trial Balance, Buku Besar, Arus Kas)
+    // membaca ALE, sementara journal_entry_accounts (JEA) sudah divergen secara
+    // historis. Recalculate dari JEA membuat cache accounts.balance menyimpang
+    // dari laporan. Lihat audit 2026-08-06.
+    const totals = await tx.accountingLedgerEntry.aggregate({
       where: {
         accountId: account.id,
-        journalEntry: { status: { not: 'Cancelled' } },
+        isCancelled: false,
       },
       _sum: { debit: true, credit: true },
     });

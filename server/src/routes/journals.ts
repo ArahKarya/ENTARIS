@@ -223,6 +223,21 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
       });
     }
 
+    // FIX(vendor-deposit-cancel-desync, 2026-08-13): jurnal aplikasi Uang Muka
+    // (customer & vendor) dari vendorDeposits.ts/customerDeposits.ts kadang
+    // dibuat TANPA prefix JV-PAY (mis. JV-202608-0164), jadi lolos dari regex
+    // di atas. Kasus nyata: PAY-202608-0024 → PI-202608-0002, dibatalkan lewat
+    // sini, ledger & party.depositBalance ke-reverse tapi vendorDepositApplication
+    // & purchase_invoice.outstanding TIDAK ikut direstore (tidak ada reverse
+    // logic untuk vendor deposit di endpoint ini, hanya untuk customer).
+    // Tangkap juga berdasar pola narasi supaya aman walau nomor entry lolos.
+    if (/^Aplikasi Uang Muka:/.test(entry.narration ?? '')) {
+      return res.status(400).json({
+        error:
+          'Jurnal ini adalah aplikasi Uang Muka ke faktur. Batalkan dari modul Uang Muka Pelanggan/Vendor (tombol batalkan aplikasi), bukan dari Buku Besar.',
+      });
+    }
+
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Reverse account balances (swap debit↔credit to undo)
       await updateBalancesForItems(

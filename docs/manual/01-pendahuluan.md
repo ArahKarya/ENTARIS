@@ -4,9 +4,9 @@
 
 ---
 
-## 1.1 Apa itu Simple ERP?
+## 1.1 Apa itu ERP PMD?
 
-Simple ERP adalah aplikasi terpadu untuk mengelola **keuangan + operasional** Perusahaan, sebuah penggilingan padi. Semua transaksi — beli gabah, produksi beras, jual, terima/bayar uang — tercatat dalam satu sistem dengan **pembukuan double-entry** otomatis.
+ERP PMD adalah aplikasi terpadu untuk mengelola **keuangan + operasional** PT Pangan Masa Depan, sebuah penggilingan padi. Semua transaksi — beli gabah, produksi beras, jual, terima/bayar uang — tercatat dalam satu sistem dengan **pembukuan double-entry** otomatis.
 
 Artinya: setiap kali staff input transaksi operasional (mis. terima gabah, kirim beras), sistem **otomatis membuat jurnal akuntansi** yang benar. Tidak perlu input jurnal manual dua kali.
 
@@ -22,7 +22,7 @@ Setiap transaksi punya 2 sisi yang selalu seimbang. Contoh: jual beras Rp 10jt t
 Sistem yang hitung otomatis. Anda cukup input transaksi bisnisnya.
 
 ### b) Stok Bergerak Lewat Dokumen, Bukan Invoice
-Aturan penting di Simple ERP:
+Aturan penting di ERP PMD:
 - **Barang KELUAR** hanya lewat **Surat Jalan (DO)** — bukan lewat Invoice.
 - **Barang MASUK** hanya lewat **BPB/STT (Penerimaan)** — bukan lewat Invoice Pembelian.
 - Invoice = **dokumen tagihan** saja (siapa hutang/piutang berapa), tidak menggerakkan stok.

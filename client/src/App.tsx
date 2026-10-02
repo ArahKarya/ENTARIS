@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import api from './lib/api';
 import { can } from './lib/permissions';
+import { useNumberInputGuard } from './hooks/useNumberInputGuard';
 import { CompanySettingsProvider } from './contexts/CompanySettingsContext';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
@@ -26,6 +27,7 @@ import { StockOpnamePage } from './pages/StockOpnamePage';
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
 import PublicInquiry from './pages/PublicInquiry';
+import PublicAssetScan from './pages/PublicAssetScan';
 
 import Reports from './pages/Reports';
 import TrialBalance from './pages/reports/TrialBalance';
@@ -47,6 +49,8 @@ import { GaInventoryPage } from './pages/ga/GaInventoryPage';
 import { GaMaintenancePage } from './pages/ga/GaMaintenancePage';
 import { GaMaterialRequestPage } from './pages/ga/GaMaterialRequestPage';
 import { GaVehiclePage } from './pages/ga/GaVehiclePage';
+import { GaFinancePage } from './pages/ga/GaFinancePage';
+import { GaFleetReportPage } from './pages/ga/GaFleetReportPage';
 import { GaBuildingPage } from './pages/ga/GaBuildingPage';
 import { GaEquipmentPage } from './pages/ga/GaEquipmentPage';
 import { GaMasterPage } from './pages/ga/GaMasterPage';
@@ -56,6 +60,7 @@ import LedgerBook from './pages/reports/LedgerBook';
 import HealthCheckPage from './pages/HealthCheckPage';
 import HppReport from './pages/reports/HppReport';
 import ProfitabilityPerSku from './pages/reports/ProfitabilityPerSku';
+import ProductionCostSummary from './pages/reports/ProductionCostSummary';
 import PayableSchedule from './pages/reports/PayableSchedule';
 import ReceivableSchedule from './pages/reports/ReceivableSchedule';
 import FixedAssetsPage from './pages/FixedAssetsPage';
@@ -105,6 +110,7 @@ const PermRoute = ({ module, children }: { module: string; children: React.React
 };
 
 function App() {
+  useNumberInputGuard();
   return (
     <Router>
       <Routes>
@@ -112,6 +118,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/tanya" element={<PublicInquiry />} />
         <Route path="/inquire" element={<PublicInquiry />} />
+        <Route path="/aset/:qrCode" element={<PublicAssetScan />} />
         
         <Route element={<ProtectedRoute />}>
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
@@ -135,9 +142,11 @@ function App() {
             <Route path="/ga/maintenance" element={<PermRoute module="ga_maintenance"><GaMaintenancePage /></PermRoute>} />
             <Route path="/ga/material-requests" element={<PermRoute module="ga_material_request"><GaMaterialRequestPage /></PermRoute>} />
             <Route path="/ga/vehicle" element={<PermRoute module="ga_vehicle"><GaVehiclePage /></PermRoute>} />
+            <Route path="/ga/vehicle/report" element={<PermRoute module="ga_vehicle"><GaFleetReportPage /></PermRoute>} />
             <Route path="/ga/building" element={<PermRoute module="ga_building"><GaBuildingPage /></PermRoute>} />
             <Route path="/ga/equipment" element={<PermRoute module="ga_equipment"><GaEquipmentPage /></PermRoute>} />
             <Route path="/ga/master" element={<PermRoute module="ga_master"><GaMasterPage /></PermRoute>} />
+            <Route path="/ga/finance" element={<PermRoute module="ga_finance"><GaFinancePage /></PermRoute>} />
             <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
             <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
             <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />
@@ -162,6 +171,7 @@ function App() {
             <Route path="/reports/ledger-book" element={<PermRoute module="reports"><LedgerBook /></PermRoute>} />
             <Route path="/reports/hpp" element={<PermRoute module="reports"><HppReport /></PermRoute>} />
             <Route path="/reports/profitability-per-sku" element={<PermRoute module="reports"><ProfitabilityPerSku /></PermRoute>} />
+            <Route path="/reports/production-cost-summary" element={<PermRoute module="reports"><ProductionCostSummary /></PermRoute>} />
             <Route path="/reports/oee" element={<PermRoute module="reports"><OeeReport /></PermRoute>} />
             <Route path="/reports/payable-schedule" element={<PermRoute module="reports"><PayableSchedule /></PermRoute>} />
             <Route path="/reports/receivable-schedule" element={<PermRoute module="reports"><ReceivableSchedule /></PermRoute>} />

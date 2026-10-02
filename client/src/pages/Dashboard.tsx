@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Settings2, LayoutDashboard, DollarSign, TrendingUp, Package, Factory, Building2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
+import { can } from '../lib/permissions';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
 
 // Widgets
@@ -116,12 +117,15 @@ export const Dashboard = () => {
     catch { return null; }
   }, []);
   const isStaffProduksi = userRole === 'StaffProduksi';
+  // Akses widget keuangan berbasis izin modul 'reports' (RBAC), bukan hardcode role.
+  // Siapa pun tanpa izin lihat Laporan (mis. Staff HRGA) tak melihat widget keuangan.
+  const canFinance = useMemo(() => can('reports', 'view'), []);
 
   const availableWidgets = useMemo(
-    () => isStaffProduksi
-      ? DEFAULT_WIDGETS.filter((w) => !FINANCE_WIDGET_IDS.has(w.id))
-      : DEFAULT_WIDGETS,
-    [isStaffProduksi]
+    () => canFinance
+      ? DEFAULT_WIDGETS
+      : DEFAULT_WIDGETS.filter((w) => !FINANCE_WIDGET_IDS.has(w.id)),
+    [canFinance]
   );
 
   const widgets: WidgetConfig[] = useMemo(
@@ -157,11 +161,23 @@ export const Dashboard = () => {
     []
   );
 
-  // Period filter state (persisted to localStorage)
+  // Period filter state (persisted to localStorage).
+  // FIX(dashboard-stale-period, 2026-08-13): preset non-custom (Bulan Ini, Bulan
+  // Lalu, dst) dulu menyimpan startDate/endDate absolut ke localStorage. Saat
+  // dashboard dibuka lagi di bulan/hari berikutnya, tanggal lama itu dipakai
+  // apa adanya tanpa dihitung ulang — label UI bilang "Bulan Ini" tapi query
+  // API jalan dengan rentang tanggal basi, sehingga data terlihat "tidak
+  // update". Sekarang preset non-custom SELALU dihitung ulang dari hari ini
+  // saat load; hanya preset 'custom' yang boleh pakai tanggal literal tersimpan.
   const [period, setPeriod] = useState<PeriodRange>(() => {
     try {
       const raw = localStorage.getItem('dashboard-period');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const saved = JSON.parse(raw) as PeriodRange;
+        if (saved.preset === 'custom') return saved;
+        const fresh = computePresetRange(saved.preset);
+        return { preset: saved.preset, ...fresh };
+      }
     } catch { /* ignore */ }
     const def = computePresetRange('thisMonth');
     return { preset: 'thisMonth', ...def };
@@ -198,11 +214,11 @@ export const Dashboard = () => {
     },
   });
 
-  const showKeuangan = !isStaffProduksi && anyEnabled(KEUANGAN_WIDGETS);
-  const showSales = !isStaffProduksi && anyEnabled(SALES_WIDGETS);
+  const showKeuangan = canFinance && anyEnabled(KEUANGAN_WIDGETS);
+  const showSales = canFinance && anyEnabled(SALES_WIDGETS);
   const showStok = anyEnabled(STOK_WIDGETS);
   const showProduksi = anyEnabled(PRODUKSI_WIDGETS);
-  const showAset = !isStaffProduksi && anyEnabled(ASET_WIDGETS);
+  const showAset = canFinance && anyEnabled(ASET_WIDGETS);
 
   const sections: SectionDef[] = useMemo(() => {
     const list: SectionDef[] = [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }];
@@ -254,7 +270,7 @@ export const Dashboard = () => {
           subtitle="Ringkasan performa utama"
         />
         <KPICards data={metrics} loading={isMetricsLoading} />
-        {!isStaffProduksi && isEnabled('cash-position') && (
+        {canFinance && isEnabled('cash-position') && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <CashPositionWidget />
           </div>

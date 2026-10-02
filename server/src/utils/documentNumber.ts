@@ -102,5 +102,27 @@ export async function generateDocumentNumber(
     if (!Number.isNaN(parsed)) lastSeq = parsed;
   }
 
-  return `${prefix}-${yearMonth}-${String(lastSeq + 1).padStart(4, '0')}`;
+  // Journal-number collision guard.
+  // Most journal-backed documents derive their JV entryNumber deterministically
+  // as `JV-<documentNumber>` (see purchaseInvoiceSubmit, salesInvoiceSubmit,
+  // productionRunSubmit, goodsReceiptSubmit, salesReturnSubmit, gaFinance).
+  // If a document row is deleted but its journal survives (orphan JV), MAX+1 on
+  // the document table hands out a number whose JV already exists, and the
+  // journalEntry.entryNumber @unique constraint throws P2002 at submit time.
+  // Skip forward past any sequence whose derived JV names are already taken.
+  const derivesJournal = prefix !== 'JV' && prefix !== 'OB';
+  let seq = lastSeq + 1;
+  if (derivesJournal) {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const candidate = `${prefix}-${yearMonth}-${String(seq).padStart(4, '0')}`;
+      const taken = await tx.journalEntry.findFirst({
+        where: { entryNumber: { in: [`JV-${candidate}`, `JV-COGS-${candidate}`] } },
+        select: { id: true },
+      });
+      if (!taken) break;
+      seq += 1;
+    }
+  }
+
+  return `${prefix}-${yearMonth}-${String(seq).padStart(4, '0')}`;
 }

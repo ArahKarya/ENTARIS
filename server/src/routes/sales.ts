@@ -132,14 +132,16 @@ router.get('/:id', async (req, res) => {
           },
         },
       },
-      orderBy: { payment: { date: 'desc' } },
+      orderBy: { payment: { date: 'asc' } },
     });
 
     // Get customer deposit applications for this invoice
+    // Sertakan yang dibatalkan juga (read-only) agar riwayat/kronologi
+    // pembayaran lengkap terlihat di UI.
     const depositApplications = await prisma.customerDepositApplication.findMany({
-      where: { salesInvoiceId: invoice.id, isCancelled: false },
+      where: { salesInvoiceId: invoice.id },
       include: { depositPayment: { select: { id: true, paymentNumber: true, date: true, amount: true } } },
-      orderBy: { appliedAt: 'desc' },
+      orderBy: { appliedAt: 'asc' },
     });
 
     return res.json({ ...invoice, paymentAllocations: allocations, depositApplications });

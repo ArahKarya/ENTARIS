@@ -87,7 +87,12 @@ const upload = multer({
 // ─── Helpers ───────────────────────────────────────────────────────
 function buildAssetWhere(query: AuthRequest['query']): Prisma.GaAssetWhereInput {
   const where: Prisma.GaAssetWhereInput = {};
-  if (query.categoryId) where.categoryId = String(query.categoryId);
+  // Support comma-separated multi-category filter (e.g. Gedung & Sewa page
+  // groups Bangunan + Gudang under one view). Single id keeps working as-is.
+  if (query.categoryId) {
+    const ids = String(query.categoryId).split(',').map((s) => s.trim()).filter(Boolean);
+    where.categoryId = ids.length > 1 ? { in: ids } : ids[0];
+  }
   if (query.branchId) where.branchId = String(query.branchId);
   if (query.costCenterId) where.costCenterId = String(query.costCenterId);
   if (query.picUserId) where.picUserId = String(query.picUserId);
@@ -199,6 +204,7 @@ router.get('/', async (req: AuthRequest, res) => {
           costCenter: { select: { code: true, name: true } },
           qr: { select: { qrCode: true } },
           fixedAsset: { select: { id: true, assetNumber: true, bookValue: true } },
+          vehicleData: { select: { noPlat: true } },
         },
       }),
       prisma.gaAsset.count({ where }),

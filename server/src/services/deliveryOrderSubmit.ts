@@ -3,8 +3,9 @@ import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
-import { adjustWarehouseStock } from '../utils/warehouseStock';
+import { adjustWarehouseStock, resolveWarehouseId, getWarehouseStockMap } from '../utils/warehouseStock';
 import { logger } from '../lib/logger';
+import { linkTemporaryNotesToDoInTx } from './temporaryDeliveryNote';
 
 type Tx = Prisma.TransactionClient;
 
@@ -25,6 +26,7 @@ export interface SubmitDeliveryOrderInput {
   }>;
   allowNegativeStock?: boolean;
   negativeStockReason?: string | null;
+  temporaryNoteIds?: string[];
 }
 
 /**
@@ -62,38 +64,63 @@ export async function submitDeliveryOrderInTx(
 
   const doNumber = await generateDocumentNumber(tx, 'DO', parsedDate, fiscalYear.id);
 
-  // Stock availability check: aggregate qty per inventoryItemId.
-  const qtyByItem = new Map<string, number>();
+  // Stock availability check — per (item, warehouse) pair.
+  // inventory_stocks is the source of truth; inventory_items.currentStock is a
+  // denormalized total across all warehouses and must NOT gate a per-warehouse
+  // shipment (it lets an empty warehouse pass, and blocks a stocked one when a
+  // sibling warehouse is negative). Mirrors the frontend check.
+  const qtyByItemWh = new Map<string, { itemId: string; warehouseId: string; qty: number }>();
   for (const it of body.items) {
     if (!it.inventoryItemId) continue;
-    qtyByItem.set(it.inventoryItemId, (qtyByItem.get(it.inventoryItemId) ?? 0) + it.quantity);
+    const whId = await resolveWarehouseId(tx, it.warehouseId);
+    if (!whId) throw new BusinessError(`Item '${it.itemName}' perlu pilih gudang sumber.`);
+    const key = `${it.inventoryItemId}::${whId}`;
+    const prev = qtyByItemWh.get(key);
+    if (prev) prev.qty += it.quantity;
+    else qtyByItemWh.set(key, { itemId: it.inventoryItemId, warehouseId: whId, qty: it.quantity });
   }
-  if (qtyByItem.size > 0) {
+  if (qtyByItemWh.size > 0) {
+    const entries = Array.from(qtyByItemWh.values());
     const invItems = await tx.inventoryItem.findMany({
-      where: { id: { in: Array.from(qtyByItem.keys()) } },
-      select: { id: true, name: true, unit: true, currentStock: true, isActive: true },
+      where: { id: { in: Array.from(new Set(entries.map((e) => e.itemId))) } },
+      select: { id: true, name: true, unit: true, isActive: true },
     });
-    for (const inv of invItems) {
-      const needed = qtyByItem.get(inv.id) ?? 0;
+    const itemById = new Map(invItems.map((i) => [i.id, i]));
+    const whIds = Array.from(new Set(entries.map((e) => e.warehouseId)));
+    const warehouses = await tx.warehouse.findMany({
+      where: { id: { in: whIds } },
+      select: { id: true, name: true },
+    });
+    const whById = new Map(warehouses.map((w) => [w.id, w]));
+    const stockMap = await getWarehouseStockMap(
+      tx,
+      entries.map((e) => ({ itemId: e.itemId, warehouseId: e.warehouseId })),
+    );
+
+    for (const e of entries) {
+      const inv = itemById.get(e.itemId);
+      if (!inv) throw new BusinessError('Item tidak ditemukan.');
       if (!inv.isActive) throw new BusinessError(`Item '${inv.name}' tidak aktif.`);
-      if (Number(inv.currentStock) < needed) {
+
+      const available = stockMap.get(`${e.itemId}::${e.warehouseId}`) ?? 0;
+      if (available < e.qty) {
+        const whName = whById.get(e.warehouseId)?.name ?? 'gudang';
         if (!body.allowNegativeStock) {
           throw new BusinessError(
-            `Stok '${inv.name}' tidak cukup. Tersedia: ${Number(inv.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}, dibutuhkan: ${needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}. Buat produksi/transfer/penerimaan dulu.`,
+            `Stok '${inv.name}' di gudang ${whName} tidak cukup. Tersedia: ${available.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}, dibutuhkan: ${e.qty.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${inv.unit}. Buat produksi/transfer/penerimaan dulu.`,
           );
         }
-        // Bypass mode (Admin only, enforced di route). WAC formula sudah safe
-        // sejak 3.1.2 (anchor ke inCost saat stok ≤ 0), tapi tetap log buat
-        // audit trail + monitoring Dashboard.
         logger.warn(
           {
             itemId: inv.id,
             itemName: inv.name,
-            available: Number(inv.currentStock),
-            needed,
+            warehouseId: e.warehouseId,
+            warehouseName: whName,
+            available,
+            needed: e.qty,
             partyId: body.partyId,
-            reason: body.negativeStockReason,
             userId,
+            reason: body.negativeStockReason,
           },
           'DO submitted with negative stock bypass',
         );
@@ -214,6 +241,11 @@ export async function submitDeliveryOrderInTx(
         },
       });
     }
+  }
+
+  // Tautkan Surat Jalan Sementara (Open, pelanggan sama) ke DO ini — satu transaksi dengan pembuatan DO.
+  if (body.temporaryNoteIds && body.temporaryNoteIds.length > 0) {
+    await linkTemporaryNotesToDoInTx(tx, deliveryOrder.id, body.partyId, body.temporaryNoteIds);
   }
 
   logger.info({ doNumber, items: body.items.length, partyId: body.partyId }, 'Delivery order submitted');

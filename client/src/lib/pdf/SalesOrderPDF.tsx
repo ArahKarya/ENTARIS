@@ -1,12 +1,12 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { C as T } from './theme';
+const C = { ink: T.dark, soft: T.muted, line: T.border, navy: T.primary };
 
 Font.registerHyphenationCallback((word) => [word]);
 
 // PDF Sales Order lengkap: header + item + ringkasan uang muka +
 // daftar Surat Jalan (pengiriman) + daftar Invoice terkait.
-
-const C = { ink: '#111827', soft: '#6b7280', line: '#d1d5db', navy: '#002046' };
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 9, color: C.ink, paddingTop: 30, paddingBottom: 28, paddingHorizontal: 32 },

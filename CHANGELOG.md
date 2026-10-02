@@ -1,5 +1,119 @@
 # Changelog
 
+## [3.19.0] - 2026-10-02
+
+Rilis kumulatif sejak 3.18.1 (31 Jul): modul Surat Jalan Sementara, pembenahan HPP/persediaan, EAM terintegrasi keuangan, dan sejumlah perbaikan integritas data.
+
+### Penjualan
+**Ditambahkan**:
+- **Surat Jalan Sementara (SJS)** — tab baru di Penjualan > Surat Jalan untuk barang yang dikirim sebelum produksi diinput. Tidak memotong stok, tanpa jurnal, tidak bisa diinvoice. Nomor `SJS-YYYYMM-NNNN`; status Terbuka → Tertaut / Dibatalkan. Ditautkan ke DO resmi saat membuat DO (langsung maupun dari SO) atau ke DO yang sudah ada (`POST /api/temporary-delivery-notes/:id/link`); qty DO boleh berbeda. DO dibatalkan → SJS kembali Terbuka. Banner pengingat SJS Terbuka > 7 hari, cetak PDF "Surat Jalan Sementara". Migrasi `20261002000000_temporary_delivery_notes.sql` (tabel baru saja, tanpa ALTER tabel lama).
+- Kolom tanda tangan **Verifikasi Fisik (Security)** di PDF Delivery Order.
+- Invoice bernilai **Rp 0** (sumbangan/sampel) otomatis berstatus `Paid` saat submit tanpa jurnal piutang; tetap bisa dibatalkan dari UI.
+- Linimasa riwayat pembayaran gabungan pada detail invoice, termasuk uang muka yang dibatalkan.
+
+**Diperbaiki**:
+- Retur qty-saja (tarif 0, mis. barang titipan) kini diizinkan tanpa syarat total > 0.
+- Cache `customerDepositBalance` disinkronkan saat submit dan cancel retur.
+- Daftar Surat Jalan Sementara gagal dimuat (cast tanggal kosong ke `date`); kini memakai `NULLIF`.
+
+### Pembelian & Penerimaan
+**Ditambahkan**:
+- Satu invoice pembelian dapat menagih **lebih dari satu STT/BPB** (pilih ganda); constraint UNIQUE `goods_receipts.invoice_id` dihapus.
+- Detail pengajuan invoice pembelian lengkap bagi penyetuju (STT, lampiran, hutang dan deposit pemasok, harga sebelumnya); cek qty terhadap STT memperhitungkan refaksi.
+- Guard WAC: STT dengan harga satuan 0 ditolak untuk barang milik sendiri (barang titipan dikecualikan).
+
+**Diubah**:
+- Edit dan batal movement stok bertipe STT **per baris diblokir** (`PUT /api/inventory/movements/:id`, `/cancel`); gunakan batal/revisi dari halaman STT agar jurnal GRNI ikut terbalik.
+
+### Persediaan, Produksi & HPP
+**Ditambahkan**:
+- Akun **5.12 Biaya Konversi Dibebankan ke Persediaan** — kredit biaya konversi produksi dipisah dari 5.1 HPP (sisa selisih NRV tetap di 5.1); reklasifikasi historis Mei–Sep 2026.
+- **Modal bahan baku murni (WAC2)** di detail produksi dan laporan Modal Produksi per Periode.
+- Input manual nilai/satuan (`unitCost`) di Stock Opname (ERP + EAM).
+
+**Diperbaiki**:
+- `recalculateAccountBalances()` kini berbasis `accounting_ledger_entries` (sumber kebenaran), bukan `journal_entry_accounts`.
+- **Reversal otomatis penyelesaian HPP (COGS backfill)** saat dokumen pemicu dibatalkan atau diedit — produksi, invoice pembelian, dan mutasi manual (`services/cogsBackfillReverse.ts`). Sebelumnya jurnal penyelesaian dan antrian tertinggal sehingga persediaan overstated. Operasi idempoten; `averageCost` tidak dibalik secara aritmetika.
+- Guard HPP edit produksi disamakan dengan submit (maklon cost 0 / NRV produk samping tinggi).
+- Detail produksi menampilkan jurnal aktif terbaru (revisi `-R1`/`-R2`), bukan jurnal pertama yang sudah Cancelled.
+- Stock Opname tidak lagi terblokir oleh item minus historis yang tak disentuh pengguna.
+- Penomoran dokumen melewati nomor yang turunan `entryNumber`-nya sudah ada.
+
+### EAM / General Affairs
+**Ditambahkan**:
+- Integrasi **Tagihan GA ke keuangan** — pajak/STNK/KIR, riwayat servis, dan material request masuk antrian, diposting sebagai jurnal langsung atau faktur pembelian; akun **6.41 Beban Pajak & Perizinan Kendaraan** sebagai default pajak.
+- Alur pengajuan dan approval Pajak/STNK; panel Pengajuan terpusat (servis dan pajak) sebagai tab di Maintenance/WO.
+- Pengajuan servis yang disetujui otomatis membuat Work Order; menutup WO otomatis membuat riwayat servis kendaraan.
+- Inventaris GA: foto per item, tab Dashboard stok dan tab Tools (opname cepat, export CSV).
+- Export Excel rekap Work Order; biaya WO dan MR berstatus PAID digabung di Report Armada tanpa hitung ganda.
+
+**Diperbaiki**:
+- Antrian Tagihan GA tidak lagi hilang karena status pajak tertimpa; status pajak terjurnal dikunci (409).
+- Status PAID ditambahkan di badge, label, dan filter MR; foto item inventaris dan file `/uploads` dilayani lewat endpoint aman.
+
+### Laporan & Keuangan
+**Diperbaiki**:
+- Logo dan kop perusahaan kini tampil di Laba Rugi, Neraca, Neraca Saldo, Arus Kas, Aging, dan Laporan Harian.
+- Halaman Bank & Kas: baris jurnal manual (biaya adm, bunga, pindah-buku) membuka detail jurnal.
+- Pembatalan jurnal aplikasi Uang Muka dari Buku Besar diblokir lewat pola narasi.
+- Rentang tanggal preset dashboard dihitung ulang saat dimuat, bukan memakai cache localStorage basi.
+- Panel approval mengambil daftar pihak/barang dengan limit tinggi agar tidak hilang dari peta pencarian.
+
+**Kompatibilitas**: semua migrasi baru additive dan idempotent; tidak ada perubahan yang mengubah data lama secara otomatis.
+
+## [3.18.1] - 2026-07-31
+
+### Export PDF Hasil Inspeksi Berkala Kendaraan
+
+Riwayat inspeksi kendaraan kini bisa diunduh sebagai dokumen PDF per record — sebelumnya hasil inspeksi hanya bisa dilihat di layar, dan PDF "Report Kendaraan" yang ada cuma memuat satu baris ringkas inspeksi terakhir (ringkasan TCO/biaya, bukan detail checklist).
+
+**Ditambahkan**:
+- `client/src/lib/pdf/InspectionDetailPDF.tsx` + `client-eam/src/lib/pdf/InspectionDetailPDF.tsx` (identik) — dokumen A4 @react-pdf/renderer berisi header perusahaan + logo, ringkasan (hasil keseluruhan, odometer, level BBM, jadwal inspeksi berikutnya), identitas kendaraan, tabel checklist per kategori dengan status berwarna (OK hijau / Perlu Perhatian amber / Rusak merah), catatan, grid foto bukti per kategori, dan footer "dicetak oleh <user> · <tanggal cetak>" + nomor halaman
+- Tombol "PDF" per baris di tabel riwayat inspeksi (tab Inspeksi, `GaVehiclePage.tsx` ERP + EAM) — nama file `Inspeksi_<plat|kode>_<tanggal>.pdf`
+- `GET /api/ga/vehicle/assets/:id/inspections/:iid/photos/:pid/file` — serve file foto inspeksi lewat route ber-RBAC dengan path-traversal guard
+
+**Diperbaiki**:
+- Foto bukti inspeksi sebelumnya dirujuk sebagai `/uploads/<filePath>` langsung, padahal `/uploads/*` tidak di-serve sebagai static oleh backend (request jatuh ke SPA fallback dan mengembalikan `index.html`), sehingga gambar tidak pernah tampil. Kini `<img>` di riwayat dan gambar di PDF sama-sama memakai endpoint file di atas (di PDF byte-nya di-inline sebagai data URL).
+
+**Kompatibilitas**: checklist format lama (12 item datar) tetap tercetak di PDF pada grup "Checklist (format lama)"; tidak ada perubahan skema DB.
+
+## [3.18.0] - 2026-07-31
+
+### Inspeksi Berkala Kendaraan — Komprehensif
+
+Fitur Inspeksi Berkala di modul Kendaraan (ERP `client/` + EAM `client-eam/`) diperluas dari checklist 12 item datar menjadi inspeksi komprehensif: checklist detail per kategori, foto bukti per kategori, nama inspektor, level BBM, dan jadwal inspeksi berikutnya otomatis.
+
+**Ditambahkan**:
+- Checklist detail 33 sub-item dalam 6 kategori (Mesin & Cairan, Kelistrikan, Rem & Kemudi, Ban & Roda, Keselamatan, Lain-lain) — UI accordion per kategori dengan tombol "tandai semua" per kategori, bukan grid datar 2 kolom
+- Foto bukti per kategori inspeksi (1 foto/kategori, JPG/PNG/WEBP maks 5 MB) — tabel `ga_vehicle_inspection_photos`, endpoint `POST/DELETE /api/ga/vehicle/assets/:id/inspections/:iid/photos`, file di `uploads/ga/inspections/`
+- Kolom `inspector_name`, `inspector_user_id`, `fuel_level` (enum `GaVehicleFuelLevel`: KOSONG/SEPEREMPAT/SETENGAH/TIGA_PEREMPAT/PENUH), `next_due_date` di `ga_vehicle_inspections`
+- Jadwal inspeksi berikutnya dihitung otomatis saat simpan (default interval 30 hari, dapat diubah per inspeksi) + banner reminder status TERLAMBAT / segera jatuh tempo di tab Inspeksi
+- KPI armada "Inspeksi Jatuh Tempo" di `GET /api/ga/vehicle/fleet-summary` (`inspectionOverdue`, `inspectionDueSoon`, `inspectionNeverDone`) — dihitung dari inspeksi terakhir per kendaraan
+- Endpoint `GET /api/ga/vehicle/inspection-categories` (struktur kategori + sub-item untuk FE)
+- Baris riwayat inspeksi bisa di-expand: detail checklist per kategori, foto, inspektor, BBM, jadwal berikutnya
+
+**Kompatibilitas data lama**: checklist tetap disimpan sebagai JSON flat (`{key: OK|PERLU_PERHATIAN|RUSAK}`), jadi inspeksi format lama (12 item) tetap terbaca. Sub-item yang tidak dikenal kategori baru ditampilkan di grup "Checklist (format lama)", bukan blank/error. Endpoint lama `GET /api/ga/vehicle/inspection-checkpoints` tetap ada. Migrasi `20260731000000_ga_vehicle_inspection_detail.sql` additive-only & idempotent (semua kolom baru nullable, backfill `next_due_date` = tanggal + 30 hari untuk data lama).
+
+## [3.17.0] - 2026-07-28
+
+### EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo
+
+Modul EAM (dulu General Affairs) kini punya frontend standalone di `client-eam/`, dideploy terpisah di `eam.panganmasadepan.com`, **tetap satu monorepo, satu backend/API, satu database** dengan ERP utama — bukan produk/repo terpisah.
+
+**Ditambahkan**:
+- `client-eam/` — React+Vite SPA baru, di-clone dari `client/` lalu dipangkas hanya rute modul GA/EAM (Aset, Kendaraan, Gedung, Equipment, Maintenance, Permintaan Barang, Inventaris, Dokumen, Master Data)
+- Dashboard EAM (`/`) — total aset, nilai buku (NBV), work order aktif & overdue, breakdown per kategori, quick links
+- Login SSO cross-subdomain: cookie `.panganmasadepan.com` (`sameSite: lax`) sehingga 1 login ERP otomatis berlaku juga di EAM
+- Filter kategori multi-value di `GET /api/fixed-assets` & `GET /api/ga/assets` (`?categoryId=A,B`) — dipakai tiap halaman modul EAM supaya otomatis hanya menampilkan kategori miliknya (mis. halaman Kendaraan hanya tampilkan aset Kendaraan)
+- Tampilan login EAM dibedakan dari ERP: palet hijau tosca/emerald, ikon & copy khusus aset/maintenance (bukan replikasi identik ERP)
+- Service `client-eam` ditambahkan ke `docker-compose.yml` — deploy jadi bagian siklus `docker compose up -d --build` yang sama dengan ERP
+
+**Diubah**:
+- `server/src/routes/auth.ts` — cookie domain `.panganmasadepan.com` (produksi) + `sameSite: lax` (dari `strict`) supaya cookie ikut terbawa lintas subdomain ERP↔EAM
+- `server/src/routes/ga/assets.ts` — `buildAssetWhere()` menerima `categoryId` comma-separated (backward-compatible, single ID tetap jalan seperti biasa)
+
+**Tidak berubah**: modul GA di ERP utama tetap aktif dan tersinkron real-time dengan EAM (baca/tulis ke endpoint & DB yang sama).
+
 ## [3.1.3] - 2026-05-22
 
 ### Strict Mode: Stok Tidak Boleh Minus (Hapus Bypass)

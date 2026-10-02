@@ -134,6 +134,11 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
     return qty > ln.remaining + 1e-9;
   });
 
+  // Retur boleh disimpan kalau ada minimal 1 qty terisi > 0, walau nilainya
+  // Rp0 (mis. item titipan BULOG dengan rate 0 — retur qty-only, tanpa
+  // pengaruh nilai piutang/kredit, hanya mengembalikan stok fisik).
+  const hasQty = Object.values(lines).some((ln) => Number(ln.qty || 0) > 0);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-4xl my-8 max-h-[90vh] flex flex-col">
@@ -248,13 +253,19 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
           )}
 
           {/* Ringkasan */}
-          {summary.total > 0 && (
+          {(summary.total > 0 || hasQty) && (
             <div className="bg-muted/40 rounded-lg p-3 text-sm space-y-1">
-              <div className="flex justify-between"><span>Subtotal retur</span><span className="tabular-nums">{formatRupiah(summary.subtotal)}</span></div>
-              {summary.tax > 0 && <div className="flex justify-between"><span>PPN</span><span className="tabular-nums">{formatRupiah(summary.tax)}</span></div>}
-              <div className="flex justify-between font-semibold border-t border-border pt-1"><span>Total Retur</span><span className="tabular-nums">{formatRupiah(summary.total)}</span></div>
-              <div className="flex justify-between text-muted-foreground"><span>↳ Kurangi piutang</span><span className="tabular-nums">{formatRupiah(summary.arReduce)}</span></div>
-              {summary.credit > 0 && <div className="flex justify-between text-muted-foreground"><span>↳ Jadi kredit pelanggan</span><span className="tabular-nums">{formatRupiah(summary.credit)}</span></div>}
+              {summary.total > 0 ? (
+                <>
+                  <div className="flex justify-between"><span>Subtotal retur</span><span className="tabular-nums">{formatRupiah(summary.subtotal)}</span></div>
+                  {summary.tax > 0 && <div className="flex justify-between"><span>PPN</span><span className="tabular-nums">{formatRupiah(summary.tax)}</span></div>}
+                  <div className="flex justify-between font-semibold border-t border-border pt-1"><span>Total Retur</span><span className="tabular-nums">{formatRupiah(summary.total)}</span></div>
+                  <div className="flex justify-between text-muted-foreground"><span>↳ Kurangi piutang</span><span className="tabular-nums">{formatRupiah(summary.arReduce)}</span></div>
+                  {summary.credit > 0 && <div className="flex justify-between text-muted-foreground"><span>↳ Jadi kredit pelanggan</span><span className="tabular-nums">{formatRupiah(summary.credit)}</span></div>}
+                </>
+              ) : (
+                <div className="text-muted-foreground">Retur qty-only (nilai Rp0) — hanya mengembalikan stok fisik, tidak mengubah piutang/kredit pelanggan.</div>
+              )}
             </div>
           )}
         </div>
@@ -263,7 +274,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-accent">Batal</button>
           <button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || summary.total <= 0 || hasInvalidQty}
+            disabled={mutation.isPending || (summary.total <= 0 && !hasQty) || hasInvalidQty}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {mutation.isPending ? 'Menyimpan…' : 'Simpan Retur'}

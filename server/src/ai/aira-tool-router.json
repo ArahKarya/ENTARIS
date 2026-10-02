@@ -738,7 +738,7 @@
       "name": "do_list",
       "group": "Penjualan",
       "module": "delivery_order",
-      "desc": "Daftar Surat Jalan.",
+      "desc": "Daftar Surat Jalan (Delivery Order/pengiriman). Filter: status, search (nomor DO atau NAMA customer), rentang tanggal startDate..endDate. Pakai utk cek pengiriman ke customer tertentu pada periode tertentu.",
       "risk": "read",
       "roles": [
         "Admin",
@@ -748,7 +748,12 @@
       ],
       "input": {
         "status": "string",
-        "page": "number"
+        "search": "string",
+        "startDate": "string",
+        "endDate": "string",
+        "partyId": "string",
+        "page": "number",
+        "limit": "number"
       },
       "output": {
         "items": "array"

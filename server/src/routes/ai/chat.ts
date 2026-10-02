@@ -17,6 +17,7 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import { prisma } from '../../lib/prisma';
 import { type AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
@@ -25,7 +26,19 @@ import { logger } from '../../lib/logger';
 
 const router = Router();
 
+// A2: terima lampiran dokumen (PDF/gambar) <=10MB untuk diteruskan ke aira-core.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
 const AIRA_BASE = process.env.AIRA_CORE_BASE_URL || 'http://aira-core:8080';
+
+// Bearer token utk auth ke aira-core (sinkron dgn aira-core AIRA_API_TOKEN).
+// aira-core menolak /v1/* tanpa Bearer (401) -> tanpa ini, FE kena 401 -> interceptor logout.
+const AIRA_API_TOKEN = process.env.AIRA_API_TOKEN || '';
+function airaHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const h: Record<string, string> = { ...extra };
+  if (AIRA_API_TOKEN) h['Authorization'] = `Bearer ${AIRA_API_TOKEN}`;
+  return h;
+}
 
 const ChatSchema = z.object({
   input: z.string().min(1, 'Pesan tidak boleh kosong.'),
@@ -45,7 +58,7 @@ async function agenticEnabled(): Promise<boolean> {
 }
 
 // ── POST /api/ai/chat/stream — proxy SSE ke aira-core /v1/run/stream ──
-router.post('/stream', async (req: AuthRequest, res) => {
+router.post('/stream', upload.single('file'), async (req: AuthRequest, res) => {
   const body = validateBody(ChatSchema, req.body, res);
   if (!body) return;
   const user = req.user;
@@ -67,19 +80,38 @@ router.post('/stream', async (req: AuthRequest, res) => {
   req.on('close', () => controller.abort());
 
   try {
-    const upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input: body.input,
-        app: 'simple-erp',
-        session_id: body.session_id,
-        user_id: user.userId,
-        // role + userId DARI JWT ERP — bukan dari klien (anti-spoof RBAC).
-        context: { role: user.role },
-      }),
-      signal: controller.signal,
-    });
+    // A2: bila ada lampiran (multipart file) -> teruskan sbg FormData ke aira-core.
+    //     Selain itu tetap JSON (panel chat teks). role+userId dari JWT ERP (anti-spoof).
+    const upFile = (req as AuthRequest & { file?: { buffer: Buffer; mimetype: string; originalname: string } }).file;
+    let upstream: Response;
+    if (upFile?.buffer?.length) {
+      const fd = new FormData();
+      fd.append('input', body.input);
+      fd.append('app', 'simple-erp');
+      if (body.session_id) fd.append('session_id', body.session_id);
+      fd.append('user_id', user.userId);
+      fd.append('context', JSON.stringify({ role: user.role }));
+      fd.append('file', new Blob([new Uint8Array(upFile.buffer)], { type: upFile.mimetype }), upFile.originalname || 'lampiran');
+      upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
+        method: 'POST',
+        headers: airaHeaders(), // JANGAN set Content-Type; fetch set boundary FormData.
+        body: fd,
+        signal: controller.signal,
+      });
+    } else {
+      upstream = await fetch(`${AIRA_BASE}/v1/run/stream`, {
+        method: 'POST',
+        headers: airaHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          input: body.input,
+          app: 'simple-erp',
+          session_id: body.session_id,
+          user_id: user.userId,
+          context: { role: user.role },
+        }),
+        signal: controller.signal,
+      });
+    }
 
     if (!upstream.ok || !upstream.body) {
       const text = await upstream.text().catch(() => '');
@@ -123,7 +155,7 @@ router.post('/approve', async (req: AuthRequest, res) => {
   try {
     const upstream = await fetch(`${AIRA_BASE}/v1/approve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         run_id: body.run_id,
         decision: body.decision,
@@ -146,7 +178,7 @@ router.get('/sessions', async (req: AuthRequest, res) => {
     const url = new URL(`${AIRA_BASE}/v1/sessions`);
     url.searchParams.set('user_id', user.userId);
     url.searchParams.set('app', 'simple-erp');
-    const upstream = await fetch(url, { method: 'GET' });
+    const upstream = await fetch(url, { method: 'GET', headers: airaHeaders() });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
   } catch (error) {
@@ -162,7 +194,7 @@ router.get('/sessions/:id/messages', async (req: AuthRequest, res) => {
     // Teruskan user_id agar aira-core menegakkan ownership (cegah IDOR baca sesi user lain).
     const url = new URL(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}/messages`);
     url.searchParams.set('user_id', user.userId);
-    const upstream = await fetch(url, { method: 'GET' });
+    const upstream = await fetch(url, { method: 'GET', headers: airaHeaders() });
     const data = await upstream.json().catch(() => null);
     return res.status(upstream.status).json(data);
   } catch (error) {
@@ -191,7 +223,7 @@ router.patch('/sessions/:id', async (req: AuthRequest, res) => {
     // Sertakan user_id agar aira-core menegakkan ownership (cegah IDOR ubah sesi user lain).
     const upstream = await fetch(`${AIRA_BASE}/v1/sessions/${encodeURIComponent(String(req.params.id))}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ...body, user_id: user.userId }),
     });
     const data = await upstream.json().catch(() => null);
@@ -211,6 +243,7 @@ router.get('/aira-health', async (_req: AuthRequest, res) => {
   try {
     const upstream = await fetch(`${AIRA_BASE}/v1/health`, {
       method: 'GET',
+      headers: airaHeaders(),
       signal: controller.signal,
     });
     const data = (await upstream.json().catch(() => null)) as Record<string, unknown> | null;
@@ -237,5 +270,63 @@ router.get('/aira-health', async (_req: AuthRequest, res) => {
     clearTimeout(timer);
   }
 });
+
+// ── POST /api/ai/chat/cashbook-approve — approve+posting draft buku kas (C4) ──
+// Proxy ke aira-core POST /v1/cashbook/:runId/approve. role/by_user dari JWT ERP.
+const CashbookApproveSchema = z.object({
+  run_id: z.string().min(1),
+  entries: z.array(z.object({
+    idx: z.number(),
+    account: z.string().optional(),
+    accountLabel: z.string().optional(),
+    skip: z.boolean().optional(),
+  })).optional(),
+});
+router.post('/cashbook-approve', async (req: AuthRequest, res) => {
+  const body = validateBody(CashbookApproveSchema, req.body, res);
+  if (!body) return;
+  const user = req.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+  if (!(await agenticEnabled())) {
+    return res.status(403).json({ ok: false, error: 'agentic_disabled' });
+  }
+  try {
+    const upstream = await fetch(`${AIRA_BASE}/v1/cashbook/${encodeURIComponent(body.run_id)}/approve`, {
+      method: 'POST',
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ entries: body.entries ?? [], by_user: user.userId }),
+    });
+    const data = await upstream.json().catch(() => null);
+    return res.status(upstream.status).json(data);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/chat/cashbook-approve', 'Gagal posting buku kas via AIRA.');
+  }
+});
+
+
+// ── POST /api/ai/chat/cashbook-cancel — batalkan draft buku kas (lepas, tanpa posting) ──
+// Proxy ke aira-core POST /v1/cashbook/:runId/cancel.
+const CashbookCancelSchema = z.object({ run_id: z.string().min(1) });
+router.post('/cashbook-cancel', async (req: AuthRequest, res) => {
+  const body = validateBody(CashbookCancelSchema, req.body, res);
+  if (!body) return;
+  const user = req.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+  if (!(await agenticEnabled())) {
+    return res.status(403).json({ ok: false, error: 'agentic_disabled' });
+  }
+  try {
+    const upstream = await fetch(`${AIRA_BASE}/v1/cashbook/${encodeURIComponent(body.run_id)}/cancel`, {
+      method: 'POST',
+      headers: airaHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({}),
+    });
+    const data = await upstream.json().catch(() => null);
+    return res.status(upstream.status).json(data);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/chat/cashbook-cancel', 'Gagal membatalkan buku kas via AIRA.');
+  }
+});
+
 
 export default router;

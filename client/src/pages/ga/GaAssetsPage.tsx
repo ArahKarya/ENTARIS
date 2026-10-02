@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, FileText } from 'lucide-react';
+import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import GaAssetQRModal from '../../components/GaAssetQRModal';
 import { can } from '../../lib/permissions';
 import { toast } from 'sonner';
 import AssetDocumentsDrawer from './assets/AssetDocumentsDrawer';
@@ -49,6 +50,7 @@ export const GaAssetsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; code: string } | null>(null);
+  const [qrTarget, setQrTarget] = useState<any | null>(null);
   const [docDrawerAsset, setDocDrawerAsset] = useState<{ id: string; code: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
@@ -58,7 +60,7 @@ export const GaAssetsPage = () => {
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['ga-assets'],
     queryFn: async () => {
-      const res = await api.get('/ga/assets');
+      const res = await api.get('/ga/assets', { params: { limit: 500 } });
       return res.data;
     },
   });
@@ -178,6 +180,13 @@ export const GaAssetsPage = () => {
                     <td className="text-center text-gray-600">{conditionLabel(a.condition)}</td>
                     <td>
                       <div className="flex items-center justify-end gap-0.5">
+                        <button
+                          onClick={() => setQrTarget(a)}
+                          className="p-1.5 hover:bg-slate-100 rounded text-gray-400 hover:text-slate-700 transition-colors"
+                          title="QR aset"
+                        >
+                          <QrCode size={16} />
+                        </button>
                         {canViewDocs && (
                           <button
                             onClick={() => setDocDrawerAsset({ id: a.id, code: a.code, name: a.name })}
@@ -222,6 +231,12 @@ export const GaAssetsPage = () => {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+
+      <GaAssetQRModal
+        isOpen={qrTarget !== null}
+        onClose={() => setQrTarget(null)}
+        asset={qrTarget}
+      />
 
       {docDrawerAsset && (
         <AssetDocumentsDrawer

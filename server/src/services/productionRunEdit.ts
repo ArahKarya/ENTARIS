@@ -3,6 +3,7 @@ import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { recalculateAccountBalances } from '../utils/accountBalance';
 import { cancelJournalsByPrefix } from '../utils/journalCancel';
+import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { calcWeightedAverage } from '../utils/weightedAverage';
 import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStock';
@@ -111,6 +112,8 @@ export async function editProductionRunInTx(
   // ─ 4. Cancel ALL active journals for this run (incl. earlier revisions) ─
   const oldJvNumber = `JV-${oldRun.runNumber}`;
   await cancelJournalsByPrefix(tx, oldJvNumber);
+  // Balik auto-settle COGS lama sebelum settle ulang dari data baru (hindari numpuk ganda)
+  await reverseCogsSettlementsByTrigger(tx, 'ProductionRun', runId);
 
   // ─ 5. Delete old line items + old cost components (Phase 3) ─────────────
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });
@@ -157,8 +160,12 @@ export async function editProductionRunInTx(
     const item = itemMap.get(output.itemId);
     if (!item) throw new BusinessError('Item output tidak ditemukan.');
     if (!item.isActive) throw new BusinessError(`Item output '${item.name}' tidak aktif.`);
-    if (!output.isByProduct && (!output.unitPrice || output.unitPrice <= 0)) {
-      throw new BusinessError(`Harga/HPP '${item.name}' wajib diisi dan lebih dari 0.`);
+    // Harga output utama BOLEH kosong/0: server akan back-fill dari loaded HPP
+    // (computedHpp) persis seperti productionRunSubmit. Pada model maklon
+    // (bahan titipan, cost 0 + NRV by-product > total biaya) HPP produk utama
+    // memang Rp0 dan itu benar secara ekonomi. Yang dilarang cuma nilai negatif.
+    if (!output.isByProduct && output.unitPrice != null && output.unitPrice < 0) {
+      throw new BusinessError(`Harga/HPP '${item.name}' tidak boleh negatif.`);
     }
   }
 
@@ -310,7 +317,24 @@ export async function editProductionRunInTx(
       .plus(totalCostInputSide)
       .plus(totalCostOutputSide)
       .minus(totalByproductValue);
-    computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
+    // Guard H1 (samakan dgn productionRunSubmit): kalau NRV by-product melebihi
+    // total biaya, numerator negatif → HPP negatif akan merusak WAC/GL output
+    // utama. Clamp ke 0 + warn; operator harus review NRV by-product.
+    if (numerator.lt(0)) {
+      logger.warn(
+        {
+          runId,
+          totalMaterialCost: totalMaterialCost.toString(),
+          totalCostInputSide: totalCostInputSide.toString(),
+          totalCostOutputSide: totalCostOutputSide.toString(),
+          totalByproductValue: totalByproductValue.toString(),
+        },
+        'Edit: loaded HPP numerator negative (by-product NRV > total cost) — clamped to 0',
+      );
+      computedHpp = new Decimal(0);
+    } else {
+      computedHpp = numerator.div(totalMainOutputQtyDec).toDecimalPlaces(4);
+    }
   }
   const computedHppNum = computedHpp ? computedHpp.toNumber() : 0;
 
@@ -421,16 +445,40 @@ export async function editProductionRunInTx(
     });
   }
 
+  // Selisih: lihat aturan di productionRunSubmit.ts (5.12 s.d. biaya konversi, sisa 5.1).
   const diff = totalOutputCost.minus(totalInputCost).toDecimalPlaces(2).toNumber();
   if (Math.abs(diff) > 0) {
     const hppBerasAccount = await tx.account.findFirst({ where: { accountNumber: '5.1' } });
     const cogsAccount = hppBerasAccount || await systemAccounts.getAccount('COGS');
-    journalItems.push({
-      accountId: cogsAccount.id,
-      debit: diff > 0 ? 0 : Math.abs(diff),
-      credit: diff > 0 ? diff : 0,
-      description: `HPP ${diff > 0 ? 'konversi' : 'rugi'} produksi: ${oldRun.runNumber}`,
-    });
+    if (diff > 0) {
+      const conversionAccount = await tx.account.findFirst({ where: { accountNumber: '5.12', isActive: true } });
+      const convCost = totalCostInputSide.plus(totalCostOutputSide).toDecimalPlaces(2).toNumber();
+      const to512 = conversionAccount ? Math.min(diff, Math.max(convCost, 0)) : 0;
+      const to51 = new Decimal(diff).minus(to512).toDecimalPlaces(2).toNumber();
+      if (to512 > 0) {
+        journalItems.push({
+          accountId: conversionAccount!.id,
+          debit: 0,
+          credit: to512,
+          description: `Biaya konversi dibebankan: ${oldRun.runNumber}`,
+        });
+      }
+      if (to51 > 0) {
+        journalItems.push({
+          accountId: cogsAccount.id,
+          debit: 0,
+          credit: to51,
+          description: `HPP konversi produksi: ${oldRun.runNumber}`,
+        });
+      }
+    } else {
+      journalItems.push({
+        accountId: cogsAccount.id,
+        debit: Math.abs(diff),
+        credit: 0,
+        description: `HPP rugi produksi: ${oldRun.runNumber}`,
+      });
+    }
   }
 
   if (journalItems.length > 0) {

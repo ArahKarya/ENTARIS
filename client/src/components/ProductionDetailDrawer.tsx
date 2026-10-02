@@ -585,32 +585,111 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     </span>
                   </div>
                   <p className="text-[10px] text-emerald-700 pt-1">
-                    Informational — tidak posting GL. Untuk analisis margin di laporan profitability.
+                    Nilai ini yang diposting ke GL sebagai nilai persediaan output utama (bahan + biaya konversi − NRV produk samping).
                   </p>
                 </div>
               )}
 
-              {/* Cost summary */}
+              {/* Modal bahan baku murni (WAC 2) — laporan manajemen, bukan GL */}
+              {run.glSummary && run.glSummary.rawMaterialPerKg != null && (
+                <div className="bg-sky-50 border border-sky-200 rounded-lg p-4 space-y-1.5">
+                  <h3 className="text-xs font-bold text-sky-800 uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <Package size={13} />
+                    Modal Bahan Baku Murni
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs">
+                    <span className="text-gray-600">Nilai bahan baku (real)</span>
+                    <span className="text-right font-mono text-gray-900">{formatRupiah(run.glSummary.inputValue)}</span>
+                    <span className="text-gray-600">÷ Output utama</span>
+                    <span className="text-right font-mono text-gray-900">
+                      {Number(run.glSummary.mainQty).toLocaleString('id-ID')} kg
+                      {run.glSummary.yieldPct != null && (
+                        <span className="text-gray-500"> (rendemen {Number(run.glSummary.yieldPct).toLocaleString('id-ID', { maximumFractionDigits: 2 })}%)</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="border-t border-sky-200 pt-1.5 flex justify-between items-baseline">
+                    <span className="text-xs text-sky-800 font-medium">Modal bahan baku murni / kg</span>
+                    <span className="text-base font-bold text-sky-900 font-mono">Rp {fmtRupiah4(Math.round(run.glSummary.rawMaterialPerKg * 100) / 100)}</span>
+                  </div>
+                  {run.glSummary.glPerKg != null && (
+                    <div className="flex justify-between items-baseline text-xs">
+                      <span className="text-gray-600">HPP GL / kg (dibanding)</span>
+                      <span className="font-mono text-gray-800">
+                        Rp {fmtRupiah4(Math.round(run.glSummary.glPerKg * 100) / 100)}
+                        <span className={cn('ml-2', run.glSummary.glPerKg - run.glSummary.rawMaterialPerKg >= 0 ? 'text-red-600' : 'text-green-700')}>
+                          ({run.glSummary.glPerKg - run.glSummary.rawMaterialPerKg >= 0 ? '+' : '−'}
+                          {fmtRupiah4(Math.round(Math.abs(run.glSummary.glPerKg - run.glSummary.rawMaterialPerKg) * 100) / 100)})
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-sky-700 pt-1">
+                    Laporan manajemen — hanya pembelian bahan baku (angka real), tanpa biaya estimasi & produk samping. Tidak diposting ke GL.
+                  </p>
+                </div>
+              )}
+
+              {/* Cost summary — dari stock movement nyata (nilai yang benar-benar diposting) */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Ringkasan Biaya (GL)</h3>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total Biaya Input</span>
-                  <span className="font-mono font-medium text-gray-700">{formatRupiah(totalInputValue)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total Nilai Output</span>
-                  <span className="font-mono font-medium text-gray-700">{formatRupiah(totalOutputValue)}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Selisih (HPP Konversi)</span>
-                  <span className={cn(
-                    'font-mono font-semibold',
-                    totalOutputValue - totalInputValue > 0 ? 'text-red-600' : 'text-green-600'
-                  )}>
-                    {formatRupiah(Math.abs(totalOutputValue - totalInputValue))}
-                    {totalOutputValue - totalInputValue > 0 ? ' (DR)' : ' (CR)'}
-                  </span>
-                </div>
+                {run.glSummary ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Bahan baku keluar</span>
+                      <span className="font-mono font-medium text-gray-700">{formatRupiah(run.glSummary.inputValue)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Output utama masuk</span>
+                      <span className="font-mono font-medium text-gray-700">{formatRupiah(run.glSummary.mainValue)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Produk samping masuk (NRV)</span>
+                      <span className="font-mono font-medium text-gray-700">{formatRupiah(run.glSummary.byproductValue)}</span>
+                    </div>
+                    {(() => {
+                      const lines = (journal?.items ?? []).filter((it: any) => ['5.1', '5.12'].includes(it.account?.accountNumber));
+                      if (lines.length === 0) {
+                        return (
+                          <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
+                            <span className="text-gray-600 font-medium">Selisih (biaya konversi)</span>
+                            <span className="font-mono font-semibold text-gray-700">
+                              {formatRupiah(Math.abs(run.glSummary.conversionDiff))}{run.glSummary.conversionDiff >= 0 ? ' (CR)' : ' (DR)'}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="border-t border-gray-200 pt-2 space-y-1">
+                          {lines.map((it: any) => {
+                            const cr = Number(it.credit) > 0;
+                            return (
+                              <div key={it.id} className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">
+                                  {it.account.accountNumber === '5.12' ? 'Biaya konversi dibebankan (5.12)' : cr ? 'Sisa selisih ke HPP Beras (5.1)' : 'Rugi produksi (5.1)'}
+                                </span>
+                                <span className={cn('font-mono font-semibold', cr ? 'text-green-700' : 'text-red-600')}>
+                                  {formatRupiah(Number(cr ? it.credit : it.debit))}{cr ? ' (CR)' : ' (DR)'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Total Biaya Input</span>
+                      <span className="font-mono font-medium text-gray-700">{formatRupiah(totalInputValue)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Total Nilai Output</span>
+                      <span className="font-mono font-medium text-gray-700">{formatRupiah(totalOutputValue)}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Journal entry */}

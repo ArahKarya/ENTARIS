@@ -101,10 +101,15 @@ router.get('/:id', async (req, res) => {
     });
     if (!run) return res.status(404).json({ error: 'Data proses produksi tidak ditemukan.' });
 
-    // Fetch related journal entry for GL info
-    const jvNumber = `JV-${run.runNumber}`;
-    const journal = await prisma.journalEntry.findUnique({
-      where: { entryNumber: jvNumber },
+    // Fetch related journal entry for GL info.
+    // Editing a posted PR creates revision journals (JV-<runNumber>-R1, -R2, …)
+    // sharing the same prefix; the original JV-<runNumber> becomes Cancelled.
+    // Show the newest ACTIVE (non-Cancelled) journal by that prefix so the UI
+    // reflects the current GL state instead of always the first-ever posting.
+    const jvPrefix = `JV-${run.runNumber}`;
+    const journal = await prisma.journalEntry.findFirst({
+      where: { entryNumber: { startsWith: jvPrefix }, status: { not: 'Cancelled' } },
+      orderBy: { entryNumber: 'desc' },
       include: {
         items: {
           include: { account: { select: { id: true, accountNumber: true, name: true } } },
@@ -112,7 +117,33 @@ router.get('/:id', async (req, res) => {
       },
     });
 
-    return res.json({ ...run, journal: journal || null });
+    // Ringkasan nilai GL nyata dari stock_movements (bukan WAC saat ini):
+    // bahan baku keluar (Out) vs produk masuk (In) per output utama / produk samping.
+    // rawMaterialPerKg = modal bahan baku murni (WAC 2) = nilai bahan ÷ kg output utama.
+    const mainItemIds = new Set(
+      run.items.filter((i: any) => i.lineType === 'Output' && !i.isByProduct).map((i: any) => i.itemId),
+    );
+    const mvs = await prisma.stockMovement.findMany({
+      where: { referenceId: run.id, isCancelled: false },
+      select: { movementType: true, itemId: true, quantity: true, totalValue: true },
+    });
+    let inputQty = 0, inputValue = 0, mainQty = 0, mainValue = 0, bpQty = 0, bpValue = 0;
+    for (const m of mvs) {
+      const q = Number(m.quantity), v = Number(m.totalValue);
+      if (String(m.movementType) === 'Out') { inputQty += q; inputValue += v; }
+      else if (mainItemIds.has(m.itemId)) { mainQty += q; mainValue += v; }
+      else { bpQty += q; bpValue += v; }
+    }
+    const glSummary = mvs.length === 0 ? null : {
+      inputQty, inputValue, mainQty, mainValue, byproductQty: bpQty, byproductValue: bpValue,
+      // + = kredit ke 5.1 (biaya konversi dibebankan), − = debit (rugi produksi)
+      conversionDiff: mainValue + bpValue - inputValue,
+      rawMaterialPerKg: mainQty > 0 ? inputValue / mainQty : null,
+      glPerKg: mainQty > 0 ? mainValue / mainQty : null,
+      yieldPct: inputQty > 0 ? (mainQty / inputQty) * 100 : null,
+    };
+
+    return res.json({ ...run, journal: journal || null, glSummary });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/production-runs/:id error');
     return res.status(500).json({ error: 'Gagal mengambil detail proses produksi.' });

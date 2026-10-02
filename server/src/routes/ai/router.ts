@@ -75,6 +75,22 @@ router.post('/', async (req: AuthRequest, res) => {
       return res.status(404).json({ ok: false, error: 'tool_disabled' });
     }
 
+    // (b+) M2-A4: scope modul. whitelistModules berisi GROUP bisnis yang boleh
+    // dipakai AIRA. Fail-safe: list KOSONG = semua group diizinkan (tak memutus
+    // apa pun). Bila terisi & group tool tak termasuk → tolak (module_not_whitelisted).
+    const moduleWhitelist = setting.whitelistModules ?? [];
+    if (moduleWhitelist.length > 0 && tool.group && !moduleWhitelist.includes(tool.group)) {
+      logger.warn(
+        { tool: tool.name, group: tool.group, by: user.userId },
+        'AIRA router: module_not_whitelisted',
+      );
+      return res.status(403).json({
+        ok: false,
+        error: 'module_not_whitelisted',
+        detail: `Modul "${tool.group}" tidak termasuk whitelist AIRA. Atur di Settings → Agentic System.`,
+      });
+    }
+
     // (c) izin 2-lapis
     // lapis 1: role pemanggil ∈ daftar roles tool
     if (!tool.roles.includes(user.role)) {
@@ -101,7 +117,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     // (d) READ → eksekusi via internal fetch ke endpoint sendiri (auth diteruskan)
     if (tool.risk === 'read') {
-      const [method, path] = tool.handler.split(' ');
+      const [method, rawPath] = tool.handler.split(' ');
       if (method !== 'GET') {
         return res.status(500).json({ ok: false, error: 'invalid_read_handler' });
       }
@@ -109,7 +125,27 @@ router.post('/', async (req: AuthRequest, res) => {
       const authHeader = req.headers.authorization;
       const cookie = req.headers.cookie;
       const airaServiceToken = req.headers['x-aira-service-token'] as string | undefined;
-      const url = `http://127.0.0.1:${port}${path}`;
+      // Susun URL: (1) substitusi path-param `:key` dari args, (2) sisanya jadi
+      // query string. Tanpa ini, filter read (mis. do_list search/startDate)
+      // TAK pernah diteruskan → endpoint balas data default (bug pengiriman).
+      const readArgs: Record<string, unknown> = (body.args && typeof body.args === 'object') ? body.args : {};
+      const usedAsPath = new Set<string>();
+      let path = rawPath.replace(/:([A-Za-z0-9_]+)/g, (_m, key: string) => {
+        if (readArgs[key] !== undefined && readArgs[key] !== null) {
+          usedAsPath.add(key);
+          return encodeURIComponent(String(readArgs[key]));
+        }
+        return `:${key}`;
+      });
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(readArgs)) {
+        if (usedAsPath.has(k)) continue;
+        if (v === undefined || v === null || v === '') continue;
+        qs.append(k, String(v));
+      }
+      const queryStr = qs.toString();
+      const url = `http://127.0.0.1:${port}${path}${queryStr ? `?${queryStr}` : ''}`;
+      logger.info({ tool: tool.name, url: `${path}${queryStr ? `?${queryStr}` : ''}` }, 'AIRA router: read URL');
       try {
         const upstream = await fetch(url, {
           method: 'GET',

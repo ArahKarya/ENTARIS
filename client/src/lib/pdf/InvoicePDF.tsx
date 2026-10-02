@@ -2,27 +2,12 @@ import React from 'react';
 import {
   Document, Page, View, Text, Image, StyleSheet, Font,
 } from '@react-pdf/renderer';
+import { C, BADGE } from './theme';
 
 // ─── Register fonts (Helvetica is built-in — no download needed) ─────────────
 Font.registerHyphenationCallback((word) => [word]);
 
 // ─── Color palette ────────────────────────────────────────────────────────────
-const C = {
-  primary:    '#374151', // gray-700
-  primaryLt:  '#f3f4f6', // gray-100
-  accent:     '#4b5563', // gray-600
-  dark:       '#111827', // gray-900
-  mid:        '#374151', // gray-700
-  muted:      '#6b7280', // gray-500
-  faint:      '#9ca3af', // gray-400
-  border:     '#e5e7eb', // gray-200
-  bgLight:    '#f9fafb', // gray-50
-  white:      '#ffffff',
-  red:        '#dc2626',
-  green:      '#16a34a',
-  orange:     '#d97706',
-};
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   page: {
@@ -217,11 +202,11 @@ export interface InvoicePDFProps {
 
 // ─── Status pill color ────────────────────────────────────────────────────────
 function statusStyle(status: string) {
-  if (status === 'Paid') return { bg: '#dcfce7', text: '#15803d' };
-  if (status === 'PartiallyPaid') return { bg: '#fef9c3', text: '#a16207' };
-  if (status === 'Overdue') return { bg: '#fee2e2', text: '#b91c1c' };
-  if (status === 'Cancelled') return { bg: '#f3f4f6', text: '#6b7280' };
-  return { bg: '#f3f4f6', text: '#374151' }; // Submitted / Draft
+  if (status === 'Paid') return { bg: C.greenLt, text: C.greenDk };
+  if (status === 'PartiallyPaid') return { bg: BADGE.yellowLt, text: BADGE.yellowDk };
+  if (status === 'Overdue') return { bg: C.redLt, text: C.redDk };
+  if (status === 'Cancelled') return { bg: C.primaryLt, text: C.muted };
+  return { bg: C.primaryLt, text: C.mid }; // Submitted / Draft
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -483,9 +468,9 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                 </View>
               ))}
               <View style={[S.summaryTotalRow, { marginTop: 2 }]}>
-                <View style={[S.summaryTotal, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
-                  <Text style={[S.summaryTotalLabel, { color: '#92400e' }]}>NET TOTAL</Text>
-                  <Text style={[S.summaryTotalValue, { color: '#b45309' }]}>{idr(netTotal)}</Text>
+                <View style={[S.summaryTotal, { backgroundColor: C.amberLt, borderColor: BADGE.amberBorder }]}>
+                  <Text style={[S.summaryTotalLabel, { color: BADGE.amberText }]}>NET TOTAL</Text>
+                  <Text style={[S.summaryTotalValue, { color: C.amberDk }]}>{idr(netTotal)}</Text>
                 </View>
               </View>
             </View>
@@ -516,10 +501,10 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                 </View>
               )}
               <View style={S.summaryRight}>
-                <Text style={[S.summaryLabel, { color: numOut > 0 ? C.red : '#15803d', fontWeight: 600 }]}>
+                <Text style={[S.summaryLabel, { color: numOut > 0 ? C.red : C.greenDk, fontWeight: 600 }]}>
                   {numOut > 0 ? 'Sisa Tagihan' : 'LUNAS'}
                 </Text>
-                <Text style={[S.summaryValue, { color: numOut > 0 ? C.red : '#15803d', fontWeight: 600 }]}>
+                <Text style={[S.summaryValue, { color: numOut > 0 ? C.red : C.greenDk, fontWeight: 600 }]}>
                   {idr(numOut)}
                 </Text>
               </View>

@@ -1,21 +1,9 @@
 import React from 'react';
 import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
 import { groupByCategory } from '../stockCategories';
+import { C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
-
-const C = {
-  primary: '#374151',
-  dark: '#111827',
-  mid: '#374151',
-  muted: '#6b7280',
-  faint: '#9ca3af',
-  border: '#e5e7eb',
-  bgLight: '#f9fafb',
-  white: '#ffffff',
-  red: '#dc2626',
-  green: '#16a34a',
-};
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: 56, paddingHorizontal: 36, backgroundColor: C.white },
@@ -51,7 +39,7 @@ const S = StyleSheet.create({
 
   emptyText: { fontSize: 8, fontStyle: 'italic', color: C.faint, paddingVertical: 6, paddingHorizontal: 6 },
 
-  catHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, paddingHorizontal: 6, backgroundColor: '#eef2f7', borderBottomWidth: 0.5, borderBottomColor: C.border },
+  catHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, paddingHorizontal: 6, backgroundColor: C.primaryLt, borderBottomWidth: 0.5, borderBottomColor: C.border },
   catHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.mid, letterSpacing: 0.3 },
   catSubtotal: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.dark },
 

@@ -22,6 +22,7 @@ import gaMaterialRequestRoutes from './routes/ga/materialRequest';
 import gaVehicleRoutes from './routes/ga/vehicle';
 import gaBuildingRoutes from './routes/ga/building';
 import gaEquipmentRoutes from './routes/ga/equipment';
+import gaFinanceRoutes from './routes/ga/finance';
 import coaRoutes from './routes/coa';
 import journalRoutes from './routes/journals';
 import salesRoutes from './routes/sales';
@@ -58,6 +59,7 @@ import inquiryRoutes from './routes/inquiries';
 import warehouseRoutes from './routes/warehouses';
 import stockTransferRoutes from './routes/stockTransfers';
 import deliveryOrderRoutes from './routes/deliveryOrders';
+import temporaryDeliveryNoteRoutes from './routes/temporaryDeliveryNotes';
 import salesOrderRoutes from './routes/salesOrders';
 import salesReturnRoutes from './routes/salesReturns';
 import goodsReceiptRoutes from './routes/goodsReceipts';
@@ -218,6 +220,7 @@ app.use('/api/ga/material-requests', requirePerm('ga_material_request'), gaMater
 app.use('/api/ga/vehicle', requirePerm('ga_vehicle'), gaVehicleRoutes);
 app.use('/api/ga/building', requirePerm('ga_building'), gaBuildingRoutes);
 app.use('/api/ga/equipment', requirePerm('ga_equipment'), gaEquipmentRoutes);
+app.use('/api/ga/finance', requirePerm('ga_finance'), gaFinanceRoutes); // GA: jembatan tagihan EAM -> pembukuan ERP (akses Akuntan)
 app.use('/api/customer-deposits', requirePerm('customer_deposit'), customerDepositRoutes);
 app.use('/api/stock-opname', requirePerm('stock_opname'), stockOpnameRoutes);
 app.use('/api/fixed-assets', requirePerm('fixed_assets'), fixedAssetRoutes);
@@ -225,6 +228,7 @@ app.use('/api/quotations', requirePerm('quotation'), quotationRoutes);
 app.use('/api/inquiries', requirePerm('quotation'), inquiryRoutes);
 app.use('/api/stock-transfers', requirePerm('stock_transfer'), stockTransferRoutes);
 app.use('/api/delivery-orders', requirePerm('delivery_order'), deliveryOrderRoutes);
+app.use('/api/temporary-delivery-notes', requirePerm('delivery_order'), temporaryDeliveryNoteRoutes);
 app.use('/api/sales-orders', requirePerm('sales_order'), salesOrderRoutes);
 app.use('/api/sales-returns', requirePerm('sales_return'), salesReturnRoutes);
 app.use('/api/goods-receipts', requirePerm('goods_receipt'), goodsReceiptRoutes);
@@ -264,6 +268,12 @@ app.use('/api/ai/chat', aiChatRoutes);
 //                  refresh/buka-tutup tab. Karena index.html merujuk asset
 //                  ber-hash, perubahan apa pun otomatis ter-pull saat HTML
 //                  baru diambil — tidak butuh Ctrl-Shift-R lagi.
+// ─── Serve Uploaded Files (foto WO, item GA, dokumen, dll) ────────────────────
+// Frontend memanggil path statis /uploads/<...> langsung (bukan lewat API),
+// jadi harus di-serve sebelum SPA fallback catch-all agar tidak balik index.html.
+const uploadsDir = path.resolve(process.env.UPLOADS_DIR || './uploads');
+app.use('/uploads', express.static(uploadsDir));
+
 const clientDist = path.resolve(__dirname, '../../client/dist');
 app.use(express.static(clientDist, {
   setHeaders: (res, filePath) => {

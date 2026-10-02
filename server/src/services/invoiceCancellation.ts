@@ -1,3 +1,4 @@
+import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
 import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';
 import { updateAccountBalance, recalcPartyOutstanding } from '../utils/accountBalance';
@@ -27,7 +28,8 @@ export async function cancelSalesInvoiceInTx(
   });
   if (!invoice) throw new BusinessError('Invoice tidak ditemukan.');
   if (invoice.status === 'Cancelled') throw new BusinessError('Invoice sudah dibatalkan.');
-  if (invoice.status === 'Paid') throw new BusinessError('Invoice sudah lunas, tidak bisa dibatalkan.');
+  // Invoice Rp 0 (sumbangan) otomatis Paid tanpa pembayaran → tetap boleh dibatalkan.
+  if (invoice.status === 'Paid' && Number(invoice.grandTotal) !== 0) throw new BusinessError('Invoice sudah lunas, tidak bisa dibatalkan.');
 
   const allocations = await tx.paymentAllocation.findMany({
     where: { invoiceType: 'SalesInvoice', invoiceId: invoice.id },
@@ -212,6 +214,9 @@ export async function cancelPurchaseInvoiceInTx(
       data: { isCancelled: true },
     });
   }
+
+  // Balik auto-settle COGS backfill yang dipicu PI ini
+  await reverseCogsSettlementsByTrigger(tx, 'PurchaseInvoice', invoice.id);
 
   // Release linked STT(s) back to "available for invoicing" state. STT items
   // dan stockMovements milik STT tidak disentuh (goods physically diterima).

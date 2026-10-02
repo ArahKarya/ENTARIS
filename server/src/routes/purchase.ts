@@ -81,10 +81,13 @@ router.get('/:id', async (req, res) => {
         },
         user: { select: { id: true, fullName: true } },
         depositApplications: {
-          where: { isCancelled: false },
+          // Sertakan yang dibatalkan juga (read-only) agar riwayat/kronologi
+          // pembayaran lengkap terlihat di UI — mis. UM diajukan lalu dibatalkan
+          // dan diganti dengan alokasi baru di tanggal lain.
           include: {
             depositPayment: { select: { id: true, paymentNumber: true, date: true, amount: true } },
           },
+          orderBy: { appliedAt: 'asc' },
         },
       },
     });
@@ -93,7 +96,7 @@ router.get('/:id', async (req, res) => {
     const allocations = await prisma.paymentAllocation.findMany({
       where: { invoiceType: 'PurchaseInvoice', invoiceId: invoice.id },
       include: { payment: { select: { id: true, paymentNumber: true, date: true, amount: true, referenceNo: true } } },
-      orderBy: { payment: { date: 'desc' } },
+      orderBy: { payment: { date: 'asc' } },
     });
 
     return res.json({ ...invoice, paymentAllocations: allocations });

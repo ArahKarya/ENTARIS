@@ -263,9 +263,17 @@ router.get('/work-orders', async (req: AuthRequest, res) => {
       include: {
         asset: { select: { id: true, code: true, name: true } },
         _count: { select: { parts: true, photos: true } },
+        parts: { select: { quantity: true, unitCost: true } },
       },
     });
-    return res.json(items);
+    // Expose totalCost per WO di list juga (bukan cuma detail) supaya FE bisa
+    // render KPI cards (Total Biaya Maintenance) & kolom biaya di tabel tanpa
+    // N+1 request ke endpoint detail per baris.
+    const withTotalCost = items.map(({ parts, ...wo }) => ({
+      ...wo,
+      totalCost: computeWorkOrderTotalCost(wo.laborCost, wo.externalCost, parts),
+    }));
+    return res.json(withTotalCost);
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/maintenance/work-orders', 'Gagal mengambil work order.');
   }
@@ -474,21 +482,58 @@ router.patch('/work-orders/:id/complete', async (req: AuthRequest, res) => {
 });
 
 // PATCH /work-orders/:id/close — DONE → CLOSED
+// Sekaligus auto-mirror biaya WO ke GaVehicleServiceLog (satu-satu via
+// workOrderId unik) supaya ringkasan biaya kendaraan (tab Data & Driver EAM)
+// tidak "hilang" walau WO sudah closed tanpa staff mengisi form Service
+// manual. Biaya = laborCost + externalCost; kalau keduanya 0/null, log tetap
+// dibuat (biaya null) sebagai jejak histori servis.
 router.patch('/work-orders/:id/close', async (req: AuthRequest, res) => {
   try {
     const wo = await prisma.gaWorkOrder.findUnique({
       where: { id: String(req.params.id) },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        assetId: true,
+        title: true,
+        description: true,
+        laborCost: true,
+        externalCost: true,
+      },
     });
     if (!wo) throw new BusinessError('Work order tidak ditemukan.');
     if (wo.status !== 'DONE') {
       throw new BusinessError(`Tidak bisa close dari status ${wo.status}.`);
     }
 
-    const updated = await prisma.gaWorkOrder.update({
-      where: { id: wo.id },
-      data: { status: 'CLOSED', closedAt: new Date(), closedById: req.user!.userId },
+    const updated = await prisma.$transaction(async (tx) => {
+      const closed = await tx.gaWorkOrder.update({
+        where: { id: wo.id },
+        data: { status: 'CLOSED', closedAt: new Date(), closedById: req.user!.userId },
+      });
+
+      const existingLog = await tx.gaVehicleServiceLog.findUnique({ where: { workOrderId: wo.id } });
+      if (!existingLog) {
+        const labor = wo.laborCost ? new Decimal(wo.laborCost) : new Decimal(0);
+        const external = wo.externalCost ? new Decimal(wo.externalCost) : new Decimal(0);
+        const total = labor.plus(external);
+        await tx.gaVehicleServiceLog.create({
+          data: {
+            assetId: wo.assetId,
+            tanggal: closed.closedAt ?? new Date(),
+            jenisService: 'LAINNYA',
+            deskripsi: wo.title || wo.description || 'Work Order (auto dari close WO)',
+            biaya: total.greaterThan(0) ? total : null,
+            workOrderId: wo.id,
+            source: 'WORK_ORDER',
+            createdById: req.user!.userId,
+          },
+        });
+      }
+
+      return closed;
     });
+
     return res.json({ id: updated.id, status: updated.status });
   } catch (error) {
     return handleRouteError(res, error, 'PATCH /ga/maintenance/work-orders/:id/close', 'Gagal menutup work order.');

@@ -91,18 +91,38 @@ async function main() {
     // 1.4 Persediaan
     { accountNumber: '1.4', name: 'Persediaan', accountType: A, rootType: RootType.ASSET, isGroup: true, parentNumber: '1' },
     { accountNumber: '1.4.0', name: 'Persediaan (Umum)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.1', name: 'Persediaan Board Raspberry Pi 5', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.2', name: 'Persediaan Cassing Aluminium IoT', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.3', name: 'Persediaan MicroSD Card 64GB', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.4', name: 'Persediaan Power Adapter USB-C', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.5', name: 'Persediaan Sensor Kit (Suhu/Kelembaban)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.6', name: 'Persediaan Kabel Konektor', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.7', name: 'Persediaan IoT Smart Gateway ArahKarya (Premium)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.8', name: 'Persediaan IoT Smart Gateway ArahKarya (Basic)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.9', name: 'Persediaan Mini PC ArahKarya Server', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.10', name: 'Persediaan By-Product (Konektor/Kabel Sisa)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.11', name: 'Persediaan Hardware / Laptop (Dagangan)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
-    { accountNumber: '1.4.12', name: 'Persediaan Lisensi Software / SaaS (Dagangan)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.1', name: 'Persediaan Gabah PW Basah', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.2', name: 'Persediaan Gabah Muncul', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.3', name: 'Persediaan Gabah KB Basah', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.4', name: 'Persediaan Gabah KB Kering', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.5', name: 'Persediaan Gabah IR Basah', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.6', name: 'Persediaan Gabah IR Kering', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.7', name: 'Persediaan Beras Kkebo (Batak)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.8', name: 'Persediaan Beras HGL Gapoktan', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.9', name: 'Persediaan Beras PK Muncul', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.10', name: 'Persediaan Beras IR (Basri)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.11', name: 'Persediaan Beras PK Kebo', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.12', name: 'Persediaan Beras Glosor IR (Basri)', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.13', name: 'Persediaan Beras Reject', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.14', name: 'Persediaan Menir Jitay', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.15', name: 'Persediaan Menir Gula', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.16', name: 'Persediaan Broken', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.17', name: 'Persediaan Menir Glosor / Bebek', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.18', name: 'Persediaan Saponan', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.19', name: 'Persediaan Reject 2', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.20', name: 'Persediaan Cruise 25 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.21', name: 'Persediaan Cruise 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.22', name: 'Persediaan Broken 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.23', name: 'Persediaan Menir Jitay 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.24', name: 'Persediaan Walemu 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.25', name: 'Persediaan Walemu 25 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.26', name: 'Persediaan Pagi Jaya 5 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.27', name: 'Persediaan Doa Kyai 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.28', name: 'Persediaan Pagi Jaya 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.29', name: 'Persediaan Beras Muncul Premium 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.30', name: 'Persediaan PW Manis Cantik', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.31', name: 'Persediaan BPJ 50 KG', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
+    { accountNumber: '1.4.32', name: 'Persediaan Beras Reject IR', accountType: A, rootType: RootType.ASSET, isGroup: false, parentNumber: '1.4' },
 
     // 1.5 Aset Lancar Lainnya
     { accountNumber: '1.5', name: 'Aset Lancar Lainnya', accountType: A, rootType: RootType.ASSET, isGroup: true, parentNumber: '1' },
@@ -255,10 +275,8 @@ async function main() {
 
   // 4. Seed Service Items
   const serviceItemsData = [
-    { code: 'JSA-001', name: 'Jasa Pengembangan Aplikasi', unit: 'Bulan', defaultRate: 15000000, accountNumber: '4.2' },
-    { code: 'JSB-001', name: 'Jasa Pemeliharaan Sistem (SLA)', unit: 'Bulan', defaultRate: 5000000, accountNumber: '4.2' },
-    { code: 'JSC-001', name: 'Jasa Konsultasi IT & Cloud', unit: 'Hari', defaultRate: 2500000, accountNumber: '4.2' },
-    { code: 'JSD-001', name: 'Jasa Sewa Cloud VPS Server', unit: 'Bulan', defaultRate: 350000, accountNumber: '4.2' },
+    { code: 'JSG-001', name: 'Jasa Giling Padi', unit: 'Ton', defaultRate: 500000, accountNumber: '4.2' },
+    { code: 'JSK-001', name: 'Jasa Kirim', unit: 'Trip', defaultRate: 250000, accountNumber: '4.2' },
   ];
 
   for (const si of serviceItemsData) {
@@ -373,23 +391,18 @@ async function main() {
   // 6. Seed Company Settings
   await prisma.companySettings.upsert({
     where: { slug: 'default' },
-    update: {
-      companyName: 'PT Arah Karya Sinergi',
-      address: 'Pondok Pinang, Jakarta Selatan',
-      phone: '+62 822-8274-7444',
-      email: 'info@arahkarya.com',
-    },
+    update: {},
     create: {
       slug: 'default',
-      companyName: 'PT Arah Karya Sinergi',
-      address: 'Pondok Pinang, Jakarta Selatan',
-      phone: '+62 822-8274-7444',
-      email: 'info@arahkarya.com',
+      companyName: 'Nama Perusahaan Anda',
+      address: '',
+      phone: '',
+      email: '',
       taxId: '',
       defaultCurrency: 'IDR',
     },
   });
-  console.log('- Created default Company Settings for PT Arah Karya Sinergi');
+  console.log('- Created default Company Settings');
 
   // Seed sample Machine (OEE tracking). Kapasitas ideal kg/jam.
   await prisma.machine.upsert({

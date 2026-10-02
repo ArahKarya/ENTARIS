@@ -15,9 +15,9 @@ export default defineConfig({
         'app-icon-master.svg',
       ],
       manifest: {
-        name: 'Simple ERP',
-        short_name: 'Simple ERP',
-        description: 'Simple ERP — Aplikasi keuangan & operasional',
+        name: 'ERP PMD',
+        short_name: 'ERP PMD',
+        description: 'ERP PMD — Aplikasi keuangan & operasional PT Pangan Masa Depan',
         theme_color: '#2c4d78',
         background_color: '#fafafb',
         display: 'standalone',

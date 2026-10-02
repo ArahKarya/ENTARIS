@@ -3,8 +3,8 @@
  * Update file ini setiap kali release baru.
  */
 
-export const APP_VERSION = '3.16.8';
-export const APP_BUILD_DATE = '2026-06-16';
+export const APP_VERSION = '3.18.1';
+export const APP_BUILD_DATE = '2026-07-31';
 export const APP_NAME = 'ERP PMD';
 
 export interface ChangelogEntry {
@@ -15,6 +15,53 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.18.1',
+    date: '2026-07-31',
+    title: 'Export PDF Hasil Inspeksi Berkala Kendaraan',
+    changes: [
+      'Tombol "PDF" di tiap baris riwayat inspeksi kendaraan: unduh hasil satu inspeksi sebagai dokumen PDF siap cetak/arsip',
+      'Isi PDF: identitas kendaraan, tanggal & odometer, inspektor, level BBM, hasil keseluruhan, jadwal inspeksi berikutnya, checklist per kategori dengan status berwarna (OK/Perlu Perhatian/Rusak), catatan, dan foto bukti per kategori',
+      'Checklist inspeksi format lama tetap ikut tercetak di grup "Checklist (format lama)"',
+      'Foto inspeksi kini diambil lewat endpoint ber-hak-akses (sebelumnya URL /uploads langsung yang tidak ter-serve sehingga gambar tidak tampil)',
+    ],
+  },
+  {
+    version: '3.18.0',
+    date: '2026-07-31',
+    title: 'Inspeksi Berkala Kendaraan — Komprehensif',
+    changes: [
+      'Checklist inspeksi diperluas dari 12 item datar jadi 33 sub-item terkelompok dalam 6 kategori (Mesin & Cairan, Kelistrikan, Rem & Kemudi, Ban & Roda, Keselamatan, Lain-lain) dengan tampilan accordion per kategori',
+      'Foto bukti visual per kategori inspeksi (opsional, maks 5 MB/foto) — tersimpan & tampil di riwayat inspeksi',
+      'Nama inspektor tercatat: pilih dari daftar user atau ketik manual untuk inspektor di luar sistem',
+      'Level BBM saat inspeksi (Kosong / Seperempat / Setengah / Tiga Perempat / Penuh)',
+      'Jadwal inspeksi berikutnya dihitung otomatis (default 30 hari, interval bisa diubah) + reminder status TERLAMBAT/segera jatuh tempo, pola sama dengan pajak & asuransi',
+      'KPI armada baru: Inspeksi Jatuh Tempo (lewat / <30 hari / belum pernah diinspeksi)',
+      'Riwayat inspeksi bisa dibuka per baris untuk melihat detail checklist per kategori + foto; data inspeksi format lama tetap terbaca di grup "Checklist (format lama)"',
+    ],
+  },
+  {
+    version: '3.17.0',
+    date: '2026-07-28',
+    title: 'EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo',
+    changes: [
+      'Modul EAM kini punya frontend standalone (client-eam/) di domain eam.panganmasadepan.com — bukan repo terpisah, tetap satu monorepo simple-erp-pmd, satu backend/API, satu database',
+      'Login SSO: satu akun ERP dipakai untuk EAM lewat shared-cookie cross-subdomain (.panganmasadepan.com), tidak perlu login ulang',
+      'Tampilan login EAM dibedakan dari ERP (palet hijau tosca/emerald, ikon & copy khusus aset/maintenance) supaya tidak tertukar oleh pengguna',
+      'Dashboard ringkas EAM: total aset, nilai buku (NBV), work order aktif/overdue, breakdown per kategori aset, quick links ke semua modul',
+      'Filter otomatis per modul (mis. klik Kendaraan hanya tampilkan kategori Kendaraan) via parameter categoryId multi-value di endpoint aset (backward-compatible, tidak mengubah endpoint lama)',
+      'Modul GA (General Affairs) di ERP utama tetap aktif dan terhubung real-time ke EAM — data & aksi tersinkron dua arah lewat API yang sama',
+    ],
+  },
+  {
+    version: '3.16.9',
+    date: '2026-06-21',
+    title: 'Fix: Surat Jalan lama tak muncul + filter "Sudah Diinvoice" kosong',
+    changes: [
+      'Daftar Surat Jalan dulu hanya memuat 200 terbaru lalu disaring di browser — surat jalan lama (>200) tidak muncul sama sekali. Kini filter, pencarian, dan halaman diproses di server sehingga semua data terjangkau',
+      'Tab "Sudah Diinvoice" sebelumnya selalu kosong (membandingkan status turunan dengan enum mentah). Sekarang menampilkan surat jalan yang sudah ditagih dengan benar',
+    ],
+  },
   {
     version: '3.16.8',
     date: '2026-06-16',

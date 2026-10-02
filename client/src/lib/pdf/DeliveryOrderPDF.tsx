@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { CARBON as C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -7,11 +8,6 @@ Font.registerHyphenationCallback((word) => [word]);
 // Background fills don't transfer reliably to 2nd/3rd copies on NCR
 // (carbonless) or carbon-paper forms, so we avoid them entirely and rely
 // on heavier borders + bold weight for visual hierarchy.
-const C = {
-  black: '#000000',
-  white: '#ffffff',
-};
-
 const S = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
@@ -100,9 +96,9 @@ const S = StyleSheet.create({
 
   // ── Signatures ─────────────────────────────────────────────────────
   sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 28 },
-  sigBox: { width: '30%', alignItems: 'center' },
+  sigBox: { width: '23%', alignItems: 'center' },
   sigLine: { height: 1, backgroundColor: C.black, marginTop: 40, marginBottom: 4, width: '100%' },
-  sigLabel: { fontSize: 10, color: C.black, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
+  sigLabel: { fontSize: 9, color: C.black, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
 
   // Print metadata moved to top because dot-matrix continuous form often
   // crops the bottom margin. Placed under the title block, right-aligned.
@@ -126,6 +122,10 @@ export interface DeliveryOrderPDFItem {
 }
 
 export interface DeliveryOrderPDFProps {
+  /** Judul dokumen (default SURAT JALAN). Dipakai Surat Jalan Sementara. */
+  title?: string;
+  /** Catatan kaki di bawah tanda tangan (mis. dokumen sementara). */
+  footnote?: string;
   doNumber: string;
   date: string;
   status: string;
@@ -146,7 +146,7 @@ export interface DeliveryOrderPDFProps {
 }
 
 const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
-  doNumber, date, customer, nomorMobil, driverName, recipientName, notes, items, company,
+  title = 'SURAT JALAN', footnote, doNumber, date, customer, nomorMobil, driverName, recipientName, notes, items, company,
 }) => {
   const printDate = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
@@ -166,7 +166,7 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
           </View>
         </View>
         <View>
-          <Text style={S.title}>SURAT JALAN</Text>
+          <Text style={S.title}>{title}</Text>
           <Text style={S.subtitle}>{doNumber}</Text>
           <Text
             style={S.printMeta}
@@ -257,9 +257,17 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
         </View>
         <View style={S.sigBox}>
           <View style={S.sigLine} />
+          <Text style={S.sigLabel}>VERIFIKASI FISIK{'\n'}(SECURITY)</Text>
+        </View>
+        <View style={S.sigBox}>
+          <View style={S.sigLine} />
           <Text style={S.sigLabel}>PENGIRIM</Text>
         </View>
       </View>
+
+      {footnote && (
+        <Text style={{ fontSize: 8, marginTop: 14, textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>{footnote}</Text>
+      )}
 
       </Page>
     </Document>

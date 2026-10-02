@@ -5,6 +5,7 @@ import { recalculateAccountBalances } from '../utils/accountBalance';
 import { cancelJournalsByPrefix } from '../utils/journalCancel';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
 import { logger } from '../lib/logger';
+import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
 
 type Tx = Prisma.TransactionClient;
 
@@ -110,6 +111,10 @@ export async function cancelProductionRunInTx(
       await tx.inventoryItem.update({ where: { id: itemId }, data: { averageCost: newAvgCost } });
     }
   }
+
+  // Balik auto-settle COGS backfill yang dipicu PR ini (JV-YYYYMM-nnnn + antrean + averageCost)
+  // — kalau tidak, JV auto-settle tertinggal & persediaan/HPP salah.
+  await reverseCogsSettlementsByTrigger(tx, 'ProductionRun', runId);
 
   // Cancel every related journal entry (including revisions sharing the prefix)
   // and recompute account balances from authoritative JE sums.

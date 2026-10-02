@@ -114,6 +114,94 @@ router.get('/requests/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// GET /requests/:id/context — info pendukung dialog approval:
+// STT sumber per baris (Invoice Pembelian) + lampiran pengajuan & lampiran STT.
+router.get('/requests/:id/context', async (req: AuthRequest, res) => {
+  try {
+    const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
+    if (!request) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    if (!(await hasCap(req.user!.role, 'approval.view_all')) && request.requestedBy !== req.user!.userId) {
+      return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+    }
+    const payload: any = request.payload ?? {};
+    const griIds: string[] = Array.from(new Set(
+      ((payload.items ?? []) as any[]).map((it) => it?.goodsReceiptItemId).filter((x: any) => typeof x === 'string' && x),
+    ));
+    const gris = griIds.length === 0 ? [] : await prisma.goodsReceiptItem.findMany({
+      where: { id: { in: griIds } },
+      select: {
+        id: true, description: true, quantity: true, unit: true, lockedUnitCost: true, itemName: true,
+        goodsReceipt: { select: { id: true, sttNumber: true, date: true, nomorMobil: true, driverName: true, status: true } },
+        invoiceItem: { select: { purchaseInvoice: { select: { invoiceNumber: true, status: true } } } },
+      },
+    });
+    const sttLines: Record<string, any> = {};
+    const sttMap = new Map<string, any>();
+    for (const g of gris) {
+      const gr: any = g.goodsReceipt;
+      const inv: any = (g as any).invoiceItem?.purchaseInvoice;
+      sttLines[g.id] = {
+        sttNumber: gr?.sttNumber, goodsReceiptId: gr?.id, description: g.description,
+        sttDate: gr?.date, sttStatus: gr?.status,
+        quantity: Number(g.quantity), unit: g.unit, lockedUnitCost: Number(g.lockedUnitCost),
+        // Baris STT ini sudah dipakai invoice lain (non-cancel) → potensi dobel tagih.
+        alreadyInvoiced: inv && inv.status !== 'Cancelled' ? inv.invoiceNumber : null,
+      };
+      if (gr && !sttMap.has(gr.id)) sttMap.set(gr.id, gr);
+    }
+    const sttIds = Array.from(sttMap.keys());
+    const attSelect = { id: true, fileName: true, mimeType: true, fileSize: true, referenceType: true, referenceId: true, createdAt: true, user: { select: { fullName: true } } };
+    const [requestAtt, sttAtt] = await Promise.all([
+      prisma.transactionAttachment.findMany({ where: { referenceType: 'approval_request', referenceId: request.id }, orderBy: { createdAt: 'asc' }, select: attSelect }),
+      sttIds.length === 0 ? Promise.resolve([] as any[]) : prisma.transactionAttachment.findMany({ where: { referenceType: 'goods_receipt', referenceId: { in: sttIds } }, orderBy: { createdAt: 'asc' }, select: attSelect }),
+    ]);
+    const stts = sttIds.map((id) => {
+      const gr = sttMap.get(id);
+      return { ...gr, attachments: sttAtt.filter((a: any) => a.referenceId === id) };
+    }).sort((a, b) => String(a.sttNumber).localeCompare(String(b.sttNumber)));
+    // Posisi supplier: hutang berjalan & deposit (uang muka) tersisa.
+    let supplier: any = null;
+    if (payload.partyId) {
+      const [party, openInv] = await Promise.all([
+        prisma.party.findUnique({ where: { id: payload.partyId }, select: { id: true, name: true, depositBalance: true } }),
+        prisma.purchaseInvoice.aggregate({
+          where: { partyId: payload.partyId, status: { in: ['Submitted', 'PartiallyPaid', 'Overdue'] as any }, outstanding: { gt: 0 } },
+          _sum: { outstanding: true }, _count: { _all: true },
+        }),
+      ]);
+      if (party) supplier = {
+        name: party.name,
+        depositBalance: Number(party.depositBalance ?? 0),
+        openInvoiceCount: openInv._count._all,
+        openOutstanding: Number(openInv._sum.outstanding ?? 0),
+      };
+    }
+    // Riwayat harga beli per item (5 transaksi terakhir, semua supplier) utk pembanding.
+    const itemIds: string[] = Array.from(new Set(
+      ((payload.items ?? []) as any[]).map((it) => it?.inventoryItemId).filter((x: any) => typeof x === 'string' && x),
+    ));
+    const priceHistory: Record<string, any[]> = {};
+    await Promise.all(itemIds.map(async (iid) => {
+      const rows = await prisma.purchaseInvoiceItem.findMany({
+        where: { inventoryItemId: iid, purchaseInvoice: { status: { not: 'Cancelled' as any } } },
+        orderBy: [{ purchaseInvoice: { date: 'desc' } }],
+        take: 5,
+        select: { rate: true, quantity: true, purchaseInvoice: { select: { invoiceNumber: true, date: true, partyId: true, supplier: { select: { name: true } } } } },
+      });
+      priceHistory[iid] = rows.map((r: any) => ({
+        rate: Number(r.rate), quantity: Number(r.quantity),
+        invoiceNumber: r.purchaseInvoice?.invoiceNumber, date: r.purchaseInvoice?.date,
+        supplier: r.purchaseInvoice?.supplier?.name,
+        sameSupplier: r.purchaseInvoice?.partyId === payload.partyId,
+      }));
+    }));
+    res.json({ sttLines, stts, requestAttachments: requestAtt, supplier, priceHistory });
+  } catch (error) {
+    logger.error(error, 'GET /approvals/requests/:id/context error');
+    res.status(500).json({ error: 'Gagal mengambil detail pendukung.' });
+  }
+});
+
 // POST /requests — submit approval request
 router.post('/requests', async (req: AuthRequest, res) => {
   try {

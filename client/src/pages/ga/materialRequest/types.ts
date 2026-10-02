@@ -1,5 +1,5 @@
 // Tipe & konstanta bersama untuk modul GA Material Request (MR).
-export type MrStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'FULFILLED' | 'CANCELLED';
+export type MrStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'FULFILLED' | 'PAID' | 'CANCELLED';
 export type ProcurementStatus = 'REQUESTED' | 'QUOTED' | 'ORDERED' | 'RECEIVED' | 'CANCELLED';
 
 export const MR_STATUS_LABELS: Record<MrStatus, string> = {
@@ -8,6 +8,7 @@ export const MR_STATUS_LABELS: Record<MrStatus, string> = {
   APPROVED: 'Disetujui',
   REJECTED: 'Ditolak',
   FULFILLED: 'Selesai',
+  PAID: 'Dibayar',
   CANCELLED: 'Dibatalkan',
 };
 
@@ -17,6 +18,7 @@ export const MR_STATUS_BADGE: Record<MrStatus, string> = {
   APPROVED: 'bg-teal-100 text-teal-700',
   REJECTED: 'bg-red-100 text-red-700',
   FULFILLED: 'bg-green-100 text-green-700',
+  PAID: 'bg-emerald-100 text-emerald-700',
   CANCELLED: 'bg-gray-100 text-gray-500 line-through',
 };
 
@@ -36,7 +38,7 @@ export const PROC_STATUS_BADGE: Record<ProcurementStatus, string> = {
   CANCELLED: 'bg-gray-100 text-gray-500 line-through',
 };
 
-export const MR_STATUS_FILTERS: MrStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'FULFILLED', 'CANCELLED'];
+export const MR_STATUS_FILTERS: MrStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'FULFILLED', 'PAID', 'CANCELLED'];
 
 export interface MrItemDraft {
   inventoryItemId: string | null;

@@ -70,6 +70,12 @@ const reports = [
     path: '/reports/profitability-per-sku',
   },
   {
+    title: 'Modal Produksi per Periode',
+    description: 'Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap rendemen dan produk samping.',
+    icon: Package,
+    path: '/reports/production-cost-summary',
+  },
+  {
     title: 'Laporan OEE',
     description: 'Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime.',
     icon: Gauge,

@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { saveAttachment, deleteAttachment, getFullPath } from '../utils/fileStorage';
 import { handleRouteError } from '../utils/errors';
+import { hasCap } from '../services/permissionService';
 
 const router = Router();
 
@@ -60,7 +61,7 @@ router.post(
         return res.status(400).json({ error: 'referenceType dan referenceId wajib diisi.' });
       }
 
-      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt'];
+      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt', 'approval_request'];
       if (!ALLOWED_REF_TYPES.includes(referenceType)) {
         return res.status(400).json({
           error: `referenceType harus salah satu dari: ${ALLOWED_REF_TYPES.join(', ')}.`,
@@ -71,7 +72,7 @@ router.post(
       // fisik: invoice pembelian, Surat Jalan, dan STT (incl. bukti jembatan
       // timbang). Tidak boleh untuk payment/journal/sales_invoice murni.
       if (req.user?.role === 'StaffProduksi'
-          && !['purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt'].includes(referenceType)) {
+          && !['purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt', 'approval_request'].includes(referenceType)) {
         return res.status(403).json({ error: 'Akses ditolak untuk tipe referensi ini.' });
       }
 
@@ -97,6 +98,17 @@ router.post(
       } else if (referenceType === 'goods_receipt') {
         const stt = await prisma.goodsReceipt.findUnique({ where: { id: referenceId } });
         if (!stt) return res.status(404).json({ error: 'STT/BPB tidak ditemukan.' });
+      } else if (referenceType === 'approval_request') {
+        // Lampiran pengajuan (dokumen belum dibuat). Hanya pengaju sendiri atau
+        // pemegang approval.view_all; hanya selagi masih bisa diputuskan/direvisi.
+        const ar = await prisma.approvalRequest.findUnique({ where: { id: referenceId } });
+        if (!ar) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+        if (ar.requestedBy !== req.user!.userId && !(await hasCap(req.user!.role, 'approval.view_all'))) {
+          return res.status(403).json({ error: 'Bukan pengajuan Anda.' });
+        }
+        if (!['Pending', 'NeedsRevision'].includes(ar.status)) {
+          return res.status(400).json({ error: 'Pengajuan sudah diproses; lampirkan ke dokumennya.' });
+        }
       }
 
       // Check existing count
@@ -177,7 +189,7 @@ router.get('/file/:id', async (req: AuthRequest, res: Response) => {
     // navigation, so the UUID-guess attack surface is reduced to admin/account.
     const role = req.user?.role;
     if (role === 'StaffProduksi' &&
-        !['purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt'].includes(attachment.referenceType)) {
+        !['purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt', 'approval_request'].includes(attachment.referenceType)) {
       return res.status(403).json({ error: 'Akses ditolak untuk file ini.' });
     }
 

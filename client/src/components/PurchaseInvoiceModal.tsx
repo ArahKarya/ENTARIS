@@ -6,6 +6,7 @@ import { X, Plus, Trash2, Loader2, AlertCircle, Paperclip, FileText, Image as Im
 import { formatRupiah } from '../lib/formatters';
 import WarehousePicker from './WarehousePicker';
 import Select from './Select';
+import { NumberInput } from './ui/number-input';
 
 // Rice-mill purchase invoice item.
 // Flow: timbanganTruk (info only) → refaksi (kg deducted) → timbanganDiterima (net received)
@@ -148,15 +149,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   });
 
   const [fromSTTMode, setFromSTTMode] = useState(false);
-  const [selectedSTTId, setSelectedSTTId] = useState('');
+  // Multi-pilih: 1 invoice bisa digabung dari beberapa STT sekaligus
+  // (mis. beberapa rit dari supplier yang sama pada tanggal berdekatan).
+  const [selectedSTTIds, setSelectedSTTIds] = useState<Set<string>>(new Set());
 
-  // Apply STT → items: lock qty/name/warehouse, rate kosong untuk diisi user
-  const applySTT = (sttId: string) => {
-    setSelectedSTTId(sttId);
-    if (!sttId) return;
-    const stt = (pendingSTTs ?? []).find((s: any) => s.id === sttId);
-    if (!stt) return;
-    const newItems: InvoiceItem[] = (stt.items ?? []).map((line: any) => ({
+  const sttLinesOf = (stt: any): InvoiceItem[] =>
+    (stt.items ?? []).map((line: any) => ({
       id: crypto.randomUUID(),
       itemType: 'material',
       itemName: line.itemName,
@@ -175,7 +173,31 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       nomorMobil: stt.nomorMobil ?? '',
       goodsReceiptItemId: line.id,
     }));
-    if (newItems.length > 0) setItems(newItems);
+
+  // Toggle satu STT: tambah/hapus baris-barisnya dari daftar item,
+  // tanpa mengganggu STT lain yang sudah dicentang lebih dulu.
+  const toggleSTT = (sttId: string) => {
+    const stt = (pendingSTTs ?? []).find((s: any) => s.id === sttId);
+    if (!stt) return;
+    setSelectedSTTIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sttId)) {
+        next.delete(sttId);
+        setItems((cur) => {
+          const grItemIds = new Set((stt.items ?? []).map((l: any) => l.id));
+          const rest = cur.filter((i) => !i.goodsReceiptItemId || !grItemIds.has(i.goodsReceiptItemId));
+          return rest.length > 0 ? rest : [defaultItem()];
+        });
+      } else {
+        next.add(sttId);
+        setItems((cur) => {
+          // Buang placeholder kosong bawaan modal sebelum menambah baris pertama.
+          const base = cur.filter((i) => i.goodsReceiptItemId || i.itemName || i.rate > 0);
+          return [...base, ...sttLinesOf(stt)];
+        });
+      }
+      return next;
+    });
   };
 
   const selectedParty = parties?.find((p: any) => p.id === partyId);
@@ -183,28 +205,36 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       // Resubmit mode: perbarui payload pengajuan & kirim ulang (status → Pending).
-      if (resubmitRequestId) {
-        const res = await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: data });
-        return { ...res.data, resubmitted: true };
-      }
-      const res = await api.post('/purchase/invoices', data);
-      const invoice = res.data;
-      // Pending approval (non-Admin): dokumen belum dibuat, jangan upload lampiran.
-      if (invoice?.pendingApproval) return invoice;
-      // Upload staged attachments (best-effort; failures logged but not rolled back)
-      if (stagedFiles.length > 0 && invoice?.id) {
+      // Upload staged files ke referensi tertentu. Pengajuan (dokumen belum dibuat)
+      // → simpan sbg lampiran 'approval_request'; saat disetujui server memindahkan
+      // lampiran ke invoice yang dibuat. Gagal upload → peringatan, bukan diam.
+      const uploadStaged = async (referenceType: string, referenceId: string) => {
+        if (stagedFiles.length === 0 || !referenceId) return;
         const fd = new FormData();
-        fd.append('referenceType', 'purchase_invoice');
-        fd.append('referenceId', invoice.id);
+        fd.append('referenceType', referenceType);
+        fd.append('referenceId', referenceId);
         for (const f of stagedFiles) fd.append('files', f);
         try {
           await api.post('/attachments/upload', fd, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
-        } catch (err) {
+        } catch (err: any) {
           console.warn('Upload lampiran gagal:', err);
+          toast.error('Lampiran gagal diunggah: ' + (err?.response?.data?.error ?? err?.message ?? 'error'));
         }
+      };
+      if (resubmitRequestId) {
+        const res = await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: data });
+        await uploadStaged('approval_request', resubmitRequestId);
+        return { ...res.data, resubmitted: true };
       }
+      const res = await api.post('/purchase/invoices', data);
+      const invoice = res.data;
+      if (invoice?.pendingApproval) {
+        await uploadStaged('approval_request', invoice?.request?.id);
+        return invoice;
+      }
+      if (invoice?.id) await uploadStaged('purchase_invoice', invoice.id);
       return invoice;
     },
     onSuccess: (result: any) => {
@@ -366,36 +396,40 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                       onChange={(e) => {
                         setFromSTTMode(e.target.checked);
                         if (!e.target.checked) {
-                          setSelectedSTTId('');
+                          setSelectedSTTIds(new Set());
                           setItems([defaultItem()]);
                         }
                       }}
                       className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
                     />
-                    Buat dari STT / BPB (Bukti Penerimaan Barang)
+                    Buat dari STT / BPB (Bukti Penerimaan Barang) — bisa pilih lebih dari 1
                   </label>
                   {fromSTTMode && (
-                    <div className="mt-2">
-                      <Select
-                        value={selectedSTTId}
-                        onChange={(e) => applySTT(e.target.value)}
-                        className="w-full"
-                      >
-                        <option value="">— Pilih STT yang mau di-invoice —</option>
-                        {(pendingSTTs ?? []).map((s: any) => (
-                          <option key={s.id} value={s.id}>
+                    <div className="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1">
+                      {(pendingSTTs ?? []).map((s: any) => (
+                        <label
+                          key={s.id}
+                          className="flex items-center gap-2 text-xs text-blue-900 bg-white/60 rounded px-2 py-1.5 cursor-pointer hover:bg-white"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSTTIds.has(s.id)}
+                            onChange={() => toggleSTT(s.id)}
+                            className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="flex-1">
                             {s.sttNumber} • {new Date(s.date).toLocaleDateString('id-ID')} • {s.items?.length ?? 0} item
-                          </option>
-                        ))}
-                      </Select>
+                          </span>
+                        </label>
+                      ))}
                       {(pendingSTTs ?? []).length === 0 && (
                         <p className="text-[11px] text-blue-600 mt-1">
                           Tidak ada STT pending untuk supplier ini. Buat STT/BPB dulu di menu Pembelian → BPB.
                         </p>
                       )}
-                      {selectedSTTId && (
+                      {selectedSTTIds.size > 0 && (
                         <p className="text-[11px] text-blue-700 mt-1.5">
-                          ✓ Items dari STT sudah di-load. Tinggal isi harga per baris. Stok tidak akan dibuat ulang oleh PI ini.
+                          ✓ {selectedSTTIds.size} STT dipilih, items sudah di-load. Tinggal isi harga per baris. Stok tidak akan dibuat ulang oleh PI ini.
                         </p>
                       )}
                     </div>
@@ -499,30 +533,30 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                           {isService ? (
                             <span className="text-xs text-gray-300">—</span>
                           ) : (
-                            <input type="number" value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-amber-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <NumberInput value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-amber-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                           )}
                         </td>
                         <td className="px-2 py-2 text-right">
                           {isService ? (
                             <span className="text-xs text-gray-300">—</span>
                           ) : (
-                            <input type="number" value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <NumberInput value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                           )}
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} placeholder={isService ? '1' : '0'} className="w-full bg-transparent text-xs text-gray-900 font-semibold text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} placeholder={isService ? '1' : '0'} className="w-full bg-transparent text-xs text-gray-900 font-semibold text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-blue-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-blue-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-purple-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-purple-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <input type="number" value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Math.max(0, Number(e.target.value)))} placeholder="0" className="w-full bg-transparent text-xs text-red-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Math.max(0, Number(e.target.value)))} placeholder="0" className="w-full bg-transparent text-xs text-red-500 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
                           <span className="font-mono text-xs font-medium text-gray-900 tabular-nums">{formatRupiah(calc.hargaAkhir)}</span>
@@ -604,33 +638,33 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                         <>
                           <div>
                             <label className="block text-xs text-gray-400 mb-1">Timb. Truk (kg)</label>
-                            <input type="number" value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
+                            <NumberInput value={item.timbanganTruk || ''} onChange={(e) => updateItem(idx, 'timbanganTruk', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
                           </div>
                           <div>
                             <label className="block text-xs text-gray-400 mb-1">Refaksi (kg)</label>
-                            <input type="number" value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-amber-600" />
+                            <NumberInput value={item.refaksi || ''} onChange={(e) => updateItem(idx, 'refaksi', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-amber-600" />
                           </div>
                         </>
                       )}
                       <div className="col-span-2">
                         <label className="block text-xs text-gray-400 mb-1">{isService ? 'Jumlah *' : 'Timbangan Diterima (kg) *'}</label>
-                        <input type="number" value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg py-2 px-2 text-sm font-mono font-semibold" />
+                        <NumberInput value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg py-2 px-2 text-sm font-mono font-semibold" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">{isService ? 'Harga *' : 'Harga/kg *'}</label>
-                        <input type="number" value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
+                        <NumberInput value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">Potongan</label>
-                        <input type="number" value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-red-500" />
+                        <NumberInput value={item.potonganItem || ''} onChange={(e) => updateItem(idx, 'potonganItem', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-red-500" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">PPN %</label>
-                        <input type="number" value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-blue-600" />
+                        <NumberInput value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-blue-600" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">PPh %</label>
-                        <input type="number" value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-purple-600" />
+                        <NumberInput value={item.pphPct || ''} onChange={(e) => updateItem(idx, 'pphPct', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono text-purple-600" />
                       </div>
                     </div>
                     <div className="flex items-center justify-between border-t border-gray-100 pt-2">
@@ -710,7 +744,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                   <span className="flex-1 text-gray-500">Biaya Lain</span>
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-gray-400 text-xs">{biayaLain < 0 ? '−' : '+'}</span>
-                    <input type="number" value={biayaLain || ''} onChange={(e) => setBiayaLain(Number(e.target.value) || 0)} placeholder="0" title="Boleh negatif untuk potong tagihan" className="w-28 text-right font-mono text-gray-700 bg-transparent border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums" />
+                    <NumberInput value={biayaLain || ''} onChange={(e) => setBiayaLain(Number(e.target.value) || 0)} placeholder="0" title="Boleh negatif untuk potong tagihan" className="w-28 text-right font-mono text-gray-700 bg-transparent border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums" />
                   </div>
                 </div>
                 <div className="border-t border-gray-200 pt-2.5 flex justify-between items-baseline">

@@ -18,7 +18,7 @@
 # Lock project name explicitly so renaming the folder doesn't break the
 # existing volumes/network/container names. Project = aplikasi-keuangan-pmd
 # regardless of working directory.
-name: simple-erp
+name: aplikasi-keuangan-pmd
 
 services:
   # ── Database ──────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "${PORT:-3001}:3001"
+      - "127.0.0.1:${PORT:-3001}:3001"
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-keuangan}:${POSTGRES_PASSWORD:-keuangan_secret_2026}@db:5432/${POSTGRES_DB:-keuangan_db}?schema=public"
       PORT: "3001"
@@ -57,6 +57,8 @@ services:
       AIRA_SERVICE_SECRET: "${AIRA_SERVICE_SECRET:?AIRA_SERVICE_SECRET wajib diisi di .env (sinkron dgn aira-core)}"
       # ── AIRA panel chat (M4.5) — ERP proxy ke aira-core via network aira-net (DNS container). ──
       AIRA_CORE_BASE_URL: "${AIRA_CORE_BASE_URL:-http://aira-core:8080}"
+      # AIRA panel auth - Bearer token utk proxy ke aira-core (/v1/*). Sinkron dgn aira-core AIRA_API_TOKEN.
+      AIRA_API_TOKEN: "${AIRA_API_TOKEN:?AIRA_API_TOKEN wajib diisi di .env (sinkron dgn aira-core)}"
     volumes:
       - backups:/app/server/backups
       - uploads:/app/uploads
@@ -66,6 +68,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  # ── EAM (Enterprise Asset Management) — standalone frontend, satu repo ────
+  # Reuse akun & API ERP lewat shared-cookie SSO (.panganmasadepan.com);
+  # tidak ada backend/DB terpisah — cukup nginx static SPA. Bagian dari
+  # monorepo simple-erp-pmd (client-eam/), bukan aplikasi/repo terpisah.
+  client-eam:
+    build: ./client-eam
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${EAM_PORT:-3005}:3005"
+    depends_on:
+      - app
 
 volumes:
   pgdata:

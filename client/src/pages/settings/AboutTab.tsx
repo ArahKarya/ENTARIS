@@ -15,7 +15,7 @@ interface UpdateInfo {
 }
 
 const GITHUB_RAW_URL =
-  'https://raw.githubusercontent.com/ArahKarya/simple-erp/main/client/src/lib/version.ts';
+  'https://raw.githubusercontent.com/Logia-ysn/aplikasi-keuangan-pmd/main/client/src/lib/version.ts';
 
 function parseRemoteVersion(source: string): { version: string; changelog: UpdateInfo['remoteChangelog'] } {
   const versionMatch = source.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
@@ -210,7 +210,7 @@ export const AboutTab: React.FC = () => {
                 <div className="bg-white/60 rounded-lg p-3 text-xs text-gray-600 space-y-1">
                   <p className="font-semibold text-gray-700">Cara update di server:</p>
                   <pre className="bg-gray-900 text-green-300 rounded-lg p-2.5 text-xs font-mono overflow-x-auto">
-{`cd ~/ArahKarya/Simple-ERP
+{`cd ~/aplikasi-keuangan-pmd
 git pull origin main
 docker compose up -d --build`}</pre>
                 </div>

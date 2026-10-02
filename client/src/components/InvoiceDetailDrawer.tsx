@@ -253,6 +253,30 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const allocations = invoice?.paymentAllocations ?? [];
   const depositApplications = invoice?.depositApplications ?? [];
 
+  // Linimasa gabungan Tunai/Bank + Uang Muka, terurut tanggal — termasuk yang
+  // dibatalkan (ditampilkan pudar + coret) supaya kronologi revisi pembayaran
+  // (mis. UM dibatalkan lalu diganti di tanggal lain) terlihat jelas, bukan
+  // hilang begitu saja dari riwayat.
+  const paymentTimeline = [
+    ...allocations.map((a: any) => ({
+      kind: 'cash' as const,
+      id: a.id,
+      label: a.payment?.paymentNumber,
+      date: a.payment?.date,
+      amount: a.allocatedAmount,
+      isCancelled: a.payment?.status === 'Cancelled',
+    })),
+    ...depositApplications.map((a: any) => ({
+      kind: 'deposit' as const,
+      id: a.id,
+      label: a.depositPayment?.paymentNumber,
+      date: a.appliedAt ?? a.depositPayment?.date,
+      amount: a.appliedAmount,
+      isCancelled: a.isCancelled,
+      raw: a,
+    })),
+  ].sort((x, y) => new Date(x.date).getTime() - new Date(y.date).getTime());
+
   // Derive potongan/komisi from non-cash payment splits.
   // Doesn't change GL — purely a display layer over what's already booked.
   const deductions = computeDeductions(allocations);
@@ -296,7 +320,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const sc = statusConfig[invoice?.status] ?? statusConfig.Draft;
 
   const isOverdue = invoice?.dueDate && new Date(invoice.dueDate) < new Date() && outstanding > 0;
-  const canCancel = invoice && invoice.status !== 'Cancelled' && invoice.status !== 'Paid';
+  const canCancel = invoice && invoice.status !== 'Cancelled' && (invoice.status !== 'Paid' || grandTotal === 0); // invoice Rp 0 (sumbangan) auto-Paid tapi tetap boleh dibatalkan
   const canEdit = invoice && invoice.status !== 'Cancelled';
 
   const startEditing = () => {
@@ -1080,78 +1104,76 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                 );
               })()}
 
-              {/* Payment History */}
-              {allocations.length > 0 && (
+              {/* Riwayat Pembayaran — linimasa gabungan Tunai/Bank + Uang Muka,
+                  terurut tanggal, termasuk yang dibatalkan (transparansi kronologi) */}
+              {paymentTimeline.length > 0 && (
                 <div className="px-6 py-4 border-b border-gray-100">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                    <CreditCard size={10} /> Riwayat Pembayaran ({allocations.length})
+                    <CreditCard size={10} /> Riwayat Pembayaran ({paymentTimeline.length})
                   </p>
                   <div className="space-y-2">
-                    {allocations.map((alloc: any) => (
-                      <div key={alloc.id} className="flex items-center justify-between p-3 bg-green-50/50 border border-green-100 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="p-1.5 bg-green-100 rounded">
-                            <CreditCard size={13} className="text-green-600" />
+                    {paymentTimeline.map((entry) => {
+                      const isDeposit = entry.kind === 'deposit';
+                      const cancelled = entry.isCancelled;
+                      return (
+                        <div key={`${entry.kind}-${entry.id}`} className={cn(
+                          'flex items-center justify-between p-3 rounded-lg border',
+                          cancelled
+                            ? 'bg-gray-50 border-gray-200 opacity-60'
+                            : isDeposit
+                              ? (isSales ? 'bg-teal-50/50 border-teal-100' : 'bg-amber-50/50 border-amber-100')
+                              : 'bg-green-50/50 border-green-100'
+                        )}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('p-1.5 rounded', cancelled ? 'bg-gray-100' : isDeposit ? (isSales ? 'bg-teal-100' : 'bg-amber-100') : 'bg-green-100')}>
+                              {isDeposit
+                                ? <Wallet size={13} className={cancelled ? 'text-gray-400' : (isSales ? 'text-teal-600' : 'text-amber-600')} />
+                                : <CreditCard size={13} className={cancelled ? 'text-gray-400' : 'text-green-600'} />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5">
+                                {entry.label}
+                                <span className={cn(
+                                  'text-[10px] px-1.5 py-0.5 rounded font-normal',
+                                  isDeposit ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-500',
+                                )}>
+                                  {isDeposit ? 'Uang Muka' : 'Tunai/Bank'}
+                                </span>
+                                {cancelled && <span className="text-[10px] text-red-400 font-normal">(Dibatalkan)</span>}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {formatDate(entry.date)}
+                                {cancelled && (entry as any).raw?.cancelledAt && (
+                                  <span className="text-red-300"> · dibatalkan {formatDate((entry as any).raw.cancelledAt)}</span>
+                                )}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-medium text-gray-800">{alloc.payment?.paymentNumber}</p>
-                            <p className="text-xs text-gray-400">{formatDate(alloc.payment?.date)}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              'font-mono text-sm font-semibold',
+                              cancelled ? 'text-gray-400 line-through' : isDeposit ? (isSales ? 'text-teal-600' : 'text-amber-600') : 'text-green-600',
+                            )}>
+                              {formatRupiah(Number(entry.amount))}
+                            </span>
+                            {isDeposit && !cancelled && invoice.status !== 'Cancelled' && (
+                              <button
+                                onClick={() => setCancelDepositAppId(entry.id)}
+                                className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                                title="Batalkan alokasi uang muka"
+                              >
+                                <XCircle size={14} />
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <span className="font-mono text-sm font-semibold text-green-600">
-                          {formatRupiah(Number(alloc.allocatedAmount))}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Deposit Applications */}
-              {depositApplications.length > 0 && (
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                    <Wallet size={10} /> Riwayat Uang Muka ({depositApplications.length})
-                  </p>
-                  <div className="space-y-2">
-                    {depositApplications.map((app: any) => (
-                      <div key={app.id} className={cn(
-                        'flex items-center justify-between p-3 rounded-lg',
-                        app.isCancelled
-                          ? 'bg-gray-50 border border-gray-200 opacity-50'
-                          : isSales ? 'bg-teal-50/50 border border-teal-100' : 'bg-amber-50/50 border border-amber-100'
-                      )}>
-                        <div className="flex items-center gap-3">
-                          <div className={cn('p-1.5 rounded', app.isCancelled ? 'bg-gray-100' : isSales ? 'bg-teal-100' : 'bg-amber-100')}>
-                            <Wallet size={13} className={app.isCancelled ? 'text-gray-400' : isSales ? 'text-teal-600' : 'text-amber-600'} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-gray-800">
-                              {app.depositPayment?.paymentNumber}
-                              {app.isCancelled && <span className="ml-1.5 text-xs text-red-400">(Dibatalkan)</span>}
-                            </p>
-                            <p className="text-xs text-gray-400">{formatDate(app.appliedAt ?? app.depositPayment?.date)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={cn('font-mono text-sm font-semibold', app.isCancelled ? 'text-gray-400 line-through' : isSales ? 'text-teal-600' : 'text-amber-600')}>
-                            {formatRupiah(Number(app.appliedAmount))}
-                          </span>
-                          {!app.isCancelled && invoice.status !== 'Cancelled' && (
-                            <button
-                              onClick={() => setCancelDepositAppId(app.id)}
-                              className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-                              title="Batalkan alokasi uang muka"
-                            >
-                              <XCircle size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {/* Apply Deposit Banner (has outstanding) */}
               {outstanding > 0.01 && invoice.status !== 'Cancelled' && (

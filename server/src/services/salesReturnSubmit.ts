@@ -164,7 +164,11 @@ export async function submitSalesReturnInTx(
     .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
   const totalReturn = subtotal.plus(taxAmount).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
   const totalReturnNum = totalReturn.toNumber();
-  if (totalReturnNum <= 0) throw new BusinessError('Nilai retur harus lebih dari nol.');
+  // Retur qty-only (rate 0, mis. beras titipan BULOG) valid selama minimal 1
+  // baris punya qty>0 — hanya mengembalikan stok fisik, tanpa nilai piutang/kredit.
+  const hasReturnedQty = resolved.some((r) => r.quantity > 0);
+  if (totalReturnNum < 0) throw new BusinessError('Nilai retur tidak boleh negatif.');
+  if (totalReturnNum === 0 && !hasReturnedQty) throw new BusinessError('Pilih minimal satu baris dengan qty > 0.');
 
   // ── AR vs credit split ──
   const outstanding = new Decimal(invoice.outstanding.toString());
@@ -283,7 +287,8 @@ export async function submitSalesReturnInTx(
     });
     customerDepositId = deposit.id;
     await tx.salesReturn.update({ where: { id: salesReturn.id }, data: { customerDepositId } });
-    // Sync cached customerDepositBalance on party (mirrors paymentSubmit.ts behaviour)
+    // Keep the cached deposit balance on the party in sync so the invoice UI
+    // can offer 'Gunakan Uang Muka' for credit created by this return.
     await tx.party.update({
       where: { id: invoice.partyId },
       data: { customerDepositBalance: { increment: creditPortionNum } },

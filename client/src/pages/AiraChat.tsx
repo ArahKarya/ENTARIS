@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Sparkles, Send, Loader2, User, MessageSquarePlus, Archive, Pencil, Check, X,
+  Sparkles, Send, Loader2, User, MessageSquarePlus, Archive, Pencil, Check, X, Paperclip, FileText, Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { DraftCard, type AiraDraft } from '../components/aira/DraftCard';
+import { CashBookCard, type CashBookDraftData, type CoaOption } from '../components/aira/CashBookCard';
 
 // ── Tipe pesan di panel chat ──
 interface ChatMessage {
@@ -20,6 +21,9 @@ interface ChatMessage {
   streaming?: boolean;
   status?: string;
   auto?: boolean; // L3: dieksekusi otomatis oleh AIRA (tanpa approval manusia)
+  cashbook?: CashBookDraftData | null; // C3: draft buku kas multi-baris
+  coa?: CoaOption[];                   // daftar akun utk dropdown koreksi
+  cashbookDone?: { posted: number; skipped: number; failed: number; learned: number } | null;
 }
 
 // ── Tipe sesi (dari aira-core via proxy ERP) ──
@@ -36,6 +40,8 @@ const STAGE_LABEL: Record<string, string> = {
   guardrail: 'Memeriksa kebijakan',
   reason: 'Menimbang keputusan',
   execute: 'Mengeksekusi',
+  cashbook_extract: 'Membaca buku kas',
+  cashbook_classify: 'Memetakan akun COA',
 };
 
 /** Ambil CSRF token dari cookie (sama pola api.ts). */
@@ -103,6 +109,9 @@ export function AiraChat() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  // A2: lampiran dokumen (PDF/gambar) untuk dibaca AIRA.
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Daftar sesi (sumber kebenaran) ──
   const sessionsQuery = useQuery({
@@ -195,11 +204,13 @@ export function AiraChat() {
 
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || busy) return;
+    const file = attachedFile;
+    if ((!text && !file) || busy) return;
     setInput('');
+    setAttachedFile(null);
     setBusy(true);
 
-    const userMsg: ChatMessage = { id: nextId(), role: 'user', text };
+    const userMsg: ChatMessage = { id: nextId(), role: 'user', text: file ? `${text || '(dokumen dilampirkan)'}  📎` : text };
     const asstId = nextId();
     const asstMsg: ChatMessage = {
       id: asstId, role: 'assistant', text: '', stages: [], draft: null, streaming: true,
@@ -207,15 +218,31 @@ export function AiraChat() {
     setMessages((prev) => [...prev, userMsg, asstMsg]);
 
     try {
-      const resp = await fetch('/api/ai/chat/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}),
-        },
-        credentials: 'include',
-        body: JSON.stringify({ input: text, session_id: sessionId ?? undefined }),
-      });
+      // A2: bila ada lampiran -> FormData (multipart) supaya AIRA bisa baca dokumen.
+      //     JANGAN set Content-Type manual untuk FormData (browser set boundary).
+      let resp: Response;
+      if (file) {
+        const fd = new FormData();
+        fd.append('input', text || 'Tolong baca dokumen ini dan bantu input ke sistem.');
+        if (sessionId) fd.append('session_id', sessionId);
+        fd.append('file', file, file.name);
+        resp = await fetch('/api/ai/chat/stream', {
+          method: 'POST',
+          headers: { ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}) },
+          credentials: 'include',
+          body: fd,
+        });
+      } else {
+        resp = await fetch('/api/ai/chat/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({ input: text, session_id: sessionId ?? undefined }),
+        });
+      }
 
       if (!resp.ok || !resp.body) {
         const j = await resp.json().catch(() => null);
@@ -257,8 +284,21 @@ export function AiraChat() {
               stages.push(label);
               patchMsg(asstId, { stages: [...stages] });
             }
+          } else if (event === 'attachment') {
+            const dt = data.doc_type ? String(data.doc_type).replace(/_/g, ' ') : 'dokumen';
+            const stLabel = `"+chr(0x1F4C4)+" Dokumen terbaca: ${dt}`;
+            if (!stages.includes(stLabel)) { stages.push(stLabel); patchMsg(asstId, { stages: [...stages] }); }
           } else if (event === 'token') {
             setMessages((prev) => prev.map((m) => m.id === asstId ? { ...m, text: m.text + (data.text ?? '') } : m));
+          } else if (event === 'cashbook_paused') {
+            patchMsg(asstId, {
+              streaming: false,
+              cashbook: data.draft as CashBookDraftData,
+              coa: (data.coa ?? []) as CoaOption[],
+              runId: data.run_id,
+              status: 'cashbook_paused',
+              text: `Aku baca buku kas: ${(data.draft as CashBookDraftData).entries.length} transaksi. Cek akun yang kutandai kuning lalu posting.`,
+            });
           } else if (event === 'paused') {
             patchMsg(asstId, {
               streaming: false,
@@ -307,7 +347,60 @@ export function AiraChat() {
     } finally {
       setBusy(false);
     }
-  }, [input, busy, sessionId, patchMsg, qc]);
+  }, [input, busy, sessionId, attachedFile, patchMsg, qc]);
+
+  // C4: state posting cash-book per pesan.
+  const [cbPending, setCbPending] = useState<string | null>(null);
+
+  /** Approve cash-book: kirim koreksi akun + skip -> ERP proxy -> aira-core posting. */
+  const approveCashBook = useCallback(async (
+    msgId: string, runId: string,
+    entries: Array<{ idx: number; account?: string; accountLabel?: string; skip?: boolean }>,
+  ) => {
+    setCbPending(msgId);
+    try {
+      const resp = await fetch('/api/ai/chat/cashbook-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}) },
+        credentials: 'include',
+        body: JSON.stringify({ run_id: runId, entries }),
+      });
+      const j = await resp.json().catch(() => null);
+      if (!resp.ok) {
+        toast.error(j?.error || `Gagal posting (HTTP ${resp.status})`);
+        setCbPending(null);
+        return;
+      }
+      patchMsg(msgId, { cashbookDone: { posted: (j.posted ?? []).length, skipped: (j.skipped ?? []).length, failed: (j.failed ?? []).length, learned: j.learned ?? 0 } });
+      if ((j.failed ?? []).length) toast.warning(`${j.failed.length} baris gagal diposting.`);
+      else toast.success(`${(j.posted ?? []).length} jurnal diposting.`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCbPending(null);
+    }
+  }, [patchMsg]);
+
+  /** Batalkan draft buku kas (lepas di backend, tanpa posting). */
+  const cancelCashBook = useCallback(async (msgId: string, runId: string) => {
+    setCbPending(msgId);
+    try {
+      const resp = await fetch('/api/ai/chat/cashbook-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {}) },
+        credentials: 'include',
+        body: JSON.stringify({ run_id: runId }),
+      });
+      const j = await resp.json().catch(() => null);
+      if (!resp.ok) { toast.error(j?.error || `Gagal membatalkan (HTTP ${resp.status})`); return; }
+      patchMsg(msgId, { cashbook: null, status: 'cashbook_cancelled' });
+      toast.success('Buku kas dibatalkan.');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCbPending(null);
+    }
+  }, [patchMsg]);
 
   /** Approve / reject draft → /api/ai/chat/approve. */
   const decide = useCallback(async (msgId: string, runId: string, decision: 'approve' | 'reject') => {
@@ -524,6 +617,18 @@ export function AiraChat() {
                         onDecision={(d) => decide(m.id, m.runId!, d)}
                       />
                     )}
+                    {m.cashbook && m.runId && (
+                      <CashBookCard
+                        draft={m.cashbook}
+                        coa={m.coa ?? []}
+                        runId={m.runId}
+                        pending={cbPending === m.id}
+                        done={m.cashbookDone ?? null}
+                        onApprove={(entries) => approveCashBook(m.id, m.runId!, entries)}
+                        onClose={() => patchMsg(m.id, { cashbook: null })}
+                        onCancel={() => cancelCashBook(m.id, m.runId!)}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -538,7 +643,41 @@ export function AiraChat() {
 
         {/* Input */}
         <div className="pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+          {/* A2: preview lampiran terpasang */}
+          {attachedFile && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg bg-[#48CAE4]/10 border border-[#48CAE4]/40 px-3 py-1.5 text-xs text-[#0B1B3D] dark:text-[#9be3f4] w-fit max-w-full">
+              {attachedFile.type.startsWith("image/") ? <ImageIcon className="w-4 h-4 shrink-0" /> : <FileText className="w-4 h-4 shrink-0" />}
+              <span className="truncate max-w-[200px]">{attachedFile.name}</span>
+              <span className="opacity-60">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+              <button type="button" onClick={() => setAttachedFile(null)} className="ml-1 hover:text-red-500" aria-label="Hapus lampiran">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  if (f.size > 10 * 1024 * 1024) { toast.error("Ukuran file maksimal 10MB."); return; }
+                  setAttachedFile(f);
+                }
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={busy}
+              title="Lampirkan dokumen (PDF/gambar)"
+              className="shrink-0 w-11 h-11 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-500 hover:text-[#0B1B3D] hover:border-[#48CAE4] disabled:opacity-40 flex items-center justify-center transition"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -551,7 +690,7 @@ export function AiraChat() {
             />
             <button
               onClick={send}
-              disabled={busy || !input.trim()}
+              disabled={busy || (!input.trim() && !attachedFile)}
               className="shrink-0 w-11 h-11 rounded-xl bg-[#0B1B3D] hover:bg-[#142a5c] disabled:opacity-40 text-white flex items-center justify-center transition"
             >
               {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
