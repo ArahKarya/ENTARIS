@@ -17,7 +17,7 @@
 
 **ERP PMD** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
-Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **42 route backend**, **35 client pages**, **71 komponen**, **11 PDF template**, dan **63 migrasi** database.
+Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
 
 ## ✨ Kenapa ERP PMD
 
@@ -81,7 +81,7 @@ docker compose up -d
 
 1. Container `db` start, PostgreSQL siap
 2. Container `app` start, menunggu db healthy
-3. `prisma migrate deploy` — jalankan **63 migrasi** database
+3. Migrasi database dijalankan otomatis — **79 migrasi** (Prisma + file SQL idempoten)
 4. Cek jumlah user — jika 0, jalankan seed (COA, user admin, fiscal year)
 5. Express server start di port 3001
 6. Serve React SPA + API dari satu port
@@ -96,6 +96,7 @@ Fitur dikelompokkan per area bisnis. Semua modul terintegrasi pada satu basis da
 - **Buku Besar (General Ledger)** double-entry murni — setiap transaksi otomatis menghasilkan pasangan jurnal yang balanced. Filter periode, preset cepat (Hari Ini / Minggu / Bulan / YTD), toggle sembunyikan transaksi yang dibatalkan.
 - **Jurnal Umum (Journal Voucher)** untuk adjusment manual multi-line; validasi otomatis total debit = total kredit sebelum posting; support *cancel & reverse* dengan jejak lengkap.
 - **26 Akun Sistem konfigurabel** — mapping satu kali untuk piutang, hutang, persediaan, kas/bank, PPN, HPP, deposit, depresiasi, laba berjalan, laba ditahan, dll. Ganti nomor akun sesuai kebijakan internal tanpa ubah kode.
+- **Saldo akun dihitung dari ledger** (`accounting_ledger_entries` sebagai sumber kebenaran) — cache saldo dapat dihitung ulang kapan saja dan tidak pernah menjadi acuan audit.
 - **Tahun Fiskal** multi-period dengan proses tutup buku otomatis (*year-end closing*) yang memindahkan laba tahun berjalan ke laba ditahan dan menutup akun nominal.
 
 ### 2. Penjualan & Piutang
@@ -105,7 +106,10 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 - **Inquiry** — catat pertanyaan calon customer/prospect sebelum penawaran resmi. Workflow Baru → Diproses → Dikonversi/Hilang/Ditutup; channel tracking (WhatsApp / Telepon / Email / Walk-in / Referral); items hybrid (free-text atau structured); auto-create Party saat conversion ke Penawaran.
 - **Public Inquiry Form** — halaman publik `/tanya` untuk customer isi sendiri, langsung masuk ke pipeline. Mobile-first, branded dengan logo perusahaan, anti-spam (honeypot + rate limit). Dilengkapi **QR Code Generator** untuk dibagikan via WA / IG bio / brosur / kartu nama dengan tracking sumber.
 - **Penawaran (Quotations)** — full lifecycle Draft → Sent → Accepted/Rejected/Expired. Auto-expire sweeper tiap jam + notifikasi 3 hari sebelum expiry. PDF "PENAWARAN HARGA" dengan validity box, status badge, signatures, disclaimer "Bukan Faktur Resmi". Conversion satu-klik ke Sales Invoice.
-- **Invoice Penjualan** per-item dengan PPN individual per baris, diskon per-item maupun global, biaya tambahan (ongkir, packing), No. Referensi PO/Penawaran customer, dan auto-posting `DR Piutang / CR Penjualan`. Boleh `grandTotal=0` untuk sample/replacement/100% diskon.
+- **Pesanan Penjualan (SO) & Surat Jalan (DO)** — SO menghasilkan DO resmi yang memotong stok dan mengunci HPP saat terbit. PDF DO memuat kolom tanda tangan **Verifikasi Fisik (Security)**.
+- **Surat Jalan Sementara (SJS)** — untuk barang yang dikirim **sebelum produksi diinput**. Tab tersendiri di Penjualan > Surat Jalan: **tidak memotong stok, tidak ada jurnal, tidak bisa diinvoice**. Setelah produksi selesai, SJS **ditautkan ke DO resmi** (saat membuat DO, dari SO, atau ke DO yang sudah ada); qty DO boleh berbeda dari SJS. DO dibatalkan → SJS kembali Terbuka. Pengingat otomatis untuk SJS yang belum ditautkan lebih dari 7 hari, serta cetak PDF "Surat Jalan Sementara".
+- **Invoice Penjualan** per-item dengan PPN individual per baris, diskon per-item maupun global, biaya tambahan (ongkir, packing), No. Referensi PO/Penawaran customer, dan auto-posting `DR Piutang / CR Penjualan`. Invoice **bernilai Rp 0** (sumbangan/sampel/100% diskon) otomatis berstatus **Paid** saat disubmit tanpa jurnal piutang, dan tetap bisa dibatalkan dari UI.
+- **Retur Penjualan** — retur ke invoice yang sudah lunas menjadi **kredit pelanggan** (uang muka), cache saldo deposit tersinkron saat submit dan cancel; mendukung retur qty-saja (tarif 0, mis. barang titipan).
 - **Penerimaan Pembayaran** dengan auto-alokasi ke invoice outstanding berbasis FIFO; mendukung *split payment* (satu transfer untuk beberapa invoice), *partial payment*, dan refund uang muka.
 - **Deposit Pelanggan** (uang muka) dengan konversi otomatis ke invoice saat realisasi.
 - **Aging Piutang** real-time dalam bucket 0-30 / 31-60 / 61-90 / >90 hari, lengkap dengan jadwal piutang jatuh tempo untuk kebutuhan collection.
@@ -114,7 +118,9 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 
 ### 3. Pembelian & Hutang
 
-- **Invoice Pembelian** per-item dengan PPN masukan per baris, biaya lain, dan auto-posting `DR Persediaan (atau Beban) / CR Hutang`.
+- **Invoice Pembelian** per-item dengan PPN masukan per baris, biaya lain, dan auto-posting `DR Persediaan (atau Beban) / CR Hutang`. **Satu invoice dapat menagih beberapa STT/BPB sekaligus** (pilih ganda); mode "dari STT" menghitung harga/kg otomatis dari total invoice dibagi qty STT.
+- **STT / BPB (Penerimaan Barang)** dengan guard WAC: harga satuan 0 ditolak untuk barang milik sendiri (barang titipan pelanggan dikecualikan). Edit atau batal STT **per baris movement diblokir** — pembatalan dan revisi dilakukan dari halaman STT agar jurnal GRNI selalu ikut terbalik.
+- **Pengajuan invoice pembelian** oleh staf non-admin menampilkan konteks lengkap bagi penyetuju: STT terkait, lampiran, hutang dan deposit pemasok, harga pembelian sebelumnya, serta pengecekan qty terhadap STT (memperhitungkan refaksi).
 - **Pembayaran ke Vendor** dengan auto-alokasi, split, dan dukungan deposit ke vendor untuk pembelian yang dibayar di muka.
 - **Aging Hutang** dan jadwal hutang jatuh tempo untuk perencanaan arus kas keluar.
 - **Cancel Invoice** otomatis membalik posting ke persediaan, hutang, dan PPN masukan.
@@ -124,13 +130,18 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 - **Kas & Bank multi-akun** (kas kecil, kas besar, BRI, Mandiri, BCA, dll.) masing-masing dengan saldo real-time.
 - **Rekonsiliasi Bank** — upload mutasi bank (CSV/Excel) lalu cocokkan dengan transaksi di buku; tandai *matched* / *outstanding* / *bank-only*; hitung *reconciled balance* otomatis.
 - **Transfer antar Kas/Bank** dengan posting double-entry otomatis.
+- **Transaksi Bank/Kas** menggabungkan pembayaran dan jurnal manual (biaya adm bank, bunga, pindah-buku); setiap baris dapat dibuka ke **detail jurnal**.
+- **Tagihan GA** — antrian tagihan dari modul EAM (pajak/STNK/KIR, riwayat servis, permintaan barang) yang diposting akuntan sebagai **jurnal langsung** (DR beban / CR kas) atau **faktur pembelian** (hutang). Satu tagihan satu jurnal, pembatalan dapat dibalik. Akun default pajak kendaraan: **6.41 Beban Pajak & Perizinan Kendaraan**.
 
 ### 5. Stok & Produksi
 
 - **Inventori multi-item** dengan pencatatan *moving average cost* untuk HPP akurat.
 - **Mutasi Stok** masuk/keluar manual, dengan posting GL otomatis ke persediaan dan HPP.
-- **Stock Opname** (penghitungan fisik) dengan pencatatan selisih yang otomatis posting sebagai penyesuaian persediaan.
-- **Produksi** dengan pola *konversi bahan baku → produk jadi + by-product* (cocok untuk rice mill: gabah → beras + sekam + dedak), termasuk perhitungan rendemen dan HPP otomatis.
+- **Stock Opname** (penghitungan fisik) dengan pencatatan selisih yang otomatis posting sebagai penyesuaian persediaan; nilai/satuan dapat diinput manual, dan submit tidak terblokir oleh item minus historis yang tidak disentuh.
+- **Produksi** dengan pola *konversi bahan baku → produk jadi + by-product* (cocok untuk rice mill: gabah → beras + sekam + dedak), termasuk perhitungan rendemen dan HPP otomatis. Detail produksi menampilkan **modal bahan baku murni (WAC2)** dan tersedia laporan **Modal Produksi per Periode**; jurnal terbaru (revisi `-R1`/`-R2`) ditampilkan di detail.
+- **Pemisahan beban konversi** — kredit biaya konversi produksi dibukukan ke akun **5.12 Biaya Konversi Dibebankan ke Persediaan**, terpisah dari **5.1 HPP**, sehingga HPP laporan hanya mencerminkan barang yang benar-benar terjual.
+- **Antrian koreksi HPP (COGS backfill)** — saat barang keluar lebih dulu dari produksinya (stok sementara minus), selisih HPP diselesaikan otomatis begitu produksi/pembelian masuk. Pembatalan atau edit dokumen pemicu (**produksi, invoice pembelian, mutasi manual**) kini **membalik penyelesaian itu secara otomatis** (jurnal dan antrian kembali ke kondisi semula).
+- **Barang titipan pelanggan** (mis. beras maklon) dicatat hanya sebagai stok tanpa jurnal; nilai HPP produk jadi tidak ikut memuat bahan titipan.
 - **Import Saldo Awal** via Excel untuk migrasi dari sistem lama.
 
 ### 6. Aset Tetap & Depresiasi
@@ -147,6 +158,9 @@ Aplikasi frontend **standalone** di `eam.panganmasadepan.com`, tapi **tetap satu
 - **Dashboard ringkas**: total aset, nilai buku (NBV), work order aktif & overdue, breakdown nilai per kategori, quick links ke tiap modul.
 - **Modul aset per kategori**: Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Inventaris GA, Dokumen & Sertifikat, Maintenance/Work Order, Permintaan Barang, Master Data — tiap halaman otomatis terfilter ke kategorinya sendiri (`?categoryId=` multi-value di API, backward-compatible dengan ERP utama).
 - **QR aset publik** tetap bisa diakses tanpa login (scan barcode aset fisik).
+- **Pengajuan terpusat** — ajukan servis dan pajak/STNK/KIR lewat pilihan kendaraan, dengan monitor status; pengajuan servis yang disetujui **otomatis membuat Work Order**, dan menutup WO otomatis mencatat **riwayat servis kendaraan**.
+- **Maintenance / Work Order** dengan foto, checklist, dan suku cadang; **Permintaan Barang (MR)** menaut WO → MR → persetujuan → penerimaan (stok GA bertambah otomatis) → pembayaran. **Export Excel** rekap WO.
+- **Inventaris GA** dengan foto per item, tab dashboard stok dan tab Tools (opname cepat, export CSV), serta peringatan lokasi gudang kosong.
 - Modul GA di ERP utama **tetap aktif** dan tersinkron real-time dua arah dengan EAM (data & aksi lewat API + DB yang sama, bukan salinan/replika).
 
 #### 6.1.1 Manajemen Kendaraan (Fleet)
@@ -173,7 +187,7 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 - **Laporan Pajak** — rekap PPN keluaran/masukan bulanan untuk kebutuhan SPT Masa
 - **Laporan HPP** — rincian harga pokok penjualan per periode
 - **Laporan Harian** — ringkasan aktivitas operasional per hari
-- **Export** setiap laporan ke **PDF** (siap cetak) dan **Excel** (untuk analisa lanjutan)
+- **Export** setiap laporan ke **PDF** (siap cetak, **kop dan logo perusahaan** pada semua laporan) dan **Excel** (untuk analisa lanjutan)
 
 ### 8. Operasional & Otomasi
 
@@ -181,6 +195,7 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 - **Transaksi Berulang (Recurring)** — template jurnal untuk beban rutin (sewa, gaji, langganan) yang auto-generate per jadwal harian/mingguan/bulanan.
 - **Approval Workflow** berbasis aturan (per tipe dokumen + threshold nominal). Pengajuan oleh staf ditahan sampai disetujui — efek GL/stok baru terjadi setelah *approve* (gate "approve-before-effect"). Manajer dapat **menyetujui / menolak / minta revisi langsung dari tombol di Telegram** (tanpa buka aplikasi), atau lewat halaman Approval; pesan memuat detail + link langsung ke pengajuan.
 - **Notifikasi** terintegrasi (invoice jatuh tempo, stok di bawah minimum, approval pending, hasil keputusan) — in-app **dan** ke **Telegram**: japri pribadi per-staf yang sudah menautkan akun (via `/start`) + mirror ke grup opsional.
+- **AIRA Asisten** — asisten AI di dalam ERP untuk menjawab pertanyaan data dan menyiapkan draf transaksi. Semua aksi yang mengubah pembukuan melewati **persetujuan manusia** (tidak ada posting otomatis tanpa approve).
 - **Global Search (Ctrl + K)** — command palette untuk cari invoice, pelanggan, akun, transaksi dari mana saja di aplikasi.
 - **Health Check Page** — diagnosa otomatis kesehatan data (saldo tidak balance, invoice orphan, mapping akun hilang, dsb.) untuk memastikan integritas data.
 
@@ -501,10 +516,13 @@ npm run lint             # ESLint
 - [x] 10 laporan keuangan dengan drill-down + export PDF/Excel
 - [x] Approval workflow + notifikasi Telegram (approve/reject dari chat)
 - [x] RBAC dinamis (role custom + matriks izin per modul)
+- [x] Surat Jalan Sementara, tautan ke DO resmi, invoice Rp 0 otomatis Paid
+- [x] Reversal otomatis penyelesaian HPP saat dokumen pemicu dibatalkan/diedit
+- [x] EAM standalone (kendaraan, WO, MR, inventaris GA) + Tagihan GA ke keuangan
 - [x] Audit trail, backup/restore via UI, PWA, dark mode
 - [x] Self-hosted Docker Compose, auto-migrate & auto-seed
 - [ ] Multi-currency penuh (FX gain/loss tersedia, UI multi-currency menyusul)
-- [ ] Modul HRD/payroll (out of scope — handled by third-party)
+- [ ] Modul HRD/payroll (di luar cakupan — ditangani aplikasi HRIS terpisah)
 
 ## 🧱 Stack
 
@@ -514,7 +532,7 @@ npm run lint             # ESLint
 - **Auth** — JWT + bcrypt, RBAC dinamis (role custom + matriks izin per modul, dapat diatur dari UI)
 - **Testing** — Vitest (unit), Playwright (E2E)
 - **Deploy** — Docker Compose (2 container: `app` + `db`)
-- **Skala kode** — **42 route** backend · **35 client pages** · **71 komponen** · **11 PDF template** · **63 migrasi**
+- **Skala kode** — **43 route** backend · **79 halaman** · **145 komponen** · **13 PDF template** · **79 migrasi** · 20 berkas uji
 
 ## 📄 Lisensi
 
