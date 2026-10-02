@@ -344,6 +344,7 @@ router.post('/:id/generate-do', async (req: AuthRequest, res) => {
         notes: body.notes ?? `Auto dari SO ${so.soNumber}`,
         allowNegativeStock: body.allowNegativeStock,
         negativeStockReason: body.negativeStockReason ?? null,
+        temporaryNoteIds: body.temporaryNoteIds,
         items: body.items.map((bIt) => {
           const soItem = soItemMap.get(bIt.salesOrderItemId)!;
           return {

@@ -86,6 +86,8 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   const isAdmin = cap('inventory.negative_stock');
   const [salesOrderId, setSalesOrderId] = useState('');
   const [error, setError] = useState('');
+  // Surat Jalan Sementara yang ditautkan ke DO resmi ini
+  const [tempNoteIds, setTempNoteIds] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -106,6 +108,16 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       return all.filter((so: any) => so.status === 'Submitted' || so.status === 'PartiallyDelivered');
     },
     enabled: !isEdit,
+  });
+
+  // Surat Jalan Sementara Terbuka milik pelanggan terpilih (hanya saat DO baru)
+  // Ganti pelanggan → pilihan SJS sebelumnya tidak berlaku lagi
+  React.useEffect(() => { setTempNoteIds([]); }, [partyId]);
+
+  const { data: linkableNotes } = useQuery({
+    queryKey: ['temporary-delivery-notes-linkable', partyId],
+    queryFn: async () => (await api.get('/temporary-delivery-notes/linkable', { params: { partyId } })).data as any[],
+    enabled: !isEdit && !!partyId,
   });
 
   const { data: inventoryItems } = useQuery({
@@ -328,6 +340,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
           notes: notes.trim() || null,
           allowNegativeStock,
           negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
+          temporaryNoteIds: tempNoteIds,
           items: soItems.map((i) => ({
             salesOrderItemId: i.salesOrderItemId,
             warehouseId: i.warehouseId || null,
@@ -351,6 +364,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
         notes: notes.trim() || null,
         allowNegativeStock,
         negativeStockReason: allowNegativeStock ? negativeStockReason.trim() : null,
+        ...(isEdit ? {} : { temporaryNoteIds: tempNoteIds }),
         items: validItems.map((i) => ({
           inventoryItemId: i.inventoryItemId || null,
           warehouseId: i.warehouseId || null,
@@ -475,6 +489,34 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
               </div>
             </div>
           </div>
+
+          {/* ── TAUTKAN SURAT JALAN SEMENTARA ── */}
+          {!isEdit && partyId && (linkableNotes?.length ?? 0) > 0 && (
+            <div className="mx-6 mt-4 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3">
+              <p className="text-xs font-semibold text-amber-800 uppercase tracking-widest mb-2">Tautkan Surat Jalan Sementara</p>
+              <p className="text-xs text-amber-700 mb-2">
+                Barang berikut sudah dikirim dengan surat jalan sementara. Pilih untuk menautkannya ke surat jalan resmi ini (qty boleh berbeda).
+              </p>
+              <div className="space-y-1.5">
+                {linkableNotes!.map((n: any) => (
+                  <label key={n.id} className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox" className="mt-1"
+                      checked={tempNoteIds.includes(n.id)}
+                      onChange={(e) => setTempNoteIds((ids) => (e.target.checked ? [...ids, n.id] : ids.filter((x) => x !== n.id)))}
+                    />
+                    <span>
+                      <span className="font-mono text-xs">{n.number}</span>
+                      <span className="text-gray-400 text-xs"> · {String(n.date).slice(0, 10)}{n.nomorMobil ? ` · ${String(n.nomorMobil).toUpperCase()}` : ''}</span>
+                      <span className="block text-xs text-gray-600">
+                        {(n.items ?? []).map((it: any) => `${it.itemName} ${Number(it.quantity).toLocaleString('id-ID')} ${it.unit}`).join(', ')}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── ITEMS ── */}
           <div className="px-6 pt-5 pb-4">

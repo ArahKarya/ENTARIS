@@ -1,3 +1,4 @@
+import { unlinkTemporaryNotesFromDoInTx } from './temporaryDeliveryNote';
 import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
@@ -70,6 +71,9 @@ export async function cancelDeliveryOrderInTx(
     where: { id: doId },
     data: { status: 'Cancelled', cancelledAt: new Date() },
   });
+
+  // Surat Jalan Sementara yang tertaut ke DO ini kembali Terbuka
+  await unlinkTemporaryNotesFromDoInTx(tx, doId);
 
   // Re-derive SO delivered_qty + status from the remaining active DO lines
   // (single source of truth — no fragile per-line decrement).

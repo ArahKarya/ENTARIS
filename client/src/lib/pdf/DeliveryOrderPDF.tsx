@@ -122,6 +122,10 @@ export interface DeliveryOrderPDFItem {
 }
 
 export interface DeliveryOrderPDFProps {
+  /** Judul dokumen (default SURAT JALAN). Dipakai Surat Jalan Sementara. */
+  title?: string;
+  /** Catatan kaki di bawah tanda tangan (mis. dokumen sementara). */
+  footnote?: string;
   doNumber: string;
   date: string;
   status: string;
@@ -142,7 +146,7 @@ export interface DeliveryOrderPDFProps {
 }
 
 const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
-  doNumber, date, customer, nomorMobil, driverName, recipientName, notes, items, company,
+  title = 'SURAT JALAN', footnote, doNumber, date, customer, nomorMobil, driverName, recipientName, notes, items, company,
 }) => {
   const printDate = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
@@ -162,7 +166,7 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
           </View>
         </View>
         <View>
-          <Text style={S.title}>SURAT JALAN</Text>
+          <Text style={S.title}>{title}</Text>
           <Text style={S.subtitle}>{doNumber}</Text>
           <Text
             style={S.printMeta}
@@ -260,6 +264,10 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
           <Text style={S.sigLabel}>PENGIRIM</Text>
         </View>
       </View>
+
+      {footnote && (
+        <Text style={{ fontSize: 8, marginTop: 14, textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>{footnote}</Text>
+      )}
 
       </Page>
     </Document>

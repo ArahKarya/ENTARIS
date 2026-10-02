@@ -152,6 +152,7 @@ export const GenerateDOFromSOSchema = z.object({
   notes: z.string().nullable().optional(),
   allowNegativeStock: z.boolean().optional().default(false),
   negativeStockReason: z.string().max(500).nullable().optional(),
+  temporaryNoteIds: z.array(z.string()).optional(),
   items: z.array(z.object({
     salesOrderItemId: z.string().min(1),
     quantity: z.coerce.number().positive(),
@@ -843,6 +844,8 @@ export const CreateDeliveryOrderSchema = z.object({
   // ADMIN ONLY bypass — wajib isi negativeStockReason. Enforced di route handler.
   allowNegativeStock: z.boolean().optional().default(false),
   negativeStockReason: z.string().max(500).nullable().optional(),
+  // Surat Jalan Sementara yang ditautkan ke DO resmi ini (opsional)
+  temporaryNoteIds: z.array(z.string()).optional(),
 }).superRefine((data, ctx) => {
   if (data.allowNegativeStock && (!data.negativeStockReason || data.negativeStockReason.trim().length < 10)) {
     ctx.addIssue({

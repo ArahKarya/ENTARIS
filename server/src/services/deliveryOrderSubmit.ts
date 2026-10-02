@@ -5,6 +5,7 @@ import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { adjustWarehouseStock, resolveWarehouseId, getWarehouseStockMap } from '../utils/warehouseStock';
 import { logger } from '../lib/logger';
+import { linkTemporaryNotesToDoInTx } from './temporaryDeliveryNote';
 
 type Tx = Prisma.TransactionClient;
 
@@ -25,6 +26,7 @@ export interface SubmitDeliveryOrderInput {
   }>;
   allowNegativeStock?: boolean;
   negativeStockReason?: string | null;
+  temporaryNoteIds?: string[];
 }
 
 /**
@@ -239,6 +241,11 @@ export async function submitDeliveryOrderInTx(
         },
       });
     }
+  }
+
+  // Tautkan Surat Jalan Sementara (Open, pelanggan sama) ke DO ini — satu transaksi dengan pembuatan DO.
+  if (body.temporaryNoteIds && body.temporaryNoteIds.length > 0) {
+    await linkTemporaryNotesToDoInTx(tx, deliveryOrder.id, body.partyId, body.temporaryNoteIds);
   }
 
   logger.info({ doNumber, items: body.items.length, partyId: body.partyId }, 'Delivery order submitted');
