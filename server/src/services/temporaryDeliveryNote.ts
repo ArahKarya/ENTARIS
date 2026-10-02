@@ -151,6 +151,21 @@ export async function linkTemporaryNotesToDoInTx(tx: Tx, doId: string, partyId: 
   return uniq.length;
 }
 
+/**
+ * Tautkan SJS Terbuka ke DO resmi yang SUDAH ada (lupa dicentang saat membuat DO).
+ * Hanya mengubah status SJS — tidak menyentuh stok/GL/DO. DO wajib Submitted
+ * (belum Cancelled) dan satu pelanggan dengan SJS.
+ */
+export async function linkTemporaryNoteToExistingDoInTx(tx: Tx, noteId: string, doId: string) {
+  const dos = await tx.$queryRaw<{ id: string; do_number: string; status: string; party_id: string }[]>`
+    SELECT id, do_number, status::text AS status, party_id FROM delivery_orders WHERE id = ${doId} FOR UPDATE`;
+  if (dos.length === 0) throw new BusinessError('Surat jalan resmi tidak ditemukan.');
+  const d = dos[0];
+  if (d.status !== 'Submitted') throw new BusinessError(`Surat jalan resmi ${d.do_number} tidak aktif (status ${d.status}).`);
+  await linkTemporaryNotesToDoInTx(tx, d.id, d.party_id, [noteId]);
+  return getTemporaryNote(tx, noteId);
+}
+
 /** Saat DO dibatalkan: SJS yang tertaut kembali Terbuka. */
 export async function unlinkTemporaryNotesFromDoInTx(tx: Tx, doId: string) {
   const n = await tx.$executeRaw`

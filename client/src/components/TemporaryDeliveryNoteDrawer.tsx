@@ -24,6 +24,8 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkDoId, setLinkDoId] = useState('');
   const canCancel = cap('doc.cancel');
   const canEdit = can('delivery_order', 'edit');
 
@@ -43,6 +45,28 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
       setConfirmCancel(false);
     },
     onError: (e: any) => { toast.error(e?.response?.data?.error || 'Gagal membatalkan.'); setConfirmCancel(false); },
+  });
+
+  // DO resmi aktif (Submitted, belum Cancelled) milik pelanggan yang sama
+  const { data: doCandidates } = useQuery({
+    queryKey: ['sjs-link-do-candidates', note?.partyId],
+    queryFn: async () => {
+      const res = await api.get(`/delivery-orders?partyId=${note.partyId}&status=Submitted&limit=100`);
+      return (res.data.data ?? []) as any[];
+    },
+    enabled: linkOpen && !!note?.partyId,
+  });
+
+  const linkMutation = useMutation({
+    mutationFn: () => api.post(`/temporary-delivery-notes/${noteId}/link`, { deliveryOrderId: linkDoId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['temporary-delivery-notes'] });
+      queryClient.invalidateQueries({ queryKey: ['temporary-delivery-notes-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['temporary-delivery-note-detail', noteId] });
+      toast.success('Surat jalan sementara ditautkan ke surat jalan resmi.');
+      setLinkOpen(false); setLinkDoId('');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal menautkan.'),
   });
 
   if (!noteId) return null;
@@ -147,6 +171,9 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
               </PDFDownloadLink>
             )}
             {isOpen && canEdit && (
+              <button className="btn-secondary inline-flex items-center gap-1.5" onClick={() => setLinkOpen(true)}><Link2 size={14} /> Tautkan ke DO</button>
+            )}
+            {isOpen && canEdit && (
               <button className="btn-secondary inline-flex items-center gap-1.5" onClick={() => setEditOpen(true)}><Pencil size={14} /> Ubah</button>
             )}
             {isOpen && canCancel && (
@@ -156,6 +183,36 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
         )}
       </aside>
 
+      {linkOpen && note && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5 space-y-3">
+            <h3 className="text-base font-semibold text-gray-900">Tautkan {note.number} ke surat jalan resmi</h3>
+            <p className="text-xs text-gray-500">
+              Pilih surat jalan resmi milik <b>{note.customerName}</b> yang sudah dibuat. Hanya mengubah status SJS, tidak menyentuh stok atau jurnal.
+            </p>
+            <select
+              value={linkDoId} onChange={(e) => setLinkDoId(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">— pilih surat jalan resmi —</option>
+              {(doCandidates ?? []).map((d: any) => (
+                <option key={d.id} value={d.id}>
+                  {d.doNumber} · {formatDate(d.date)}{d.nomorMobil ? ` · ${String(d.nomorMobil).toUpperCase()}` : ''}
+                </option>
+              ))}
+            </select>
+            {doCandidates && doCandidates.length === 0 && (
+              <p className="text-xs text-amber-700">Belum ada surat jalan resmi aktif untuk pelanggan ini.</p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <button className="btn-secondary" onClick={() => { setLinkOpen(false); setLinkDoId(''); }}>Batal</button>
+              <button className="btn-primary" disabled={!linkDoId || linkMutation.isPending} onClick={() => linkMutation.mutate()}>
+                {linkMutation.isPending && <Loader2 size={14} className="animate-spin" />} Tautkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {editOpen && note && <TemporaryDeliveryNoteModal editNote={note} onClose={() => { setEditOpen(false); queryClient.invalidateQueries({ queryKey: ['temporary-delivery-note-detail', noteId] }); }} />}
       <ConfirmDialog
         open={confirmCancel}

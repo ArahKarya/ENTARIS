@@ -5,6 +5,7 @@ import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { handleRouteError } from '../utils/errors';
 import {
+  linkTemporaryNoteToExistingDoInTx,
   createTemporaryNoteInTx,
   updateTemporaryNoteInTx,
   cancelTemporaryNoteInTx,
@@ -129,6 +130,17 @@ router.put('/:id', async (req: AuthRequest, res) => {
     return res.json(result);
   } catch (error) {
     return handleRouteError(res, error, 'PUT /temporary-delivery-notes/:id', 'Gagal mengubah surat jalan sementara.');
+  }
+});
+
+router.post('/:id/link', async (req: AuthRequest, res) => {
+  const body = validateBody(z.object({ deliveryOrderId: z.string().min(1) }), req.body, res);
+  if (!body) return;
+  try {
+    const result = await prisma.$transaction((tx) => linkTemporaryNoteToExistingDoInTx(tx, req.params.id as string, body.deliveryOrderId), { timeout: 15000 });
+    return res.json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /temporary-delivery-notes/:id/link', 'Gagal menautkan surat jalan sementara.');
   }
 });
 
