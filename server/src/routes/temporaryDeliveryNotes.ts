@@ -59,8 +59,8 @@ router.get('/', async (req, res) => {
       LEFT JOIN delivery_orders d ON d.id = t.delivery_order_id
       WHERE (${status} = '' OR t.status = ${status})
         AND (${partyId} = '' OR t.party_id = ${partyId})
-        AND (${dateFrom} = '' OR t.date >= ${dateFrom}::date)
-        AND (${dateTo} = '' OR t.date < (${dateTo}::date + 1))
+        AND (${dateFrom} = '' OR t.date >= NULLIF(${dateFrom}, '')::date)
+        AND (${dateTo} = '' OR t.date < (NULLIF(${dateTo}, '')::date + 1))
         AND (${search} = '' OR t.number ILIKE ${'%' + search + '%'} OR p.name ILIKE ${'%' + search + '%'} OR t.nomor_mobil ILIKE ${'%' + search + '%'})
       ORDER BY t.date DESC, t.number DESC
       LIMIT ${limit} OFFSET ${offset}`;
