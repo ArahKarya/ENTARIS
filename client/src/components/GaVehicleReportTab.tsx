@@ -111,7 +111,7 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
       const blob = await pdf(
         <VehicleReportPDF
           report={report}
-          company={{ name: company.name, address: company.address }}
+          company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
           generatedAt={new Date()}
         />,
       ).toBlob();
@@ -137,7 +137,7 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
       const blob = await pdf(
         <VehicleReportPDF
           report={report}
-          company={{ name: company.name, address: company.address }}
+          company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
           generatedAt={new Date()}
         />,
       ).toBlob();

@@ -1,6 +1,5 @@
 /**
- * Pure helpers for the login flow (no React, no DOM) so they can be unit tested
- * and shared verbatim between client (ERP) and client-eam.
+ * Pure helpers for the login flow (no React, no DOM) so they can be unit tested.
  */
 
 export type LoginFailure =

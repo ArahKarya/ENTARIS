@@ -234,7 +234,7 @@ export const WarehouseStockDashboard = () => {
           generatedAt={new Date()}
           asOfDate={snap.asOfDate}
           valuationNote={snap.valuationNote}
-          company={{ name: company?.companyName ?? 'Perusahaan', address: company?.address }}
+          company={{ name: company?.companyName ?? 'Perusahaan', address: company?.address, logoUrl: company?.logoUrl }}
         />,
       ).toBlob();
 

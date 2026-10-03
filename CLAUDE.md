@@ -41,7 +41,6 @@ entaris/
 │       ├── contexts/     # CompanySettings, Theme
 │       ├── hooks/        # useHotkeys
 │       └── lib/          # api (Axios), exportExcel, pdf
-├── client-eam/       # EAM (Enterprise Asset Management) SPA — SSO via shared cookie, reuses ERP API
 ├── scripts/          # backup, restore, setup-backup
 └── docs/             # brand, audits, ERD, tool coverage
 ```

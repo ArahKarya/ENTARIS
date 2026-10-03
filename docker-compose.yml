@@ -51,7 +51,8 @@ services:
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET wajib diisi di .env}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:5173}"
       APP_BASE_URL: "${APP_BASE_URL:-}"
-      # Parent domain cookie sesi utk SSO shared-cookie ERP+EAM (kosong = host-only).
+      # Opsional: parent domain cookie sesi, hanya perlu bila sesi dibagi
+      # lintas subdomain (kosong = host-only, default).
       COOKIE_DOMAIN: "${COOKIE_DOMAIN:-}"
       NODE_ENV: "production"
       UPLOADS_DIR: "/app/uploads"
@@ -70,18 +71,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-  # ── EAM (Enterprise Asset Management) — standalone frontend, satu repo ────
-  # Reuse akun & API ERP lewat shared-cookie SSO (COOKIE_DOMAIN);
-  # tidak ada backend/DB terpisah — cukup nginx static SPA. Bagian dari
-  # monorepo entaris (client-eam/), bukan aplikasi/repo terpisah.
-  client-eam:
-    build: ./client-eam
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:${EAM_PORT:-3005}:3005"
-    depends_on:
-      - app
 
 volumes:
   pgdata:

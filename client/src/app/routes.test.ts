@@ -98,6 +98,10 @@ describe('route registry', () => {
       { label: 'Laporan Armada' },
     ]);
     expect(breadcrumbsFor('/ga/assets')).toEqual([{ label: 'Aset & Pemeliharaan' }, { label: 'Daftar Aset' }]);
+    expect(breadcrumbsFor('/ga')).toEqual([{ label: 'Aset & Pemeliharaan' }, { label: 'Ringkasan' }]);
+    expect(activeNavPath('/ga')).toBe('/ga');
+    expect(activeNavPath('/ga/assets')).toBe('/ga/assets');
+    expect(navSections(ALL).find((s) => s.id === 'assets')?.items[0].path).toBe('/ga');
     expect(breadcrumbsFor('/')).toEqual([{ label: 'Dasbor' }]);
     expect(breadcrumbsFor('/nope')).toEqual([]);
   });

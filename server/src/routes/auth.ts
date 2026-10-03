@@ -11,8 +11,8 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
-// Cross-subdomain cookie support (ERP + EAM standalone app share login).
-// Set COOKIE_DOMAIN to a parent domain (e.g. ".example.com") in production to
+// Optional cross-subdomain cookie support (only needed when the session must be
+// shared across subdomains). Set COOKIE_DOMAIN to a parent domain (e.g. ".example.com") in production to
 // share the session across subdomains. Unset → host-only cookie. Never applied
 // outside production (domain attribute is not settable for plain "localhost").
 const COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? (process.env.COOKIE_DOMAIN?.trim() || undefined) : undefined;
@@ -66,7 +66,7 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // 'strict' would drop the cookie navigating ERP <-> EAM subdomains
+      sameSite: 'lax', // 'strict' would drop the cookie on top-level cross-site navigations (e.g. links from Telegram/email, or across subdomains when COOKIE_DOMAIN is set)
       domain: COOKIE_DOMAIN,
       maxAge: 24 * 60 * 60 * 1000, // 24h
       path: '/',

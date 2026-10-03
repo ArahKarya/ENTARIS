@@ -43,6 +43,7 @@ import { RecurringTransactions } from './pages/RecurringTransactions';
 import { BankReconciliation } from './pages/BankReconciliation';
 import { VendorDeposits } from './pages/VendorDeposits';
 import { ProjectGuarantees } from './pages/ProjectGuarantees';
+import { GaDashboardPage } from './pages/ga/GaDashboardPage';
 import { GaAssetsPage } from './pages/ga/GaAssetsPage';
 import { GaDocumentsPage } from './pages/ga/GaDocumentsPage';
 import { GaInventoryPage } from './pages/ga/GaInventoryPage';
@@ -145,6 +146,7 @@ function App() {
             <Route path="/vendor-deposits" element={<PermRoute module="vendor_deposit"><VendorDeposits /></PermRoute>} />
             <Route path="/project-guarantees" element={<PermRoute module="project_guarantee"><ProjectGuarantees /></PermRoute>} />
             {/* General Affairs */}
+            <Route path="/ga" element={<PermRoute module="ga_assets"><GaDashboardPage /></PermRoute>} />
             <Route path="/ga/assets" element={<PermRoute module="ga_assets"><GaAssetsPage /></PermRoute>} />
             <Route path="/ga/documents" element={<PermRoute module="ga_documents"><GaDocumentsPage /></PermRoute>} />
             <Route path="/ga/inventory" element={<PermRoute module="ga_inventory"><GaInventoryPage /></PermRoute>} />

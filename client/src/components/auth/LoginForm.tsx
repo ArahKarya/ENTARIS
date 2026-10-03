@@ -6,7 +6,8 @@ import { AUTH_COPY, type AuthProduct } from './auth-copy';
 import { classifyLoginError, formatCountdown, safeRedirectTarget, type LoginFailure } from './login-helpers';
 
 export interface LoginFormProps {
-  product: AuthProduct;
+  /** Only 'ERP' remains (EAM is a module of the main app). Defaults to 'ERP'. */
+  product?: AuthProduct;
   /** Workspace name for the chip; null hides it. */
   tenant: string | null;
   /** Show the "session ended" notice (?alasan=sesi). */
@@ -91,7 +92,7 @@ function failureMessage(failure: LoginFailure): string {
   return MESSAGES.rateLimitedOpen;
 }
 
-export function LoginForm({ product, tenant, sessionExpired = false, onForgotPassword }: LoginFormProps) {
+export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onForgotPassword }: LoginFormProps) {
   const copy = AUTH_COPY[product];
   const navigate = useNavigate();
   const location = useLocation();
