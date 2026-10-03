@@ -1,21 +1,43 @@
-MIT License
+Entaris — Proprietary Software License
 
-Copyright (c) 2026 PT Arah Karya Sinergi (AKS)
+Copyright (c) 2026 PT Arah Karya Sinergi. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software, including its source code, object code, database schema,
+documentation, logos and other brand assets (together, the "Software"), is
+the confidential and proprietary property of PT Arah Karya Sinergi
+("Arah").
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. No licence is granted except under a separate written agreement signed
+   by Arah. Without such an agreement you may not use, copy, modify, merge,
+   publish, distribute, sublicense, sell, rent, host for third parties, or
+   create derivative works of the Software, in whole or in part.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Where a written agreement exists, its terms govern the scope of use, the
+   number of users or installations, support, and warranties. If anything
+   in that agreement conflicts with this notice, the agreement prevails.
+
+3. You may not reverse engineer, decompile, or remove or alter any
+   copyright, trademark or proprietary notice in the Software, except to
+   the extent applicable law expressly allows it.
+
+4. "Entaris", "AIRA" and the Entaris logo are brands of Arah. This notice
+   grants no right to use them.
+
+5. The Software includes third-party open-source components. Each of those
+   components remains subject to its own licence, which this notice does
+   not change.
+
+6. Unless a written agreement states otherwise, the Software is provided
+   "as is", without warranty of any kind, express or implied, and Arah is
+   not liable for any claim, damages or other liability arising from the
+   Software or its use.
+
+Licensing enquiries: solutions@arahkarya.com
+
+---
+
+Ringkasan (Bahasa Indonesia): Entaris adalah perangkat lunak milik
+PT Arah Karya Sinergi. Seluruh hak dilindungi. Penggunaan, penyalinan,
+modifikasi, dan distribusi hanya boleh dilakukan berdasarkan perjanjian
+lisensi tertulis dengan PT Arah Karya Sinergi. Hubungi
+solutions@arahkarya.com untuk lisensi.

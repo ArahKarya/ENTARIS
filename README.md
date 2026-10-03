@@ -1,17 +1,22 @@
 <div align="center">
 
-<img src="docs/brand/entaris/entaris-icon.svg" width="96" height="96" alt="Entaris" />
+<img src="docs/brand/entaris/entaris-icon.svg" width="104" height="104" alt="Logo Entaris" />
 
-# Entaris — Agentic ERP
+# Entaris
 
-**Enterprise Agentic Reasoning Integrated System — penjualan, pembelian, inventori & keuangan dalam satu sistem, dengan pembukuan double-entry otomatis di setiap transaksi dan agen AI (AIRA) yang bernalar di atas data Anda. Multi-role, self-hosted via Docker.**
+### Agentic Reasoning System
 
-[![Demo](https://img.shields.io/badge/Demo-Live-16C79A?style=flat-square)](https://erp.panganmasadepan.com)
-[![Stack](https://img.shields.io/badge/Stack-React%2019%20%C2%B7%20Express%205%20%C2%B7%20Prisma%207-0F3460?style=flat-square)](#-stack)
+**ERP untuk penjualan, pembelian, inventori, produksi & keuangan dalam satu sistem — dengan pembukuan double-entry otomatis di setiap transaksi dan agen AI (AIRA) yang menalar di atas data Anda. Multi-role, self-hosted via Docker.**
+
+<sub><b>ENT</b>erprise · <b>A</b>gentic · <b>R</b>easoning · <b>I</b>ntegrated · <b>S</b>ystem</sub>
+
+[![AIRA](https://img.shields.io/badge/AI%20Agent-AIRA-3D8BE0?style=flat-square)](#-agentic-reasoning--aira)
+[![Stack](https://img.shields.io/badge/Stack-React%2019%20%C2%B7%20Express%205%20%C2%B7%20Prisma%207-1B2B48?style=flat-square)](#-stack)
 
 [![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-FF6F61?style=flat-square&logo=postgresql&logoColor=white)](#-stack)
-[![Deploy](https://img.shields.io/badge/Deploy-Docker%20Compose-0F3460?style=flat-square&logo=docker&logoColor=white)](#-quickstart-docker)
-[![License](https://img.shields.io/badge/License-MIT-0F3460?style=flat-square)](./LICENSE)
+[![Deploy](https://img.shields.io/badge/Deploy-Docker%20Compose-1B2B48?style=flat-square&logo=docker&logoColor=white)](#-quickstart-docker)
+[![License](https://img.shields.io/badge/License-Proprietary-1B2B48?style=flat-square)](./LICENSE)
+[![Contact](https://img.shields.io/badge/Lisensi%20%26%20demo-solutions%40arahkarya.com-3D8BE0?style=flat-square)](mailto:solutions@arahkarya.com)
 
 </div>
 
@@ -19,7 +24,7 @@
 
 **Entaris** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
-Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
+Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — berjalan di server Anda sendiri, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
 
 ## ✨ Kenapa Entaris
 
@@ -28,16 +33,27 @@ Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7
 | **Pasang lama & ribet** | `docker compose up -d --build` — dalam 5 menit aplikasi sudah bisa login. Seed otomatis (chart of account, fiscal year, system accounts) saat pertama jalan. |
 | **Angka tidak konsisten / "melayang"** | **Double-entry bookkeeping** murni. Setiap transaksi (invoice, pembayaran, JV, produksi, stok) otomatis posting ke GL dan **selalu balanced**. |
 | **Sistem kaku, susah berkembang** | Skalabilitas bertahap — dari warung/UKM (1–3 user, tanpa modul produksi) hingga pabrik (puluhan user, BOM, konversi produksi, HPP, pajak per item, multi-gudang). Fitur tinggal diaktifkan, schema sama. |
-| **Biaya SaaS bulanan & vendor lock-in** | **MIT license**, **gratis & self-hosted**. Data & backup di server sendiri (Raspberry Pi 5, VPS murah, on-premise). Tidak ada biaya per-user. |
+| **Data dipegang vendor SaaS** | **Self-hosted** — aplikasi, database, dan backup berjalan di server Anda sendiri (Raspberry Pi 5, VPS, atau on-premise). Data tidak pernah meninggalkan infrastruktur Anda. |
 | **Software akuntansi tidak cocok Indonesia** | UI **Bahasa Indonesia**, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, export PDF/Excel siap cetak. |
+| **Data banyak, keputusan lambat** | **AIRA**, agen AI bawaan — tanya data dalam bahasa sehari-hari, dapatkan jawaban dari buku besar & stok, dan minta AIRA menyiapkan draf transaksi. Setiap perubahan pembukuan tetap menunggu **persetujuan manusia**. |
 | **Susah disesuaikan tim internal** | TypeScript end-to-end, kode rapi, **Prisma schema terbuka** — tim internal atau developer eksternal bisa tambah modul baru tanpa membongkar core. |
 
 ### Cocok untuk
 
-- **UKM & toko retail** yang ingin lepas dari Excel/buku tulis tanpa biaya SaaS bulanan
+- **UKM & toko retail** yang ingin lepas dari Excel/buku tulis
 - **Perusahaan distribusi / trading** dengan banyak vendor, pelanggan, dan invoice outstanding
 - **Perusahaan manufaktur** (rice mill, pangan, pupuk, produk industri) dengan kebutuhan BOM, konversi produksi, dan HPP real-time
 - **Kantor akuntan / konsultan** yang ingin self-host pembukuan multi-klien di infra sendiri
+
+## 🤖 Agentic Reasoning — AIRA
+
+**AIRA** adalah agen AI di dalam Entaris. Ia bekerja di atas data transaksi yang sama dengan modul lain — bukan salinan — sehingga jawabannya selalu konsisten dengan buku besar.
+
+- **Bertanya ke data** — "berapa piutang yang lewat 60 hari?", "stok beras mana yang di bawah minimum?" — AIRA memanggil *tool* ERP yang tepat lalu merangkum hasilnya.
+- **Menyiapkan draf, bukan memposting sendiri** — AIRA bisa menyiapkan draf invoice, jurnal, atau pengajuan. Semua aksi yang mengubah pembukuan masuk ke **alur approval** dan baru berefek setelah disetujui manusia.
+- **Tunduk pada hak akses** — AIRA hanya bisa memakai tool yang diizinkan untuk peran pengguna yang sedang login (RBAC yang sama dengan UI).
+- **Aman secara teknis** — setiap permintaan tulis dari AIRA wajib bertanda tangan HMAC-SHA256 per-*run* dengan stempel waktu (anti-pemalsuan & anti-*replay*).
+- **Terdaftar & terukur** — **386 tool di 45 modul** dideklarasikan di `server/src/ai/aira-tool-router.json` (lengkap dengan tingkat risiko, peran, dan level otonomi), sehingga kemampuan AIRA bisa ditinjau dan diatur dari satu tempat.
 
 ## 📸 Tampilan
 
@@ -154,9 +170,9 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 
 ### 6.1 EAM — Enterprise Asset Management (`client-eam/`)
 
-Aplikasi frontend **standalone** di `eam.panganmasadepan.com`, tapi **tetap satu monorepo** — satu backend/API, satu database, satu akun login dengan ERP utama. Cocok untuk staf lapangan (mekanik, GA) yang hanya butuh modul aset tanpa harus buka menu keuangan.
+Aplikasi frontend **standalone** di subdomain sendiri (mis. `eam.perusahaan-anda.com`), tapi **tetap satu monorepo** — satu backend/API, satu database, satu akun login dengan ERP utama. Cocok untuk staf lapangan (mekanik, GA) yang hanya butuh modul aset tanpa harus buka menu keuangan.
 
-- **Login SSO** cross-subdomain — 1 akun ERP otomatis berlaku di EAM (shared cookie `.panganmasadepan.com`), tanpa login ulang.
+- **Login SSO** cross-subdomain — 1 akun ERP otomatis berlaku di EAM (cookie bersama di domain induk, mis. `.perusahaan-anda.com`), tanpa login ulang.
 - **Dashboard ringkas**: total aset, nilai buku (NBV), work order aktif & overdue, breakdown nilai per kategori, quick links ke tiap modul.
 - **Modul aset per kategori**: Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Inventaris GA, Dokumen & Sertifikat, Maintenance/Work Order, Permintaan Barang, Master Data — tiap halaman otomatis terfilter ke kategorinya sendiri (`?categoryId=` multi-value di API, backward-compatible dengan ERP utama).
 - **QR aset publik** tetap bisa diakses tanpa login (scan barcode aset fisik).
@@ -197,7 +213,7 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 - **Transaksi Berulang (Recurring)** — template jurnal untuk beban rutin (sewa, gaji, langganan) yang auto-generate per jadwal harian/mingguan/bulanan.
 - **Approval Workflow** berbasis aturan (per tipe dokumen + threshold nominal). Pengajuan oleh staf ditahan sampai disetujui — efek GL/stok baru terjadi setelah *approve* (gate "approve-before-effect"). Manajer dapat **menyetujui / menolak / minta revisi langsung dari tombol di Telegram** (tanpa buka aplikasi), atau lewat halaman Approval; pesan memuat detail + link langsung ke pengajuan.
 - **Notifikasi** terintegrasi (invoice jatuh tempo, stok di bawah minimum, approval pending, hasil keputusan) — in-app **dan** ke **Telegram**: japri pribadi per-staf yang sudah menautkan akun (via `/start`) + mirror ke grup opsional.
-- **AIRA Asisten** — asisten AI di dalam ERP untuk menjawab pertanyaan data dan menyiapkan draf transaksi. Semua aksi yang mengubah pembukuan melewati **persetujuan manusia** (tidak ada posting otomatis tanpa approve).
+- **AIRA Asisten** — agen AI di dalam ERP untuk menjawab pertanyaan data dan menyiapkan draf transaksi (detail: [Agentic Reasoning — AIRA](#-agentic-reasoning--aira)). Semua aksi yang mengubah pembukuan melewati **persetujuan manusia** (tidak ada posting otomatis tanpa approve).
 - **Global Search (Ctrl + K)** — command palette untuk cari invoice, pelanggan, akun, transaksi dari mana saja di aplikasi.
 - **Health Check Page** — diagnosa otomatis kesehatan data (saldo tidak balance, invoice orphan, mapping akun hilang, dsb.) untuk memastikan integritas data.
 
@@ -374,7 +390,7 @@ docker compose up -d --build
 
 ```bash
 # .env
-ALLOWED_ORIGINS=http://localhost:3001,https://erp.panganmasadepan.com
+ALLOWED_ORIGINS=http://localhost:3001,https://erp.perusahaan-anda.com
 
 docker compose up -d --build
 
@@ -387,7 +403,7 @@ cloudflared tunnel --url http://localhost:3001
 ```nginx
 server {
     listen 80;
-    server_name erp.panganmasadepan.com;
+    server_name erp.perusahaan-anda.com;
 
     location / {
         proxy_pass http://localhost:3001;
@@ -517,6 +533,7 @@ npm run lint             # ESLint
 - [x] Aset tetap & depresiasi otomatis
 - [x] 10 laporan keuangan dengan drill-down + export PDF/Excel
 - [x] Approval workflow + notifikasi Telegram (approve/reject dari chat)
+- [x] AIRA — agen AI (386 tool, 45 modul) dengan RBAC & persetujuan manusia
 - [x] RBAC dinamis (role custom + matriks izin per modul)
 - [x] Surat Jalan Sementara, tautan ke DO resmi, invoice Rp 0 otomatis Paid
 - [x] Reversal otomatis penyelesaian HPP saat dokumen pemicu dibatalkan/diedit
@@ -533,13 +550,20 @@ npm run lint             # ESLint
 - **Database** — PostgreSQL **16**
 - **Auth** — JWT + bcrypt, RBAC dinamis (role custom + matriks izin per modul, dapat diatur dari UI)
 - **Testing** — Vitest (unit), Playwright (E2E)
+- **AI** — AIRA (agent core terpisah) + Tool Router per-aplikasi, permintaan tulis bertanda tangan HMAC
 - **Deploy** — Docker Compose (2 container: `app` + `db`)
 - **Skala kode** — **43 route** backend · **79 halaman** · **145 komponen** · **13 PDF template** · **79 migrasi** · 20 berkas uji
 
 ## 📄 Lisensi
 
-[MIT](./LICENSE) © 2026 PT Arah Karya Sinergi (AKS)
+**Proprietary** — © 2026 PT Arah Karya Sinergi. Seluruh hak dilindungi.
+
+Entaris hanya boleh digunakan, disalin, atau dimodifikasi berdasarkan perjanjian lisensi tertulis dengan PT Arah Karya Sinergi. Lihat [`LICENSE`](./LICENSE). Untuk lisensi, harga, dan demo: **solutions@arahkarya.com**.
 
 ---
 
-<div align="center"><sub>© 2026 PT Arah Karya Sinergi (AKS)</sub></div>
+<div align="center">
+<img src="docs/brand/entaris/entaris-mark.svg" width="40" height="40" alt="" />
+<br />
+<sub><b>Entaris</b> — Agentic Reasoning System · © 2026 PT Arah Karya Sinergi (Arah)</sub>
+</div>

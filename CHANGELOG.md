@@ -11,6 +11,12 @@
 - Halaman login memakai palet Entaris (gradien navy → biru) menggantikan biru steel lama; label panel menjadi "Agentic Reasoning System". Kontras tombol & tautan ≥ 4,5 : 1.
 - Panduan merek & file sumber logo di `docs/brand/entaris/`.
 
+### Lisensi
+**Diubah**:
+- Lisensi berganti dari **MIT** menjadi **proprietary** (seluruh hak dilindungi PT Arah Karya Sinergi; penggunaan hanya melalui perjanjian lisensi tertulis). `LICENSE`, badge README, dan bagian Lisensi diperbarui; `package.json` server/client/client-eam ditandai `"license": "UNLICENSED"` dan `private`.
+- Badge "Demo Live" yang menunjuk ke server produksi klien dihapus; diganti badge kontak lisensi & demo (solutions@arahkarya.com).
+- Klaim "gratis" dan "tanpa biaya lisensi" dihapus dari README.
+
 **Catatan**: pengenal teknis `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) tidak diubah agar integrasi dan deploy yang berjalan tidak putus.
 
 ## [3.19.0] - 2026-10-02
