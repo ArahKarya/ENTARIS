@@ -33,4 +33,8 @@ Sistem desain diporting dari situs ERP•AI (erpai.studio):
   Markup mempertahankan nama class asli agar gaya dari `site.css` tetap berlaku.
 - Aset (font, gambar) di `public/assets/`, logo Entaris di `public/brand/`.
 
+`scripts/fix-color-mix.mjs` mengubah `color-mix(in oklch …)` menjadi `in oklab` — token `site.css` dihitung Chrome sebagai
+`lab()`, dan warna netral yang dikonversi ke oklch mendapat hue `none` yang dirender sebagai pink. Jalankan ulang
+skrip ini setiap kali `site.css` diregenerasi.
+
 CSS tambahan per halaman ditulis di dalam `@layer entaris { … }` dengan selector diawali `.erp-root`.

@@ -744,3 +744,11 @@
     }
   }
 }
+
+/* Example cards: fixed row tracks so a 3-line question doesn't squeeze the label row. */
+@layer entaris {
+  .erp-root .tacet-proto-bulletin {
+    grid-template-rows: auto auto 1fr auto;
+    align-content: start;
+  }
+}
