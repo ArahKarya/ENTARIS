@@ -12,7 +12,7 @@ export const HUMAN_PANEL: GlitchPanel = {
     "Penjualan, pembelian, inventori, produksi, keuangan & aset — satu buku besar.",
     "Setiap transaksi otomatis posting ke buku besar dengan double-entry.",
     "Invoice, pembayaran, jurnal, produksi, dan stok — debit selalu sama dengan kredit.",
-    "Self-hosted via Docker Compose: aplikasi, database, dan backup di server Anda.",
+    "Berjalan di server Anda sendiri: aplikasi, data, dan cadangannya tetap di tangan Anda.",
   ],
 };
 
@@ -20,7 +20,7 @@ export const AGENT_PANEL: GlitchPanel = {
   words: ["AI bernalar", "Tanya data", "Analisis data", "Draf dulu", "Anda setujui"],
   subs: [
     "AIRA, agen AI bawaan, bernalar di atas data transaksi yang sama — bukan salinan.",
-    "“Berapa piutang yang lewat 60 hari?” — AIRA memanggil tool ERP lalu merangkum jawabannya.",
+    "“Berapa piutang yang lewat 60 hari?” — AIRA mencari datanya lalu merangkum jawabannya.",
     "Laba rugi, arus kas, rasio, tren stok, HPP\u00a0— AIRA membandingkan periode dan merangkum pos yang paling berubah.",
     "AIRA menyiapkan draf invoice, jurnal, atau pengajuan — bukan memposting sendiri.",
     "Setiap aksi tulis menunggu persetujuan manusia dan tunduk pada RBAC yang sama.",
@@ -30,9 +30,9 @@ export const AGENT_PANEL: GlitchPanel = {
 export type HeroStep = { readonly label: string; readonly detail: string };
 
 export const HUMAN_STEPS: readonly HeroStep[] = [
-  { label: "Pasang", detail: "docker compose" },
-  { label: "Seed otomatis", detail: "COA & admin" },
-  { label: "Login & atur role", detail: "4 role bawaan" },
+  { label: "Pasang", detail: "Di server Anda" },
+  { label: "Siap pakai", detail: "Bagan akun otomatis" },
+  { label: "Atur tim", detail: "4 peran bawaan" },
 ];
 
 export const AGENT_STEPS: readonly HeroStep[] = [
@@ -116,13 +116,13 @@ export const CATEGORIES: readonly ModuleCategory[] = [
   {
     slug: "keuangan",
     label: "Keuangan",
-    summary: "Double-entry murni — setiap transaksi otomatis posting dan selalu balanced.",
+    summary: "Double-entry penuh — setiap transaksi otomatis tercatat dan selalu seimbang.",
     icon: "finance",
     color: "#1b2b48",
     pattern: "pat-lines",
     modules: [
-      { name: "COA", desc: "Bagan akun hierarkis tak terbatas level, dengan import/export Excel dan saldo awal." },
-      { name: "Buku Besar", desc: "Setiap transaksi menghasilkan pasangan jurnal yang balanced; ledger jadi sumber kebenaran." },
+      { name: "Bagan Akun (COA)", desc: "Bagan akun bertingkat tanpa batas level, dengan impor/ekspor Excel dan saldo awal." },
+      { name: "Buku Besar", desc: "Setiap transaksi menghasilkan pasangan jurnal yang seimbang; buku besar jadi acuan semua laporan." },
       { name: "Jurnal Umum", desc: "Jurnal manual multi-baris; total debit = total kredit divalidasi sebelum posting." },
       { name: "Pembayaran", desc: "Penerimaan dan pembayaran dengan auto-alokasi FIFO, split, dan partial payment." },
       { name: "Rekonsiliasi Bank", desc: "Upload mutasi bank (CSV/Excel) lalu cocokkan dengan transaksi di buku." },
@@ -140,7 +140,7 @@ export const CATEGORIES: readonly ModuleCategory[] = [
     pattern: "pat-diag",
     modules: [
       { name: "Aset Tetap", desc: "Register aset, depresiasi bulanan otomatis, dan disposisi dengan untung/rugi pelepasan." },
-      { name: "EAM", desc: "Enterprise Asset Management: aplikasi terpisah dengan SSO, satu backend dan database dengan ERP." },
+      { name: "EAM", desc: "Pengelolaan aset & pemeliharaan dalam aplikasi pendamping — satu login dan satu data dengan ERP." },
       { name: "Manajemen Kendaraan", desc: "Pajak & STNK/KIR, log BBM, inspeksi berkala, dan riwayat servis armada." },
     ],
   },
@@ -152,27 +152,27 @@ export const WHY_ROWS: readonly { readonly problem: string; readonly solution: s
   {
     problem: "Pasang lama & ribet",
     solution:
-      "Satu perintah docker compose up -d --build. Seed otomatis (chart of account, tahun fiskal, akun sistem) dan 79 migrasi berjalan sendiri saat pertama jalan.",
+      "Entaris dipasang di server Anda dan langsung siap pakai — bagan akun, tahun fiskal, dan akun sistem disiapkan otomatis sejak pertama dijalankan.",
   },
   {
     problem: "Angka tidak konsisten",
     solution:
-      "Double-entry bookkeeping murni. Invoice, pembayaran, jurnal, produksi, dan stok otomatis posting ke buku besar dan selalu balanced.",
+      "Pembukuan double-entry penuh. Invoice, pembayaran, jurnal, produksi, dan stok otomatis tercatat di buku besar dan selalu seimbang.",
   },
   {
     problem: "Sistem kaku, susah berkembang",
     solution:
-      "Dari UKM dengan beberapa user tanpa modul produksi hingga pabrik dengan BOM, konversi produksi, HPP, dan multi-gudang. Fitur tinggal diaktifkan, schema sama.",
+      "Dari UKM dengan beberapa user tanpa modul produksi hingga pabrik dengan BOM, konversi produksi, HPP, dan multi-gudang. Fitur tinggal diaktifkan, tanpa pindah sistem.",
   },
   {
-    problem: "Data dipegang vendor SaaS",
+    problem: "Data dipegang vendor",
     solution:
-      "Self-hosted di Raspberry Pi 5, VPS, atau on-premise. Aplikasi, database, dan backup berjalan di server Anda — data 100% milik Anda.",
+      "Entaris berjalan di server perusahaan Anda — di kantor atau di cloud pilihan Anda. Aplikasi, data, dan cadangannya tetap milik Anda.",
   },
   {
     problem: "Software akuntansi tidak cocok Indonesia",
     solution:
-      "UI Bahasa Indonesia, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, export PDF/Excel siap cetak.",
+      "Tampilan Bahasa Indonesia, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, ekspor PDF/Excel siap cetak.",
   },
   {
     problem: "Data banyak, keputusan lambat",
@@ -180,9 +180,9 @@ export const WHY_ROWS: readonly { readonly problem: string; readonly solution: s
       "AIRA menjawab pertanyaan dan menganalisis laporan — laba rugi, arus kas, rasio, umur piutang, tren stok, HPP — dalam bahasa sehari-hari, lalu menyiapkan draf transaksi. Perubahan pembukuan tetap menunggu persetujuan manusia.",
   },
   {
-    problem: "Susah disesuaikan tim internal",
+    problem: "Susah disesuaikan dengan proses bisnis",
     solution:
-      "TypeScript end-to-end (React 19, Express 5, Prisma 7, PostgreSQL 16) dengan Prisma schema terbuka — modul baru bisa ditambah tanpa membongkar core.",
+      "Entaris bisa dikembangkan mengikuti proses bisnis Anda — modul baru ditambahkan tanpa mengganggu yang sudah berjalan.",
   },
 ];
 
@@ -190,5 +190,5 @@ export const FIT_ITEMS: readonly { readonly title: string; readonly body: string
   { title: "UKM & toko retail", body: "Yang ingin lepas dari Excel atau buku tulis." },
   { title: "Distribusi & trading", body: "Banyak vendor, pelanggan, dan invoice outstanding." },
   { title: "Manufaktur", body: "Rice mill, pangan, pupuk, produk industri — BOM, konversi produksi, dan HPP real-time." },
-  { title: "Kantor akuntan & konsultan", body: "Self-host pembukuan multi-klien di infrastruktur sendiri." },
+  { title: "Kantor akuntan & konsultan", body: "Pembukuan multi-klien di server sendiri." },
 ];

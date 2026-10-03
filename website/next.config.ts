@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   output: "standalone",
   agentRules: false,
+  async redirects() {
+    return [{ source: "/self-hosted", destination: "/keamanan", permanent: true }];
+  },
 };
 
 export default nextConfig;

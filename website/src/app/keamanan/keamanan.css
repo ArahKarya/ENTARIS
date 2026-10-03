@@ -1,0 +1,78 @@
+/*
+ * /keamanan (Keamanan & Data) page additions on top of the ported enterprise-page design system.
+ * Everything is scoped under .erp-root and lives in the `entaris` layer (declared last in
+ * entaris-theme.css), so it wins over site.css without !important.
+ */
+@layer entaris {
+  /* ---------- Hero ---------- */
+  .erp-root .sh-page .sh-hero__line {
+    display: block;
+  }
+
+  /* ---------- Placement matrix: four columns ---------- */
+  .erp-root .sh-deploy-matrix .enterprise-deployment__row {
+    grid-template-columns: minmax(11rem, 0.22fr) repeat(3, minmax(0, 0.26fr));
+  }
+
+  /* ---------- CTA benefits list ---------- */
+  .erp-root .sh-benefits {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .erp-root .sh-benefits li {
+    position: relative;
+    padding-left: 1.6rem;
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .erp-root .sh-benefits li::before {
+    content: "";
+    position: absolute;
+    top: 0.3em;
+    left: 0;
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 999px;
+    background: var(--entaris-blue-dark)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E")
+      center / 0.6rem no-repeat;
+  }
+
+  @media (max-width: 48rem) {
+
+
+
+    .erp-root .sh-deploy-matrix .enterprise-deployment__row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* site.css keeps `grid-column: 2 / -1` on the outcome, which forces a second column. */
+    .erp-root .sh-page .enterprise-policy__rows article {
+      gap: 0.5rem;
+    }
+
+    .erp-root .sh-page .enterprise-policy__rows article > strong {
+      grid-column: 1;
+      text-align: left;
+    }
+
+    .erp-root .sh-deploy-matrix [data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 0.2rem;
+      color: var(--foreground);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+}

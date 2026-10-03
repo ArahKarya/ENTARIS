@@ -104,7 +104,7 @@ export function HeroCatalog() {
                   <strong>Satu buku besar</strong>
                   {" untuk enam area bisnis."}
                 </p>
-                <p>Double-entry otomatis di setiap transaksi — selalu balanced.</p>
+                <p>Double-entry otomatis di setiap transaksi — selalu seimbang.</p>
               </div>
             </div>
             <a href={DEMO_HREF} className="hero-catalog__cta">
@@ -131,10 +131,10 @@ export function HeroCatalog() {
             <div className="hero-catalog__metric">
               <div className="hero-catalog__metric-box">
                 <p>
-                  <strong>386 tool di 45 modul</strong>
-                  {" — terdaftar dan bisa ditinjau."}
+                  <strong>Ratusan kemampuan</strong>
+                  {" di seluruh modul — bisa diatur per peran."}
                 </p>
-                <p>Aksi tulis bertanda tangan HMAC dan menunggu approval.</p>
+                <p>Setiap perubahan pembukuan menunggu persetujuan Anda.</p>
               </div>
             </div>
             <Link href="/aira" className="hero-catalog__cta">

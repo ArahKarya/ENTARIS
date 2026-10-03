@@ -4,26 +4,26 @@ type ControlRow = { question: string; title: string; body: string; outcome: stri
 const CONTROL_ROWS: readonly ControlRow[] = [
   {
     question: "Siapa yang bertindak?",
-    title: "Login & sesi",
-    body: "Login JWT di cookie httpOnly plus token CSRF. Empat peran bawaan — Admin, Accountant, StaffProduksi, Viewer — dan Admin bisa menambah peran sendiri.",
+    title: "Akun & peran pengguna",
+    body: "Setiap orang masuk dengan akunnya sendiri. Ada empat peran bawaan — Admin, Accountant, Staf Produksi, Viewer — dan Admin bisa menambah peran sesuai struktur perusahaan.",
     outcome: "Kenali dulu",
   },
   {
     question: "Boleh dilanjutkan?",
-    title: "Hak akses & approval",
-    body: "RBAC per modul ditegakkan di server. Dokumen penting melewati alur approval — termasuk draf yang disiapkan AIRA, yang baru berefek setelah disetujui manusia.",
+    title: "Hak akses & persetujuan",
+    body: "Setiap orang hanya bisa membuka dan mengubah modul yang menjadi haknya. Dokumen penting melewati persetujuan — termasuk draf dari AIRA, yang baru berlaku setelah disetujui.",
     outcome: "Tahan bila belum disetujui",
   },
   {
     question: "Apakah pembukuannya benar?",
-    title: "Double-entry otomatis",
-    body: "Setiap transaksi — invoice, pembayaran, jurnal, produksi, stok — otomatis posting ke buku besar dan selalu balanced.",
+    title: "Pembukuan otomatis & seimbang",
+    body: "Setiap transaksi — invoice, pembayaran, jurnal, produksi, stok — otomatis tercatat di buku besar dengan sistem double-entry, dan selalu seimbang.",
     outcome: "Debit = kredit",
   },
   {
     question: "Apa yang tercatat?",
-    title: "Audit trail",
-    body: "Setiap insert, update, dan delete tercatat dengan user, waktu, serta nilai sebelum dan sesudah — bisa difilter per user, tabel, atau periode.",
+    title: "Jejak audit",
+    body: "Setiap penambahan, perubahan, dan penghapusan data tercatat lengkap: siapa, kapan, serta nilai sebelum dan sesudahnya.",
     outcome: "Simpan jejaknya",
   },
 ];
@@ -34,7 +34,7 @@ export function SelfHostedControls() {
       <header className="role-intro role-intro--narrow">
         <h2>Satu jalur kontrol, empat pertanyaan.</h2>
         <p>
-          Data ada di server Anda, dan aturan main yang sama berlaku untuk setiap perubahan — dari siapa yang login sampai jejak yang tertinggal di audit trail.
+          Aturan main yang sama berlaku untuk setiap perubahan — dari siapa yang masuk sampai jejak yang tertinggal di catatan audit.
         </p>
       </header>
       <div className="enterprise-policy__rows">

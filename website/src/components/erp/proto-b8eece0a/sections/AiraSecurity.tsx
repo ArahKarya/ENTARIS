@@ -6,18 +6,18 @@ type Control = { icon: AiraIconName; title: string; text: string };
 const CONTROLS: readonly Control[] = [
   {
     icon: "user-shield",
-    title: "RBAC yang sama dengan UI",
-    text: "AIRA hanya bisa memakai tool yang diizinkan untuk peran pengguna yang sedang login — Admin, Accountant, StaffProduksi, atau Viewer.",
+    title: "Hak akses sama dengan pengguna",
+    text: "AIRA hanya bisa membuka data dan fitur yang diizinkan untuk peran pengguna yang sedang masuk — Admin, Accountant, Staf Produksi, atau Viewer.",
   },
   {
     icon: "signature",
-    title: "Tanda tangan HMAC-SHA256 per-run",
-    text: "Setiap permintaan tulis dari AIRA wajib bertanda tangan per-run dengan stempel waktu, sehingga permintaan palsu atau yang diulang ditolak.",
+    title: "Setiap permintaan diverifikasi",
+    text: "Setiap perubahan yang diminta lewat AIRA diberi tanda pengenal dan waktu, lalu diperiksa sistem — permintaan palsu atau yang dikirim ulang otomatis ditolak.",
   },
   {
     icon: "list-details",
-    title: "386 tool di 45 modul, terdaftar",
-    text: "Setiap tool dideklarasikan lengkap dengan tingkat risiko, peran, dan level otonomi — kemampuan AIRA bisa ditinjau dan diatur dari satu tempat.",
+    title: "Kemampuan AIRA bisa diatur",
+    text: "Setiap kemampuan AIRA tercatat lengkap dengan tingkat risiko dan peran yang boleh memakainya — admin bisa meninjau dan mengaturnya dari satu tempat.",
   },
   {
     icon: "circle-check",
@@ -27,8 +27,8 @@ const CONTROLS: readonly Control[] = [
 ];
 
 const STATS: readonly { value: string; label: string }[] = [
-  { value: "386", label: "tool terdaftar" },
-  { value: "45", label: "modul" },
+  { value: "386", label: "kemampuan terdaftar" },
+  { value: "6", label: "area bisnis" },
   { value: "4", label: "peran bawaan" },
 ];
 

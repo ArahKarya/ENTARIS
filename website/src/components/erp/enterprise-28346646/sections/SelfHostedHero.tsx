@@ -2,15 +2,15 @@ import { DEMO_HREF } from "@/components/site/siteConfig";
 import { ARROW_RIGHT_PATHS, BUTTON_ICON_STYLE, DATABASE_PATHS, LOCK_PATHS, SCROLL_PATHS, TablerIcon } from "./TablerIcon";
 
 /*
- * Self-hosted hero. The `observed` classes are added by useErpObserver (called by SelfHostedMain)
+ * Keamanan & Data hero (customer-facing: no technical/deployment jargon). The `observed` classes are added by useErpObserver (called by SelfHostedMain)
  * when each [data-observe] element enters the viewport. The shader background is pure CSS.
  */
 type HeroCheck = { name: string; paths: readonly string[]; label: string };
 
 const HERO_CHECKS: readonly HeroCheck[] = [
-  { name: "lock", paths: LOCK_PATHS, label: "Data tidak meninggalkan server Anda" },
-  { name: "database", paths: DATABASE_PATHS, label: "Migrasi & seed otomatis" },
-  { name: "script", paths: SCROLL_PATHS, label: "Audit trail setiap perubahan" },
+  { name: "lock", paths: LOCK_PATHS, label: "Data tetap di server Anda" },
+  { name: "database", paths: DATABASE_PATHS, label: "Siap pakai sejak hari pertama" },
+  { name: "script", paths: SCROLL_PATHS, label: "Jejak audit setiap perubahan" },
 ];
 
 const CHECK_ICON_STYLE: React.CSSProperties = { color: "var(--hero-accent-text)" };
@@ -27,8 +27,8 @@ export function SelfHostedHero() {
             <div className="proto-section-eyebrow proto-section-eyebrow--underline hero-eyebrow-underline mb-8" data-observe="reveal-up" style={{ "--stagger-index": "0" } as React.CSSProperties}>
               <span className="proto-section-eyebrow__rail" aria-hidden="true" />
               <span className="proto-section-eyebrow__copy">
-                <span className="proto-section-eyebrow__name">Self-hosted</span>
-                <span className="proto-section-eyebrow__context">Docker Compose</span>
+                <span className="proto-section-eyebrow__name">Keamanan &amp; Data</span>
+                <span className="proto-section-eyebrow__context">Di server Anda sendiri</span>
               </span>
             </div>
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl leading-[1.1] mb-6" style={{ fontWeight: "900", color: "var(--foreground)", letterSpacing: "0px", "--stagger-index": "1" } as React.CSSProperties} data-observe="signature-reveal">
@@ -45,15 +45,15 @@ export function SelfHostedHero() {
               ))}
             </h1>
             <p className="text-base md:text-lg max-w-[56ch] leading-relaxed mb-8 pl-6 py-1" style={{ color: "var(--foreground)", fontFamily: "var(--font-body)", borderLeft: "1px solid var(--border)", "--stagger-index": "3" } as React.CSSProperties} data-observe="reveal-up">
-              Aplikasi, database, dan backup Entaris berjalan di infrastruktur Anda sendiri — Raspberry Pi 5, VPS, atau server on-premise. Satu perintah deploy, lalu tim Anda langsung bisa login.
+              Entaris berjalan di server milik perusahaan Anda — di kantor atau di cloud pilihan Anda. Data transaksi, laporan, dan cadangannya tetap di tangan Anda, bukan di tangan vendor.
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-4" data-observe="reveal-up" style={{ "--stagger-index": "4" } as React.CSSProperties}>
               <a href={DEMO_HREF} className="btn btn--primary btn--xl">
                 Minta demo
                 <TablerIcon name="arrow-right" dataIcon="arrow-right" paths={ARROW_RIGHT_PATHS} style={BUTTON_ICON_STYLE} />
               </a>
-              <a href="#arsitektur" className="btn btn--ghost btn--xl">
-                Lihat arsitektur ↓
+              <a href="#mulai" className="btn btn--ghost btn--xl">
+                Lihat cara mulai ↓
               </a>
             </div>
             <div className="hero-checks flex flex-wrap font-mono uppercase tracking-label" style={{ color: "var(--text-m)", "--stagger-index": "5" } as React.CSSProperties} data-observe="reveal-up">
