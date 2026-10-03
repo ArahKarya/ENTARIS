@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { hasCap } from '../services/permissionService';
@@ -15,6 +14,14 @@ import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { submitDeliveryOrderInTx } from '../services/deliveryOrderSubmit';
 import { recomputeDeliveredQtyInTx } from '../services/salesOrderDelivery';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildSalesOrderWhere,
+  DEFAULT_SALES_ORDER_SORT,
+  SALES_ORDER_SORT_FIELDS,
+  salesOrderOrderBy,
+  summarizeSalesOrders,
+} from '../services/salesOrderList';
 import Decimal from 'decimal.js';
 
 const router = Router();
@@ -44,29 +51,18 @@ function computeTotals(input: {
 // of truth shared by generate-do, DO edit, and DO cancel.
 
 // ─── GET / list ────────────────────────────────────────────────────────────
+// Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
+// search (SO number / customer name / customer ref), sort (e.g. "-date").
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { status, partyId, startDate, endDate, search, page = '1', limit = '50' } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.SalesOrderWhereInput = {};
-    if (status) where.status = status as any;
-    if (partyId) where.partyId = partyId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-    }
-    if (search) {
-      const q = String(search).trim();
-      if (q.length > 0) {
-        where.OR = [
-          { soNumber: { contains: q, mode: 'insensitive' } },
-          { customer: { name: { contains: q, mode: 'insensitive' } } },
-        ];
-      }
-    }
+    const query = req.query as Record<string, unknown>;
+    // Max 200 kept for callers that still load a whole list (DO modal "Tarik dari SO").
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildSalesOrderWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, SALES_ORDER_SORT_FIELDS, DEFAULT_SALES_ORDER_SORT);
 
     const [data, total] = await Promise.all([
       prisma.salesOrder.findMany({
@@ -75,16 +71,34 @@ router.get('/', async (req, res) => {
           customer: { select: { id: true, name: true } },
           _count: { select: { items: true, deliveryOrders: true } },
         },
-        orderBy: [{ date: 'desc' }, { soNumber: 'desc' }],
+        orderBy: salesOrderOrderBy(sort),
         skip,
         take,
       }),
       prisma.salesOrder.count({ where }),
     ]);
 
-    res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /sales-orders', 'Gagal mengambil daftar Sales Order.');
+  }
+});
+
+// ─── GET /summary ──────────────────────────────────────────────────────────
+// KPI totals for the same filters as the list. Declared before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildSalesOrderWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const groups = await prisma.salesOrder.groupBy({
+      by: ['status'],
+      where: filter.where,
+      _count: { _all: true },
+      _sum: { grandTotal: true },
+    });
+    return res.json(summarizeSalesOrders(groups));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /sales-orders/summary', 'Gagal menghitung ringkasan Sales Order.');
   }
 });
 

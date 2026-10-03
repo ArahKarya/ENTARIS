@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STATUS_TONES, getStatusLabel, getStatusMeta, getStatusTone, normalizeStatusKey } from './status';
+import { STATUS_TONES, getStatusLabel, getStatusMeta, getStatusTone, normalizeStatusKey, statusOptions } from './status';
 
 describe('normalizeStatusKey', () => {
   it('ignores case, underscores, spaces and dashes', () => {
@@ -54,5 +54,57 @@ describe('getStatusMeta', () => {
   it('exposes label/tone shortcuts', () => {
     expect(getStatusLabel('Approved')).toBe('Disetujui');
     expect(getStatusTone('Rejected')).toBe('danger');
+  });
+});
+
+describe('statusOptions', () => {
+  it('labels filter options for sales invoices in Indonesian', () => {
+    expect(statusOptions(['Submitted', 'PartiallyPaid', 'Paid', 'Overdue', 'Cancelled', 'Draft'], 'sales_invoice')).toEqual([
+      { value: 'Submitted', label: 'Belum Lunas' },
+      { value: 'PartiallyPaid', label: 'Dibayar Sebagian' },
+      { value: 'Paid', label: 'Lunas' },
+      { value: 'Overdue', label: 'Jatuh Tempo' },
+      { value: 'Cancelled', label: 'Dibatalkan' },
+      { value: 'Draft', label: 'Draf' },
+    ]);
+  });
+});
+
+describe('sales order / delivery statuses', () => {
+  it('labels sales order statuses', () => {
+    expect(statusOptions(['Draft', 'Submitted', 'PartiallyDelivered', 'FullyDelivered', 'Cancelled'], 'sales_order')).toEqual([
+      { value: 'Draft', label: 'Draf' },
+      { value: 'Submitted', label: 'Dikonfirmasi' },
+      { value: 'PartiallyDelivered', label: 'Terkirim Sebagian' },
+      { value: 'FullyDelivered', label: 'Terkirim Penuh' },
+      { value: 'Cancelled', label: 'Dibatalkan' },
+    ]);
+  });
+
+  it('labels the derived delivery order statuses', () => {
+    expect(getStatusMeta('Invoiced', 'delivery_order')).toEqual({ label: 'Sudah Diinvoice', tone: 'success' });
+    expect(getStatusMeta('Uninvoiced', 'delivery_order')).toEqual({ label: 'Belum Diinvoice', tone: 'warning' });
+    expect(getStatusLabel('Submitted', 'delivery_order')).toBe('Diposting');
+  });
+
+  it('labels Surat Jalan Sementara statuses', () => {
+    expect(getStatusMeta('Open', 'temporary_delivery_note')).toEqual({ label: 'Terbuka', tone: 'warning' });
+    expect(getStatusMeta('Linked', 'temporary_delivery_note')).toEqual({ label: 'Tertaut', tone: 'success' });
+    expect(getStatusLabel('Cancelled', 'temporary_delivery_note')).toBe('Dibatalkan');
+    // Generic "open" elsewhere stays informational.
+    expect(getStatusTone('Open')).toBe('info');
+  });
+
+  it('labels customer/vendor deposit usage states', () => {
+    expect(getStatusMeta('Active', 'deposit')).toEqual({ label: 'Aktif', tone: 'info' });
+    expect(getStatusMeta('PartiallyUsed', 'deposit')).toEqual({ label: 'Terpakai Sebagian', tone: 'warning' });
+    expect(getStatusMeta('FullyUsed', 'deposit')).toEqual({ label: 'Terpakai', tone: 'success' });
+    expect(getStatusLabel('Cancelled', 'deposit')).toBe('Dibatalkan');
+    expect(statusOptions(['Active', 'PartiallyUsed', 'FullyUsed', 'Cancelled'], 'deposit').map((o) => o.label)).toEqual([
+      'Aktif',
+      'Terpakai Sebagian',
+      'Terpakai',
+      'Dibatalkan',
+    ]);
   });
 });

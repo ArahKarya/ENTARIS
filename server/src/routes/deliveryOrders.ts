@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { hasCap } from '../services/permissionService';
@@ -12,6 +11,13 @@ import { editDeliveryOrderInTx } from '../services/deliveryOrderEdit';
 import { createDeliveryOrderFromInvoiceInTx } from '../services/deliveryOrderFromInvoice';
 import { CreateDOFromInvoiceSchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildDeliveryOrderWhere,
+  DEFAULT_DELIVERY_ORDER_SORT,
+  DELIVERY_ORDER_SORT_FIELDS,
+  deliveryOrderOrderBy,
+} from '../services/deliveryOrderList';
 import { queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 
@@ -21,50 +27,18 @@ const router = Router();
 // 'doc.cancel'; bypass stok minus = capability 'inventory.negative_stock'.
 
 // ─── GET / list ───────────────────────────────────────────────────────────
+// Query: page, limit (≤200), status (Submitted | Invoiced | Cancelled | Draft —
+// see services/deliveryOrderList), partyId, startDate, endDate (YYYY-MM-DD),
+// search (DO number / customer name / no. mobil), sort (e.g. "-date").
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const {
-      status,
-      partyId,
-      startDate,
-      endDate,
-      search,
-      page = '1',
-      limit = '50',
-    } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.DeliveryOrderWhereInput = {};
-    // DocumentStatus enum is Draft/Submitted/Cancelled — "Invoiced" is a derived
-    // state (status=Submitted + invoiceId set). The UI passes one of:
-    //   Submitted (pending invoice), Invoiced (already billed), Cancelled.
-    if (status === 'Invoiced') {
-      where.status = 'Submitted';
-      where.invoiceId = { not: null };
-    } else if (status === 'Submitted') {
-      where.status = 'Submitted';
-      where.invoiceId = null;
-    } else if (status === 'Cancelled') {
-      where.status = 'Cancelled';
-    }
-    if (partyId) where.partyId = partyId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) {
-        (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-      }
-    }
-    if (search) {
-      const q = String(search).trim();
-      if (q.length > 0) {
-        where.OR = [
-          { doNumber: { contains: q, mode: 'insensitive' } },
-          { customer: { name: { contains: q, mode: 'insensitive' } } },
-        ];
-      }
-    }
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildDeliveryOrderWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, DELIVERY_ORDER_SORT_FIELDS, DEFAULT_DELIVERY_ORDER_SORT);
 
     const [data, total] = await Promise.all([
       prisma.deliveryOrder.findMany({
@@ -74,15 +48,15 @@ router.get('/', async (req, res) => {
           invoice: { select: { id: true, invoiceNumber: true } },
           _count: { select: { items: true } },
         },
-        // Tanggal terbaru lalu DO number terbesar dalam tanggal yang sama.
-        orderBy: [{ date: 'desc' }, { doNumber: 'desc' }],
+        // Default: tanggal terbaru lalu DO number terbesar dalam tanggal yang sama.
+        orderBy: deliveryOrderOrderBy(sort),
         skip,
         take,
       }),
       prisma.deliveryOrder.count({ where }),
     ]);
 
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /delivery-orders', 'Gagal mengambil daftar surat jalan.');
   }

@@ -8,42 +8,37 @@ import { handleRouteError } from '../utils/errors';
 import { cancelSalesInvoiceInTx } from '../services/invoiceCancellation';
 import { submitSalesInvoiceInTx } from '../services/salesInvoiceSubmit';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildSalesInvoiceWhere,
+  DEFAULT_SALES_INVOICE_SORT,
+  overdueWhere,
+  SALES_INVOICE_SORT_FIELDS,
+  salesInvoiceOrderBy,
+  summarizeSalesInvoices,
+} from '../services/salesInvoiceList';
 
 const router = Router();
 
 // GET /api/sales/invoices
+// Query: page, limit (≤500), status, partyId, startDate, endDate (YYYY-MM-DD),
+// search (invoice number / customer name), sort (e.g. "-date", "outstanding").
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', status, partyId, startDate, endDate, search } = req.query;
-    // Bumped max from 200 to 500 — was truncating older invoices once dataset
-    // grew past 200. Server-side date filter below is the proper long-term
-    // fix; raised cap meanwhile so list UI doesn't silently drop rows.
-    const take = Math.min(Number(limit) || 50, 500);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.SalesInvoiceWhereInput = {};
-    if (status) where.status = status as any;
-    if (partyId) where.partyId = partyId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-    }
-    if (search) {
-      const q = String(search).trim();
-      if (q.length > 0) {
-        where.OR = [
-          { invoiceNumber: { contains: q, mode: 'insensitive' } },
-          { customer: { name: { contains: q, mode: 'insensitive' } } },
-        ];
-      }
-    }
+    const query = req.query as Record<string, unknown>;
+    // Max 500 kept for existing callers that still load a whole list.
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 500 });
+    const filter = buildSalesInvoiceWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, SALES_INVOICE_SORT_FIELDS, DEFAULT_SALES_INVOICE_SORT);
 
     const [invoices, total] = await Promise.all([
       prisma.salesInvoice.findMany({
         where,
         include: { customer: true, items: true },
-        orderBy: { date: 'desc' },
+        orderBy: salesInvoiceOrderBy(sort),
         skip,
         take,
       }),
@@ -76,10 +71,37 @@ router.get('/', async (req, res) => {
       deductionTotal: deductionMap[inv.id] ?? 0,
     }));
 
-    return res.json({ data: enriched, total, page: Number(page), limit: take });
+    return res.json({ data: enriched, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /sales/invoices error');
     return res.status(500).json({ error: 'Gagal mengambil data invoice penjualan.' });
+  }
+});
+
+// GET /api/sales/invoices/summary — KPI totals for the same filters as the list
+// (status, partyId, startDate, endDate, search). Declared before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildSalesInvoiceWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const [groups, overdue] = await Promise.all([
+      prisma.salesInvoice.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+        _sum: { grandTotal: true, outstanding: true },
+      }),
+      prisma.salesInvoice.aggregate({
+        where: { AND: [where, overdueWhere(new Date())] },
+        _count: { _all: true },
+        _sum: { outstanding: true },
+      }),
+    ]);
+    return res.json(summarizeSalesInvoices(groups, overdue));
+  } catch (error) {
+    logger.error({ error }, 'GET /sales/invoices/summary error');
+    return res.status(500).json({ error: 'Gagal menghitung ringkasan invoice penjualan.' });
   }
 });
 

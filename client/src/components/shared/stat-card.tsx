@@ -78,7 +78,7 @@ export function StatCard({
           {label ?? title}
         </p>
         {Icon && (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground">
+          <span className="hidden size-8 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground sm:flex">
             <Icon className="size-4" strokeWidth={1.75} aria-hidden />
           </span>
         )}

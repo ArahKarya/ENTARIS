@@ -23,6 +23,15 @@ const TARGETS = [
   // Placeholder code: captures the public not-found state (no seeded QR asset).
   { path: '/aset/QA-SAMPLE-0000', isPublic: true },
   { path: '/', isPublic: false },
+  // Phase 3 reference list page (list kit).
+  { path: '/sales', isPublic: false },
+  { path: '/inquiries', isPublic: false },
+  { path: '/quotations', isPublic: false },
+  { path: '/sales-orders', isPublic: false },
+  { path: '/delivery-orders', isPublic: false },
+  { path: '/delivery-orders?tab=sjs', isPublic: false },
+  { path: '/sales-returns', isPublic: false },
+  { path: '/customer-deposits', isPublic: false },
 ]
 
 interface AxeRecord {

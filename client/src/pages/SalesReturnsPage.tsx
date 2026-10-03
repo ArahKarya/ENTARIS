@@ -1,103 +1,285 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Undo2, Ban } from 'lucide-react';
+/**
+ * Retur Penjualan (/sales-returns) — server-paginated list built on the
+ * Phase 3 list kit (see pages/SalesInvoices.tsx for the reference pattern).
+ *
+ * No KPI cards: the page never had any. Returns have no detail view yet, so
+ * rows are not clickable; the source invoice number opens the invoice drawer.
+ */
+import { useMemo, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Ban, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../lib/api';
-import { cap } from '../lib/permissions';
-import { formatRupiah, formatDate } from '../lib/formatters';
-import SalesReturnModal from '../components/SalesReturnModal';
-import TableRowSkeleton from '../components/TableRowSkeleton';
+import api from '@/lib/api';
+import { cap, can } from '@/lib/permissions';
+import { formatDate, formatRupiah, toNumber } from '@/lib/format';
+import { statusOptions } from '@/lib/status';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import {
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PageHeader,
+  PartyFilter,
+  RowActions,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import SalesReturnModal from '@/components/SalesReturnModal';
+import InvoiceDetailDrawer from '@/components/InvoiceDetailDrawer';
 
-const STATUS_BADGE: Record<string, string> = {
-  Submitted: 'badge-blue',
-  Cancelled: 'badge-gray',
-};
+type Money = string | number;
+
+interface SalesReturnRow {
+  id: string;
+  returnNumber: string;
+  date: string;
+  status: string;
+  totalReturn: Money;
+  arReducedAmount: Money;
+  creditCreatedAmount: Money;
+  reason?: string | null;
+  customer?: { id: string; name: string } | null;
+  salesInvoice?: { id: string; invoiceNumber: string } | null;
+}
+
+const ENDPOINT = '/sales-returns';
+const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
+const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'sales_return');
+
+const withUnit = (label: string) => (
+  <>
+    {label} <span className="normal-case">(Rp)</span>
+  </>
+);
+
+const money = (v: Money | null | undefined) => formatRupiah(toNumber(v) ?? 0, { symbol: false });
+
+/** Amount cell: zero splits are shown muted so the meaningful leg stands out. */
+function Amount({ value, strong = false }: { value: Money; strong?: boolean }) {
+  const n = toNumber(value) ?? 0;
+  if (n === 0) return <span className="text-muted-foreground">{money(0)}</span>;
+  return <span className={strong ? 'font-medium text-foreground' : 'text-foreground'}>{money(n)}</span>;
+}
+
+function errorMessage(err: unknown, fallback: string): string {
+  const data = (err as { response?: { data?: { error?: unknown } } })?.response?.data;
+  return typeof data?.error === 'string' ? data.error : fallback;
+}
 
 export default function SalesReturnsPage() {
   const queryClient = useQueryClient();
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
+  const [density, setDensity] = useTableDensity();
   const [modalOpen, setModalOpen] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
-  const isAdmin = cap('approval.decide');
+  const canCreate = can('sales_return', 'edit');
+  // Unchanged rule: only approvers may cancel a return (server also needs doc.cancel).
+  const canCancel = cap('approval.decide') && canCreate;
+  const canOpenInvoice = can('sales_invoice');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['sales-returns'],
-    queryFn: async () => {
-      const r = await api.get('/sales-returns?limit=100');
-      return (r.data?.data ?? []) as any[];
-    },
+  const returnsQuery = useQuery({
+    queryKey: ['sales-returns', 'list', list.params],
+    queryFn: async () => (await api.get<Paginated<SalesReturnRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
   });
 
   const cancelMutation = useMutation({
-    mutationFn: async (id: string) => api.post(`/sales-returns/${id}/cancel`),
+    mutationFn: async (id: string) => api.post(`${ENDPOINT}/${id}/cancel`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-returns'] });
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
       toast.success('Retur dibatalkan.');
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || 'Gagal membatalkan retur.'),
+    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan retur.')),
   });
 
-  return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Undo2 className="w-6 h-6" /> Retur Penjualan
-          </h1>
-          <p className="text-sm text-muted-foreground">Kembalikan barang/nilai dari invoice penjualan (kredit nota).</p>
-        </div>
-        <button onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90">
-          <Plus className="w-4 h-4" /> Retur Baru
-        </button>
-      </div>
+  const { mutate: cancelReturn, isPending: cancelling } = cancelMutation;
 
-      <div className="border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[760px]">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="px-3 py-2">No. Retur</th>
-              <th className="px-3 py-2">Tanggal</th>
-              <th className="px-3 py-2">Pelanggan</th>
-              <th className="px-3 py-2">Invoice</th>
-              <th className="px-3 py-2 text-right">Total Retur</th>
-              <th className="px-3 py-2 text-right">Kurangi Piutang</th>
-              <th className="px-3 py-2 text-right">Kredit</th>
-              <th className="px-3 py-2 text-center">Status</th>
-              <th className="px-3 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <TableRowSkeleton rows={5} columns={9} />}
-            {!isLoading && (data ?? []).length === 0 && (
-              <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">Belum ada retur penjualan.</td></tr>
+  const columns = useMemo<ColumnDef<SalesReturnRow>[]>(() => {
+    const invoiceRef = (r: SalesReturnRow, className?: string) => {
+      const inv = r.salesInvoice;
+      if (!inv) return <span className="text-muted-foreground">-</span>;
+      if (!canOpenInvoice) return <span className={`num font-mono text-xs ${className ?? ''}`}>{inv.invoiceNumber}</span>;
+      return (
+        <DocumentLink focusable onClick={() => setInvoiceId(inv.id)} className={className}>
+          {inv.invoiceNumber}
+        </DocumentLink>
+      );
+    };
+
+    return [
+      {
+        id: 'returnNumber',
+        header: 'Nomor',
+        enableSorting: true,
+        sortDescFirst: true,
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="num font-mono text-xs font-medium text-foreground">{row.original.returnNumber}</span>
+            {/* Mobile: customer + date stacked here because their columns are hidden. */}
+            <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
+              {row.original.customer?.name ?? '-'}
+            </span>
+            <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'date',
+        header: 'Tanggal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => formatDate(row.original.date),
+      },
+      {
+        id: 'customer',
+        header: 'Pelanggan',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>
+            {row.original.reason && (
+              <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
+                {row.original.reason}
+              </p>
             )}
-            {(data ?? []).map((r) => (
-              <tr key={r.id} className="border-t border-border">
-                <td className="px-3 py-2 font-medium">{r.returnNumber}</td>
-                <td className="px-3 py-2">{formatDate(r.date)}</td>
-                <td className="px-3 py-2">{r.customer?.name}</td>
-                <td className="px-3 py-2">{r.salesInvoice?.invoiceNumber}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(r.totalReturn))}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(r.arReducedAmount))}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(r.creditCreatedAmount))}</td>
-                <td className="px-3 py-2 text-center"><span className={`badge ${STATUS_BADGE[r.status] ?? 'badge-gray'}`}>{r.status}</span></td>
-                <td className="px-3 py-2 text-right">
-                  {isAdmin && r.status === 'Submitted' && (
-                    <button
-                      onClick={() => { if (confirm(`Batalkan retur ${r.returnNumber}? Stok & jurnal akan dibalik.`)) cancelMutation.mutate(r.id); }}
-                      className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline"
-                    >
-                      <Ban className="w-3.5 h-3.5" /> Batalkan
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          </div>
+        ),
+      },
+      {
+        id: 'invoice',
+        header: 'Faktur Asal',
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => invoiceRef(row.original),
+      },
+      {
+        id: 'totalReturn',
+        header: () => withUnit('Total Retur'),
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => (
+          <div className="flex flex-col items-end gap-1">
+            <Amount value={row.original.totalReturn} strong />
+            {/* Mobile: status stacked here because its column is hidden. */}
+            <StatusBadge status={row.original.status} docType="sales_return" className="sm:hidden" />
+          </div>
+        ),
+      },
+      {
+        id: 'arReducedAmount',
+        header: () => withUnit('Kurangi Piutang'),
+        meta: { align: 'right', hideBelow: 'lg' },
+        cell: ({ row }) => <Amount value={row.original.arReducedAmount} />,
+      },
+      {
+        id: 'creditCreatedAmount',
+        header: () => withUnit('Jadi Kredit'),
+        meta: { align: 'right', hideBelow: 'lg' },
+        cell: ({ row }) => <Amount value={row.original.creditCreatedAmount} />,
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.status} docType="sales_return" />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${r.returnNumber}`}
+              actions={[
+                {
+                  label: 'Batalkan retur',
+                  icon: Ban,
+                  tone: 'danger',
+                  hidden: !canCancel || r.status !== 'Submitted',
+                  disabled: cancelling,
+                  onSelect: () => {
+                    // Existing confirmation flow (restyled in Phase 4).
+                    if (confirm(`Batalkan retur ${r.returnNumber}? Stok & jurnal akan dibalik.`)) {
+                      cancelReturn(r.id);
+                    }
+                  },
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ];
+  }, [canCancel, canOpenInvoice, cancelReturn, cancelling]);
+
+  return (
+    <div className="space-y-5 pb-8">
+      <PageHeader
+        title="Retur Penjualan"
+        description="Kembalikan barang/nilai dari faktur penjualan (nota kredit)."
+        actions={
+          canCreate && (
+            <Button onClick={() => setModalOpen(true)}>
+              <Plus aria-hidden />
+              Retur Baru
+            </Button>
+          )
+        }
+      />
+
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari retur"
+          searchPlaceholder="Cari no. retur, faktur, pelanggan"
+          status={{ options: STATUS_FILTER }}
+          dateRange
+        >
+          <PartyFilter
+            partyType="Customer"
+            value={list.filters.partyId}
+            onChange={(v) => list.setFilter('partyId', v)}
+          />
+        </FilterBar>
+
+        <DataTable
+          {...listTableProps(list, returnsQuery.data?.total)}
+          label="Daftar retur penjualan"
+          itemLabel="retur"
+          columns={columns}
+          data={returnsQuery.data?.data}
+          getRowId={(row) => row.id}
+          loading={returnsQuery.isLoading}
+          fetching={returnsQuery.isFetching && returnsQuery.isPlaceholderData}
+          error={returnsQuery.error}
+          onRetry={() => returnsQuery.refetch()}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada retur penjualan',
+            description: 'Retur yang dibuat dari faktur penjualan akan muncul di sini.',
+            action: canCreate ? (
+              <Button size="sm" onClick={() => setModalOpen(true)}>
+                <Plus aria-hidden />
+                Buat retur pertama
+              </Button>
+            ) : undefined,
+          }}
+        />
       </div>
 
       <SalesReturnModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <InvoiceDetailDrawer type="sales" invoiceId={invoiceId} onClose={() => setInvoiceId(null)} />
     </div>
   );
 }
