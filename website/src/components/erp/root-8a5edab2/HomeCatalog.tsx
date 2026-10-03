@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { Icon } from "@/components/home/HomeIcons";
 import { ModuleCard } from "@/components/home/ModuleCard";
 import { SectionEyebrow } from "@/components/home/SectionEyebrow";
+import { PillarsSection } from "@/components/home/Pillars";
 import { FitSection, WhySection } from "@/components/home/WhyEntaris";
 import { CATEGORIES } from "@/components/home/homeContent";
 import type { ModuleCategory } from "@/components/home/homeContent";
@@ -96,6 +97,7 @@ export function HomeCatalog() {
 
   return (
     <main id="main-content" className="flex-1 main--full-bleed tacet-home-page">
+      <PillarsSection />
       <section id="modul" className="home-row-catalog home-modules" aria-labelledby="modul-heading">
         <div className="home-section-head">
           <SectionEyebrow name="Modul" context={`${TOTAL_MODULES} modul · ${CATEGORIES.length} area bisnis`} />
