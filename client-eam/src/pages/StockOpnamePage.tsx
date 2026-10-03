@@ -253,7 +253,7 @@ function StockOpnameForm({ onBack, onSuccess }: { onBack: () => void; onSuccess:
 
   // Load all active items. When a warehouse is picked, the endpoint returns
   // per-warehouse currentStock — opname compares against that, not the global
-  // total, so counting POLES only doesn't accidentally adjust GILING.
+  // total, so counting warehouse B only doesn't accidentally adjust warehouse A.
   const { data: itemsRaw, isLoading } = useQuery({
     queryKey: ['inventory-items-opname', warehouseId],
     queryFn: () => api

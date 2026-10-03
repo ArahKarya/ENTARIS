@@ -13,7 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_BRANCH="backups"
-WORKTREE_DIR="/tmp/simple-erp-restore-worktree"
+WORKTREE_DIR="/tmp/entaris-restore-worktree"
 
 # ─── Functions ────────────────────────────────────────────────────────────────
 cleanup() {
@@ -117,6 +117,8 @@ else
   if [ -d "$WORKTREE_DIR" ]; then
     git -C "$PROJECT_DIR" worktree remove --force "$WORKTREE_DIR" 2>/dev/null || rm -rf "$WORKTREE_DIR"
   fi
+  # Drop stale worktree registrations (e.g. an old temp dir wiped by a reboot)
+  git -C "$PROJECT_DIR" worktree prune 2>/dev/null || true
 
   git -C "$PROJECT_DIR" worktree add --detach "$WORKTREE_DIR" "origin/${BACKUP_BRANCH}" 2>/dev/null
 

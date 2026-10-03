@@ -143,7 +143,7 @@ router.get('/check-update', requirePerm('settings'), async (_req, res) => {
 
     // Fetch latest version from GitHub
     const response = await fetch(
-      'https://raw.githubusercontent.com/Logia-ysn/aplikasi-keuangan-pmd/main/client/src/lib/version.ts',
+      'https://raw.githubusercontent.com/ArahKarya/entaris/main/client/src/lib/version.ts',
       { signal: AbortSignal.timeout(10000) }
     );
 

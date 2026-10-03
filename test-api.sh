@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 BASE="http://localhost:3001/api"
+# Fallback admin credentials (seed admin). Set SEED_ADMIN_PASSWORD in the env;
+# never hardcode the real password here.
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@arahkarya.com}"
+SEED_ADMIN_PASSWORD="${SEED_ADMIN_PASSWORD:-}"
 TOKEN=""
 PASS=0
 FAIL=0
@@ -136,7 +140,7 @@ fi
 if [ -z "$TOKEN" ] || [ "$STATUS" != "200" ]; then
   RESP=$(curl -s -w '\n%{http_code}' -X POST "$BASE/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin@keuangan.local","password":"Admin123!"}')
+    -d "{\"username\":\"$ADMIN_EMAIL\",\"password\":\"$SEED_ADMIN_PASSWORD\"}")
   STATUS=$(echo "$RESP" | tail -1)
   BODY=$(echo "$RESP" | sed '$d')
   if [ "$STATUS" = "200" ]; then
@@ -157,8 +161,8 @@ RESP2=$(curl -s -w '\n%{http_code}' -X PUT "$BASE/users/me/password" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"currentPassword":"admin123","newPassword":"admin123"}' 2>/dev/null)
 S2=$(echo "$RESP2" | tail -1)
-if [ "$S2" != "200" ]; then
-  ADMIN_PASSWORD="Admin123!"
+if [ "$S2" != "200" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
+  ADMIN_PASSWORD="$SEED_ADMIN_PASSWORD"
 fi
 echo "  -> Admin password detected: $ADMIN_PASSWORD"
 

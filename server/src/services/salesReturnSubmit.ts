@@ -164,7 +164,7 @@ export async function submitSalesReturnInTx(
     .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
   const totalReturn = subtotal.plus(taxAmount).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
   const totalReturnNum = totalReturn.toNumber();
-  // Retur qty-only (rate 0, mis. beras titipan BULOG) valid selama minimal 1
+  // Retur qty-only (rate 0, mis. barang titipan pelanggan) valid selama minimal 1
   // baris punya qty>0 — hanya mengembalikan stok fisik, tanpa nilai piutang/kredit.
   const hasReturnedQty = resolved.some((r) => r.quantity > 0);
   if (totalReturnNum < 0) throw new BusinessError('Nilai retur tidak boleh negatif.');

@@ -1,5 +1,5 @@
 # ============================================================================
-# Keuangan ERP — Multi-stage Dockerfile
+# Entaris — Multi-stage Dockerfile
 # Builds both client (React/Vite) and server (Express/TypeScript) into a
 # single production image. Express serves the API and the static SPA.
 # ============================================================================

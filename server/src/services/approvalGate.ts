@@ -33,7 +33,7 @@ export async function needsApproval(roleKey: string): Promise<boolean> {
 
 /**
  * Link ke halaman approval di aplikasi (utk disisipkan ke notifikasi).
- * Sumber: env APP_BASE_URL (mis. https://erp.panganmasadepan.com). Bila tidak
+ * Sumber: env APP_BASE_URL (mis. https://entaris.example.com). Bila tidak
  * di-set → null (notifikasi tetap terkirim tanpa link). Telegram meng-auto-link
  * URL polos sehingga bisa langsung diklik.
  */

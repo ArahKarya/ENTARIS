@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validator AI Tool Registry — Simple ERP
+ * Validator AI Tool Registry — Entaris
  * Cek: (1) registry valid terhadap JSON Schema, (2) semua module/capability tool terdaftar,
  *      (3) nama tool unik, (4) konsistensi kind/tier/method.
  *

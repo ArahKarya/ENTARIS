@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validator AIRA Tool Router config — Simple ERP (selaras BRD AIRA §8.9)
+ * Validator AIRA Tool Router config — Entaris (selaras BRD AIRA §8.9)
  * Cek: struktur, role/module/capability terdaftar, nama unik, konsistensi risk/handler,
  *      write/critical wajib confirm_template, read wajib handler GET.
  *

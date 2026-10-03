@@ -20,7 +20,7 @@
 
 </div>
 
-> Produk **PT Arah Karya Sinergi** (Arah). Sebelumnya bernama *Simple ERP* / *ERP PMD*. Panduan merek: [`docs/brand/entaris`](docs/brand/entaris/README.md).
+> Produk **PT Arah Karya Sinergi** (Arah). Panduan merek: [`docs/brand/entaris`](docs/brand/entaris/README.md).
 
 **Entaris** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
@@ -54,29 +54,6 @@ Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7
 - **Tunduk pada hak akses** — AIRA hanya bisa memakai tool yang diizinkan untuk peran pengguna yang sedang login (RBAC yang sama dengan UI).
 - **Aman secara teknis** — setiap permintaan tulis dari AIRA wajib bertanda tangan HMAC-SHA256 per-*run* dengan stempel waktu (anti-pemalsuan & anti-*replay*).
 - **Terdaftar & terukur** — **386 tool di 45 modul** dideklarasikan di `server/src/ai/aira-tool-router.json` (lengkap dengan tingkat risiko, peran, dan level otonomi), sehingga kemampuan AIRA bisa ditinjau dan diatur dari satu tempat.
-
-## 📸 Tampilan
-
-| | |
-|---|---|
-| **Halaman Login** — animasi background jaringan, role bawaan & custom | **Dashboard** — ringkasan keuangan real-time multi-tab |
-| ![Login](docs/screenshots/01-login.png) | ![Dashboard](docs/screenshots/02-dashboard.png) |
-| **Buku Besar** — jurnal double-entry, filter periode & preset cepat | **Bagan Akun (COA)** — hierarki parent-child, import/export Excel |
-| ![Buku Besar](docs/screenshots/04-buku-besar.png) | ![COA](docs/screenshots/03-coa.png) |
-| **Invoice Penjualan** — per-item, PPN, auto-posting GL | **Invoice Pembelian** — PPN masukan, biaya lain, auto-posting |
-| ![Sales Invoice](docs/screenshots/05-sales-invoices.png) | ![Purchase Invoice](docs/screenshots/06-purchase-invoices.png) |
-| **Pembayaran & Alokasi** — auto-alokasi FIFO, split & partial payment | **Pelanggan & Vendor** — saldo terutang + deposit |
-| ![Payments](docs/screenshots/07-payments.png) | ![Parties](docs/screenshots/08-parties.png) |
-| **Inventori & Produksi** — moving average cost, rendemen produksi | **Daftar Laporan** — 10 laporan keuangan siap pakai |
-| ![Inventory](docs/screenshots/09-inventory.png) | ![Reports](docs/screenshots/10-reports-index.png) |
-| **Laba Rugi** — periode bebas, comparative, break-down kategori | **Neraca** — posisi keuangan per tanggal cut-off |
-| ![Profit Loss](docs/screenshots/12-profit-loss.png) | ![Balance Sheet](docs/screenshots/13-balance-sheet.png) |
-| **Trial Balance** — ringkasan seluruh saldo akun | **Aging Piutang** — bucket umur 0-30 / 31-60 / 61-90 / >90 |
-| ![Trial Balance](docs/screenshots/11-trial-balance.png) | ![Aging AR](docs/screenshots/14-aging-ar.png) |
-| **Aset Tetap** — register & depresiasi otomatis per bulan | **Jejak Audit** — log before/after setiap mutasi data |
-| ![Fixed Assets](docs/screenshots/15-fixed-assets.png) | ![Audit Trail](docs/screenshots/16-audit-trail.png) |
-| **Pengaturan** — profil, 26 role akun sistem, backup/restore, fiscal year | |
-| ![Settings](docs/screenshots/17-settings.png) | |
 
 ## 🏛️ Arsitektur
 
@@ -172,7 +149,7 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 
 Aplikasi frontend **standalone** di subdomain sendiri (mis. `eam.perusahaan-anda.com`), tapi **tetap satu monorepo** — satu backend/API, satu database, satu akun login dengan ERP utama. Cocok untuk staf lapangan (mekanik, GA) yang hanya butuh modul aset tanpa harus buka menu keuangan.
 
-- **Login SSO** cross-subdomain — 1 akun ERP otomatis berlaku di EAM (cookie bersama di domain induk, mis. `.perusahaan-anda.com`), tanpa login ulang.
+- **Login SSO** cross-subdomain — 1 akun ERP otomatis berlaku di EAM (cookie bersama di domain induk, mis. `.perusahaan-anda.com` — atur lewat `COOKIE_DOMAIN` di `.env`), tanpa login ulang.
 - **Dashboard ringkas**: total aset, nilai buku (NBV), work order aktif & overdue, breakdown nilai per kategori, quick links ke tiap modul.
 - **Modul aset per kategori**: Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Inventaris GA, Dokumen & Sertifikat, Maintenance/Work Order, Permintaan Barang, Master Data — tiap halaman otomatis terfilter ke kategorinya sendiri (`?categoryId=` multi-value di API, backward-compatible dengan ERP utama).
 - **QR aset publik** tetap bisa diakses tanpa login (scan barcode aset fisik).
@@ -244,8 +221,8 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/ArahKarya/simple-erp.git
-cd simple-erp
+git clone https://github.com/ArahKarya/entaris.git
+cd entaris
 ```
 
 ### 2. Buat file `.env`
@@ -293,7 +270,7 @@ Output yang diharapkan:
 [APP] Migrations complete.
 [APP] Database kosong, menjalankan seed data awal...
 [APP] Seed selesai — login: admin@arahkarya.com / Adminarahkarya123!dsw
-[APP] Starting Keuangan ERP on port 3001...
+[APP] Starting Entaris on port 3001...
 Server running at http://localhost:3001
 ```
 
@@ -310,9 +287,9 @@ Setelah seed pertama, aplikasi punya 4 akun default siap pakai:
 | Username / Email            | Password                   | Role          | Akses |
 |-----------------------------|----------------------------|---------------|-------|
 | `admin@arahkarya.com`       | `Adminarahkarya123!dsw`    | Admin         | Full access — semua modul, user management, settings |
-| `staff@keuangan.local`      | `Admin123!`                | Accountant    | Transaksi keuangan, invoice, jurnal, laporan |
-| `produksi@keuangan.local`   | `Admin123!`                | StaffProduksi | Pembelian, stok & produksi, vendor (read-only untuk uang muka) |
-| `viewer@keuangan.local`     | `Admin123!`                | Viewer        | Read-only semua data |
+| `staff@entaris.local`       | `Admin123!`                | Accountant    | Transaksi keuangan, invoice, jurnal, laporan |
+| `produksi@entaris.local`    | `Admin123!`                | StaffProduksi | Pembelian, stok & produksi, vendor (read-only untuk uang muka) |
+| `viewer@entaris.local`      | `Admin123!`                | Viewer        | Read-only semua data |
 
 > **Field login menerima email atau username** (misal `admin` saja tanpa domain juga jalan).
 
@@ -377,8 +354,8 @@ docker compose up -d --build   # fresh start + auto-seed
 ### Opsi 1: Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/ArahKarya/simple-erp.git
-cd simple-erp
+git clone https://github.com/ArahKarya/entaris.git
+cd entaris
 
 cp .env.docker.example .env
 nano .env   # Set JWT_SECRET dan ALLOWED_ORIGINS

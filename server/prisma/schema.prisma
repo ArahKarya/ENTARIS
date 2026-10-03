@@ -82,7 +82,7 @@ model Party {
   customerDepositBalance Decimal                 @default(0) @map("customer_deposit_balance") @db.Decimal(15, 2)
   isActive               Boolean                 @default(true) @map("is_active")
   isDummy                Boolean                 @default(false) @map("is_dummy")
-  // WAPU (Wajib Pungut) — pemerintah/BUMN tertentu (Bulog, Pertamina, dll)
+  // WAPU (Wajib Pungut) — pemerintah/BUMN tertentu
   // memungut PPN sendiri ke kas negara. Tagihan ke mereka TIDAK include
   // PPN — frontend default tax_pct=0 untuk customer berlabel ini.
   isWapu                 Boolean                 @default(false) @map("is_wapu")
@@ -1321,8 +1321,8 @@ model ProductionCostStandard {
   itemId        String?             @map("item_id")
   item          InventoryItem?      @relation("ItemCostStandards", fields: [itemId], references: [id])
   // Optional warehouse scope — when set, this standard only appears in
-  // production runs at this warehouse (mis. "biaya mesin poles" hanya muncul
-  // di gudang poles). Null = berlaku semua gudang.
+  // production runs at this warehouse (mis. "biaya mesin X" hanya muncul
+  // di gudang produksi X). Null = berlaku semua gudang.
   warehouseId   String?             @map("warehouse_id")
   warehouse     Warehouse?          @relation("WarehouseCostStandards", fields: [warehouseId], references: [id])
   isActive      Boolean             @default(true) @map("is_active")

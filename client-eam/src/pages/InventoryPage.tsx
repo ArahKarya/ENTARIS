@@ -1071,7 +1071,7 @@ export function InventoryPage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Nama Layanan</label>
                 <input type="text" value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jasa Giling Padi" />
+                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jasa Maklon Produksi" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Tarif Default (Rp)</label>

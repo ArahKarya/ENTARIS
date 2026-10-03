@@ -2024,7 +2024,7 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
     }
 
     // ── Work Order (jasa + sparepart) ──
-    // CATATAN: di PMD, biaya sparepart/jasa WO dibayar lewat Material Request (MR)
+    // CATATAN: di deployment ini, biaya sparepart/jasa WO dibayar lewat Material Request (MR)
     // status PAID. Jadi SATU kategori 'workorder' saja = labor + vendor eksternal
     // + parts gudang + MR PAID, supaya tidak dobel hitung.
     const woCountByAsset = new Map<string, number>();

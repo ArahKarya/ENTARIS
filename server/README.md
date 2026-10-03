@@ -31,10 +31,10 @@ npm run test:watch       # Test watch mode
 Buat file `.env` di direktori ini:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/simple_erp"
+DATABASE_URL="postgresql://user:password@localhost:5432/keuangan_db"
 POSTGRES_USER=user
 POSTGRES_PASSWORD=password
-POSTGRES_DB=simple_erp
+POSTGRES_DB=keuangan_db
 
 PORT=3001
 NODE_ENV=development

@@ -1,4 +1,4 @@
-# PRD: AIRA Tool Router & Tool Layer — Simple ERP (sisi aplikasi)
+# PRD: AIRA Tool Router & Tool Layer — Entaris (sisi aplikasi)
 
 **Fitur:** Tool Router Configuration + Tool Layer + UI Konfigurasi (Settings → Agentic System)
 **Bagian dari:** BRD AIRA (AI Reasoning Agent) — ini **sisi aplikasi** (Pilar 3), bukan Agent Core

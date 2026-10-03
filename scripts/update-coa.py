@@ -46,7 +46,7 @@ def api(method, path, data=None):
 
 
 def login():
-    user = os.environ.get("COA_ADMIN_USER", "admin@keuangan.local")
+    user = os.environ.get("COA_ADMIN_USER", "admin@arahkarya.com")
     pw = os.environ.get("COA_ADMIN_PASSWORD")
     if not pw:
         raise SystemExit("COA_ADMIN_PASSWORD environment variable wajib diisi (jangan hardcode password)")

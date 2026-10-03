@@ -194,7 +194,7 @@ export default function PublicInquiry() {
               value={itemsText}
               onChange={(e) => setItemsText(e.target.value)}
               rows={5}
-              placeholder="Mis: Saya butuh Beras Walemu 5 ton, Beras Cruise 25Kg 100 sak, mohon info harga & ketersediaan stok untuk delivery pekan depan ke Indramayu."
+              placeholder="Mis: Saya butuh Produk A 25 kg 100 sak dan Produk B 2 ton, mohon info harga & ketersediaan stok untuk delivery pekan depan ke kota kami."
               maxLength={2000}
               required
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"

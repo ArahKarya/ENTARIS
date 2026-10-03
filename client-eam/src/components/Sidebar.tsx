@@ -23,7 +23,7 @@ import { cn } from '../lib/utils';
 import { can } from '../lib/permissions';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { APP_VERSION } from '../lib/version';
+import { APP_NAME, APP_VERSION } from '../lib/version';
 
 interface NavItem {
   icon: React.FC<any>;
@@ -255,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
               <img src={sidebarLogoSrc} alt="Logo" className={`w-full h-full object-contain ${needsInvert ? 'invert' : ''}`} />
             </div>
             <span className="text-sm font-bold tracking-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {settings?.companyName || 'ERP PMD'}
+              {settings?.companyName || APP_NAME}
             </span>
           </div>
         )}

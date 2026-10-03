@@ -73,4 +73,4 @@ Kontras (WCAG): Navy di atas putih 14,1 : 1 · teks putih di atas Biru gelap 5,0
 - Mengganti tiga nada biru dengan warna di luar palet.
 - Memutar (mis. menjadi segitiga tegak), meregangkan, atau mengubah urutan tindihan bilah.
 - Memakai simbol berwarna di latar gelap — gunakan `entaris-mark-negative.svg`.
-- Menulis "Simple ERP" atau "ERP PMD" untuk produk ini.
+- Memakai nama produk lama (sebelum Entaris) untuk produk ini.

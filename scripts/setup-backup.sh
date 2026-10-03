@@ -94,12 +94,16 @@ echo "⏰ Setting up daily cron job..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 CRON_CMD="0 2 * * * cd ${PROJECT_DIR} && bash scripts/backup.sh >> scripts/backup.log 2>&1"
-CRON_MARKER="# Simple ERP daily backup"
+CRON_MARKER="# Entaris daily backup"
+# Marker written by older installs (before the product rename) — still matched
+# so re-running this script replaces the old entry instead of duplicating it.
+LEGACY_CRON_MARKER="# Simple ERP daily backup"
+CRON_MARKER_RE="^(${CRON_MARKER}|${LEGACY_CRON_MARKER})\$"
 
-if crontab -l 2>/dev/null | grep -q "Simple ERP daily backup"; then
+if crontab -l 2>/dev/null | grep -qE "$CRON_MARKER_RE"; then
   echo "  ✅ Cron job already exists. Updating..."
-  # Remove old entry and add new one
-  (crontab -l 2>/dev/null | grep -v "Simple ERP daily backup" | grep -v "scripts/backup.sh"; echo ""; echo "$CRON_MARKER"; echo "$CRON_CMD") | crontab -
+  # Remove old entry (current or legacy marker) and add new one
+  (crontab -l 2>/dev/null | grep -vE "$CRON_MARKER_RE" | grep -v "scripts/backup.sh"; echo ""; echo "$CRON_MARKER"; echo "$CRON_CMD") | crontab -
 else
   # Add new cron entry
   (crontab -l 2>/dev/null; echo ""; echo "$CRON_MARKER"; echo "$CRON_CMD") | crontab -

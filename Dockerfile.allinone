@@ -1,21 +1,25 @@
 # ============================================================================
-# Keuangan ERP — All-in-One Dockerfile
+# Entaris — All-in-One Dockerfile
 # PostgreSQL 16 + Node.js 20 + Express API + React SPA dalam 1 container.
 #
 # Build:
-#   docker build -f Dockerfile.allinone -t keuangan-erp .
+#   docker build -f Dockerfile.allinone -t entaris .
 #
 # Run (langsung pakai, seed otomatis saat pertama kali):
-#   docker run -d --name keuangan-erp \
+#   docker run -d --name entaris \
 #     -p 3001:3001 \
 #     -e JWT_SECRET="$(openssl rand -hex 48)" \
 #     -v keuangan-pgdata:/var/lib/postgresql/data \
-#     keuangan-erp
+#     entaris
+#
+# Catatan: nama volume keuangan-pgdata sengaja dipertahankan — instalasi
+# yang sudah berjalan WAJIB tetap memakai nama volume lamanya agar data
+# database tidak hilang.
 #
 # Logs:
-#   docker logs -f keuangan-erp
+#   docker logs -f entaris
 #
-# Login default: admin@keuangan.local / Admin123!
+# Login default: admin@arahkarya.com (lihat README)
 # ============================================================================
 
 # ── Stage 1: Install dependencies ───────────────────────────────────────────

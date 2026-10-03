@@ -1,8 +1,8 @@
-# AIRA Tool Coverage Analysis — Simple ERP (AKS)
+# AIRA Tool Coverage Analysis — Entaris (AKS)
 
 > **Status:** ✅ **APPLIED** ke runtime (live registry + container AKS rebuild + healthy).
 > Versi FULL — **SEMUA endpoint** dipetakan jadi tool, **default DISABLED**.
-> Tanggal apply: 2026-06-25 · Repo: `~/ArahKarya/simple-erp` (RPi5, source of truth; PMD = fork).
+> Tanggal apply: 2026-06-25 · Repo: `~/ArahKarya/simple-erp` (RPi5, source of truth).
 
 ---
 
@@ -83,9 +83,3 @@ By risk  : read=168 write=131 critical=87
 - **GET `/api/ai/config/tools`** (admin) → 386 tools, **0 enabled**.
 - **UI Settings → Agentic System** → "Daftar Tool **(0/386 aktif)**", semua toggle OFF, grup per modul + filter "Semua grup" termasuk grup baru "AI / Agentic".
 - **Test enable+invoke:** `rpt_dashboard` di-enable + `agentic_enabled=true` (sementara) → invoke `/api/ai/router` → **data ERP asli** (`cashBalance`, `accountsReceivable`, `accountsPayable`, `inventoryValue`, `netProfit`). Lalu **dikembalikan disabled** + `agentic_enabled=false` (state akhir bersih: 0 tool enabled).
-
----
-
-## 5. Catatan untuk PMD parity
-
-Registry FULL ini source AKS. PMD = fork; sinkronkan ke ERP PMD (Tool Router `aplikasi-keuangan-pmd-app-1`) saat dibutuhkan — modul & RBAC identik. `agentic_enabled` tetap `false` sampai AIRA di-wire.

@@ -45,8 +45,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-28',
     title: 'EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo',
     changes: [
-      'Modul EAM kini punya frontend standalone (client-eam/) di domain eam.panganmasadepan.com — bukan repo terpisah, tetap satu monorepo simple-erp-pmd, satu backend/API, satu database',
-      'Login SSO: satu akun ERP dipakai untuk EAM lewat shared-cookie cross-subdomain (.panganmasadepan.com), tidak perlu login ulang',
+      'Modul EAM kini punya frontend standalone (client-eam/) di subdomain EAM tersendiri — bukan repo terpisah, tetap satu monorepo, satu backend/API, satu database',
+      'Login SSO: satu akun ERP dipakai untuk EAM lewat shared-cookie cross-subdomain, tidak perlu login ulang',
       'Tampilan login EAM dibedakan dari ERP (palet hijau tosca/emerald, ikon & copy khusus aset/maintenance) supaya tidak tertukar oleh pengguna',
       'Dashboard ringkas EAM: total aset, nilai buku (NBV), work order aktif/overdue, breakdown per kategori aset, quick links ke semua modul',
       'Filter otomatis per modul (mis. klik Kendaraan hanya tampilkan kategori Kendaraan) via parameter categoryId multi-value di endpoint aset (backward-compatible, tidak mengubah endpoint lama)',
@@ -235,7 +235,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-09',
     title: 'Landing Page Publik Produk (/welcome)',
     changes: [
-      'Halaman landing publik di /welcome untuk memperkenalkan produk Simple ERP oleh PT Arah Karya Sinergi (fitur, prinsip, CTA masuk/konsultasi)',
+      'Halaman landing publik di /welcome untuk memperkenalkan produk Entaris oleh PT Arah Karya Sinergi (fitur, prinsip, CTA masuk/konsultasi)',
       'User yang sudah login otomatis diarahkan ke aplikasi; routing aplikasi yang ada tidak berubah',
     ],
   },
@@ -252,7 +252,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     title: 'Branding: Ganti Sisa Tulisan "Keuangan" Jadi ERP',
     changes: [
-      'Judul tab browser, subtitle halaman login, layar onboarding, dan sidebar kini memakai nama "ERP PMD" — bukan "Keuangan" (sisa branding lama)',
+      'Judul tab browser, subtitle halaman login, layar onboarding, dan sidebar kini memakai nama produk — bukan "Keuangan" (sisa branding lama)',
       'Istilah akuntansi tetap apa adanya (Laporan Keuangan, Rasio Keuangan, dll)',
     ],
   },
@@ -440,7 +440,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Fix: Batch Hasil Transfer Bisa Dipakai Input Produksi',
     changes: [
       'Submit/approve & edit produksi kini menerima batch sumber bertipe TransferIn (stok hasil transfer antar-gudang), konsisten dengan batch picker',
-      'Sebelumnya approve produksi yang memakai batch PK/Glosor transfer ke Poles gagal: "Batch sumber bukan stok masuk"',
+      'Sebelumnya approve produksi yang memakai batch hasil transfer antar-gudang gagal: "Batch sumber bukan stok masuk"',
     ],
   },
   {
@@ -504,7 +504,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Batch Picker Kenali Stok Hasil Transfer Antar-Gudang',
     changes: [
       'Batch picker (produksi & penjualan) kini menampilkan stok yang masuk via transfer antar-gudang (TransferIn), lengkap dengan cost-nya',
-      'Sebelumnya: bahan PK/Glosor yang diproduksi di GILING lalu ditransfer ke POLES tidak memunculkan batch/WAC saat dipakai produksi di POLES',
+      'Sebelumnya: bahan setengah jadi yang diproduksi di satu gudang lalu ditransfer ke gudang lain tidak memunculkan batch/WAC saat dipakai produksi di gudang tujuan',
     ],
   },
   {
@@ -642,7 +642,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Role StaffProduksi sekarang punya akses penuh modul Pesanan (Sales Order): lihat, buat, edit, submit, generate Surat Jalan, cancel — sama seperti Admin/Accountant',
       'Sebelumnya hanya bisa lihat sidebar Surat Jalan; sekarang Pesanan (SO) juga muncul di sidebar mereka',
       'Mendukung alur fisik: staff pabrik bisa langsung input pesanan customer + siapkan/kirim barang tanpa nunggu staff keuangan',
-      'Plus: rekonsiliasi uang muka Bulog Indramayu PAY-202604-0049 (GL-neutral, fix tampilan phantom Rp 643jt)',
+      'Plus: rekonsiliasi uang muka pelanggan (GL-neutral, fix tampilan saldo phantom)',
     ],
   },
   {
@@ -655,7 +655,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Hitung OEE otomatis: Availability (runtime vs planned) × Performance (output vs ideal × runtime) × Quality (good vs total dari baris item) = OEE%',
       'Panel OEE + tabel per-mesin di detail Proses Produksi: lihat availability/performance/quality breakdown + total downtime',
       'Entrypoint Docker auto-apply migrasi .sql loose setelah migrate deploy (untuk fresh install)',
-      'Buku manual lengkap (12 bab markdown + PDF 30 halaman) di docs/manual/',
+      'Buku manual pengguna lengkap (12 bab + versi PDF)',
     ],
   },
   {
@@ -667,7 +667,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Panel "Uang Muka (DP)" di detail Pesanan: DP diterima / Grand Total / Sisa / % dari total + daftar pembayaran DP',
       'Tombol "Terima Uang Muka" langsung dari layar Pesanan — pilih tanggal, jumlah, akun kas/bank. JE otomatis: DR Kas/Bank / CR 2.1.2 Uang Muka Penjualan',
       'Alur lengkap: PO customer → SO → terima DP (ter-link SO) → kirim (DO) → invoice → apply DP → lunas',
-      'Plus: link DO-202605-0068 manual ke SO AB Chicken (data fix); fix Admin bypass stok minus tembus cek per-gudang (v3.2.8)',
+      'Plus: link manual Surat Jalan ke Sales Order terkait (data fix); fix Admin bypass stok minus tembus cek per-gudang (v3.2.8)',
     ],
   },
   {
@@ -700,7 +700,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Format didukung: JPG, PNG, WebP, PDF (max 5 MB/file, max 10 file per dokumen)',
       'StaffProduksi bisa upload (mereka yang fisik handle dokumen di gudang); semua role bisa view & download',
       'Backend: extend referenceType allowed = delivery_order, goods_receipt + validasi referensi exist',
-      'Plus link SI-202605-0059 (BGN Viva) ke DO-202605-0034 sebagai data fix retroaktif — cancel SM duplikat dari direct-sale lama',
+      'Plus link invoice penjualan lama ke Surat Jalan terkait sebagai data fix retroaktif — cancel SM duplikat dari direct-sale lama',
     ],
   },
   {
@@ -711,7 +711,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Widget baru di Dashboard section Sales: list semua DO status Submitted yang belum di-invoice, sort umur lama → baru',
       'Badge umur: ≥10 hari merah (kritis), ≥5 hari amber (warning), <5 hari netral. Banner amber muncul kalau ada DO ≥ 5 hari',
       'Auto-refresh 60 detik. Klik baris navigate ke halaman Surat Jalan',
-      'Mencegah kasus seperti DO BGN Viva 17 Mei yang nyangkut 7 hari tanpa diinvoice — sekarang langsung kelihatan di Dashboard',
+      'Mencegah kasus Surat Jalan yang nyangkut berhari-hari tanpa diinvoice — sekarang langsung kelihatan di Dashboard',
       'Endpoint backend GET /api/dashboard/pending-do (limit 50, sort oldest first)',
     ],
   },
@@ -731,18 +731,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Fix Search Buku Besar — Cari Lewat Nama Akun + Line Description',
     changes: [
       'Bug fix: search di Buku Besar dulu hanya match nomor jurnal & narration header — tidak match nama akun atau description per-baris. Akibat: cari "Piutang Karyawan" tidak ketemu JV "Terima Pembayaran Kasbon Karyawan" yang punya baris ke akun 1.2.2 Piutang Karyawan',
-      'Sekarang search Buku Besar match juga ke: nama akun di baris JE, nomor akun (mis. "1.2.2"), dan description per-baris (mis. "Kasbon Ulin")',
+      'Sekarang search Buku Besar match juga ke: nama akun di baris JE, nomor akun (mis. "1.2.2"), dan description per-baris (mis. "Kasbon Karyawan")',
       'Hasil: search "piutang karyawan" di Buku Besar tampilkan JV-202605-0225 (4 Mei) seperti yang muncul di Laporan Buku Besar',
     ],
   },
   {
     version: '3.2.2',
     date: '2026-05-22',
-    title: 'Icon Aplikasi Baru — Monogram "P" PMD',
+    title: 'Icon Aplikasi Baru',
     changes: [
-      'Icon aplikasi (browser tab + mobile/PWA) di-redesign: monogram huruf "P" putih bold di rounded square steel blue, dengan aksen golden dot di dalam loop sebagai hint pangan',
+      'Icon aplikasi (browser tab + mobile/PWA) di-redesign: monogram huruf putih bold di rounded square steel blue dengan aksen golden dot',
       'Vector-based dari SVG master tunggal → generate semua ukuran (16, 32, 64, 180, 192, 512). Konsisten di favicon, Apple Touch, Android PWA',
-      'Logo perusahaan (untuk invoice, dokumen, surat jalan) tidak berubah — tetap pakai logo PT PMD yang lama. Icon aplikasi ini terpisah, khusus identitas digital app',
+      'Logo perusahaan (untuk invoice, dokumen, surat jalan) tidak berubah — tetap pakai logo perusahaan yang lama. Icon aplikasi ini terpisah, khusus identitas digital app',
       'Theme color updated: #1e40af → #2c4d78 (selaras dengan icon background)',
     ],
   },
@@ -793,7 +793,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Bug fix kritis: rumus WAC (weighted average cost) sekarang aman saat stok negatif — sebelumnya menghasilkan harga modal absurd (jutaan/Kg) yang ter-lock ke Surat Jalan berikutnya dan menyebabkan COGS booking lebih besar dari penjualan',
       'Block oversold di Surat Jalan: tidak bisa lagi kirim qty > stok gudang. Sistem akan tolak dengan pesan "Stok kurang, tersedia X Kg, diminta Y Kg" dan minta produksi/transfer/penerimaan dulu',
       'Dashboard "Nilai Persediaan" hapus clamp Math.max(0,...) — kalau saldo persediaan negatif tampil apa adanya supaya pemilik tahu ada anomali (bukan disembunyikan jadi 0)',
-      'Reset stok + modal gudang POLES (rekonsiliasi fisik 22 Mei): 7 item di-update via ADJ-2605-POLES, total adjustment +Rp 1,58M dibukukan ke 8.8 Pembulatan & Selisih, akun persediaan dari net −Rp 416jt jadi net +Rp 1,17M',
+      'Reset stok + modal per gudang hasil rekonsiliasi fisik: item di-update via dokumen penyesuaian stok, selisih dibukukan ke akun Pembulatan & Selisih sehingga saldo persediaan kembali wajar',
     ],
   },
   {
@@ -802,10 +802,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Landed Cost Pembelian (Material + Refaksi → Persediaan)',
     changes: [
       'Selisih harga PI ↔ STT tidak lagi posting ke akun "Selisih Harga Pembelian" (5.11) — sekarang masuk langsung ke Persediaan sebagai landed cost adjustment (sesuai prinsip akuntansi: biaya tambahan yg attributable ke barang dibebankan ke nilai stok)',
-      'Rumus harga akhir per Kg saat ada refaksi: total invoice PI ÷ qty STT (qty fisik). Contoh: GKP-IR 10.426 Kg fisik, PI total Rp 86.411.520 → harga modal Rp 8.288/Kg (bukan Rp 8.096 provisional)',
+      'Rumus harga akhir per Kg saat ada refaksi: total invoice PI ÷ qty STT (qty fisik). Contoh: 10.000 Kg fisik, PI total Rp 80.000.000 → harga modal Rp 8.000/Kg (bukan harga provisional)',
       'StockMovement dari STT otomatis ter-update unit_cost + total_value setelah PI submit, sehingga batch picker produksi & sales menunjukkan harga modal aktual (bukan provisional)',
       'InventoryItem.averageCost ter-recalculate proporsional dengan stok yg masih ada saat PI submit',
-      'Komponen line PI seperti "RESIKO MACAN" (refaksi) ikut diserap ke nilai persediaan, bukan jadi expense terpisah',
+      'Komponen line PI seperti potongan refaksi ikut diserap ke nilai persediaan, bukan jadi expense terpisah',
     ],
   },
   {
@@ -814,12 +814,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Modul Produksi Loaded HPP, Aset Tetap Lengkap, Stok Wajib via SJ/STT',
     changes: [
       'Modul Produksi (6 phase): batch picker bahan baku, komponen biaya produksi (listrik/buruh/dll) sebagai standar, auto-calc HPP loaded (material + cost components − NRV by-product), traceability proses (Drying/Huller/Polishing), PDF surat produksi, dan laporan Profitability per SKU (Material vs Loaded margin)',
-      'Master Standar Biaya Produksi per gudang: cost rate bisa di-scope per gudang (Listrik Poles hanya muncul di gudang Poles)',
+      'Master Standar Biaya Produksi per gudang: cost rate bisa di-scope per gudang (mis. listrik mesin tertentu hanya muncul di gudang yang memakainya)',
       'Batch picker universal: production input, sales (default WAC, opsional pick batch), transfer antar gudang, stock adjustment Out. Bukan cuma WAC — bisa specific identification per batch',
       'Cap batch availability: FIFO auto-absorb konsumsi legacy outbound, jadi list batch di picker tidak overshoot stok gudang sebenarnya',
       'Dashboard enrichment: section baru "Aset" (KPI nilai aset, distribusi per kategori, jadwal penyusutan, top 10 aset), widget Profitability per SKU di Sales, dan Production Deep Dive (KPI run, yield trend, top input/output, best/worst yield, loaded HPP breakdown) di Produksi',
-      'Aset Tetap lengkap: import 79 aset PMD via script, opening balance JE (16.3M cost + 5M akm penyusutan + 11.3M ekuitas saldo awal), bulk depreciation posting per bulan (1 klik vs 77 klik), confirm dialog single posting, edit metadata aset, export/import CSV',
-      'Dashboard menampilkan: total aset Rp 16.3M, akum penyusutan Rp 5.0M, nilai buku Rp 11.3M (4 kategori: Tanah/Bangunan/Peralatan/Mesin)',
+      'Aset Tetap lengkap: import aset via script, opening balance JE (harga perolehan + akumulasi penyusutan + ekuitas saldo awal), bulk depreciation posting per bulan (1 klik untuk semua aset, bukan klik per aset), confirm dialog single posting, edit metadata aset, export/import CSV',
+      'Dashboard menampilkan total aset, akumulasi penyusutan, dan nilai buku per kategori (Tanah/Bangunan/Peralatan/Mesin)',
       'Buku Besar: pagination footer dengan tombol First/Prev/Next/Last + selector per-halaman (25/50/100/200) + indikator "X–Y dari Z jurnal", server-side filter (search + hideCancelled) supaya konsisten antar halaman',
       'Master Proses Produksi: daftar proses (Drying, Huller, Polishing, dll) yang dipilih saat input produksi sebagai traceability — tidak posting GL, hanya catatan',
       'Stok keluar wajib via Surat Jalan: invoice penjualan dengan item inventory HARUS link ke DO yg sudah submit. Direct-sale ditutup supaya tidak ada dobel-pengurangan stok antara DO dan invoice',
@@ -838,9 +838,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.0.0',
     date: '2026-05-10',
-    title: 'Rebrand ERP PMD, Pipeline Inquiry → Penawaran → Invoice, Public Form',
+    title: 'Rebrand Produk, Pipeline Inquiry → Penawaran → Invoice, Public Form',
     changes: [
-      'Rebrand: aplikasi berganti nama dari "Simple ERP" menjadi "ERP PMD"; domain pindah ke erp.panganmasadepan.com',
+      'Rebrand: nama dan domain aplikasi diperbarui',
       'Modul Inquiry: catat pertanyaan calon customer (prospect) sebelum penawaran resmi — workflow Baru → Diproses → Dikonversi/Hilang/Ditutup, multi-channel tracking (WA/Telp/Email/Walk-in/Referral)',
       'Public Inquiry Form: halaman /tanya untuk customer isi sendiri, terintegrasi auto ke pipeline. Anti-spam: honeypot + rate limit',
       'QR Code Generator: generate QR di header Inquiry untuk dibagikan via WA/IG bio/cetak brosur, dengan tracking sumber',
@@ -953,7 +953,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       'Restrukturisasi COA 111 akun sesuai standar akuntansi (dari spreadsheet perusahaan)',
       'Penomoran baru tanpa leading zero: 1.1.x Kas/Bank, 1.2.x Piutang, 1.4.x Persediaan, 1.6.x Aset Tetap, 1.7.x Akum. Depresiasi',
-      '32 sub-akun persediaan detail (Gabah PW Basah s/d Beras Reject IR)',
+      '32 sub-akun persediaan detail (bahan baku, barang setengah jadi, produk jadi & produk sampingan)',
       '26 akun beban operasional (6.01-6.26)',
       'Pendapatan & Beban Diluar Usaha (7.1.xx, 7.2.xx)',
       'Seed 18 vendor + 31 customer untuk development',

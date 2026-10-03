@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generatedNote": "Registry tool AI Layer Simple ERP. Single source of truth mapping function (tool AI) -> endpoint ERP + kontrol izin. Tambah fitur baru = tambah 1 objek ke array 'tools', lalu jalankan validate-registry.mjs. Disusun dari audit kode (server/src/routes + services + constants/modules.ts).",
+  "generatedNote": "Registry tool AI Layer Entaris. Single source of truth mapping function (tool AI) -> endpoint ERP + kontrol izin. Tambah fitur baru = tambah 1 objek ke array 'tools', lalu jalankan validate-registry.mjs. Disusun dari audit kode (server/src/routes + services + constants/modules.ts).",
   "modules": [
     "sales_order", "delivery_order", "sales_invoice", "quotation", "sales_return", "customer_deposit",
     "purchase_order", "goods_receipt", "purchase_invoice", "vendor_deposit",

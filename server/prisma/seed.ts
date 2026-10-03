@@ -9,7 +9,7 @@ const adapter = new PrismaPg(pool as any);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Seeding Keuangan...');
+  console.log('Seeding Entaris...');
 
   // 1. Seed Fiscal Year
   const fiscalYear = await prisma.fiscalYear.upsert({
@@ -29,23 +29,36 @@ async function main() {
 
   const users = [
     { username: 'admin',    fullName: 'Administrator',   email: 'admin@arahkarya.com',     role: 'Admin',         password: adminPassword   },
-    { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@keuangan.local',    role: 'Accountant',    password: defaultPassword },
-    { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@keuangan.local', role: 'StaffProduksi', password: defaultPassword },
-    { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@keuangan.local',   role: 'Viewer',        password: defaultPassword },
+    { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@entaris.local',     role: 'Accountant',    password: defaultPassword },
+    { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@entaris.local',  role: 'StaffProduksi', password: defaultPassword },
+    { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@entaris.local',    role: 'Viewer',        password: defaultPassword },
   ];
 
   for (const u of users) {
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: { username: u.username, fullName: u.fullName, role: u.role, passwordHash: u.password },
-      create: {
-        username: u.username,
-        fullName: u.fullName,
-        email: u.email,
-        passwordHash: u.password,
-        role: u.role,
-      },
-    });
+    // Look up by username first so existing rows seeded with an older email
+    // domain (e.g. @keuangan.local) are migrated to the new email instead of
+    // colliding on the unique username. Fall back to email for rows whose
+    // username was changed.
+    const existing =
+      (await prisma.user.findUnique({ where: { username: u.username } })) ??
+      (await prisma.user.findUnique({ where: { email: u.email } }));
+
+    if (existing) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { username: u.username, email: u.email, fullName: u.fullName, role: u.role, passwordHash: u.password },
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          username: u.username,
+          fullName: u.fullName,
+          email: u.email,
+          passwordHash: u.password,
+          role: u.role,
+        },
+      });
+    }
     console.log(`- Upserted User: ${u.email} (${u.role})`);
   }
 

@@ -2,47 +2,48 @@
 
 ## Overview
 
-Entaris (Enterprise Agentic Reasoning Integrated System; sebelumnya Simple ERP / ERP PMD) — sistem ERP penuh untuk mengelola operasi perusahaan (penjualan, pembelian, inventori, keuangan) untuk UKM hingga enterprise. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
+Entaris (Enterprise Agentic Reasoning Integrated System) — sistem ERP penuh untuk mengelola operasi perusahaan (penjualan, pembelian, inventori, keuangan) untuk UKM hingga enterprise. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
 
 ## Brand
 
 - Nama produk: **Entaris** — tagline "Agentic Reasoning System"; agen AI: **AIRA**; pembuat: PT Arah Karya Sinergi.
 - Panduan merek, logo & warna: `docs/brand/entaris/README.md` (logo "Anyaman ∇" — tiga bilah menganyam segitiga terbalik; navy `#1B2B48`, biru `#3D8BE0`).
-- Pengenal teknis lama `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi aira-core/deploy.
+- Pengenal teknis lama `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, prefiks file backup `simple_erp_*`) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi aira-core/deploy.
 
 ## Tech Stack
 
 - **Frontend**: React 19 + TypeScript + Vite + TailwindCSS 4 + TanStack Query 5
 - **Backend**: Node.js 20 + Express 5 + TypeScript + Prisma 7
 - **Database**: PostgreSQL 16
-- **Auth**: JWT + bcrypt, roles: Admin / Accountant / Viewer
+- **Auth**: JWT di cookie httpOnly + CSRF token (double-submit `csrf-token` cookie → header `X-CSRF-Token`) + bcrypt, roles: Admin / Accountant / StaffProduksi / Viewer
 - **Testing**: Vitest (unit), Playwright (E2E)
 - **Deploy**: Docker Compose (multi-stage build)
 
 ## Project Structure
 
 ```
-finance-pmd/
+entaris/
 ├── server/           # Express API + Prisma ORM
 │   ├── src/
-│   │   ├── routes/       # 21 route files (REST endpoints)
+│   │   ├── routes/       # 43 top-level route files (77 .ts total incl. subfolders)
 │   │   ├── middleware/    # auth, auditTrail, rateLimiter
 │   │   ├── utils/        # schemas (Zod), documentNumber, accountBalance
 │   │   ├── constants/    # system account numbers
 │   │   └── lib/          # prisma client, logger (Pino)
 │   └── prisma/
-│       ├── schema.prisma
+│       ├── schema.prisma   # 111 models
 │       ├── seed.ts
 │       └── migrations/
 ├── client/           # React SPA
 │   └── src/
-│       ├── pages/        # 18 page components
-│       ├── components/   # 28 components (modals, widgets, reports)
+│       ├── pages/        # 80 page files
+│       ├── components/   # 147 components (modals, widgets, reports)
 │       ├── contexts/     # CompanySettings, Theme
 │       ├── hooks/        # useHotkeys
 │       └── lib/          # api (Axios), exportExcel, pdf
-├── scripts/          # backup, restore
-└── docs/             # user manual
+├── client-eam/       # EAM (Enterprise Asset Management) SPA — SSO via shared cookie, reuses ERP API
+├── scripts/          # backup, restore, setup-backup
+└── docs/             # brand, audits, ERD, tool coverage
 ```
 
 ## System Accounts (JANGAN DIHAPUS/DIUBAH)
@@ -118,7 +119,7 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 
 ### Frontend
 - Pages in `client/src/pages/`, components in `client/src/components/`
-- API calls via Axios instance (`client/src/lib/api.ts`) with JWT interceptor
+- API calls via Axios instance (`client/src/lib/api.ts`) with `withCredentials` (auth cookie) + CSRF header interceptor
 - Server state with TanStack Query (useQuery/useMutation)
 - UI: TailwindCSS utility classes, Lucide icons, Sonner toasts
 - Reports support PDF export (@react-pdf/renderer) and Excel export
@@ -153,8 +154,9 @@ docker compose logs -f app      # View logs
 | Email | Password | Role |
 |-------|----------|------|
 | admin@arahkarya.com | Adminarahkarya123!dsw | Admin |
-| staff@keuangan.local | Admin123! | Accountant |
-| viewer@keuangan.local | Admin123! | Viewer |
+| staff@entaris.local | Admin123! | Accountant |
+| produksi@entaris.local | Admin123! | StaffProduksi |
+| viewer@entaris.local | Admin123! | Viewer |
 
 ## Agent Workflow (Recommended)
 

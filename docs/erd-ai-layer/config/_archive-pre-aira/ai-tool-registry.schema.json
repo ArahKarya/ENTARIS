@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://arahkarya.com/schemas/ai-tool-registry.schema.json",
-  "title": "AI Tool Registry — Simple ERP",
+  "title": "AI Tool Registry — Entaris",
   "description": "Skema validasi untuk registry tool AI Layer. Tiap entri = 1 tool yang dapat dipanggil agen, dipetakan ke endpoint/service ERP + kontrol izin. Tambah fitur baru = tambah 1 objek ke array 'tools' (validator akan menolak entri yang salah).",
   "type": "object",
   "required": ["version", "tools"],

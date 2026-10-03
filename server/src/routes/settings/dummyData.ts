@@ -83,7 +83,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
 
       // --- Dummy Parties ---
       const customerNames = [
-        'Toko Beras Sejahtera', 'UD Pangan Jaya', 'CV Makmur Abadi', 'Toko Beras Melati',
+        'Toko Beras Sejahtera', 'UD Sumber Jaya', 'CV Makmur Abadi', 'Toko Beras Melati',
         'PT Beras Nusantara', 'UD Sumber Rezeki', 'Toko Beras Cirebon', 'CV Padi Emas',
       ];
       const supplierNames = [
@@ -103,7 +103,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       const suppliers = [];
       for (const name of supplierNames) {
         const p = await tx.party.create({
-          data: { name, partyType: 'Supplier', phone: '08' + Math.floor(1000000000 + Math.random() * 9000000000).toString().slice(0, 10), address: 'Indramayu, Jawa Barat', isDummy: true },
+          data: { name, partyType: 'Supplier', phone: '08' + Math.floor(1000000000 + Math.random() * 9000000000).toString().slice(0, 10), address: 'Cirebon, Jawa Barat', isDummy: true },
         });
         suppliers.push(p);
         results.parties++;

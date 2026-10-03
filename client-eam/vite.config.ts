@@ -15,9 +15,9 @@ export default defineConfig({
         'app-icon-master.svg',
       ],
       manifest: {
-        name: 'EAM',
-        short_name: 'EAM',
-        description: 'EAM — Enterprise Asset Management PT Pangan Masa Depan',
+        name: 'Entaris EAM',
+        short_name: 'Entaris EAM',
+        description: 'Entaris EAM — Manajemen Aset',
         theme_color: '#0d9488',
         background_color: '#fafafb',
         display: 'standalone',

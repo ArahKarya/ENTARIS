@@ -52,8 +52,8 @@ const UpdateFixedAssetSchema = z.object({
 
 // Bulk-create endpoint untuk fitur Import CSV. Sengaja minimalis: create
 // asset + auto-generate depreciation schedule (default Phase 1 behavior).
-// TIDAK auto-post opening balance JE — itu manual decision via script
-// scripts/post-fa-opening-je.cjs supaya tidak terkontaminasi.
+// TIDAK auto-post opening balance JE — itu keputusan manual (dicatat
+// terpisah lewat jurnal) supaya tidak terkontaminasi.
 const BulkCreateAssetSchema = z.object({
   assets: z.array(z.object({
     name: z.string().min(1).max(200),

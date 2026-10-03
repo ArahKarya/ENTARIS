@@ -17,7 +17,7 @@ export default defineConfig({
       manifest: {
         name: 'Entaris',
         short_name: 'Entaris',
-        description: 'Entaris — Agentic Reasoning System: ERP keuangan & operasional dengan agen AI',
+        description: 'Entaris — Agentic Reasoning System: penjualan, pembelian, inventori & keuangan dengan agen AI',
         theme_color: '#1B2B48',
         background_color: '#fafafb',
         display: 'standalone',

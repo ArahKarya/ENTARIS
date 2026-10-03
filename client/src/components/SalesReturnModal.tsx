@@ -135,7 +135,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
   });
 
   // Retur boleh disimpan kalau ada minimal 1 qty terisi > 0, walau nilainya
-  // Rp0 (mis. item titipan BULOG dengan rate 0 — retur qty-only, tanpa
+  // Rp0 (mis. item titipan pelanggan dengan rate 0 — retur qty-only, tanpa
   // pengaruh nilai piutang/kredit, hanya mengembalikan stok fisik).
   const hasQty = Object.values(lines).some((ln) => Number(ln.qty || 0) > 0);
 
