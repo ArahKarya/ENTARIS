@@ -12,3 +12,11 @@ html:has(#erp-root) {
 body:has(#erp-root) {
   margin: 0;
 }
+
+html:has(#erp-root) {
+  background-color: #f9fbfd;
+}
+html:has(#erp-root.dark) {
+  background-color: #0b1220;
+  color-scheme: dark;
+}

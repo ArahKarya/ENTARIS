@@ -1,0 +1,329 @@
+/* Entaris home page: module catalog, "Kenapa Entaris" and "Cocok untuk" sections. */
+@layer entaris {
+  /* -- Shared section head ------------------------------------------------------------------ */
+  .erp-root .home-section-head {
+    padding: clamp(3rem, 6vw, 5rem) var(--tacet-section-pad-x, 1.5rem) clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .erp-root .home-section-title {
+    max-width: 22ch;
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: clamp(1.875rem, 4.4vw, 3.25rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 0.98;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .erp-root .home-section-lead {
+    max-width: 62ch;
+    margin: 1rem 0 0;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+    line-height: 1.6;
+  }
+
+  /* -- Module catalog ------------------------------------------------------------------------ */
+  .erp-root .home-modules {
+    background: var(--background);
+  }
+
+  .erp-root .home-modules #catalog-filter-bar {
+    border-top: 1px solid var(--border);
+  }
+
+  .erp-root .home-module-rows {
+    padding-bottom: clamp(2rem, 4vw, 3.5rem);
+  }
+
+  .erp-root .home-module-row {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+    scroll-margin-top: calc(var(--tacet-nav-bottom, var(--nav-height, 4.5rem)) + 1rem);
+  }
+
+  .erp-root .home-module-row[hidden] {
+    display: none;
+  }
+
+  /* site.css pads home row headers with an !important rule driven by this variable. */
+  .erp-root .home-module-row {
+    --home-catalog-row-inline: var(--tacet-section-pad-x, 1.5rem);
+    padding-top: clamp(1.25rem, 2.4vw, 2rem);
+  }
+
+  .erp-root .catalog-row-header.home-module-row__header {
+    align-items: end;
+    padding-bottom: 1rem;
+  }
+
+  .erp-root .home-module-row__summary {
+    margin: 0.5rem 0 0;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .erp-root .home-module-row__count {
+    color: var(--text-m);
+    font-family: var(--font-mono);
+    font-size: var(--text-label, 0.6875rem);
+    font-weight: 650;
+    letter-spacing: var(--tracking-label, 0.18em);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .erp-root .home-module-row__grid {
+    padding-inline: var(--tacet-section-pad-x, 1.5rem);
+  }
+
+  /* Phones: each category becomes a horizontal swipe rail instead of a long single column. */
+  @media (max-width: 47.99rem) {
+    .erp-root .home-module-row .catalog-row-copy {
+      display: block;
+    }
+
+    .erp-root .home-module-row__grid {
+      padding-inline: 0;
+    }
+
+    .erp-root .home-module-row__grid .home-catalog-grid.catalog-scroll-track--gallery {
+      grid-auto-flow: column;
+      grid-auto-columns: min(78vw, 20rem);
+      grid-template-columns: none;
+      overflow-x: auto;
+      padding: 0.25rem var(--tacet-section-pad-x, 1.5rem) 0.75rem;
+      scroll-padding-inline: var(--tacet-section-pad-x, 1.5rem);
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+  }
+
+  /* -- Module card (no photo: tinted color + pattern + glyph) -------------------------------- */
+  .erp-root .home-module-card {
+    cursor: default;
+    color: #fff;
+  }
+
+  .erp-root .home-module-card__tint {
+    z-index: 0;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgb(255 255 255 / 16%), transparent 60%),
+      linear-gradient(160deg, transparent 30%, rgb(0 0 0 / 34%) 100%);
+  }
+
+  .erp-root .home-module-card .pat-lines,
+  .erp-root .home-module-card .pat-dots,
+  .erp-root .home-module-card .pat-mesh,
+  .erp-root .home-module-card .pat-diag {
+    z-index: 1;
+    color: #fff;
+    opacity: 0.07;
+  }
+
+  .erp-root .home-module-card__glyph {
+    position: absolute;
+    top: clamp(0.75rem, 1vw, 1rem);
+    right: clamp(0.75rem, 1vw, 1rem);
+    z-index: 2;
+    width: clamp(2rem, 18cqi, 3.25rem);
+    height: clamp(2rem, 18cqi, 3.25rem);
+    color: rgb(255 255 255 / 55%);
+    stroke-width: 1.4;
+    pointer-events: none;
+  }
+
+  .erp-root .home-module-card .catalog-card__rest-copy,
+  .erp-root .home-module-card:hover .catalog-card__rest-copy {
+    opacity: 1;
+    text-shadow: none;
+    transform: none;
+  }
+
+  .erp-root .home-module-card .home-module-card__pill {
+    border: 1px solid rgb(255 255 255 / 28%);
+    background: rgb(255 255 255 / 14%);
+    color: #fff;
+  }
+
+  .erp-root .home-module-card .catalog-card__title {
+    color: #fff;
+  }
+
+  .erp-root .home-module-card .catalog-card__desc {
+    color: rgb(255 255 255 / 84%);
+  }
+
+  /* -- Kenapa Entaris ----------------------------------------------------------------------- */
+  .erp-root .home-why {
+    border-top: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .erp-root .home-why__table {
+    margin: 0 var(--tacet-section-pad-x, 1.5rem) clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+
+  .erp-root .home-why__row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 5fr) minmax(0, 7fr);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .erp-root .home-why__row > * {
+    margin: 0;
+    padding: clamp(1rem, 2vw, 1.5rem) clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .erp-root .home-why__row > * + * {
+    border-left: 1px solid var(--border);
+  }
+
+  .erp-root .home-why__row--head > * {
+    padding-block: 0.75rem;
+    color: var(--text-m);
+    font-family: var(--font-mono);
+    font-size: var(--text-label, 0.6875rem);
+    font-weight: 650;
+    letter-spacing: var(--tracking-label, 0.18em);
+    text-transform: uppercase;
+  }
+
+  .erp-root .home-why__num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in oklch, var(--org, var(--entaris-blue)), transparent 88%);
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 900;
+  }
+
+  .erp-root .home-why__row--head .home-why__num {
+    font-family: var(--font-mono);
+    font-size: var(--text-label, 0.6875rem);
+  }
+
+  .erp-root .home-why__problem {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: clamp(1rem, 1.5vw, 1.25rem);
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .erp-root .home-why__solution {
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 47.99rem) {
+    .erp-root .home-why__row {
+      grid-template-columns: 3.25rem minmax(0, 1fr);
+    }
+
+    .erp-root .home-why__row--head {
+      display: none;
+    }
+
+    .erp-root .home-why__num {
+      grid-row: span 2;
+      font-size: 1.125rem;
+    }
+
+    .erp-root .home-why__row > .home-why__solution {
+      padding-top: 0;
+    }
+
+    .erp-root .home-why__row > .home-why__problem + .home-why__solution {
+      border-left: 1px solid var(--border);
+    }
+  }
+
+  /* -- Cocok untuk -------------------------------------------------------------------------- */
+  .erp-root .home-fit {
+    border-top: 1px solid var(--border);
+    background: var(--card, var(--background));
+  }
+
+  .erp-root .home-fit__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 var(--tacet-section-pad-x, 1.5rem) clamp(3rem, 6vw, 5rem);
+    padding: 0;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    list-style: none;
+  }
+
+  .erp-root .home-fit__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: clamp(1.25rem, 2vw, 1.75rem);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .erp-root .home-fit__num {
+    color: var(--org-on-light, var(--entaris-blue-dark));
+    font-family: var(--font-mono);
+    font-size: var(--text-label, 0.6875rem);
+    font-weight: 700;
+    letter-spacing: var(--tracking-label, 0.18em);
+  }
+
+  .erp-root .home-fit__title {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .erp-root .home-fit__icon {
+    width: 1.1em;
+    height: 1.1em;
+    flex: none;
+    color: var(--org-on-light, var(--entaris-blue-dark));
+  }
+
+  .erp-root .home-fit__body {
+    margin: 0;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 63.99rem) {
+    .erp-root .home-fit__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 35.99rem) {
+    .erp-root .home-fit__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
