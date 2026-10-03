@@ -10,6 +10,13 @@
 - Halaman publik `/welcome`, `/tanya`, dan `/aset/:kode` memakai logo & warna resmi.
 - Zoom (pinch) di perangkat mobile diaktifkan kembali.
 
+- **Navigasi baru**: sidebar 9 seksi berbahasa Indonesia (mis. "Faktur Penjualan", "Pesanan Pembelian (PO)"), satu menu aktif, bisa diciutkan (rail), drawer di mobile. URL tidak berubah. Breadcrumb mengikuti halaman (tidak lagi "Finance / …").
+- **Header baru**: pencarian ⌘K, tombol "Tanya AIRA", notifikasi, dan menu akun (ganti kata sandi, tema, pintasan, Tentang Entaris, keluar). Versi & kredit pembuat pindah ke "Tentang Entaris".
+- Palet perintah ⌘K bisa membuka halaman dan meneruskan pertanyaan ke AIRA; bantuan pintasan keyboard diperbarui.
+- **Onboarding** disimpan di server dan hanya tampil untuk admin; tenant lama otomatis dianggap selesai; kartu "Lengkapi penyiapan" di dasbor.
+- Chat AIRA & kartu persetujuan memakai warna brand dan mendukung mode gelap; "Tolak" kini meminta konfirmasi.
+- Notifikasi toast mengikuti mode gelap.
+
 **Ditambahkan**:
 - Komponen dasar bersama: Field, PageHeader, StatusBadge, ConfirmDialog, BrandMark/Wordmark; format angka/tanggal & label status Bahasa Indonesia terpusat.
 - Infrastruktur uji UI: Vitest, Playwright (screenshot semua halaman) + axe (aksesibilitas).

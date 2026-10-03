@@ -202,7 +202,7 @@ export const SalesInvoices = () => {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Jatuh Tempo</p>
-              <p className="text-lg font-bold text-orange-500">{summary.overdue} invoice</p>
+              <p className="text-lg font-bold text-warning-text">{summary.overdue} invoice</p>
             </div>
           </div>
         </div>
@@ -233,6 +233,7 @@ export const SalesInvoices = () => {
           <span className="text-xs">Dari</span>
           <input
             type="date"
+            aria-label="Tanggal dari"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
             className="border border-gray-200 rounded-lg py-2 px-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -240,6 +241,7 @@ export const SalesInvoices = () => {
           <span className="text-xs">s/d</span>
           <input
             type="date"
+            aria-label="Tanggal sampai"
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
             className="border border-gray-200 rounded-lg py-2 px-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -257,7 +259,7 @@ export const SalesInvoices = () => {
 
       {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-       <div className="table-responsive">
+       <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabel faktur penjualan">
         <table className="data-table">
           <thead>
             <tr>

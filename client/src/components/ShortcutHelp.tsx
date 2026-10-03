@@ -1,99 +1,85 @@
-import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { Fragment, useMemo } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SHORTCUTS, SHORTCUT_GROUPS, comboKeycaps, type ShortcutDef } from '@/hooks/shortcuts';
+import { allowedGoToShortcuts } from '@/hooks/useHotkeys';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 
 interface ShortcutHelpProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const shortcuts = [
-  { keys: ['Ctrl+K', '\u2318K'], action: 'Pencarian global' },
-  { keys: ['Ctrl+N', '\u2318N'], action: 'Buat baru' },
-  { keys: ['Escape'], action: 'Tutup dialog' },
-  { keys: ['?'], action: 'Tampilkan bantuan pintasan' },
-];
+const kbdClass =
+  'inline-flex min-w-6 items-center justify-center rounded border border-border bg-muted px-1.5 font-mono text-xs leading-5 font-medium text-foreground';
 
+/** Keycaps for every combo of a shortcut: "Ctrl K", "G lalu D", "↑ / ↓". */
+function Combo({ combos }: { combos: readonly string[] }) {
+  return (
+    <span className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+      {combos.map((combo, ci) => (
+        <Fragment key={combo}>
+          {ci > 0 && <span className="text-xs text-muted-foreground">/</span>}
+          {comboKeycaps(combo).map((step, si) => (
+            <Fragment key={si}>
+              {si > 0 && <span className="text-xs text-muted-foreground">lalu</span>}
+              {step.map((k) => (
+                <kbd key={k} className={kbdClass}>
+                  {k}
+                </kbd>
+              ))}
+            </Fragment>
+          ))}
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
+/** "Pintasan Keyboard" dialog. Lists the shared shortcut map (hooks/shortcuts.ts). */
 export function ShortcutHelp({ isOpen, onClose }: ShortcutHelpProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
+  // Go-to shortcuts appear only for pages the user may open (same rule as the sidebar).
+  const groups = useMemo(() => {
+    if (!isOpen) return [];
+    const allowedGoTo = new Set(allowedGoToShortcuts().map((s) => s.id));
+    const visible = SHORTCUTS.filter((s) => !s.path || allowedGoTo.has(s.id));
+    return SHORTCUT_GROUPS.map((group) => ({ group, items: visible.filter((s) => s.group === group) })).filter(
+      (g) => g.items.length > 0,
+    );
+  }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  const returnFocus = useReturnFocus();
 
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30"
-      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-    >
-      <div className="w-full max-w-[calc(100vw-1rem)] sm:max-w-md rounded-xl shadow-xl border"
-        style={{
-          backgroundColor: 'var(--color-card-bg)',
-          borderColor: 'var(--color-border)',
-          color: 'var(--color-text-primary)',
-        }}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        size="sm"
+        className="gap-5"
+        onOpenAutoFocus={returnFocus.capture}
+        onCloseAutoFocus={returnFocus.onCloseAutoFocus}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
-          <h2 className="text-base font-semibold">Pintasan Keyboard</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            <X size={18} />
-          </button>
-        </div>
+        <DialogHeader>
+          <DialogTitle>Pintasan Keyboard</DialogTitle>
+          <DialogDescription>Bekerja lebih cepat tanpa mouse. Pintasan huruf tidak aktif saat Anda sedang mengetik.</DialogDescription>
+        </DialogHeader>
 
-        {/* Shortcuts Table */}
-        <div className="px-5 py-4 space-y-3">
-          {shortcuts.map((shortcut) => (
-            <div key={shortcut.action} className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                {shortcut.action}
-              </span>
-              <div className="flex items-center gap-1.5">
-                {shortcut.keys.map((key, i) => (
-                  <span key={i}>
-                    {i > 0 && (
-                      <span className="text-xs mx-1" style={{ color: 'var(--color-text-muted)' }}>/</span>
-                    )}
-                    <kbd
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium border"
-                      style={{
-                        backgroundColor: 'var(--color-bg-tertiary)',
-                        borderColor: 'var(--color-border)',
-                        color: 'var(--color-text-primary)',
-                      }}
-                    >
-                      {key}
-                    </kbd>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-3 border-t text-xs"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-        >
-          Tekan <kbd className="px-1.5 py-0.5 rounded border text-xs font-mono" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)' }}>Esc</kbd> untuk menutup
-        </div>
-      </div>
-    </div>
+        {groups.map(({ group, items }, gi) => (
+          <section key={group} aria-labelledby={`shortcut-group-${gi}`}>
+            <h3 id={`shortcut-group-${gi}`} className="mb-1 text-xs font-medium text-muted-foreground">
+              {group}
+            </h3>
+            <dl className="divide-y divide-border">
+              {items.map((s: ShortcutDef) => (
+                <div key={s.id} className="flex items-center justify-between gap-4 py-2">
+                  <dt className="text-sm text-foreground">{s.label}</dt>
+                  <dd>
+                    <Combo combos={s.combos} />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
-import { APP_NAME } from '../lib/version';
 
 interface CompanySettings {
   id: string;
@@ -13,6 +12,8 @@ interface CompanySettings {
   logoUrl: string | null;
   logoUrlDark: string | null;
   defaultCurrency: string;
+  fiscalYearStartMonth?: number;
+  onboardedAt?: string | null;
 }
 
 const CompanySettingsContext = createContext<CompanySettings | null>(null);
@@ -31,14 +32,11 @@ export const CompanySettingsProvider: React.FC<{ children: React.ReactNode }> = 
     retry: false,
   });
 
-  // ── Dynamic favicon & title ──────────────────────────────────────────────
+  // ── Favicon ──────────────────────────────────────────────────────────────
+  // The tab title is owned by MainLayout (route registry + companyName), so it
+  // is not set here: setting it twice made the label flicker or get overwritten.
   useEffect(() => {
     if (!data) return;
-
-    // Update page title
-    if (data.companyName) {
-      document.title = `${APP_NAME} - ${data.companyName}`;
-    }
 
     // Favicon always uses the static app icon (not company logo)
     const link: HTMLLinkElement =

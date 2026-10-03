@@ -38,6 +38,7 @@ import CogsBackfillWidget from '../components/widgets/CogsBackfillWidget';
 import DashboardSettings, { DEFAULT_WIDGETS, type WidgetConfig } from '../components/DashboardSettings';
 import DashboardSectionNav, { type SectionDef } from '../components/DashboardSectionNav';
 import DashboardPeriodFilter, { type PeriodRange, computePresetRange } from '../components/DashboardPeriodFilter';
+import { SetupChecklistCard } from '../components/onboarding/SetupChecklistCard';
 
 // Widget IDs only visible to finance roles (not StaffProduksi)
 const FINANCE_WIDGET_IDS = new Set([
@@ -258,6 +259,8 @@ export const Dashboard = () => {
           </button>
         </div>
       </div>
+
+      <SetupChecklistCard />
 
       {/* Sticky Section Nav */}
       <DashboardSectionNav sections={sections} />

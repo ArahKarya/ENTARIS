@@ -1,488 +1,261 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import api from '../lib/api';
+import api from '@/lib/api';
+import { can } from '@/lib/permissions';
+import { useCompanySettings } from '@/contexts/CompanySettingsContext';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { BrandMark } from '@/components/shared/brand-mark';
 import {
-  Sparkles,
-  Building2,
-  Calendar,
-  KeyRound,
-  CheckCircle2,
-  ChevronRight,
-  ChevronLeft,
-  SkipForward,
-  Loader2,
-} from 'lucide-react';
-import { cn } from '../lib/utils';
-import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
+  completeOnboarding,
+  companyUpdatePayload,
+  isLocallySuppressed,
+  markDoneLocally,
+  passwordProblem,
+  realCompanyName,
+  shouldShowWizard,
+  STEPS,
+  type FiscalYearLite,
+  type StepId,
+  type OnboardingCompany,
+} from './onboarding/onboarding-state';
+import {
+  CompanyStep,
+  DoneStep,
+  FiscalStep,
+  SecurityStep,
+  Stepper,
+  WelcomeStep,
+  type CompanyForm,
+  type PasswordForm,
+} from './onboarding/OnboardingSteps';
 
 interface OnboardingWizardProps {
+  /** Called once the wizard closes (finished, skipped, or failed to persist). */
   onComplete: () => void;
 }
 
-const STEPS = [
-  { icon: Sparkles, label: 'Selamat Datang' },
-  { icon: Building2, label: 'Profil Perusahaan' },
-  { icon: Calendar, label: 'Tahun Fiskal' },
-  { icon: KeyRound, label: 'Ganti Password' },
-  { icon: CheckCircle2, label: 'Selesai' },
-];
+const COMPANY_KEY = ['company-settings'] as const;
 
-const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
+const STEP_COPY: Record<StepId, { title: string; description: string }> = {
+  welcome: { title: 'Selamat datang di Entaris', description: 'Siapkan perusahaan Anda dalam beberapa menit.' },
+  company: { title: 'Profil perusahaan', description: 'Data ini tampil di kop faktur, surat jalan, dan laporan.' },
+  fiscal: { title: 'Tahun buku', description: 'Periode akuntansi tempat transaksi dicatat.' },
+  security: { title: 'Keamanan akun', description: 'Ganti kata sandi bawaan akun admin sebelum tim mulai bekerja.' },
+  done: { title: 'Penyiapan selesai', description: 'Anda bisa mulai menggunakan Entaris.' },
+};
+
+function errorMessage(err: unknown, fallback: string): string {
+  const data = (err as { response?: { data?: { error?: unknown } } })?.response?.data;
+  return typeof data?.error === 'string' ? data.error : fallback;
+}
+
+/**
+ * First-run setup for admins. Shown only to users who can edit settings, and
+ * only while the company has no `onboardedAt`. Finishing or skipping stores the
+ * timestamp on the server, so it never reappears on another browser and never
+ * blocks non-admins. `localStorage.onboardingDone === 'true'` still suppresses it.
+ */
+const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
+  const company = useCompanySettings() as OnboardingCompany | null;
+  const [canManage] = useState(() => can('settings', 'edit'));
+  const [suppressed] = useState(isLocallySuppressed);
+  // Latch: once open, stay mounted until the wizard closes itself, even after
+  // the cached company record gains `onboardedAt` mid-flow (password step).
+  const [latched, setLatched] = useState(false);
+  if (!latched && company && shouldShowWizard({ canManage, suppressed, company })) setLatched(true);
+
+  if (!latched || !company) return null;
+  return <WizardDialog company={company} onClose={onComplete} />;
+};
+
+function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClose: () => void }) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
-  const [saving, setSaving] = useState(false);
-
-  // Step 2: Company profile
-  const [companyForm, setCompanyForm] = useState({
-    companyName: '',
-    address: '',
-    phone: '',
-    email: '',
-  });
-
-  // Step 4: Password
-  const [passwordForm, setPasswordForm] = useState({
+  const [busy, setBusy] = useState(false);
+  const [companyError, setCompanyError] = useState<string>();
+  const [passwordError, setPasswordError] = useState<string>();
+  const [companyForm, setCompanyForm] = useState<CompanyForm>(() => ({
+    companyName: realCompanyName(company.companyName),
+    address: company.address ?? '',
+    phone: company.phone ?? '',
+    email: company.email ?? '',
+    taxId: company.taxId ?? '',
+  }));
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
     currentPassword: '',
     newPassword: '',
+    confirmPassword: '',
   });
 
-  // Fetch fiscal years for step 3
-  const { data: fiscalYears, isLoading: fyLoading } = useQuery<any[]>({
-    queryKey: ['fiscal-years'],
-    queryFn: async () => {
-      const r = await api.get('/fiscal-years');
-      return r.data;
-    },
-  });
+  const stepId = STEPS[step].id;
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const primaryRef = useRef<HTMLButtonElement>(null);
 
-  // Fetch current company settings
-  const { data: settings } = useQuery({
-    queryKey: ['company-settings'],
-    queryFn: async () => {
-      try {
-        const r = await api.get('/settings/company');
-        return r.data;
-      } catch {
-        return null;
-      }
-    },
-  });
-
+  // Move focus into the new step: its first field, else the primary action.
+  const firstStep = useRef(true);
   useEffect(() => {
-    if (settings) {
-      setCompanyForm({
-        companyName: settings.companyName || '',
-        address: settings.address || '',
-        phone: settings.phone || '',
-        email: settings.email || '',
-      });
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
     }
-  }, [settings]);
+    const field = bodyRef.current?.querySelector<HTMLElement>('input, textarea');
+    (field ?? primaryRef.current)?.focus();
+  }, [step]);
+  const { data: fiscalYears, isLoading: fiscalLoading } = useQuery<FiscalYearLite[]>({
+    queryKey: ['fiscal-years'],
+    queryFn: async () => (await api.get('/fiscal-years')).data,
+    enabled: stepId === 'fiscal',
+  });
 
-  const handleNext = async () => {
-    // Validate & save per step
-    if (step === 1) {
-      // Save company profile
-      if (!companyForm.companyName.trim()) {
-        toast.error('Nama perusahaan wajib diisi.');
-        return;
-      }
-      setSaving(true);
-      try {
-        await api.put('/settings/company', companyForm);
-        queryClient.invalidateQueries({ queryKey: ['company-settings'] });
-        toast.success('Profil perusahaan disimpan.');
-      } catch {
-        toast.error('Gagal menyimpan profil perusahaan.');
-        setSaving(false);
-        return;
-      }
-      setSaving(false);
-    }
-
-    if (step === 3) {
-      // Save password change
-      if (passwordForm.currentPassword && passwordForm.newPassword) {
-        if (passwordForm.newPassword.length < 6) {
-          toast.error('Password baru minimal 6 karakter.');
-          return;
-        }
-        setSaving(true);
-        try {
-          await api.put('/users/me/password', passwordForm);
-          toast.success('Password berhasil diubah.');
-        } catch (err: any) {
-          toast.error(err.response?.data?.error || 'Gagal mengubah password.');
-          setSaving(false);
-          return;
-        }
-        setSaving(false);
-      }
-    }
-
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
+  /** Persist done/skipped; on failure close anyway (never block) and say it will return. */
+  const persist = async (): Promise<boolean> => {
+    try {
+      const onboardedAt = await completeOnboarding();
+      queryClient.setQueryData<OnboardingCompany>(COMPANY_KEY, (old) => (old ? { ...old, onboardedAt } : old));
+      markDoneLocally();
+      return true;
+    } catch {
+      toast.error('Status penyiapan gagal disimpan. Panduan ini akan muncul lagi saat Anda masuk berikutnya.');
+      return false;
     }
   };
 
-  const handleBack = () => {
-    if (step > 0) setStep(step - 1);
+  const finish = async () => {
+    if (busy) return;
+    setBusy(true);
+    await persist();
+    setBusy(false);
+    onClose();
   };
 
-  const handleSkip = () => {
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
+  const saveCompany = async (): Promise<boolean> => {
+    if (!companyForm.companyName.trim()) {
+      setCompanyError('Nama perusahaan wajib diisi.');
+      return false;
+    }
+    setCompanyError(undefined);
+    try {
+      await api.put('/settings/company', companyUpdatePayload(company, companyForm));
+      await queryClient.invalidateQueries({ queryKey: COMPANY_KEY });
+      return true;
+    } catch (err) {
+      setCompanyError(errorMessage(err, 'Gagal menyimpan profil perusahaan.'));
+      return false;
     }
   };
 
-  const handleComplete = () => {
-    localStorage.setItem('onboardingDone', 'true');
-    onComplete();
+  /** Returns true when the wizard may advance; a successful change ends the session. */
+  const changePassword = async (): Promise<boolean> => {
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    if (!currentPassword && !newPassword && !confirmPassword) return true;
+    const problem = !currentPassword
+      ? 'Isi kata sandi saat ini.'
+      : passwordProblem(newPassword) ?? (newPassword !== confirmPassword ? 'Ulangan kata sandi baru tidak cocok.' : null);
+    if (problem) {
+      setPasswordError(problem);
+      return false;
+    }
+    setPasswordError(undefined);
+    // The password change revokes this session, so record onboarding first.
+    if (!(await persist())) return false;
+    try {
+      await api.put('/users/me/password', { currentPassword, newPassword });
+    } catch (err) {
+      setPasswordError(errorMessage(err, 'Gagal mengganti kata sandi.'));
+      return false;
+    }
+    toast.success('Kata sandi diganti. Silakan masuk lagi dengan kata sandi baru.');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('aira_chat_messages');
+    sessionStorage.removeItem('aira_chat_session_id');
+    queryClient.clear();
+    window.location.assign('/login');
+    return false;
   };
 
-  // Progress width
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const next = async () => {
+    if (stepId === 'done') return finish();
+    setBusy(true);
+    let ok = true;
+    if (stepId === 'company') ok = await saveCompany();
+    if (stepId === 'security') ok = await changePassword();
+    setBusy(false);
+    if (ok) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    else requestAnimationFrame(() => bodyRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+  };
+
+  const wantsPasswordChange = Object.values(passwordForm).some(Boolean);
+  const primaryLabel: Record<StepId, string> = {
+    welcome: 'Mulai penyiapan',
+    company: 'Simpan & lanjut',
+    fiscal: 'Lanjut',
+    security: wantsPasswordChange ? 'Ganti kata sandi' : 'Lanjut tanpa mengganti',
+    done: 'Mulai gunakan Entaris',
+  };
+  const copy = STEP_COPY[stepId];
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
-      style={{ backgroundColor: 'var(--color-bg-primary)' }}
-    >
-      {/* Background subtle pattern */}
-      <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+    <Dialog open onOpenChange={(open) => !open && void finish()}>
+      <DialogContent
+        size="md"
+        hideClose
+        aria-busy={busy || undefined}
+        onInteractOutside={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          primaryRef.current?.focus();
+        }}
+        className="gap-5"
+      >
+        <DialogHeader className="gap-3 pr-0">
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <BrandMark size={20} variant="auto" title="" aria-hidden />
+              Penyiapan awal
+            </span>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              Langkah {step + 1} dari {STEPS.length}
+            </span>
+          </div>
+          <Stepper current={step} />
+          <div className="space-y-1 pt-1">
+            <DialogTitle>{copy.title}</DialogTitle>
+            <DialogDescription>{copy.description}</DialogDescription>
+          </div>
+        </DialogHeader>
 
-      <div className="relative w-full max-w-[calc(100vw-2rem)] sm:max-w-xl mx-4">
-        {/* Progress bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            {STEPS.map((s, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center transition-all',
-                    i < step
-                      ? 'bg-green-500 text-white'
-                      : i === step
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                      : 'border-2 text-gray-300'
-                  )}
-                  style={i > step ? { borderColor: 'var(--color-border)' } : undefined}
-                >
-                  {i < step ? (
-                    <CheckCircle2 size={16} />
-                  ) : (
-                    <s.icon size={14} />
-                  )}
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={cn(
-                      'hidden sm:block w-8 h-0.5 rounded-full transition-colors',
-                      i < step ? 'bg-green-500' : 'bg-gray-200'
-                    )}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="w-full h-1 rounded-full" style={{ backgroundColor: 'var(--color-border)' }}>
-            <div
-              className="h-full bg-blue-600 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+        <div ref={bodyRef}>
+          {stepId === 'welcome' && <WelcomeStep />}
+          {stepId === 'company' && <CompanyStep form={companyForm} onChange={setCompanyForm} error={companyError} />}
+          {stepId === 'fiscal' && <FiscalStep years={fiscalYears} loading={fiscalLoading} />}
+          {stepId === 'security' && <SecurityStep form={passwordForm} onChange={setPasswordForm} error={passwordError} />}
+          {stepId === 'done' && <DoneStep companyName={realCompanyName(companyForm.companyName)} />}
         </div>
 
-        {/* Card */}
-        <div
-          className="rounded-2xl border shadow-xl p-8"
-          style={{
-            backgroundColor: 'var(--color-bg-primary)',
-            borderColor: 'var(--color-border)',
-          }}
-        >
-          {/* Step 0: Welcome */}
-          {step === 0 && (
-            <div className="text-center space-y-6">
-              <div className="w-20 h-20 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mx-auto">
-                <Sparkles size={36} className="text-blue-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                  Selamat Datang!
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Entaris siap digunakan. Mari setup perusahaan Anda dalam beberapa langkah mudah.
-                </p>
-              </div>
-            </div>
+        <DialogFooter className="items-stretch border-t border-border pt-4 sm:items-center sm:justify-between">
+          {stepId !== 'done' ? (
+            <Button variant="ghost" size="md" onClick={() => void finish()} disabled={busy} className="text-muted-foreground">
+              Lewati penyiapan
+            </Button>
+          ) : (
+            <span aria-hidden />
           )}
-
-          {/* Step 1: Company Profile */}
-          {step === 1 && (
-            <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Building2 size={20} className="text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>Profil Perusahaan</h2>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Informasi dasar perusahaan Anda</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Nama Perusahaan *</label>
-                  <input
-                    type="text"
-                    value={companyForm.companyName}
-                    onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
-                    placeholder="PT. Contoh Perusahaan"
-                    className="w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none"
-                    style={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      borderColor: 'var(--color-border)',
-                      color: 'var(--color-text-primary)',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Alamat</label>
-                  <textarea
-                    value={companyForm.address}
-                    onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
-                    placeholder="Jl. Contoh No. 123, Kota"
-                    rows={2}
-                    className="w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none resize-none"
-                    style={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      borderColor: 'var(--color-border)',
-                      color: 'var(--color-text-primary)',
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Telepon</label>
-                    <input
-                      type="text"
-                      value={companyForm.phone}
-                      onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
-                      placeholder="+62 21 xxx"
-                      className="w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none"
-                      style={{
-                        backgroundColor: 'var(--color-bg-primary)',
-                        borderColor: 'var(--color-border)',
-                        color: 'var(--color-text-primary)',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Email</label>
-                    <input
-                      type="email"
-                      value={companyForm.email}
-                      onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })}
-                      placeholder="info@perusahaan.com"
-                      className="w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none"
-                      style={{
-                        backgroundColor: 'var(--color-bg-primary)',
-                        borderColor: 'var(--color-border)',
-                        color: 'var(--color-text-primary)',
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Fiscal Year */}
-          {step === 2 && (
-            <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Calendar size={20} className="text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>Tahun Fiskal</h2>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Periode akuntansi aktif</p>
-                </div>
-              </div>
-
-              {fyLoading ? (
-                <div className="py-8 flex items-center justify-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
-                  <Loader2 className="animate-spin" size={18} />
-                  <span className="text-sm">Memuat data...</span>
-                </div>
-              ) : fiscalYears && fiscalYears.length > 0 ? (
-                <div className="space-y-3">
-                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    Tahun fiskal sudah tersedia:
-                  </p>
-                  {fiscalYears.map((fy: any) => (
-                    <div
-                      key={fy.id}
-                      className="flex items-center justify-between p-4 rounded-xl border"
-                      style={{
-                        backgroundColor: 'var(--color-bg-secondary)',
-                        borderColor: 'var(--color-border)',
-                      }}
-                    >
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                          Tahun {fy.name}
-                        </p>
-                        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                          {format(new Date(fy.startDate), 'dd MMM yyyy', { locale: idLocale })} -{' '}
-                          {format(new Date(fy.endDate), 'dd MMM yyyy', { locale: idLocale })}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          'badge rounded-full',
-                          fy.isClosed ? 'badge-gray' : 'badge-green'
-                        )}
-                      >
-                        {fy.isClosed ? 'Closed' : 'Open'}
-                      </span>
-                    </div>
-                  ))}
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    Anda dapat mengelola tahun fiskal di menu Pengaturan nanti.
-                  </p>
-                </div>
-              ) : (
-                <div
-                  className="text-center py-8 rounded-xl border-2 border-dashed"
-                  style={{ borderColor: 'var(--color-border)' }}
-                >
-                  <Calendar size={32} className="mx-auto mb-3 text-gray-300" />
-                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    Belum ada tahun fiskal. Anda bisa membuatnya di Pengaturan.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3: Change Password */}
-          {step === 3 && (
-            <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
-                  <KeyRound size={20} className="text-yellow-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>Ganti Password</h2>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Ganti password bawaan untuk keamanan</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Password Saat Ini</label>
-                  <input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                    placeholder="Masukkan password saat ini"
-                    className="w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none"
-                    style={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      borderColor: 'var(--color-border)',
-                      color: 'var(--color-text-primary)',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Password Baru</label>
-                  <input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    placeholder="Minimal 6 karakter"
-                    className="w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-400 outline-none"
-                    style={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      borderColor: 'var(--color-border)',
-                      color: 'var(--color-text-primary)',
-                    }}
-                  />
-                </div>
-                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  Kosongkan jika tidak ingin mengubah password sekarang.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Done */}
-          {step === 4 && (
-            <div className="text-center space-y-6 py-4">
-              <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto animate-[bounce_1s_ease-in-out]">
-                <CheckCircle2 size={40} className="text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                  Selesai!
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Setup awal berhasil. Anda sekarang bisa mulai menggunakan aplikasi.
-                </p>
-              </div>
-              <button
-                onClick={handleComplete}
-                className="btn-primary mx-auto text-sm px-8 py-3"
-              >
-                Dashboard <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
-
-          {/* Navigation buttons */}
-          {step < 4 && (
-            <div className="flex items-center justify-between mt-8 pt-5 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <div>
-                {step > 0 && (
-                  <button
-                    onClick={handleBack}
-                    className="flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70"
-                    style={{ color: 'var(--color-text-secondary)' }}
-                  >
-                    <ChevronLeft size={16} /> Kembali
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                {step > 0 && step < 4 && (
-                  <button
-                    onClick={handleSkip}
-                    className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-70"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
-                    <SkipForward size={13} /> Lewati
-                  </button>
-                )}
-                <button
-                  onClick={handleNext}
-                  disabled={saving}
-                  className="btn-primary text-sm px-6"
-                >
-                  {saving ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : null}
-                  {saving ? 'Menyimpan...' : 'Lanjut'}
-                  {!saving && <ChevronRight size={16} />}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            {step > 0 && stepId !== 'done' && (
+              <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={busy}>
+                Kembali
+              </Button>
+            )}
+            <Button ref={primaryRef} onClick={() => void next()} loading={busy}>
+              {primaryLabel[stepId]}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-};
+}
 
 export default OnboardingWizard;

@@ -1,9 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
-import { Bell, FileWarning, CreditCard, Package, Info, CheckCheck, X, ClipboardCheck, Ban } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import * as PopoverPrimitive from '@radix-ui/react-popover';
+import {
+  Ban,
+  Bell,
+  CheckCheck,
+  ClipboardCheck,
+  CreditCard,
+  FileWarning,
+  Info,
+  Loader2,
+  Package,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { formatDateTime } from '../lib/format';
 import { notificationLink, currentUserRole } from '../lib/notificationNav';
 
 interface Notification {
@@ -12,14 +26,15 @@ interface Notification {
   title: string;
   message: string;
   isRead: boolean;
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
 }
 
+const LIST_LIMIT = 10;
+const POLL_MS = 60_000;
+
 function relativeTime(dateStr: string): string {
-  const now = Date.now();
-  const date = new Date(dateStr).getTime();
-  const diff = now - date;
+  const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return 'Baru saja';
   if (minutes < 60) return `${minutes} menit lalu`;
@@ -30,30 +45,57 @@ function relativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
-function notificationIcon(type: string) {
-  switch (type) {
-    case 'invoice_overdue':
-      return <FileWarning size={14} className="text-red-500" />;
-    case 'payment_received':
-      return <CreditCard size={14} className="text-green-500" />;
-    case 'low_stock':
-      return <Package size={14} className="text-amber-500" />;
-    case 'approval_pending':
-      return <ClipboardCheck size={14} className="text-amber-500" />;
-    case 'approval_approved':
-      return <CheckCheck size={14} className="text-green-500" />;
-    case 'approval_rejected':
-      return <Ban size={14} className="text-red-500" />;
-    case 'approval_revision':
-      return <FileWarning size={14} className="text-amber-500" />;
-    default:
-      return <Info size={14} className="text-blue-500" />;
+type Tone = 'danger' | 'success' | 'warning' | 'info';
+
+const TONE_CLASS: Record<Tone, string> = {
+  danger: 'bg-danger-subtle text-danger-text',
+  success: 'bg-success-subtle text-success-text',
+  warning: 'bg-warning-subtle text-warning-text',
+  info: 'bg-info-subtle text-info-text',
+};
+
+const TYPE_META: Record<string, { icon: LucideIcon; tone: Tone }> = {
+  invoice_overdue: { icon: FileWarning, tone: 'danger' },
+  payment_received: { icon: CreditCard, tone: 'success' },
+  low_stock: { icon: Package, tone: 'warning' },
+  approval_pending: { icon: ClipboardCheck, tone: 'warning' },
+  approval_approved: { icon: CheckCheck, tone: 'success' },
+  approval_rejected: { icon: Ban, tone: 'danger' },
+  approval_revision: { icon: FileWarning, tone: 'warning' },
+};
+
+const FALLBACK_META = { icon: Info, tone: 'info' as Tone };
+
+const iconButton =
+  'relative inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card data-[state=open]:bg-accent data-[state=open]:text-foreground';
+
+/** Move focus between notification rows with ↑ ↓ Home End. */
+function handleRowKeys(e: KeyboardEvent<HTMLButtonElement>) {
+  const list = e.currentTarget.closest('ul');
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll<HTMLButtonElement>('button[data-notif]'));
+  const index = items.indexOf(document.activeElement as HTMLButtonElement);
+  const target =
+    e.key === 'ArrowDown'
+      ? items[Math.min(index + 1, items.length - 1)]
+      : e.key === 'ArrowUp'
+        ? items[Math.max(index - 1, 0)]
+        : e.key === 'Home'
+          ? items[0]
+          : e.key === 'End'
+            ? items[items.length - 1]
+            : undefined;
+  if (target) {
+    e.preventDefault();
+    target.focus();
   }
 }
 
+/** Topbar bell: unread badge + popover with the latest notifications. */
 export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -64,11 +106,11 @@ export const NotificationBell = () => {
       const res = await api.get('/notifications/unread-count');
       return res.data;
     },
-    refetchInterval: 60000,
+    refetchInterval: POLL_MS,
   });
 
-  // Notifications list (only fetch when dropdown is open)
-  const { data: notificationsData } = useQuery({
+  // Notifications list (only fetched while the popover is open)
+  const list = useQuery({
     queryKey: ['notifications-list'],
     queryFn: async () => {
       const res = await api.get('/notifications');
@@ -77,152 +119,186 @@ export const NotificationBell = () => {
     enabled: isOpen,
   });
 
+  // The list loads after the panel opens: once rows arrive, move focus from the
+  // panel itself to the first row (but never steal it from elsewhere).
+  const hasRows = (list.data?.data?.length ?? 0) > 0;
+  useEffect(() => {
+    const panel = contentRef.current;
+    if (isOpen && hasRows && panel && document.activeElement === panel) {
+      panel.querySelector<HTMLElement>('button[data-notif]')?.focus();
+    }
+  }, [isOpen, hasRows]);
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
+  };
+
   const markReadMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
-    },
+    onSuccess: invalidate,
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: () => api.patch('/notifications/read-all'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
-    },
+    onSuccess: invalidate,
   });
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [isOpen]);
+  const unreadCount: number = unreadData?.count || 0;
+  const notifications: Notification[] = (list.data?.data || []).slice(0, LIST_LIMIT);
+  const badge = unreadCount > 9 ? '9+' : String(unreadCount);
+  const triggerLabel = unreadCount > 0 ? `Notifikasi, ${unreadCount} belum dibaca` : 'Notifikasi, tidak ada yang belum dibaca';
 
-  const unreadCount = unreadData?.count || 0;
-  const notifications: Notification[] = (notificationsData?.data || []).slice(0, 10);
+  const openNotification = (notif: Notification) => {
+    if (!notif.isRead) markReadMutation.mutate(notif.id);
+    const to = notificationLink(notif, currentUserRole());
+    if (to) {
+      setIsOpen(false);
+      navigate(to);
+    }
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 relative"
-        style={{ color: 'var(--color-text-muted)' }}
-        title="Notifikasi"
-      >
-        <Bell className="w-4 h-4" />
+    <PopoverPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverPrimitive.Trigger aria-label={triggerLabel} className={iconButton}>
+        <Bell size={18} strokeWidth={1.75} aria-hidden />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span
+            aria-hidden
+            className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-danger-foreground ring-2 ring-card"
+          >
+            {badge}
           </span>
         )}
-      </button>
+      </PopoverPrimitive.Trigger>
 
-      {isOpen && (
-        <div
-          className="absolute right-0 top-10 z-[80] w-80 rounded-xl shadow-xl border animate-in fade-in slide-in-from-top-1"
-          style={{
-            backgroundColor: 'var(--color-bg-primary)',
-            borderColor: 'var(--color-border)',
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          ref={contentRef}
+          align="end"
+          sideOffset={6}
+          collisionPadding={12}
+          aria-labelledby="notif-popover-title"
+          onOpenAutoFocus={(e) => {
+            // Land on the first notification when there is one; else the panel itself.
+            e.preventDefault();
+            const first = contentRef.current?.querySelector<HTMLElement>('button[data-notif]');
+            (first ?? contentRef.current)?.focus();
           }}
+          tabIndex={-1}
+          className={cn(
+            'z-[var(--z-popover)] flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-[var(--shadow-2)] outline-none',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+          )}
         >
-          {/* Header */}
-          <div
-            className="flex items-center justify-between px-4 py-3 border-b"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          <div className="flex items-center gap-2 border-b border-border py-2 pr-2 pl-4">
+            <h2 id="notif-popover-title" className="flex-1 text-sm font-semibold text-foreground">
               Notifikasi
-            </h3>
-            <div className="flex items-center gap-1">
-              {unreadCount > 0 && (
-                <button
-                  onClick={() => markAllReadMutation.mutate()}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium px-1.5 py-0.5 rounded hover:bg-blue-50 transition-colors"
-                  disabled={markAllReadMutation.isPending}
-                >
-                  <CheckCheck size={12} />
-                  Tandai semua dibaca
-                </button>
-              )}
+            </h2>
+            {unreadCount > 0 && (
               <button
-                onClick={() => setIsOpen(false)}
-                className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                style={{ color: 'var(--color-text-muted)' }}
+                type="button"
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-primary transition-colors hover:bg-primary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
               >
-                <X size={14} />
+                <CheckCheck size={14} aria-hidden />
+                Tandai semua dibaca
               </button>
-            </div>
+            )}
+            <PopoverPrimitive.Close
+              aria-label="Tutup notifikasi"
+              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X size={16} aria-hidden />
+            </PopoverPrimitive.Close>
           </div>
 
-          {/* Notification list */}
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="py-8 text-center">
-                <Bell size={24} className="mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
-                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  Belum ada notifikasi.
+          <div className="max-h-[min(24rem,calc(100dvh-10rem))] overflow-y-auto overscroll-contain">
+            {list.isPending ? (
+              <div role="status" className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                <Loader2 size={16} className="animate-spin" aria-hidden />
+                Memuat notifikasi…
+              </div>
+            ) : list.isError ? (
+              <div role="alert" className="px-4 py-8 text-center">
+                <p className="text-sm font-medium text-foreground">Notifikasi gagal dimuat</p>
+                <button
+                  type="button"
+                  onClick={() => list.refetch()}
+                  className="mt-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Coba lagi
+                </button>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div role="status" className="flex flex-col items-center px-6 py-10 text-center">
+                <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <Bell size={24} strokeWidth={1.5} aria-hidden />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-foreground">Belum ada notifikasi</p>
+                <p className="mt-1 max-w-[16rem] text-xs text-muted-foreground">
+                  Faktur jatuh tempo, stok menipis, dan permintaan persetujuan akan muncul di sini.
                 </p>
               </div>
             ) : (
-              notifications.map((notif) => (
-                <button
-                  key={notif.id}
-                  onClick={() => {
-                    if (!notif.isRead) markReadMutation.mutate(notif.id);
-                    const to = notificationLink(notif, currentUserRole());
-                    if (to) { setIsOpen(false); navigate(to); }
-                  }}
-                  className={cn(
-                    'w-full flex items-start gap-2.5 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50',
-                    !notif.isRead && 'bg-blue-50/50 dark:bg-blue-900/10'
-                  )}
-                  style={{ borderBottom: '1px solid var(--color-border-light)' }}
-                >
-                  <div className="mt-0.5 flex-shrink-0">
-                    {notificationIcon(notif.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p
-                        className={cn('text-xs font-medium truncate', !notif.isRead && 'font-semibold')}
-                        style={{ color: 'var(--color-text-primary)' }}
-                      >
-                        {notif.title}
-                      </p>
-                      {!notif.isRead && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>
-                      {notif.message}
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                      {relativeTime(notif.createdAt)}
-                    </p>
-                  </div>
-                </button>
-              ))
+              <ul aria-label="Notifikasi terbaru" className="divide-y divide-border">
+                {notifications.map((notif) => (
+                  <li key={notif.id}>
+                    <NotificationRow notif={notif} onOpen={() => openNotification(notif)} />
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="border-t px-4 py-2" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="border-t border-border px-2 py-1.5">
             <Link
               to="/notifications"
               onClick={() => setIsOpen(false)}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              className="flex h-8 items-center justify-center rounded-md text-sm font-medium text-primary transition-colors hover:bg-primary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Lihat Semua &rarr;
+              Lihat semua notifikasi
             </Link>
           </div>
-        </div>
-      )}
-    </div>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   );
 };
+
+function NotificationRow({ notif, onOpen }: { notif: Notification; onOpen: () => void }) {
+  const { icon: Icon, tone } = TYPE_META[notif.type] ?? FALLBACK_META;
+  return (
+    <button
+      type="button"
+      data-notif
+      onClick={onOpen}
+      onKeyDown={handleRowKeys}
+      className={cn(
+        'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        !notif.isRead && 'bg-primary-subtle/50',
+      )}
+    >
+      <span className={cn('mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md', TONE_CLASS[tone])}>
+        <Icon size={14} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className={cn('truncate text-sm text-foreground', notif.isRead ? 'font-medium' : 'font-semibold')}>
+            {notif.title}
+          </span>
+          {!notif.isRead && (
+            <span className="size-2 shrink-0 rounded-full bg-primary">
+              <span className="sr-only">Belum dibaca</span>
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 line-clamp-2 block text-xs text-foreground-secondary">{notif.message}</span>
+        <time dateTime={notif.createdAt} title={formatDateTime(notif.createdAt)} className="mt-1 block text-xs text-muted-foreground">
+          {relativeTime(notif.createdAt)}
+        </time>
+      </span>
+    </button>
+  );
+}

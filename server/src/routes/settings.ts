@@ -127,6 +127,33 @@ router.put('/company', requirePerm('settings'), async (req, res) => {
   }
 });
 
+// POST /api/settings/company/onboarding — tandai penyiapan awal selesai/dilewati.
+// Admin only (izin 'settings' edit, POST → edit). Idempoten: timestamp pertama
+// dipertahankan. Respons sengaja ringkas (bukan seluruh record) supaya audit
+// log tidak ikut menyimpan logo base64.
+router.post('/company/onboarding', requirePerm('settings'), async (_req, res) => {
+  try {
+    const existing = await prisma.companySettings.findFirst({
+      where: { slug: 'default' },
+      select: { id: true, onboardedAt: true },
+    });
+    if (existing?.onboardedAt) {
+      return res.json({ id: existing.id, onboardedAt: existing.onboardedAt });
+    }
+
+    const result = await prisma.companySettings.upsert({
+      where: { slug: 'default' },
+      update: { onboardedAt: new Date() },
+      create: { slug: 'default', companyName: '', onboardedAt: new Date() },
+      select: { id: true, onboardedAt: true },
+    });
+    return res.json(result);
+  } catch (error) {
+    logger.error({ error }, 'POST /settings/company/onboarding error');
+    return res.status(500).json({ error: 'Gagal menyimpan status penyiapan awal.' });
+  }
+});
+
 router.get('/check-update', requirePerm('settings'), async (_req, res) => {
   try {
     const currentVersion = (() => {
