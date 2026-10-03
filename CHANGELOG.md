@@ -5,7 +5,7 @@
 ### Merek
 **Diubah**:
 - Produk berganti nama dari **Simple ERP / ERP PMD** menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Agentic Reasoning System".
-- Logo baru **"Cincin E"**: cincin dua warna (busur biru + segmen navy dengan huruf E) dan inti penalaran di tengah. Ikon aplikasi, favicon 16/32/48, apple-touch, ikon PWA `any` + `maskable` terpisah (`pwa-maskable-512x512.png`), dan `mask-icon.svg` satu warna untuk Safari.
+- Logo baru **"Anyaman ∇"**: tiga bilah yang saling menindih membentuk segitiga terbalik (∇) — tiga pilar operasi yang menyatu dan simbol gradien untuk penalaran AI. Ikon aplikasi berlatar navy, favicon 16/32/48, apple-touch, ikon PWA `any` + `maskable` terpisah (`pwa-maskable-512x512.png`), dan `mask-icon.svg` satu warna untuk Safari.
 - Judul tab, manifest PWA, `theme-color` (navy `#1B2B48`), nama cadangan di login/sidebar/onboarding/landing kini memakai Entaris.
 - Logo bawaan tidak lagi di-*invert* di sidebar & halaman login (ikon baru berwarna penuh).
 - Halaman login memakai palet Entaris (gradien navy → biru) menggantikan biru steel lama; label panel menjadi "Agentic Reasoning System". Kontras tombol & tautan ≥ 4,5 : 1.
