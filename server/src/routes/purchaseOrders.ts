@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
@@ -7,35 +6,31 @@ import { CreatePurchaseOrderSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
 import { submitPurchaseOrderInTx, cancelPurchaseOrderInTx } from '../services/purchaseOrderSubmit';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildPurchaseOrderWhere,
+  DEFAULT_PURCHASE_ORDER_SORT,
+  PURCHASE_ORDER_SORT_FIELDS,
+  purchaseOrderOrderBy,
+} from '../services/purchaseOrderList';
 
 const router = Router();
 
 // PO: Admin + Accountant only (sesuai keputusan Phase 1)
 
 // ─── GET / list ───────────────────────────────────────────────────────────
+// Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
+// search (PO number / supplier name), sort (e.g. "-date").
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { status, partyId, startDate, endDate, search, page = '1', limit = '50' } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.PurchaseOrderWhereInput = {};
-    if (status) where.status = status as any;
-    if (partyId) where.partyId = partyId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-    }
-    if (search) {
-      const q = String(search).trim();
-      if (q.length > 0) {
-        where.OR = [
-          { poNumber: { contains: q, mode: 'insensitive' } },
-          { supplier: { name: { contains: q, mode: 'insensitive' } } },
-        ];
-      }
-    }
+    const query = req.query as Record<string, unknown>;
+    // Max 200 kept for callers that load a whole list (STT modal pulls open POs).
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildPurchaseOrderWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, PURCHASE_ORDER_SORT_FIELDS, DEFAULT_PURCHASE_ORDER_SORT);
 
     const [data, total] = await Promise.all([
       prisma.purchaseOrder.findMany({
@@ -44,14 +39,14 @@ router.get('/', async (req, res) => {
           supplier: { select: { id: true, name: true } },
           _count: { select: { items: true, goodsReceipts: true } },
         },
-        orderBy: [{ date: 'desc' }, { poNumber: 'desc' }],
+        orderBy: purchaseOrderOrderBy(sort),
         skip,
         take,
       }),
       prisma.purchaseOrder.count({ where }),
     ]);
 
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /purchase-orders', 'Gagal mengambil daftar PO.');
   }

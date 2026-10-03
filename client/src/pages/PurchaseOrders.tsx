@@ -1,245 +1,227 @@
+/**
+ * Pesanan Pembelian (/purchase-orders) — list kit page (pattern: pages/SalesInvoices.tsx).
+ * Server-side paging/sort/filter on GET /purchase-orders. No KPI cards: this
+ * list never had any. A PO is a planning document (no stock or GL impact);
+ * "PO Umum" has no supplier bound to it.
+ */
 import { useMemo, useState } from 'react';
-import { Plus, Search, ClipboardList, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatDate, formatRupiah } from '../lib/formatters';
-import { useDebounce } from '../hooks/useDebounce';
-import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
-import TableRowSkeleton from '../components/TableRowSkeleton';
-import PurchaseOrderModal from '../components/PurchaseOrderModal';
-import PurchaseOrderDetailDrawer from '../components/PurchaseOrderDetailDrawer';
-import Select from '../components/Select';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Eye, Plus } from 'lucide-react';
+import api from '@/lib/api';
+import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
+import { statusOptions } from '@/lib/status';
+import { can } from '@/lib/permissions';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import {
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PageHeader,
+  PartyFilter,
+  RowActions,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import PurchaseOrderModal from '@/components/PurchaseOrderModal';
+import PurchaseOrderDetailDrawer from '@/components/PurchaseOrderDetailDrawer';
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Semua Status' },
-  { value: 'Submitted', label: 'Submitted' },
-  { value: 'Cancelled', label: 'Dibatalkan' },
-];
+type Money = string | number;
 
-const STATUS_BADGE: Record<string, string> = {
-  Submitted: 'badge-blue',
-  Cancelled: 'badge-red',
-};
+interface PurchaseOrderRow {
+  id: string;
+  poNumber: string;
+  date: string;
+  expectedDeliveryDate: string | null;
+  status: string;
+  totalEstimated: Money;
+  supplier?: { id: string; name: string } | null;
+  _count?: { items: number; goodsReceipts: number };
+}
 
-const STATUS_LABEL: Record<string, string> = {
-  Submitted: 'Submitted',
-  Cancelled: 'Dibatalkan',
-};
+const ENDPOINT = '/purchase-orders';
+const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
+const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'purchase_order');
 
-const PAGE_SIZE = 25;
+const withUnit = (label: string) => (
+  <>
+    {label} <span className="normal-case">(Rp)</span>
+  </>
+);
+
+/** Supplier name, or the "PO Umum" marker when no supplier is bound. */
+function SupplierName({ po, className }: { po: PurchaseOrderRow; className?: string }) {
+  if (po.supplier) return <span className={className}>{po.supplier.name}</span>;
+  return (
+    <span className={className} title="PO Umum — boleh dipenuhi pemasok mana saja">
+      <span className="font-normal italic text-muted-foreground">PO Umum</span>
+    </span>
+  );
+}
 
 export const PurchaseOrders = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 200);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [partyId, setPartyId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [page, setPage] = useState(1);
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
+  const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const canCreate = can('purchase_order', 'edit');
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-suppliers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Supplier');
-      return res.data.data ?? res.data;
-    },
+  const ordersQuery = useQuery({
+    queryKey: ['purchase-orders', 'list', list.params],
+    queryFn: async () => (await api.get<Paginated<PurchaseOrderRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
   });
 
-  const partyOptions = useMemo<SelectOption[]>(
+  const columns = useMemo<ColumnDef<PurchaseOrderRow>[]>(
     () => [
-      { value: '', label: '— Semua Supplier —' },
-      ...((parties ?? []).map((p: any) => ({ value: p.id, label: p.name })) as SelectOption[]),
+      {
+        id: 'poNumber',
+        header: 'Nomor',
+        enableSorting: true,
+        sortDescFirst: true,
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.poNumber}</DocumentLink>
+            {/* Mobile: supplier + date stacked here because their columns are hidden. */}
+            <SupplierName po={row.original} className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden" />
+            <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'date',
+        header: 'Tanggal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => formatDate(row.original.date),
+      },
+      {
+        id: 'supplier',
+        header: 'Pemasok',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
+        cell: ({ row }) => (
+          <p className="truncate">
+            <SupplierName po={row.original} className="font-medium text-foreground" />
+          </p>
+        ),
+      },
+      {
+        id: 'expectedDeliveryDate',
+        header: 'Target Terima',
+        enableSorting: true,
+        meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => (row.original.expectedDeliveryDate ? formatDate(row.original.expectedDeliveryDate) : '-'),
+      },
+      {
+        id: 'items',
+        header: 'Item',
+        meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
+        cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
+      },
+      {
+        id: 'totalEstimated',
+        header: () => withUnit('Estimasi'),
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const value = toNumber(row.original.totalEstimated) ?? 0;
+          return (
+            <div className="flex flex-col items-end gap-1">
+              {value > 0 ? (
+                <span className="font-medium text-foreground">{formatRupiah(value, { symbol: false })}</span>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+              {/* Mobile: status stacked here because its column is hidden. */}
+              <StatusBadge status={row.original.status} docType="purchase_order" className="sm:hidden" />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.status} docType="purchase_order" />,
+      },
+      {
+        id: 'goodsReceipts',
+        header: () => <abbr title="Jumlah surat tanda terima (penerimaan barang)">STT</abbr>,
+        meta: { align: 'right', hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
+        cell: ({ row }) => formatNumber(row.original._count?.goodsReceipts ?? 0),
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => (
+          <RowActions
+            label={`Aksi untuk ${row.original.poNumber}`}
+            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
+          />
+        ),
+      },
     ],
-    [parties],
+    [],
   );
-
-  const { data: raw, isLoading, isError } = useQuery({
-    queryKey: ['purchase-orders'],
-    queryFn: async () => {
-      const res = await api.get('/purchase-orders?limit=200');
-      return res.data.data ?? res.data;
-    },
-  });
-
-  const filtered = useMemo(() => {
-    if (!raw) return [];
-    return (raw as any[]).filter((d: any) => {
-      if (debouncedSearch) {
-        const q = debouncedSearch.toLowerCase();
-        const match =
-          d.poNumber?.toLowerCase().includes(q) ||
-          d.supplier?.name?.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      if (statusFilter && d.status !== statusFilter) return false;
-      if (partyId && d.partyId !== partyId && d.supplier?.id !== partyId) return false;
-      if (dateFrom && new Date(d.date) < new Date(dateFrom)) return false;
-      if (dateTo && new Date(d.date) > new Date(dateTo + 'T23:59:59')) return false;
-      return true;
-    });
-  }, [raw, debouncedSearch, statusFilter, partyId, dateFrom, dateTo]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const hasActiveFilter = !!(searchTerm || statusFilter || partyId || dateFrom || dateTo);
-
-  const resetFilters = () => {
-    setSearchTerm(''); setStatusFilter(''); setPartyId(''); setDateFrom(''); setDateTo(''); setPage(1);
-  };
 
   return (
     <div className="space-y-5 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Purchase Order (PO)</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Pesanan pembelian ke supplier. PO bisa Umum (tanpa supplier terikat) atau Khusus. Tidak ada GL/stock impact.
-          </p>
-        </div>
-        <button className="btn-primary self-start" onClick={() => setIsModalOpen(true)}>
-          <Plus size={15} /> Buat PO
-        </button>
-      </div>
+      <PageHeader
+        title="Pesanan Pembelian"
+        description="Pesanan ke pemasok — PO Umum (tanpa pemasok terikat) atau PO Khusus. Belum memengaruhi stok maupun jurnal."
+        actions={
+          canCreate ? (
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus aria-hidden />
+              Buat PO
+            </Button>
+          ) : undefined
+        }
+      />
 
-      <div className="flex items-center gap-3 flex-wrap filter-bar">
-        <div className="relative flex-1 min-w-0 sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari nomor PO atau supplier..."
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="w-44"
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari pesanan pembelian"
+          searchPlaceholder="Cari nomor PO atau pemasok"
+          status={{ options: STATUS_FILTER }}
+          dateRange
         >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </Select>
-        <div className="w-56">
-          <SearchableSelect
-            options={partyOptions}
-            value={partyId}
-            onChange={(v) => { setPartyId(v); setPage(1); }}
-            placeholder="— Semua Supplier —"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-          <span className="text-xs">Dari</span>
-          <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg py-2 px-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <span className="text-xs">s/d</span>
-          <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg py-2 px-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        {hasActiveFilter && (
-          <button onClick={resetFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium">Reset filter</button>
-        )}
-      </div>
+          <PartyFilter partyType="Supplier" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
+        </FilterBar>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Tanggal</th>
-                <th scope="col">Nomor PO</th>
-                <th scope="col">Supplier</th>
-                <th scope="col" className="text-right">Estimasi</th>
-                <th scope="col" className="text-center">Items</th>
-                <th scope="col" className="text-center">STT</th>
-                <th scope="col" className="text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <TableRowSkeleton columns={7} rows={6} />
-              ) : isError ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <AlertCircle className="w-8 h-8 text-red-300 mx-auto mb-2" />
-                    <p className="text-sm text-red-500">Gagal memuat daftar PO.</p>
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <ClipboardList className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400">
-                      {raw && (raw as any[]).length === 0 ? 'Belum ada PO.' : 'Tidak ada PO sesuai filter.'}
-                    </p>
-                    {raw && (raw as any[]).length === 0 && (
-                      <button onClick={() => setIsModalOpen(true)} className="mt-3 text-xs text-blue-600 hover:text-blue-700 font-medium">
-                        + Buat PO pertama
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((d: any) => (
-                  <tr key={d.id} onClick={() => setSelectedId(d.id)} className="cursor-pointer">
-                    <td className="text-gray-500 whitespace-nowrap">{formatDate(d.date)}</td>
-                    <td className="whitespace-nowrap">
-                      <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{d.poNumber}</span>
-                    </td>
-                    <td>
-                      {d.supplier ? (
-                        <p className="font-medium text-gray-800">{d.supplier.name}</p>
-                      ) : (
-                        <span className="text-xs text-purple-600 italic">PO Umum (tanpa supplier)</span>
-                      )}
-                    </td>
-                    <td className="text-right font-mono text-xs text-gray-700">
-                      {Number(d.totalEstimated) > 0 ? formatRupiah(Number(d.totalEstimated)) : '—'}
-                    </td>
-                    <td className="text-center">
-                      <span className="badge badge-gray text-xs">{d._count?.items ?? 0} item</span>
-                    </td>
-                    <td className="text-center">
-                      {d._count?.goodsReceipts > 0 ? (
-                        <span className="badge badge-green text-xs">{d._count.goodsReceipts} STT</span>
-                      ) : (
-                        <span className="text-gray-300 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <span className={cn('badge', STATUS_BADGE[d.status] ?? 'badge-gray')}>
-                        {STATUS_LABEL[d.status] ?? d.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {filtered.length > PAGE_SIZE && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-            <p className="text-xs text-gray-400">
-              Menampilkan {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} dari {filtered.length} PO
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500">
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-xs text-gray-500 px-2">{page} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
+        <DataTable
+          {...listTableProps(list, ordersQuery.data?.total)}
+          label="Daftar pesanan pembelian"
+          itemLabel="PO"
+          columns={columns}
+          data={ordersQuery.data?.data}
+          getRowId={(row) => row.id}
+          loading={ordersQuery.isLoading}
+          fetching={ordersQuery.isFetching && ordersQuery.isPlaceholderData}
+          error={ordersQuery.error}
+          onRetry={() => ordersQuery.refetch()}
+          onRowClick={(row) => setSelectedId(row.id)}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada pesanan pembelian',
+            description: 'PO yang Anda buat akan muncul di sini.',
+            action: canCreate ? (
+              <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                <Plus aria-hidden />
+                Buat PO pertama
+              </Button>
+            ) : undefined,
+          }}
+        />
       </div>
 
       {isModalOpen && <PurchaseOrderModal onClose={() => setIsModalOpen(false)} />}

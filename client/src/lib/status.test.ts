@@ -108,3 +108,22 @@ describe('sales order / delivery statuses', () => {
     ]);
   });
 });
+
+describe('purchasing statuses (PO / STT)', () => {
+  it('labels purchase order statuses', () => {
+    expect(statusOptions(['Submitted', 'Cancelled'], 'purchase_order')).toEqual([
+      { value: 'Submitted', label: 'Dipesan' },
+      { value: 'Cancelled', label: 'Dibatalkan' },
+    ]);
+  });
+
+  it('labels the derived goods receipt (STT) billing statuses', () => {
+    expect(getStatusMeta('Invoiced', 'goods_receipt')).toEqual({ label: 'Sudah Ditagih', tone: 'success' });
+    expect(getStatusMeta('Uninvoiced', 'goods_receipt')).toEqual({ label: 'Belum Ditagih', tone: 'warning' });
+    expect(getStatusMeta('CustomerOwned', 'goods_receipt')).toEqual({ label: 'Titipan', tone: 'info' });
+    expect(getStatusLabel('Submitted', 'goods_receipt')).toBe('Diposting');
+    expect(
+      statusOptions(['Uninvoiced', 'Invoiced', 'CustomerOwned', 'Cancelled'], 'goods_receipt').map((o) => o.label),
+    ).toEqual(['Belum Ditagih', 'Sudah Ditagih', 'Titipan', 'Dibatalkan']);
+  });
+});

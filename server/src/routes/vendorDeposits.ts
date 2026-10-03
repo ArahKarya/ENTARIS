@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
@@ -11,12 +11,69 @@ import { ApplyVendorDepositSchema, RefundVendorDepositSchema } from '../utils/sc
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildVendorDepositWhere,
+  DEFAULT_VENDOR_DEPOSIT_SORT,
+  depositFigures,
+  filterVendorByUsage,
+  pageVendorDeposits,
+  summarizeVendorDeposits,
+  toVendorLightRow,
+  VENDOR_DEPOSIT_SORT_FIELDS,
+} from '../services/vendorDepositList';
 
 const router = Router();
 
-// GET /api/vendor-deposits — list all vendor deposits
+const DEPOSIT_LIST_INCLUDE = {
+  party: true,
+  account: { select: { id: true, name: true, accountNumber: true } },
+  depositApplications: {
+    where: { isCancelled: false },
+    select: { id: true, appliedAmount: true, purchaseInvoiceId: true, appliedAt: true },
+  },
+} satisfies Prisma.PaymentInclude;
+
+type DepositWithApplications = Prisma.PaymentGetPayload<{ include: typeof DEPOSIT_LIST_INCLUDE }>;
+
+/** Row shape returned by both list modes: the payment + computed figures. */
+function enrichDeposit(d: DepositWithApplications) {
+  return { ...d, ...depositFigures(d.amount, d.refundedAmount, d.depositApplications) };
+}
+
+/** Light projection for paging / summary (see services/vendorDepositList). */
+async function loadDepositLightRows(where: Prisma.PaymentWhereInput) {
+  const rows = await prisma.payment.findMany({
+    where,
+    select: {
+      id: true,
+      paymentNumber: true,
+      date: true,
+      status: true,
+      amount: true,
+      refundedAmount: true,
+      party: { select: { name: true } },
+      depositApplications: { where: { isCancelled: false }, select: { appliedAmount: true } },
+    },
+  });
+  return rows.map(toVendorLightRow);
+}
+
+// GET /api/vendor-deposits — list vendor deposits.
+//
+// Two modes (backward compatible):
+//  • without `page` (legacy — PaymentModal and other callers): every deposit,
+//    filters `partyId` and raw `status` (DocumentStatus), ordered by date desc,
+//    response `{ data }` exactly as before.
+//  • with `page` (list page): `page`, `limit` (≤200), `status` (Active |
+//    PartiallyUsed | FullyUsed | Draft | Submitted | Cancelled), `partyId`,
+//    `startDate`/`endDate` (YYYY-MM-DD), `search`, `sort` (e.g. "-remaining")
+//    → `{ data, total, page, limit }`; rows also carry `state`.
 router.get('/', async (req, res) => {
   try {
+    const query = req.query as Record<string, unknown>;
+    if (query.page !== undefined) return await listDepositsPaged(query, res);
+
     const { partyId, status } = req.query;
 
     const where: Prisma.PaymentWhereInput = { paymentType: 'VendorDeposit' };
@@ -25,36 +82,52 @@ router.get('/', async (req, res) => {
 
     const deposits = await prisma.payment.findMany({
       where,
-      include: {
-        party: true,
-        account: { select: { id: true, name: true, accountNumber: true } },
-        depositApplications: {
-          where: { isCancelled: false },
-          select: { id: true, appliedAmount: true, purchaseInvoiceId: true, appliedAt: true },
-        },
-      },
+      include: DEPOSIT_LIST_INCLUDE,
       orderBy: { date: 'desc' },
     });
 
-    const data = deposits.map((d) => {
-      const totalApplied = d.depositApplications.reduce(
-        (sum, app) => sum.plus(new Decimal(app.appliedAmount.toString())),
-        new Decimal(0)
-      );
-      const refunded = new Decimal(d.refundedAmount.toString());
-      const remaining = new Decimal(d.amount.toString()).minus(totalApplied).minus(refunded);
-      return {
-        ...d,
-        totalApplied: totalApplied.toNumber(),
-        totalRefunded: refunded.toNumber(),
-        remaining: remaining.toNumber(),
-      };
-    });
-
-    return res.json({ data });
+    return res.json({ data: deposits.map(enrichDeposit) });
   } catch (error) {
     logger.error({ error }, 'GET /vendor-deposits error');
     return res.status(500).json({ error: 'Gagal mengambil data uang muka vendor.' });
+  }
+});
+
+async function listDepositsPaged(query: Record<string, unknown>, res: Response) {
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+  const filter = buildVendorDepositWhere(query);
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const sort = parseSort(query.sort, VENDOR_DEPOSIT_SORT_FIELDS, DEFAULT_VENDOR_DEPOSIT_SORT);
+
+  const light = await loadDepositLightRows(filter.where);
+  const { ids, total } = pageVendorDeposits(light, { usage: filter.usage, sort, skip, limit });
+  const stateById = new Map(light.map((r) => [r.id, r.state]));
+
+  const rows = ids.length
+    ? await prisma.payment.findMany({ where: { id: { in: ids } }, include: DEPOSIT_LIST_INCLUDE })
+    : [];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const data = ids.flatMap((id) => {
+    const row = byId.get(id);
+    return row ? [{ ...enrichDeposit(row), state: stateById.get(id) }] : [];
+  });
+
+  return res.json({ data, total, page, limit });
+}
+
+// GET /api/vendor-deposits/summary — KPI totals for the same filters as the
+// paged list (status, partyId, startDate, endDate, search). Declared before
+// any '/:id' route; the module RBAC gate (requirePerm('vendor_deposit')) is
+// applied where the router is mounted, so it covers this endpoint too.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildVendorDepositWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const light = await loadDepositLightRows(filter.where);
+    return res.json(summarizeVendorDeposits(filterVendorByUsage(light, filter.usage)));
+  } catch (error) {
+    logger.error({ error }, 'GET /vendor-deposits/summary error');
+    return res.status(500).json({ error: 'Gagal menghitung ringkasan uang muka vendor.' });
   }
 });
 

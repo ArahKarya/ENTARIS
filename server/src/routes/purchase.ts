@@ -12,51 +12,74 @@ import { computePurchaseItem } from '../services/purchaseInvoiceCalc';
 import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildPurchaseInvoiceWhere,
+  DEFAULT_PURCHASE_INVOICE_SORT,
+  PURCHASE_INVOICE_SORT_FIELDS,
+  purchaseInvoiceOrderBy,
+  purchaseOverdueWhere,
+  summarizePurchaseInvoices,
+} from '../services/purchaseInvoiceList';
 
 const router = Router();
 
 // GET /api/purchase/invoices
+// Query: page, limit (≤500), status, partyId, startDate, endDate (YYYY-MM-DD),
+// search (invoice number / supplier name), sort (e.g. "-date", "outstanding").
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', status, partyId, startDate, endDate, search } = req.query;
-    // Bumped max from 200 to 500 to prevent silent row truncation as the
-    // dataset grows. Server-side date filter below is the proper solution.
-    const take = Math.min(Number(limit) || 50, 500);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.PurchaseInvoiceWhereInput = {};
-    if (status) where.status = status as any;
-    if (partyId) where.partyId = partyId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-    }
-    if (search) {
-      const q = String(search).trim();
-      if (q.length > 0) {
-        where.OR = [
-          { invoiceNumber: { contains: q, mode: 'insensitive' } },
-          { supplier: { name: { contains: q, mode: 'insensitive' } } },
-        ];
-      }
-    }
+    const query = req.query as Record<string, unknown>;
+    // Max 500 kept for existing callers that still load a whole list.
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 500 });
+    const filter = buildPurchaseInvoiceWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, PURCHASE_INVOICE_SORT_FIELDS, DEFAULT_PURCHASE_INVOICE_SORT);
 
     const [invoices, total] = await Promise.all([
       prisma.purchaseInvoice.findMany({
         where,
         include: { supplier: true, items: true },
-        orderBy: { date: 'desc' },
+        orderBy: purchaseInvoiceOrderBy(sort),
         skip,
         take,
       }),
       prisma.purchaseInvoice.count({ where }),
     ]);
 
-    return res.json({ data: invoices, total, page: Number(page), limit: take });
+    return res.json({ data: invoices, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /purchase/invoices error');
     return res.status(500).json({ error: 'Gagal mengambil data invoice pembelian.' });
+  }
+});
+
+// GET /api/purchase/invoices/summary — KPI totals for the same filters as the
+// list (status, partyId, startDate, endDate, search). Declared before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildPurchaseInvoiceWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const [groups, overdue] = await Promise.all([
+      prisma.purchaseInvoice.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+        _sum: { grandTotal: true, outstanding: true },
+      }),
+      prisma.purchaseInvoice.aggregate({
+        where: { AND: [where, purchaseOverdueWhere(new Date())] },
+        _count: { _all: true },
+        _sum: { outstanding: true },
+      }),
+    ]);
+    return res.json(summarizePurchaseInvoices(groups, overdue));
+  } catch (error) {
+    logger.error({ error }, 'GET /purchase/invoices/summary error');
+    return res.status(500).json({ error: 'Gagal menghitung ringkasan invoice pembelian.' });
   }
 });
 
