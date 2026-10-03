@@ -73,9 +73,13 @@ export default defineConfig({
     },
   },
   server: {
-    // Dev mode: proxy /api ke backend lokal
+    // Dev mode: proxy /api dan file unggahan (/uploads) ke backend lokal
     proxy: {
       '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:3001',
         changeOrigin: true,
       },

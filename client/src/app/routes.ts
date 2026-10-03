@@ -25,6 +25,7 @@ import {
   FileSignature,
   FileText,
   FolderCog,
+  Gauge,
   HeartPulse,
   Inbox,
   Landmark,
@@ -171,6 +172,7 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/approvals', label: 'Persetujuan', section: 'accounting', icon: ShieldCheck, module: 'approvals', keywords: ['approval', 'otorisasi', 'setuju'] }),
 
   // ── Aset & Pemeliharaan (GA/EAM) ───────────────────────────────────────
+  r({ path: '/ga', label: 'Ringkasan', section: 'assets', icon: Gauge, module: 'ga_assets', keywords: ['dasbor aset', 'dashboard aset', 'ringkasan aset', 'ringkasan pemeliharaan', 'eam', 'ga', 'overview'] }),
   r({ path: '/ga/assets', label: 'Daftar Aset', section: 'assets', icon: Boxes, module: 'ga_assets', keywords: ['aset', 'asset', 'ga', 'eam'] }),
   r({ path: '/ga/vehicle', label: 'Kendaraan', section: 'assets', icon: Car, module: 'ga_vehicle', keywords: ['armada', 'vehicle', 'mobil', 'truk'] }),
   r({ path: '/ga/vehicle/report', label: 'Laporan Armada', section: 'assets', icon: BarChart3, module: 'ga_vehicle', parent: '/ga/vehicle', keywords: ['report armada', 'fleet report', 'kendaraan'] }),

@@ -109,7 +109,7 @@ describe('BrandMark / Wordmark', () => {
   });
 
   it('names the product in the wordmark', () => {
-    render(<Wordmark product="EAM" />);
-    expect(screen.getByRole('img', { name: 'Entaris EAM' })).toBeInTheDocument();
+    render(<Wordmark product="ERP" />);
+    expect(screen.getByRole('img', { name: 'Entaris ERP' })).toBeInTheDocument();
   });
 });

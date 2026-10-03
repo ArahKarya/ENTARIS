@@ -1,12 +1,15 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { C } from './theme';
 
 Font.registerHyphenationCallback((word) => [word]);
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: 56, paddingHorizontal: 36, backgroundColor: C.white },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
+  companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
+  companyInfo: { flexDirection: 'column' as const },
   companyName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.primary },
   companyMeta: { fontSize: 7, color: C.muted, marginTop: 1 },
   title: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: C.dark, textAlign: 'right' },
@@ -73,7 +76,7 @@ export interface StockOpnamePDFProps {
   notes?: string | null;
   createdBy?: string;
   items: StockOpnameItem[];
-  company: { name: string; address?: string | null };
+  company: { name: string; address?: string | null; logoUrl?: string | null };
 }
 
 const StockOpnamePDF: React.FC<StockOpnamePDFProps> = ({
@@ -89,9 +92,12 @@ const StockOpnamePDF: React.FC<StockOpnamePDFProps> = ({
       <Page size="A4" style={S.page} wrap>
         {/* Header */}
         <View style={S.headerRow} fixed>
-          <View>
-            <Text style={S.companyName}>{company.name}</Text>
-            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
+          <View style={S.companyBlock}>
+            {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
+            <View style={S.companyInfo}>
+              <Text style={S.companyName}>{company.name}</Text>
+              {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
+            </View>
           </View>
           <View>
             <Text style={S.title}>LAPORAN STOK OPNAME</Text>

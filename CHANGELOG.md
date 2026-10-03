@@ -2,9 +2,24 @@
 
 ## [Unreleased]
 
+### Arsitektur
+**Diubah**:
+- EAM kini menjadi modul di aplikasi utama; aplikasi/subdomain EAM terpisah (`client-eam/`, service Docker `client-eam`) dihapus. `COOKIE_DOMAIN` tetap didukung tetapi opsional — hanya perlu bila sesi dibagi lintas subdomain.
+
+**Ditambahkan** (dipindahkan dari aplikasi EAM lama):
+- Halaman **Ringkasan Aset & Pemeliharaan** (`/ga`): aset tetap, nilai buku, perintah kerja aktif/terlambat, akses cepat.
+- **Foto aset** di form tambah/edit aset (unggah, pratinjau, hapus).
+- Tab **Pengajuan** di Pemeliharaan: pengajuan servis & pajak/KIR kendaraan dengan setujui/tolak. Dropdown kendaraan kini memakai daftar aset yang benar (di EAM lama endpoint-nya tidak ada sehingga pengajuan tak bisa dibuat).
+- Logo perusahaan di header PDF laporan kendaraan, inspeksi, stok opname, stok gudang, laporan harian, dan laporan umum.
+- Notifikasi modul aset (WO, permintaan barang, kalibrasi, dokumen, sewa) mengarah ke halaman yang tepat.
+
+**Diperbaiki**:
+- Data aset tidak lagi tampak hilang saat berpindah antar halaman Kendaraan/Gedung/Peralatan (bentrok cache query).
+- Foto unggahan tampil di mode pengembangan (proxy `/uploads`).
+
 ### Tampilan (UI/UX)
 **Diubah**:
-- **Halaman login baru** (ERP & EAM): panel brand navy yang tenang + form ringkas. Animasi, statistik dekoratif, kredit pribadi, versi build, dan tombol bergradien dihapus. Validasi di bawah field, banner salah kata sandi, hitung mundur saat terlalu banyak percobaan, peringatan Caps Lock, dialog "Lupa kata sandi?", dan mode gelap.
+- **Halaman login baru**: panel brand navy yang tenang + form ringkas. Animasi, statistik dekoratif, kredit pribadi, versi build, dan tombol bergradien dihapus. Validasi di bawah field, banner salah kata sandi, hitung mundur saat terlalu banyak percobaan, peringatan Caps Lock, dialog "Lupa kata sandi?", dan mode gelap.
 - **Warna mengikuti brand Entaris** (biru #2F6FC4, navy #1B2B48) untuk mode terang & gelap; semua pasangan teks/latar lolos kontras WCAG AA.
 - **Tema**: pilihan disederhanakan menjadi Terang / Gelap / Sistem (default mengikuti sistem). Tema lama otomatis dialihkan ke Sistem.
 - Halaman publik `/welcome`, `/tanya`, dan `/aset/:kode` memakai logo & warna resmi.

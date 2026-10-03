@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   Wrench, Plus, Loader2, X, Calendar, ClipboardList, UserPlus, Play, CheckCircle2,
   Lock, XCircle, Package, Image as ImageIcon, AlertTriangle, Pencil, FilePlus, ListChecks,
-  Search, Wallet, CalendarClock,
+  Search, Wallet, CalendarClock, ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import { PhotoUploadModal } from './maintenance/PhotoUploadModal';
 import { ChecklistEditor, type ChecklistItem } from './maintenance/ChecklistEditor';
 import { CreateMrModal } from './materialRequest/CreateMrModal';
 import { MR_STATUS_LABELS, MR_STATUS_BADGE, type MrStatus } from './materialRequest/types';
+import { RequestsTab } from './GaRequestsPage';
 
 // Prefill payload for opening CreateWorkOrderModal from a due/overdue schedule.
 type WoPrefill = {
@@ -30,7 +31,7 @@ type WoPrefill = {
 // and "Jadwal Preventive" (interval-based next-due tracking). Read actions gated by view,
 // write actions by can('ga_maintenance','edit').
 
-type Tab = 'wo' | 'schedules';
+type Tab = 'wo' | 'schedules' | 'requests';
 
 type WoStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'DONE' | 'CLOSED' | 'CANCELLED';
 type WoPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -73,13 +74,15 @@ const STATUS_FILTERS: WoStatus[] = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'DONE', '
 export const GaMaintenancePage = () => {
   const [tab, setTab] = useState<Tab>('wo');
   const canEdit = can('ga_maintenance', 'edit');
+  // The Pengajuan tab reads /ga/vehicle/* (guarded by ga_vehicle on the server).
+  const canViewRequests = can('ga_vehicle', 'view');
 
   return (
     <div className="space-y-5 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Maintenance &amp; Work Order</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Perawatan preventif &amp; perintah kerja perbaikan aset GA.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Pengajuan, perawatan preventif &amp; perintah kerja perbaikan aset GA.</p>
         </div>
       </div>
 
@@ -87,9 +90,14 @@ export const GaMaintenancePage = () => {
       <div className="flex items-center gap-1 border-b border-gray-200">
         <TabButton active={tab === 'wo'} onClick={() => setTab('wo')} icon={<ClipboardList size={15} />} label="Work Order" />
         <TabButton active={tab === 'schedules'} onClick={() => setTab('schedules')} icon={<Calendar size={15} />} label="Jadwal Preventive" />
+        {canViewRequests && (
+          <TabButton active={tab === 'requests'} onClick={() => setTab('requests')} icon={<ClipboardCheck size={15} />} label="Pengajuan" />
+        )}
       </div>
 
-      {tab === 'wo' ? <WorkOrderTab canEdit={canEdit} /> : <SchedulesTab canEdit={canEdit} />}
+      {tab === 'wo' && <WorkOrderTab canEdit={canEdit} />}
+      {tab === 'schedules' && <SchedulesTab canEdit={canEdit} />}
+      {tab === 'requests' && canViewRequests && <RequestsTab />}
     </div>
   );
 };

@@ -1,5 +1,9 @@
-/** Product-specific copy for the shared auth screens (plan §3.2, final copy). */
-export type AuthProduct = 'ERP' | 'EAM';
+/**
+ * Copy for the auth screens (plan §3.2, final copy). EAM is now a module inside
+ * the main app, so ERP is the only product; the type is kept so call sites stay
+ * explicit.
+ */
+export type AuthProduct = 'ERP';
 
 export interface AuthCopy {
   documentTitle: string;
@@ -19,17 +23,6 @@ export const AUTH_COPY: Record<AuthProduct, AuthCopy> = {
       'Pembukuan double-entry otomatis',
       'Jejak audit di setiap transaksi',
       'Akses sesuai peran',
-    ],
-  },
-  EAM: {
-    documentTitle: 'Masuk · Entaris EAM',
-    heading: 'Masuk ke Entaris EAM',
-    subtitle: 'Gunakan akun Entaris ERP yang sama.',
-    panelHeadline: 'Aset terawat, operasi tanpa jeda.',
-    panelPoints: [
-      'Work order & jadwal preventif',
-      'Kendaraan, gedung & peralatan',
-      'Terhubung ke Aset Tetap ERP',
     ],
   },
 };

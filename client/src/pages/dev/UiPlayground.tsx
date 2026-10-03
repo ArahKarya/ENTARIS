@@ -87,7 +87,7 @@ function Showcase({ scheme }: { scheme: 'light' | 'dark' }) {
         </div>
         <div className="flex flex-wrap items-center gap-6">
           <Wordmark variant={scheme === 'dark' ? 'negative' : 'default'} product="ERP" />
-          <Wordmark variant={scheme === 'dark' ? 'negative' : 'default'} product="EAM" size="lg" tagline />
+          <Wordmark variant={scheme === 'dark' ? 'negative' : 'default'} product="ERP" size="lg" tagline />
           <span className="rounded-lg bg-brand-navy px-3 py-2">
             <Wordmark variant="negative" size="sm" />
           </span>

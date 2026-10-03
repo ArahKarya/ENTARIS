@@ -19,7 +19,7 @@ const MARK_FILLS = {
 } as const;
 
 export type BrandVariant = keyof typeof MARK_FILLS | 'auto';
-export type ProductCode = 'ERP' | 'EAM';
+export type ProductCode = 'ERP';
 
 export interface BrandMarkProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
   /**

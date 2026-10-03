@@ -3,6 +3,11 @@
 // Approval: Admin/Accountant bisa buka halaman terpusat /approvals; StaffProduksi
 // (pengaju) tidak punya akses /approvals → diarahkan ke tab approval di modulnya
 // (Invoice Pembelian → /purchase, Data Produksi → /inventory).
+//
+// Tipe GA/EAM (WO, permintaan material, kalibrasi, dokumen, sewa) diarahkan ke
+// modul /ga/*. Backend belum generate tipe-tipe ini — mapping disiapkan
+// supaya klik notifikasi langsung ke halaman yang benar saat generator ada.
+// `low_stock` tetap ke /inventory: generator backend membaca inventory_items.
 
 export interface NotifItem {
   type: string;
@@ -30,6 +35,22 @@ export function notificationLink(n: NotifItem, role: string | undefined): string
       return '/quotations';
     case 'guarantee_due':
       return '/project-guarantees';
+
+    // GA / EAM
+    case 'wo_overdue':
+    case 'wo_assigned':
+    case 'wo_completed':
+      return '/ga/maintenance';
+    case 'mr_pending':
+    case 'mr_approved':
+    case 'mr_rejected':
+      return '/ga/material-requests';
+    case 'calibration_due':
+      return '/ga/equipment';
+    case 'document_expiring':
+      return '/ga/documents';
+    case 'rental_expiring':
+      return '/ga/building';
     default:
       return null;
   }

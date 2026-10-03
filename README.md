@@ -24,7 +24,7 @@
 
 **Entaris** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
-Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — berjalan di server Anda sendiri, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
+Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — berjalan di server Anda sendiri, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, termasuk modul **EAM** (Aset & Pemeliharaan) yang menyatu di aplikasi yang sama.
 
 ## ✨ Kenapa Entaris
 
@@ -145,22 +145,20 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 - **Depresiasi Otomatis** per periode (bulanan) dengan jurnal yang terposting otomatis ke akun beban penyusutan dan akumulasi penyusutan.
 - **Disposisi Aset** (penjualan/penghapusan) dengan perhitungan untung/rugi pelepasan otomatis.
 
-### 6.1 EAM — Enterprise Asset Management (`client-eam/`)
+### 6.1 EAM — Enterprise Asset Management (modul Aset & Pemeliharaan)
 
-Aplikasi frontend **standalone** di subdomain sendiri (mis. `eam.perusahaan-anda.com`), tapi **tetap satu monorepo** — satu backend/API, satu database, satu akun login dengan ERP utama. Cocok untuk staf lapangan (mekanik, GA) yang hanya butuh modul aset tanpa harus buka menu keuangan.
+Modul di **aplikasi utama** (bukan aplikasi/subdomain terpisah) — satu frontend, satu backend/API, satu database, satu login. Staf lapangan (mekanik, GA) cukup diberi peran yang hanya membuka modul aset lewat matriks Hak Akses, tanpa akses ke menu keuangan.
 
-- **Login SSO** cross-subdomain — 1 akun ERP otomatis berlaku di EAM (cookie bersama di domain induk, mis. `.perusahaan-anda.com` — atur lewat `COOKIE_DOMAIN` di `.env`), tanpa login ulang.
 - **Dashboard ringkas**: total aset, nilai buku (NBV), work order aktif & overdue, breakdown nilai per kategori, quick links ke tiap modul.
 - **Modul aset per kategori**: Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Inventaris GA, Dokumen & Sertifikat, Maintenance/Work Order, Permintaan Barang, Master Data — tiap halaman otomatis terfilter ke kategorinya sendiri (`?categoryId=` multi-value di API, backward-compatible dengan ERP utama).
 - **QR aset publik** tetap bisa diakses tanpa login (scan barcode aset fisik).
 - **Pengajuan terpusat** — ajukan servis dan pajak/STNK/KIR lewat pilihan kendaraan, dengan monitor status; pengajuan servis yang disetujui **otomatis membuat Work Order**, dan menutup WO otomatis mencatat **riwayat servis kendaraan**.
 - **Maintenance / Work Order** dengan foto, checklist, dan suku cadang; **Permintaan Barang (MR)** menaut WO → MR → persetujuan → penerimaan (stok GA bertambah otomatis) → pembayaran. **Export Excel** rekap WO.
 - **Inventaris GA** dengan foto per item, tab dashboard stok dan tab Tools (opname cepat, export CSV), serta peringatan lokasi gudang kosong.
-- Modul GA di ERP utama **tetap aktif** dan tersinkron real-time dua arah dengan EAM (data & aksi lewat API + DB yang sama, bukan salinan/replika).
 
 #### 6.1.1 Manajemen Kendaraan (Fleet)
 
-Tersedia identik di ERP utama (menu EAM) maupun aplikasi EAM — data & API sama.
+Bagian dari modul EAM di aplikasi utama.
 
 - **Data kendaraan** (plat, merek, tipe, mesin/rangka, BBM, kapasitas tangki, odometer) + penugasan driver/PIC.
 - **Pajak & STNK/KIR, Asuransi** dengan lampiran dokumen dan reminder jatuh tempo.
@@ -514,7 +512,7 @@ npm run lint             # ESLint
 - [x] RBAC dinamis (role custom + matriks izin per modul)
 - [x] Surat Jalan Sementara, tautan ke DO resmi, invoice Rp 0 otomatis Paid
 - [x] Reversal otomatis penyelesaian HPP saat dokumen pemicu dibatalkan/diedit
-- [x] EAM standalone (kendaraan, WO, MR, inventaris GA) + Tagihan GA ke keuangan
+- [x] EAM terintegrasi di aplikasi utama (kendaraan, WO, MR, inventaris GA) + Tagihan GA ke keuangan
 - [x] Audit trail, backup/restore via UI, PWA, dark mode
 - [x] Self-hosted Docker Compose, auto-migrate & auto-seed
 - [ ] Multi-currency penuh (FX gain/loss tersedia, UI multi-currency menyusul)

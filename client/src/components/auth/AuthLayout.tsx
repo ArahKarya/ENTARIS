@@ -7,12 +7,10 @@ import { AUTH_COPY, VENDOR_NAME, type AuthProduct } from './auth-copy';
  * Concept A "Quiet split" (plan §3.2): flat navy brand panel (≥1024px) + a
  * borderless form column. Colours come from the theme tokens, so light/dark
  * follow the app theme. No motion except the form's 200ms fade (motion-safe).
- *
- * Kept free of app-specific ui primitives so the file can be copied verbatim
- * into client-eam (only the BrandMark/token imports differ).
  */
 export interface AuthLayoutProps {
-  product: AuthProduct;
+  /** Only 'ERP' remains (EAM is a module of the main app). Defaults to 'ERP'. */
+  product?: AuthProduct;
   children: ReactNode;
   /** Opens the help dialog from the footer "Bantuan" link. */
   onHelp: () => void;
@@ -23,7 +21,7 @@ const PRIVACY_URL: string | undefined = import.meta.env.VITE_PRIVACY_URL || unde
 const footerLink =
   'rounded-sm underline-offset-4 hover:text-(--text) hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--surface)';
 
-function WordmarkText({ product, onDark }: { product: AuthProduct; onDark: boolean }) {
+function WordmarkText({ onDark }: { onDark: boolean }) {
   return (
     <span className="flex items-center gap-2" aria-hidden>
       <span
@@ -34,16 +32,6 @@ function WordmarkText({ product, onDark }: { product: AuthProduct; onDark: boole
       >
         EN<span className={onDark ? 'text-[#9CC9F5]' : 'text-[#3D8BE0] dark:text-[#9CC9F5]'}>TA</span>RIS
       </span>
-      {product === 'EAM' && (
-        <span
-          className={
-            'rounded-sm border px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wide ' +
-            (onDark ? 'border-white/50 text-white' : 'border-(--input) text-(--text-secondary)')
-          }
-        >
-          EAM
-        </span>
-      )}
     </span>
   );
 }
@@ -67,8 +55,8 @@ function BrandPanel({ product }: { product: AuthProduct }) {
       <div className="relative flex items-center gap-3">
         <BrandMark variant="negative" size={36} title="" />
         <div className="flex flex-col gap-1.5">
-          <span className="sr-only">{product === 'EAM' ? 'Entaris EAM' : 'Entaris'}</span>
-          <WordmarkText product={product} onDark />
+          <span className="sr-only">Entaris</span>
+          <WordmarkText onDark />
           <span className="text-xs font-medium uppercase leading-none tracking-[0.18em] text-white/75">
             Agentic Reasoning System
           </span>
@@ -114,7 +102,7 @@ function FooterLinks({ onHelp }: { onHelp: () => void }) {
   );
 }
 
-export function AuthLayout({ product, children, onHelp }: AuthLayoutProps) {
+export function AuthLayout({ product = 'ERP', children, onHelp }: AuthLayoutProps) {
   const year = new Date().getFullYear();
   return (
     <div className="auth-root grid min-h-dvh bg-(--surface) text-(--text) lg:grid-cols-[5fr_7fr]">
@@ -125,8 +113,8 @@ export function AuthLayout({ product, children, onHelp }: AuthLayoutProps) {
           {/* Mobile/tablet brand row (the panel carries it on desktop). */}
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <BrandMark variant="auto" size={32} title="" />
-            <span className="sr-only">{product === 'EAM' ? 'Entaris EAM' : 'Entaris'}</span>
-            <WordmarkText product={product} onDark={false} />
+            <span className="sr-only">Entaris</span>
+            <WordmarkText onDark={false} />
           </div>
 
           <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">{children}</div>
