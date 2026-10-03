@@ -1,8 +1,10 @@
 <div align="center">
 
-# Simple ERP — Penjualan, Pembelian, Inventori & Keuangan Terintegrasi
+<img src="docs/brand/entaris/entaris-icon.svg" width="96" height="96" alt="Entaris" />
 
-**ERP Self-Hosted untuk Pangan Masa Depan — kelola seluruh operasi perusahaan (penjualan, pembelian, gudang, keuangan) dalam satu sistem, dengan pembukuan double-entry otomatis di setiap transaksi. Multi-role, self-hosted via Docker, tanpa biaya lisensi bulanan.**
+# Entaris — Agentic ERP
+
+**Enterprise Agentic Reasoning Integrated System — penjualan, pembelian, inventori & keuangan dalam satu sistem, dengan pembukuan double-entry otomatis di setiap transaksi dan agen AI (AIRA) yang bernalar di atas data Anda. Multi-role, self-hosted via Docker.**
 
 [![Demo](https://img.shields.io/badge/Demo-Live-16C79A?style=flat-square)](https://erp.panganmasadepan.com)
 [![Stack](https://img.shields.io/badge/Stack-React%2019%20%C2%B7%20Express%205%20%C2%B7%20Prisma%207-0F3460?style=flat-square)](#-stack)
@@ -13,13 +15,13 @@
 
 </div>
 
-> Produk **PT Arah Karya Sinergi** — untuk Pangan Masa Depan.
+> Produk **PT Arah Karya Sinergi** (Arah). Sebelumnya bernama *Simple ERP* / *ERP PMD*. Panduan merek: [`docs/brand/entaris`](docs/brand/entaris/README.md).
 
-**Simple ERP** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
+**Entaris** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
 Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
 
-## ✨ Kenapa Simple ERP
+## ✨ Kenapa Entaris
 
 | Masalah | Solusi |
 |---|---|
@@ -226,8 +228,8 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/ArahKarya/simple-erp-pmd.git
-cd simple-erp-pmd
+git clone https://github.com/ArahKarya/simple-erp.git
+cd simple-erp
 ```
 
 ### 2. Buat file `.env`
@@ -359,8 +361,8 @@ docker compose up -d --build   # fresh start + auto-seed
 ### Opsi 1: Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/ArahKarya/simple-erp-pmd.git
-cd simple-erp-pmd
+git clone https://github.com/ArahKarya/simple-erp.git
+cd simple-erp
 
 cp .env.docker.example .env
 nano .env   # Set JWT_SECRET dan ALLOWED_ORIGINS

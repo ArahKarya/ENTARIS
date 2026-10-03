@@ -113,9 +113,9 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
       className="hidden lg:flex lg:flex-col lg:justify-between relative overflow-hidden text-white px-12 py-12"
       style={{
         // Selaras favicon: steel blue → deep navy.
-        // #3a5d8f (steel) → #1e3a5f (deep navy) sebagai dua titik utama, +shade.
+        // Entaris: biru #2F6FC4 → navy #1B2B48 sebagai dua titik utama, +shade.
         backgroundImage:
-          'linear-gradient(135deg, #16284a 0%, #1e3a5f 25%, #2a4a7a 50%, #3a5d8f 75%, #1e3a5f 100%)',
+          'linear-gradient(135deg, #121D33 0%, #1B2B48 25%, #22406E 50%, #2F6FC4 75%, #1B2B48 100%)',
         backgroundSize: '300% 300%',
         animation: 'login-gradient-flow 14s ease infinite',
       }}
@@ -206,13 +206,13 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ displayName, logoSrc, needsInve
         </div>
 
         <p className="mt-6 text-xs font-medium uppercase tracking-[0.22em] text-white/70">
-          Sistem ERP & Operasional
+          Agentic Reasoning System
         </p>
         <h1
           className="mt-3 text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight"
           style={{
             // Selaras favicon: putih → light blue → gold (grain) → putih.
-            backgroundImage: 'linear-gradient(120deg, #ffffff 0%, #dbeafe 35%, #fbd271 65%, #ffffff 100%)',
+            backgroundImage: 'linear-gradient(120deg, #ffffff 0%, #A9C6EC 35%, #5AA2EA 65%, #ffffff 100%)',
             backgroundSize: '200% 100%',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
@@ -323,15 +323,16 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const displayName = branding.companyName || 'Simple ERP';
+  const displayName = branding.companyName || 'Entaris';
   // Brand panel selalu di atas gradient gelap → prefer logo dark variant.
   const panelLogo = branding.logoUrlDark || branding.logoUrl || '/pwa-512x512.png';
-  const panelNeedsInvert = !branding.logoUrlDark && !branding.logoUrl;
+  // The default Entaris icon is a full-colour tile — never invert it.
+  const panelNeedsInvert = false;
   // Mobile brand (di form panel) ikut tema aplikasi.
   const mobileLogo = isDark
     ? (branding.logoUrlDark || branding.logoUrl || '/pwa-512x512.png')
     : (branding.logoUrl || branding.logoUrlDark || '/pwa-512x512.png');
-  const mobileNeedsInvert = !branding.logoUrl && !branding.logoUrlDark && !isDark;
+  const mobileNeedsInvert = false;
 
   return (
     <>
@@ -353,12 +354,12 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">Simple ERP</div>
+                <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">Entaris</div>
                 <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{displayName}</div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl shadow-[#1e3a5f]/10 p-7 md:p-8">
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl shadow-[#1B2B48]/10 p-7 md:p-8">
               <div className="mb-6">
                 <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500 mb-1.5">Masuk</div>
                 <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
@@ -402,8 +403,8 @@ const LoginPage: React.FC = () => {
                         text-neutral-900 dark:text-neutral-100
                         placeholder:text-neutral-400 dark:placeholder:text-neutral-600
                         border-neutral-300 dark:border-neutral-800
-                        focus:border-[#3a5d8f] dark:focus:border-[#5a7daf]
-                        focus:ring-2 focus:ring-[#3a5d8f]/20
+                        focus:border-[#2F6FC4] dark:focus:border-[#7DB8F0]
+                        focus:ring-2 focus:ring-[#2F6FC4]/20
                         disabled:opacity-60"
                     />
                   </div>
@@ -416,7 +417,7 @@ const LoginPage: React.FC = () => {
                     </label>
                     <button
                       type="button"
-                      className="text-[11px] font-medium text-[#3a5d8f] dark:text-[#7a9dcf] hover:underline underline-offset-2"
+                      className="text-[11px] font-medium text-[#2F6FC4] dark:text-[#7DB8F0] hover:underline underline-offset-2"
                       onClick={() => alert('Hubungi administrator untuk reset password.')}
                     >
                       Lupa?
@@ -438,8 +439,8 @@ const LoginPage: React.FC = () => {
                         text-neutral-900 dark:text-neutral-100
                         placeholder:text-neutral-400 dark:placeholder:text-neutral-600
                         border-neutral-300 dark:border-neutral-800
-                        focus:border-[#3a5d8f] dark:focus:border-[#5a7daf]
-                        focus:ring-2 focus:ring-[#3a5d8f]/20
+                        focus:border-[#2F6FC4] dark:focus:border-[#7DB8F0]
+                        focus:ring-2 focus:ring-[#2F6FC4]/20
                         disabled:opacity-60"
                     />
                     <button
@@ -458,11 +459,11 @@ const LoginPage: React.FC = () => {
                   type="submit"
                   disabled={loading}
                   className="group relative w-full h-11 overflow-hidden rounded-md text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0
-                    bg-gradient-to-r from-[#3a5d8f] to-[#1e3a5f]
-                    hover:from-[#4a6d9f] hover:to-[#2a4a7a]
-                    shadow-lg shadow-[#1e3a5f]/30
+                    bg-gradient-to-r from-[#2F6FC4] to-[#1B2B48]
+                    hover:from-[#2A64B3] hover:to-[#22406E]
+                    shadow-lg shadow-[#1B2B48]/30
                     disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0
-                    focus:outline-none focus:ring-2 focus:ring-[#3a5d8f] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
+                    focus:outline-none focus:ring-2 focus:ring-[#2F6FC4] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
                 >
                   <span
                     aria-hidden

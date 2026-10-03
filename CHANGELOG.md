@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Merek
+**Diubah**:
+- Produk berganti nama dari **Simple ERP / ERP PMD** menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Agentic Reasoning System".
+- Logo baru **"Anyaman ∇"**: tiga bilah yang saling menindih membentuk segitiga terbalik (∇) — tiga pilar operasi yang menyatu dan simbol gradien untuk penalaran AI. Ikon aplikasi berlatar navy, favicon 16/32/48, apple-touch, ikon PWA `any` + `maskable` terpisah (`pwa-maskable-512x512.png`), dan `mask-icon.svg` satu warna untuk Safari.
+- Judul tab, manifest PWA, `theme-color` (navy `#1B2B48`), nama cadangan di login/sidebar/onboarding/landing kini memakai Entaris.
+- Logo bawaan tidak lagi di-*invert* di sidebar & halaman login (ikon baru berwarna penuh).
+- Halaman login memakai palet Entaris (gradien navy → biru) menggantikan biru steel lama; label panel menjadi "Agentic Reasoning System". Kontras tombol & tautan ≥ 4,5 : 1.
+- Panduan merek & file sumber logo di `docs/brand/entaris/`.
+
+**Catatan**: pengenal teknis `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) tidak diubah agar integrasi dan deploy yang berjalan tidak putus.
+
 ## [3.19.0] - 2026-10-02
 
 Rilis kumulatif sejak 3.18.1 (31 Jul): modul Surat Jalan Sementara, pembenahan HPP/persediaan, EAM terintegrasi keuangan, dan sejumlah perbaikan integritas data.

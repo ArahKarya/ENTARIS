@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# backup.sh — Simple ERP Daily Database Backup
+# backup.sh — Entaris Daily Database Backup
 # Dump PostgreSQL → gzip → push to GitHub (backups branch)
 # Usage: bash scripts/backup.sh
 # ============================================================
@@ -151,7 +151,7 @@ else
   git -C "$WORKTREE_DIR" rm -rf . 2>/dev/null || true
 
   cat > "${WORKTREE_DIR}/README.md" << 'HEREDOC'
-# Simple ERP — Database Backups
+# Entaris — Database Backups
 
 Automated daily backups of the PostgreSQL database.
 Maximum 3 days retained.

@@ -214,7 +214,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   Selamat Datang!
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  ERP PMD siap digunakan. Mari setup perusahaan Anda dalam beberapa langkah mudah.
+                  Entaris siap digunakan. Mari setup perusahaan Anda dalam beberapa langkah mudah.
                 </p>
               </div>
             </div>

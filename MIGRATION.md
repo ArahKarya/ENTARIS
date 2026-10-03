@@ -1,6 +1,6 @@
-# Panduan Update & Migrasi — Simple ERP
+# Panduan Update & Migrasi — Entaris
 
-Dokumen ini untuk operator/admin yang sudah deploy Simple ERP di server sendiri dan ingin menarik update dari repo ini tanpa merusak data production.
+Dokumen ini untuk operator/admin yang sudah deploy Entaris di server sendiri dan ingin menarik update dari repo ini tanpa merusak data production.
 
 ## TL;DR — Prosedur update aman
 
