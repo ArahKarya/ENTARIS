@@ -10,13 +10,13 @@
 
 <sub><b>ENT</b>erprise · <b>A</b>gentic · <b>R</b>easoning · <b>I</b>ntegrated · <b>S</b>ystem</sub>
 
-[![Demo](https://img.shields.io/badge/Demo-Live-3D8BE0?style=flat-square)](https://erp.panganmasadepan.com)
 [![AIRA](https://img.shields.io/badge/AI%20Agent-AIRA-3D8BE0?style=flat-square)](#-agentic-reasoning--aira)
 [![Stack](https://img.shields.io/badge/Stack-React%2019%20%C2%B7%20Express%205%20%C2%B7%20Prisma%207-1B2B48?style=flat-square)](#-stack)
 
 [![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-FF6F61?style=flat-square&logo=postgresql&logoColor=white)](#-stack)
 [![Deploy](https://img.shields.io/badge/Deploy-Docker%20Compose-1B2B48?style=flat-square&logo=docker&logoColor=white)](#-quickstart-docker)
-[![License](https://img.shields.io/badge/License-MIT-1B2B48?style=flat-square)](./LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-1B2B48?style=flat-square)](./LICENSE)
+[![Contact](https://img.shields.io/badge/Lisensi%20%26%20demo-solutions%40arahkarya.com-3D8BE0?style=flat-square)](mailto:solutions@arahkarya.com)
 
 </div>
 
@@ -24,7 +24,7 @@
 
 **Entaris** adalah aplikasi keuangan & operasional yang **mudah dipasang, cepat dipakai, dan cukup kuat untuk bertumbuh** — dari toko/UKM dengan beberapa user hingga manufaktur (rice mill, trading, pangan) yang butuh **pembukuan double-entry penuh**, multi-role, dan audit trail lengkap.
 
-Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — **tanpa biaya lisensi bulanan**, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
+Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7.5** + **PostgreSQL 16**), self-hosted via **Docker Compose**. Satu perintah deploy, langsung pakai — berjalan di server Anda sendiri, data **100% milik Anda**. Tercakup **43 route backend**, **79 halaman** (ERP utama), **145 komponen**, **13 PDF template**, dan **79 migrasi** database, plus aplikasi **EAM** terpisah dalam satu monorepo.
 
 ## ✨ Kenapa Entaris
 
@@ -33,14 +33,14 @@ Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7
 | **Pasang lama & ribet** | `docker compose up -d --build` — dalam 5 menit aplikasi sudah bisa login. Seed otomatis (chart of account, fiscal year, system accounts) saat pertama jalan. |
 | **Angka tidak konsisten / "melayang"** | **Double-entry bookkeeping** murni. Setiap transaksi (invoice, pembayaran, JV, produksi, stok) otomatis posting ke GL dan **selalu balanced**. |
 | **Sistem kaku, susah berkembang** | Skalabilitas bertahap — dari warung/UKM (1–3 user, tanpa modul produksi) hingga pabrik (puluhan user, BOM, konversi produksi, HPP, pajak per item, multi-gudang). Fitur tinggal diaktifkan, schema sama. |
-| **Biaya SaaS bulanan & vendor lock-in** | **MIT license**, **gratis & self-hosted**. Data & backup di server sendiri (Raspberry Pi 5, VPS murah, on-premise). Tidak ada biaya per-user. |
+| **Data dipegang vendor SaaS** | **Self-hosted** — aplikasi, database, dan backup berjalan di server Anda sendiri (Raspberry Pi 5, VPS, atau on-premise). Data tidak pernah meninggalkan infrastruktur Anda. |
 | **Software akuntansi tidak cocok Indonesia** | UI **Bahasa Indonesia**, PPN per-item, format nomor dokumen Indonesia, laporan neraca/laba-rugi sesuai PSAK, export PDF/Excel siap cetak. |
 | **Data banyak, keputusan lambat** | **AIRA**, agen AI bawaan — tanya data dalam bahasa sehari-hari, dapatkan jawaban dari buku besar & stok, dan minta AIRA menyiapkan draf transaksi. Setiap perubahan pembukuan tetap menunggu **persetujuan manusia**. |
 | **Susah disesuaikan tim internal** | TypeScript end-to-end, kode rapi, **Prisma schema terbuka** — tim internal atau developer eksternal bisa tambah modul baru tanpa membongkar core. |
 
 ### Cocok untuk
 
-- **UKM & toko retail** yang ingin lepas dari Excel/buku tulis tanpa biaya SaaS bulanan
+- **UKM & toko retail** yang ingin lepas dari Excel/buku tulis
 - **Perusahaan distribusi / trading** dengan banyak vendor, pelanggan, dan invoice outstanding
 - **Perusahaan manufaktur** (rice mill, pangan, pupuk, produk industri) dengan kebutuhan BOM, konversi produksi, dan HPP real-time
 - **Kantor akuntan / konsultan** yang ingin self-host pembukuan multi-klien di infra sendiri
@@ -556,7 +556,9 @@ npm run lint             # ESLint
 
 ## 📄 Lisensi
 
-[MIT](./LICENSE) © 2026 PT Arah Karya Sinergi (AKS)
+**Proprietary** — © 2026 PT Arah Karya Sinergi. Seluruh hak dilindungi.
+
+Entaris hanya boleh digunakan, disalin, atau dimodifikasi berdasarkan perjanjian lisensi tertulis dengan PT Arah Karya Sinergi. Lihat [`LICENSE`](./LICENSE). Untuk lisensi, harga, dan demo: **solutions@arahkarya.com**.
 
 ---
 
