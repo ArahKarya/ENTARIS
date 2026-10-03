@@ -18,10 +18,13 @@
 - Foto unggahan tampil di mode pengembangan (proxy `/uploads`).
 
 ### Diperbaiki
+- Modal refund/offset uang muka (pelanggan & vendor) menampilkan saldo hutang/piutang Rp 0 sehingga offset tidak bisa dilakukan — endpoint `GET /api/parties/:id` yang dipanggil modal kini tersedia.
 - **Filter tanggal di halaman daftar Penjualan meleset satu hari.** Batas hari dihitung dalam UTC, padahal tanggal dokumen adalah hari kalender WIB — dokumen bertanggal X tidak muncul saat difilter "tanggal X" (dan dokumen X+1 bisa ikut). Kini filter memakai hari kalender zona waktu bisnis (default WIB; atur `APP_UTC_OFFSET` untuk WITA/WIT).
 
 ### Tampilan (UI/UX)
 **Diubah**:
+- **Halaman daftar Pembelian** (Pesanan Pembelian, Penerimaan Barang, Faktur Pembelian, Uang Muka Vendor): data dimuat per halaman dari server, filter & urutan di URL, kartu ringkasan sesuai filter, status Indonesia ("Belum/Sudah Ditagih", "Titipan" untuk STT). Faktur Pembelian: tab Daftar / Persetujuan; "Edit lengkap" di menu baris. Tombol "Bayar Hutang" kini butuh izin edit pembayaran.
+
 - **Halaman daftar Penjualan** (Pertanyaan Pelanggan, Penawaran, Pesanan Penjualan, Surat Jalan, Faktur Penjualan, Retur Penjualan, Uang Muka Pelanggan): data dimuat per halaman dari server — tidak lagi terpotong diam-diam di 200/500 baris. Filter (cari, status, pelanggan, tanggal) & urutan tersimpan di URL; kartu ringkasan dihitung server sesuai filter; status berbahasa Indonesia; angka rata kanan; baris bisa dibuka dengan keyboard; tampilan mobile ringkas.
 - Surat Jalan: satu halaman dengan tab "Surat Jalan Resmi" / "Surat Jalan Sementara"; status DO "Sudah/Belum Diinvoice" dan aksi "Buat faktur".
 - Total nilai penawaran tidak lagi menghitung penawaran yang dibatalkan (konsisten dengan faktur).

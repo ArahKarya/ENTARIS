@@ -32,6 +32,11 @@ const TARGETS = [
   { path: '/delivery-orders?tab=sjs', isPublic: false },
   { path: '/sales-returns', isPublic: false },
   { path: '/customer-deposits', isPublic: false },
+  { path: '/purchase', isPublic: false },
+  { path: '/purchase?tab=approval', isPublic: false },
+  { path: '/purchase-orders', isPublic: false },
+  { path: '/goods-receipts', isPublic: false },
+  { path: '/vendor-deposits', isPublic: false },
 ]
 
 interface AxeRecord {

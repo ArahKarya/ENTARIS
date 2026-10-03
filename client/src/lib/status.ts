@@ -121,7 +121,13 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   purchase_order: { submitted: m('Dipesan', 'info') },
   journal: { submitted: POSTED },
   payment: { submitted: POSTED },
-  goods_receipt: { submitted: POSTED },
+  // STT list: billing state derived from the purchase-invoice link.
+  goods_receipt: {
+    submitted: POSTED,
+    invoiced: m('Sudah Ditagih', 'success'),
+    uninvoiced: m('Belum Ditagih', 'warning'),
+    customerowned: m('Titipan', 'info'),
+  },
   // `Invoiced` / `Uninvoiced` are derived in the DO list (Submitted ± invoiceId).
   delivery_order: {
     submitted: POSTED,

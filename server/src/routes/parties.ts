@@ -277,6 +277,19 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/parties/:id
+// GET /api/parties/:id — single party (incl. cached outstandingAmount), used by
+// the deposit refund/offset modals. Same fields as each row of GET /parties.
+router.get('/:id', async (req, res) => {
+  try {
+    const party = await prisma.party.findUnique({ where: { id: String(req.params.id) } });
+    if (!party) return res.status(404).json({ error: 'Pihak tidak ditemukan.' });
+    return res.json(party);
+  } catch (error) {
+    logger.error({ error }, 'GET /parties/:id error');
+    return res.status(500).json({ error: 'Gagal mengambil data pihak.' });
+  }
+});
+
 router.put('/:id', async (req, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdatePartySchema, req.body, res);

@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
@@ -8,55 +7,28 @@ import { handleRouteError } from '../utils/errors';
 import { submitGoodsReceiptInTx } from '../services/goodsReceiptSubmit';
 import { cancelGoodsReceiptInTx } from '../services/goodsReceiptCancel';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildGoodsReceiptWhere,
+  DEFAULT_GOODS_RECEIPT_SORT,
+  GOODS_RECEIPT_SORT_FIELDS,
+  goodsReceiptOrderBy,
+} from '../services/goodsReceiptList';
 
 const router = Router();
 
-
 // ─── GET / list ───────────────────────────────────────────────────────────
+// Query: page, limit (≤200), status (see services/goodsReceiptList), partyId,
+// startDate, endDate (YYYY-MM-DD), search (STT / supplier / no. mobil / PO),
+// includeLegacy, sort (e.g. "-date"). → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const {
-      status,
-      partyId,
-      startDate,
-      endDate,
-      search,
-      includeLegacy,
-      page = '1',
-      limit = '50',
-    } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.GoodsReceiptWhereInput = {};
-    // Derived "Invoiced" state — STT enum hanya Submitted/Cancelled.
-    if (status === 'Invoiced') {
-      where.status = 'Submitted';
-      where.invoiceId = { not: null };
-    } else if (status === 'Submitted') {
-      where.status = 'Submitted';
-      where.invoiceId = null;
-    } else if (status === 'Cancelled') {
-      where.status = 'Cancelled';
-    }
-    if (partyId) where.partyId = partyId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-    }
-    if (search) {
-      const q = String(search).trim();
-      if (q.length > 0) {
-        where.OR = [
-          { sttNumber: { contains: q, mode: 'insensitive' } },
-          { supplier: { name: { contains: q, mode: 'insensitive' } } },
-        ];
-      }
-    }
-    // By default exclude legacy backfill STTs from main list (they clutter UI;
-    // user typically only cares about real STTs going forward).
-    if (includeLegacy !== 'true') where.isLegacyBackfill = false;
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildGoodsReceiptWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, GOODS_RECEIPT_SORT_FIELDS, DEFAULT_GOODS_RECEIPT_SORT);
 
     const [data, total] = await Promise.all([
       prisma.goodsReceipt.findMany({
@@ -67,14 +39,14 @@ router.get('/', async (req, res) => {
           purchaseOrder: { select: { id: true, poNumber: true } },
           _count: { select: { items: true } },
         },
-        orderBy: [{ date: 'desc' }, { sttNumber: 'desc' }],
+        orderBy: goodsReceiptOrderBy(sort),
         skip,
         take,
       }),
       prisma.goodsReceipt.count({ where }),
     ]);
 
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /goods-receipts', 'Gagal mengambil daftar STT/BPB.');
   }
