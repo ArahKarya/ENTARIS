@@ -1,0 +1,48 @@
+/*
+ * Entaris re-theme of the ported ERP•AI design system (site.css).
+ *
+ * site.css derives every surface, ink and accent from a small set of base tokens (beige-*, ink-*,
+ * tacet-orange). Re-pointing those tokens to the Entaris palette (docs/brand/entaris/README.md:
+ * navy #1B2B48, blue #3D8BE0, mid blue #2E5CA8, light blue #9CC9F5, dark blue #2F6FC4) re-themes
+ * the whole system in light and dark mode without touching the generated file.
+ *
+ * The `entaris` layer is declared after site.css's layers, so it wins over all of them.
+ */
+@layer properties, theme, base, components, utilities, erp-unlayered, entaris;
+
+@layer entaris {
+  .erp-root {
+    /* Cool paper → navy ramp (hue 255) replacing the warm beige ramp (hue 78). */
+    --beige-50: oklch(98.4% 0.004 255); /* #f9fbfd */
+    --beige-100: oklch(97.2% 0.006 255);
+    --beige-200: oklch(94.8% 0.01 255);
+    --beige-300: oklch(91.2% 0.014 255);
+    --beige-400: oklch(86% 0.02 255);
+    --beige-500: oklch(69% 0.035 258);
+    --beige-600: oklch(54% 0.045 260);
+    --beige-700: oklch(42% 0.05 262);
+    --beige-800: oklch(32% 0.05 263);
+    --beige-900: oklch(23% 0.045 264);
+    --beige-950: oklch(15.5% 0.035 265);
+
+    --ink-deep: oklch(24% 0.055 264); /* ≈ navy #1B2B48 */
+    --ink-mid: oklch(41% 0.03 262);
+    --ink-muted: oklch(45% 0.025 262);
+    --ink-nav: oklch(30% 0.045 264);
+    --ink-light: oklch(95% 0.008 255);
+    --ink-light-mid: oklch(70% 0.025 255);
+    --ink-light-muted: oklch(62% 0.025 255);
+
+    /* Accent: Entaris blue replaces the orange accent everywhere it is referenced. */
+    --tacet-orange: oklch(62% 0.15 254); /* #3D8BE0 */
+    --tacet-orange-on-light: oklch(52% 0.15 257); /* #2F6FC4 — AA on white */
+    --gold: oklch(70% 0.09 248); /* light blue family instead of warm gold */
+    --gold-on-light: oklch(46% 0.12 258); /* #2E5CA8 */
+
+    --entaris-navy: #1b2b48;
+    --entaris-blue: #3d8be0;
+    --entaris-blue-mid: #2e5ca8;
+    --entaris-blue-light: #9cc9f5;
+    --entaris-blue-dark: #2f6fc4;
+  }
+}
