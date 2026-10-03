@@ -24,7 +24,10 @@ interface EffectiveTool {
 interface AiSetting {
   id: string;
   agenticEnabled: boolean;
-  serviceToken: string | null;
+  // Server never returns the token itself — only whether one is configured.
+  hasServiceToken: boolean;
+  // Write-only: set only when the admin enters or generates a new token.
+  serviceToken?: string;
   activeChannels: string[];
   whitelistModules: string[];
 }
@@ -239,7 +242,11 @@ export const AgenticSystemTab: React.FC = () => {
                   type={showToken ? 'text' : 'password'}
                   value={s.serviceToken ?? ''}
                   onChange={(e) => setForm({ ...s, serviceToken: e.target.value })}
-                  placeholder="Token rahasia untuk auth AIRA"
+                  placeholder={
+                    s.hasServiceToken
+                      ? 'Token tersimpan (disembunyikan) — isi atau Generate untuk mengganti'
+                      : 'Token rahasia untuk auth AIRA'
+                  }
                   className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
                 />
                 <button
@@ -266,6 +273,11 @@ export const AgenticSystemTab: React.FC = () => {
                   <RefreshCw size={14} /> Generate
                 </button>
               </div>
+              {s.serviceToken && (
+                <span className="mt-1 block text-[11px] text-amber-600">
+                  Salin token ini ke konfigurasi AIRA sebelum menyimpan — setelah disimpan token tidak bisa ditampilkan lagi.
+                </span>
+              )}
             </label>
 
             {/* M2-A4: Channel aktif (global) */}
@@ -343,7 +355,16 @@ export const AgenticSystemTab: React.FC = () => {
         <div className="mt-3 flex justify-end">
           <button
             disabled={!dirty || saveSettings.isPending}
-            onClick={() => s && saveSettings.mutate(s)}
+            onClick={() =>
+              s &&
+              saveSettings.mutate({
+                agenticEnabled: s.agenticEnabled,
+                activeChannels: s.activeChannels,
+                whitelistModules: s.whitelistModules,
+                // Omit when blank so saving other fields never clears the stored token.
+                ...(s.serviceToken ? { serviceToken: s.serviceToken } : {}),
+              })
+            }
             className={cn(
               'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium text-white',
               dirty ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed',
