@@ -1,6 +1,6 @@
-# Simple ERP — Client
+# Entaris — Client
 
-Frontend React untuk Simple ERP.
+Frontend React untuk Entaris.
 
 ## Stack
 

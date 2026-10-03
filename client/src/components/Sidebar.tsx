@@ -219,7 +219,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
     ? (settings?.logoUrlDark || settings?.logoUrl || null)
     : (settings?.logoUrl || settings?.logoUrlDark || null);
   const sidebarLogoSrc = customLogo || '/pwa-192x192.png';
-  const needsInvert = !customLogo && resolvedTheme !== 'dark';
+  // The default Entaris icon is a full-colour tile — never invert it.
+  const needsInvert = false;
 
   const user = useMemo(() => {
     try {
@@ -377,7 +378,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileCl
               <img src={sidebarLogoSrc} alt="Logo" className={`w-full h-full object-contain ${needsInvert ? 'invert' : ''}`} />
             </div>
             <span className="text-sm font-bold tracking-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {settings?.companyName || 'ERP PMD'}
+              {settings?.companyName || 'Entaris'}
             </span>
           </div>
         )}

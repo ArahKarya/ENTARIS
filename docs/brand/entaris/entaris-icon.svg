@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Entaris">
+  <title>Entaris</title>
+  <rect width="512" height="512" rx="112" fill="#1F5F74"/>
+  <path fill="#FBF3D8" d="M140 124H372V180H196V228H284V284H196V332H372V388H140Z"/>
+  <circle cx="336" cy="256" r="36" fill="#EDBE45"/>
+</svg>

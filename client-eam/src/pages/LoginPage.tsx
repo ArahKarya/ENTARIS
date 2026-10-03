@@ -323,7 +323,7 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const displayName = branding.companyName || 'Simple ERP';
+  const displayName = branding.companyName || 'Entaris';
   // Brand panel selalu di atas gradient gelap → prefer logo dark variant.
   const panelLogo = branding.logoUrlDark || branding.logoUrl || '/pwa-512x512.png';
   const panelNeedsInvert = !branding.logoUrlDark && !branding.logoUrl;

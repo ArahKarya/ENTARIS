@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# restore.sh — Simple ERP Database Restore
+# restore.sh — Entaris Database Restore
 # Restore from GitHub backups branch or local file
 # Usage:
 #   bash scripts/restore.sh                     # List available backups
@@ -74,7 +74,7 @@ find_pg_container() {
 # ─── Mode: List backups ──────────────────────────────────────────────────────
 if [ $# -eq 0 ]; then
   echo "╔══════════════════════════════════════════════════╗"
-  echo "║     Simple ERP — Available Database Backups     ║"
+  echo "║       Entaris — Available Database Backups      ║"
   echo "╚══════════════════════════════════════════════════╝"
   echo ""
 

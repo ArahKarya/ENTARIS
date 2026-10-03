@@ -7,12 +7,12 @@ import {
   Wallet, TrendingUp, ChevronRight,
 } from 'lucide-react';
 
-// ── Landing publik produk Simple ERP by PT Arah Karya Sinergi (AKS) ──────────
+// ── Landing publik produk Entaris by PT Arah Karya Sinergi (AKS) ─────────────
 // Route /welcome (pola Artani). User login → redirect ke /.
 // Gaya: premium minimal (navy elegan, gerak ditahan) + mockup dashboard CSS.
 
 const AKS = {
-  product: 'Simple ERP',
+  product: 'Entaris',
   vendor: 'PT Arah Karya Sinergi',
   tagline: 'Presisi Arsitektural untuk Solusi Digital',
   email: 'solutions@arahkarya.com',
@@ -20,7 +20,7 @@ const AKS = {
   domain: 'arahkarya.com',
 };
 const waLink = `https://wa.me/${AKS.whatsapp}?text=${encodeURIComponent(
-  'Halo AKS, saya tertarik dengan Simple ERP untuk bisnis saya.',
+  'Halo AKS, saya tertarik dengan Entaris untuk bisnis saya.',
 )}`;
 
 const FEATURES = [
@@ -86,7 +86,7 @@ function DashboardMock() {
         <div className="flex">
           {/* sidebar */}
           <div className="hidden w-28 shrink-0 flex-col gap-1 border-r border-gray-100 bg-[#001533] p-3 sm:flex">
-            <div className="mb-2 flex items-center gap-1.5"><AksLogo size={16} /><span className="text-[9px] font-bold text-white">Simple ERP</span></div>
+            <div className="mb-2 flex items-center gap-1.5"><AksLogo size={16} /><span className="text-[9px] font-bold text-white">{AKS.product}</span></div>
             {[['Dashboard', true], ['Penjualan', false], ['Pembelian', false], ['Stok', false], ['Produksi', false], ['Laporan', false]].map(([l, active]) => (
               <div key={l as string} className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[9px] ${active ? 'bg-white/15 font-semibold text-white' : 'text-white/55'}`}>
                 <span className={`h-1.5 w-1.5 rounded-sm ${active ? 'bg-[#8cf3f3]' : 'bg-white/30'}`} />{l}

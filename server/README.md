@@ -1,6 +1,6 @@
-# Simple ERP — Server
+# Entaris — Server
 
-Backend Express API untuk Simple ERP.
+Backend Express API untuk Entaris.
 
 ## Stack
 

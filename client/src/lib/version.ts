@@ -5,7 +5,7 @@
 
 export const APP_VERSION = '3.18.1';
 export const APP_BUILD_DATE = '2026-07-31';
-export const APP_NAME = 'ERP PMD';
+export const APP_NAME = 'Entaris';
 
 export interface ChangelogEntry {
   version: string;

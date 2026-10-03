@@ -1,8 +1,14 @@
-# Simple ERP — Project Instructions
+# Entaris — Project Instructions
 
 ## Overview
 
-Simple ERP — sistem ERP penuh untuk mengelola operasi perusahaan (penjualan, pembelian, inventori, keuangan) untuk UKM hingga enterprise. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
+Entaris (Enterprise Agentic Reasoning Integrated System; sebelumnya Simple ERP / ERP PMD) — sistem ERP penuh untuk mengelola operasi perusahaan (penjualan, pembelian, inventori, keuangan) untuk UKM hingga enterprise. Modul lengkap: penjualan (Quotation→SO→DO→Invoice), pembelian (PO→GR→PI), inventori/gudang (Stock Opname/Transfer), keuangan (COA/GL/Payments/Bank Recon/Fixed Assets), Approvals/Audit Trail. Full-stack TypeScript app dengan pembukuan double-entry otomatis sebagai fondasi setiap transaksi.
+
+## Brand
+
+- Nama produk: **Entaris** — tagline "Entaris — Agentic ERP"; agen AI: **AIRA**; pembuat: PT Arah Karya Sinergi.
+- Panduan merek, logo & warna: `docs/brand/entaris/README.md` (Langit 800 `#1F5F74`, Gabah 400 `#EDBE45`).
+- Pengenal teknis lama `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi aira-core/deploy.
 
 ## Tech Stack
 

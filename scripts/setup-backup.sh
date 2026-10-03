@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# setup-backup.sh — Simple ERP Backup System Setup
+# setup-backup.sh — Entaris Backup System Setup
 # One-time setup: verify prerequisites, run initial backup,
 # install daily cron job.
 # Usage: bash scripts/setup-backup.sh
@@ -13,7 +13,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_BRANCH="backups"
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║     Simple ERP — Backup System Setup            ║"
+echo "║       Entaris — Backup System Setup             ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 

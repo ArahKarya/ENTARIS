@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Merek
+**Diubah**:
+- Produk berganti nama dari **Simple ERP / ERP PMD** menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Entaris — Agentic ERP".
+- Ikon aplikasi baru: huruf E tiga bilah + titik agen (Langit 800 `#1F5F74`, Krem, Gabah). Favicon 16/32 px digambar pas grid piksel; PWA kini punya ikon `any` dan `maskable` terpisah (`pwa-maskable-512x512.png`); `mask-icon.svg` satu warna untuk Safari.
+- Judul tab, manifest PWA, `theme-color`, nama cadangan di login/sidebar/onboarding/landing kini memakai Entaris.
+- Logo bawaan tidak lagi di-*invert* di sidebar & halaman login (ikon baru berwarna penuh).
+- Halaman login memakai palet Entaris (gradien Langit, aksen Gabah) menggantikan biru navy; label panel menjadi "Agentic ERP". Kontras tombol & tautan ≥ 4,5 : 1.
+- Panduan merek & file sumber logo di `docs/brand/entaris/`.
+
+**Catatan**: pengenal teknis `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) tidak diubah agar integrasi dan deploy yang berjalan tidak putus.
+
 ## [3.19.0] - 2026-10-02
 
 Rilis kumulatif sejak 3.18.1 (31 Jul): modul Surat Jalan Sementara, pembenahan HPP/persediaan, EAM terintegrasi keuangan, dan sejumlah perbaikan integritas data.

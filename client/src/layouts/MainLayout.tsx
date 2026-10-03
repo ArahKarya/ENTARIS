@@ -62,7 +62,7 @@ export const MainLayout = () => {
   useEffect(() => {
     const segment = location.pathname.split('/').filter(Boolean)[0] || '';
     const name = routeNames[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
-    document.title = name ? `${name} — ERP PMD` : 'ERP PMD';
+    document.title = name ? `${name} — Entaris` : 'Entaris';
   }, [location.pathname]);
 
   useHotkey('mod+k', () => setIsSearchOpen(true));
