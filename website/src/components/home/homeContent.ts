@@ -17,10 +17,11 @@ export const HUMAN_PANEL: GlitchPanel = {
 };
 
 export const AGENT_PANEL: GlitchPanel = {
-  words: ["AI bernalar", "Tanya data", "Draf dulu", "Anda setujui"],
+  words: ["AI bernalar", "Tanya data", "Analisis data", "Draf dulu", "Anda setujui"],
   subs: [
     "AIRA, agen AI bawaan, bernalar di atas data transaksi yang sama — bukan salinan.",
     "“Berapa piutang yang lewat 60 hari?” — AIRA memanggil tool ERP lalu merangkum jawabannya.",
+    "Laba rugi, arus kas, rasio, tren stok, HPP\u00a0— AIRA membandingkan periode dan merangkum pos yang paling berubah.",
     "AIRA menyiapkan draf invoice, jurnal, atau pengajuan — bukan memposting sendiri.",
     "Setiap aksi tulis menunggu persetujuan manusia dan tunduk pada RBAC yang sama.",
   ],
@@ -35,9 +36,9 @@ export const HUMAN_STEPS: readonly HeroStep[] = [
 ];
 
 export const AGENT_STEPS: readonly HeroStep[] = [
-  { label: "Tanya AIRA", detail: "Bahasa biasa" },
-  { label: "Tinjau draf", detail: "Draf invoice" },
-  { label: "Setujui", detail: "Lalu berefek" },
+  { label: "Tanya AIRA", detail: "Bahasa sehari-hari" },
+  { label: "Dapat analisis", detail: "Tren, rasio, laba" },
+  { label: "Setujui draf", detail: "Sebelum diposting" },
 ];
 
 /* -- Module catalog --------------------------------------------------------------------------- */
@@ -176,7 +177,7 @@ export const WHY_ROWS: readonly { readonly problem: string; readonly solution: s
   {
     problem: "Data banyak, keputusan lambat",
     solution:
-      "AIRA menjawab pertanyaan dari buku besar & stok dalam bahasa sehari-hari dan menyiapkan draf transaksi — perubahan pembukuan tetap menunggu persetujuan manusia.",
+      "AIRA menjawab pertanyaan dan menganalisis laporan — laba rugi, arus kas, rasio, umur piutang, tren stok, HPP — dalam bahasa sehari-hari, lalu menyiapkan draf transaksi. Perubahan pembukuan tetap menunggu persetujuan manusia.",
   },
   {
     problem: "Susah disesuaikan tim internal",
