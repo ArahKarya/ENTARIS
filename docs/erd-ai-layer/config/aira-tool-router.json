@@ -1,7 +1,7 @@
 {
   "app": "erp-aks",
   "version": 1,
-  "generatedNote": "AIRA Tool Router config — Simple ERP (AKS). Selaras BRD AIRA §8.9: name/desc/risk/roles/input/output/handler/confirm_template. Agent Core membaca config ini → tahu kemampuan app tanpa ubah kode otak. Tambah kemampuan = tambah 1 entri tool. Role keys nyata ERP: Admin/Accountant/StaffProduksi/Viewer.",
+  "generatedNote": "AIRA Tool Router config — Entaris (AKS). Selaras BRD AIRA §8.9: name/desc/risk/roles/input/output/handler/confirm_template. Agent Core membaca config ini → tahu kemampuan app tanpa ubah kode otak. Tambah kemampuan = tambah 1 entri tool. Role keys nyata ERP: Admin/Accountant/StaffProduksi/Viewer.",
   "modules": [
     "sales_order",
     "delivery_order",

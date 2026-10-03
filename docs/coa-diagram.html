@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Diagram Korelasi COA — Keuangan ERP</title>
+<title>Diagram Korelasi COA — Entaris</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; padding: 32px; }
@@ -136,7 +136,7 @@
 <body>
 
 <h1>Diagram Korelasi COA & Modul</h1>
-<p class="subtitle">Simple ERP — Chart of Accounts</p>
+<p class="subtitle">Entaris — Chart of Accounts</p>
 
 <!-- ════════════════════════════════════════════════════════════ -->
 <!-- MASTER OVERVIEW MAP -->
@@ -253,10 +253,10 @@
   <table class="journal-table">
     <tr><th>Langkah</th><th>Akun</th><th>Debit</th><th>Kredit</th><th>Efek</th></tr>
     <tr>
-      <td rowspan="3">Invoice Pembelian<br><span style="color:#64748b;font-size:10px;">GKP 5.000 Kg @ Rp 5.500 + PPN 11%</span></td>
+      <td rowspan="3">Invoice Pembelian<br><span style="color:#64748b;font-size:10px;">Bahan Baku A 5.000 Kg @ Rp 5.500 + PPN 11%</span></td>
       <td class="mono">1.4.0 Persediaan (Umum)</td>
       <td class="dr">Rp 27.500.000</td><td></td>
-      <td class="role">Aset naik (stok gabah)</td>
+      <td class="role">Aset naik (stok bahan baku)</td>
     </tr>
     <tr>
       <td class="mono">1.5.3 PPN Masukan</td>
@@ -331,7 +331,7 @@
   <table class="journal-table">
     <tr><th>Langkah</th><th>Akun</th><th>Debit</th><th>Kredit</th><th>Efek</th></tr>
     <tr>
-      <td rowspan="3">Invoice Penjualan<br><span style="color:#64748b;font-size:10px;">Beras 1.000 Kg @ Rp 14.000 + PPN 11%</span></td>
+      <td rowspan="3">Invoice Penjualan<br><span style="color:#64748b;font-size:10px;">Produk A 1.000 Kg @ Rp 14.000 + PPN 11%</span></td>
       <td class="mono">1.2.1 Piutang Usaha</td>
       <td class="dr">Rp 15.540.000</td><td></td>
       <td class="role">Aset naik (tagihan)</td>
@@ -347,7 +347,7 @@
       <td class="role">Hutang pajak naik</td>
     </tr>
     <tr>
-      <td rowspan="2">HPP Otomatis<br><span style="color:#64748b;font-size:10px;">Harga perolehan beras</span></td>
+      <td rowspan="2">HPP Otomatis<br><span style="color:#64748b;font-size:10px;">Harga perolehan Produk A</span></td>
       <td class="mono">5 Beban Pokok Penjualan</td>
       <td class="dr">Rp 8.000.000</td><td></td>
       <td class="role">Beban HPP naik</td>
@@ -383,16 +383,16 @@
 
   <div class="flow-diagram">
     <div class="flow-step">
-      <div class="step-box" style="border-color:#2563eb;background:#dbeafe;">Beli Gabah<br>(dari Pembelian)</div>
-      <div class="step-accounts">Stok GKP<br>+5.000 Kg</div>
+      <div class="step-box" style="border-color:#2563eb;background:#dbeafe;">Beli Bahan Baku<br>(dari Pembelian)</div>
+      <div class="step-accounts">Stok Bahan Baku A<br>+5.000 Kg</div>
     </div>
     <div class="flow-arrow">&#10132;</div>
     <div class="flow-step">
       <div class="step-box action">Proses<br>Produksi</div>
       <div class="step-accounts">
-        Input: GKP -5.000 Kg<br>
-        Output: Beras +3.000 Kg<br>
-        Output: Bekatul +500 Kg
+        Input: Bahan Baku A -5.000 Kg<br>
+        Output: Produk A +3.000 Kg<br>
+        Output: Produk Sampingan +500 Kg
       </div>
     </div>
     <div class="flow-arrow">&#10132;</div>
@@ -402,36 +402,36 @@
     </div>
     <div class="flow-arrow">&#10132;</div>
     <div class="flow-step">
-      <div class="step-box" style="border-color:#16a34a;background:#f0fdf4;">Jual Beras<br>(ke Penjualan)</div>
-      <div class="step-accounts">Stok Beras<br>-1.000 Kg</div>
+      <div class="step-box" style="border-color:#16a34a;background:#f0fdf4;">Jual Produk A<br>(ke Penjualan)</div>
+      <div class="step-accounts">Stok Produk A<br>-1.000 Kg</div>
     </div>
   </div>
 
   <table class="journal-table">
     <tr><th>Aksi</th><th>Efek Stok</th><th>Efek Akun COA</th></tr>
     <tr>
-      <td>Invoice Pembelian (GKP 5.000 Kg)</td>
-      <td>GKP: 0 → 5.000 Kg</td>
+      <td>Invoice Pembelian (Bahan Baku A 5.000 Kg)</td>
+      <td>Bahan Baku A: 0 → 5.000 Kg</td>
       <td><span class="dr">DR 1.4.0</span> Persediaan naik Rp 27.5 jt</td>
     </tr>
     <tr>
-      <td>Adjustment In (GKG 500 Kg @ Rp 6.000)</td>
-      <td>GKG: 0 → 500 Kg</td>
+      <td>Adjustment In (Bahan Baku B 500 Kg @ Rp 6.000)</td>
+      <td>Bahan Baku B: 0 → 500 Kg</td>
       <td><span class="dr">DR 1.4.0</span> Persediaan naik Rp 3 jt</td>
     </tr>
     <tr>
-      <td>Produksi (GKP → Beras + Bekatul)</td>
-      <td>GKP: 5.000 → 0<br>Beras: 0 → 3.000<br>Bekatul: 0 → 500</td>
+      <td>Produksi (Bahan Baku A → Produk A + Produk Sampingan)</td>
+      <td>Bahan Baku A: 5.000 → 0<br>Produk A: 0 → 3.000<br>Produk Sampingan: 0 → 500</td>
       <td>Stok pindah antar item<br>(nilai persediaan total tetap)</td>
     </tr>
     <tr>
-      <td>Adjustment Out (Bekatul 50 Kg rusak)</td>
-      <td>Bekatul: 500 → 450 Kg</td>
+      <td>Adjustment Out (Produk Sampingan 50 Kg rusak)</td>
+      <td>Produk Sampingan: 500 → 450 Kg</td>
       <td><span class="cr">CR 1.4.0</span> Persediaan turun</td>
     </tr>
     <tr>
-      <td>Invoice Penjualan (Beras 1.000 Kg)</td>
-      <td>Beras: 3.000 → 2.000 Kg</td>
+      <td>Invoice Penjualan (Produk A 1.000 Kg)</td>
+      <td>Produk A: 3.000 → 2.000 Kg</td>
       <td><span class="dr">DR 5</span> HPP naik / <span class="cr">CR 1.4.0</span> Persediaan turun</td>
     </tr>
   </table>
@@ -591,7 +591,7 @@
 </div>
 
 <p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:32px;">
-  Simple ERP — Chart of Accounts Documentation
+  Entaris — Chart of Accounts Documentation
 </p>
 
 </body>

@@ -2,7 +2,7 @@
 set -e
 
 echo "╔══════════════════════════════════════════╗"
-echo "║      Keuangan ERP — App Container       ║"
+echo "║         Entaris — App Container          ║"
 echo "╚══════════════════════════════════════════╝"
 
 cd /app/server
@@ -55,6 +55,6 @@ else
 fi
 
 # ── 4. Start server ────────────────────────────────────────────────────────
-echo "[APP] Starting Keuangan ERP on port ${PORT:-3001}..."
+echo "[APP] Starting Entaris on port ${PORT:-3001}..."
 echo "═══════════════════════════════════════════"
 exec node dist/index.js

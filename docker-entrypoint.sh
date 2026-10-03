@@ -2,7 +2,7 @@
 set -e
 
 echo "╔══════════════════════════════════════════╗"
-echo "║  Keuangan ERP — All-in-One Container    ║"
+echo "║      Entaris — All-in-One Container      ║"
 echo "╚══════════════════════════════════════════╝"
 
 # ── 1. Initialize PostgreSQL if needed ──────────────────────────────────────
@@ -45,7 +45,7 @@ echo "[DB] PostgreSQL is ready."
 
 # ── 3. Set DATABASE_URL for Prisma (persist for `docker exec` sessions) ─────
 export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB}?schema=public"
-echo "export DATABASE_URL=\"$DATABASE_URL\"" > /etc/profile.d/keuangan.sh
+echo "export DATABASE_URL=\"$DATABASE_URL\"" > /etc/profile.d/entaris.sh
 
 # ── 4. Run Prisma migrations ───────────────────────────────────────────────
 echo "[APP] Running database migrations..."
@@ -64,7 +64,7 @@ else
 fi
 
 # ── 5. Start Express server ─────────────────────────────────────────────────
-echo "[APP] Starting Keuangan ERP on port ${PORT:-3001}..."
+echo "[APP] Starting Entaris on port ${PORT:-3001}..."
 echo "═══════════════════════════════════════════"
 
 # Handle shutdown gracefully

@@ -158,7 +158,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
           // FIX(double-reversal): jangan buat JV pembalik [BATAL].
           // Pola lama membuat baris pembalik aktif SEKALIGUS soft-cancel
           // jurnal asli di jalur lain -> saldo dobel terbalik (kasus
-          // PAY-202604-0021/0026 Suparih -800jt, dan STT-0014/0015).
+          // pembayaran uang muka yang dibatalkan dan beberapa STT).
           // Cukup: reverse balance (sudah dilakukan di atas) + soft-cancel
           // defensif ALE asli hasil import legacy bila ada.
           await tx.accountingLedgerEntry.updateMany({

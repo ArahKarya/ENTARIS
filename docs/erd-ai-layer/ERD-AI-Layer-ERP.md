@@ -1,6 +1,6 @@
-# Dokumen Teknis: ERD & AI Layer untuk Simple ERP — Fungsi ERP Lengkap
+# Dokumen Teknis: ERD & AI Layer untuk Entaris — Fungsi ERP Lengkap
 
-**Produk:** Lapisan AI Agentic (AI Resident Assistant) untuk Simple ERP — ArahKarya
+**Produk:** Lapisan AI Agentic (AI Resident Assistant) untuk Entaris — ArahKarya
 **Arsitektur:** Hermes Agent sebagai engine + ERP Tool API + model Claude Opus via 9router
 **Cakupan:** SELURUH 35 modul ERP (250+ endpoint, 96 entitas)
 **Disiapkan oleh:** Arah Karya Sinergi (AKS)
@@ -12,7 +12,7 @@
 
 ## A1. Ringkasan Eksekutif
 
-Dokumen ini adalah **blueprint engineering** untuk membangun lapisan AI agentic di atas Simple ERP — bukan
+Dokumen ini adalah **blueprint engineering** untuk membangun lapisan AI agentic di atas Entaris — bukan
 proof-of-concept satu fitur, melainkan rancangan menyeluruh yang memetakan **seluruh 35 modul ERP** ke
 kemampuan AI (membaca data, menyiapkan draf dokumen, dan mengeksekusi transaksi dengan persetujuan manusia).
 

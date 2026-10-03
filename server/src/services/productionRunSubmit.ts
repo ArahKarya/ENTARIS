@@ -174,7 +174,7 @@ export async function submitProductionRunInTx(
 
   // Production runs need a specific warehouse so inventory_stocks stays in
   // sync with the denormalized inventory_items.currentStock. Silent-null path
-  // historically caused drift (e.g. GKP-KEBO showed total != SUM(per-warehouse)
+  // historically caused drift (e.g. one item showed total != SUM(per-warehouse)
   // when production was posted while no default existed). Prefer the explicit
   // body.warehouseId from the UI picker; fall back to default warehouse for
   // legacy callers; otherwise force the user to pick.
@@ -213,8 +213,8 @@ export async function submitProductionRunInTx(
     if (batch.isCancelled) {
       throw new BusinessError(`Batch sumber sudah dibatalkan (input ke-${i + 1}).`);
     }
-    // TransferIn juga sah: stok yang dipindah antar-gudang (mis. PK/Glosor
-    // digiling lalu ditransfer ke Poles) membawa cost-nya & layak jadi batch
+    // TransferIn juga sah: stok yang dipindah antar-gudang (mis. barang setengah
+    // jadi diproduksi di gudang A lalu ditransfer ke gudang B) membawa cost-nya & layak jadi batch
     // input — konsisten dgn batch picker (/items/:id/batches) & stockTransfer.
     if (batch.movementType !== 'In' && batch.movementType !== 'AdjustmentIn' && batch.movementType !== 'TransferIn') {
       throw new BusinessError(`Batch sumber bukan stok masuk (input ke-${i + 1}).`);
@@ -475,7 +475,7 @@ export async function submitProductionRunInTx(
   //   • porsi s.d. total biaya konversi (tarif estimasi) → CR 5.12 "Biaya Konversi
   //     Dibebankan ke Persediaan" (keputusan 27-09-2026, PSAK 14: biaya konversi masuk
   //     persediaan, lawannya dipisah dari HPP Beras supaya 5.1 murni HPP penjualan);
-  //   • sisa (mis. NRV produk samping > biaya bahan pada beras titipan BULOG, HPP di-clamp 0)
+  //   • sisa (mis. NRV produk samping > biaya bahan pada barang titipan pelanggan, HPP di-clamp 0)
   //     tetap → CR 5.1 HPP Beras (keputusan Jul-2026, alur lama dipertahankan);
   //   • rugi produksi (diff < 0) tetap → DR 5.1.
   const diff = totalOutputCost.minus(totalInputCost).toDecimalPlaces(2).toNumber();

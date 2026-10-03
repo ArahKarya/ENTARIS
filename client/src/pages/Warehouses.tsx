@@ -239,13 +239,13 @@ function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
           <div>
             <label className="text-xs font-medium text-muted-foreground">Kode *</label>
             <input type="text" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="Mis: GILING, POLES" maxLength={30}
+              placeholder="Mis: UTAMA, TRANSIT" maxLength={30}
               className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Nama *</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Mis: Gudang PMD Giling" maxLength={100}
+              placeholder="Mis: Gudang Utama" maxLength={100}
               className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>

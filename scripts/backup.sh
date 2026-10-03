@@ -15,7 +15,7 @@ MAX_BACKUPS=3
 TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
 BACKUP_FILENAME="simple_erp_${TIMESTAMP}.sql.gz"
 UPLOADS_FILENAME="simple_erp_uploads_${TIMESTAMP}.tar.gz"
-WORKTREE_DIR="/tmp/simple-erp-backup-worktree"
+WORKTREE_DIR="/tmp/entaris-backup-worktree"
 LOG_FILE="${SCRIPT_DIR}/backup.log"
 
 # ─── Functions ────────────────────────────────────────────────────────────────
@@ -126,6 +126,9 @@ log "Step 2/4: Preparing git worktree..."
 if [ -d "$WORKTREE_DIR" ]; then
   git -C "$PROJECT_DIR" worktree remove --force "$WORKTREE_DIR" 2>/dev/null || rm -rf "$WORKTREE_DIR"
 fi
+# Drop stale worktree registrations (e.g. an old temp dir wiped by a reboot)
+# so the backups branch is not reported as "already checked out".
+git -C "$PROJECT_DIR" worktree prune 2>/dev/null || true
 
 # Fetch latest from remote
 git -C "$PROJECT_DIR" fetch origin 2>/dev/null || true

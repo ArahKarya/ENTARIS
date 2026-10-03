@@ -12,9 +12,10 @@ import { logger } from '../lib/logger';
 const router = Router();
 
 // Cross-subdomain cookie support (ERP + EAM standalone app share login).
-// Empty string in non-production keeps localhost cookies working (domain
-// attribute is not settable for plain "localhost").
-const COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? '.panganmasadepan.com' : undefined;
+// Set COOKIE_DOMAIN to a parent domain (e.g. ".example.com") in production to
+// share the session across subdomains. Unset → host-only cookie. Never applied
+// outside production (domain attribute is not settable for plain "localhost").
+const COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? (process.env.COOKIE_DOMAIN?.trim() || undefined) : undefined;
 
 
 router.post('/login', loginRateLimiter, async (req, res) => {

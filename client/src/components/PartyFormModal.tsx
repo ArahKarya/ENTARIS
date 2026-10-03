@@ -233,7 +233,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
               </div>
             </div>
             {/* WAPU checkbox — kalau dicentang, tagihan ke party ini tidak include
-                PPN (Bulog, Pertamina, BUMN tertentu memungut PPN sendiri ke kas
+                PPN (BUMN dan instansi pemerintah tertentu memungut PPN sendiri ke kas
                 negara). Invoice modal akan auto-set tax_pct=0 untuk customer ini. */}
             <div className="mt-3 p-3 bg-amber-50/60 border border-amber-100 rounded-lg">
               <label className="flex items-start gap-2 cursor-pointer">
@@ -246,7 +246,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                 <div>
                   <span className="text-sm font-medium text-amber-800">Wajib Pungut (WAPU)</span>
                   <p className="text-xs text-amber-700 mt-0.5">
-                    Customer memungut PPN sendiri ke kas negara (mis. Bulog, Pertamina, BUMN).
+                    Customer memungut PPN sendiri ke kas negara (mis. BUMN atau instansi pemerintah).
                     Invoice ke pihak ini akan otomatis di-set tanpa PPN (tax_pct=0).
                   </p>
                 </div>

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://arahkarya.com/schemas/aira-tool-router.schema.json",
-  "title": "AIRA Tool Router Configuration — Simple ERP",
+  "title": "AIRA Tool Router Configuration — Entaris",
   "description": "Skema validasi Tool Router config per-aplikasi (BRD AIRA Pilar 3). Tiap entri = 1 tool resmi yang boleh dipanggil Agent Core. Tambah kemampuan = tambah 1 entri (deklaratif, tanpa ubah otak agent). Selaras BRD AIRA §8.9.",
   "type": "object",
   "required": ["app", "version", "tools"],

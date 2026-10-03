@@ -1468,7 +1468,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                 tidak muncul lagi di dropdown (cegah double-entry). */}
             <CostSectionUI
               title="Biaya Produksi (Sisi Input)"
-              hint="Contoh: Listrik mesin giling per Kg gabah masuk. Tidak posting GL — informational saja."
+              hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Tidak posting GL — informational saja."
               rows={inputCostRows}
               standards={standards.filter(s => s.costSide === 'InputSide')}
               usedStandardIds={new Set(inputCostRows.map(r => r.c.standardId).filter(Boolean))}
@@ -1594,7 +1594,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
                 <textarea
                   value={negativeStockReason}
                   onChange={(e) => setNegativeStockReason(e.target.value)}
-                  placeholder="Alasan bypass (min 10 karakter): contoh 'Output 50 ton sudah dikirim ke customer Garuda + Walemu, input produksi menyusul'"
+                  placeholder="Alasan bypass (min 10 karakter): contoh 'Output 50 ton sudah dikirim ke 2 pelanggan, input produksi menyusul'"
                   className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   rows={2}
                   required

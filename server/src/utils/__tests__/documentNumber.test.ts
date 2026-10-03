@@ -70,7 +70,7 @@ describe('generateDocumentNumber — format', () => {
 });
 
 describe('generateDocumentNumber — regression: MAX+1 vs deleted/backdated rows', () => {
-  // Real-world bug (PMD prod, Jul 2026): count(month)=114 but max=SM-202607-0134
+  // Real-world bug (production, Jul 2026): count(month)=114 but max=SM-202607-0134
   // → count+1 collided with existing numbers → P2002 "Data duplikat terdeteksi".
   it('continues after the MAX even when rows were deleted (gap in series)', async () => {
     // 20 rows deleted → hypothetical count would be 114, but max is 0134.

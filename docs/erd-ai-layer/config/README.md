@@ -1,4 +1,4 @@
-# AIRA Tool Router Configuration — Simple ERP (AKS)
+# AIRA Tool Router Configuration — Entaris (AKS)
 
 File konfigurasi **Tool Router per-aplikasi** sesuai **BRD AIRA §8.9** (Pilar 3: tiap app WAJIB punya
 Tool Router config sendiri). Agent Core (AIRA) membaca config ini → langsung tahu kemampuan app —

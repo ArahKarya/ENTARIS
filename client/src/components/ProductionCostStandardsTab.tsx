@@ -213,7 +213,7 @@ export default function ProductionCostStandardsTab() {
             accent="blue"
             icon={<ArrowDownToLine size={14} />}
             title="Biaya Sisi Input"
-            subtitle="Contoh: Listrik mesin giling, per Kg gabah masuk"
+            subtitle="Contoh: Listrik mesin produksi, per Kg bahan baku masuk"
             standards={inputStandards}
             canEdit={canEdit}
             onEdit={handleOpenEdit}
@@ -496,7 +496,7 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
                     type="text"
                     value={form.name}
                     onChange={e => set('name', e.target.value)}
-                    placeholder="Listrik Mesin Giling"
+                    placeholder="Listrik Mesin Produksi"
                     className="w-full border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
                   />
                 </div>
@@ -508,7 +508,7 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
                   type="text"
                   value={form.description}
                   onChange={e => set('description', e.target.value)}
-                  placeholder="Estimasi listrik per Kg input GKP"
+                  placeholder="Estimasi listrik per Kg bahan baku"
                   className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
                 />
               </div>
@@ -589,7 +589,7 @@ function CostStandardFormModal({ editTarget, onClose, onSaved }: FormModalProps)
                   placeholder="— Semua gudang —"
                 />
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Mis. "biaya mesin poles" hanya muncul di gudang poles. Kosongkan agar berlaku untuk semua gudang.
+                  Mis. "biaya mesin finishing" hanya muncul di gudang finishing. Kosongkan agar berlaku untuk semua gudang.
                 </p>
               </div>
 

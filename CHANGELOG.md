@@ -4,7 +4,7 @@
 
 ### Merek
 **Diubah**:
-- Produk berganti nama dari **Simple ERP / ERP PMD** menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Agentic Reasoning System".
+- Produk berganti nama (dari nama produk sebelumnya) menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Agentic Reasoning System".
 - Logo baru **"Anyaman ∇"**: tiga bilah yang saling menindih membentuk segitiga terbalik (∇) — tiga pilar operasi yang menyatu dan simbol gradien untuk penalaran AI. Ikon aplikasi berlatar navy, favicon 16/32/48, apple-touch, ikon PWA `any` + `maskable` terpisah (`pwa-maskable-512x512.png`), dan `mask-icon.svg` satu warna untuk Safari.
 - Judul tab, manifest PWA, `theme-color` (navy `#1B2B48`), nama cadangan di login/sidebar/onboarding/landing kini memakai Entaris.
 - Logo bawaan tidak lagi di-*invert* di sidebar & halaman login (ikon baru berwarna penuh).
@@ -17,7 +17,7 @@
 - Badge "Demo Live" yang menunjuk ke server produksi klien dihapus; diganti badge kontak lisensi & demo (solutions@arahkarya.com).
 - Klaim "gratis" dan "tanpa biaya lisensi" dihapus dari README.
 
-**Catatan**: pengenal teknis `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) tidak diubah agar integrasi dan deploy yang berjalan tidak putus.
+**Catatan**: pengenal teknis lama (kontrak `app` ke aira-core, nama proses pm2, nama project Docker Compose, user/DB Postgres, prefiks file backup) tidak diubah agar integrasi dan deploy yang berjalan tidak putus.
 
 ## [3.19.0] - 2026-10-02
 
@@ -117,18 +117,18 @@ Fitur Inspeksi Berkala di modul Kendaraan (ERP `client/` + EAM `client-eam/`) di
 
 ### EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo
 
-Modul EAM (dulu General Affairs) kini punya frontend standalone di `client-eam/`, dideploy terpisah di `eam.panganmasadepan.com`, **tetap satu monorepo, satu backend/API, satu database** dengan ERP utama — bukan produk/repo terpisah.
+Modul EAM (dulu General Affairs) kini punya frontend standalone di `client-eam/`, dideploy terpisah di subdomain sendiri (mis. `eam.perusahaan-anda.com`), **tetap satu monorepo, satu backend/API, satu database** dengan ERP utama — bukan produk/repo terpisah.
 
 **Ditambahkan**:
 - `client-eam/` — React+Vite SPA baru, di-clone dari `client/` lalu dipangkas hanya rute modul GA/EAM (Aset, Kendaraan, Gedung, Equipment, Maintenance, Permintaan Barang, Inventaris, Dokumen, Master Data)
 - Dashboard EAM (`/`) — total aset, nilai buku (NBV), work order aktif & overdue, breakdown per kategori, quick links
-- Login SSO cross-subdomain: cookie `.panganmasadepan.com` (`sameSite: lax`) sehingga 1 login ERP otomatis berlaku juga di EAM
+- Login SSO cross-subdomain: cookie di domain induk (`sameSite: lax`) sehingga 1 login ERP otomatis berlaku juga di EAM
 - Filter kategori multi-value di `GET /api/fixed-assets` & `GET /api/ga/assets` (`?categoryId=A,B`) — dipakai tiap halaman modul EAM supaya otomatis hanya menampilkan kategori miliknya (mis. halaman Kendaraan hanya tampilkan aset Kendaraan)
 - Tampilan login EAM dibedakan dari ERP: palet hijau tosca/emerald, ikon & copy khusus aset/maintenance (bukan replikasi identik ERP)
 - Service `client-eam` ditambahkan ke `docker-compose.yml` — deploy jadi bagian siklus `docker compose up -d --build` yang sama dengan ERP
 
 **Diubah**:
-- `server/src/routes/auth.ts` — cookie domain `.panganmasadepan.com` (produksi) + `sameSite: lax` (dari `strict`) supaya cookie ikut terbawa lintas subdomain ERP↔EAM
+- `server/src/routes/auth.ts` — cookie domain induk (produksi) + `sameSite: lax` (dari `strict`) supaya cookie ikut terbawa lintas subdomain ERP↔EAM
 - `server/src/routes/ga/assets.ts` — `buildAssetWhere()` menerima `categoryId` comma-separated (backward-compatible, single ID tetap jalan seperti biasa)
 
 **Tidak berubah**: modul GA di ERP utama tetap aktif dan tersinkron real-time dengan EAM (baca/tulis ke endpoint & DB yang sama).
@@ -155,7 +155,7 @@ Lapis pelindung tambahan setelah patch v3.1.2: **stok minus DILARANG total**. Fl
 
 ### Rationale
 
-Insiden 2026-05: stok BRS-PGC-25KG sudah negatif sejak 18 April (oversold). Setiap In berikutnya trigger bug WAC karena formula `(cQty × cCost + iQty × iCost) / (cQty + iQty)` dengan cQty negatif menghasilkan angka liar. Compound antara produksi cascading + DO submit yang lock avg corrupt → COGS SI-0072/0073 jadi Rp 80.911/Kg untuk barang yg modal sebenarnya Rp 14.000/Kg.
+Insiden 2026-05: stok satu SKU sudah negatif berminggu-minggu (oversold). Setiap In berikutnya trigger bug WAC karena formula `(cQty × cCost + iQty × iCost) / (cQty + iQty)` dengan cQty negatif menghasilkan angka liar. Compound antara produksi cascading + DO submit yang lock avg corrupt → COGS dua invoice penjualan jadi berlipat-lipat dari modal sebenarnya.
 
 Hapus bypass = tidak mungkin lagi stok negatif = tidak mungkin lagi WAC corruption ini terulang.
 
@@ -168,8 +168,8 @@ Hapus bypass = tidak mungkin lagi stok negatif = tidak mungkin lagi WAC corrupti
 Bug kritis di `server/src/utils/weightedAverage.ts`: formula WAC `(cQty × cCost + iQty × iCost) / (cQty + iQty)` menghasilkan angka absurd saat `currentStock < 0` (oversold). Empirik trace:
 
 - `calcWeightedAverage(-9.863, 8.842, 7.825, 14.050)` returns **-11.153** (negative)
-- Di runtime, multiple production cancel/edit cycles meng-compound nilai sampai BRS-PGC-25KG average_cost = **Rp 1.706.336/Kg**
-- Akibat: SI-0072 (PT GARUDA SENTRA) + SI-0073 (Baehaqi) di 20 Mei 2026, jual 10.000 Kg @ Rp 14.100 (revenue Rp 141jt each), tapi COGS dibukukan Rp 80.911/Kg = Rp 809jt each → akun 1.4.20 Cruise jadi **−Rp 1,38 Miliar**
+- Di runtime, multiple production cancel/edit cycles meng-compound nilai sampai average_cost satu SKU menjadi **berlipat ratusan kali** dari harga wajar
+- Akibat: dua invoice penjualan dibukukan dengan COGS per Kg jauh di atas harga jual → saldo akun persediaan produk terkait menjadi **negatif besar**
 
 **Fix**: kalau `currentQty ≤ 0`, fallback pakai `inUnitCost` (anchor avg cost ke harga inbound) — jangan pakai formula yang punya pembagian dengan angka anomali. Pathological case `totalQty ≤ 0` juga di-handle sama.
 
@@ -178,7 +178,7 @@ Bug kritis di `server/src/utils/weightedAverage.ts`: formula WAC `(cQty × cCost
 `server/src/services/deliveryOrderSubmit.ts`: validasi qty kirim ≤ stok per-gudang **sebelum** decrement. Kalau tidak cukup, lempar `BusinessError`:
 
 ```
-Stok 'Beras Cruise 25Kg' di gudang POLES kurang.
+Stok 'Produk A 25 kg' di gudang Gudang Utama kurang.
 Tersedia 0 Kg, diminta 10000 Kg.
 Buat produksi/transfer/penerimaan dulu sebelum kirim.
 ```
@@ -192,28 +192,14 @@ Tanpa block ini, oversold meleluasa → stok fisik jadi negatif → trigger bug 
 Sebelum: `inventoryValue: Math.max(0, sum)` — menyembunyikan saldo persediaan negatif sebagai 0 di widget Dashboard.
 Sesudah: `inventoryValue: sum` — tampil apa adanya supaya pemilik langsung tahu kalau ada anomali.
 
-### Data Fix: Rekonsiliasi Stok POLES (ADJ-2605-POLES)
+### Data Fix: Rekonsiliasi Stok
 
-Adjustment fisik dijalankan via script `scripts/inventory-adjustment-poles.cjs` untuk 7 item di gudang POLES:
-
-| Item | Old qty × avg | New qty × avg | Δ value |
-|---|---|---|---|
-| PK-IRBO | 1.813 × 12.230,53 | 1.830 × 12.231 | +208.779 |
-| BRS-PGC-25KG | −850 × 1.706.336 | 300 × 14.200 | +1.454.645.932 |
-| BRS-WLM-5KG | −15 × 0 | 750 × 14.100 | +10.575.000 |
-| BRS-HGL-50KG | −3.015 × 13.294 | 6.150 × 13.294 | +121.840.987 |
-| BRS-MCL-50KG | 4.077 × 15.032,91 | 4.050 × 15.032,91 | −405.888 |
-| BRS-PGJ-5KG | 30 × 0 | 30 × 14.500 | +435.000 |
-| BRS-PGC-5KG | −10 × 0 | 0 × 0 | 0 |
-| **TOTAL** | | | **+Rp 1.587.299.810** |
-
-JE `JV-ADJ-2605-POLES`: DR Persediaan masing-masing / CR 8.8 Pembulatan & Selisih total Rp 1,58M. Net saldo akun 1.4.x sebelum: −Rp 416jt → sesudah: +Rp 1,17M.
+Adjustment fisik dijalankan satu kali (script sekali pakai, sudah dihapus) untuk item yang average cost-nya korup atau stoknya negatif: qty disesuaikan ke hasil hitung fisik dan average cost di-anchor ke harga wajar. Selisihnya dibukukan lewat satu jurnal penyesuaian: DR Persediaan masing-masing / CR 8.8 Pembulatan & Selisih, sehingga saldo akun 1.4.x kembali positif.
 
 ### Catatan Outstanding
 
-- **1.4.26 (Pagi Jaya)**: masih −Rp 71jt karena ada kebocoran historis di luar 7 item yang di-fix
-- **BRS-WLM-50KG**: average_cost masih corrupt Rp 176.669/Kg — perlu input fisik terpisah
-- **SI-202605-0072 & SI-202605-0073**: tidak di-cancel, dibiarkan apa adanya (COGS-nya yang inflated sudah ter-offset oleh adjustment ke 8.8 di periode yang sama)
+- Masih ada sisa selisih historis di luar item yang di-fix, perlu input fisik terpisah.
+- Dua invoice penjualan terdampak tidak di-cancel, dibiarkan apa adanya (COGS yang inflated sudah ter-offset oleh adjustment ke 8.8 di periode yang sama).
 
 ---
 
@@ -221,14 +207,14 @@ JE `JV-ADJ-2605-POLES`: DR Persediaan masing-masing / CR 8.8 Pembulatan & Selisi
 
 ### Landed Cost Pembelian (Material + Refaksi → Persediaan)
 
-Selisih harga PI ↔ STT tidak lagi di-post ke akun **5.11 Selisih Harga Pembelian** sebagai expense terpisah. Sekarang seluruh komponen line PI (material + line tambahan seperti "RESIKO MACAN") **diserap masuk ke nilai Persediaan** sebagai landed cost adjustment. Ini sesuai prinsip akuntansi: biaya tambahan yang *attributable* ke perolehan barang adalah bagian dari harga pokok, bukan expense periode.
+Selisih harga PI ↔ STT tidak lagi di-post ke akun **5.11 Selisih Harga Pembelian** sebagai expense terpisah. Sekarang seluruh komponen line PI (material + line tambahan seperti biaya risiko/susut) **diserap masuk ke nilai Persediaan** sebagai landed cost adjustment. Ini sesuai prinsip akuntansi: biaya tambahan yang *attributable* ke perolehan barang adalah bagian dari harga pokok, bukan expense periode.
 
 **Rumus harga akhir per Kg** (saat refaksi berbeda dengan qty fisik STT):
 ```
 unitCost = total invoice PI / qty STT (qty fisik diterima)
 ```
 
-Contoh kasus PMD: GKP-IR 10.426 Kg fisik diterima di STT, PI total Rp 86.411.520 (10.386 Kg × 8.100 + 10.386 × 220 refaksi). Sebelum fix: stockMovement @ Rp 8.096/Kg (provisional STT). Setelah fix: stockMovement @ Rp 8.288/Kg (landed = 86.411.520 / 10.426).
+Contoh: 10.000 Kg fisik diterima di STT @ Rp 8.000/Kg (provisional), PI total Rp 82.000.000 (material + refaksi). Sebelum fix: stockMovement @ Rp 8.000/Kg (provisional STT). Setelah fix: stockMovement @ Rp 8.200/Kg (landed = 82.000.000 / 10.000).
 
 ### Implementation
 
@@ -255,18 +241,18 @@ Tidak ada perubahan schema. PI lama yang sudah Submitted tidak ditarik ulang (da
 - **Phase 6**: laporan **Profitability per SKU** (Material WAC vs Loaded HPP margin side-by-side + coverage %), drawer invoice menampilkan loaded vs material margin.
 - **Master Proses Produksi**: list proses (Drying, Huller, Polishing, Packing, dll) sebagai multiselect chip di production modal — traceability murni, tidak posting GL.
 - **PDF Production Run**: layout A4 dengan header company, input/output/byproduct table (dengan batch ref), komponen biaya, HPP loaded breakdown, signature 3 kolom (Staff/Supervisor/Manajer).
-- **Cost standard per gudang**: rate bisa di-scope per gudang (mis. Listrik Mesin Giling hanya muncul di gudang GILING, Polisher hanya di POLES).
+- **Cost standard per gudang**: rate bisa di-scope per gudang (mis. biaya listrik mesin A hanya muncul di gudang produksi A, biaya mesin B hanya di gudang produksi B).
 - **HPP main output optional**: kalau staff biarkan kosong, server auto-fill dari loaded HPP yang terhitung.
 - **Dedup cost standard di modal**: standar yang sudah dipakai di baris lain (di sisi yang sama) disembunyikan dari dropdown baris berikutnya.
 
 ### Aset Tetap — Import Massal + Lifecycle Lengkap
-- **Import 79 aset PMD** via script `scripts/import-fixed-assets.cjs` (Tanah, Bangunan, Mesin, Peralatan) dengan opening accumulated depreciation per kategori (snapshot per Mei 2026), generate 4.864 jadwal depresiasi (mulai Juni 2026 → akhir umur 2043).
-- **Opening Balance JE** via `scripts/post-fa-opening-je.cjs`: DR akun aset (1.6.x) Rp 16.359M / CR akm penyusutan (1.7.x) Rp 5.040M + ekuitas saldo awal (3.1) Rp 11.319M. Sebelum ini, rasio keuangan ngaco karena aset tetap belum masuk neraca.
-- **Bulk depreciation posting**: tombol "Posting Bulanan" di halaman Aset Tetap — 1 klik post 77 JE depresiasi sekaligus per bulan (vs 77 klik manual). Preview modal: count, total Rp, breakdown per kategori. Idempotent (entry sudah-post di-skip).
+- **Import aset tetap massal** via script sekali pakai (Tanah, Bangunan, Mesin, Peralatan) dengan opening accumulated depreciation per kategori, sekaligus generate jadwal depresiasi sampai akhir umur aset.
+- **Opening Balance JE** aset tetap (script sekali pakai): DR akun aset (1.6.x) / CR akm penyusutan (1.7.x) + ekuitas saldo awal (3.1). Sebelum ini, rasio keuangan ngaco karena aset tetap belum masuk neraca.
+- **Bulk depreciation posting**: tombol "Posting Bulanan" di halaman Aset Tetap — 1 klik post semua JE depresiasi sekaligus per bulan (vs klik manual per aset). Preview modal: count, total Rp, breakdown per kategori. Idempotent (entry sudah-post di-skip).
 - **Confirm dialog single posting**: tombol "Posting" per entry sekarang buka modal konfirmasi dengan detail (asset, periode, jumlah, JE yg akan dibuat) supaya tidak ke-klik tidak sengaja.
 - **Edit metadata aset**: tombol pencil per row, edit name/category/description. Field nominal (cost, masa manfaat, akun) immutable supaya JE historis tetap konsisten.
 - **Export CSV** semua aset tetap dengan label akun lengkap.
-- **Import CSV** dengan dropzone, preview validasi per-row (akun unknown / nominal invalid → ditandai merah), max 500 baris/import, auto-generate jadwal depresiasi. Tidak auto-post opening JE (manual via script).
+- **Import CSV** dengan dropzone, preview validasi per-row (akun unknown / nominal invalid → ditandai merah), max 500 baris/import, auto-generate jadwal depresiasi. Tidak auto-post opening JE.
 
 ### Dashboard Enrichment
 - **Section baru "Aset"** di Dashboard utama (Admin/Accountant/Viewer) — 4 widget: KPI (count/cost/akumulasi/nilai buku), distribusi per kategori (pie chart), penyusutan due bulan ini + 5 upcoming, top 10 aset by nilai buku.
@@ -292,11 +278,11 @@ Tidak ada perubahan schema. PI lama yang sudah Submitted tidak ditarik ulang (da
 - `index.html` di-serve dengan `Cache-Control: no-store`, `/assets/*` immutable 1 tahun (Vite content-hash). Tidak perlu Ctrl-Shift-R manual lagi.
 
 ### Bug Fixes Penting
-- **"Data duplikat terdeteksi" saat reuse DO/STT setelah invoice cancel**: invoice cancellation sekarang clear `delivery_order_item_id` / `goods_receipt_item_id` di sales_invoice_items / purchase_invoice_items (kolom `@unique` constraint). Plus backfill 1 record orphan SI-202605-0066.
+- **"Data duplikat terdeteksi" saat reuse DO/STT setelah invoice cancel**: invoice cancellation sekarang clear `delivery_order_item_id` / `goods_receipt_item_id` di sales_invoice_items / purchase_invoice_items (kolom `@unique` constraint). Plus backfill 1 record orphan.
 - **DO pending tidak refresh setelah cancel invoice**: frontend invalidate cache `delivery-orders`, `delivery-orders-pending`, `stock-movements`, `journals`, `payments`, `dashboard-metrics`, `aging-summary` saat cancel.
-- **Batch picker overshoot stok**: FIFO auto-absorb konsumsi legacy outbound (sales/transfer pre-Phase 5) supaya list batch di picker tidak melebihi stok gudang sebenarnya. GKP-IR yang dulu muncul 65+ batch sekarang muncul 1 batch sesuai stok real.
+- **Batch picker overshoot stok**: FIFO auto-absorb konsumsi legacy outbound (sales/transfer pre-Phase 5) supaya list batch di picker tidak melebihi stok gudang sebenarnya. Item yang dulu memunculkan puluhan batch kini hanya menampilkan batch sesuai stok real.
 - **List Pelanggan/Vendor**: nama panjang dan label "Pelanggan/Vendor" tabrakan/overlay (h3 inline-flex → flex; nama panjang truncate dengan ellipsis; badge shrink-0).
-- **Rasio Keuangan dashboard**: setelah opening balance JE Aset Tetap, Total Aset naik dari Rp 4.59M → Rp 15.91M, Current Ratio 0.15x → 0.50x, D/A 6.87x → 1.98x.
+- **Rasio Keuangan dashboard**: setelah opening balance JE Aset Tetap, Total Aset, Current Ratio, dan D/A kini mencerminkan aset tetap di neraca.
 
 ### Schema Migrations
 - `20260518_add_production_loaded_hpp_phase1.sql`: tabel `production_cost_standards`, `production_run_costs`; kolom totals + `computedHpp` di `production_runs`, `sourceMovementId` + `batchUnitCost` + `nrvUnitValue` di `production_run_items`, `unitCostLoaded` di `stock_movements`.
@@ -307,9 +293,8 @@ Tidak ada perubahan schema. PI lama yang sudah Submitted tidak ditarik ulang (da
 ## [3.0.0] - 2026-05-10
 
 ### Rebrand
-- **Nama aplikasi**: `Simple ERP` → **`ERP PMD`** (PWA manifest, browser title, login screen, semua surface internal)
-- **Domain**: `keuangan.panganmasadepan.com` → **`erp.panganmasadepan.com`** (hard cutover, nginx 301 redirect siap kalau DNS lama dibuka kembali)
-- **Repo**: split menjadi `simple-erp-pmd` (PMD-specific origin) + `simple-erp` (generic upstream, cherry-pick untuk fitur non-PMD)
+- **Nama aplikasi** baru di PWA manifest, browser title, login screen, dan semua surface internal
+- **Domain** produksi dipindah ke subdomain `erp.` (hard cutover, nginx 301 redirect siap kalau DNS lama dibuka kembali)
 
 ### Pipeline Penjualan Lengkap (Inquiry → Penawaran → Invoice)
 - **Modul Inquiry**: catat pertanyaan calon customer / prospect sebelum penawaran resmi
@@ -335,7 +320,7 @@ Tidak ada perubahan schema. PI lama yang sudah Submitted tidak ditarik ulang (da
 - **Theme Toggle** dipindah dari sidebar ke header (samping Search): cycle Light → Dark → System
 - **Sticky table thead** + body scroll-lock pada modal
 - **ConfirmDialog adoption**: replace 3 native `confirm()` (PurchaseInvoice edit, Approval delete, FixedAsset dispose) dengan modal yang konsisten, dark-mode-safe, focus-trap
-- **Browser tab title** auto-update per route ("Penawaran — ERP PMD")
+- **Browser tab title** auto-update per route ("Penawaran — <nama aplikasi>")
 - **Industrial Professional theme**: OKLCH steel blue, Inter + Plus Jakarta Sans
 - Copyright "© Arah Karya by Yayang Setya Nugroho" di footer sidebar
 
@@ -361,14 +346,13 @@ Tidak ada perubahan schema. PI lama yang sudah Submitted tidak ditarik ulang (da
 
 ### Generalize (Multi-vertical)
 - Terminology hook: vendor/customer label configurable per industri
-- Repo dual-track: `simple-erp` generic untuk semua industri, `simple-erp-pmd` PMD-specific overrides
 
 ### Bug Fixes
 - Cancel reversal pattern: journals/customerDeposits/vendorDeposits sekarang soft-cancel originals (`is_cancelled=true`) bukan create `[BATAL]` reversal entries
 - Vendor Deposit list: `remaining = amount - applied - refunded` (sebelumnya tidak kurangi refunded)
 - Inventory Dashboard: `inventoryValue` pakai SUM(accounts.balance) WHERE 1.4.* (bukan stock_movements cumulative)
 - Health Check: ALE↔JI sync, account drift, orphan ALE, stock mismatch — semua 0 issues
-- Data fixes: Supari/Suparih typo merge, Bulog opening balance reconcile, Dion vendor deposit tracking sync, Gunawan→Panut deposit transfer
+- Data fixes: merge party duplikat akibat typo nama, rekonsiliasi saldo awal pelanggan, sinkronisasi tracking deposit vendor, transfer deposit antar vendor
 
 ## [2.4.0] - 2026-04-05
 

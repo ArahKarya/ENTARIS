@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================================
-# deploy.sh — Keuangan ERP Deployment Script
+# deploy.sh — Entaris Deployment Script
 # Run on the Raspberry Pi / production server
 # Usage: bash deploy.sh
 # ============================================================
 
 set -e
 
-echo "🚀 Keuangan ERP — Deploy"
+echo "🚀 Entaris — Deploy"
 echo "========================"
 
 # 1. Pull latest code

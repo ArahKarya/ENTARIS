@@ -273,7 +273,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
             </div>
             {itemsMode === 'freetext' ? (
               <textarea value={itemsText} onChange={(e) => setItemsText(e.target.value)} rows={4}
-                placeholder="Mis: Beras Walemu 5 ton, Beras Cruise 25kg 2 ton, butuh delivery pekan depan..."
+                placeholder="Mis: Produk A 25 kg 100 sak, Produk B 2 ton, butuh delivery pekan depan..."
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
             ) : (
               <div className="space-y-2">

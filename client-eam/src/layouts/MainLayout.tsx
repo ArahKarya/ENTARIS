@@ -10,6 +10,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 import OnboardingWizard from '../components/OnboardingWizard';
 import { useTheme } from '../contexts/ThemeContext';
 import api from '../lib/api';
+import { APP_NAME } from '../lib/version';
 import { queryClient } from '../lib/queryClient';
 
 const routeNames: Record<string, string> = {
@@ -62,7 +63,7 @@ export const MainLayout = () => {
   useEffect(() => {
     const segment = location.pathname.split('/').filter(Boolean)[0] || '';
     const name = routeNames[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
-    document.title = name ? `${name} — ERP PMD` : 'ERP PMD';
+    document.title = name ? `${name} — ${APP_NAME}` : APP_NAME;
   }, [location.pathname]);
 
   useHotkey('mod+k', () => setIsSearchOpen(true));

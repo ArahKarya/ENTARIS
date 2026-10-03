@@ -1,6 +1,6 @@
-# Simple ERP — Client
+# Entaris EAM — Client
 
-Frontend React untuk Simple ERP.
+Frontend React untuk Entaris EAM (Enterprise Asset Management), bagian dari Entaris — Agentic Reasoning System.
 
 ## Stack
 

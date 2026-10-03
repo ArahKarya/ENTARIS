@@ -136,7 +136,7 @@ const SalesInvoiceModal: React.FC<{
 
   // Auto-zero tax_pct for all lines when WAPU customer is picked.
   // Pemerintah/BUMN WAPU memungut PPN sendiri ke kas negara — tagihan kita
-  // tidak include PPN. (Bulog Indramayu adalah contoh.)
+  // tidak include PPN. (Mis. pelanggan BUMN pemungut PPN.)
   React.useEffect(() => {
     if (isWapu) {
       setItems((prev) => prev.map((it) => (it.taxPct > 0 ? { ...it, taxPct: 0 } : it)));

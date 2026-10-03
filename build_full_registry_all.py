@@ -8,9 +8,10 @@ Semua tool enabled=false. Tambah modul baru ke header. Output -> server/src/ai/a
 """
 import json, os, re
 from collections import Counter
+from pathlib import Path
 
 BASE = "/tmp/aira_work/aira-tool-router.full.json"
-OUT = "/home/yay/ArahKarya/simple-erp/server/src/ai/aira-tool-router.json"
+OUT = str(Path(__file__).resolve().parent / "server/src/ai/aira-tool-router.json")
 EXCL = json.load(open("/tmp/aira_work/exclude_list.json"))
 
 reg = json.load(open(BASE))

@@ -1,5 +1,5 @@
 # EAM standalone frontend — pure static SPA build served by nginx.
-# Backend/API is the existing simple-erp-pmd container (shared cookie SSO,
+# Backend/API is the existing Entaris backend container (service app; shared cookie SSO,
 # see PRD EAM-Standalone-v0.1). This image has no Node/Express — just the
 # built Vite bundle behind nginx.
 

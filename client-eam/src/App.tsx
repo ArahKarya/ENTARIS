@@ -22,9 +22,9 @@ import { GaEquipmentPage } from './pages/ga/GaEquipmentPage';
 import { GaMasterPage } from './pages/ga/GaMasterPage';
 import FixedAssetsPage from './pages/FixedAssetsPage';
 
-// EAM standalone app: subset of the ERP PMD frontend, scoped to General
+// EAM standalone app: subset of the Entaris ERP frontend, scoped to General
 // Affairs / Enterprise Asset Management modules only. Same backend/DB/auth
-// as ERP (shared cookie SSO across *.panganmasadepan.com) — see PRD
+// as ERP (shared cookie SSO across subdomains of the deployment's parent domain) — see PRD
 // EAM-Standalone-v0.1 Section 10.
 //
 // Protected shell: refresh /auth/me sekali saat load supaya permissions/caps di

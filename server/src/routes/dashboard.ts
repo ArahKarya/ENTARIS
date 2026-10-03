@@ -309,7 +309,7 @@ router.get('/stock-alerts', async (req, res) => {
 
 // GET /api/dashboard/pending-do — Surat Jalan Submitted yang belum jadi
 // invoice. Dipakai widget Dashboard supaya DO lama tidak terlupa diinvoice
-// (kasus user 24 Mei: DO BGN Viva 17 Mei nyangkut 7 hari).
+// (kasus: DO nyangkut berhari-hari tanpa diinvoice).
 router.get('/pending-do', async (_req, res) => {
   try {
     const rows = await prisma.deliveryOrder.findMany({
