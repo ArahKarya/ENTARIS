@@ -4,6 +4,7 @@ const LINKS: readonly { href: string; label: string }[] = [
   { href: "#cara-kerja", label: "Cara kerja" },
   { href: "#bertanya", label: "Bertanya" },
   { href: "#approval", label: "Draf & approval" },
+  { href: "#analitik", label: "Analitik" },
   { href: "#keamanan", label: "Keamanan" },
   { href: "#contoh", label: "Contoh" },
 ];

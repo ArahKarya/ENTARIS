@@ -327,3 +327,69 @@
     }
   }
 }
+
+/* Hero step strips: the ported sizes (10–11px mono) were too small to read; ~1.5x, body font for labels. */
+@layer entaris {
+  .erp-root :where(.page-shell > .hero-catalog) .hero-catalog__steps li {
+    gap: 0.35rem;
+    min-height: 5.75rem;
+    padding-block: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+  .erp-root .hero-catalog__steps span {
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+  }
+  .erp-root .hero-catalog__steps strong {
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  .erp-root .hero-catalog__steps em {
+    font-size: 0.875rem;
+  }
+  @media (max-width: 40rem) {
+    .erp-root :where(.page-shell > .hero-catalog) .hero-catalog__steps li {
+      min-height: 5.25rem;
+      padding-block: 0.85rem;
+    }
+    .erp-root .hero-catalog__steps li {
+      align-content: start;
+    }
+    .erp-root .hero-catalog__steps strong,
+    .erp-root .hero-catalog__steps em {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .erp-root .hero-catalog__steps strong {
+      font-size: 0.9375rem;
+    }
+    .erp-root .hero-catalog__steps em {
+      font-size: 0.8125rem;
+    }
+  }
+}
+
+/* Keep the (larger) step strips above the fold: the headline block's fixed 204px top padding
+   shrinks on shorter viewports (desktop layout only). */
+@layer entaris {
+  @media (min-width: 64.01rem) {
+    .erp-root .hero-catalog__story {
+      padding-top: clamp(2.5rem, 100svh - 47rem, 12.75rem);
+    }
+    .erp-root .hero-catalog__panel-inner {
+      min-height: 0;
+    }
+  }
+}
+
+/* Stacked tablet hero (40–64rem): same viewport-aware headline padding so the first strip fits. */
+@layer entaris {
+  @media (min-width: 40.01rem) and (max-width: 64rem) {
+    .erp-root .hero-catalog__story {
+      padding-top: clamp(2.5rem, 100svh - 41rem, 12.75rem);
+    }
+  }
+}
