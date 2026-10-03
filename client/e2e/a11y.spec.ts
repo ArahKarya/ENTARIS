@@ -1,0 +1,89 @@
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import fs from 'node:fs'
+import path from 'node:path'
+import { LOGGED_OUT, prepareTheme, settle } from './helpers'
+
+/**
+ * axe scan of the key entry routes. Results are appended per project/route to
+ * $AXE_OUT (JSON). The run only FAILS on serious/critical violations for routes
+ * listed in $AXE_STRICT (comma separated, e.g. "/login,/"); default: report only.
+ */
+const AXE_OUT = process.env.AXE_OUT ?? path.resolve('test-results', 'axe.json')
+const STRICT = new Set(
+  (process.env.AXE_STRICT ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+)
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
+const BLOCKING = new Set(['serious', 'critical'])
+
+const TARGETS = [
+  { path: '/login', isPublic: true },
+  { path: '/welcome', isPublic: true },
+  { path: '/tanya', isPublic: true },
+  // Placeholder code: captures the public not-found state (no seeded QR asset).
+  { path: '/aset/QA-SAMPLE-0000', isPublic: true },
+  { path: '/', isPublic: false },
+]
+
+interface AxeRecord {
+  project: string
+  route: string
+  scannedAt: string
+  violations: Array<{ id: string; impact: string | null; help: string; nodes: number; targets: string[] }>
+  counts: Record<string, number>
+}
+
+function writeRecord(record: AxeRecord): void {
+  fs.mkdirSync(path.dirname(AXE_OUT), { recursive: true })
+  let existing: AxeRecord[] = []
+  try {
+    existing = JSON.parse(fs.readFileSync(AXE_OUT, 'utf8')) as AxeRecord[]
+  } catch {
+    existing = []
+  }
+  const next = [
+    ...existing.filter((r) => !(r.project === record.project && r.route === record.route)),
+    record,
+  ]
+  fs.writeFileSync(AXE_OUT, JSON.stringify(next, null, 2))
+}
+
+for (const target of TARGETS) {
+  test.describe(`axe ${target.path}`, () => {
+    if (target.isPublic) test.use({ storageState: LOGGED_OUT })
+
+    test(`a11y ${target.path}`, async ({ page }, testInfo) => {
+      await prepareTheme(page, testInfo)
+      await page.goto(target.path)
+      await settle(page)
+      if (!target.isPublic) {
+        expect(new URL(page.url()).pathname, 'session expired?').not.toBe('/login')
+      }
+      const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
+
+      const violations = results.violations.map((v) => ({
+        id: v.id,
+        impact: v.impact ?? null,
+        help: v.help,
+        nodes: v.nodes.length,
+        targets: v.nodes.slice(0, 5).map((n) => n.target.join(' ')),
+      }))
+      const counts = violations.reduce<Record<string, number>>((acc, v) => {
+        const key = v.impact ?? 'unknown'
+        return { ...acc, [key]: (acc[key] ?? 0) + 1 }
+      }, {})
+      writeRecord({
+        project: testInfo.project.name,
+        route: target.path,
+        scannedAt: new Date().toISOString(),
+        violations,
+        counts,
+      })
+
+      if (STRICT.has(target.path)) {
+        const blocking = violations.filter((v) => v.impact && BLOCKING.has(v.impact))
+        expect(blocking, `serious/critical axe violations on ${target.path}`).toEqual([])
+      }
+    })
+  })
+}

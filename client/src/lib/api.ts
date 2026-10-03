@@ -25,9 +25,14 @@ api.interceptors.response.use(
   (error) => {
     const isLoginRequest = error.config?.url?.includes('/auth/login');
     if (error.response?.status === 401 && !isLoginRequest) {
+      // A stored user means a session existed and has now ended: show the
+      // "Sesi Anda berakhir" notice. Skip when already on /login (no reload loop).
+      const hadSession = Boolean(localStorage.getItem('user'));
       localStorage.removeItem('user');
       queryClient.clear();
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = hadSession ? '/login?alasan=sesi' : '/login';
+      }
     }
     return Promise.reject(error);
   }

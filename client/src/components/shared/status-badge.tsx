@@ -1,49 +1,45 @@
 import { cn } from '@/lib/utils';
+import { getStatusMeta, type DocType, type StatusTone } from '@/lib/status';
 
-type StatusVariant = 'default' | 'success' | 'warning' | 'destructive' | 'secondary';
-
-const STATUS_MAP: Record<string, { label: string; variant: StatusVariant }> = {
-  ACTIVE: { label: 'Active', variant: 'success' },
-  INACTIVE: { label: 'Inactive', variant: 'secondary' },
-  PENDING: { label: 'Pending', variant: 'warning' },
-  APPROVED: { label: 'Approved', variant: 'success' },
-  REJECTED: { label: 'Rejected', variant: 'destructive' },
-  CANCELLED: { label: 'Cancelled', variant: 'secondary' },
-  DRAFT: { label: 'Draft', variant: 'secondary' },
-  PROCESSING: { label: 'Processing', variant: 'warning' },
-  COMPLETED: { label: 'Completed', variant: 'success' },
-  FAILED: { label: 'Failed', variant: 'destructive' },
-  ON_HOLD: { label: 'On Hold', variant: 'warning' },
+const TONE_CLASSES: Record<StatusTone, { chip: string; dot: string }> = {
+  neutral: { chip: 'bg-neutral-subtle text-neutral-text', dot: 'bg-muted-foreground' },
+  primary: { chip: 'bg-primary-subtle text-primary-subtle-foreground', dot: 'bg-primary' },
+  info: { chip: 'bg-info-subtle text-info-text', dot: 'bg-info' },
+  success: { chip: 'bg-success-subtle text-success-text', dot: 'bg-success' },
+  warning: { chip: 'bg-warning-subtle text-warning-text', dot: 'bg-warning' },
+  danger: { chip: 'bg-danger-subtle text-danger-text', dot: 'bg-danger' },
 };
 
-const DOT_STYLES: Record<StatusVariant, string> = {
-  default: 'bg-[var(--info)]',
-  success: 'bg-[var(--success)]',
-  warning: 'bg-[var(--warning)]',
-  destructive: 'bg-destructive',
-  secondary: 'bg-muted-foreground/60',
-};
-
-interface StatusBadgeProps {
-  status: string;
+export interface StatusBadgeProps {
+  /** Raw status from the API (e.g. `PartiallyPaid`, `IN_PROGRESS`, `Disetor`). */
+  status?: string | null;
+  /** Document type, for statuses whose meaning differs per document. */
+  docType?: DocType;
+  /** Override the registry label. */
+  label?: string;
+  /** @deprecated use `label` */
   labelOverride?: string;
+  /** Override the registry tone (or render a non-status chip). */
+  tone?: StatusTone;
+  /** Show the leading dot (default true). */
+  dot?: boolean;
+  className?: string;
 }
 
-export function StatusBadge({ status, labelOverride }: StatusBadgeProps) {
-  const config = STATUS_MAP[status] || {
-    label: status,
-    variant: 'secondary' as StatusVariant,
-  };
-
+/** Tinted status chip driven by lib/status.ts (Indonesian labels). */
+export function StatusBadge({ status, docType, label, labelOverride, tone, dot = true, className }: StatusBadgeProps) {
+  const meta = getStatusMeta(status, docType);
+  const t = TONE_CLASSES[tone ?? meta.tone];
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-sm border border-border bg-muted/60 px-2 py-0.5',
-        'text-[11px] font-medium text-foreground tracking-tight whitespace-nowrap',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5 text-xs font-medium leading-4',
+        t.chip,
+        className,
       )}
     >
-      <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', DOT_STYLES[config.variant])} />
-      {labelOverride ?? config.label}
+      {dot && <span className={cn('size-1.5 shrink-0 rounded-full', t.dot)} aria-hidden />}
+      {label ?? labelOverride ?? meta.label}
     </span>
   );
 }

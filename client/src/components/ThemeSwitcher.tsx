@@ -1,54 +1,60 @@
-import { useTheme, THEME_PACKS, type ThemeId } from '../contexts/ThemeContext';
+import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { THEME_PACKS, normalizeTheme, type ThemeId } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 interface ThemeSwitcherProps {
-  /** 'select' = dropdown sederhana, 'cards' = grid kartu visual (untuk halaman Pengaturan) */
+  /** 'select' = compact dropdown, 'cards' = visual cards (Settings page) */
   variant?: 'select' | 'cards';
   className?: string;
 }
 
-const PREVIEW_COLORS: Record<ThemeId, { bg: string; sidebar: string; accent: string; text: string }> = {
-  'light':           { bg: '#F9FAFB', sidebar: '#FFFFFF', accent: '#4A6FA5', text: '#1F2937' },
-  'dark':            { bg: '#1A1D2E', sidebar: '#16192A', accent: '#6B8ACA', text: '#E2E8F0' },
-  'system':          { bg: '#E5E7EB', sidebar: '#D1D5DB', accent: '#6B7280', text: '#374151' },
-  'bloomberg-dark':  { bg: '#000000', sidebar: '#0A0A0A', accent: '#FF9900', text: '#E8A020' },
-  'bloomberg-light': { bg: '#F5F4F0', sidebar: '#FFFFFF', accent: '#003366', text: '#1A1A3E' },
-  'neo-clean':       { bg: '#F0F2F5', sidebar: '#FFFFFF', accent: '#C6F135', text: '#1A1A1A' },
+const THEME_ICONS: Record<ThemeId, LucideIcon> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
 };
 
+/** Static preview swatches that mirror the light/dark tokens in index.css. */
+const PREVIEW: Record<'light' | 'dark', { bg: string; surface: string; border: string; primary: string; text: string }> = {
+  light: { bg: '#F6F8FB', surface: '#FFFFFF', border: '#E2E7EF', primary: '#2F6FC4', text: '#142033' },
+  dark: { bg: '#0D1524', surface: '#131D2F', border: '#24324A', primary: '#5B9BE8', text: '#E8EDF5' },
+};
+
+function MiniWindow({ scheme }: { scheme: 'light' | 'dark' }) {
+  const c = PREVIEW[scheme];
+  return (
+    <div className="flex h-full" style={{ background: c.bg }}>
+      <div style={{ width: 16, background: c.surface, borderRight: `1px solid ${c.border}` }} />
+      <div className="flex flex-1 flex-col gap-[3px] p-1">
+        <div style={{ height: 4, width: '60%', background: c.text, opacity: 0.8, borderRadius: 1 }} />
+        <div className="flex flex-1 gap-[2px]">
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ flex: 1, background: c.surface, border: `1px solid ${c.border}`, borderRadius: 2 }} />
+          ))}
+        </div>
+        <div style={{ height: 5, width: 22, background: c.primary, borderRadius: 1 }} />
+      </div>
+    </div>
+  );
+}
+
 function MiniPreview({ themeId }: { themeId: ThemeId }) {
-  const c = PREVIEW_COLORS[themeId];
-  const isMono = themeId.startsWith('bloomberg');
-  const isNeo = themeId === 'neo-clean';
-  // NeoClean signature: rounded floating cards, no hard borders
-  const outerRadius = isNeo ? 8 : 4;
-  const cardRadius = isNeo ? 3 : 1;
-  const cardBorder = isNeo ? 'none' : `0.5px solid ${c.accent}`;
-  const cardShadow = isNeo ? '0 1px 3px rgba(0,0,0,0.10)' : 'none';
   return (
     <div
-      style={{ background: c.bg, borderRadius: outerRadius, overflow: 'hidden', width: 80, height: 52, border: `1.5px solid ${isNeo ? '#E3E6EA' : c.accent}`, flexShrink: 0 }}
+      className="h-[52px] w-[80px] shrink-0 overflow-hidden rounded-md border border-border-strong"
       aria-hidden
     >
-      {/* mini sidebar */}
-      <div style={{ display: 'flex', height: '100%' }}>
-        <div style={{ width: 18, background: c.sidebar, borderRight: isNeo ? 'none' : `1px solid ${c.accent}` }} />
-        <div style={{ flex: 1, padding: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {/* topbar */}
-          <div style={{ height: 5, background: c.accent, borderRadius: isNeo ? 999 : 1 }} />
-          {/* cards */}
-          <div style={{ display: 'flex', gap: 2, flex: 1 }}>
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} style={{ flex: 1, background: c.sidebar, border: cardBorder, borderRadius: cardRadius, boxShadow: cardShadow }} />
-            ))}
-          </div>
-          {/* table rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {[1, 0.7, 0.5].map((_, i) => (
-              <div key={i} style={{ height: 2.5, background: isMono ? `${c.accent}40` : `${c.text}20`, borderRadius: isNeo ? 999 : 0.5 }} />
-            ))}
+      {themeId === 'system' ? (
+        <div className="relative h-full">
+          <MiniWindow scheme="light" />
+          <div className="absolute inset-0" style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}>
+            <MiniWindow scheme="dark" />
           </div>
         </div>
-      </div>
+      ) : (
+        <MiniWindow scheme={themeId} />
+      )}
     </div>
   );
 }
@@ -60,45 +66,50 @@ export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitch
     return (
       <select
         value={theme}
-        onChange={e => setTheme(e.target.value as ThemeId)}
-        className={`border border-border rounded bg-card text-foreground px-3 py-1.5 text-sm cursor-pointer ${className}`}
+        onChange={(e) => setTheme(normalizeTheme(e.target.value))}
+        aria-label="Tema tampilan"
+        className={cn(
+          'cursor-pointer rounded-md border border-input bg-card px-3 py-1.5 text-sm text-foreground',
+          className,
+        )}
       >
-        {THEME_PACKS.map(t => (
-          <option key={t.id} value={t.id}>{t.label}</option>
+        {THEME_PACKS.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
         ))}
       </select>
     );
   }
 
-  // Cards variant (untuk halaman Pengaturan)
   return (
-    <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${className}`}>
-      {THEME_PACKS.map(t => {
+    <div role="radiogroup" aria-label="Tema tampilan" className={cn('grid grid-cols-1 gap-3 sm:grid-cols-3', className)}>
+      {THEME_PACKS.map((t) => {
         const active = theme === t.id;
+        const Icon = THEME_ICONS[t.id];
         return (
           <button
             key={t.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
             onClick={() => setTheme(t.id)}
-            className={[
-              'flex items-center gap-3 rounded border p-3 text-left transition-all',
+            className={cn(
+              'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               active
-                ? 'border-primary bg-primary/8 ring-2 ring-primary/40'
-                : 'border-border bg-card hover:border-primary/50 hover:bg-accent',
-            ].join(' ')}
-            aria-pressed={active}
+                ? 'border-primary bg-primary-subtle'
+                : 'border-border bg-card hover:border-border-strong hover:bg-accent',
+            )}
           >
             <MiniPreview themeId={t.id} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
+                <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
                 <span className="truncate text-sm font-semibold text-foreground">{t.label}</span>
-                {(t.isBloomberg || t.isNew) && (
-                  <span className="rounded bg-primary/15 px-1.5 py-0 text-[9px] font-bold uppercase tracking-wider text-primary">NEW</span>
-                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>
-              {active && (
-                <p className="mt-1 text-[10px] font-semibold text-primary">● Aktif</p>
-              )}
+              {active && <p className="mt-1 text-xs font-medium text-primary-subtle-foreground">Aktif</p>}
             </div>
           </button>
         );

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Tampilan (UI/UX)
+**Diubah**:
+- **Halaman login baru** (ERP & EAM): panel brand navy yang tenang + form ringkas. Animasi, statistik dekoratif, kredit pribadi, versi build, dan tombol bergradien dihapus. Validasi di bawah field, banner salah kata sandi, hitung mundur saat terlalu banyak percobaan, peringatan Caps Lock, dialog "Lupa kata sandi?", dan mode gelap.
+- **Warna mengikuti brand Entaris** (biru #2F6FC4, navy #1B2B48) untuk mode terang & gelap; semua pasangan teks/latar lolos kontras WCAG AA.
+- **Tema**: pilihan disederhanakan menjadi Terang / Gelap / Sistem (default mengikuti sistem). Tema lama otomatis dialihkan ke Sistem.
+- Halaman publik `/welcome`, `/tanya`, dan `/aset/:kode` memakai logo & warna resmi.
+- Zoom (pinch) di perangkat mobile diaktifkan kembali.
+
+**Ditambahkan**:
+- Komponen dasar bersama: Field, PageHeader, StatusBadge, ConfirmDialog, BrandMark/Wordmark; format angka/tanggal & label status Bahasa Indonesia terpusat.
+- Infrastruktur uji UI: Vitest, Playwright (screenshot semua halaman) + axe (aksesibilitas).
+
 ### Merek
 **Diubah**:
 - Produk berganti nama (dari nama produk sebelumnya) menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Agentic Reasoning System".

@@ -1,142 +1,139 @@
-import { useEffect, useState, useRef, type ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
-  ArrowRight, LogIn, Mail, MessageCircle, Check,
-  BookOpen, Boxes, Factory, Truck, ClipboardCheck, BarChart3,
-  ShieldCheck, Layers, Rocket, Search, Bell, LayoutDashboard,
-  Wallet, TrendingUp, ChevronRight,
+  ArrowRight, BarChart3, BookOpen, Boxes, Check, ClipboardCheck, Factory, FileCheck2,
+  Layers, LogIn, Mail, MessageCircle, MessagesSquare, Rocket, ShieldCheck, ShoppingCart,
+  Sparkles, Truck, type LucideProps,
 } from 'lucide-react';
+import { BrandMark, Wordmark } from '@/components/shared';
 
-// ── Landing publik produk Entaris by PT Arah Karya Sinergi (AKS) ─────────────
-// Route /welcome (pola Artani). User login → redirect ke /.
-// Gaya: premium minimal (navy elegan, gerak ditahan) + mockup dashboard CSS.
+// Public product page for Entaris by PT Arah Karya Sinergi. Route /welcome;
+// logged-in users are redirected to /. No animation loops: content is visible
+// by default and only colour transitions run (motion-safe).
 
-const AKS = {
-  product: 'Entaris',
-  vendor: 'PT Arah Karya Sinergi',
-  tagline: 'Presisi Arsitektural untuk Solusi Digital',
-  email: 'solutions@arahkarya.com',
-  whatsapp: '6281234567890', // ganti dengan nomor resmi AKS
-  domain: 'arahkarya.com',
-};
-const waLink = `https://wa.me/${AKS.whatsapp}?text=${encodeURIComponent(
-  'Halo AKS, saya tertarik dengan Entaris untuk bisnis saya.',
-)}`;
+type Icon = ComponentType<LucideProps>;
 
-const FEATURES = [
-  { icon: BookOpen, title: 'Akuntansi Double-Entry', desc: 'Buku besar, jurnal, neraca & laba-rugi otomatis. Setiap transaksi langsung terposting ke COA.' },
-  { icon: Boxes, title: 'Persediaan Multi-Gudang', desc: 'Stok per gudang, per batch (FIFO), HPP rata-rata tertimbang, transfer & opname.' },
-  { icon: Factory, title: 'Produksi & Rendemen', desc: 'Catat input-output produksi, biaya konversi, dan yield — pas untuk manufaktur & penggilingan.' },
-  { icon: Truck, title: 'Pembelian & Penjualan', desc: 'Alur PO → penerimaan → invoice, surat jalan, retur, dan uang muka vendor/pelanggan.' },
-  { icon: ClipboardCheck, title: 'Approval Berlapis', desc: 'Pengajuan butuh persetujuan manajer — bisa diputuskan langsung dari Telegram.' },
-  { icon: BarChart3, title: 'Laporan & Dashboard', desc: 'Neraca, arus kas, laba-rugi, aging piutang/hutang, dan dashboard operasional real-time.' },
+const VENDOR = 'PT Arah Karya Sinergi';
+const VENDOR_DOMAIN = 'arahkarya.com';
+const DEFAULT_SALES_EMAIL = 'solutions@arahkarya.com';
+
+/** Sales contact comes from build-time config; the WhatsApp button is hidden when no valid number is set. */
+function readSalesContact(): { email: string; waLink: string | null } {
+  const rawEmail = String(import.meta.env.VITE_SALES_EMAIL ?? '').trim();
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : DEFAULT_SALES_EMAIL;
+  const waDigits = String(import.meta.env.VITE_SALES_WHATSAPP ?? '').replace(/\D/g, '');
+  const waLink = waDigits.length >= 8 && waDigits.length <= 15
+    ? `https://wa.me/${waDigits}?text=${encodeURIComponent('Halo Arah, saya tertarik dengan Entaris untuk bisnis saya.')}`
+    : null;
+  return { email, waLink };
+}
+
+const SALES = readSalesContact();
+
+const FEATURES: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
+  { icon: BookOpen, title: 'Akuntansi double-entry', desc: 'Buku besar, jurnal, neraca, dan laba-rugi. Setiap transaksi langsung terposting ke bagan akun.' },
+  { icon: Boxes, title: 'Persediaan multi-gudang', desc: 'Stok per gudang dan per batch, HPP rata-rata tertimbang, transfer, serta stok opname.' },
+  { icon: Factory, title: 'Produksi dan rendemen', desc: 'Catat input-output produksi, biaya konversi, dan yield untuk manufaktur dan penggilingan.' },
+  { icon: Truck, title: 'Pembelian dan penjualan', desc: 'Alur PO, penerimaan, invoice, surat jalan, retur, dan uang muka pelanggan maupun pemasok.' },
+  { icon: ClipboardCheck, title: 'Persetujuan berlapis', desc: 'Pengajuan menunggu persetujuan manajer, dari aplikasi atau langsung lewat Telegram.' },
+  { icon: BarChart3, title: 'Laporan dan dashboard', desc: 'Neraca, arus kas, laba-rugi, umur piutang dan utang, serta dashboard operasional.' },
+];
+
+const AIRA_POINTS: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
+  { icon: MessagesSquare, title: 'Tanya dengan bahasa sehari-hari', desc: 'Minta ringkasan penjualan, posisi kas, atau stok tanpa menyusun laporan sendiri.' },
+  { icon: FileCheck2, title: 'Menyiapkan draf, Anda yang menyetujui', desc: 'AIRA menyusun draf transaksi. Tidak ada yang terposting sebelum Anda menyetujuinya.' },
+  { icon: Layers, title: 'Bernalar dari buku besar yang sama', desc: 'Jawaban diambil dari data transaksi yang sudah terposting, bukan dari salinan terpisah.' },
 ];
 
 const STEPS = [
-  { n: '01', title: 'Catat transaksi', desc: 'Input penjualan, pembelian, produksi, dan kas/bank lewat form ringkas — stok & jurnal terbentuk otomatis.' },
-  { n: '02', title: 'Kontrol & setujui', desc: 'Hak akses per peran (RBAC), pengajuan disetujui manajer dari aplikasi atau langsung dari Telegram.' },
-  { n: '03', title: 'Lihat hasilnya', desc: 'Laporan keuangan & operasional ter-update real-time — ambil keputusan dari angka yang akurat.' },
+  { n: '1', title: 'Catat transaksi', desc: 'Input penjualan, pembelian, produksi, dan kas lewat formulir ringkas. Stok dan jurnal terbentuk otomatis.' },
+  { n: '2', title: 'Kontrol dan setujui', desc: 'Hak akses per peran, dan setiap pengajuan disetujui manajer sebelum diproses.' },
+  { n: '3', title: 'Baca hasilnya', desc: 'Laporan keuangan dan operasional selalu mengikuti transaksi terbaru.' },
 ];
 
-const SECTORS = ['Penggilingan Padi', 'Pelet Biomassa', 'Trading & Distribusi', 'Manufaktur', 'Pangan', 'UKM'];
+const SECTORS = ['Penggilingan padi', 'Pelet biomassa', 'Trading dan distribusi', 'Manufaktur', 'Pangan', 'UKM'];
 
-const PRINCIPLES = [
-  { icon: Layers, title: 'Integritas Struktural', desc: 'Arsitektur berlapis — stabil saat beban puncak & transaksi data kompleks.' },
-  { icon: ShieldCheck, title: 'Keamanan Enterprise', desc: 'Hak akses berbasis peran (RBAC) yang bisa diatur, jejak audit di setiap aksi.' },
-  { icon: Rocket, title: 'Siap Tumbuh', desc: 'Modular & multi-instance — dipakai nyata di pabrik pangan, pelet biomassa, dan trading.' },
+const PRINCIPLES: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
+  { icon: Layers, title: 'Integritas data', desc: 'Satu buku besar untuk semua modul, sehingga angka operasional dan keuangan selalu cocok.' },
+  { icon: ShieldCheck, title: 'Keamanan dan jejak audit', desc: 'Hak akses berbasis peran yang bisa diatur, dan setiap aksi tercatat.' },
+  { icon: Rocket, title: 'Siap tumbuh', desc: 'Modular dan multi-perusahaan. Modul bisa ditambah seiring kebutuhan bisnis.' },
 ];
 
-function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [vis, setVis] = useState(false);
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVis(true); io.disconnect(); } }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
-    io.observe(el); return () => io.disconnect();
-  }, []);
-  return <div ref={ref} className={className} style={{ opacity: vis ? 1 : 0, transform: vis ? 'none' : 'translateY(22px)', transition: 'opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1)', transitionDelay: `${delay}ms` }}>{children}</div>;
-}
+const HERO_POINTS = ['Pembukuan double-entry', 'Multi-gudang dan batch', 'Hak akses dan jejak audit'];
 
-function AksLogo({ size = 32, light = false }: { size?: number; light?: boolean }) {
+/** Static product schematic: how modules feed one ledger. Illustrative only, no figures. */
+function FlowDiagram() {
+  const sources: ReadonlyArray<{ icon: Icon; label: string }> = [
+    { icon: ShoppingCart, label: 'Penjualan' },
+    { icon: Truck, label: 'Pembelian' },
+    { icon: Factory, label: 'Persediaan dan produksi' },
+  ];
+  const outputs: ReadonlyArray<{ icon: Icon; label: string }> = [
+    { icon: BarChart3, label: 'Laporan keuangan' },
+    { icon: Sparkles, label: 'AIRA, analisis dan draf' },
+  ];
+  const node = 'flex items-center gap-2.5 rounded-lg border border-white/15 bg-[rgb(255_255_255/0.06)] px-3 py-2.5 text-sm text-white';
+  const connector = <div aria-hidden className="mx-auto h-5 w-px bg-[rgb(255_255_255/0.25)]" />;
+
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <rect width="64" height="64" rx="14" fill={light ? '#ffffff' : '#002046'} />
-      <path d="M32 14 L48 50 H40.5 L32 30 L23.5 50 H16 Z" fill={light ? '#002046' : '#a8c8ff'} />
-      <path d="M32 14 L48 50 H40.5 L32 30 Z" fill={light ? '#00356c' : '#8cf3f3'} />
-    </svg>
+    <figure className="rounded-xl border border-white/15 bg-[rgb(255_255_255/0.04)] p-5 sm:p-6" aria-label="Alur data Entaris: modul transaksi ke buku besar, lalu ke laporan dan AIRA">
+      <figcaption className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Satu sumber data</figcaption>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        {sources.map(({ icon: I, label }) => (
+          <div key={label} className={node}>
+            <I className="size-4 shrink-0 text-[#9CC9F5]" strokeWidth={1.75} aria-hidden />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+      {connector}
+      <div className="flex items-center gap-3 rounded-lg border border-[#9CC9F5]/40 bg-[#9CC9F5]/10 px-4 py-3 text-white">
+        <BookOpen className="size-5 shrink-0 text-[#9CC9F5]" strokeWidth={1.75} aria-hidden />
+        <div>
+          <p className="text-sm font-semibold">Buku besar</p>
+          <p className="text-xs text-white/75">Jurnal double-entry terbentuk otomatis dari setiap transaksi</p>
+        </div>
+      </div>
+      {connector}
+      <div className="grid gap-2 sm:grid-cols-2">
+        {outputs.map(({ icon: I, label }) => (
+          <div key={label} className={node}>
+            <I className="size-4 shrink-0 text-[#9CC9F5]" strokeWidth={1.75} aria-hidden />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+    </figure>
   );
 }
 
-// Mockup dashboard ERP (UI tiruan, bukan data nyata) — visual hero.
-function DashboardMock() {
-  const bars = [42, 60, 48, 72, 64, 88, 76];
+function SectionHeading({ eyebrow, title, desc, id }: { eyebrow: string; title: string; desc?: ReactNode; id?: string }) {
   return (
-    <div className="lpw-float relative w-full select-none">
-      {/* window */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/40 ring-1 ring-white/15">
-        {/* titlebar */}
-        <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-2.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-          <div className="ml-3 flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-[10px] text-gray-400 ring-1 ring-gray-100">
-            <Search size={10} /> erp.arahkarya.com
-          </div>
-        </div>
-        <div className="flex">
-          {/* sidebar */}
-          <div className="hidden w-28 shrink-0 flex-col gap-1 border-r border-gray-100 bg-[#001533] p-3 sm:flex">
-            <div className="mb-2 flex items-center gap-1.5"><AksLogo size={16} /><span className="text-[9px] font-bold text-white">{AKS.product}</span></div>
-            {[['Dashboard', true], ['Penjualan', false], ['Pembelian', false], ['Stok', false], ['Produksi', false], ['Laporan', false]].map(([l, active]) => (
-              <div key={l as string} className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[9px] ${active ? 'bg-white/15 font-semibold text-white' : 'text-white/55'}`}>
-                <span className={`h-1.5 w-1.5 rounded-sm ${active ? 'bg-[#8cf3f3]' : 'bg-white/30'}`} />{l}
-              </div>
-            ))}
-          </div>
-          {/* main */}
-          <div className="flex-1 bg-[#f7f9fe] p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#181c20]"><LayoutDashboard size={12} className="text-[#002046]" /> Dashboard</div>
-              <div className="flex items-center gap-2 text-gray-300"><Bell size={12} /><span className="h-5 w-5 rounded-full bg-[#d6e3ff]" /></div>
-            </div>
-            {/* KPI */}
-            <div className="grid grid-cols-3 gap-2">
-              {[['Penjualan', 'Rp 11,2 M', 'text-[#002046]'], ['Laba Bersih', '+18%', 'text-emerald-600'], ['Stok Aktif', '12 gd', 'text-teal-600']].map(([l, v, c]) => (
-                <div key={l} className="rounded-lg bg-white p-2 ring-1 ring-gray-100">
-                  <p className="text-[7px] uppercase tracking-wide text-gray-400">{l}</p>
-                  <p className={`mt-0.5 text-[11px] font-extrabold ${c}`}>{v}</p>
-                </div>
-              ))}
-            </div>
-            {/* chart */}
-            <div className="mt-2 rounded-lg bg-white p-3 ring-1 ring-gray-100">
-              <div className="flex items-center justify-between"><p className="text-[8px] font-semibold text-gray-500">Arus Kas 7 hari</p><span className="text-[7px] text-emerald-600">▲ 12%</span></div>
-              <div className="mt-2 flex h-16 items-end gap-1.5">
-                {bars.map((h, i) => (
-                  <div key={i} className="lpw-bar flex-1 rounded-t bg-gradient-to-t from-[#002046] to-[#609ffc]" style={{ ['--h' as string]: `${h}%`, animationDelay: `${0.3 + i * 0.08}s` }} />
-                ))}
-              </div>
-            </div>
-            {/* rows */}
-            <div className="mt-2 space-y-1">
-              {[['INV-2026-0184', 'Lunas'], ['STT-2026-0210', 'Diterima'], ['PR-2026-0066', 'Selesai']].map(([d, s]) => (
-                <div key={d} className="flex items-center justify-between rounded-md bg-white px-2 py-1.5 ring-1 ring-gray-100">
-                  <span className="font-mono text-[8px] text-gray-500">{d}</span>
-                  <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[7px] font-medium text-emerald-600">{s}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* floating badges */}
-      <div className="lpw-bob absolute -right-4 top-10 hidden rounded-xl bg-white px-3 py-2 shadow-xl ring-1 ring-black/5 sm:block">
-        <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-600" /><div><p className="text-[8px] uppercase tracking-wide text-gray-400">Laba Bersih</p><p className="text-xs font-bold text-[#181c20]">+18,2%</p></div></div>
-      </div>
-      <div className="lpw-bob absolute -left-4 bottom-12 hidden rounded-xl bg-white px-3 py-2 shadow-xl ring-1 ring-black/5 sm:block" style={{ animationDelay: '1.1s' }}>
-        <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#002046]" /><div><p className="text-[8px] uppercase tracking-wide text-gray-400">Approval</p><p className="text-xs font-bold text-[#181c20]">via Telegram</p></div></div>
-      </div>
+    <div className="max-w-2xl">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
+      <h2 id={id} className="mt-2 text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h2>
+      {desc && <p className="mt-3 text-base leading-relaxed text-foreground-secondary">{desc}</p>}
     </div>
+  );
+}
+
+const ctaOnNavy =
+  'inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9CC9F5] focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy';
+const primaryOnNavy = `${ctaOnNavy} bg-[#FFFFFF] text-[#1B2B48] hover:bg-[#E8EDF5]`;
+const outlineOnNavy = `${ctaOnNavy} border border-white/40 text-white hover:bg-[rgb(255_255_255/0.1)]`;
+
+function ContactButtons() {
+  return (
+    <>
+      {SALES.waLink && (
+        <a href={SALES.waLink} target="_blank" rel="noopener noreferrer" className={outlineOnNavy}>
+          <MessageCircle className="size-4" aria-hidden /> WhatsApp sales
+        </a>
+      )}
+      <a href={`mailto:${SALES.email}`} className={outlineOnNavy}>
+        <Mail className="size-4" aria-hidden /> Hubungi sales
+      </a>
+    </>
   );
 }
 
@@ -146,206 +143,203 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fe] text-[#181c20]">
-      <style>{LP_CSS}</style>
+    <div className="min-h-dvh bg-background text-foreground">
+      <a href="#konten" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:text-foreground focus:shadow-[var(--shadow-2)]">
+        Lewati ke konten
+      </a>
 
-      {/* Navbar */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#001029]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
-          <a href="#top" className="flex items-center gap-2.5">
-            <AksLogo size={28} />
-            <span className="text-[15px] font-extrabold tracking-tight text-white">{AKS.product} <span className="font-medium text-white/45">by AKS</span></span>
-          </a>
-          <div className="flex items-center gap-2 sm:gap-5">
-            <a href="#fitur" className="hidden text-sm font-medium text-white/65 transition-colors hover:text-white sm:block">Fitur</a>
-            <a href="#cara-kerja" className="hidden text-sm font-medium text-white/65 transition-colors hover:text-white sm:block">Cara Kerja</a>
-            <Link to="/login" className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2 text-sm font-bold text-[#002046] transition-transform hover:-translate-y-0.5">
-              <LogIn size={15} /> Masuk
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-brand-navy">
+        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6" aria-label="Utama">
+          <Link to="/welcome" className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9CC9F5]">
+            <Wordmark variant="negative" size="md" />
+          </Link>
+          <div className="flex items-center gap-1 sm:gap-6">
+            <a href="#fitur" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">Fitur</a>
+            <a href="#aira" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">AIRA</a>
+            <a href="#cara-kerja" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">Cara kerja</a>
+            <Link to="/login" className={`${primaryOnNavy} h-9 px-4`}>
+              <LogIn className="size-4" aria-hidden /> Masuk
             </Link>
           </div>
-        </div>
+        </nav>
       </header>
 
-      {/* HERO */}
-      <section id="top" className="relative overflow-hidden bg-[#001029] px-5 pt-32 pb-20 text-white md:pt-40 md:pb-28">
-        {/* soft glows + grid (ditahan, tidak ramai) */}
-        <div aria-hidden className="pointer-events-none absolute -left-40 -top-40 h-[28rem] w-[28rem] rounded-full bg-[#00356c]/50 blur-[130px]" />
-        <div aria-hidden className="pointer-events-none absolute -right-32 top-20 h-[24rem] w-[24rem] rounded-full bg-[#0a4f6e]/40 blur-[130px]" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.5]" style={{ backgroundImage: 'linear-gradient(rgba(96,159,252,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(96,159,252,.05) 1px,transparent 1px)', backgroundSize: '52px 52px', maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%)' }} />
-
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-2">
-          <div>
-            <Reveal>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm">
-                <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#8cf3f3] opacity-75" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#8cf3f3]" /></span>
-                ERP untuk UKM, Manufaktur & Trading
-              </span>
-            </Reveal>
-            <Reveal delay={70}>
-              <h1 className="mt-6 text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-white md:text-[3.6rem]">
-                Operasional & keuangan bisnis,
-                <span className="block bg-gradient-to-r from-[#a8c8ff] to-[#8cf3f3] bg-clip-text text-transparent"> dalam satu sistem.</span>
+      <main id="konten">
+        {/* Hero */}
+        <section className="relative overflow-hidden bg-brand-navy text-white" aria-labelledby="hero-title">
+          <BrandMark variant="negative" size={560} title="" className="pointer-events-none absolute -right-40 -top-24 opacity-[0.05]" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:pb-24 md:pt-20">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9CC9F5]">Agentic ERP</p>
+              <h1 id="hero-title" className="mt-4 text-[2rem] font-bold leading-[1.15] tracking-tight text-white md:text-5xl md:leading-[1.1]">
+                Operasional dan keuangan bisnis Anda, dalam satu sistem.
               </h1>
-            </Reveal>
-            <Reveal delay={150}>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 md:text-lg">
-                {AKS.product} menyatukan akuntansi, persediaan, produksi, pembelian, dan penjualan —
-                dengan pembukuan double-entry yang akurat dan approval berlapis. Dibangun oleh {AKS.vendor}.
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-white/80 md:text-lg">
+                Entaris menyatukan akuntansi, persediaan, produksi, pembelian, dan penjualan di atas pembukuan
+                double-entry. AIRA, agen AI di dalamnya, membantu membaca data dan menyiapkan pekerjaan rutin.
               </p>
-            </Reveal>
-            <Reveal delay={230}>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link to="/login" className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-[#002046] shadow-lg shadow-black/30 transition-transform hover:-translate-y-0.5">
-                  Masuk ke Aplikasi <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link to="/login" className={primaryOnNavy}>
+                  Masuk ke aplikasi <ArrowRight className="size-4" aria-hidden />
                 </Link>
-                <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3.5 text-sm font-bold text-white transition-colors hover:bg-white/10">
-                  <MessageCircle size={16} /> Konsultasi Gratis
-                </a>
+                <ContactButtons />
               </div>
-            </Reveal>
-            <Reveal delay={300}>
-              <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/45">
-                <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#8cf3f3]" /> Double-entry akurat</span>
-                <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#8cf3f3]" /> Multi-gudang & batch</span>
-                <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#8cf3f3]" /> RBAC + audit</span>
-              </div>
-            </Reveal>
-          </div>
-
-          <Reveal delay={180}>
-            <div className="relative">
-              <div aria-hidden className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-[#609ffc]/20 to-[#8cf3f3]/10 blur-2xl" />
-              <DashboardMock />
+              <ul className="mt-8 flex flex-col gap-2 text-sm text-white/80 sm:flex-row sm:flex-wrap sm:gap-x-6">
+                {HERO_POINTS.map((t) => (
+                  <li key={t} className="inline-flex items-center gap-2">
+                    <Check className="size-4 text-[#9CC9F5]" aria-hidden /> {t}
+                  </li>
+                ))}
+              </ul>
             </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* Sektor strip */}
-      <section className="border-b border-[#c4c6cf]/40 bg-white">
-        <div className="mx-auto max-w-6xl px-5 py-6">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#43474e]/60">Dipercaya lintas sektor</p>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-            {SECTORS.map((s) => (
-              <span key={s} className="text-sm font-semibold text-[#43474e]/70">{s}</span>
-            ))}
+            <FlowDiagram />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Fitur */}
-      <section id="fitur" className="bg-[#f7f9fe] py-20 md:py-28">
-        <div className="mx-auto max-w-6xl px-5">
-          <Reveal>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#002046]/55">Fitur</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-extrabold tracking-tight text-[#181c20] md:text-[2.6rem]">Semua modul yang bisnis Anda butuhkan</h2>
-            <p className="mt-4 max-w-2xl text-[#43474e]">Satu platform terintegrasi — dari transaksi harian sampai laporan keuangan, tanpa pindah-pindah aplikasi.</p>
-          </Reveal>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl bg-[#c4c6cf]/30 md:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <Reveal key={f.title} delay={i * 60}>
-                <div className="group h-full bg-white p-7 transition-colors hover:bg-[#fbfcfe]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#001029] text-[#8cf3f3] transition-transform group-hover:-translate-y-0.5"><f.icon size={20} /></div>
-                  <h3 className="mt-5 text-lg font-bold text-[#181c20]">{f.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#43474e]">{f.desc}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Cara kerja */}
-      <section id="cara-kerja" className="bg-[#001029] py-20 text-white md:py-28">
-        <div className="mx-auto max-w-6xl px-5">
-          <Reveal>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#8cf3f3]/70">Cara Kerja</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-extrabold tracking-tight text-white md:text-[2.6rem]">Tiga langkah, langsung jalan</h2>
-          </Reveal>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {STEPS.map((s, i) => (
-              <Reveal key={s.title} delay={i * 90}>
-                <div className="relative h-full rounded-2xl border border-white/10 bg-white/[0.04] p-7 backdrop-blur-sm">
-                  <span className="bg-gradient-to-br from-[#a8c8ff] to-[#8cf3f3] bg-clip-text text-4xl font-extrabold text-transparent">{s.n}</span>
-                  <h3 className="mt-4 text-lg font-bold text-white">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/60">{s.desc}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Prinsip / kenapa */}
-      <section className="bg-[#f7f9fe] py-20 md:py-28">
-        <div className="mx-auto grid max-w-6xl gap-12 px-5 lg:grid-cols-[0.85fr_1.15fr]">
-          <Reveal>
-            <div className="lg:sticky lg:top-28">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#002046]/55">Kenapa Kami</p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#181c20] md:text-[2.6rem]">Dibangun di atas prinsip presisi</h2>
-              <p className="mt-4 text-[#43474e]">{AKS.vendor} merancang sistem yang stabil, aman, dan siap tumbuh bersama bisnis Anda.</p>
-              <Link to="/login" className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-[#002046] hover:gap-2.5 transition-all">Mulai sekarang <ChevronRight size={15} /></Link>
-              <div className="mt-6 h-1.5 w-24 rounded-full bg-gradient-to-r from-[#002046] to-[#8cf3f3]" />
-            </div>
-          </Reveal>
-          <div className="space-y-3">
-            {PRINCIPLES.map((p, i) => (
-              <Reveal key={p.title} delay={i * 80}>
-                <div className="group flex gap-5 rounded-2xl border border-transparent p-6 transition-all hover:border-[#c4c6cf]/40 hover:bg-white hover:shadow-[0_20px_40px_rgba(24,28,32,0.05)]">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#c4c6cf]/40 bg-white text-[#002046] transition-colors group-hover:bg-[#001029] group-hover:text-[#8cf3f3]"><p.icon size={20} /></div>
-                  <div><h3 className="text-lg font-bold text-[#181c20]">{p.title}</h3><p className="mt-1.5 text-sm leading-relaxed text-[#43474e]">{p.desc}</p></div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative overflow-hidden bg-[#001029] py-20 text-white md:py-28">
-        <div aria-hidden className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-[#609ffc]/20 blur-[120px]" />
-        <div className="relative mx-auto max-w-3xl px-5 text-center">
-          <Reveal>
-            <AksLogo size={44} />
-            <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-extrabold tracking-tight text-white md:text-[3rem]">Siap merapikan operasional bisnis Anda?</h2>
-            <p className="mx-auto mt-5 max-w-xl text-white/65">Sudah punya akun? Masuk sekarang. Belum? Hubungi {AKS.vendor} untuk demo & implementasi.</p>
-          </Reveal>
-          <Reveal delay={120}>
-            <div className="mx-auto mt-7 flex max-w-md flex-col gap-2.5 text-left">
-              {['Implementasi & migrasi data didampingi', 'Pelatihan tim Anda', 'Kode & data sepenuhnya milik Anda'].map((t) => (
-                <div key={t} className="flex items-center gap-3 text-sm text-white/85"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8cf3f3]/20 text-[#8cf3f3]"><Check size={12} /></span>{t}</div>
+        {/* Sectors */}
+        <section className="border-b border-border bg-card" aria-labelledby="sektor-title">
+          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+            <h2 id="sektor-title" className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Dirancang untuk
+            </h2>
+            <ul className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              {SECTORS.map((s) => (
+                <li key={s} className="rounded-full border border-border px-3 py-1 text-sm font-medium text-foreground-secondary">{s}</li>
               ))}
-            </div>
-          </Reveal>
-          <Reveal delay={200}>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link to="/login" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-bold text-[#002046] shadow-lg shadow-black/30 transition-transform hover:-translate-y-0.5"><LogIn size={16} /> Masuk ke Aplikasi</Link>
-              <a href={`mailto:${AKS.email}`} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10"><Mail size={16} /> {AKS.email}</a>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[#000814] py-8 text-white/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-center sm:flex-row sm:text-left">
-          <div className="flex items-center gap-2.5">
-            <AksLogo size={28} light />
-            <div><div className="text-sm font-extrabold text-white">{AKS.vendor}</div><div className="text-xs text-white/45">{AKS.tagline}</div></div>
+            </ul>
           </div>
-          <div className="flex items-center gap-2 text-xs text-white/45"><Wallet size={13} /> {AKS.product} · © {new Date().getFullYear()} · {AKS.domain}</div>
+        </section>
+
+        {/* Features */}
+        <section id="fitur" className="scroll-mt-16 py-16 md:py-24" aria-labelledby="fitur-title">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <SectionHeading
+              id="fitur-title"
+              eyebrow="Fitur"
+              title="Modul yang dibutuhkan bisnis Anda"
+              desc="Dari transaksi harian sampai laporan keuangan, tanpa berpindah aplikasi."
+            />
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map(({ icon: I, title, desc }) => (
+                <li key={title} className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-1)]">
+                  <div className="flex size-10 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground">
+                    <I className="size-5" strokeWidth={1.75} aria-hidden />
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-foreground-secondary">{desc}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* AIRA */}
+        <section id="aira" className="scroll-mt-16 border-y border-border bg-card py-16 md:py-24" aria-labelledby="aira-title">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <SectionHeading
+              id="aira-title"
+              eyebrow="AIRA"
+              title="Agen AI yang bekerja di atas data transaksi Anda"
+              desc="AIRA membaca buku besar yang sama dengan tim keuangan Anda. Ia membantu menjawab pertanyaan dan menyiapkan pekerjaan, sementara keputusan tetap di tangan Anda."
+            />
+            <ul className="flex flex-col gap-3">
+              {AIRA_POINTS.map(({ icon: I, title, desc }) => (
+                <li key={title} className="flex gap-4 rounded-lg border border-border bg-background p-5">
+                  <I className="mt-0.5 size-5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden />
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">{title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground-secondary">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section id="cara-kerja" className="scroll-mt-16 py-16 md:py-24" aria-labelledby="cara-kerja-title">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <SectionHeading id="cara-kerja-title" eyebrow="Cara kerja" title="Tiga langkah, langsung berjalan" />
+            <ol className="mt-10 grid gap-4 md:grid-cols-3">
+              {STEPS.map((s) => (
+                <li key={s.n} className="rounded-lg border border-border bg-card p-6">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden>
+                    {s.n}
+                  </span>
+                  <h3 className="mt-4 text-base font-semibold text-foreground">{s.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-foreground-secondary">{s.desc}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* Principles */}
+        <section className="border-t border-border bg-card py-16 md:py-24" aria-labelledby="prinsip-title">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <SectionHeading
+              id="prinsip-title"
+              eyebrow="Prinsip"
+              title="Dibangun untuk angka yang bisa dipercaya"
+              desc={`${VENDOR} merancang Entaris agar stabil, aman, dan bisa tumbuh bersama bisnis Anda.`}
+            />
+            <ul className="flex flex-col divide-y divide-border">
+              {PRINCIPLES.map(({ icon: I, title, desc }) => (
+                <li key={title} className="flex gap-4 py-5 first:pt-0 last:pb-0">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-primary">
+                    <I className="size-5" strokeWidth={1.75} aria-hidden />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">{title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground-secondary">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="bg-brand-navy py-16 text-white md:py-20" aria-labelledby="cta-title">
+          <div className="mx-auto flex max-w-3xl flex-col items-center px-4 text-center sm:px-6">
+            <BrandMark variant="negative" size={40} title="" />
+            <h2 id="cta-title" className="mt-5 text-2xl font-bold tracking-tight text-white md:text-3xl">
+              Siap merapikan operasional bisnis Anda?
+            </h2>
+            <p className="mt-3 max-w-xl text-base text-white/80">
+              Sudah punya akun? Masuk sekarang. Belum? Hubungi tim kami untuk demo, implementasi, dan migrasi data.
+            </p>
+            <ul className="mt-6 flex flex-col gap-2 text-left text-sm text-white/85">
+              {['Implementasi dan migrasi data didampingi', 'Pelatihan untuk tim Anda', 'Data sepenuhnya milik Anda'].map((t) => (
+                <li key={t} className="inline-flex items-center gap-2">
+                  <Check className="size-4 text-[#9CC9F5]" aria-hidden /> {t}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+              <Link to="/login" className={primaryOnNavy}>
+                <LogIn className="size-4" aria-hidden /> Masuk ke aplikasi
+              </Link>
+              <ContactButtons />
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-border bg-background">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:px-6">
+          {/* Plain lockup: the small Wordmark's #3D8BE0 "TA" is below 4.5:1 on light (axe color-contrast). */}
+          <span className="inline-flex items-center gap-2 font-heading font-bold text-foreground">
+            <BrandMark variant="auto" size={20} title="" /> Entaris
+          </span>
+          <p>
+            © {new Date().getFullYear()} {VENDOR} ·{' '}
+            <a href={`https://${VENDOR_DOMAIN}`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">
+              {VENDOR_DOMAIN}
+            </a>
+          </p>
         </div>
       </footer>
     </div>
   );
 }
-
-const LP_CSS = `
-@keyframes lpw-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-@keyframes lpw-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
-@keyframes lpw-bar { from{height:0} to{height:var(--h)} }
-.lpw-float{animation:lpw-float 6s ease-in-out infinite}
-.lpw-bob{animation:lpw-bob 3s ease-in-out infinite}
-.lpw-bar{height:var(--h);animation:lpw-bar 1s cubic-bezier(.16,1,.3,1) both}
-@media (prefers-reduced-motion: reduce){.lpw-float,.lpw-bob,.lpw-bar{animation:none}}
-`;

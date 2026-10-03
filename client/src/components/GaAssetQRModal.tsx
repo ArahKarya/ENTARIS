@@ -18,6 +18,9 @@ interface Props {
 
 // QR per-aset GA. QR meng-encode URL publik info aset
 // (/aset/<qrCode>) yang resolve ke endpoint publik /api/ga/public/<qrCode>.
+const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+
 const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
   useBodyScrollLock(isOpen);
   const [copied, setCopied] = React.useState(false);
@@ -66,20 +69,38 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
       toast.error('Popup diblokir. Izinkan popup untuk mencetak.');
       return;
     }
-    w.document.write(`<!DOCTYPE html><html><head><title>QR ${asset?.code ?? ''}</title>
+    // Asset code/name are user-entered: escape before writing into the print window.
+    const code = escapeHtml(asset?.code ?? '');
+    const name = escapeHtml(asset?.name ?? '');
+    w.document.write(`<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>QR ${code}</title>
       <style>
-        body{font-family:system-ui,sans-serif;text-align:center;margin:0;padding:24px;color:#111}
-        .code{font-size:18px;font-weight:700;margin-top:12px}
-        .name{font-size:13px;color:#555;margin-top:4px;max-width:300px;margin-left:auto;margin-right:auto}
-        img{width:260px;height:260px;margin-top:8px}
-        @media print{@page{margin:8mm}}
+        *{box-sizing:border-box}
+        body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;padding:24px;color:#1B2B48;background:#fff;display:flex;justify-content:center}
+        .label{width:300px;border:1px solid #CBD5E1;border-radius:12px;padding:16px 16px 14px;text-align:center}
+        img{display:block;width:240px;height:240px;margin:0 auto}
+        .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:17px;font-weight:700;letter-spacing:.02em;margin-top:12px}
+        .name{font-size:12px;color:#46546B;margin-top:4px;line-height:1.35;overflow-wrap:anywhere}
+        .hint{font-size:10px;color:#46546B;margin-top:10px;padding-top:8px;border-top:1px solid #E2E8F0}
+        @media print{@page{margin:8mm}body{padding:0}.label{break-inside:avoid}}
       </style></head><body>
-      <img src="${dataUrl}" alt="QR ${asset?.code ?? ''}" />
-      <div class="code">${asset?.code ?? ''}</div>
-      <div class="name">${asset?.name ?? ''}</div>
-      <script>window.onload=function(){window.print();}<\/script>
+      <div class="label">
+        <img src="${dataUrl}" alt="QR ${code}" />
+        <div class="code">${code}</div>
+        <div class="name">${name}</div>
+        <div class="hint">Pindai untuk melihat info aset</div>
+      </div>
       </body></html>`);
     w.document.close();
+    // Print from the opener: an inline <script> in the popup is blocked by the
+    // production CSP (script-src 'self'). The QR is a data: URL, so it is ready
+    // once the image has decoded.
+    const img = w.document.querySelector('img');
+    const print = () => {
+      w.focus();
+      w.print();
+    };
+    if (img && !img.complete) img.addEventListener('load', print, { once: true });
+    else print();
   };
 
   if (!isOpen || !asset) return null;

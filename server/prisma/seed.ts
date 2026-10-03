@@ -378,7 +378,9 @@ async function main() {
     update: {},
     create: {
       slug: 'default',
-      companyName: 'Nama Perusahaan Anda',
+      // Empty until the admin fills it in Settings; pre-auth pages hide the
+      // workspace chip while it is blank. Existing tenants keep theirs (update: {}).
+      companyName: '',
       address: '',
       phone: '',
       email: '',

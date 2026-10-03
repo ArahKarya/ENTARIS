@@ -1,48 +1,131 @@
-import { Card, CardContent } from '@/components/ui/card';
-import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Minus, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type StatCardProps = {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: LucideIcon;
-  trend?: { value: string; positive: boolean };
-};
+export interface StatDelta {
+  /** Display text, e.g. "+12%" or "Rp 3,2 jt". */
+  value: string;
+  direction: 'up' | 'down' | 'flat';
+  /** Whether "up" is good (revenue) or bad (overdue AR). Default true. */
+  upIsGood?: boolean;
+  /** Context, e.g. "vs bulan lalu". */
+  label?: string;
+}
 
-export function StatCard({ title, value, subtitle, icon: Icon, trend }: StatCardProps) {
+export interface StatCardProps {
+  label?: ReactNode;
+  /** @deprecated use `label` */
+  title?: ReactNode;
+  /** Pre-formatted value (use lib/format). */
+  value: ReactNode;
+  /** Full value for the tooltip when `value` is compact. */
+  valueTitle?: string;
+  hint?: ReactNode;
+  /** @deprecated use `hint` */
+  subtitle?: ReactNode;
+  icon?: LucideIcon;
+  delta?: StatDelta;
+  /** @deprecated use `delta` */
+  trend?: { value: string; positive: boolean };
+  /** Drill-down link; the whole card becomes the link. */
+  href?: string;
+  loading?: boolean;
+  className?: string;
+}
+
+function DeltaChip({ delta }: { delta: StatDelta }) {
+  const { direction, upIsGood = true } = delta;
+  const good = direction === 'flat' ? null : (direction === 'up') === upIsGood;
+  const Icon = direction === 'up' ? ArrowUpRight : direction === 'down' ? ArrowDownRight : Minus;
   return (
-    <Card className="rounded-sm border border-border shadow-xs hover:shadow-sm transition-shadow duration-150">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground truncate">
-              {title}
-            </p>
-            <div className="mt-1.5 flex items-baseline gap-2">
-              <p className="font-tabular text-2xl font-semibold leading-none tracking-tight">
-                {value}
-              </p>
-              {trend && (
-                <span
-                  className={cn(
-                    'font-tabular text-xs font-semibold',
-                    trend.positive ? 'text-[var(--success)]' : 'text-destructive',
-                  )}
-                >
-                  {trend.value}
-                </span>
-              )}
-            </div>
-            {subtitle && (
-              <p className="mt-1.5 text-xs text-muted-foreground truncate">{subtitle}</p>
-            )}
-          </div>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border bg-muted/60">
-            <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-          </div>
+    <span
+      className={cn(
+        'inline-flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-xs font-medium num',
+        good === null && 'bg-neutral-subtle text-neutral-text',
+        good === true && 'bg-success-subtle text-success-text',
+        good === false && 'bg-danger-subtle text-danger-text',
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden />
+      {delta.value}
+    </span>
+  );
+}
+
+export function StatCard({
+  label,
+  title,
+  value,
+  valueTitle,
+  hint,
+  subtitle,
+  icon: Icon,
+  delta,
+  trend,
+  href,
+  loading,
+  className,
+}: StatCardProps) {
+  const effectiveDelta: StatDelta | undefined =
+    delta ?? (trend ? { value: trend.value, direction: trend.positive ? 'up' : 'down' } : undefined);
+  const note = hint ?? subtitle;
+
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label ?? title}
+        </p>
+        {Icon && (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground">
+            <Icon className="size-4" strokeWidth={1.75} aria-hidden />
+          </span>
+        )}
+      </div>
+      {loading ? (
+        <div className="mt-2 h-8 w-32 animate-pulse rounded-md bg-muted" aria-hidden />
+      ) : (
+        <p className="mt-1 font-heading text-[28px] font-bold leading-[34px] tracking-tight text-foreground num" title={valueTitle}>
+          {value}
+        </p>
+      )}
+      {(effectiveDelta || note) && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {effectiveDelta && <DeltaChip delta={effectiveDelta} />}
+          {effectiveDelta?.label && <span>{effectiveDelta.label}</span>}
+          {note && <span className="min-w-0 truncate">{note}</span>}
         </div>
-      </CardContent>
-    </Card>
+      )}
+      {href && (
+        <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+          Lihat detail <ArrowRight className="size-3.5" aria-hidden />
+        </span>
+      )}
+    </>
+  );
+
+  const shell = cn(
+    'block rounded-lg border border-border bg-card p-4 text-card-foreground shadow-[var(--shadow-1)]',
+    className,
+  );
+
+  if (href) {
+    return (
+      <Link
+        to={href}
+        className={cn(
+          shell,
+          'transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        )}
+      >
+        {body}
+      </Link>
+    );
+  }
+  return (
+    <div className={shell} aria-busy={loading || undefined}>
+      {body}
+    </div>
   );
 }
