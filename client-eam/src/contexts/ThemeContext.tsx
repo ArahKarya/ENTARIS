@@ -1,112 +1,110 @@
-import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
+import {
+  DARK_QUERY,
+  DEFAULT_THEME,
+  STALE_THEME_CLASSES,
+  THEME_PACKS,
+  THEME_STORAGE_KEY,
+  normalizeTheme,
+  resolveTheme,
+  type ResolvedTheme,
+  type ThemeId,
+  type ThemeMeta,
+} from '@/lib/theme';
 
-export type ThemeId = 'light' | 'dark' | 'system' | 'bloomberg-dark' | 'bloomberg-light' | 'neo-clean';
+export type { ResolvedTheme, ThemeId, ThemeMeta };
 
-export interface ThemeMeta {
-  id: ThemeId;
-  label: string;
-  description: string;
-  isDark: boolean;
-  isBloomberg?: boolean;
-  isNew?: boolean;
+function readStoredTheme(): ThemeId {
+  try {
+    const raw = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const theme = normalizeTheme(raw);
+    // Migrate legacy values (bloomberg-*, neo-clean, garbage) once.
+    if (raw !== null && raw !== theme) window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    return theme;
+  } catch {
+    return DEFAULT_THEME;
+  }
 }
 
-export const THEME_PACKS: ThemeMeta[] = [
-  { id: 'light',            label: 'Default Light',      description: 'Tampilan terang standar',          isDark: false },
-  { id: 'dark',             label: 'Default Dark',       description: 'Tampilan gelap standar',           isDark: true  },
-  { id: 'system',           label: 'Ikuti Sistem',       description: 'Otomatis sesuai OS',               isDark: false },
-  { id: 'bloomberg-dark',   label: 'Bloomberg Dark',     description: 'Terminal amber-on-black',          isDark: true,  isBloomberg: true },
-  { id: 'bloomberg-light',  label: 'Bloomberg Light',    description: 'Finance navy-on-cream',            isDark: false, isBloomberg: true },
-  { id: 'neo-clean',        label: 'NeoClean',           description: 'Kartu melayang, aksen lime',       isDark: false, isNew: true },
-];
+function writeStoredTheme(theme: ThemeId): void {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    /* storage blocked (private mode): preference lasts for this session only */
+  }
+}
+
+function getSystemDark(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia(DARK_QUERY).matches
+    : false;
+}
+
+function subscribeSystemDark(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
+  const mq = window.matchMedia(DARK_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+}
+
+function applyResolvedTheme(resolved: ResolvedTheme): void {
+  const root = document.documentElement;
+  root.classList.remove(...STALE_THEME_CLASSES, resolved === 'dark' ? 'light' : 'dark');
+  root.classList.add(resolved);
+  root.style.colorScheme = resolved;
+}
 
 interface ThemeContextType {
+  /** Stored preference. */
   theme: ThemeId;
-  resolvedTheme: 'light' | 'dark';
+  /** What is actually rendered (system resolved against the OS). */
+  resolvedTheme: ResolvedTheme;
   setTheme: (theme: ThemeId) => void;
-  themePacks: ThemeMeta[];
+  themePacks: readonly ThemeMeta[];
   currentMeta: ThemeMeta;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const BLOOMBERG_THEMES: ThemeId[] = ['bloomberg-dark', 'bloomberg-light'];
-const ALL_THEME_CLASSES = ['light', 'dark', 'bloomberg-dark', 'bloomberg-light', 'neo-clean'];
-
-function getSystemDark(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-function applyTheme(theme: ThemeId): void {
-  const root = document.documentElement;
-  // Remove all theme classes first
-  ALL_THEME_CLASSES.forEach(c => root.classList.remove(c));
-
-  if (theme === 'system') {
-    root.classList.add(getSystemDark() ? 'dark' : 'light');
-  } else {
-    root.classList.add(theme);
-  }
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>(() => {
-    return (localStorage.getItem('theme') as ThemeId) || 'light';
-  });
+  const [theme, setThemeState] = useState<ThemeId>(readStoredTheme);
+  const systemDark = useSyncExternalStore(subscribeSystemDark, getSystemDark, () => false);
+  const resolvedTheme = resolveTheme(theme, systemDark);
 
-  const resolvedTheme: 'light' | 'dark' = useMemo(() => {
-    if (theme === 'system') return getSystemDark() ? 'dark' : 'light';
-    if (theme === 'bloomberg-dark') return 'dark';
-    if (theme === 'bloomberg-light') return 'light';
-    if (theme === 'neo-clean') return 'light';
-    return theme as 'light' | 'dark';
-  }, [theme]);
+  useEffect(() => {
+    applyResolvedTheme(resolvedTheme);
+  }, [resolvedTheme]);
+
+  const setTheme = useCallback((next: ThemeId) => {
+    const normalized = normalizeTheme(next);
+    writeStoredTheme(normalized);
+    setThemeState(normalized);
+  }, []);
 
   const currentMeta = useMemo(
-    () => THEME_PACKS.find(t => t.id === theme) ?? THEME_PACKS[0],
-    [theme]
+    () => THEME_PACKS.find((t) => t.id === theme) ?? THEME_PACKS[2],
+    [theme],
   );
-
-  const setTheme = (next: ThemeId) => {
-    localStorage.setItem('theme', next);
-    setThemeState(next);
-    applyTheme(next);
-  };
-
-  // Apply on mount + when theme changes
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  // Listen for system preference changes when theme is 'system'
-  useEffect(() => {
-    if (theme !== 'system') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => applyTheme('system');
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [theme]);
 
   const value = useMemo(
     () => ({ theme, resolvedTheme, setTheme, themePacks: THEME_PACKS, currentMeta }),
-    [theme, resolvedTheme, currentMeta] // eslint-disable-line react-hooks/exhaustive-deps
+    [theme, resolvedTheme, setTheme, currentMeta],
   );
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
   return ctx;
-}
-
-// Convenience: check if current theme is a Bloomberg variant
-export function useIsBloomberg(): boolean {
-  const { theme } = useTheme();
-  return BLOOMBERG_THEMES.includes(theme);
 }

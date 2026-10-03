@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
+/** @deprecated prefer `ConfirmDialog` from components/shared (supports tone + reason). */
+
 type AlertDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -15,7 +17,7 @@ type AlertDialogProps = {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: 'destructive' | 'default';
+  variant?: 'danger' | 'primary';
   onConfirm: () => void;
 };
 
@@ -24,14 +26,14 @@ export function AlertDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Delete',
-  cancelLabel = 'Cancel',
-  variant = 'destructive',
+  confirmLabel = 'Hapus',
+  cancelLabel = 'Batal',
+  variant = 'danger',
   onConfirm,
 }: AlertDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent size="sm" role="alertdialog">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

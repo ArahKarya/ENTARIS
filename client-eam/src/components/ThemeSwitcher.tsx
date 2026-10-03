@@ -1,4 +1,5 @@
-import { useTheme, THEME_PACKS, type ThemeId } from '../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { THEME_PACKS, normalizeTheme, type ThemeId } from '../lib/theme';
 
 interface ThemeSwitcherProps {
   /** 'select' = dropdown sederhana, 'cards' = grid kartu visual (untuk halaman Pengaturan) */
@@ -10,41 +11,34 @@ const PREVIEW_COLORS: Record<ThemeId, { bg: string; sidebar: string; accent: str
   'light':           { bg: '#F9FAFB', sidebar: '#FFFFFF', accent: '#4A6FA5', text: '#1F2937' },
   'dark':            { bg: '#1A1D2E', sidebar: '#16192A', accent: '#6B8ACA', text: '#E2E8F0' },
   'system':          { bg: '#E5E7EB', sidebar: '#D1D5DB', accent: '#6B7280', text: '#374151' },
-  'bloomberg-dark':  { bg: '#000000', sidebar: '#0A0A0A', accent: '#FF9900', text: '#E8A020' },
-  'bloomberg-light': { bg: '#F5F4F0', sidebar: '#FFFFFF', accent: '#003366', text: '#1A1A3E' },
-  'neo-clean':       { bg: '#F0F2F5', sidebar: '#FFFFFF', accent: '#C6F135', text: '#1A1A1A' },
 };
 
 function MiniPreview({ themeId }: { themeId: ThemeId }) {
   const c = PREVIEW_COLORS[themeId];
-  const isMono = themeId.startsWith('bloomberg');
-  const isNeo = themeId === 'neo-clean';
-  // NeoClean signature: rounded floating cards, no hard borders
-  const outerRadius = isNeo ? 8 : 4;
-  const cardRadius = isNeo ? 3 : 1;
-  const cardBorder = isNeo ? 'none' : `0.5px solid ${c.accent}`;
-  const cardShadow = isNeo ? '0 1px 3px rgba(0,0,0,0.10)' : 'none';
+  const outerRadius = 4;
+  const cardRadius = 1;
+  const cardBorder = `0.5px solid ${c.accent}`;
   return (
     <div
-      style={{ background: c.bg, borderRadius: outerRadius, overflow: 'hidden', width: 80, height: 52, border: `1.5px solid ${isNeo ? '#E3E6EA' : c.accent}`, flexShrink: 0 }}
+      style={{ background: c.bg, borderRadius: outerRadius, overflow: 'hidden', width: 80, height: 52, border: `1.5px solid ${c.accent}`, flexShrink: 0 }}
       aria-hidden
     >
       {/* mini sidebar */}
       <div style={{ display: 'flex', height: '100%' }}>
-        <div style={{ width: 18, background: c.sidebar, borderRight: isNeo ? 'none' : `1px solid ${c.accent}` }} />
+        <div style={{ width: 18, background: c.sidebar, borderRight: `1px solid ${c.accent}` }} />
         <div style={{ flex: 1, padding: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* topbar */}
-          <div style={{ height: 5, background: c.accent, borderRadius: isNeo ? 999 : 1 }} />
+          <div style={{ height: 5, background: c.accent, borderRadius: 1 }} />
           {/* cards */}
           <div style={{ display: 'flex', gap: 2, flex: 1 }}>
             {[0, 1, 2, 3].map(i => (
-              <div key={i} style={{ flex: 1, background: c.sidebar, border: cardBorder, borderRadius: cardRadius, boxShadow: cardShadow }} />
+              <div key={i} style={{ flex: 1, background: c.sidebar, border: cardBorder, borderRadius: cardRadius }} />
             ))}
           </div>
           {/* table rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {[1, 0.7, 0.5].map((_, i) => (
-              <div key={i} style={{ height: 2.5, background: isMono ? `${c.accent}40` : `${c.text}20`, borderRadius: isNeo ? 999 : 0.5 }} />
+              <div key={i} style={{ height: 2.5, background: `${c.text}20`, borderRadius: 0.5 }} />
             ))}
           </div>
         </div>
@@ -60,7 +54,7 @@ export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitch
     return (
       <select
         value={theme}
-        onChange={e => setTheme(e.target.value as ThemeId)}
+        onChange={e => setTheme(normalizeTheme(e.target.value))}
         className={`border border-border rounded bg-card text-foreground px-3 py-1.5 text-sm cursor-pointer ${className}`}
       >
         {THEME_PACKS.map(t => (
@@ -91,9 +85,6 @@ export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitch
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-sm font-semibold text-foreground">{t.label}</span>
-                {(t.isBloomberg || t.isNew) && (
-                  <span className="rounded bg-primary/15 px-1.5 py-0 text-[9px] font-bold uppercase tracking-wider text-primary">NEW</span>
-                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>
               {active && (

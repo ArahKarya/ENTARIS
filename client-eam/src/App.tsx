@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import api from './lib/api';
 import { can } from './lib/permissions';
 import { useNumberInputGuard } from './hooks/useNumberInputGuard';
@@ -31,6 +31,7 @@ import FixedAssetsPage from './pages/FixedAssetsPage';
 // localStorage selalu fresh (mis. setelah Admin mengubah matriks izin). Server
 // tetap enforce; ini menjaga UI sinkron. 401 → ke /login.
 const ProtectedRoute = () => {
+  const location = useLocation();
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState<boolean>(() => !!localStorage.getItem('user'));
 
@@ -54,7 +55,11 @@ const ProtectedRoute = () => {
     return () => { cancelled = true; };
   }, []);
 
-  if (!authed && !localStorage.getItem('user')) return <Navigate to="/login" replace />;
+  if (!authed && !localStorage.getItem('user')) {
+    // Remember where the user was going; LoginForm returns there after sign-in.
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/login" replace state={{ from }} />;
+  }
   if (!ready) return null; // hindari flash UI sebelum permissions ter-refresh
   return <Outlet />;
 };

@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, CheckCircle2, Mail, MessageSquareText, Phone, Send } from 'lucide-react';
 import api from '../lib/api';
-import { Loader2, CheckCircle2, AlertCircle, Send, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { BrandMark, Field } from '@/components/shared';
 
 interface Branding {
   companyName: string | null;
@@ -25,6 +29,106 @@ const CHANNEL_FROM_SRC: Record<string, string> = {
   'qr-kartu-nama': 'WalkIn',
 };
 
+/** Seed placeholder values that mean "the tenant has not set a company name yet". */
+const PLACEHOLDER_COMPANY_NAMES = new Set(['', 'nama perusahaan anda']);
+
+const ITEMS_MAX = 2000;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type FieldName = 'name' | 'phone' | 'email' | 'itemsText';
+type FieldErrors = Partial<Record<FieldName, string>>;
+const FIELD_ORDER: readonly FieldName[] = ['name', 'phone', 'email', 'itemsText'];
+
+interface FormValues {
+  name: string;
+  phone: string;
+  email: string;
+  itemsText: string;
+}
+
+const EMPTY_FORM: FormValues = { name: '', phone: '', email: '', itemsText: '' };
+
+/** Client-side checks mirror the server schema (routes/public.ts) so bad input never costs a rate-limit slot. */
+function validate(values: FormValues): FieldErrors {
+  const errors: FieldErrors = {};
+  if (values.name.trim().length < 2) errors.name = 'Nama minimal 2 karakter.';
+  const digits = values.phone.replace(/\D/g, '');
+  if (values.phone.trim().length < 8 || digits.length < 8) errors.phone = 'Nomor telepon/WhatsApp minimal 8 digit.';
+  if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) errors.email = 'Format email belum benar.';
+  if (values.itemsText.trim().length < 10) errors.itemsText = 'Tuliskan kebutuhan Anda, minimal 10 karakter.';
+  return errors;
+}
+
+function realCompanyName(name: string | null | undefined): string | null {
+  const trimmed = (name ?? '').trim();
+  return PLACEHOLDER_COMPANY_NAMES.has(trimmed.toLowerCase()) ? null : trimmed;
+}
+
+function initials(name: string): string {
+  const words = name.replace(/^(PT|CV|UD|TB)\.?\s+/i, '').split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || name[0]?.toUpperCase() || '?';
+}
+
+function TenantIdentity({ branding, companyName }: { branding: Branding | null; companyName: string | null }) {
+  if (branding?.logoUrl) {
+    const darkLogo = branding.logoUrlDark || branding.logoUrl;
+    return (
+      <div className="flex h-12 items-center">
+        <img src={branding.logoUrl} alt={companyName ?? 'Logo perusahaan'} className="h-12 max-w-[180px] object-contain dark:hidden" />
+        <img src={darkLogo} alt={companyName ?? 'Logo perusahaan'} className="hidden h-12 max-w-[180px] object-contain dark:block" />
+      </div>
+    );
+  }
+  if (companyName) {
+    return (
+      <div
+        aria-hidden
+        className="flex size-12 items-center justify-center rounded-full bg-primary-subtle font-heading text-base font-bold text-primary-subtle-foreground"
+      >
+        {initials(companyName)}
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden className="flex size-12 items-center justify-center rounded-full bg-primary-subtle text-primary-subtle-foreground">
+      <MessageSquareText className="size-5" strokeWidth={1.75} />
+    </div>
+  );
+}
+
+function ContactLinks({ phone, email }: { phone?: string | null; email?: string | null }) {
+  if (!phone && !email) return null;
+  return (
+    <div className="mt-6 border-t border-border pt-5 text-sm">
+      <p className="text-muted-foreground">Butuh jawaban lebih cepat? Hubungi kami:</p>
+      <ul className="mt-2 flex flex-col items-center gap-1.5">
+        {phone && (
+          <li>
+            <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline">
+              <Phone className="size-4" aria-hidden /> {phone}
+            </a>
+          </li>
+        )}
+        {email && (
+          <li>
+            <a href={`mailto:${email}`} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline">
+              <Mail className="size-4" aria-hidden /> {email}
+            </a>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function PoweredBy() {
+  return (
+    <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+      Formulir oleh <BrandMark variant="auto" size={14} title="" /> <span className="font-semibold">Entaris</span>
+    </p>
+  );
+}
+
 export default function PublicInquiry() {
   const [searchParams] = useSearchParams();
   const srcParam = searchParams.get('src')?.toLowerCase() ?? '';
@@ -33,199 +137,200 @@ export default function PublicInquiry() {
   const [branding, setBranding] = useState<Branding | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ inquiryNumber: string; message: string } | null>(null);
-  const [error, setError] = useState('');
-
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [itemsText, setItemsText] = useState('');
+  const [formError, setFormError] = useState('');
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [values, setValues] = useState<FormValues>(EMPTY_FORM);
   const [website, setWebsite] = useState(''); // honeypot
 
+  const companyName = realCompanyName(branding?.companyName);
+
   useEffect(() => {
-    document.title = 'Tanya Harga / Pemesanan';
     api.get('/public/branding')
       .then((r) => setBranding(r.data))
       .catch(() => setBranding(null));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    document.title = companyName ? `Tanya Harga · ${companyName}` : 'Tanya Harga & Pemesanan';
+  }, [companyName]);
+
+  const setField = (field: FieldName, value: string) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => key !== field)) as FieldErrors);
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
-    if (name.trim().length < 2) { setError('Nama minimal 2 karakter.'); return; }
-    if (phone.trim().length < 8) { setError('Nomor telepon/WA minimal 8 digit.'); return; }
-    if (itemsText.trim().length < 10) { setError('Tuliskan permintaan Anda (minimal 10 karakter).'); return; }
+    setFormError('');
+    const nextErrors = validate(values);
+    setErrors(nextErrors);
+    const firstInvalid = FIELD_ORDER.find((f) => nextErrors[f]);
+    if (firstInvalid) {
+      document.getElementById(`inquiry-${firstInvalid}`)?.focus();
+      return;
+    }
 
     setSubmitting(true);
     try {
       const res = await api.post('/public/inquiry', {
-        prospectName: name.trim(),
-        prospectPhone: phone.trim(),
-        prospectEmail: email.trim() || null,
-        itemsText: itemsText.trim(),
+        prospectName: values.name.trim(),
+        prospectPhone: values.phone.trim(),
+        prospectEmail: values.email.trim() || null,
+        itemsText: values.itemsText.trim(),
         channel,
         website,
       });
-      setSuccess({
-        inquiryNumber: res.data.inquiryNumber,
-        message: res.data.message,
-      });
-    } catch (err: any) {
-      setError(err.response?.data?.error ?? 'Gagal mengirim permintaan. Silakan coba lagi.');
+      setSuccess({ inquiryNumber: res.data.inquiryNumber, message: res.data.message });
+    } catch (err: unknown) {
+      const apiError = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setFormError(apiError ?? 'Permintaan belum terkirim. Periksa koneksi Anda lalu coba lagi.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const companyName = branding?.companyName || 'Perusahaan Kami';
-  const logoSrc = branding?.logoUrl || '/pwa-192x192.png';
+  const resetForm = () => {
+    setSuccess(null);
+    setValues(EMPTY_FORM);
+    setErrors({});
+  };
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 sm:p-8 text-center">
-          <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
-            <CheckCircle2 size={32} className="text-green-600" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Terima Kasih!</h1>
-          <p className="text-sm text-gray-600 mb-4">{success.message}</p>
-          <div className="bg-gray-50 rounded-lg p-3 mb-5">
-            <p className="text-xs text-gray-500">Nomor Referensi:</p>
-            <p className="font-mono text-sm font-semibold text-gray-900">{success.inquiryNumber}</p>
-          </div>
-          {(branding?.phone || branding?.email) && (
-            <p className="text-xs text-gray-500">
-              Butuh tindakan cepat? Hubungi kami:
-              {branding.phone && <><br />📞 {branding.phone}</>}
-              {branding.email && <><br />✉️ {branding.email}</>}
-            </p>
-          )}
-          <button
-            onClick={() => { setSuccess(null); setName(''); setPhone(''); setEmail(''); setItemsText(''); }}
-            className="mt-5 text-xs text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
-          >
-            <ArrowLeft size={12} /> Kirim permintaan lain
-          </button>
+      <main className="flex min-h-dvh items-start justify-center bg-background px-4 py-10 sm:items-center">
+        <div className="w-full max-w-md">
+          <section className="rounded-xl border border-border bg-card p-6 text-center shadow-[var(--shadow-2)] sm:p-8" aria-live="polite">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-success-subtle">
+              <CheckCircle2 className="size-7 text-success-text" aria-hidden />
+            </div>
+            <h1 className="text-xl font-semibold text-foreground">Terima kasih, permintaan terkirim</h1>
+            <p className="mt-2 text-sm text-foreground-secondary">{success.message}</p>
+            <div className="mt-5 rounded-lg bg-surface-sunken px-4 py-3">
+              <p className="text-xs text-muted-foreground">Nomor referensi</p>
+              <p className="mt-0.5 font-mono text-base font-semibold text-foreground">{success.inquiryNumber}</p>
+            </div>
+            <ContactLinks phone={branding?.phone} email={branding?.email} />
+            <Button variant="ghost" size="sm" className="mt-5" onClick={resetForm}>
+              <ArrowLeft aria-hidden /> Kirim permintaan lain
+            </Button>
+          </section>
+          <PoweredBy />
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-start sm:items-center justify-center p-4 py-8">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
-        {/* Branded header */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 px-6 py-6 text-white">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center overflow-hidden">
-              <img src={logoSrc} alt={companyName} className="w-10 h-10 object-contain" />
-            </div>
+    <main className="flex min-h-dvh items-start justify-center bg-background px-4 py-8 sm:items-center sm:py-12">
+      <div className="w-full max-w-md">
+        <section className="rounded-xl border border-border bg-card shadow-[var(--shadow-2)]">
+          <header className="flex flex-col items-center gap-3 border-b border-border px-5 pb-5 pt-6 text-center sm:px-8 sm:pt-8">
+            <TenantIdentity branding={branding} companyName={companyName} />
             <div>
-              <p className="text-xs uppercase tracking-wider opacity-80">Tanya Harga / Pemesanan</p>
-              <p className="font-bold text-base">{companyName}</p>
+              {companyName && <p className="text-sm font-medium text-foreground-secondary">{companyName}</p>}
+              <h1 className="mt-0.5 text-xl font-semibold text-foreground">Tanya Harga &amp; Pemesanan</h1>
             </div>
-          </div>
-          <p className="text-xs text-blue-100 leading-relaxed">
-            Isi form di bawah dengan kebutuhan Anda. Tim sales kami akan menghubungi Anda dalam 1×24 jam dengan penawaran harga &amp; ketersediaan stok.
-          </p>
-        </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Ceritakan kebutuhan Anda. Tim sales akan menghubungi Anda dalam 1×24 jam dengan penawaran harga dan
+              ketersediaan stok.
+            </p>
+          </header>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
-          {/* Honeypot — hidden from real users */}
-          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }} aria-hidden="true">
-            <label>Website (jangan diisi)
-              <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
-            </label>
-          </div>
-
-          <div>
-            <label htmlFor="name" className="block text-xs font-semibold text-gray-700 mb-1">
-              Nama / Nama Perusahaan <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Pak Budi / PT Sukses Makmur"
-              maxLength={200}
-              required
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="phone" className="block text-xs font-semibold text-gray-700 mb-1">
-              Telepon / WhatsApp <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="08xx-xxxx-xxxx"
-              maxLength={50}
-              required
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-xs font-semibold text-gray-700 mb-1">
-              Email <span className="text-gray-400 font-normal">(opsional)</span>
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@domain.com"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="itemsText" className="block text-xs font-semibold text-gray-700 mb-1">
-              Apa yang ingin Anda tanyakan? <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="itemsText"
-              value={itemsText}
-              onChange={(e) => setItemsText(e.target.value)}
-              rows={5}
-              placeholder="Mis: Saya butuh Produk A 25 kg 100 sak dan Produk B 2 ton, mohon info harga & ketersediaan stok untuk delivery pekan depan ke kota kami."
-              maxLength={2000}
-              required
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
-            <p className="text-[11px] text-gray-400 mt-1">{itemsText.length} / 2000 karakter</p>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2.5">
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 px-5 py-6 sm:px-8" aria-label="Formulir tanya harga">
+            {/* Honeypot — hidden from real users and assistive tech. */}
+            <div className="absolute -left-[9999px] -top-[9999px]" aria-hidden="true">
+              <label>
+                Website (jangan diisi)
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+              </label>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-3 rounded-lg transition-colors"
-          >
-            {submitting ? (
-              <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
-            ) : (
-              <><Send size={16} /> Kirim Permintaan</>
+            <Field label="Nama / nama perusahaan" required error={errors.name} id="inquiry-name">
+              <Input
+                name="name"
+                autoComplete="name"
+                autoCapitalize="words"
+                value={values.name}
+                onChange={(e) => setField('name', e.target.value)}
+                placeholder="Contoh: Budi / PT Sukses Makmur"
+                maxLength={200}
+                className="h-11 md:h-10"
+              />
+            </Field>
+
+            <Field label="Telepon / WhatsApp" required error={errors.phone} id="inquiry-phone">
+              <Input
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={values.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+                placeholder="08xx-xxxx-xxxx"
+                maxLength={50}
+                className="h-11 md:h-10"
+              />
+            </Field>
+
+            <Field
+              label={<>Email <span className="font-normal text-muted-foreground">(opsional)</span></>}
+              error={errors.email}
+              id="inquiry-email"
+            >
+              <Input
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={values.email}
+                onChange={(e) => setField('email', e.target.value)}
+                placeholder="nama@perusahaan.com"
+                maxLength={200}
+                className="h-11 md:h-10"
+              />
+            </Field>
+
+            <Field
+              label="Apa yang ingin Anda tanyakan?"
+              required
+              error={errors.itemsText}
+              hint={`Sebutkan produk, jumlah, dan kota pengiriman. ${values.itemsText.length}/${ITEMS_MAX} karakter.`}
+              id="inquiry-itemsText"
+            >
+              <Textarea
+                name="itemsText"
+                value={values.itemsText}
+                onChange={(e) => setField('itemsText', e.target.value)}
+                rows={5}
+                placeholder="Contoh: Butuh Produk A 25 kg sebanyak 100 sak, dikirim ke Bandung pekan depan."
+                maxLength={ITEMS_MAX}
+                className="min-h-32 resize-y"
+              />
+            </Field>
+
+            {formError && (
+              <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger-subtle px-3 py-2.5 text-sm text-danger-text">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>{formError}</span>
+              </div>
             )}
-          </button>
 
-          <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-            Dengan mengirim form ini, Anda mengizinkan kami menyimpan data kontak untuk keperluan tindak lanjut penawaran.
-          </p>
-        </form>
+            <Button type="submit" size="lg" loading={submitting} className="h-11 w-full">
+              {!submitting && <Send aria-hidden />}
+              {submitting ? 'Mengirim…' : 'Kirim permintaan'}
+            </Button>
+
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
+              Dengan mengirim formulir ini, Anda setuju data kontak disimpan untuk menindaklanjuti penawaran.
+            </p>
+          </form>
+        </section>
+        <PoweredBy />
       </div>
-    </div>
+    </main>
   );
 }

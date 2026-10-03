@@ -8,8 +8,12 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Industrial Professional Theme — Tailwind 4 @theme inline
-   OKLCH color space, WCAG 2.2 AA contrast, steel blue primary
+   Entaris design tokens (brand: docs/brand/entaris/README.md)
+   Themes: light (:root) and dark (.dark). Every text pair ≥4.5:1 and every
+   non-text pair ≥3:1 — verified by `node scripts/contrast-check.mjs`.
+   Tailwind utilities are exposed through @theme inline below; the shadcn alias
+   names (--primary, --card, --muted-foreground, ...) map onto the new tokens so
+   existing pages keep working.
    ──────────────────────────────────────────────────────────────────────────── */
 @theme inline {
   --color-background: var(--background);
@@ -29,544 +33,302 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
 
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
 
+  /* Brand */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-2: var(--brand-navy-2);
+  --color-brand-accent: var(--brand-accent);
+  --color-aira: var(--aira);
+
+  /* Surfaces & text levels */
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-foreground-secondary: var(--text-secondary);
+  --color-border-strong: var(--border-strong);
+  --color-overlay: var(--overlay);
+
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Primary */
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-subtle-foreground: var(--primary-subtle-foreground);
+
+  /* Semantic: solid / -foreground (text on solid) / -subtle (tint) / -text (text on tint or surface) */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-text: var(--success-text);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-text: var(--warning-text);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-text: var(--danger-text);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-text: var(--info-text);
+  --color-neutral-subtle: var(--neutral-subtle);
+  --color-neutral-text: var(--neutral-text);
+
+  /* shadcn aliases */
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* WCAG 2.2 AA — every foreground/background pair ≥4.5:1 for text */
-:root {
-  --background: oklch(0.99 0.002 250);
-  --foreground: oklch(0.18 0.015 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.015 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.015 250);
+@theme {
+  /* Radius scale: sm 4 (badge, checkbox) · md 6 (input, button) · lg 8 (card,
+     popover) · xl 12 (modal, sheet) · full (avatar, pill) */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+}
 
-  --primary: oklch(0.42 0.13 245);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.005 250);
-  --secondary-foreground: oklch(0.24 0.02 250);
-  --muted: oklch(0.96 0.004 250);
-  --muted-foreground: oklch(0.42 0.012 250);
-  --accent: oklch(0.94 0.008 250);
-  --accent-foreground: oklch(0.24 0.02 250);
+/* ─── Light theme (default; .light forces it inside a dark subtree) ─────── */
+:root,
+.light {
+  /* Brand palette (docs/brand/entaris) */
+  --brand-navy: #1B2B48;
+  --brand-navy-2: #22385C;
+  --brand-blue: #3D8BE0;
+  --brand-blue-mid: #2E5CA8;
+  --brand-blue-light: #9CC9F5;
+  --brand-accent: #3D8BE0;
 
-  --destructive: oklch(0.5 0.19 27);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.54 0.14 155);
-  --success-foreground: oklch(1 0 0);
-  --warning: oklch(0.62 0.13 70);
-  --warning-foreground: oklch(0.14 0.02 70);
-  --info: oklch(0.48 0.14 235);
-  --info-foreground: oklch(1 0 0);
+  /* Surfaces */
+  --background: #F6F8FB;
+  --surface: #FFFFFF;
+  --surface-sunken: #EEF2F7;
+  --surface-raised: #FFFFFF;
+  --surface-hover: #EAEFF6;
 
-  --border: oklch(0.9 0.004 250);
-  --input: oklch(0.9 0.004 250);
-  --ring: oklch(0.42 0.13 245);
+  /* Borders: --border is decorative; --input/--border-strong carry meaning (≥3:1) */
+  --border: #E2E7EF;
+  --border-strong: #808B9D;
+  --input: #808B9D;
 
-  --chart-1: oklch(0.48 0.14 245);
-  --chart-2: oklch(0.54 0.14 155);
-  --chart-3: oklch(0.62 0.13 70);
-  --chart-4: oklch(0.52 0.14 310);
-  --chart-5: oklch(0.58 0.12 30);
+  /* Text levels */
+  --text: #142033;
+  --text-secondary: #46546B;
+  --text-muted: #5B687C;
+
+  /* Primary (buttons, links) */
+  --primary: #2F6FC4;
+  --primary-hover: #285FA9;
+  --primary-foreground: #FFFFFF;
+  --primary-subtle: #EEF4FD;
+  --primary-subtle-foreground: #1F4E8C;
+  /* Solid fill that always carries white text (legacy bg-blue-600 text-white) */
+  --primary-solid: #2F6FC4;
+  --primary-solid-hover: #285FA9;
+  --ring: #3D8BE0;
+
+  /* Semantic */
+  --success: #1A7F51;
+  --success-foreground: #FFFFFF;
+  --success-subtle: #E7F5EE;
+  --success-text: #14663F;
+  --warning: #B97E0F;
+  --warning-foreground: #1F1503;
+  --warning-subtle: #FDF3E1;
+  --warning-text: #7D5100;
+  --danger: #C8372D;
+  --danger-hover: #A92E25;
+  --danger-foreground: #FFFFFF;
+  --danger-subtle: #FCEBE9;
+  --danger-text: #9B2219;
+  --info: #0B7A88;
+  --info-foreground: #FFFFFF;
+  --info-subtle: #E4F5F7;
+  --info-text: #0B6470;
+  --neutral-subtle: #EEF1F5;
+  --neutral-text: #46546B;
+
+  /* Charts: brand ramp + teal/amber for contrast between series */
+  --chart-1: #1B2B48;
+  --chart-2: #2F6FC4;
+  --chart-3: #0E8A9A;
+  --chart-4: #A86F0A;
+  --chart-5: #3D8BE0;
+  --chart-6: #77839A;
+
+  --overlay: rgb(15 23 38 / 0.5);
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px 0 rgb(20 32 51 / 0.05), 0 1px 3px 0 rgb(20 32 51 / 0.04);
+  --shadow-2: 0 4px 12px -2px rgb(20 32 51 / 0.12), 0 2px 4px -2px rgb(20 32 51 / 0.06);
+  --shadow-3: 0 16px 40px -8px rgb(20 32 51 / 0.24), 0 4px 12px -4px rgb(20 32 51 / 0.1);
+
+  /* Z-index scale */
+  --z-sticky: 30;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-popover: 65;
+  --z-toast: 70;
+  --z-palette: 80;
+
+  color-scheme: light;
+}
+
+/* ─── Dark theme ─────────────────────────────────────────────────────────── */
+.dark {
+  --brand-navy: #0F1A2E;
+  --brand-navy-2: #1A2942;
+  --brand-accent: #6FA8EC;
+
+  --background: #0D1524;
+  --surface: #131D2F;
+  --surface-sunken: #0F1828;
+  --surface-raised: #1A263B;
+  --surface-hover: #1D2A40;
+
+  --border: #24324A;
+  --border-strong: #63738D;
+  --input: #63738D;
+
+  --text: #E8EDF5;
+  --text-secondary: #B4C0D2;
+  --text-muted: #8C9AAF;
+
+  --primary: #5B9BE8;
+  --primary-hover: #74ABEC;
+  --primary-foreground: #0D1524;
+  --primary-subtle: #1A2F4F;
+  --primary-subtle-foreground: #A9CCF4;
+  --primary-solid: #2F6FC4;
+  --primary-solid-hover: #2A65B4;
+  --ring: #6FA8EC;
+
+  --success: #3DBE82;
+  --success-foreground: #0D1524;
+  --success-subtle: #12301F;
+  --success-text: #7CD9AA;
+  --warning: #E5A93A;
+  --warning-foreground: #0D1524;
+  --warning-subtle: #33270F;
+  --warning-text: #F1C877;
+  --danger: #EF6B61;
+  --danger-hover: #F28A82;
+  --danger-foreground: #0D1524;
+  --danger-subtle: #3A1A18;
+  --danger-text: #F6A29B;
+  --info: #3BB7C6;
+  --info-foreground: #0D1524;
+  --info-subtle: #0F2E33;
+  --info-text: #86D6E0;
+  --neutral-subtle: #1D2A40;
+  --neutral-text: #B4C0D2;
+
+  --chart-1: #9CC9F5;
+  --chart-2: #5B9BE8;
+  --chart-3: #3BB7C6;
+  --chart-4: #E5A93A;
+  --chart-5: #3D8BE0;
+  --chart-6: #8C9AAF;
+
+  --overlay: rgb(3 6 12 / 0.65);
+
+  --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-3: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 4px 12px -4px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+/* ─── Aliases: re-declared per theme scope so a nested .light/.dark subtree
+   (e.g. the /_ui review page) resolves them against its own tokens ────── */
+:root,
+.light,
+.dark {
+  --aira: var(--brand-accent);
+  --shadow-focus: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  /* Legacy shadow names */
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
 
   --radius: 0.375rem;
 
-  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.05), 0 1px 3px 0 oklch(0 0 0 / 0.04);
-  --shadow-md: 0 2px 4px -1px oklch(0 0 0 / 0.06), 0 4px 8px -2px oklch(0 0 0 / 0.05);
+  /* shadcn aliases → tokens */
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--text);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--danger-foreground);
 
-  --sidebar: oklch(0.99 0.002 250);
-  --sidebar-foreground: oklch(0.3 0.015 250);
-  --sidebar-primary: oklch(0.42 0.13 245);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.95 0.01 245);
-  --sidebar-accent-foreground: oklch(0.28 0.03 245);
-  --sidebar-border: oklch(0.9 0.004 250);
-  --sidebar-ring: oklch(0.42 0.13 245);
+  /* Sidebar (stays on the light surface until the Phase 2 shell work) */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-subtle);
+  --sidebar-accent-foreground: var(--primary-subtle-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 
-  /* Legacy aliases (mapped to new tokens) — keeps existing components working */
+  /* Legacy aliases (inline style={{ color: 'var(--color-…)' }}) */
   --color-bg-primary: var(--card);
   --color-bg-secondary: var(--background);
   --color-bg-tertiary: var(--secondary);
-  --color-text-primary: var(--foreground);
-  --color-text-secondary: var(--muted-foreground);
-  --color-text-muted: var(--muted-foreground);
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-border-light: var(--border);
   --color-card-bg: var(--card);
   --color-input-bg: var(--card);
   --color-hover: var(--accent);
 
-  color-scheme: light;
 }
-
 .dark {
-  --background: oklch(0.15 0.012 250);
-  --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.2 0.015 250);
-  --card-foreground: oklch(0.96 0.005 250);
-  --popover: oklch(0.2 0.015 250);
-  --popover-foreground: oklch(0.96 0.005 250);
-
-  --primary: oklch(0.7 0.13 245);
-  --primary-foreground: oklch(0.14 0.015 250);
-  --secondary: oklch(0.24 0.015 250);
-  --secondary-foreground: oklch(0.94 0.005 250);
-  --muted: oklch(0.24 0.015 250);
-  --muted-foreground: oklch(0.76 0.012 250);
-  --accent: oklch(0.28 0.02 250);
-  --accent-foreground: oklch(0.94 0.005 250);
-
-  --destructive: oklch(0.7 0.17 25);
-  --destructive-foreground: oklch(0.14 0.015 250);
-  --success: oklch(0.72 0.14 155);
-  --success-foreground: oklch(0.14 0.015 250);
-  --warning: oklch(0.78 0.13 70);
-  --warning-foreground: oklch(0.14 0.015 250);
-  --info: oklch(0.72 0.13 235);
-  --info-foreground: oklch(0.14 0.015 250);
-
-  --border: oklch(1 0 0 / 16%);
-  --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.7 0.13 245);
-
-  --chart-1: oklch(0.7 0.14 245);
-  --chart-2: oklch(0.72 0.14 155);
-  --chart-3: oklch(0.76 0.13 70);
-  --chart-4: oklch(0.7 0.15 310);
-  --chart-5: oklch(0.72 0.12 30);
-
-  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.3);
-  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.35), 0 1px 3px 0 oklch(0 0 0 / 0.28);
-  --shadow-md: 0 2px 4px -1px oklch(0 0 0 / 0.4), 0 4px 8px -2px oklch(0 0 0 / 0.32);
-
-  --sidebar: oklch(0.17 0.012 250);
-  --sidebar-foreground: oklch(0.92 0.005 250);
-  --sidebar-primary: oklch(0.7 0.13 245);
-  --sidebar-primary-foreground: oklch(0.14 0.015 250);
-  --sidebar-accent: oklch(0.24 0.02 250);
-  --sidebar-accent-foreground: oklch(0.94 0.005 250);
-  --sidebar-border: oklch(1 0 0 / 14%);
-  --sidebar-ring: oklch(0.7 0.13 245);
-
-  color-scheme: dark;
+  --sidebar: var(--surface-sunken);
 }
 
-/* ─── THEME PACK: Bloomberg Dark ───────────────────────────────────────────
-   Amber-on-black terminal style. Font switches to monospace globally.
-   ─────────────────────────────────────────────────────────────────────────── */
-.bloomberg-dark {
-  --background: oklch(0.05 0 0);
-  --foreground: oklch(0.9 0.08 70);
-  --card: oklch(0.08 0 0);
-  --card-foreground: oklch(0.88 0.07 70);
-  --popover: oklch(0.08 0 0);
-  --popover-foreground: oklch(0.88 0.07 70);
-
-  --primary: oklch(0.72 0.14 70);
-  --primary-foreground: oklch(0.05 0 0);
-  --secondary: oklch(0.12 0 0);
-  --secondary-foreground: oklch(0.75 0.06 70);
-  --muted: oklch(0.12 0 0);
-  --muted-foreground: oklch(0.52 0.04 70);
-  --accent: oklch(0.15 0.01 70);
-  --accent-foreground: oklch(0.85 0.08 70);
-
-  --destructive: oklch(0.55 0.22 27);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.62 0.2 145);
-  --success-foreground: oklch(0.05 0 0);
-  --warning: oklch(0.72 0.14 70);
-  --warning-foreground: oklch(0.05 0 0);
-  --info: oklch(0.62 0.15 220);
-  --info-foreground: oklch(0.05 0 0);
-
-  --border: oklch(0.18 0.01 70);
-  --input: oklch(0.15 0.01 70);
-  --ring: oklch(0.72 0.14 70);
-
-  --chart-1: oklch(0.72 0.14 70);
-  --chart-2: oklch(0.62 0.2 145);
-  --chart-3: oklch(0.55 0.22 27);
-  --chart-4: oklch(0.62 0.15 220);
-  --chart-5: oklch(0.65 0.18 310);
-
-  --radius: 0.125rem;
-
-  --sidebar: oklch(0.06 0 0);
-  --sidebar-foreground: oklch(0.75 0.06 70);
-  --sidebar-primary: oklch(0.72 0.14 70);
-  --sidebar-primary-foreground: oklch(0.05 0 0);
-  --sidebar-accent: oklch(0.12 0.01 70);
-  --sidebar-accent-foreground: oklch(0.85 0.08 70);
-  --sidebar-border: oklch(0.2 0.01 70);
-  --sidebar-ring: oklch(0.72 0.14 70);
-
-  color-scheme: dark;
+/* Numeric cells: tabular, lining figures, never wrapped */
+@utility num {
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
 }
-
-/* ─── THEME PACK: Bloomberg Light ──────────────────────────────────────────
-   Navy-on-cream formal finance style. Monospace + structured layout feel.
-   ─────────────────────────────────────────────────────────────────────────── */
-.bloomberg-light {
-  --background: oklch(0.97 0.005 80);
-  --foreground: oklch(0.15 0.02 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 250);
-
-  --primary: oklch(0.28 0.1 250);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.93 0.01 80);
-  --secondary-foreground: oklch(0.22 0.03 250);
-  --muted: oklch(0.93 0.008 80);
-  --muted-foreground: oklch(0.42 0.03 250);
-  --accent: oklch(0.9 0.015 250);
-  --accent-foreground: oklch(0.2 0.04 250);
-
-  --destructive: oklch(0.48 0.22 27);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.38 0.14 145);
-  --success-foreground: oklch(1 0 0);
-  --warning: oklch(0.52 0.12 65);
-  --warning-foreground: oklch(0.1 0.02 65);
-  --info: oklch(0.38 0.12 220);
-  --info-foreground: oklch(1 0 0);
-
-  --border: oklch(0.83 0.01 80);
-  --input: oklch(0.83 0.01 80);
-  --ring: oklch(0.28 0.1 250);
-
-  --chart-1: oklch(0.28 0.1 250);
-  --chart-2: oklch(0.38 0.14 145);
-  --chart-3: oklch(0.52 0.12 65);
-  --chart-4: oklch(0.38 0.12 220);
-  --chart-5: oklch(0.45 0.14 310);
-
-  --radius: 0.125rem;
-
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.3 0.02 250);
-  --sidebar-primary: oklch(0.28 0.1 250);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.93 0.015 250);
-  --sidebar-accent-foreground: oklch(0.2 0.04 250);
-  --sidebar-border: oklch(0.28 0.1 250);
-  --sidebar-ring: oklch(0.28 0.1 250);
-
-  color-scheme: light;
-}
-
-/* ─── THEME PACK: NeoClean ─────────────────────────────────────────────────
-   Modern SaaS dashboard style. Light gray canvas, floating white cards with
-   large radius + soft shadow, neon lime accent, near-black emphasis.
-   Inspired by contemporary health/fintech dashboards.
-   ─────────────────────────────────────────────────────────────────────────── */
-.neo-clean {
-  --background: oklch(0.96 0.002 250);
-  --foreground: oklch(0.18 0.004 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.004 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.004 250);
-
-  /* Lime accent — #C6F135 in oklch */
-  --primary: oklch(0.9 0.2 122);
-  --primary-foreground: oklch(0.18 0.004 250);
-  --secondary: oklch(0.94 0.003 250);
-  --secondary-foreground: oklch(0.24 0.006 250);
-  --muted: oklch(0.95 0.002 250);
-  --muted-foreground: oklch(0.52 0.008 250);
-  --accent: oklch(0.93 0.004 250);
-  --accent-foreground: oklch(0.22 0.006 250);
-
-  --destructive: oklch(0.58 0.2 25);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.72 0.17 145);
-  --success-foreground: oklch(0.18 0.004 250);
-  --warning: oklch(0.75 0.15 75);
-  --warning-foreground: oklch(0.18 0.004 250);
-  --info: oklch(0.6 0.15 240);
-  --info-foreground: oklch(1 0 0);
-
-  --border: oklch(0.91 0.003 250);
-  --input: oklch(0.93 0.003 250);
-  --ring: oklch(0.9 0.2 122);
-
-  --chart-1: oklch(0.2 0.006 250);
-  --chart-2: oklch(0.9 0.2 122);
-  --chart-3: oklch(0.72 0.17 145);
-  --chart-4: oklch(0.75 0.15 75);
-  --chart-5: oklch(0.62 0.14 240);
-
-  /* Large radius — signature of this style */
-  --radius: 0.875rem;
-
-  --shadow-xs: 0 1px 3px 0 oklch(0 0 0 / 0.04);
-  --shadow-sm: 0 2px 8px 0 oklch(0 0 0 / 0.05);
-  --shadow-md: 0 2px 12px 0 oklch(0 0 0 / 0.06);
-
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.32 0.006 250);
-  --sidebar-primary: oklch(0.18 0.004 250);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.95 0.002 250);
-  --sidebar-accent-foreground: oklch(0.2 0.006 250);
-  --sidebar-border: oklch(0.92 0.003 250);
-  --sidebar-ring: oklch(0.9 0.2 122);
-
-  color-scheme: light;
-}
-
-/* ─── NeoClean COMPAT LAYER ────────────────────────────────────────────────
-   Remap hardcoded Tailwind utilities so every existing component adopts the
-   theme without touching a single component file.
-   ─────────────────────────────────────────────────────────────────────────── */
-
-/* Surfaces */
-.neo-clean .bg-white { background-color: var(--card) !important; }
-.neo-clean .bg-gray-50, .neo-clean .bg-neutral-50,
-.neo-clean .bg-slate-50, .neo-clean .bg-zinc-50 { background-color: var(--secondary) !important; }
-.neo-clean .bg-gray-100, .neo-clean .bg-neutral-100,
-.neo-clean .bg-slate-100, .neo-clean .bg-zinc-100 { background-color: var(--muted) !important; }
-.neo-clean .bg-gray-200, .neo-clean .bg-neutral-200,
-.neo-clean .bg-slate-200, .neo-clean .bg-zinc-200 { background-color: var(--accent) !important; }
-
-/* Text */
-.neo-clean .text-gray-900, .neo-clean .text-gray-800, .neo-clean .text-gray-700,
-.neo-clean .text-neutral-900, .neo-clean .text-neutral-800, .neo-clean .text-neutral-700,
-.neo-clean .text-slate-900, .neo-clean .text-slate-800, .neo-clean .text-slate-700,
-.neo-clean .text-zinc-900, .neo-clean .text-zinc-800, .neo-clean .text-zinc-700 { color: var(--foreground) !important; }
-.neo-clean .text-gray-600, .neo-clean .text-gray-500, .neo-clean .text-gray-400,
-.neo-clean .text-neutral-600, .neo-clean .text-neutral-500, .neo-clean .text-neutral-400,
-.neo-clean .text-slate-600, .neo-clean .text-slate-500, .neo-clean .text-slate-400,
-.neo-clean .text-zinc-600, .neo-clean .text-zinc-500, .neo-clean .text-zinc-400 { color: var(--muted-foreground) !important; }
-
-/* Borders */
-.neo-clean .border-gray-200, .neo-clean .border-gray-300, .neo-clean .border-gray-100,
-.neo-clean .border-neutral-200, .neo-clean .border-neutral-300, .neo-clean .border-neutral-100,
-.neo-clean .border-slate-200, .neo-clean .border-slate-300, .neo-clean .border-slate-100,
-.neo-clean .border-zinc-200, .neo-clean .border-zinc-300, .neo-clean .border-zinc-100 { border-color: var(--border) !important; }
-
-/* Primary action: blue → near-black (lime reserved for positive/active accents) */
-.neo-clean .bg-blue-600, .neo-clean .bg-blue-700, .neo-clean .bg-blue-500 {
-  background-color: oklch(0.18 0.004 250) !important;
-  color: oklch(1 0 0) !important;
-}
-.neo-clean .text-blue-600, .neo-clean .text-blue-700, .neo-clean .text-blue-500 { color: var(--foreground) !important; }
-.neo-clean .border-blue-600, .neo-clean .border-blue-500 { border-color: oklch(0.18 0.004 250) !important; }
-.neo-clean .ring-blue-500, .neo-clean .focus\:ring-blue-500:focus { --tw-ring-color: var(--ring) !important; }
-
-/* Hover states */
-.neo-clean .hover\:bg-gray-50:hover, .neo-clean .hover\:bg-neutral-50:hover,
-.neo-clean .hover\:bg-slate-50:hover { background-color: var(--accent) !important; }
-.neo-clean .hover\:bg-gray-100:hover, .neo-clean .hover\:bg-neutral-100:hover { background-color: var(--muted) !important; }
-.neo-clean .hover\:bg-blue-700:hover, .neo-clean .hover\:bg-blue-600:hover {
-  background-color: oklch(0.26 0.006 250) !important;
-}
-
-/* Signature shape: generous rounding + soft shadow, no hard borders */
-.neo-clean .rounded, .neo-clean .rounded-md { border-radius: 0.625rem !important; }
-.neo-clean .rounded-lg { border-radius: 0.875rem !important; }
-.neo-clean .rounded-xl, .neo-clean .rounded-2xl { border-radius: 1.25rem !important; }
-.neo-clean .shadow-sm, .neo-clean .shadow, .neo-clean .shadow-md {
-  box-shadow: 0 2px 12px 0 oklch(0 0 0 / 0.06) !important;
-}
-
-/* Pills: badges and small status chips fully rounded */
-.neo-clean .rounded-full { border-radius: 9999px !important; }
-
-/* Status colors tuned for the light canvas */
-.neo-clean .bg-green-100, .neo-clean .bg-emerald-100 { background-color: oklch(0.94 0.12 122) !important; }
-.neo-clean .text-green-800, .neo-clean .text-green-700,
-.neo-clean .text-emerald-800, .neo-clean .text-emerald-700 { color: oklch(0.35 0.12 145) !important; }
-.neo-clean .bg-red-100 { background-color: oklch(0.94 0.05 25) !important; }
-.neo-clean .text-red-800, .neo-clean .text-red-700 { color: oklch(0.45 0.18 25) !important; }
-.neo-clean .bg-amber-100, .neo-clean .bg-yellow-100 { background-color: oklch(0.95 0.08 85) !important; }
-.neo-clean .text-amber-800, .neo-clean .text-yellow-800 { color: oklch(0.45 0.13 75) !important; }
-
-/* Bloomberg shared: monospace font override */
-.bloomberg-dark body, .bloomberg-dark *,
-.bloomberg-light body, .bloomberg-light * {
-  font-family: 'Courier New', Courier, monospace !important;
-  letter-spacing: 0.02em;
-}
-
-/* ─── Bloomberg COMPAT LAYER ───────────────────────────────────────────────
-   Komponen existing memakai ribuan warna Tailwind hardcode (bg-white,
-   text-gray-900, bg-blue-600, dst) yang tidak ikut CSS variables.
-   Layer ini me-remap utility hardcode tsb di dalam scope tema Bloomberg
-   sehingga SEMUA komponen ikut tema tanpa mengubah satu pun komponen.
-   ─────────────────────────────────────────────────────────────────────────── */
-
-/* == BLOOMBERG DARK: permukaan & netral == */
-.bloomberg-dark .bg-white { background-color: var(--card) !important; }
-.bloomberg-dark .bg-gray-50 { background-color: var(--secondary) !important; }
-.bloomberg-dark .bg-gray-100 { background-color: var(--muted) !important; }
-.bloomberg-dark .bg-gray-200 { background-color: var(--accent) !important; }
-.bloomberg-dark .hover\:bg-gray-50:hover,
-.bloomberg-dark .hover\:bg-gray-100:hover,
-.bloomberg-dark .hover\:bg-gray-200:hover { background-color: var(--accent) !important; }
-.bloomberg-dark .text-gray-900, .bloomberg-dark .text-gray-800,
-.bloomberg-dark .text-gray-700 { color: var(--foreground) !important; }
-.bloomberg-dark .text-gray-600, .bloomberg-dark .text-gray-500,
-.bloomberg-dark .text-gray-400 { color: var(--muted-foreground) !important; }
-.bloomberg-dark .text-black { color: var(--foreground) !important; }
-.bloomberg-dark .border-gray-100, .bloomberg-dark .border-gray-200,
-.bloomberg-dark .border-gray-300 { border-color: var(--border) !important; }
-.bloomberg-dark .divide-gray-100 > *, .bloomberg-dark .divide-gray-200 > * { border-color: var(--border) !important; }
-.bloomberg-dark .shadow-sm, .bloomberg-dark .shadow,
-.bloomberg-dark .shadow-md, .bloomberg-dark .shadow-lg { box-shadow: 0 0 0 1px var(--border) !important; }
-
-/* == BLOOMBERG DARK: biru (primary/link) → amber/cyan terminal == */
-.bloomberg-dark .bg-blue-600, .bloomberg-dark .bg-blue-700,
-.bloomberg-dark .bg-blue-500, .bloomberg-dark .bg-indigo-600 {
-  background-color: var(--primary) !important; color: var(--primary-foreground) !important;
-}
-.bloomberg-dark .hover\:bg-blue-700:hover, .bloomberg-dark .hover\:bg-blue-600:hover,
-.bloomberg-dark .hover\:bg-blue-500:hover, .bloomberg-dark .hover\:bg-indigo-700:hover {
-  background-color: oklch(0.62 0.14 70) !important; color: var(--primary-foreground) !important;
-}
-.bloomberg-dark .bg-blue-50, .bloomberg-dark .bg-blue-100,
-.bloomberg-dark .bg-indigo-50 { background-color: oklch(0.72 0.14 70 / 0.12) !important; }
-.bloomberg-dark .text-blue-600, .bloomberg-dark .text-blue-700,
-.bloomberg-dark .text-blue-500, .bloomberg-dark .text-blue-800,
-.bloomberg-dark .text-indigo-600 { color: oklch(0.72 0.13 230) !important; }
-.bloomberg-dark .border-blue-200, .bloomberg-dark .border-blue-300,
-.bloomberg-dark .border-blue-500 { border-color: oklch(0.72 0.14 70 / 0.4) !important; }
-.bloomberg-dark .ring-blue-500, .bloomberg-dark .focus\:ring-blue-500:focus { --tw-ring-color: var(--ring) !important; }
-.bloomberg-dark .focus\:border-blue-500:focus { border-color: var(--ring) !important; }
-
-/* == BLOOMBERG DARK: merah == */
-.bloomberg-dark .text-red-600, .bloomberg-dark .text-red-500,
-.bloomberg-dark .text-red-700, .bloomberg-dark .text-red-800 { color: oklch(0.68 0.24 27) !important; }
-.bloomberg-dark .bg-red-50, .bloomberg-dark .bg-red-100 { background-color: oklch(0.55 0.22 27 / 0.15) !important; }
-.bloomberg-dark .bg-red-600, .bloomberg-dark .bg-red-500 { background-color: oklch(0.5 0.21 27) !important; color: #fff !important; }
-.bloomberg-dark .hover\:bg-red-700:hover { background-color: oklch(0.45 0.2 27) !important; }
-.bloomberg-dark .border-red-200, .bloomberg-dark .border-red-300 { border-color: oklch(0.55 0.22 27 / 0.4) !important; }
-
-/* == BLOOMBERG DARK: hijau == */
-.bloomberg-dark .text-green-600, .bloomberg-dark .text-green-700,
-.bloomberg-dark .text-green-800, .bloomberg-dark .text-emerald-600,
-.bloomberg-dark .text-emerald-700 { color: oklch(0.72 0.2 145) !important; }
-.bloomberg-dark .bg-green-50, .bloomberg-dark .bg-green-100,
-.bloomberg-dark .bg-emerald-50, .bloomberg-dark .bg-emerald-100 { background-color: oklch(0.62 0.2 145 / 0.14) !important; }
-.bloomberg-dark .bg-green-600, .bloomberg-dark .bg-emerald-600 { background-color: oklch(0.5 0.17 145) !important; color: #fff !important; }
-.bloomberg-dark .border-green-200, .bloomberg-dark .border-emerald-200 { border-color: oklch(0.62 0.2 145 / 0.4) !important; }
-
-/* == BLOOMBERG DARK: amber/kuning/orange == */
-.bloomberg-dark .text-amber-600, .bloomberg-dark .text-amber-700,
-.bloomberg-dark .text-yellow-600, .bloomberg-dark .text-yellow-700,
-.bloomberg-dark .text-orange-600 { color: oklch(0.78 0.15 70) !important; }
-.bloomberg-dark .bg-amber-50, .bloomberg-dark .bg-amber-100,
-.bloomberg-dark .bg-yellow-50, .bloomberg-dark .bg-yellow-100,
-.bloomberg-dark .bg-orange-50 { background-color: oklch(0.72 0.14 70 / 0.13) !important; }
-.bloomberg-dark .border-amber-200, .bloomberg-dark .border-yellow-200 { border-color: oklch(0.72 0.14 70 / 0.4) !important; }
-
-/* == BLOOMBERG DARK: ungu/teal/cyan aksen lain == */
-.bloomberg-dark .text-purple-600, .bloomberg-dark .text-violet-600 { color: oklch(0.7 0.16 310) !important; }
-.bloomberg-dark .bg-purple-50, .bloomberg-dark .bg-violet-50 { background-color: oklch(0.65 0.18 310 / 0.14) !important; }
-.bloomberg-dark .text-teal-600, .bloomberg-dark .text-cyan-600 { color: oklch(0.72 0.12 200) !important; }
-.bloomberg-dark .bg-teal-50, .bloomberg-dark .bg-cyan-50 { background-color: oklch(0.65 0.12 200 / 0.14) !important; }
-
-/* == BLOOMBERG DARK: bentuk — radius tajam ala terminal == */
-.bloomberg-dark .rounded-xl, .bloomberg-dark .rounded-2xl,
-.bloomberg-dark .rounded-lg { border-radius: 2px !important; }
-.bloomberg-dark .rounded-md, .bloomberg-dark .rounded { border-radius: 1px !important; }
-
-/* == BLOOMBERG LIGHT: permukaan & netral (cream) == */
-.bloomberg-light .bg-white { background-color: var(--card) !important; }
-.bloomberg-light .bg-gray-50 { background-color: var(--secondary) !important; }
-.bloomberg-light .bg-gray-100 { background-color: var(--muted) !important; }
-.bloomberg-light .text-gray-900, .bloomberg-light .text-gray-800,
-.bloomberg-light .text-gray-700 { color: var(--foreground) !important; }
-.bloomberg-light .text-gray-600, .bloomberg-light .text-gray-500 { color: var(--muted-foreground) !important; }
-.bloomberg-light .border-gray-100, .bloomberg-light .border-gray-200,
-.bloomberg-light .border-gray-300 { border-color: var(--border) !important; }
-
-/* == BLOOMBERG LIGHT: biru → navy == */
-.bloomberg-light .bg-blue-600, .bloomberg-light .bg-blue-700,
-.bloomberg-light .bg-blue-500, .bloomberg-light .bg-indigo-600 {
-  background-color: var(--primary) !important; color: var(--primary-foreground) !important;
-}
-.bloomberg-light .hover\:bg-blue-700:hover, .bloomberg-light .hover\:bg-blue-600:hover {
-  background-color: oklch(0.22 0.09 250) !important;
-}
-.bloomberg-light .text-blue-600, .bloomberg-light .text-blue-700,
-.bloomberg-light .text-blue-500 { color: var(--primary) !important; }
-.bloomberg-light .bg-blue-50, .bloomberg-light .bg-blue-100 { background-color: var(--accent) !important; }
-.bloomberg-light .border-blue-200, .bloomberg-light .border-blue-300 { border-color: oklch(0.28 0.1 250 / 0.35) !important; }
-.bloomberg-light .ring-blue-500, .bloomberg-light .focus\:ring-blue-500:focus { --tw-ring-color: var(--ring) !important; }
-
-/* == BLOOMBERG LIGHT: bentuk == */
-.bloomberg-light .rounded-xl, .bloomberg-light .rounded-2xl,
-.bloomberg-light .rounded-lg { border-radius: 2px !important; }
-.bloomberg-light .rounded-md, .bloomberg-light .rounded { border-radius: 1px !important; }
-
-/* == BLOOMBERG DARK: neutral/slate/zinc palette (sama seperti gray) == */
-.bloomberg-dark .bg-neutral-50, .bloomberg-dark .bg-slate-50, .bloomberg-dark .bg-zinc-50 { background-color: var(--secondary) !important; }
-.bloomberg-dark .bg-neutral-100, .bloomberg-dark .bg-slate-100, .bloomberg-dark .bg-zinc-100 { background-color: var(--muted) !important; }
-.bloomberg-dark .bg-neutral-200, .bloomberg-dark .bg-slate-200, .bloomberg-dark .bg-zinc-200 { background-color: var(--accent) !important; }
-.bloomberg-dark .bg-neutral-800, .bloomberg-dark .bg-neutral-900,
-.bloomberg-dark .bg-slate-800, .bloomberg-dark .bg-slate-900 { background-color: var(--card) !important; }
-.bloomberg-dark .text-neutral-900, .bloomberg-dark .text-neutral-800, .bloomberg-dark .text-neutral-700,
-.bloomberg-dark .text-slate-900, .bloomberg-dark .text-slate-800, .bloomberg-dark .text-slate-700,
-.bloomberg-dark .text-zinc-900, .bloomberg-dark .text-zinc-800 { color: var(--foreground) !important; }
-.bloomberg-dark .text-neutral-600, .bloomberg-dark .text-neutral-500, .bloomberg-dark .text-neutral-400,
-.bloomberg-dark .text-slate-600, .bloomberg-dark .text-slate-500, .bloomberg-dark .text-slate-400,
-.bloomberg-dark .text-zinc-600, .bloomberg-dark .text-zinc-500 { color: var(--muted-foreground) !important; }
-.bloomberg-dark .text-neutral-200, .bloomberg-dark .text-neutral-300,
-.bloomberg-dark .text-slate-200, .bloomberg-dark .text-slate-300 { color: var(--foreground) !important; }
-.bloomberg-dark .border-neutral-100, .bloomberg-dark .border-neutral-200, .bloomberg-dark .border-neutral-300,
-.bloomberg-dark .border-neutral-700, .bloomberg-dark .border-neutral-800,
-.bloomberg-dark .border-slate-200, .bloomberg-dark .border-slate-300,
-.bloomberg-dark .border-zinc-200 { border-color: var(--border) !important; }
-
-/* == BLOOMBERG LIGHT: neutral/slate/zinc == */
-.bloomberg-light .bg-neutral-50, .bloomberg-light .bg-slate-50 { background-color: var(--secondary) !important; }
-.bloomberg-light .bg-neutral-100, .bloomberg-light .bg-slate-100 { background-color: var(--muted) !important; }
-.bloomberg-light .text-neutral-900, .bloomberg-light .text-neutral-700,
-.bloomberg-light .text-slate-900, .bloomberg-light .text-slate-700 { color: var(--foreground) !important; }
-.bloomberg-light .text-neutral-600, .bloomberg-light .text-neutral-500, .bloomberg-light .text-neutral-400,
-.bloomberg-light .text-slate-600, .bloomberg-light .text-slate-500 { color: var(--muted-foreground) !important; }
-.bloomberg-light .border-neutral-200, .bloomberg-light .border-neutral-300,
-.bloomberg-light .border-slate-200 { border-color: var(--border) !important; }
 
 @layer base {
   * {
@@ -646,15 +408,15 @@
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Legacy component classes — repointed to new tokens so existing pages
-   automatically pick up the Industrial Professional look.
+   Legacy component classes — repointed to the Entaris tokens so existing
+   pages pick up the brand palette without per-file edits.
    ──────────────────────────────────────────────────────────────────────────── */
 .card {
   background-color: var(--card);
   border: 1px solid var(--border);
   color: var(--card-foreground);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-1);
 }
 
 .btn-primary {
@@ -669,7 +431,7 @@
   gap: 0.5rem;
   transition: background-color 0.15s, opacity 0.15s;
 }
-.btn-primary:hover { background-color: color-mix(in oklch, var(--primary) 88%, transparent); }
+.btn-primary:hover { background-color: var(--primary-hover); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-secondary {
@@ -691,15 +453,16 @@
 .badge {
   @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium;
 }
-.badge-green  { background: color-mix(in oklch, var(--success) 16%, transparent); color: var(--success); }
-.badge-red    { background: color-mix(in oklch, var(--destructive) 16%, transparent); color: var(--destructive); }
-.badge-yellow { background: color-mix(in oklch, var(--warning) 18%, transparent); color: var(--warning); }
-.badge-amber  { background: color-mix(in oklch, var(--warning) 18%, transparent); color: var(--warning); }
-.badge-orange { background: color-mix(in oklch, var(--warning) 18%, transparent); color: var(--warning); }
-.badge-gray   { background: var(--muted); color: var(--muted-foreground); }
-.badge-blue   { background: color-mix(in oklch, var(--info) 16%, transparent); color: var(--info); }
-.badge-purple { background: color-mix(in oklch, var(--primary) 14%, transparent); color: var(--primary); }
-.badge-teal   { background: color-mix(in oklch, oklch(0.6 0.11 185) 16%, transparent); color: oklch(0.5 0.11 185); }
+/* Tint + dedicated -text token: every pair ≥4.5:1 (scripts/contrast-check.mjs) */
+.badge-green  { background: var(--success-subtle); color: var(--success-text); }
+.badge-red    { background: var(--danger-subtle); color: var(--danger-text); }
+.badge-yellow { background: var(--warning-subtle); color: var(--warning-text); }
+.badge-amber  { background: var(--warning-subtle); color: var(--warning-text); }
+.badge-orange { background: var(--warning-subtle); color: var(--warning-text); }
+.badge-gray   { background: var(--neutral-subtle); color: var(--neutral-text); }
+.badge-blue   { background: var(--primary-subtle); color: var(--primary-subtle-foreground); }
+.badge-purple { background: var(--primary-subtle); color: var(--primary-subtle-foreground); }
+.badge-teal   { background: var(--info-subtle); color: var(--info-text); }
 
 /* Section divider label */
 .section-label {
@@ -766,9 +529,10 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Industrial theme overrides — remap legacy blue accent utilities to the
-   new steel-blue primary token so existing pages (dozens of files) pick up
-   the industrial palette without per-file edits.
+   Compatibility remap (temporary — removed after the Phase 3/4 codemod).
+   Legacy pages use raw Tailwind palette classes (bg-blue-600, text-gray-400,
+   bg-white, ...). These rules point them at the Entaris tokens so every page
+   follows the brand palette and the dark theme without per-file edits.
    ──────────────────────────────────────────────────────────────────────────── */
 @layer utilities {
   /* Primary action (solid) */
@@ -776,26 +540,28 @@
   .bg-blue-700,
   .hover\:bg-blue-700:hover,
   .hover\:bg-blue-800:hover {
-    background-color: var(--primary) !important;
+    background-color: var(--primary-solid) !important;
   }
   .bg-blue-600:hover,
   .hover\:bg-blue-700:hover,
   .hover\:bg-blue-800:hover {
-    background-color: color-mix(in oklch, var(--primary) 88%, black) !important;
+    background-color: var(--primary-solid-hover) !important;
   }
 
   /* Soft accent pill */
   .bg-blue-50,
   .bg-blue-100 {
-    background-color: color-mix(in oklch, var(--primary) 10%, var(--background)) !important;
+    background-color: var(--primary-subtle) !important;
   }
 
-  /* Blue text accents → primary text */
+  /* Blue text accents → primary text (≥4.5:1 on surface, background and tint) */
   .text-blue-500,
-  .text-blue-600,
+  .text-blue-600 {
+    color: var(--primary) !important;
+  }
   .text-blue-700,
   .text-blue-800 {
-    color: var(--primary) !important;
+    color: var(--primary-subtle-foreground) !important;
   }
 
   /* Focus/active ring */
@@ -813,16 +579,38 @@
     border-color: color-mix(in oklch, var(--primary) 35%, var(--border)) !important;
   }
 
-  /* Dark mode adjustments — softer tint so pills don't clash */
+  /* Dark mode adjustments — tint + readable text */
   .dark .bg-blue-50,
   .dark .bg-blue-100 {
-    background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
-    color: var(--primary) !important;
+    background-color: var(--primary-subtle) !important;
+    color: var(--primary-subtle-foreground) !important;
+  }
+  .dark .text-blue-700,
+  .dark .text-blue-800 {
+    color: var(--primary-subtle-foreground) !important;
+  }
+}
+
+/* Light-mode safety net: Tailwind gray/slate-300/400 text is 1.5–2.6:1 on white.
+   Point it at --text-muted (≥4.5:1 on surface, background and muted).
+   Not !important and zero extra specificity, so hover:/group-hover: variants
+   still win; skipped inside dark panels where the light gray is intentional. */
+@layer utilities {
+  :where(:root:not(.dark)) :is(.text-gray-400, .text-gray-300, .text-slate-400, .text-slate-300, .text-neutral-400, .text-zinc-400):not(:where(
+      .bg-gray-800 *, .bg-gray-900 *, .bg-gray-950 *, .bg-slate-800 *, .bg-slate-900 *,
+      .bg-neutral-800 *, .bg-neutral-900 *, .bg-black *, .bg-brand-navy *, .bg-sidebar-primary *,
+      .bg-primary *, [class*='bg-[#0'] *, [class*='bg-[#1'] *, [class*='bg-gray-800/'] *, [class*='bg-gray-900/'] *
+    )) {
+    color: var(--text-muted);
+  }
+  /* green-600/emerald-600 text is 3.2–3.8:1 on white → success text token */
+  :where(:root:not(.dark)) :is(.text-green-600, .text-emerald-600, .text-green-500, .text-emerald-500) {
+    color: var(--success-text);
   }
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Dark mode — remap common Tailwind gray/white utilities to new tokens so
+   Dark mode — remap common Tailwind gray/white utilities to tokens so
    existing pages (bg-white, text-gray-*, border-gray-*) become dark-aware
    without per-file edits.
    ──────────────────────────────────────────────────────────────────────────── */
@@ -838,20 +626,21 @@
   /* Foreground text */
   .dark .text-gray-900,
   .dark .text-slate-900,
-  .dark .text-black { color: var(--foreground) !important; }
+  .dark .text-black { color: var(--text) !important; }
   .dark .text-gray-800,
   .dark .text-gray-700,
   .dark .text-slate-800,
-  .dark .text-slate-700 { color: var(--foreground) !important; }
+  .dark .text-slate-700 { color: var(--text) !important; }
   .dark .text-gray-600,
+  .dark .text-slate-600 { color: var(--text-secondary) !important; }
   .dark .text-gray-500,
-  .dark .text-slate-600,
-  .dark .text-slate-500 { color: var(--muted-foreground) !important; }
+  .dark .text-slate-500 { color: var(--text-muted) !important; }
+  /* No opacity here: it dimmed whole subtrees below 4.5:1 */
   .dark .text-gray-400,
   .dark .text-gray-300,
   .dark .text-gray-200,
   .dark .text-slate-400,
-  .dark .text-slate-300 { color: var(--muted-foreground) !important; opacity: 0.75; }
+  .dark .text-slate-300 { color: var(--text-muted) !important; }
 
   /* Borders */
   .dark .border-gray-100,
@@ -878,22 +667,23 @@
   .dark .ring-gray-300 { --tw-ring-color: var(--border) !important; }
   .dark .focus\:ring-gray-500:focus { --tw-ring-color: var(--ring) !important; }
 
-  /* Input / select / textarea fallback when element has no explicit bg */
+  /* Input / select / textarea fallback when element has no explicit bg.
+     Border uses --input so the control boundary stays ≥3:1. */
   .dark input:not([type='checkbox']):not([type='radio']):not([class*='bg-']),
   .dark select:not([class*='bg-']),
   .dark textarea:not([class*='bg-']) {
     background-color: var(--card) !important;
     color: var(--foreground) !important;
-    border-color: var(--border) !important;
+    border-color: var(--input) !important;
   }
   .dark input::placeholder,
-  .dark textarea::placeholder { color: var(--muted-foreground) !important; opacity: 0.7; }
+  .dark textarea::placeholder { color: var(--text-muted) !important; opacity: 1; }
 
   /* Shadow → softer in dark mode so white shadows don't bleed */
   .dark .shadow-sm,
   .dark .shadow,
   .dark .shadow-md {
-    box-shadow: var(--shadow-sm) !important;
+    box-shadow: var(--shadow-1) !important;
   }
 
   /* Soft status pills — retint against dark surface.
@@ -902,17 +692,19 @@
      drawers/modals using `bg-amber-50/40` stay nearly-white in dark mode. */
   .dark .bg-green-50,
   .dark .bg-green-100,
+  .dark .bg-emerald-50,
+  .dark .bg-emerald-100,
   .dark [class*="bg-green-50/"],
   .dark [class*="bg-green-100/"] {
-    background-color: color-mix(in oklch, var(--success) 18%, transparent) !important;
-    color: var(--success) !important;
+    background-color: var(--success-subtle) !important;
+    color: var(--success-text) !important;
   }
   .dark .bg-red-50,
   .dark .bg-red-100,
   .dark [class*="bg-red-50/"],
   .dark [class*="bg-red-100/"] {
-    background-color: color-mix(in oklch, var(--destructive) 18%, transparent) !important;
-    color: var(--destructive) !important;
+    background-color: var(--danger-subtle) !important;
+    color: var(--danger-text) !important;
   }
   .dark .bg-yellow-50,
   .dark .bg-yellow-100,
@@ -926,8 +718,8 @@
   .dark [class*="bg-amber-100/"],
   .dark [class*="bg-orange-50/"],
   .dark [class*="bg-orange-100/"] {
-    background-color: color-mix(in oklch, var(--warning) 18%, transparent) !important;
-    color: var(--warning) !important;
+    background-color: var(--warning-subtle) !important;
+    color: var(--warning-text) !important;
   }
   .dark .bg-purple-50,
   .dark .bg-purple-100,
@@ -936,20 +728,25 @@
   .dark [class*="bg-purple-50/"],
   .dark [class*="bg-purple-100/"],
   .dark [class*="bg-indigo-50/"],
-  .dark [class*="bg-indigo-100/"] {
-    background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
-    color: var(--primary) !important;
-  }
+  .dark [class*="bg-indigo-100/"],
   .dark [class*="bg-blue-50/"],
   .dark [class*="bg-blue-100/"] {
-    background-color: color-mix(in oklch, var(--primary) 18%, transparent) !important;
-    color: var(--primary) !important;
+    background-color: var(--primary-subtle) !important;
+    color: var(--primary-subtle-foreground) !important;
   }
+  .dark .bg-teal-50,
+  .dark .bg-teal-100,
+  .dark .bg-cyan-50,
+  .dark .bg-cyan-100,
   .dark [class*="bg-teal-50/"],
   .dark [class*="bg-teal-100/"],
   .dark [class*="bg-cyan-50/"],
   .dark [class*="bg-cyan-100/"] {
-    background-color: color-mix(in oklch, var(--success) 18%, transparent) !important;
+    background-color: var(--info-subtle) !important;
+  }
+  .dark [class*="bg-emerald-50/"],
+  .dark [class*="bg-emerald-100/"] {
+    background-color: var(--success-subtle) !important;
   }
   /* Gray opacity variants (e.g. bg-gray-50/60 frequently used as subtle hover/section bg) */
   .dark [class*="bg-gray-50/"],
@@ -964,17 +761,48 @@
   /* Text in status pills in dark mode */
   .dark .text-green-700,
   .dark .text-green-600,
-  .dark .text-green-800 { color: var(--success) !important; }
+  .dark .text-green-800,
+  .dark .text-emerald-700,
+  .dark .text-emerald-600 { color: var(--success-text) !important; }
   .dark .text-red-700,
   .dark .text-red-600,
   .dark .text-red-500,
-  .dark .text-red-800 { color: var(--destructive) !important; }
+  .dark .text-red-800 { color: var(--danger-text) !important; }
   .dark .text-yellow-700,
   .dark .text-yellow-600,
   .dark .text-amber-700,
   .dark .text-amber-600,
   .dark .text-orange-700,
-  .dark .text-orange-600 { color: var(--warning) !important; }
+  .dark .text-orange-600 { color: var(--warning-text) !important; }
+  .dark .text-teal-600,
+  .dark .text-teal-700,
+  .dark .text-cyan-600,
+  .dark .text-cyan-700 { color: var(--info-text) !important; }
+  .dark .text-purple-600,
+  .dark .text-purple-700,
+  .dark .text-violet-600,
+  .dark .text-violet-700,
+  .dark .text-indigo-600,
+  .dark .text-indigo-700 { color: var(--primary-subtle-foreground) !important; }
+  /* Deep (800–950) tints are meant for light tinted banners; on dark surfaces
+     they drop below 2:1, so point them at the matching readable text token. */
+  .dark .text-blue-900,
+  .dark .text-blue-950,
+  .dark .text-sky-800,
+  .dark .text-sky-900,
+  .dark .text-purple-800,
+  .dark .text-purple-900 { color: var(--primary-subtle-foreground) !important; }
+  .dark .text-emerald-800,
+  .dark .text-emerald-900,
+  .dark .text-green-900 { color: var(--success-text) !important; }
+  .dark .text-amber-800,
+  .dark .text-amber-900,
+  .dark .text-yellow-800,
+  .dark .text-yellow-900 { color: var(--warning-text) !important; }
+  .dark .text-red-900,
+  .dark .text-rose-800 { color: var(--danger-text) !important; }
+  .dark .text-teal-800,
+  .dark .text-teal-900 { color: var(--info-text) !important; }
 }
 
 /* Skip-link a11y */
@@ -1029,7 +857,7 @@
 .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table-responsive table { min-width: 700px; }
 
-/* ─── Print Styles (preserved from previous theme) ─────────────────── */
+/* ─── Print Styles ─────────────────────────────────────────────────── */
 @media print {
   @page { size: A4; margin: 1.5cm 1cm; }
   html, body {
@@ -1070,7 +898,7 @@
     color: #000 !important;
   }
   .report-summary-cards { break-inside: avoid; }
-  .bg-blue-600 { background-color: #2563eb !important; color: white !important; }
+  .bg-blue-600 { background-color: #2F6FC4 !important; color: white !important; }
   .bg-green-50\/60, .bg-red-50\/60, .bg-gray-50\/60 { background-color: #f9fafb !important; }
   .overflow-y-auto, .overflow-auto, .overflow-x-auto {
     overflow: visible !important; max-height: none !important;

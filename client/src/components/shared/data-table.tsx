@@ -119,7 +119,7 @@ export function DataTable<TData, TValue>({
             className="h-8 px-2 sm:px-3"
           >
             <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Previous</span>
+            <span className="hidden sm:inline">Sebelumnya</span>
           </Button>
           <Button
             variant="outline"
@@ -128,7 +128,7 @@ export function DataTable<TData, TValue>({
             disabled={!table.getCanNextPage()}
             className="h-8 px-2 sm:px-3"
           >
-            <span className="hidden sm:inline">Next</span>
+            <span className="hidden sm:inline">Berikutnya</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

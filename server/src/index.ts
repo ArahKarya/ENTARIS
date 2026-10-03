@@ -142,6 +142,9 @@ app.use(
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
+    // Let the login page read the rate-limit window when the client is served
+    // from another origin (cross-origin deploys hide non-safelisted headers).
+    exposedHeaders: ['RateLimit-Reset', 'RateLimit-Limit', 'RateLimit-Remaining', 'Retry-After'],
   })
 );
 

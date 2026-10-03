@@ -23,11 +23,6 @@ export function AppearanceTab() {
           <span>Tema aktif: <strong>{currentMeta.label}</strong></span>
         </div>
         <p>{currentMeta.description}</p>
-        {currentMeta.isBloomberg && (
-          <p className="text-primary font-medium">
-            Bloomberg theme menggunakan font monospace dan tata letak padat — optimal untuk monitor lebar.
-          </p>
-        )}
       </div>
     </div>
   );
