@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { Loader2, Check, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { useState } from "react";
+import { Check, AlertTriangle, CheckCircle2, X, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { formatRupiah } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export interface CashEntry {
   idx: number;
@@ -9,7 +13,13 @@ export interface CashEntry {
   txnType: string;
   account: string;
   accountLabel: string;
-  lines: Array<{ account: string; accountLabel: string; debit: number; credit: number; description: string }>;
+  lines: Array<{
+    account: string;
+    accountLabel: string;
+    debit: number;
+    credit: number;
+    description: string;
+  }>;
   confidence: number;
   needsReview: boolean;
   reason: string;
@@ -22,145 +32,345 @@ export interface CashBookDraftData {
   entries: CashEntry[];
   totals: { masuk: number; keluar: number; count: number; needReview: number };
 }
-export interface CoaOption { accountNumber: string; name: string; }
+export interface CoaOption {
+  accountNumber: string;
+  name: string;
+}
+
+type ApproveEntry = {
+  idx: number;
+  account?: string;
+  accountLabel?: string;
+  skip?: boolean;
+};
 
 interface Props {
   draft: CashBookDraftData;
   coa: CoaOption[];
   runId: string;
   pending: boolean;
-  done: { posted: number; skipped: number; failed: number; learned: number } | null;
-  onApprove: (entries: Array<{ idx: number; account?: string; accountLabel?: string; skip?: boolean }>) => void;
-  onClose?: () => void;   // sembunyikan kartu (FE saja)
-  onCancel?: () => void;  // batalkan draft di backend
+  done: {
+    posted: number;
+    skipped: number;
+    failed: number;
+    learned: number;
+  } | null;
+  onApprove: (entries: ApproveEntry[]) => void;
+  onClose?: () => void; // hide the card (front end only)
+  onCancel?: () => void; // cancel the draft in the backend
 }
 
-const rupiah = (n: number) => 'Rp ' + (n || 0).toLocaleString('id-ID');
+const rupiah = (n: number) => formatRupiah(n || 0);
 const TXN_LABEL: Record<string, string> = {
-  pengeluaran: 'Keluar', pemasukan: 'Masuk', uang_muka: 'Uang Muka', terima_kasbon: 'Terima Kasbon', lainnya: 'Lainnya',
+  pengeluaran: "Keluar",
+  pemasukan: "Masuk",
+  uang_muka: "Uang Muka",
+  terima_kasbon: "Terima Kasbon",
+  lainnya: "Lainnya",
 };
 
-export function CashBookCard({ draft, coa, pending, done, onApprove, onClose, onCancel }: Props) {
-  // state koreksi per-baris: account override + skip
-  const [edits, setEdits] = useState<Record<number, { account?: string; skip?: boolean }>>({});
+/** Native select styled like ui/input (tokens, focus ring). */
+const selectClass =
+  "w-full max-w-[220px] rounded-md border bg-card px-2 py-1 text-xs text-foreground " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background " +
+  "disabled:cursor-not-allowed disabled:opacity-60";
+
+/**
+ * AIRA cash-book approval card: one row per transaction, account correction per
+ * row, skip toggle, then Setujui (post) or Tolak (cancel the draft, confirmed).
+ */
+export function CashBookCard({
+  draft,
+  coa,
+  runId,
+  pending,
+  done,
+  onApprove,
+  onClose,
+  onCancel,
+}: Props) {
+  // Per-row corrections: account override + skip.
+  const [edits, setEdits] = useState<
+    Record<number, { account?: string; skip?: boolean }>
+  >({});
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [lastAction, setLastAction] = useState<"approve" | "cancel" | null>(
+    null,
+  );
 
   const setAccount = (idx: number, account: string) => {
-    const label = coa.find((c) => c.accountNumber === account)?.name ?? '';
-    setEdits((p) => ({ ...p, [idx]: { ...p[idx], account, _label: label } as any }));
+    setEdits((p) => ({ ...p, [idx]: { ...p[idx], account } }));
   };
-  const toggleSkip = (idx: number) => setEdits((p) => ({ ...p, [idx]: { ...p[idx], skip: !p[idx]?.skip } }));
+  const toggleSkip = (idx: number) =>
+    setEdits((p) => ({ ...p, [idx]: { ...p[idx], skip: !p[idx]?.skip } }));
 
   const submit = () => {
     const entries = draft.entries.map((e) => {
       const ed = edits[e.idx];
       const account = ed?.account;
-      const accountLabel = account ? coa.find((c) => c.accountNumber === account)?.name : undefined;
+      const accountLabel = account
+        ? coa.find((c) => c.accountNumber === account)?.name
+        : undefined;
       return { idx: e.idx, account, accountLabel, skip: ed?.skip };
     });
+    setLastAction("approve");
     onApprove(entries);
   };
 
+  const cancel = () => {
+    setLastAction("cancel");
+    onCancel?.();
+  };
+
   const willPost = draft.entries.filter((e) => !edits[e.idx]?.skip).length;
+  const heading = `${draft.title || "Buku Kas"}${draft.date ? ` — ${draft.date}` : ""}`;
+
+  const rowClass = (e: CashEntry) =>
+    cn(
+      "border-t border-border",
+      edits[e.idx]?.skip && "bg-surface-sunken text-muted-foreground",
+      e.needsReview && !edits[e.idx]?.account && "bg-warning-subtle/60",
+    );
+
+  /** Account picker for one entry; `variant` keeps ids unique between table and list. */
+  const accountControl = (e: CashEntry, variant: "t" | "m") => {
+    const ed = edits[e.idx];
+    const curAccount = ed?.account ?? e.account;
+    const review = e.needsReview && !ed?.account;
+    const reasonId = `cb-reason-${runId}-${e.idx}-${variant}`;
+    return (
+      <div>
+        <select
+          value={curAccount}
+          onChange={(ev) => setAccount(e.idx, ev.target.value)}
+          disabled={pending || ed?.skip}
+          aria-label={`Akun lawan kas: ${e.keterangan}`}
+          aria-describedby={review && e.reason ? reasonId : undefined}
+          aria-invalid={review || undefined}
+          className={cn(
+            selectClass,
+            variant === "m" && "max-w-none py-1.5 text-sm",
+            review ? "border-warning" : "border-input",
+          )}
+        >
+          {!coa.some((c) => c.accountNumber === curAccount) && (
+            <option value={curAccount}>
+              {curAccount} {e.accountLabel}
+            </option>
+          )}
+          {coa.map((c) => (
+            <option key={c.accountNumber} value={c.accountNumber}>
+              {c.accountNumber} — {c.name}
+            </option>
+          ))}
+        </select>
+        {review && e.reason && (
+          <p
+            id={reasonId}
+            className="mt-0.5 text-[11px] leading-4 text-warning-text"
+          >
+            {e.reason}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const skipControl = (e: CashEntry) => (
+    <input
+      type="checkbox"
+      checked={!!edits[e.idx]?.skip}
+      onChange={() => toggleSkip(e.idx)}
+      disabled={pending}
+      aria-label={`Lewati: ${e.keterangan}`}
+      className="size-4 cursor-pointer accent-primary disabled:cursor-not-allowed"
+    />
+  );
 
   if (done) {
     return (
-      <div className="mt-2 rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-3 text-sm">
-        <div className="flex items-center gap-2 font-medium text-green-700 dark:text-green-300">
-          <CheckCircle2 className="w-4 h-4" /> Buku kas diposting
+      <div
+        role="status"
+        className="rounded-lg border border-success/40 bg-success-subtle p-3 text-sm"
+      >
+        <div className="flex items-center gap-2 font-medium text-success-text">
+          <CheckCircle2 className="size-4" aria-hidden /> Buku kas diposting
         </div>
-        <div className="mt-1 text-gray-600 dark:text-gray-300">
-          {done.posted} jurnal diposting{done.skipped ? `, ${done.skipped} dilewati` : ''}{done.failed ? `, ${done.failed} gagal` : ''}.
-          {done.learned ? ` AIRA belajar ${done.learned} pemetaan akun baru.` : ''}
-        </div>
+        <p className="mt-1 text-foreground-secondary">
+          {done.posted} jurnal diposting
+          {done.skipped ? `, ${done.skipped} dilewati` : ""}
+          {done.failed ? `, ${done.failed} gagal` : ""}.
+          {done.learned
+            ? ` AIRA belajar ${done.learned} pemetaan akun baru.`
+            : ""}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="mt-2 rounded-xl border border-[#48CAE4]/50 bg-white dark:bg-gray-900 overflow-hidden">
-      <div className="px-3 py-2 bg-[#0B1B3D] text-white text-sm font-medium flex items-center justify-between">
-        <span>{draft.title || 'Buku Kas'} {draft.date ? `— ${draft.date}` : ''}</span>
-        <span className="text-xs opacity-80">{draft.totals.count} baris · {draft.totals.needReview} perlu cek</span>
+    <section
+      data-testid="aira-cashbook-card"
+      aria-label={`Draft buku kas: ${heading}`}
+      className="overflow-hidden rounded-lg border border-border border-l-4 border-l-warning bg-card text-card-foreground shadow-[var(--shadow-1)]"
+    >
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-3 py-2.5">
+        <BookOpen className="size-4 text-warning-text" aria-hidden />
+        <h3 className="font-sans text-sm font-semibold tracking-normal text-foreground">
+          {heading}
+        </h3>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {draft.totals.count} baris · {draft.totals.needReview} perlu dicek
+        </span>
       </div>
       {draft.totals.needReview > 0 && (
-        <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-1.5">
-          <AlertTriangle className="w-3.5 h-3.5" /> {draft.totals.needReview} baris kuning = AIRA ragu, mohon cek/koreksi akunnya.
-        </div>
+        <p className="flex items-start gap-1.5 bg-warning-subtle px-3 py-1.5 text-xs text-warning-text">
+          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden />
+          {draft.totals.needReview} baris bertanda kuning: AIRA ragu, mohon cek
+          atau koreksi akunnya.
+        </p>
       )}
-      <div className="max-h-80 overflow-auto">
+      {/* ≥sm: table */}
+      <div className="hidden max-h-80 overflow-auto sm:block">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+          <caption className="sr-only">
+            Transaksi buku kas yang akan diposting
+          </caption>
+          <thead className="sticky top-0 z-[1] bg-surface-sunken text-muted-foreground">
             <tr>
-              <th className="px-2 py-1.5 text-left">Keterangan</th>
-              <th className="px-2 py-1.5 text-right">Nominal</th>
-              <th className="px-2 py-1.5 text-left">Arah</th>
-              <th className="px-2 py-1.5 text-left">Akun (lawan kas)</th>
-              <th className="px-2 py-1.5 text-center">Skip</th>
+              <th scope="col" className="px-2 py-1.5 text-left font-medium">
+                Keterangan
+              </th>
+              <th scope="col" className="px-2 py-1.5 text-right font-medium">
+                Nominal
+              </th>
+              <th scope="col" className="px-2 py-1.5 text-left font-medium">
+                Arah
+              </th>
+              <th scope="col" className="px-2 py-1.5 text-left font-medium">
+                Akun (lawan kas)
+              </th>
+              <th scope="col" className="px-2 py-1.5 text-center font-medium">
+                Lewati
+              </th>
             </tr>
           </thead>
           <tbody>
-            {draft.entries.map((e) => {
-              const ed = edits[e.idx];
-              const curAccount = ed?.account ?? e.account;
-              const review = e.needsReview && !ed?.account;
-              return (
-                <tr key={e.idx} className={`border-t border-gray-100 dark:border-gray-800 ${ed?.skip ? 'opacity-40' : ''} ${review ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
-                  <td className="px-2 py-1.5 max-w-[180px]"><span className="line-clamp-2">{e.keterangan}</span></td>
-                  <td className="px-2 py-1.5 text-right whitespace-nowrap">{rupiah(e.amount)}</td>
-                  <td className="px-2 py-1.5 whitespace-nowrap">{TXN_LABEL[e.txnType] ?? e.txnType}</td>
-                  <td className="px-2 py-1.5">
-                    <select
-                      value={curAccount}
-                      onChange={(ev) => setAccount(e.idx, ev.target.value)}
-                      disabled={pending || ed?.skip}
-                      className={`w-full max-w-[200px] rounded border px-1 py-0.5 text-xs bg-white dark:bg-gray-900 ${review ? 'border-amber-400' : 'border-gray-300 dark:border-gray-600'}`}
-                    >
-                      {!coa.some((c) => c.accountNumber === curAccount) && <option value={curAccount}>{curAccount} {e.accountLabel}</option>}
-                      {coa.map((c) => <option key={c.accountNumber} value={c.accountNumber}>{c.accountNumber} — {c.name}</option>)}
-                    </select>
-                    {review && <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">{e.reason}</div>}
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <input type="checkbox" checked={!!ed?.skip} onChange={() => toggleSkip(e.idx)} disabled={pending} />
-                  </td>
-                </tr>
-              );
-            })}
+            {draft.entries.map((e) => (
+              <tr key={e.idx} className={rowClass(e)}>
+                <td className="max-w-[180px] px-2 py-1.5">
+                  <span
+                    className={cn(
+                      "line-clamp-2",
+                      edits[e.idx]?.skip && "line-through",
+                    )}
+                  >
+                    {e.keterangan}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                  {rupiah(e.amount)}
+                </td>
+                <td className="whitespace-nowrap px-2 py-1.5">
+                  {TXN_LABEL[e.txnType] ?? e.txnType}
+                </td>
+                <td className="px-2 py-1.5">{accountControl(e, "t")}</td>
+                <td className="px-2 py-1.5 text-center">{skipControl(e)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
-      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 text-xs">
-        <span className="text-gray-500 shrink-0">Masuk {rupiah(draft.totals.masuk)} · Keluar {rupiah(draft.totals.keluar)}</span>
-        <div className="flex items-center gap-2">
+
+      {/* <sm: stacked list (no sideways scrolling inside the chat) */}
+      <ul
+        className="max-h-96 overflow-y-auto sm:hidden"
+        aria-label="Transaksi buku kas yang akan diposting"
+      >
+        {draft.entries.map((e) => (
+          <li
+            key={e.idx}
+            className={cn(rowClass(e), "space-y-1.5 px-3 py-2.5 text-xs")}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <span
+                className={cn(
+                  "min-w-0 text-sm",
+                  edits[e.idx]?.skip && "line-through",
+                )}
+              >
+                {e.keterangan}
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-sm font-medium tabular-nums">
+                  {rupiah(e.amount)}
+                </span>
+                <span className="text-muted-foreground">
+                  {TXN_LABEL[e.txnType] ?? e.txnType}
+                </span>
+              </span>
+            </div>
+            {accountControl(e, "m")}
+            <label className="inline-flex items-center gap-2 text-foreground-secondary">
+              {skipControl(e)} Lewati baris ini
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-surface-sunken px-3 py-2.5 text-xs">
+        <span className="tabular-nums text-muted-foreground">
+          Masuk {rupiah(draft.totals.masuk)} · Keluar{" "}
+          {rupiah(draft.totals.keluar)}
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
           {onClose && (
-            <button
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={onClose}
               disabled={pending}
-              className="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40"
             >
-              Tutup
-            </button>
+              Sembunyikan
+            </Button>
           )}
           {onCancel && (
-            <button
-              onClick={onCancel}
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-danger-text"
+              onClick={() => setConfirmCancel(true)}
               disabled={pending}
-              className="px-2.5 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 flex items-center gap-1.5"
+              loading={pending && lastAction === "cancel"}
             >
-              <X className="w-3.5 h-3.5" /> Batalkan
-            </button>
+              {!(pending && lastAction === "cancel") && <X aria-hidden />}
+              Tolak
+            </Button>
           )}
-          <button
+          <Button
+            size="sm"
             onClick={submit}
             disabled={pending || willPost === 0}
-            className="px-3 py-1.5 rounded-lg bg-[#0B1B3D] hover:bg-[#142a5c] disabled:opacity-40 text-white flex items-center gap-1.5"
+            loading={pending && lastAction === "approve"}
           >
-            {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-            Posting {willPost} jurnal
-          </button>
+            {!(pending && lastAction === "approve") && <Check aria-hidden />}
+            Setujui &amp; posting {willPost} jurnal
+          </Button>
         </div>
       </div>
-    </div>
+
+      {onCancel && (
+        <ConfirmDialog
+          open={confirmCancel}
+          onOpenChange={setConfirmCancel}
+          tone="danger"
+          title="Tolak draft buku kas?"
+          description={`Draft ${draft.totals.count} transaksi dibatalkan dan tidak ada jurnal yang diposting. Untuk mencobanya lagi, kirim ulang buku kasnya ke AIRA.`}
+          confirmLabel="Tolak draft"
+          cancelLabel="Kembali"
+          onConfirm={cancel}
+        />
+      )}
+    </section>
   );
 }
 

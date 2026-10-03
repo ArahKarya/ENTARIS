@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Sparkles, Send, Loader2, User, MessageSquarePlus, Archive, Pencil, Check, X, Paperclip, FileText, Image as ImageIcon,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import api from '../lib/api';
 import { DraftCard, type AiraDraft } from '../components/aira/DraftCard';
 import { CashBookCard, type CashBookDraftData, type CoaOption } from '../components/aira/CashBookCard';
+import { AiraIcon } from '@/components/shell/AiraIcon';
+import { useCurrentRoute } from '@/components/shell/useCurrentRoute';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { SimpleTooltip } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 // ── Tipe pesan di panel chat ──
 interface ChatMessage {
@@ -34,6 +44,8 @@ interface SessionItem {
   last_active_at: string;
   run_count: number;
 }
+
+const EXAMPLE_PROMPT = 'Buat jurnal koreksi: debit Beban Telekomunikasi 50.000, kredit Petty Cash 50.000';
 
 const STAGE_LABEL: Record<string, string> = {
   plan_node: 'Menyusun rencana',
@@ -101,7 +113,16 @@ function toChatMessage(m: { message_id: string; role: string; content: string; r
 export function AiraChat() {
   const qc = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
+  const location = useLocation();
   const [input, setInput] = useState('');
+  // "Tanya AIRA tentang …" from the command palette passes {prompt} as router
+  // state: prefill the composer (never auto-send) once per navigation.
+  const [promptKey, setPromptKey] = useState<string | null>(null);
+  const routePrompt = (location.state as { prompt?: unknown } | null)?.prompt;
+  if (typeof routePrompt === 'string' && routePrompt && promptKey !== location.key) {
+    setPromptKey(location.key);
+    setInput(routePrompt);
+  }
   const [busy, setBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(() => sessionStorage.getItem(AIRA_SESSION_KEY));
   const [approving, setApproving] = useState<string | null>(null);
@@ -109,6 +130,8 @@ export function AiraChat() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const route = useCurrentRoute();
   // A2: lampiran dokumen (PDF/gambar) untuk dibaca AIRA.
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -286,7 +309,7 @@ export function AiraChat() {
             }
           } else if (event === 'attachment') {
             const dt = data.doc_type ? String(data.doc_type).replace(/_/g, ' ') : 'dokumen';
-            const stLabel = `"+chr(0x1F4C4)+" Dokumen terbaca: ${dt}`;
+            const stLabel = `Dokumen terbaca: ${dt}`;
             if (!stages.includes(stLabel)) { stages.push(stLabel); patchMsg(asstId, { stages: [...stages] }); }
           } else if (event === 'token') {
             setMessages((prev) => prev.map((m) => m.id === asstId ? { ...m, text: m.text + (data.text ?? '') } : m));
@@ -439,218 +462,280 @@ export function AiraChat() {
     }
   }, [patchMsg]);
 
-  return (
-    <div className="flex h-[calc(100vh-8rem)] gap-3">
-      {/* ── Sidebar daftar sesi ── */}
-      <aside className="hidden md:flex flex-col w-[260px] shrink-0 border-r border-gray-200 dark:border-gray-700 pr-3">
-        <button
-          onClick={newSession}
-          className="flex items-center justify-center gap-2 w-full mb-3 px-3 py-2 rounded-xl bg-[#0B1B3D] hover:bg-[#142a5c] text-white text-sm font-medium transition"
-        >
-          <MessageSquarePlus className="w-4 h-4" />
-          Sesi baru
-        </button>
+  const lastStage = [...messages].reverse().find((m) => m.streaming)?.stages?.slice(-1)[0];
+  const canSend = !busy && (!!input.trim() || !!attachedFile);
 
-        <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-1">
+  return (
+    <div className="flex h-[calc(100dvh-5rem)] gap-4 sm:h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-6.5rem)]">
+      {/* ── Session list ── */}
+      <aside aria-label="Riwayat sesi AIRA" className="hidden w-[260px] shrink-0 flex-col border-r border-border pr-4 md:flex">
+        <Button onClick={newSession} className="mb-3 w-full">
+          <MessageSquarePlus aria-hidden />
+          Sesi baru
+        </Button>
+
+        <div className="-mr-1 flex-1 overflow-y-auto pr-1">
           {sessionsQuery.isLoading && (
-            <div className="space-y-2 py-2">
+            <div className="space-y-2 py-2" aria-hidden>
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                <div key={i} className="h-12 animate-pulse rounded-md bg-muted" />
               ))}
             </div>
           )}
 
           {!sessionsQuery.isLoading && sessions.length === 0 && (
-            <div className="text-center text-gray-400 text-sm mt-10 px-2">
+            <p className="mt-10 px-2 text-center text-sm text-muted-foreground">
               Belum ada sesi.<br />Mulai dengan mengetik pesan.
-            </div>
+            </p>
           )}
 
-          {sessions.map((s) => {
-            const active = s.session_id === sessionId;
-            const title = (s.title && s.title.trim()) || 'Sesi tanpa judul';
-            return (
-              <div
-                key={s.session_id}
-                className={`group rounded-lg px-2.5 py-2 cursor-pointer transition border ${
-                  active
-                    ? 'bg-[#48CAE4]/15 dark:bg-[#48CAE4]/10 border-[#48CAE4]'
-                    : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-                onClick={() => openSession(s.session_id)}
-              >
-                {editingId === s.session_id ? (
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      autoFocus
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') submitRename(s.session_id);
-                        if (e.key === 'Escape') setEditingId(null);
-                      }}
-                      className="flex-1 min-w-0 text-sm px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-[#48CAE4]"
-                    />
-                    <button onClick={() => submitRename(s.session_id)} className="p-1 text-emerald-600 hover:text-emerald-700" title="Simpan">
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => setEditingId(null)} className="p-1 text-gray-400 hover:text-gray-600" title="Batal">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm truncate ${active ? 'font-semibold text-[#0B1B3D] dark:text-[#48CAE4]' : 'text-gray-800 dark:text-gray-200'}`}>
-                        {title}
-                      </p>
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {relativeTime(s.last_active_at)}{s.run_count ? ` · ${s.run_count} aksi` : ''}
-                      </p>
+          <ul className="space-y-1">
+            {sessions.map((s) => {
+              const active = s.session_id === sessionId;
+              const title = (s.title && s.title.trim()) || 'Sesi tanpa judul';
+              return (
+                <li
+                  key={s.session_id}
+                  className={cn(
+                    'group relative rounded-md border transition-colors',
+                    active
+                      ? 'border-aira bg-primary-subtle'
+                      : 'border-transparent hover:bg-surface-hover',
+                  )}
+                >
+                  {editingId === s.session_id ? (
+                    <div className="flex items-center gap-1 p-1.5">
+                      <Input
+                        autoFocus
+                        aria-label="Nama sesi"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') submitRename(s.session_id);
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        className="h-8 flex-1 px-2"
+                      />
+                      <Button size="icon-sm" variant="ghost" onClick={() => submitRename(s.session_id)} aria-label="Simpan nama sesi">
+                        <Check className="text-success-text" aria-hidden />
+                      </Button>
+                      <Button size="icon-sm" variant="ghost" onClick={() => setEditingId(null)} aria-label="Batal ganti nama">
+                        <X aria-hidden />
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+                  ) : (
+                    <>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setEditingId(s.session_id); setEditTitle(s.title || ''); }}
-                        className="p-1 text-gray-400 hover:text-[#0B1B3D] dark:hover:text-[#48CAE4]"
-                        title="Ganti nama"
+                        type="button"
+                        onClick={() => openSession(s.session_id)}
+                        aria-current={active ? 'true' : undefined}
+                        className={cn(
+                          'block w-full rounded-md py-2 pl-2.5 pr-16 text-left',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        )}
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <span
+                          className={cn(
+                            'block truncate text-sm',
+                            active ? 'font-semibold text-primary-subtle-foreground' : 'text-foreground',
+                          )}
+                        >
+                          {title}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {relativeTime(s.last_active_at)}{s.run_count ? ` · ${s.run_count} aksi` : ''}
+                        </span>
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); archiveSession(s.session_id); }}
-                        className="p-1 text-gray-400 hover:text-red-500"
-                        title="Arsipkan"
-                      >
-                        <Archive className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <SimpleTooltip content="Ganti nama">
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            className="size-7 text-muted-foreground"
+                            onClick={() => { setEditingId(s.session_id); setEditTitle(s.title || ''); }}
+                            aria-label={`Ganti nama sesi ${title}`}
+                          >
+                            <Pencil className="size-3.5" aria-hidden />
+                          </Button>
+                        </SimpleTooltip>
+                        <SimpleTooltip content="Arsipkan">
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            className="size-7 text-muted-foreground hover:text-danger-text"
+                            onClick={() => archiveSession(s.session_id)}
+                            aria-label={`Arsipkan sesi ${title}`}
+                          >
+                            <Archive className="size-3.5" aria-hidden />
+                          </Button>
+                        </SimpleTooltip>
+                      </div>
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </aside>
 
-      {/* ── Area chat ── */}
-      <div className="flex flex-col flex-1 min-w-0 max-w-3xl mx-auto w-full">
+      {/* ── Chat ── */}
+      <section aria-labelledby="aira-title" className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2.5 pb-3 mb-2 border-b border-gray-200 dark:border-gray-700">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#0B1B3D] to-[#48CAE4] flex items-center justify-center overflow-hidden p-1">
-            <img src="/aira-logo-dark.png" alt="AIRA" className="w-full h-full object-contain" />
+        <header className="mb-2 flex items-center gap-3 border-b border-border pb-3">
+          <AiraIcon size={32} className="size-7 shrink-0 sm:size-8" />
+          <div className="min-w-0 flex-1">
+            <h1 id="aira-title" className="text-base font-semibold leading-tight text-foreground sm:text-lg">
+              {route?.label ?? 'Asisten AIRA'}
+            </h1>
+            <p className="hidden text-sm text-muted-foreground sm:block">
+              Minta AIRA membuat jurnal, mengecek laporan, dan lainnya. Aksi penting menunggu persetujuan Anda.
+            </p>
           </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">AIRA Asisten</h1>
-            <p className="text-xs text-gray-500">Minta AIRA buat jurnal, cek laporan, dll. Aksi penting butuh persetujuan Anda.</p>
-          </div>
-          {/* Tombol sesi baru utk mobile (sidebar tersembunyi) */}
-          <button
-            onClick={newSession}
-            className="md:hidden shrink-0 w-9 h-9 rounded-lg bg-[#0B1B3D] hover:bg-[#142a5c] text-white flex items-center justify-center"
-            title="Sesi baru"
-          >
-            <MessageSquarePlus className="w-4 h-4" />
-          </button>
-        </div>
+          {/* New session on mobile (the session list is hidden there) */}
+          <Button size="icon" variant="outline" onClick={newSession} className="md:hidden" aria-label="Sesi baru">
+            <MessageSquarePlus aria-hidden />
+          </Button>
+        </header>
 
-        {/* Pesan */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 py-2 px-1">
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-busy={busy || loadingSession}
+          aria-label="Percakapan dengan AIRA"
+          tabIndex={0}
+          className="flex-1 space-y-4 overflow-y-auto rounded-md px-1 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           {loadingSession && (
-            <div className="flex justify-center mt-10 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-5 animate-spin" aria-hidden />
+              Memuat riwayat sesi…
             </div>
           )}
           {!loadingSession && messages.length === 0 && (
-            <div className="text-center text-gray-400 mt-16 space-y-2">
-              <img src="/aira-logo-dark.png" alt="AIRA" className="w-12 h-12 mx-auto opacity-40 object-contain dark:hidden" />
-              <img src="/aira-logo-dark.png" alt="AIRA" className="w-12 h-12 mx-auto opacity-50 object-contain hidden dark:block" />
-              <p className="text-sm">Mulai dengan, mis. <span className="italic">"Buat jurnal koreksi: debit Beban Telekomunikasi 50.000, kredit Petty Cash 50.000"</span></p>
+            <div className="mx-auto mt-12 flex max-w-md flex-col items-center gap-3 text-center">
+              <AiraIcon size={48} />
+              <div>
+                <p className="font-heading text-base font-semibold text-foreground">Apa yang bisa AIRA bantu?</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tulis permintaan dalam bahasa sehari-hari, atau lampirkan dokumen (PDF/gambar) untuk dibaca AIRA.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setInput(EXAMPLE_PROMPT); inputRef.current?.focus(); }}
+                className={cn(
+                  'rounded-lg border border-border bg-card px-3 py-2 text-left text-sm text-foreground-secondary shadow-[var(--shadow-1)]',
+                  'transition-colors hover:border-aira hover:bg-surface-hover',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                )}
+              >
+                <span className="block text-xs font-medium text-muted-foreground">Contoh</span>
+                “{EXAMPLE_PROMPT}”
+              </button>
             </div>
           )}
           {!loadingSession && messages.map((m) => (
-            <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <article
+              key={m.id}
+              aria-label={m.role === 'user' ? 'Pesan Anda' : 'Balasan AIRA'}
+              className={cn('flex gap-2.5 sm:gap-3', m.role === 'user' ? 'justify-end' : 'justify-start')}
+            >
               {m.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#0B1B3D] to-[#48CAE4] flex items-center justify-center shrink-0 mt-0.5 overflow-hidden p-0.5">
-                  <img src="/aira-logo-dark.png" alt="AIRA" className="w-full h-full object-contain" />
-                </div>
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card">
+                  <AiraIcon size={18} />
+                </span>
               )}
-              <div className={`max-w-[80%] space-y-2 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                {m.role === 'user' ? (
-                  <div className="rounded-2xl rounded-tr-sm bg-[#0B1B3D] text-white px-4 py-2 text-sm">{m.text}</div>
-                ) : (
-                  <div className="space-y-2">
-                    {/* Badge otomatis (L3): AIRA eksekusi tanpa approval */}
-                    {m.auto && (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium">
-                        <Sparkles className="w-3 h-3" />
-                        Otomatis
-                      </span>
-                    )}
-                    {/* Stage chips saat streaming */}
-                    {m.stages && m.stages.length > 0 && (m.streaming || !m.draft) && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {m.stages.map((s, i) => (
-                          <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                            {m.streaming && i === m.stages!.length - 1 && <Loader2 className="w-3 h-3 animate-spin" />}
+              {m.role === 'user' ? (
+                <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-tr-sm bg-primary px-4 py-2 text-sm text-primary-foreground">
+                  {m.text}
+                </div>
+              ) : (
+                <div className="min-w-0 flex-1 space-y-2">
+                  {/* Auto badge (L3): AIRA executed without human approval */}
+                  {m.auto && (
+                    <Badge variant="success">
+                      <Sparkles className="size-3" aria-hidden />
+                      Otomatis
+                    </Badge>
+                  )}
+                  {/* Stage chips while streaming */}
+                  {m.stages && m.stages.length > 0 && (m.streaming || !m.draft) && (
+                    <ul className="flex flex-wrap gap-1.5" aria-label="Tahap AIRA">
+                      {m.stages.map((s, i) => (
+                        <li key={i}>
+                          <Badge variant="primary">
+                            {m.streaming && i === m.stages!.length - 1 && <Loader2 className="size-3 animate-spin" aria-hidden />}
                             {s}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {m.text && (
-                      <div className="rounded-2xl rounded-tl-sm bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-4 py-2 text-sm whitespace-pre-wrap">
-                        {m.text}
-                        {m.streaming && !m.text && <Loader2 className="w-4 h-4 animate-spin" />}
-                      </div>
-                    )}
-                    {m.streaming && !m.text && (!m.stages || m.stages.length === 0) && (
-                      <div className="rounded-2xl rounded-tl-sm bg-gray-100 dark:bg-gray-800 px-4 py-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                      </div>
-                    )}
-                    {/* Draft approval */}
-                    {m.draft && m.runId && (
-                      <DraftCard
-                        draft={m.draft}
-                        pending={approving === m.id}
-                        decided={m.decided ?? null}
-                        onDecision={(d) => decide(m.id, m.runId!, d)}
-                      />
-                    )}
-                    {m.cashbook && m.runId && (
-                      <CashBookCard
-                        draft={m.cashbook}
-                        coa={m.coa ?? []}
-                        runId={m.runId}
-                        pending={cbPending === m.id}
-                        done={m.cashbookDone ?? null}
-                        onApprove={(entries) => approveCashBook(m.id, m.runId!, entries)}
-                        onClose={() => patchMsg(m.id, { cashbook: null })}
-                        onCancel={() => cancelCashBook(m.id, m.runId!)}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-              {m.role === 'user' && (
-                <div className="w-7 h-7 rounded-md bg-gray-300 dark:bg-gray-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-4 h-4 text-gray-600 dark:text-gray-200" />
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {m.text && <AssistantText text={m.text} />}
+                  {m.streaming && !m.text && (!m.stages || m.stages.length === 0) && (
+                    <div className="inline-flex rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5">
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+                      <span className="sr-only">AIRA sedang mengetik…</span>
+                    </div>
+                  )}
+                  {/* Draft approval */}
+                  {m.draft && m.runId && (
+                    <DraftCard
+                      draft={m.draft}
+                      pending={approving === m.id}
+                      decided={m.decided ?? null}
+                      onDecision={(d) => decide(m.id, m.runId!, d)}
+                    />
+                  )}
+                  {m.cashbook && m.runId && (
+                    <CashBookCard
+                      draft={m.cashbook}
+                      coa={m.coa ?? []}
+                      runId={m.runId}
+                      pending={cbPending === m.id}
+                      done={m.cashbookDone ?? null}
+                      onApprove={(entries) => approveCashBook(m.id, m.runId!, entries)}
+                      onClose={() => patchMsg(m.id, { cashbook: null })}
+                      onCancel={() => cancelCashBook(m.id, m.runId!)}
+                    />
+                  )}
                 </div>
               )}
-            </div>
+              {m.role === 'user' && (
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-subtle text-neutral-text">
+                  <User className="size-4" aria-hidden />
+                </span>
+              )}
+            </article>
           ))}
         </div>
+        {/* Progress for screen readers while the log is busy */}
+        <p role="status" className="sr-only">
+          {busy ? `AIRA sedang memproses${lastStage ? `: ${lastStage}` : ''}…` : ''}
+        </p>
 
-        {/* Input */}
-        <div className="pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-          {/* A2: preview lampiran terpasang */}
+        {/* Composer */}
+        <form
+          className="mt-2 border-t border-border pt-3"
+          onSubmit={(e) => { e.preventDefault(); send(); }}
+        >
+          {/* A2: attached file preview */}
           {attachedFile && (
-            <div className="mb-2 flex items-center gap-2 rounded-lg bg-[#48CAE4]/10 border border-[#48CAE4]/40 px-3 py-1.5 text-xs text-[#0B1B3D] dark:text-[#9be3f4] w-fit max-w-full">
-              {attachedFile.type.startsWith("image/") ? <ImageIcon className="w-4 h-4 shrink-0" /> : <FileText className="w-4 h-4 shrink-0" />}
-              <span className="truncate max-w-[200px]">{attachedFile.name}</span>
-              <span className="opacity-60">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
-              <button type="button" onClick={() => setAttachedFile(null)} className="ml-1 hover:text-red-500" aria-label="Hapus lampiran">
-                <X className="w-3.5 h-3.5" />
+            <div className="mb-2 flex w-fit max-w-full items-center gap-2 rounded-md border border-border bg-primary-subtle px-3 py-1.5 text-xs text-primary-subtle-foreground">
+              {attachedFile.type.startsWith('image/') ? <ImageIcon className="size-4 shrink-0" aria-hidden /> : <FileText className="size-4 shrink-0" aria-hidden />}
+              <span className="max-w-[200px] truncate">{attachedFile.name}</span>
+              <span className="text-foreground-secondary">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+              <button
+                type="button"
+                onClick={() => setAttachedFile(null)}
+                className="ml-1 rounded-sm hover:text-danger-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`Hapus lampiran ${attachedFile.name}`}
+              >
+                <X className="size-3.5" aria-hidden />
               </button>
             </div>
           )}
@@ -660,44 +745,78 @@ export function AiraChat() {
               type="file"
               accept="application/pdf,image/jpeg,image/png,image/webp"
               className="hidden"
+              tabIndex={-1}
+              aria-hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) {
-                  if (f.size > 10 * 1024 * 1024) { toast.error("Ukuran file maksimal 10MB."); return; }
+                  if (f.size > 10 * 1024 * 1024) { toast.error('Ukuran file maksimal 10MB.'); return; }
                   setAttachedFile(f);
                 }
-                e.target.value = "";
+                e.target.value = '';
               }}
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={busy}
-              title="Lampirkan dokumen (PDF/gambar)"
-              className="shrink-0 w-11 h-11 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-500 hover:text-[#0B1B3D] hover:border-[#48CAE4] disabled:opacity-40 flex items-center justify-center transition"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
-            <textarea
+            <SimpleTooltip content="Lampirkan dokumen (PDF/gambar, maks. 10MB)">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-touch"
+                className="rounded-lg text-muted-foreground"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={busy}
+                aria-label="Lampirkan dokumen"
+              >
+                <Paperclip className="size-5" aria-hidden />
+              </Button>
+            </SimpleTooltip>
+            <label htmlFor="aira-input" className="sr-only">Pesan untuk AIRA</label>
+            <Textarea
+              id="aira-input"
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
               }}
               rows={1}
-              placeholder="Tulis permintaan untuk AIRA… (Enter kirim, Shift+Enter baris baru)"
-              className="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#48CAE4] max-h-32"
+              aria-describedby="aira-input-hint"
+              placeholder="Tulis permintaan untuk AIRA…"
+              className="max-h-32 min-h-11 flex-1 resize-none rounded-lg px-3.5 py-2.5"
             />
-            <button
-              onClick={send}
-              disabled={busy || (!input.trim() && !attachedFile)}
-              className="shrink-0 w-11 h-11 rounded-xl bg-[#0B1B3D] hover:bg-[#142a5c] disabled:opacity-40 text-white flex items-center justify-center transition"
+            <Button
+              type="submit"
+              size="icon-touch"
+              className="rounded-lg"
+              disabled={!canSend}
+              loading={busy}
+              aria-label={busy ? 'AIRA sedang memproses' : 'Kirim pesan'}
             >
-              {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-            </button>
+              {!busy && <Send className="size-5" aria-hidden />}
+            </Button>
           </div>
-        </div>
+          <p id="aira-input-hint" className="mt-1.5 hidden text-xs text-muted-foreground sm:block">
+            Enter untuk kirim · Shift+Enter untuk baris baru
+          </p>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+/** Assistant reply bubble; replies that start with ⚠️ render as an error. */
+function AssistantText({ text }: { text: string }) {
+  const isError = text.startsWith('⚠️');
+  if (isError) {
+    return (
+      <div role="alert" className="flex w-fit max-w-full items-start gap-2 rounded-2xl rounded-tl-sm border border-danger/30 bg-danger-subtle px-4 py-2 text-sm text-danger-text">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <span className="whitespace-pre-wrap break-words">{text.replace(/^⚠️\s*/, '')}</span>
       </div>
+    );
+  }
+  return (
+    <div className="w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2 text-sm text-card-foreground">
+      {text}
     </div>
   );
 }
