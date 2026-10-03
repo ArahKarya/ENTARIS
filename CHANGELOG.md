@@ -17,6 +17,9 @@
 - Data aset tidak lagi tampak hilang saat berpindah antar halaman Kendaraan/Gedung/Peralatan (bentrok cache query).
 - Foto unggahan tampil di mode pengembangan (proxy `/uploads`).
 
+### Diperbaiki
+- **Filter tanggal di halaman daftar Penjualan meleset satu hari.** Batas hari dihitung dalam UTC, padahal tanggal dokumen adalah hari kalender WIB — dokumen bertanggal X tidak muncul saat difilter "tanggal X" (dan dokumen X+1 bisa ikut). Kini filter memakai hari kalender zona waktu bisnis (default WIB; atur `APP_UTC_OFFSET` untuk WITA/WIT).
+
 ### Tampilan (UI/UX)
 **Diubah**:
 - **Halaman daftar Penjualan** (Pertanyaan Pelanggan, Penawaran, Pesanan Penjualan, Surat Jalan, Faktur Penjualan, Retur Penjualan, Uang Muka Pelanggan): data dimuat per halaman dari server — tidak lagi terpotong diam-diam di 200/500 baris. Filter (cari, status, pelanggan, tanggal) & urutan tersimpan di URL; kartu ringkasan dihitung server sesuai filter; status berbahasa Indonesia; angka rata kanan; baris bisa dibuka dengan keyboard; tampilan mobile ringkas.

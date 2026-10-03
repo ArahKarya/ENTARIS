@@ -27,7 +27,7 @@ describe('buildSalesReturnWhere', () => {
         status: 'Submitted',
         partyId: 'p1',
         salesInvoiceId: 'si1',
-        date: { gte: new Date('2026-10-01'), lte: new Date('2026-10-31T23:59:59.999Z') },
+        date: { gte: new Date('2026-09-30T17:00:00.000Z'), lt: new Date('2026-10-31T17:00:00.000Z') },
         OR: [
           { returnNumber: { contains: 'RN-2026', mode: 'insensitive' } },
           { customer: { name: { contains: 'RN-2026', mode: 'insensitive' } } },

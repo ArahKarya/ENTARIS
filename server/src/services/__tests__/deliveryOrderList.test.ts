@@ -20,7 +20,7 @@ describe('buildDeliveryOrderWhere', () => {
     if (!r.ok) return;
     expect(r.where).toEqual({
       partyId: 'c1',
-      date: { gte: new Date('2026-02-01'), lte: new Date('2026-02-28T23:59:59.999Z') },
+      date: { gte: new Date('2026-01-31T17:00:00.000Z'), lt: new Date('2026-02-28T17:00:00.000Z') },
       OR: [
         { doNumber: { contains: 'BE 1', mode: 'insensitive' } },
         { customer: { name: { contains: 'BE 1', mode: 'insensitive' } } },

@@ -5,7 +5,7 @@
  * describe exactly the rows the list shows.
  */
 import { Prisma, QuotationStatus } from '@prisma/client';
-import { firstString, parseDateParam, type SortSpec } from '../utils/listQuery';
+import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';
 
 export const QUOTATION_SORT_FIELDS = ['date', 'quotationNumber', 'customer', 'validUntil', 'grandTotal'] as const;
 export type QuotationSortField = (typeof QUOTATION_SORT_FIELDS)[number];
@@ -43,8 +43,7 @@ export function buildQuotationWhere(query: Record<string, unknown>): QuotationWh
   }
   if (startDate || endDate) {
     where.date = {
-      ...(startDate ? { gte: new Date(startDate) } : {}),
-      ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999Z`) } : {}),
+      ...localDayRange(startDate, endDate),
     };
   }
 

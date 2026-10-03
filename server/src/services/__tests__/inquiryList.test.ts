@@ -64,8 +64,8 @@ describe('buildInquiryWhere', () => {
     expect(r.where.channel).toBe('WhatsApp');
     expect(r.where.partyId).toBe('p1');
     expect(r.where.date).toEqual({
-      gte: new Date('2026-01-01'),
-      lte: new Date('2026-01-31T23:59:59.999Z'),
+      gte: new Date('2025-12-31T17:00:00.000Z'),
+      lt: new Date('2026-01-31T17:00:00.000Z'),
     });
     // inquiry number, prospect name and linked customer name
     expect(r.where.OR).toHaveLength(3);
