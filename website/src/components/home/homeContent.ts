@@ -7,12 +7,12 @@ import type { GlitchPanel } from "./heroGlitch";
 /* -- Hero ------------------------------------------------------------------------------------- */
 
 export const HUMAN_PANEL: GlitchPanel = {
-  words: ["Semua modul", "Buku besar", "Selalu seimbang", "Data Anda"],
+  words: ["Semua modul", "Fleksibel", "Standar industri", "Siap tumbuh"],
   subs: [
     "Penjualan, pembelian, inventori, produksi, keuangan & aset — satu buku besar.",
-    "Setiap transaksi otomatis posting ke buku besar dengan double-entry.",
-    "Invoice, pembayaran, jurnal, produksi, dan stok — debit selalu sama dengan kredit.",
-    "Berjalan di server Anda sendiri: aplikasi, data, dan cadangannya tetap di tangan Anda.",
+    "Peran, aturan persetujuan, dan akun sistem diatur sesuai cara kerja perusahaan Anda.",
+    "Double-entry, laporan sesuai PSAK, PPN per item, dan jejak audit di setiap perubahan.",
+    "Dari UKM dengan 1–3 pengguna hingga pabrik dengan puluhan pengguna — tanpa pindah sistem.",
   ],
 };
 

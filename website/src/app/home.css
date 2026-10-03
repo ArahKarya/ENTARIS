@@ -393,3 +393,171 @@
     }
   }
 }
+
+/* ---------- #keunggulan: reasoning ERP + four pillars ---------- */
+@layer entaris {
+  .erp-root .home-pillars {
+    border-top: 1px solid var(--border);
+    background: var(--background);
+  }
+  .erp-root .home-pillars__title {
+    max-width: 24ch;
+  }
+  .erp-root .home-pillars__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    gap: 1px;
+    margin: 0 var(--tacet-section-pad-x, 1.5rem) clamp(3rem, 6vw, 5rem);
+    border: 1px solid var(--border);
+    background: var(--border);
+  }
+  .erp-root .home-pillars__lead {
+    grid-row: span 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: clamp(1.75rem, 3vw, 2.75rem);
+    background:
+      radial-gradient(90% 70% at 100% 0%, rgb(61 139 224 / 0.35), transparent 70%),
+      var(--entaris-navy);
+    color: rgb(255 255 255 / 0.8);
+  }
+  .erp-root.dark .home-pillars__lead {
+    background:
+      radial-gradient(90% 70% at 100% 0%, rgb(61 139 224 / 0.3), transparent 70%),
+      #14213a;
+  }
+  .erp-root .home-pillars__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--entaris-blue) 12%, var(--background));
+    color: var(--entaris-blue-dark);
+  }
+  .erp-root.dark .home-pillars__icon {
+    color: var(--entaris-blue-light);
+  }
+  .erp-root .home-pillars__icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  .erp-root .home-pillars__icon--lead {
+    width: 3.25rem;
+    height: 3.25rem;
+    background: rgb(255 255 255 / 0.1);
+    color: var(--entaris-blue-light);
+  }
+  .erp-root .home-pillars__kicker {
+    margin: 0.5rem 0 0;
+    color: var(--entaris-blue-light);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .erp-root .home-pillars__lead-title {
+    max-width: 18ch;
+    margin: 0;
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 900;
+    line-height: 1.08;
+  }
+  .erp-root .home-pillars__lead-text {
+    max-width: 46ch;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  .erp-root .home-pillars__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: clamp(1.5rem, 2.4vw, 2rem);
+    background: var(--background);
+  }
+  .erp-root .home-pillars__name {
+    margin: 0.6rem 0 0;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+  .erp-root .home-pillars__claim {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .erp-root .home-pillars__proofs {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0.4rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .erp-root .home-pillars__proofs li {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr);
+    gap: 0.6rem;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  .erp-root .home-pillars__proofs svg {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.15rem;
+    color: var(--entaris-blue-dark);
+  }
+  .erp-root.dark .home-pillars__proofs svg,
+  .erp-root .home-pillars__proofs--lead svg {
+    color: var(--entaris-blue-light);
+  }
+  .erp-root .home-pillars__proofs--lead li {
+    color: #fff;
+    font-size: 1rem;
+  }
+  .erp-root .home-pillars__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1rem;
+    color: #fff;
+    font-family: var(--font-body);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .erp-root .home-pillars__link svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    transition: transform 0.15s ease;
+  }
+  .erp-root .home-pillars__link:hover svg {
+    transform: translateX(3px);
+  }
+  @media (max-width: 1100px) {
+    .erp-root .home-pillars__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .erp-root .home-pillars__lead {
+      grid-column: 1 / -1;
+      grid-row: auto;
+    }
+  }
+  @media (max-width: 640px) {
+    .erp-root .home-pillars__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

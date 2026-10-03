@@ -2,6 +2,10 @@ import type { CSSProperties } from "react";
 
 /** Tabler outline icon paths used on the home page. */
 const PATHS = {
+  adjustments: ["M4 10a2 2 0 1 0 4 0a2 2 0 0 0 -4 0", "M6 4v4", "M6 12v8", "M10 16a2 2 0 1 0 4 0a2 2 0 0 0 -4 0", "M12 4v10", "M12 18v2", "M16 7a2 2 0 1 0 4 0a2 2 0 0 0 -4 0", "M18 4v1", "M18 9v11"],
+  devices: ["M13 9a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-10z", "M18 8v-3a1 1 0 0 0 -1 -1h-13a1 1 0 0 0 -1 1v12a1 1 0 0 0 1 1h9", "M16 9h2"],
+  certificate: ["M15 15m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0", "M13 17.5v4.5l2 -1.5l2 1.5v-4.5", "M10 19h-5a2 2 0 0 1 -2 -2v-10c0 -1.1 .9 -2 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -1 1.73", "M6 9l12 0", "M6 12l3 0", "M6 15l2 0"],
+  trendingUp: ["M3 17l6 -6l4 4l8 -8", "M14 7l7 0l0 7"],
   sales: ["M6 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0", "M17 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0", "M17 17h-11v-14h-2", "M6 5l14 1l-1 7h-13"],
   purchase: [
     "M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
