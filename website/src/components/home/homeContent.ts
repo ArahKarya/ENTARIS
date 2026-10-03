@@ -23,7 +23,7 @@ export const AGENT_PANEL: GlitchPanel = {
     "“Berapa piutang yang lewat 60 hari?” — AIRA mencari datanya lalu merangkum jawabannya.",
     "Laba rugi, arus kas, rasio, tren stok, HPP\u00a0— AIRA membandingkan periode dan merangkum pos yang paling berubah.",
     "AIRA menyiapkan draf invoice, jurnal, atau pengajuan — bukan memposting sendiri.",
-    "Setiap aksi tulis menunggu persetujuan manusia dan tunduk pada RBAC yang sama.",
+    "Setiap perubahan pembukuan menunggu persetujuan manusia dan mengikuti hak akses yang sama dengan pengguna.",
   ],
 };
 
