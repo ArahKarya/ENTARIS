@@ -17,7 +17,7 @@
 
 import crypto from 'crypto';
 import type { Request } from 'express';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../lib/prisma';
 
 const SKEW_MS = 5 * 60 * 1000; // ±5 menit
 
