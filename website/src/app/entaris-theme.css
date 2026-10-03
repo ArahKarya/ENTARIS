@@ -11,7 +11,8 @@
 @layer properties, theme, base, components, utilities, erp-unlayered, entaris;
 
 @layer entaris {
-  .erp-root {
+  .erp-root,
+  html:has(.erp-root) {
     /* Cool paper → navy ramp (hue 255) replacing the warm beige ramp (hue 78). */
     --beige-50: oklch(98.4% 0.004 255); /* #f9fbfd */
     --beige-100: oklch(97.2% 0.006 255);
@@ -106,5 +107,40 @@
     background:
       radial-gradient(60% 38rem at 50% 0%, rgb(61 139 224 / 0.18), transparent 70%),
       var(--background);
+  }
+}
+
+/*
+ * Leftover ERP•AI red/purple/green mixes found by the hover/interactive audit:
+ * - home hero human panel hover mixed --red with the accent (rose-red panel + maroon CTA);
+ * - the shader hero glow (self-hosted) layers --pur and --grn.
+ */
+@layer entaris {
+  .erp-root .hero-catalog__panel {
+    --hero-human-hover-bg: var(--entaris-blue-dark);
+  }
+  .erp-root,
+  .erp-root .erpai-hero,
+  .erp-root .hero-bg-prototype--shader {
+    --hero-shader-b: color-mix(in oklab, var(--entaris-blue-light), transparent 78%);
+    --hero-shader-c: color-mix(in oklab, var(--entaris-blue-mid), transparent 88%);
+    --hero-shader-line-b: color-mix(in oklab, var(--entaris-blue-light), transparent 90%);
+  }
+  /* Skip link: white on #3D8BE0 is 3.5:1; dark blue #2F6FC4 passes AA (4.9:1). */
+  .erp-root .skip-link {
+    background: var(--entaris-blue-dark);
+    color: #fff;
+  }
+}
+
+/* Second audit pass: shader ::before layers, warm seam shadow. */
+@layer entaris {
+  .erp-root .erpai-hero .hero-bg-prototype--shader {
+    --hero-shader-before-b: color-mix(in oklab, var(--entaris-blue-light), transparent 84%);
+    --hero-shader-before-line-b: color-mix(in oklab, var(--entaris-blue-light), transparent 94%);
+  }
+  .erp-root,
+  html:has(.erp-root) {
+    --footer-main-seam-shadow: 0 1.25rem 3rem rgb(27 43 72 / 16%);
   }
 }
