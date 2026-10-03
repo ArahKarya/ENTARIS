@@ -6,8 +6,8 @@ Entaris (Enterprise Agentic Reasoning Integrated System; sebelumnya Simple ERP /
 
 ## Brand
 
-- Nama produk: **Entaris** — tagline "Entaris — Agentic ERP"; agen AI: **AIRA**; pembuat: PT Arah Karya Sinergi.
-- Panduan merek, logo & warna: `docs/brand/entaris/README.md` (Langit 800 `#1F5F74`, Gabah 400 `#EDBE45`).
+- Nama produk: **Entaris** — tagline "Agentic Reasoning System"; agen AI: **AIRA**; pembuat: PT Arah Karya Sinergi.
+- Panduan merek, logo & warna: `docs/brand/entaris/README.md` (logo "Cincin E"; navy `#1B2B48`, biru `#3D8BE0`).
 - Pengenal teknis lama `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, nama repo) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi aira-core/deploy.
 
 ## Tech Stack
