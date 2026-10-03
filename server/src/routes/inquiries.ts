@@ -12,20 +12,29 @@ import {
   InquiryStatusUpdateSchema,
 } from '../utils/schemas';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildInquiryWhere,
+  DEFAULT_INQUIRY_SORT,
+  INQUIRY_SORT_FIELDS,
+  inquiryOrderBy,
+  summarizeInquiries,
+} from '../services/inquiryList';
 
 const router = Router();
 
 // ─── GET / list ───────────────────────────────────────────────────────────
+// Query: page, limit (≤500), status, channel, partyId, startDate, endDate
+// (YYYY-MM-DD), search (number / prospect / customer), sort (e.g. "-date").
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { status, channel, partyId, page = '1', limit = '50' } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.InquiryWhereInput = {};
-    if (status) where.status = status as any;
-    if (channel) where.channel = channel as any;
-    if (partyId) where.partyId = partyId as string;
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 500 });
+    const filter = buildInquiryWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, INQUIRY_SORT_FIELDS, DEFAULT_INQUIRY_SORT);
 
     const [data, total] = await Promise.all([
       prisma.inquiry.findMany({
@@ -36,16 +45,33 @@ router.get('/', async (req, res) => {
           quotation: { select: { id: true, quotationNumber: true, status: true } },
           user: { select: { id: true, fullName: true } },
         },
-        orderBy: { date: 'desc' },
+        orderBy: inquiryOrderBy(sort),
         skip,
         take,
       }),
       prisma.inquiry.count({ where }),
     ]);
 
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /inquiries', 'Gagal mengambil data inquiry.');
+  }
+});
+
+// ─── GET /summary ─────────────────────────────────────────────────────────
+// KPI counts for the same filters as the list. Declared before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildInquiryWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const groups = await prisma.inquiry.groupBy({
+      by: ['status'],
+      where: filter.where,
+      _count: { _all: true },
+    });
+    return res.json(summarizeInquiries(groups));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /inquiries/summary', 'Gagal menghitung ringkasan inquiry.');
   }
 });
 

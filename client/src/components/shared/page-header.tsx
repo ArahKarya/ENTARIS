@@ -88,7 +88,7 @@ export function PageHeader({
             {desc && <p className="mt-1 text-sm text-muted-foreground">{desc}</p>}
           </div>
         </div>
-        {acts && <div className="flex shrink-0 flex-wrap items-center gap-2">{acts}</div>}
+        {acts && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{acts}</div>}
       </div>
       {children}
     </header>

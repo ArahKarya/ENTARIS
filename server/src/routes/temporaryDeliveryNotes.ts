@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
@@ -11,6 +12,13 @@ import {
   cancelTemporaryNoteInTx,
   getTemporaryNote,
 } from '../services/temporaryDeliveryNote';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  DEFAULT_TDN_SORT,
+  parseTdnFilters,
+  TDN_SORT_FIELDS,
+  tdnOrderBySql,
+} from '../services/temporaryDeliveryNoteList';
 
 const router = Router();
 
@@ -35,17 +43,25 @@ const TdnSchema = z.object({
   items: z.array(ItemSchema).min(1, 'Minimal satu item.'),
 });
 
-// GET / — daftar (filter status, partyId, tanggal, search)
+// GET / — daftar. Query: page, limit (≤200), status (Open | Linked | Cancelled),
+// partyId, startDate, endDate (YYYY-MM-DD; dateFrom/dateTo masih diterima),
+// search (nomor / pelanggan / no. mobil), sort (date | number | customer, "-" = desc).
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const status = (req.query.status as string) || '';
-    const partyId = (req.query.partyId as string) || '';
-    const dateFrom = (req.query.dateFrom as string) || '';
-    const dateTo = (req.query.dateTo as string) || '';
-    const search = ((req.query.search as string) || '').trim();
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
-    const offset = (page - 1) * limit;
+    const query = req.query as Record<string, unknown>;
+    const parsed = parseTdnFilters(query);
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+    const { status, partyId, startDate, endDate, search } = parsed.filters;
+    const { page, limit, skip: offset } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const like = `%${search}%`;
+    const whereSql = Prisma.sql`
+      WHERE (${status} = '' OR t.status = ${status})
+        AND (${partyId} = '' OR t.party_id = ${partyId})
+        AND (${startDate} = '' OR t.date >= NULLIF(${startDate}, '')::date)
+        AND (${endDate} = '' OR t.date < (NULLIF(${endDate}, '')::date + 1))
+        AND (${search} = '' OR t.number ILIKE ${like} OR p.name ILIKE ${like} OR t.nomor_mobil ILIKE ${like})`;
+    const orderBy = Prisma.raw(tdnOrderBySql(parseSort(query.sort, TDN_SORT_FIELDS, DEFAULT_TDN_SORT)));
 
     const rows = await prisma.$queryRaw<any[]>`
       SELECT t.id, t.number, t.date, t.status, t.nomor_mobil AS "nomorMobil", t.driver_name AS "driverName",
@@ -57,14 +73,20 @@ router.get('/', async (req, res) => {
       FROM temporary_delivery_notes t
       JOIN parties p ON p.id = t.party_id
       LEFT JOIN delivery_orders d ON d.id = t.delivery_order_id
-      WHERE (${status} = '' OR t.status = ${status})
-        AND (${partyId} = '' OR t.party_id = ${partyId})
-        AND (${dateFrom} = '' OR t.date >= NULLIF(${dateFrom}, '')::date)
-        AND (${dateTo} = '' OR t.date < (NULLIF(${dateTo}, '')::date + 1))
-        AND (${search} = '' OR t.number ILIKE ${'%' + search + '%'} OR p.name ILIKE ${'%' + search + '%'} OR t.nomor_mobil ILIKE ${'%' + search + '%'})
-      ORDER BY t.date DESC, t.number DESC
+      ${whereSql}
+      ORDER BY ${orderBy}
       LIMIT ${limit} OFFSET ${offset}`;
-    const total = rows[0]?.total ?? 0;
+    // count(*) OVER() is only present when the page has rows; past the last
+    // page fall back to a plain count so the client can clamp.
+    let total: number = rows[0]?.total ?? 0;
+    if (rows.length === 0 && offset > 0) {
+      const c = await prisma.$queryRaw<{ total: number }[]>`
+        SELECT count(*)::int AS total
+        FROM temporary_delivery_notes t
+        JOIN parties p ON p.id = t.party_id
+        ${whereSql}`;
+      total = c[0]?.total ?? 0;
+    }
     return res.json({ data: rows.map(({ total: _t, ...r }) => r), total, page, limit });
   } catch (error) {
     return handleRouteError(res, error, 'GET /temporary-delivery-notes', 'Gagal mengambil daftar surat jalan sementara.');

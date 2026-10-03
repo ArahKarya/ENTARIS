@@ -111,7 +111,7 @@ export function DateInput({
         onClick={openNativePicker}
         disabled={disabled}
         className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Pick date"
+        aria-label="Pilih tanggal"
         tabIndex={-1}
       >
         <CalendarDays className="size-4" />

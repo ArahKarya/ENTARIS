@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
@@ -10,25 +9,29 @@ import { cancelSalesReturnInTx } from '../services/salesReturnCancel';
 import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildSalesReturnWhere,
+  DEFAULT_SALES_RETURN_SORT,
+  SALES_RETURN_SORT_FIELDS,
+  salesReturnOrderBy,
+} from '../services/salesReturnList';
 
 const router = Router();
 
 // GET /api/sales-returns — list
+// Query: page, limit (default 50, ≤200), status, partyId, salesInvoiceId,
+// startDate/endDate (YYYY-MM-DD), search (return / customer / invoice number),
+// sort (date | returnNumber | customer | totalReturn, "-" = desc; default -date)
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', status, partyId, salesInvoiceId, startDate, endDate } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.SalesReturnWhereInput = {};
-    if (status) where.status = status as string;
-    if (partyId) where.partyId = partyId as string;
-    if (salesInvoiceId) where.salesInvoiceId = salesInvoiceId as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(String(startDate));
-      if (endDate) (where.date as Prisma.DateTimeFilter).lte = new Date(String(endDate) + 'T23:59:59.999Z');
-    }
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildSalesReturnWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, SALES_RETURN_SORT_FIELDS, DEFAULT_SALES_RETURN_SORT);
 
     const [data, total] = await Promise.all([
       prisma.salesReturn.findMany({
@@ -38,13 +41,13 @@ router.get('/', async (req, res) => {
           salesInvoice: { select: { id: true, invoiceNumber: true } },
           items: true,
         },
-        orderBy: { date: 'desc' },
+        orderBy: salesReturnOrderBy(sort),
         skip,
         take,
       }),
       prisma.salesReturn.count({ where }),
     ]);
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /sales-returns error');
     return res.status(500).json({ error: 'Gagal mengambil data retur penjualan.' });

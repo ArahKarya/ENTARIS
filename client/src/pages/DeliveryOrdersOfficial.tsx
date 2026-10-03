@@ -1,297 +1,219 @@
+/**
+ * "Surat Jalan Resmi" tab of /delivery-orders — list kit (pattern:
+ * pages/SalesInvoices.tsx). Server-side paging/sort/filter on
+ * GET /delivery-orders. No KPI cards: this list never had any.
+ *
+ * "Sudah/Belum Diinvoice" are derived states (status Submitted ± invoice);
+ * the server filter understands status=Submitted|Invoiced|Cancelled.
+ */
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Eye, Plus, ReceiptText } from 'lucide-react';
+import api from '@/lib/api';
+import { formatDate, formatNumber } from '@/lib/format';
+import { getStatusLabel } from '@/lib/status';
+import { can } from '@/lib/permissions';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
 import {
-  Plus, Search, Truck, ChevronLeft, ChevronRight, AlertCircle,
-} from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatDate } from '../lib/formatters';
-import { useDebounce } from '../hooks/useDebounce';
-import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
-import TableRowSkeleton from '../components/TableRowSkeleton';
-import DeliveryOrderModal from '../components/DeliveryOrderModal';
-import DeliveryOrderDetailDrawer from '../components/DeliveryOrderDetailDrawer';
-import Select from '../components/Select';
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PartyFilter,
+  RowActions,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import DeliveryOrderDetailDrawer from '@/components/DeliveryOrderDetailDrawer';
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Semua Status' },
-  { value: 'Submitted', label: 'Diserahkan' },
-  { value: 'Invoiced', label: 'Sudah Diinvoice' },
-  { value: 'Cancelled', label: 'Dibatalkan' },
+interface DeliveryOrderRow {
+  id: string;
+  doNumber: string;
+  date: string;
+  status: string;
+  partyId: string;
+  nomorMobil: string | null;
+  customer?: { id: string; name: string } | null;
+  invoice?: { id: string; invoiceNumber: string } | null;
+  _count?: { items: number };
+}
+
+const ENDPOINT = '/delivery-orders';
+const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
+// Filter values are what the API expects; labels match the row badges.
+const STATUS_FILTER = [
+  { value: 'Submitted', label: getStatusLabel('Uninvoiced', 'delivery_order') },
+  { value: 'Invoiced', label: getStatusLabel('Invoiced', 'delivery_order') },
+  { value: 'Cancelled', label: getStatusLabel('Cancelled', 'delivery_order') },
 ];
 
-const STATUS_BADGE: Record<string, string> = {
-  Submitted: 'badge-blue',
-  Invoiced: 'badge-green',
-  Cancelled: 'badge-red',
-};
+/** Badge status: Submitted splits into Invoiced / Uninvoiced. */
+function deliveryOrderDisplayStatus(row: Pick<DeliveryOrderRow, 'status' | 'invoice'>): string {
+  if (row.status !== 'Submitted') return row.status;
+  return row.invoice ? 'Invoiced' : 'Uninvoiced';
+}
 
-const STATUS_LABEL: Record<string, string> = {
-  Submitted: 'Diserahkan',
-  Invoiced: 'Sudah Diinvoice',
-  Cancelled: 'Dibatalkan',
-};
+export interface DeliveryOrdersListProps {
+  /** Opens the create modal (owned by the page header). */
+  onCreate: () => void;
+}
 
-const PAGE_SIZE = 25;
-
-export const DeliveryOrdersTab = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 200);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [partyId, setPartyId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [page, setPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
+  const navigate = useNavigate();
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
+  const [density, setDensity] = useTableDensity();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const canInvoice = can('sales_invoice', 'edit');
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    },
+  const ordersQuery = useQuery({
+    queryKey: ['delivery-orders', 'list', list.params],
+    queryFn: async () => (await api.get<Paginated<DeliveryOrderRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
   });
 
-  const partyOptions = useMemo<SelectOption[]>(
+  const columns = useMemo<ColumnDef<DeliveryOrderRow>[]>(
     () => [
-      { value: '', label: '— Semua Pelanggan —' },
-      ...((parties ?? []).map((p: any) => ({ value: p.id, label: p.name })) as SelectOption[]),
+      {
+        id: 'doNumber',
+        header: 'Nomor',
+        enableSorting: true,
+        sortDescFirst: true,
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.doNumber}</DocumentLink>
+            {/* Mobile: customer + date stacked here because their columns are hidden. */}
+            <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
+              {row.original.customer?.name ?? '-'}
+            </span>
+            <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'date',
+        header: 'Tanggal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => formatDate(row.original.date),
+      },
+      {
+        id: 'customer',
+        header: 'Pelanggan',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
+        cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>,
+      },
+      {
+        id: 'nomorMobil',
+        header: 'No. Mobil',
+        meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
+        cell: ({ row }) => row.original.nomorMobil || '-',
+      },
+      {
+        id: 'items',
+        header: 'Item',
+        meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
+        cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <StatusBadge status={deliveryOrderDisplayStatus(row.original)} docType="delivery_order" />
+            {/* Mobile: invoice number stacked here because its column is hidden. */}
+            {row.original.invoice && (
+              <span className="num font-mono text-xs text-muted-foreground md:hidden">
+                {row.original.invoice.invoiceNumber}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'invoice',
+        header: 'Faktur',
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) =>
+          row.original.invoice ? (
+            <span className="num font-mono text-xs text-foreground">{row.original.invoice.invoiceNumber}</span>
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          ),
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const d = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${d.doNumber}`}
+              actions={[
+                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(d.id) },
+                {
+                  // Same deep link as the drawer's "Buat Invoice".
+                  label: 'Buat faktur',
+                  icon: ReceiptText,
+                  hidden: !canInvoice || deliveryOrderDisplayStatus(d) !== 'Uninvoiced',
+                  onSelect: () => navigate(`/sales?fromDO=${d.id}&party=${d.partyId}`),
+                },
+              ]}
+            />
+          );
+        },
+      },
     ],
-    [parties],
+    [canInvoice, navigate],
   );
-
-  // Filter + paging dilakukan di server: total DO bisa >200 sehingga fetch
-  // terbatas (limit) memotong data lama, dan status "Invoiced" adalah state
-  // turunan yang hanya backend yang tahu (Submitted + invoiceId). Kirim semua
-  // filter ke backend yang sudah mendukungnya.
-  const { data: resp, isLoading, isError } = useQuery({
-    queryKey: ['delivery-orders', debouncedSearch, statusFilter, partyId, dateFrom, dateTo, page],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.set('page', String(page));
-      params.set('limit', String(PAGE_SIZE));
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      if (statusFilter) params.set('status', statusFilter);
-      if (partyId) params.set('partyId', partyId);
-      if (dateFrom) params.set('startDate', dateFrom);
-      if (dateTo) params.set('endDate', dateTo);
-      const res = await api.get(`/delivery-orders?${params.toString()}`);
-      return res.data as { data: any[]; total: number };
-    },
-  });
-
-  const paginated = resp?.data ?? [];
-  const totalPages = Math.max(1, Math.ceil((resp?.total ?? 0) / PAGE_SIZE));
-
-  const hasActiveFilter = !!(searchTerm || statusFilter || partyId || dateFrom || dateTo);
-
-  const resetFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('');
-    setPartyId('');
-    setDateFrom('');
-    setDateTo('');
-    setPage(1);
-  };
 
   return (
-    <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Surat Jalan</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Dokumen pengiriman fisik ke pelanggan. Stok keluar di sini, invoice menyusul.
-          </p>
-        </div>
-        <button className="btn-primary self-start" onClick={() => setIsModalOpen(true)}>
-          <Plus size={15} /> Buat Surat Jalan
-        </button>
-      </div>
+    <div className="space-y-3">
+      <FilterBar
+        list={list}
+        searchLabel="Cari surat jalan"
+        searchPlaceholder="Cari nomor DO, pelanggan, no. mobil"
+        status={{ options: STATUS_FILTER }}
+        dateRange
+      >
+        <PartyFilter partyType="Customer" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
+      </FilterBar>
 
-      {/* Filter Bar */}
-      <div className="flex items-center gap-3 flex-wrap filter-bar">
-        <div className="relative flex-1 min-w-0 sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari nomor DO, pelanggan, no. mobil..."
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="w-44"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </Select>
-        <div className="w-56">
-          <SearchableSelect
-            options={partyOptions}
-            value={partyId}
-            onChange={(v) => { setPartyId(v); setPage(1); }}
-            placeholder="— Semua Pelanggan —"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-          <span className="text-xs">Dari</span>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg py-2 px-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-xs">s/d</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg py-2 px-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        {hasActiveFilter && (
-          <button onClick={resetFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-            Reset filter
-          </button>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Tanggal</th>
-                <th scope="col">Nomor DO</th>
-                <th scope="col">Pelanggan</th>
-                <th scope="col">No. Mobil</th>
-                <th scope="col" className="text-center">Items</th>
-                <th scope="col" className="text-center">Status</th>
-                <th scope="col">Invoice</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <TableRowSkeleton columns={7} rows={6} />
-              ) : isError ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <AlertCircle className="w-8 h-8 text-red-300 mx-auto mb-2" />
-                    <p className="text-sm text-red-500">Gagal memuat daftar surat jalan.</p>
-                  </td>
-                </tr>
-              ) : paginated.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <Truck className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400">
-                      {hasActiveFilter
-                        ? 'Tidak ada surat jalan sesuai filter.'
-                        : 'Belum ada surat jalan.'}
-                    </p>
-                    {!hasActiveFilter && (
-                      <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="mt-3 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        + Buat surat jalan pertama
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((d: any) => {
-                  const customer = d.customer ?? d.party;
-                  const invoiceRef = d.salesInvoice ?? d.invoice;
-                  // "Invoiced" is a derived state — enum has only Draft/Submitted/Cancelled.
-                  const displayStatus = d.status === 'Submitted' && invoiceRef ? 'Invoiced' : d.status;
-                  return (
-                    <tr
-                      key={d.id}
-                      onClick={() => setSelectedId(d.id)}
-                      className="cursor-pointer"
-                    >
-                      <td className="text-gray-500 whitespace-nowrap">{formatDate(d.date)}</td>
-                      <td className="whitespace-nowrap">
-                        <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{d.doNumber}</span>
-                      </td>
-                      <td>
-                        <p className="font-medium text-gray-800">{customer?.name ?? '—'}</p>
-                        {customer?.phone && <p className="text-xs text-gray-400">{customer.phone}</p>}
-                      </td>
-                      <td className="font-mono text-xs text-gray-600 uppercase whitespace-nowrap">
-                        {d.nomorMobil || <span className="text-gray-300">—</span>}
-                      </td>
-                      <td className="text-center">
-                        <span className="badge badge-gray text-xs">{d._count?.items ?? d.items?.length ?? 0} item</span>
-                      </td>
-                      <td className="text-center">
-                        <span className={cn('badge', STATUS_BADGE[displayStatus] ?? 'badge-gray')}>
-                          {STATUS_LABEL[displayStatus] ?? displayStatus}
-                        </span>
-                      </td>
-                      <td>
-                        {invoiceRef ? (
-                          <span className="font-mono text-xs text-green-700">{invoiceRef.invoiceNumber}</span>
-                        ) : (
-                          <span className="text-gray-300 text-xs">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {(resp?.total ?? 0) > PAGE_SIZE && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-            <p className="text-xs text-gray-400">
-              Menampilkan {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, resp?.total ?? 0)} dari {resp?.total ?? 0} surat jalan
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500"
-                aria-label="Halaman sebelumnya"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-xs text-gray-500 px-2">{page} / {totalPages}</span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500"
-                aria-label="Halaman berikutnya"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Conditional render — parent controls lifecycle so state resets cleanly on each open. */}
-      {isModalOpen && (
-        <DeliveryOrderModal onClose={() => setIsModalOpen(false)} />
-      )}
-
-      <DeliveryOrderDetailDrawer
-        doId={selectedId}
-        onClose={() => setSelectedId(null)}
+      <DataTable
+        {...listTableProps(list, ordersQuery.data?.total)}
+        label="Daftar surat jalan resmi"
+        itemLabel="surat jalan"
+        columns={columns}
+        data={ordersQuery.data?.data}
+        getRowId={(row) => row.id}
+        loading={ordersQuery.isLoading}
+        fetching={ordersQuery.isFetching && ordersQuery.isPlaceholderData}
+        error={ordersQuery.error}
+        onRetry={() => ordersQuery.refetch()}
+        onRowClick={(row) => setSelectedId(row.id)}
+        density={density}
+        onDensityChange={setDensity}
+        empty={{
+          title: 'Belum ada surat jalan',
+          description: 'Surat jalan resmi memotong stok saat dibuat; faktur menyusul.',
+          action: (
+            <Button size="sm" onClick={onCreate}>
+              <Plus aria-hidden />
+              Buat surat jalan pertama
+            </Button>
+          ),
+        }}
       />
+
+      <DeliveryOrderDetailDrawer doId={selectedId} onClose={() => setSelectedId(null)} />
     </div>
   );
-};
+}
 
-export default DeliveryOrdersTab;
+export default DeliveryOrdersList;

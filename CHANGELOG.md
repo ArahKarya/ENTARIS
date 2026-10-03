@@ -19,6 +19,11 @@
 
 ### Tampilan (UI/UX)
 **Diubah**:
+- **Halaman daftar Penjualan** (Pertanyaan Pelanggan, Penawaran, Pesanan Penjualan, Surat Jalan, Faktur Penjualan, Retur Penjualan, Uang Muka Pelanggan): data dimuat per halaman dari server — tidak lagi terpotong diam-diam di 200/500 baris. Filter (cari, status, pelanggan, tanggal) & urutan tersimpan di URL; kartu ringkasan dihitung server sesuai filter; status berbahasa Indonesia; angka rata kanan; baris bisa dibuka dengan keyboard; tampilan mobile ringkas.
+- Surat Jalan: satu halaman dengan tab "Surat Jalan Resmi" / "Surat Jalan Sementara"; status DO "Sudah/Belum Diinvoice" dan aksi "Buat faktur".
+- Total nilai penawaran tidak lagi menghitung penawaran yang dibatalkan (konsisten dengan faktur).
+- Tombol buat/aksi tulis disembunyikan untuk pengguna tanpa izin edit (server sudah menolak sebelumnya).
+
 - **Halaman login baru**: panel brand navy yang tenang + form ringkas. Animasi, statistik dekoratif, kredit pribadi, versi build, dan tombol bergradien dihapus. Validasi di bawah field, banner salah kata sandi, hitung mundur saat terlalu banyak percobaan, peringatan Caps Lock, dialog "Lupa kata sandi?", dan mode gelap.
 - **Warna mengikuti brand Entaris** (biru #2F6FC4, navy #1B2B48) untuk mode terang & gelap; semua pasangan teks/latar lolos kontras WCAG AA.
 - **Tema**: pilihan disederhanakan menjadi Terang / Gelap / Sistem (default mengikuti sistem). Tema lama otomatis dialihkan ke Sistem.

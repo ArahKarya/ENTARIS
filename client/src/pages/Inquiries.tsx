@@ -1,284 +1,399 @@
-import { useState, useMemo } from 'react';
+/**
+ * Pertanyaan Pelanggan (/inquiries) — list kit page (see pages/SalesInvoices.tsx
+ * for the reference pattern). Server-paginated list + KPI summary endpoint
+ * with the same filters; detail, edit, status changes and "jadikan penawaran"
+ * stay in InquiryDetailDrawer / InquiryModal.
+ */
+import { useId, useMemo, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
-  Plus, Search, Loader2, ChevronLeft, ChevronRight,
-  Inbox, FileSignature, MessageCircle, Phone, Mail, MapPin, Share2, QrCode,
+  CheckCircle2,
+  Eye,
+  FileSignature,
+  Globe,
+  Inbox,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Pencil,
+  Percent,
+  Phone,
+  Plus,
+  QrCode,
+  Share2,
+  Sparkles,
+  type LucideIcon,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { useQuery } from '@tanstack/react-query';
-import api from '../lib/api';
-import { formatDate } from '../lib/formatters';
-import InquiryModal from '../components/InquiryModal';
-import InquiryDetailDrawer from '../components/InquiryDetailDrawer';
-import InquiryQRModal from '../components/InquiryQRModal';
-import Select from '../components/Select';
+import api from '@/lib/api';
+import { formatDate, formatNumber, formatPercent } from '@/lib/format';
+import { statusOptions } from '@/lib/status';
+import { can } from '@/lib/permissions';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PageHeader,
+  RowActions,
+  StatCard,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import InquiryModal from '@/components/InquiryModal';
+import InquiryDetailDrawer from '@/components/InquiryDetailDrawer';
+import InquiryQRModal from '@/components/InquiryQRModal';
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Semua Status' },
-  { value: 'Baru', label: 'Baru' },
-  { value: 'Diproses', label: 'Diproses' },
-  { value: 'Dikonversi', label: 'Dikonversi' },
-  { value: 'Hilang', label: 'Hilang' },
-  { value: 'Ditutup', label: 'Ditutup' },
-];
+interface InquiryRow {
+  id: string;
+  inquiryNumber: string;
+  date: string;
+  status: string;
+  channel: string;
+  partyId: string | null;
+  prospectName: string;
+  prospectPhone: string | null;
+  prospectEmail: string | null;
+  notes: string | null;
+  party?: { id: string; name: string; phone: string | null; email: string | null } | null;
+  quotation?: { id: string; quotationNumber: string; status: string } | null;
+}
 
-const STATUS_BADGE: Record<string, string> = {
-  Baru: 'badge-blue',
-  Diproses: 'badge-yellow',
-  Dikonversi: 'badge-green',
-  Hilang: 'badge-red',
-  Ditutup: 'badge-gray',
+interface InquirySummary {
+  count: number;
+  newCount: number;
+  inProgressCount: number;
+  convertedCount: number;
+  conversionRate: number;
+}
+
+const ENDPOINT = '/inquiries';
+const FILTER_KEYS = ['status', 'channel', 'startDate', 'endDate'] as const;
+const STATUS_FILTER = statusOptions(['Baru', 'Diproses', 'Dikonversi', 'Hilang', 'Ditutup'], 'inquiry');
+const ALL = '__all__';
+
+const CHANNELS: Record<string, { label: string; icon: LucideIcon }> = {
+  WhatsApp: { label: 'WhatsApp', icon: MessageCircle },
+  Telepon: { label: 'Telepon', icon: Phone },
+  Email: { label: 'Email', icon: Mail },
+  WalkIn: { label: 'Walk-in', icon: MapPin },
+  Referral: { label: 'Referral', icon: Share2 },
+  Lainnya: { label: 'Lainnya', icon: Inbox },
 };
 
-const CHANNEL_ICON: Record<string, any> = {
-  WhatsApp: MessageCircle,
-  Telepon: Phone,
-  Email: Mail,
-  WalkIn: MapPin,
-  Referral: Share2,
-  Lainnya: Inbox,
-};
-const CHANNEL_LABEL: Record<string, string> = {
-  WhatsApp: 'WhatsApp', Telepon: 'Telepon', Email: 'Email', WalkIn: 'Walk-in', Referral: 'Referral', Lainnya: 'Lainnya',
-};
+/** Set by POST /public/inquiry (self-service QR form). */
+const PUBLIC_FORM_NOTE = 'Submitted via public form';
+const isPublicForm = (q: InquiryRow) => !!q.notes?.startsWith(PUBLIC_FORM_NOTE);
 
-const PAGE_SIZE = 20;
+const chip = 'inline-flex items-center gap-1 rounded-sm px-1.5 py-px text-[11px] font-medium leading-4';
+
+function SourceChips({ inquiry }: { inquiry: InquiryRow }) {
+  const prospect = !inquiry.partyId;
+  const publicForm = isPublicForm(inquiry);
+  if (!prospect && !publicForm) return null;
+  return (
+    <span className="flex flex-wrap gap-1 group-data-[density=compact]/table:hidden">
+      {prospect && <span className={`${chip} bg-warning-subtle text-warning-text`}>Prospek</span>}
+      {publicForm && (
+        <span className={`${chip} bg-info-subtle text-info-text`} title="Masuk lewat formulir publik (QR)">
+          <Globe className="size-3" aria-hidden />
+          Form publik
+        </span>
+      )}
+    </span>
+  );
+}
+
+function ChannelFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const id = useId();
+  return (
+    <div className="w-[calc(50%-0.25rem)] sm:w-40">
+      <label htmlFor={id} className="sr-only">
+        Channel
+      </label>
+      <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
+        <SelectTrigger id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>Semua channel</SelectItem>
+          {Object.entries(CHANNELS).map(([key, c]) => (
+            <SelectItem key={key} value={key}>
+              {c.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 export const Inquiries = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [channelFilter, setChannelFilter] = useState('');
-  const [page, setPage] = useState(1);
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
+  const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQROpen, setIsQROpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editTarget, setEditTarget] = useState<InquiryRow | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const canEdit = can('quotation', 'edit');
 
-  const { data: raw, isLoading } = useQuery({
-    queryKey: ['inquiries'],
-    queryFn: async () => {
-      const res = await api.get('/inquiries?limit=200');
-      return res.data.data ?? res.data;
-    },
+  const inquiriesQuery = useQuery({
+    queryKey: ['inquiries', 'list', list.params],
+    queryFn: async () => (await api.get<Paginated<InquiryRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
   });
 
-  const filtered = useMemo(() => {
-    if (!raw) return [];
-    return raw.filter((q: any) => {
-      if (searchTerm) {
-        const s = searchTerm.toLowerCase();
-        const match = q.inquiryNumber?.toLowerCase().includes(s)
-          || q.prospectName?.toLowerCase().includes(s)
-          || q.party?.name?.toLowerCase().includes(s);
-        if (!match) return false;
-      }
-      if (statusFilter && q.status !== statusFilter) return false;
-      if (channelFilter && q.channel !== channelFilter) return false;
-      return true;
-    });
-  }, [raw, searchTerm, statusFilter, channelFilter]);
+  const summaryQuery = useQuery({
+    queryKey: ['inquiries', 'summary', list.filterParams],
+    queryFn: async () => (await api.get<InquirySummary>(`${ENDPOINT}/summary`, { params: list.filterParams })).data,
+    placeholderData: keepPreviousData,
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const total = inquiriesQuery.data?.total;
+  const summary = summaryQuery.data;
+  // On error the cards fall back to '-' instead of an endless skeleton.
+  const summaryLoading = !summary && !summaryQuery.isError;
 
-  const summary = useMemo(() => {
-    if (!raw) return { total: 0, baru: 0, diproses: 0, dikonversi: 0, conversionRate: 0 };
-    let baru = 0, diproses = 0, dikonversi = 0;
-    for (const q of raw) {
-      if (q.status === 'Baru') baru++;
-      else if (q.status === 'Diproses') diproses++;
-      else if (q.status === 'Dikonversi') dikonversi++;
-    }
-    const conversionRate = raw.length > 0 ? Math.round((dikonversi / raw.length) * 100) : 0;
-    return { total: raw.length, baru, diproses, dikonversi, conversionRate };
-  }, [raw]);
+  const openCreate = () => {
+    setEditTarget(null);
+    setIsModalOpen(true);
+  };
+
+  const columns = useMemo<ColumnDef<InquiryRow>[]>(
+    () => [
+      {
+        id: 'inquiryNumber',
+        header: 'Nomor',
+        enableSorting: true,
+        sortDescFirst: true,
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.inquiryNumber}</DocumentLink>
+            {/* Mobile: prospect stacked here because its column is hidden. */}
+            <span className="max-w-48 truncate text-sm font-medium text-foreground sm:hidden">
+              {row.original.party?.name ?? row.original.prospectName}
+            </span>
+            <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'date',
+        header: 'Tanggal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => formatDate(row.original.date),
+      },
+      {
+        id: 'prospectName',
+        header: 'Prospek / Pelanggan',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-72' },
+        cell: ({ row }) => {
+          const q = row.original;
+          const name = q.party?.name ?? q.prospectName;
+          return (
+            <div className="flex min-w-0 flex-col items-start gap-0.5">
+              <p className="max-w-full truncate font-medium text-foreground">{name}</p>
+              {q.party && q.prospectName !== q.party.name && (
+                <p className="max-w-full truncate text-xs text-muted-foreground">via {q.prospectName}</p>
+              )}
+              <SourceChips inquiry={q} />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'contact',
+        header: 'Kontak',
+        meta: { hideBelow: 'lg', cellClassName: 'max-w-56' },
+        cell: ({ row }) => {
+          const q = row.original;
+          const phone = q.prospectPhone || q.party?.phone;
+          const email = q.prospectEmail || q.party?.email;
+          if (!phone && !email) return <span className="text-muted-foreground">-</span>;
+          return (
+            <div className="min-w-0 text-xs text-muted-foreground">
+              {phone && <p className="num truncate">{phone}</p>}
+              {email && <p className="truncate group-data-[density=compact]/table:hidden">{email}</p>}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'channel',
+        header: 'Channel',
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => {
+          const c = CHANNELS[row.original.channel];
+          const Icon = c?.icon ?? Inbox;
+          return (
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Icon className="size-3.5" aria-hidden />
+              {c?.label ?? row.original.channel}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        cell: ({ row }) => <StatusBadge status={row.original.status} docType="inquiry" />,
+      },
+      {
+        id: 'quotation',
+        header: 'Penawaran',
+        meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) =>
+          row.original.quotation ? (
+            <span className="num font-mono text-xs text-success-text">{row.original.quotation.quotationNumber}</span>
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          ),
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const q = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${q.inquiryNumber}`}
+              actions={[
+                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(q.id) },
+                {
+                  label: 'Edit',
+                  icon: Pencil,
+                  hidden: !canEdit || q.status === 'Dikonversi',
+                  onSelect: () => {
+                    setEditTarget(q);
+                    setIsModalOpen(true);
+                  },
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    [canEdit],
+  );
 
   return (
     <div className="space-y-5 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Inquiry</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Pertanyaan calon customer / prospect sebelum penawaran resmi.</p>
-        </div>
-        <div className="flex items-center gap-2 self-start">
-          <button
-            type="button"
-            onClick={() => setIsQROpen(true)}
-            className="btn-secondary"
-            title="Generate QR untuk public form / share ke customer"
-          >
-            <QrCode size={15} /> QR Form
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => { setEditTarget(null); setIsModalOpen(true); }}
-          >
-            <Plus size={15} /> Catat Inquiry
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Pertanyaan Pelanggan"
+        description="Pertanyaan calon pelanggan / prospek sebelum penawaran resmi."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setIsQROpen(true)} title="Buat QR untuk formulir publik">
+              <QrCode aria-hidden />
+              <span className="sr-only sm:not-sr-only">QR Form</span>
+            </Button>
+            {canEdit && (
+              <Button onClick={openCreate}>
+                <Plus aria-hidden />
+                Catat Pertanyaan
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[
-          { label: 'Total', value: summary.total, color: 'blue', icon: Inbox },
-          { label: 'Baru', value: summary.baru, color: 'blue', icon: Inbox },
-          { label: 'Dikonversi', value: summary.dikonversi, color: 'green', icon: FileSignature },
-          { label: 'Conversion Rate', value: `${summary.conversionRate}%`, color: 'amber', icon: FileSignature },
-        ].map((c) => (
-          <div key={c.label} className="card px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 bg-${c.color}-50 rounded-lg`}>
-                <c.icon size={16} className={`text-${c.color}-600`} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{c.label}</p>
-                <p className="text-lg font-bold text-foreground">{c.value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <section aria-label="Ringkasan pertanyaan sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Jumlah Pertanyaan"
+          icon={Inbox}
+          loading={summaryLoading}
+          value={summary ? formatNumber(summary.count) : '-'}
+          hint={summary ? `${formatNumber(summary.inProgressCount)} sedang diproses` : undefined}
+        />
+        <StatCard
+          label="Baru"
+          icon={Sparkles}
+          loading={summaryLoading}
+          value={summary ? formatNumber(summary.newCount) : '-'}
+          hint="belum ditindaklanjuti"
+        />
+        <StatCard
+          label="Dikonversi"
+          icon={CheckCircle2}
+          loading={summaryLoading}
+          value={summary ? formatNumber(summary.convertedCount) : '-'}
+          hint="jadi penawaran"
+        />
+        <StatCard
+          label="Tingkat Konversi"
+          icon={Percent}
+          loading={summaryLoading}
+          value={summary ? formatPercent(summary.conversionRate) : '-'}
+          hint="dari semua pertanyaan"
+        />
+      </section>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Cari nomor / nama prospect..."
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="w-full">
-          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </Select>
-        <Select value={channelFilter} onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
-          className="w-full">
-          <option value="">Semua Channel</option>
-          {Object.entries(CHANNEL_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </Select>
-        {(searchTerm || statusFilter || channelFilter) && (
-          <button onClick={() => { setSearchTerm(''); setStatusFilter(''); setChannelFilter(''); setPage(1); }}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-            Reset filter
-          </button>
-        )}
-      </div>
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari pertanyaan"
+          searchPlaceholder="Cari nomor, prospek, atau pelanggan"
+          status={{ options: STATUS_FILTER }}
+          dateRange
+        >
+          <ChannelFilter value={list.filters.channel} onChange={(v) => list.setFilter('channel', v)} />
+        </FilterBar>
 
-      {/* Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Nomor</th>
-                <th>Prospek / Customer</th>
-                <th>Kontak</th>
-                <th>Channel</th>
-                <th className="text-center">Status</th>
-                <th>Penawaran</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={7} className="py-16 text-center text-muted-foreground">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />Memuat inquiry...
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="py-16 text-center">
-                  <Inbox className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-40" />
-                  <p className="text-sm text-muted-foreground">
-                    {raw?.length === 0 ? 'Belum ada inquiry.' : 'Tidak ada hasil filter.'}
-                  </p>
-                  {raw?.length === 0 && (
-                    <button onClick={() => { setEditTarget(null); setIsModalOpen(true); }}
-                      className="mt-3 text-xs text-blue-600 hover:text-blue-700 font-medium">+ Catat inquiry pertama</button>
-                  )}
-                </td></tr>
-              ) : (
-                paginated.map((q: any) => {
-                  const ChannelIcon = CHANNEL_ICON[q.channel] ?? Inbox;
-                  return (
-                    <tr key={q.id} onClick={() => setSelectedId(q.id)} className="cursor-pointer">
-                      <td className="text-muted-foreground whitespace-nowrap">{formatDate(q.date)}</td>
-                      <td className="whitespace-nowrap">
-                        <span className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">{q.inquiryNumber}</span>
-                      </td>
-                      <td>
-                        <p className="font-medium text-foreground">{q.party?.name ?? q.prospectName}</p>
-                        {q.party && q.prospectName !== q.party.name && (
-                          <p className="text-xs text-muted-foreground">via {q.prospectName}</p>
-                        )}
-                        {!q.partyId && (
-                          <span className="text-[10px] uppercase tracking-wider text-amber-600">prospect</span>
-                        )}
-                      </td>
-                      <td className="text-xs text-muted-foreground">
-                        {q.prospectPhone || q.party?.phone || '—'}
-                        {(q.prospectEmail || q.party?.email) && (
-                          <p className="opacity-70">{q.prospectEmail || q.party?.email}</p>
-                        )}
-                      </td>
-                      <td>
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <ChannelIcon size={12} /> {CHANNEL_LABEL[q.channel] ?? q.channel}
-                        </span>
-                      </td>
-                      <td className="text-center">
-                        <span className={cn('badge', STATUS_BADGE[q.status] ?? 'badge-gray')}>{q.status}</span>
-                      </td>
-                      <td className="text-xs text-muted-foreground">
-                        {q.quotation ? (
-                          <span className="font-mono text-green-600">{q.quotation.quotationNumber}</span>
-                        ) : <span>—</span>}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {filtered.length > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} dari {filtered.length}
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
-                className="p-1.5 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Sebelumnya">
-                <ChevronLeft size={14} />
-              </button>
-              <span className="text-xs px-2 text-foreground">Hal {page} / {totalPages}</span>
-              <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
-                className="p-1.5 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Berikutnya">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
+        <DataTable
+          {...listTableProps(list, total)}
+          label="Daftar pertanyaan pelanggan"
+          itemLabel="pertanyaan"
+          columns={columns}
+          data={inquiriesQuery.data?.data}
+          getRowId={(row) => row.id}
+          loading={inquiriesQuery.isLoading}
+          fetching={inquiriesQuery.isFetching && inquiriesQuery.isPlaceholderData}
+          error={inquiriesQuery.error}
+          onRetry={() => inquiriesQuery.refetch()}
+          onRowClick={(row) => setSelectedId(row.id)}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada pertanyaan pelanggan',
+            description: 'Catat pertanyaan dari WhatsApp, telepon, atau bagikan QR formulir publik.',
+            action: canEdit ? (
+              <Button size="sm" onClick={openCreate}>
+                <FileSignature aria-hidden />
+                Catat pertanyaan pertama
+              </Button>
+            ) : undefined,
+          }}
+        />
       </div>
 
       <InquiryModal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditTarget(null); }}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditTarget(null);
+        }}
         editTarget={editTarget}
       />
 
-      <InquiryQRModal
-        isOpen={isQROpen}
-        onClose={() => setIsQROpen(false)}
-      />
+      <InquiryQRModal isOpen={isQROpen} onClose={() => setIsQROpen(false)} />
 
       <InquiryDetailDrawer
         inquiryId={selectedId}
         onClose={() => setSelectedId(null)}
-        onEdit={(q) => { setSelectedId(null); setEditTarget(q); setIsModalOpen(true); }}
+        onEdit={(q) => {
+          setSelectedId(null);
+          setEditTarget(q);
+          setIsModalOpen(true);
+        }}
       />
     </div>
   );

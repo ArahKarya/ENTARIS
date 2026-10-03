@@ -19,6 +19,7 @@ export type DocType =
   | 'sales_invoice'
   | 'sales_return'
   | 'delivery_order'
+  | 'temporary_delivery_note'
   | 'purchase_order'
   | 'goods_receipt'
   | 'purchase_invoice'
@@ -121,10 +122,24 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   journal: { submitted: POSTED },
   payment: { submitted: POSTED },
   goods_receipt: { submitted: POSTED },
-  delivery_order: { submitted: POSTED },
+  // `Invoiced` / `Uninvoiced` are derived in the DO list (Submitted ± invoiceId).
+  delivery_order: {
+    submitted: POSTED,
+    invoiced: m('Sudah Diinvoice', 'success'),
+    uninvoiced: m('Belum Diinvoice', 'warning'),
+  },
+  // Surat Jalan Sementara: Open needs follow-up (link to an official DO).
+  temporary_delivery_note: { open: m('Terbuka', 'warning'), linked: m('Tertaut', 'success') },
   stock_opname: { submitted: POSTED },
   stock_transfer: { submitted: POSTED },
   sales_return: { submitted: POSTED },
+  // Uang muka: usage states derived server-side from applied/refunded amounts.
+  deposit: {
+    active: m('Aktif', 'info'),
+    partiallyused: m('Terpakai Sebagian', 'warning'),
+    fullyused: m('Terpakai', 'success'),
+    submitted: m('Aktif', 'info'),
+  },
 };
 
 function humanize(status: string): string {
@@ -148,4 +163,12 @@ export function getStatusLabel(status: string | null | undefined, docType?: DocT
 
 export function getStatusTone(status: string | null | undefined, docType?: DocType): StatusTone {
   return getStatusMeta(status, docType).tone;
+}
+
+/** `{ value, label }` options for a status filter, labelled from this registry. */
+export function statusOptions(
+  statuses: readonly string[],
+  docType?: DocType,
+): Array<{ value: string; label: string }> {
+  return statuses.map((value) => ({ value, label: getStatusLabel(value, docType) }));
 }

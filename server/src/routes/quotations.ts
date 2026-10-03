@@ -14,6 +14,16 @@ import {
   ConvertQuotationSchema,
 } from '../utils/schemas';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  awaitingConversionWhere,
+  buildQuotationWhere,
+  DEFAULT_QUOTATION_SORT,
+  expiringSoonWhere,
+  QUOTATION_SORT_FIELDS,
+  quotationOrderBy,
+  summarizeQuotations,
+} from '../services/quotationList';
 
 const router = Router();
 
@@ -83,16 +93,18 @@ function computeTotals(items: ResolvedItem[], potongan: number, biayaLain: numbe
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET / — list with pagination + filter
+// Query: page, limit (≤500), status, partyId, startDate, endDate (YYYY-MM-DD),
+// search (number / customer), sort (e.g. "-date", "validUntil").
+// → { data, total, page, limit }
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const { status, partyId, page = '1', limit = '50' } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: Prisma.QuotationWhereInput = {};
-    if (status) where.status = status as any;
-    if (partyId) where.partyId = partyId as string;
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 500 });
+    const filter = buildQuotationWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, QUOTATION_SORT_FIELDS, DEFAULT_QUOTATION_SORT);
 
     const [quotations, total] = await Promise.all([
       prisma.quotation.findMany({
@@ -102,16 +114,40 @@ router.get('/', async (req, res) => {
           items: true,
           salesInvoice: { select: { id: true, invoiceNumber: true, date: true } },
         },
-        orderBy: { date: 'desc' },
+        orderBy: quotationOrderBy(sort),
         skip,
         take,
       }),
       prisma.quotation.count({ where }),
     ]);
 
-    return res.json({ data: quotations, total, page: Number(page), limit: take });
+    return res.json({ data: quotations, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /quotations', 'Gagal mengambil data penawaran.');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /summary — KPI totals for the same filters as the list. Before /:id.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildQuotationWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const [groups, expiringSoonCount, awaitingConversionCount] = await Promise.all([
+      prisma.quotation.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+        _sum: { grandTotal: true },
+      }),
+      prisma.quotation.count({ where: { AND: [where, expiringSoonWhere(new Date())] } }),
+      prisma.quotation.count({ where: { AND: [where, awaitingConversionWhere] } }),
+    ]);
+    return res.json(summarizeQuotations(groups, { expiringSoonCount, awaitingConversionCount }));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /quotations/summary', 'Gagal menghitung ringkasan penawaran.');
   }
 });
 
