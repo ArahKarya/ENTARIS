@@ -33,3 +33,6 @@ pgdata
 docs/
 .claude/
 README.md
+
+# Marketing website (separate Next.js app, not part of the ERP image)
+website/

@@ -46,3 +46,65 @@
     --entaris-blue-dark: #2f6fc4;
   }
 }
+
+/*
+ * Tokens site.css declares on descendant elements (CTA card, metal hero) with hard-coded warm hex
+ * sheens and purple flares. They are re-declared on every descendant so the layer order wins.
+ */
+@layer entaris {
+  .erp-root * {
+    --tacet-cta-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #f8fbff 0%, #d5dfec 100%);
+    --hero-metal-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #f8fbff 0%, #d5dfec 100%);
+    --tacet-cta-flare-b: color-mix(in srgb, var(--beige-400), var(--entaris-blue-light) 18%);
+    --hero-metal-flare-b: color-mix(in srgb, var(--beige-400), var(--entaris-blue-light) 18%);
+  }
+  .erp-root.dark * {
+    --tacet-cta-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #24334f 0%, #121b2c 100%);
+    --hero-metal-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #24334f 0%, #121b2c 100%);
+    --tacet-cta-flare-b: color-mix(in srgb, var(--entaris-blue), transparent 84%);
+    --hero-metal-flare-b: color-mix(in srgb, var(--entaris-blue), transparent 84%);
+  }
+
+  /* Dark mode: the on-light accent would be too dark on navy surfaces. */
+  .erp-root.dark {
+    --tacet-orange-on-light: var(--entaris-blue-light);
+    --gold-on-light: var(--entaris-blue-light);
+  }
+}
+
+/* Surfaces that bake in ERP•AI's purple glow / pastel rainbow wash: swap for an Entaris blue glow. */
+@layer entaris {
+  .erp-root .hero-catalog {
+    background-image: radial-gradient(circle at 50% 0%, rgb(61 139 224 / 0.12), transparent 42%);
+  }
+  .erp-root .page-shell::before {
+    background-image: linear-gradient(rgb(255 255 255 / 0.2), transparent 544px),
+      radial-gradient(60% 420px at 50% 0%, rgb(156 201 245 / 0.35), transparent 70%);
+  }
+  .erp-root.dark .page-shell::before {
+    background-image: radial-gradient(60% 420px at 50% 0%, rgb(61 139 224 / 0.16), transparent 70%);
+  }
+}
+
+/* The root (and the document behind it) must carry the page colour: some heroes are transparent
+   and would otherwise show the white browser canvas in dark mode. */
+@layer entaris {
+  .erp-root {
+    background-color: var(--background);
+  }
+}
+
+/* AIRA page (main.tacet-proto-page): the ERP•AI rainbow wash image becomes a blue glow. */
+@layer entaris {
+  .erp-root:has(#main-content.tacet-proto-page),
+  body:has(.erp-root:has(#main-content.tacet-proto-page)) {
+    background:
+      radial-gradient(60% 38rem at 50% 0%, rgb(156 201 245 / 0.4), transparent 70%),
+      var(--background);
+  }
+  .erp-root.dark:has(#main-content.tacet-proto-page) {
+    background:
+      radial-gradient(60% 38rem at 50% 0%, rgb(61 139 224 / 0.18), transparent 70%),
+      var(--background);
+  }
+}
