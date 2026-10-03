@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import type { AuthRequest } from '../middleware/auth';
+import { can } from '../services/permissionService';
+import { resolveSearchScope } from './searchScope';
 
 const router = Router();
 
 // GET /api/search?q=xxx&limit=10
-router.get('/', async (req, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   const q = (req.query.q as string || '').trim();
   const limit = Math.min(Number(req.query.limit) || 10, 20);
 
@@ -15,6 +18,12 @@ router.get('/', async (req, res) => {
 
   try {
     const contains = q;
+    const role = req.user?.role;
+    // Only search record types the caller may list through their own endpoints.
+    const scope = await resolveSearchScope((module) =>
+      role ? can(role, module, 'view') : Promise.resolve(false),
+    );
+    const none = Promise.resolve([]);
 
     const [parties, salesInvoices, purchaseInvoices, payments, journals, accounts] = await Promise.all([
       prisma.party.findMany({
@@ -22,22 +31,22 @@ router.get('/', async (req, res) => {
         select: { id: true, name: true, partyType: true },
         take: limit,
       }),
-      prisma.salesInvoice.findMany({
+      !scope.salesInvoices ? none : prisma.salesInvoice.findMany({
         where: { OR: [{ invoiceNumber: { contains, mode: 'insensitive' } }, { notes: { contains, mode: 'insensitive' } }] },
         select: { id: true, invoiceNumber: true, grandTotal: true, customer: { select: { name: true } } },
         take: limit,
       }),
-      prisma.purchaseInvoice.findMany({
+      !scope.purchaseInvoices ? none : prisma.purchaseInvoice.findMany({
         where: { OR: [{ invoiceNumber: { contains, mode: 'insensitive' } }, { notes: { contains, mode: 'insensitive' } }] },
         select: { id: true, invoiceNumber: true, grandTotal: true, supplier: { select: { name: true } } },
         take: limit,
       }),
-      prisma.payment.findMany({
+      !scope.payments ? none : prisma.payment.findMany({
         where: { OR: [{ paymentNumber: { contains, mode: 'insensitive' } }, { notes: { contains, mode: 'insensitive' } }] },
         select: { id: true, paymentNumber: true, amount: true, paymentType: true },
         take: limit,
       }),
-      prisma.journalEntry.findMany({
+      !scope.journals ? none : prisma.journalEntry.findMany({
         where: { OR: [{ entryNumber: { contains, mode: 'insensitive' } }, { narration: { contains, mode: 'insensitive' } }] },
         select: { id: true, entryNumber: true, narration: true },
         take: limit,
