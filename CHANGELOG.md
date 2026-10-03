@@ -18,6 +18,8 @@
 - Foto unggahan tampil di mode pengembangan (proxy `/uploads`).
 
 ### Diperbaiki
+- **Instalasi baru tidak bisa membuat STT/BPB** (error 500): akun sistem "Hutang Pembelian Belum Ditagih" dan "Selisih Harga Pembelian" tidak dipetakan oleh seed. Seed kini menambah akun `5.11 Selisih Harga Pembelian` dan memetakan kedua peran (2.2.3 dan 5.11) — **hanya bila peran itu belum punya pemetaan**, sehingga tenant lama tidak berubah.
+- Migrasi pembersih token AIRA di audit log menyebut tabel yang salah (`audit_logs`, seharusnya `audit_trail`) sehingga selalu gagal tanpa suara; kini benar.
 - Modal refund/offset uang muka (pelanggan & vendor) menampilkan saldo hutang/piutang Rp 0 sehingga offset tidak bisa dilakukan — endpoint `GET /api/parties/:id` yang dipanggil modal kini tersedia.
 - **Filter tanggal di halaman daftar Penjualan meleset satu hari.** Batas hari dihitung dalam UTC, padahal tanggal dokumen adalah hari kalender WIB — dokumen bertanggal X tidak muncul saat difilter "tanggal X" (dan dokumen X+1 bisa ikut). Kini filter memakai hari kalender zona waktu bisnis (default WIB; atur `APP_UTC_OFFSET` untuk WITA/WIT).
 

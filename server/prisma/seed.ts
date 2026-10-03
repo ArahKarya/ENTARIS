@@ -179,6 +179,7 @@ async function main() {
     // 5. BEBAN POKOK PENJUALAN
     // ═══════════════════════════════════════════
     { accountNumber: '5', name: 'Beban Pokok Penjualan', accountType: X, rootType: RootType.EXPENSE, isGroup: true },
+    { accountNumber: '5.11', name: 'Selisih Harga Pembelian', accountType: X, rootType: RootType.EXPENSE, isGroup: false, parentNumber: '5' },
 
     // ═══════════════════════════════════════════
     // 6. BEBAN OPERASIONAL
@@ -371,6 +372,28 @@ async function main() {
     });
   }
   console.log(`- Seeded ${systemMappings.length} system account mappings`);
+
+  // Purchase flow roles (STT/BPB accrual and STT-vs-PI price variance). Without
+  // them goods receipts cannot be posted. Mapped only when the role has no
+  // mapping yet, so tenants that already use their own accounts keep them.
+  const purchaseRoleDefaults = [
+    { role: 'ACCRUED_PAYABLE', accountNumber: '2.2.3' },
+    { role: 'PURCHASE_PRICE_VARIANCE', accountNumber: '5.11' },
+  ];
+  for (const { role, accountNumber } of purchaseRoleDefaults) {
+    const accountId = numberToId[accountNumber];
+    if (!accountId) {
+      console.log(`- Skipped system mapping ${role}: account ${accountNumber} not found`);
+      continue;
+    }
+    const existing = await prisma.systemAccountMapping.count({ where: { role } });
+    if (existing > 0) {
+      console.log(`- Kept existing system mapping ${role}`);
+      continue;
+    }
+    await prisma.systemAccountMapping.create({ data: { role, accountId, sortOrder: 0 } });
+    console.log(`- Mapped system account ${role} -> ${accountNumber}`);
+  }
 
   // 6. Seed Company Settings
   await prisma.companySettings.upsert({
