@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | Entaris",
   },
   description:
-    "ERP untuk penjualan, pembelian, inventori, produksi & keuangan dalam satu sistem — pembukuan double-entry otomatis dan agen AI AIRA yang bernalar di atas data Anda. Self-hosted.",
+    "ERP untuk penjualan, pembelian, inventori, produksi & keuangan dalam satu sistem — pembukuan otomatis yang selalu seimbang dan agen AI AIRA yang bernalar di atas data Anda. Berjalan di server Anda sendiri.",
   icons: {
     icon: [{ url: "/brand/entaris-icon.svg", type: "image/svg+xml" }],
     apple: "/brand/entaris-icon-maskable.svg",

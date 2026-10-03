@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site/SiteShell";
 import { SelfHostedMain } from "@/components/erp/enterprise-28346646/SelfHostedMain";
-import "./self-hosted.css";
+import "./keamanan.css";
 
 export const metadata: Metadata = {
-  title: "Self-hosted — data Anda tetap di server Anda",
+  title: "Keamanan & Data — data Anda tetap milik Anda",
   description:
-    "Entaris berjalan di infrastruktur Anda sendiri lewat Docker Compose: aplikasi, database PostgreSQL, dan backup tetap di server Anda. Satu perintah deploy.",
+    "Entaris berjalan di server milik perusahaan Anda, di kantor atau di cloud pilihan Anda. Hak akses per peran, persetujuan dokumen, dan jejak audit di setiap perubahan.",
 };
 
 export default function Page() {

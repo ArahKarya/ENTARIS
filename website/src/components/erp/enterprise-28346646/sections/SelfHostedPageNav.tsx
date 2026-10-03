@@ -6,10 +6,10 @@
 type PageNavLink = { href: `#${string}`; label: string };
 
 const PAGE_NAV_LINKS: readonly PageNavLink[] = [
-  { href: "#arsitektur", label: "Arsitektur" },
+  { href: "#mulai", label: "Cara mulai" },
   { href: "#kontrol", label: "Kontrol" },
-  { href: "#opsi-deploy", label: "Opsi deploy" },
-  { href: "#operasional", label: "Operasional" },
+  { href: "#pilihan-tempat", label: "Pilihan tempat" },
+  { href: "#operasional", label: "Setelah berjalan" },
 ];
 
 const HIDDEN_ARROW: React.CSSProperties = { display: "none" };

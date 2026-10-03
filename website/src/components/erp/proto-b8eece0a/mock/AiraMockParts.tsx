@@ -42,7 +42,7 @@ export function ToolRow({ module, tool, ...reveal }: ToolRowProps) {
     <Reveal className="aira-tool" {...reveal}>
       <AiraIcon name="tool" className="aira-tool__icon" />
       <span className="aira-tool__label">
-        Menjalankan tool <strong>{module}</strong>
+        Membaca <strong>{module}</strong>
         <span aria-hidden="true"> › </span>
         {tool}
       </span>

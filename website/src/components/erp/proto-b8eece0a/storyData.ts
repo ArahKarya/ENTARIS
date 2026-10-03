@@ -33,7 +33,7 @@ export const STORIES: readonly Story[] = [
     lede: "Tidak perlu menyusun laporan dulu. Tanyakan dalam bahasa sehari-hari, AIRA membaca data transaksi yang sama dengan modul Keuangan.",
     chapters: [
       { title: "Tanya seperti ke rekan kerja", text: "“Berapa piutang yang lewat 60 hari?” — tanpa filter, tanpa rumus." },
-      { title: "AIRA memanggil tool yang tepat", text: "Tool umur piutang di modul Keuangan dijalankan dengan hak akses peran Anda." },
+      { title: "AIRA mencari data yang tepat", text: "Laporan umur piutang di modul Keuangan dibaca sesuai hak akses peran Anda." },
       { title: "Jawaban yang bisa ditelusuri", text: "Ringkasan per pelanggan, konsisten dengan saldo Piutang Usaha di buku besar." },
     ],
     mock: "receivables",

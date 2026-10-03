@@ -5,7 +5,7 @@ export type NavItem = { href: string; label: string; description: string };
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "Produk", description: "Modul ERP dalam satu buku besar" },
   { href: "/aira", label: "AIRA", description: "Agen AI yang bernalar di atas data Anda" },
-  { href: "/self-hosted", label: "Self-hosted", description: "Deploy di server Anda, data milik Anda" },
+  { href: "/keamanan", label: "Keamanan & Data", description: "Di server Anda sendiri, data milik Anda" },
 ];
 
 export const CONTACT_EMAIL = "solutions@arahkarya.com";

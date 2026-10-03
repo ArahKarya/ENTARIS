@@ -26,7 +26,7 @@ export function SiteFooter() {
             <EntarisLogo negative />
             <p className="ent-footer__tagline">Agentic Reasoning System</p>
             <p className="ent-footer__summary">
-              ERP dengan pembukuan double-entry sebagai fondasi dan agen AI AIRA yang bernalar di atas data transaksi Anda. Self-hosted, data 100% milik Anda.
+              ERP dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang bernalar di atas data transaksi Anda. Berjalan di server Anda sendiri — data 100% milik Anda.
             </p>
             <a className="ent-btn ent-btn--light" href={DEMO_HREF}>
               Minta demo &amp; lisensi
@@ -70,7 +70,7 @@ export function SiteFooter() {
         </div>
         <div className="ent-footer__bottom">
           <p>
-            © {year} {COMPANY.name}. Entaris adalah perangkat lunak berlisensi proprietary.
+            © {year} {COMPANY.name}. Hak cipta dilindungi.
           </p>
           <div className="ent-footer__theme" role="radiogroup" aria-label="Tema tampilan">
             {(["light", "dark"] as const).map((t) => (

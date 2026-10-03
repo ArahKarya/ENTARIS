@@ -125,7 +125,7 @@ export function AiraAnalytics() {
           </div>
           <p className="aira-analytics__note">
             <AiraIcon name="user-shield" />
-            Analisis hanya membaca data — tidak ada yang berubah di pembukuan. Tool laporan diaktifkan admin per peran, jadi setiap pengguna hanya
+            Analisis hanya membaca data — tidak ada yang berubah di pembukuan. Akses laporan diatur admin per peran, jadi setiap pengguna hanya
             melihat angka yang memang boleh ia lihat.
           </p>
         </div>

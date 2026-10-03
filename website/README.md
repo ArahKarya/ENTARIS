@@ -1,13 +1,14 @@
 # Website Entaris
 
-Website pemasaran Entaris — *Agentic Reasoning System* (PT Arah Karya Sinergi). Aplikasi Next.js 16
+Website pemasaran Entaris — *Agentic Reasoning System* (PT Arah Karya Sinergi). Ditujukan untuk calon customer:
+jangan menampilkan istilah teknis (Docker, database, port, stack, nama protokol keamanan) di halaman. Aplikasi Next.js 16
 mandiri, terpisah dari aplikasi ERP (`client/`, `server/`).
 
 | Rute | Isi |
 |---|---|
 | `/` | Beranda — hero, katalog modul, kenapa Entaris |
 | `/aira` | AIRA — agen AI, alur draf → approval, keamanan |
-| `/self-hosted` | Self-hosted — arsitektur Docker Compose, kontrol, opsi deploy |
+| `/keamanan` | Keamanan & Data — data di server Anda, cara mulai, kontrol, pilihan tempat (`/self-hosted` dialihkan ke sini) |
 
 ## Menjalankan
 
