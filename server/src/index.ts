@@ -255,7 +255,7 @@ app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di i
 // ─── AIRA — AI Tool Layer & Tool Router (Agentic System) ──────────────────────
 // config: kelola tool/setting/whitelist → gate requireWrite('settings') + cap
 //         rbac.manage di endpoint sensitif (di file). router: per-tool RBAC di file.
-app.use('/api/ai/config', requireWrite('settings'), aiConfigRoutes);
+app.use('/api/ai/config', requirePerm('settings'), aiConfigRoutes);
 app.use('/api/ai/router', aiRouterRoutes);
 app.use('/api/ai/chat', aiChatRoutes);
 

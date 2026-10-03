@@ -1,6 +1,6 @@
 // AIRA config route — kelola Tool Router config dari Settings → Agentic System.
-// Gate mount: requireWrite('settings') (di index.ts). Endpoint sensitif tambah
-// requireCap('rbac.manage'). Lihat docs/erd-ai-layer/PRD.
+// Gate mount: requirePerm('settings') (di index.ts) — GET butuh view, tulis butuh
+// edit. Endpoint sensitif tambah requireCap('rbac.manage'). Lihat docs/erd-ai-layer/PRD.
 
 import { Router } from 'express';
 import { z } from 'zod';
@@ -8,10 +8,17 @@ import { prisma } from '../../lib/prisma';
 import { requireCap, type AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { BusinessError, handleRouteError } from '../../utils/errors';
+import { toPublicAiSetting } from '../../ai/settingsView';
 import { effectiveTools, getTool, riskToTier, loadRegistry } from '../../ai/registry';
 import type { ToolTier } from '../../ai/types';
 
 const router = Router();
+
+// Config responses are admin-only; keep them out of browser/proxy caches.
+router.use((_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 const TIERS: ToolTier[] = ['auto', 'draft', 'must_approve'];
 
@@ -102,12 +109,13 @@ router.patch('/tools/:name', requireCap('rbac.manage'), async (req: AuthRequest,
 // SEMUA urusan agentic (model AI, provider, memori, konteks, channels) dihandle
 // AIRA. ERP hanya simpan: toggle agenticEnabled + serviceToken (Bearer untuk AIRA).
 
-// GET /api/ai/config/settings — singleton; buat default jika belum ada
-router.get('/settings', async (_req, res) => {
+// GET /api/ai/config/settings — singleton; buat default jika belum ada.
+// serviceToken TIDAK pernah dikirim ke client (hanya hasServiceToken).
+router.get('/settings', requireCap('rbac.manage'), async (_req, res) => {
   try {
     let s = await prisma.aiSetting.findFirst();
     if (!s) s = await prisma.aiSetting.create({ data: {} });
-    return res.json(s);
+    return res.json(toPublicAiSetting(s));
   } catch (error) {
     return handleRouteError(res, error, 'GET /ai/config/settings', 'Gagal mengambil pengaturan AI.');
   }
@@ -117,7 +125,8 @@ const VALID_CHANNELS = ['web', 'telegram', 'whatsapp'] as const;
 const PutSettingsSchema = z
   .object({
     agenticEnabled: z.boolean().optional(),
-    serviceToken: z.string().max(255).nullable().optional(),
+    // Min 32 chars (the UI generator emits 32 hex). '' or null clears the token.
+    serviceToken: z.union([z.string().min(32).max(255), z.literal(''), z.null()]).optional(),
     // M2-A4: channel aktif (subset web|telegram|whatsapp). Kosong = SEMUA aktif.
     activeChannels: z.array(z.enum(VALID_CHANNELS)).optional(),
     // M2-A4: scope modul (group bisnis) yang boleh dipakai AIRA. Kosong = SEMUA.
@@ -148,7 +157,7 @@ router.put('/settings', requireCap('rbac.manage'), async (req, res) => {
     const saved = existing
       ? await prisma.aiSetting.update({ where: { id: existing.id }, data })
       : await prisma.aiSetting.create({ data });
-    return res.json(saved);
+    return res.json(toPublicAiSetting(saved));
   } catch (error) {
     return handleRouteError(res, error, 'PUT /ai/config/settings', 'Gagal menyimpan pengaturan AI.');
   }

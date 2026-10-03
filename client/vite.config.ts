@@ -53,7 +53,8 @@ export default defineConfig({
         navigateFallback: 'index.html',
         runtimeCaching: [
           {
-            urlPattern: /^https?:\/\/.*\/api\/.*/i,
+            // Never cache auth or AI config responses (may carry credentials).
+            urlPattern: /^https?:\/\/[^/]+\/api\/(?!ai\/|auth\/).*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
