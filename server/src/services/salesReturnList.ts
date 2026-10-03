@@ -3,7 +3,7 @@
  * Pure helpers so filter/sort parsing is unit-tested without a database.
  */
 import { Prisma } from '@prisma/client';
-import { firstString, parseDateParam, type SortSpec } from '../utils/listQuery';
+import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';
 
 /** SalesReturn.status is a plain string; these are the values the services write. */
 export const SALES_RETURN_STATUSES = ['Draft', 'Submitted', 'Cancelled'] as const;
@@ -44,8 +44,7 @@ export function buildSalesReturnWhere(query: Record<string, unknown>): SalesRetu
   }
   if (startDate || endDate) {
     where.date = {
-      ...(startDate ? { gte: new Date(startDate) } : {}),
-      ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999Z`) } : {}),
+      ...localDayRange(startDate, endDate),
     };
   }
 

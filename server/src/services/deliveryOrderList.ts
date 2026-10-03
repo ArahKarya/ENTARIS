@@ -9,7 +9,7 @@
  *   Cancelled, Draft
  */
 import { Prisma } from '@prisma/client';
-import { firstString, parseDateParam, type SortSpec } from '../utils/listQuery';
+import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';
 
 export const DELIVERY_ORDER_SORT_FIELDS = ['date', 'doNumber', 'customer'] as const;
 export type DeliveryOrderSortField = (typeof DELIVERY_ORDER_SORT_FIELDS)[number];
@@ -49,8 +49,7 @@ export function buildDeliveryOrderWhere(query: Record<string, unknown>): Deliver
   }
   if (startDate || endDate) {
     where.date = {
-      ...(startDate ? { gte: new Date(startDate) } : {}),
-      ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999Z`) } : {}),
+      ...localDayRange(startDate, endDate),
     };
   }
 

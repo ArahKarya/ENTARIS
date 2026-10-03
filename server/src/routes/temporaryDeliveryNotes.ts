@@ -12,7 +12,7 @@ import {
   cancelTemporaryNoteInTx,
   getTemporaryNote,
 } from '../services/temporaryDeliveryNote';
-import { parseListPaging, parseSort } from '../utils/listQuery';
+import { localDayRange, parseListPaging, parseSort } from '../utils/listQuery';
 import {
   DEFAULT_TDN_SORT,
   parseTdnFilters,
@@ -55,11 +55,15 @@ router.get('/', async (req, res) => {
     const { status, partyId, startDate, endDate, search } = parsed.filters;
     const { page, limit, skip: offset } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
     const like = `%${search}%`;
+    // Calendar days in the business time zone (WIB by default), not UTC days.
+    const day = localDayRange(startDate || undefined, endDate || undefined);
+    const startSql = day.gte ? Prisma.sql`AND t.date >= ${day.gte}` : Prisma.empty;
+    const endSql = day.lt ? Prisma.sql`AND t.date < ${day.lt}` : Prisma.empty;
     const whereSql = Prisma.sql`
       WHERE (${status} = '' OR t.status = ${status})
         AND (${partyId} = '' OR t.party_id = ${partyId})
-        AND (${startDate} = '' OR t.date >= NULLIF(${startDate}, '')::date)
-        AND (${endDate} = '' OR t.date < (NULLIF(${endDate}, '')::date + 1))
+        ${startSql}
+        ${endSql}
         AND (${search} = '' OR t.number ILIKE ${like} OR p.name ILIKE ${like} OR t.nomor_mobil ILIKE ${like})`;
     const orderBy = Prisma.raw(tdnOrderBySql(parseSort(query.sort, TDN_SORT_FIELDS, DEFAULT_TDN_SORT)));
 

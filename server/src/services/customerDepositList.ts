@@ -13,7 +13,7 @@
  */
 import { DocumentStatus, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
-import { firstString, parseDateParam, type SortSpec } from '../utils/listQuery';
+import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';
 
 /** Remaining below this (rupiah) counts as fully used — same rule as the old page. */
 export const REMAINING_EPSILON = 0.01;
@@ -73,8 +73,7 @@ export function buildCustomerDepositWhere(query: Record<string, unknown>): Depos
   }
   if (startDate || endDate) {
     where.date = {
-      ...(startDate ? { gte: new Date(startDate) } : {}),
-      ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999Z`) } : {}),
+      ...localDayRange(startDate, endDate),
     };
   }
 
