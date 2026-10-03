@@ -269,7 +269,7 @@ Output yang diharapkan:
 [APP] Database connected.
 [APP] Migrations complete.
 [APP] Database kosong, menjalankan seed data awal...
-[APP] Seed selesai — login: admin@arahkarya.com / Adminarahkarya123!dsw
+[APP] Seed selesai — login: admin@entaris.local / Adminentaris123!dsw
 [APP] Starting Entaris on port 3001...
 Server running at http://localhost:3001
 ```
@@ -286,7 +286,7 @@ Setelah seed pertama, aplikasi punya 4 akun default siap pakai:
 
 | Username / Email            | Password                   | Role          | Akses |
 |-----------------------------|----------------------------|---------------|-------|
-| `admin@arahkarya.com`       | `Adminarahkarya123!dsw`    | Admin         | Full access — semua modul, user management, settings |
+| `admin@entaris.local`       | `Adminentaris123!dsw`    | Admin         | Full access — semua modul, user management, settings |
 | `staff@entaris.local`       | `Admin123!`                | Accountant    | Transaksi keuangan, invoice, jurnal, laporan |
 | `produksi@entaris.local`    | `Admin123!`                | StaffProduksi | Pembelian, stok & produksi, vendor (read-only untuk uang muka) |
 | `viewer@entaris.local`      | `Admin123!`                | Viewer        | Read-only semua data |
@@ -443,7 +443,7 @@ docker compose exec app node -e "
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   bcrypt.hash('NewPassword123!', 12).then(hash =>
-    prisma.user.update({ where: { email: 'admin@arahkarya.com' }, data: { passwordHash: hash } })
+    prisma.user.update({ where: { email: 'admin@entaris.local' }, data: { passwordHash: hash } })
   ).then(() => { console.log('Password reset!'); process.exit(0); });
 "
 ```

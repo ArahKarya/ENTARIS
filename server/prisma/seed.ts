@@ -25,10 +25,10 @@ async function main() {
 
   // 2. Seed Users
   const defaultPassword = await bcrypt.hash('Admin123!', 12);
-  const adminPassword = await bcrypt.hash('Adminarahkarya123!dsw', 12);
+  const adminPassword = await bcrypt.hash('Adminentaris123!dsw', 12);
 
   const users = [
-    { username: 'admin',    fullName: 'Administrator',   email: 'admin@arahkarya.com',     role: 'Admin',         password: adminPassword   },
+    { username: 'admin',    fullName: 'Administrator',   email: 'admin@entaris.local',     role: 'Admin',         password: adminPassword   },
     { username: 'staff',    fullName: 'Staff Keuangan',  email: 'staff@entaris.local',     role: 'Accountant',    password: defaultPassword },
     { username: 'produksi', fullName: 'Staff Produksi',  email: 'produksi@entaris.local',  role: 'StaffProduksi', password: defaultPassword },
     { username: 'viewer',   fullName: 'Viewer',          email: 'viewer@entaris.local',    role: 'Viewer',        password: defaultPassword },

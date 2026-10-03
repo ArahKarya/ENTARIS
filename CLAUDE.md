@@ -153,7 +153,7 @@ docker compose logs -f app      # View logs
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@arahkarya.com | Adminarahkarya123!dsw | Admin |
+| admin@entaris.local | Adminentaris123!dsw | Admin |
 | staff@entaris.local | Admin123! | Accountant |
 | produksi@entaris.local | Admin123! | StaffProduksi |
 | viewer@entaris.local | Admin123! | Viewer |
