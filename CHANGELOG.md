@@ -6,6 +6,13 @@
 **Diubah**:
 - Image Docker (`Dockerfile`, `Dockerfile.allinone`) kini menyetel zona waktu proses server `TZ=Asia/Jakarta` (paket `tzdata` dipasang); `docker-compose.yml` meneruskan `TZ` (default `Asia/Jakarta`, dapat diubah di `.env`). Batas periode laporan (awal/akhir hari & bulan) pada deployment Docker kini sesuai WIB, bukan UTC.
 
+### Akuntansi
+**Diperbaiki**:
+- Neraca Saldo kini menyertakan akun grup yang memiliki posting langsung (mis. HPP lama yang diposting ke grup `5`), sehingga total debit/kredit tetap seimbang.
+
+**Diubah**:
+- Instalasi baru: COA bawaan menambah akun detail `5.1 Harga Pokok Penjualan` dan peran akun sistem COGS dipetakan ke `5.1` (hanya bila COGS belum dipetakan; tenant lama tidak berubah).
+
 ### Arsitektur
 **Diubah**:
 - EAM kini menjadi modul di aplikasi utama; aplikasi/subdomain EAM terpisah (`client-eam/`, service Docker `client-eam`) dihapus. `COOKIE_DOMAIN` tetap didukung tetapi opsional — hanya perlu bila sesi dibagi lintas subdomain.

@@ -6,6 +6,7 @@ import { computeImpact } from '../utils/accountBalance';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { compareAccountNumber } from '../utils/accountSort';
+import { buildTrialBalance } from '../utils/trialBalance';
 import operationalRouter from './reports/operational';
 import purchasingReportRouter from './reports/purchasing';
 
@@ -54,23 +55,17 @@ router.get('/trial-balance', async (req, res) => {
         where,
         _sum: { debit: true, credit: true },
       }),
+      // All accounts: group accounts with direct postings must appear too,
+      // otherwise the totals no longer balance.
       prisma.account.findMany({
-        where: { isGroup: false },
         select: { id: true, name: true, accountNumber: true, accountType: true, rootType: true },
       }),
     ]);
 
-    accounts.sort((a, b) => compareAccountNumber(a.accountNumber, b.accountNumber));
-    const entryMap = new Map(entries.map((e) => [e.accountId, e]));
-
-    const report = accounts
-      .map((account) => {
-        const entry = entryMap.get(account.id);
-        const debit = Number(entry?._sum.debit || 0);
-        const credit = Number(entry?._sum.credit || 0);
-        return { ...account, debit, credit, balance: computeImpact(account.rootType as string, debit, credit) };
-      })
-      .filter((a) => a.debit !== 0 || a.credit !== 0);
+    const report = buildTrialBalance(
+      accounts.map((a) => ({ ...a, accountType: a.accountType as string, rootType: a.rootType as string })),
+      entries.map((e) => ({ accountId: e.accountId, debit: Number(e._sum.debit || 0), credit: Number(e._sum.credit || 0) })),
+    );
 
     return res.json(report);
   } catch (error) {
