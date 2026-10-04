@@ -32,4 +32,9 @@ describe('redactSecrets', () => {
     const d = new Date('2026-10-03T00:00:00Z');
     expect(redactSecrets({ updatedAt: d })).toEqual({ updatedAt: d });
   });
+
+  it('serialises Decimal-like value objects instead of copying their internals', () => {
+    const dec = { s: 1, e: 0, d: [1, 5000000], constructor: function Decimal() {}, toJSON: () => '1.5' };
+    expect(redactSecrets({ amount: dec, list: [{ qty: dec }] })).toEqual({ amount: '1.5', list: [{ qty: '1.5' }] });
+  });
 });

@@ -44,10 +44,16 @@ async function main() {
       (await prisma.user.findUnique({ where: { email: u.email } }));
 
     if (existing) {
-      await prisma.user.update({
-        where: { id: existing.id },
-        data: { username: u.username, email: u.email, fullName: u.fullName, role: u.role, passwordHash: u.password },
-      });
+      // Only migrate the identifiers. Never reset the password (or role/name)
+      // of an existing user — re-running the seed must not undo admin changes.
+      if (existing.username !== u.username || existing.email !== u.email) {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { username: u.username, email: u.email },
+        });
+      }
+      console.log(`- Kept existing User: ${u.email}`);
+      continue;
     } else {
       await prisma.user.create({
         data: {
@@ -59,7 +65,7 @@ async function main() {
         },
       });
     }
-    console.log(`- Upserted User: ${u.email} (${u.role})`);
+    console.log(`- Created User: ${u.email} (${u.role})`);
   }
 
   // 3. Seed COA — Standard Chart of Accounts (Indonesian PSAK baseline)
@@ -179,6 +185,7 @@ async function main() {
     // 5. BEBAN POKOK PENJUALAN
     // ═══════════════════════════════════════════
     { accountNumber: '5', name: 'Beban Pokok Penjualan', accountType: X, rootType: RootType.EXPENSE, isGroup: true },
+    { accountNumber: '5.1', name: 'Harga Pokok Penjualan', accountType: X, rootType: RootType.EXPENSE, isGroup: false, parentNumber: '5' },
     { accountNumber: '5.11', name: 'Selisih Harga Pembelian', accountType: X, rootType: RootType.EXPENSE, isGroup: false, parentNumber: '5' },
 
     // ═══════════════════════════════════════════
@@ -243,7 +250,9 @@ async function main() {
 
     const account = await prisma.account.upsert({
       where: { accountNumber: item.accountNumber },
-      update: { name: item.name, isGroup: item.isGroup, accountType: item.accountType, rootType: item.rootType },
+      // Existing accounts are never touched: tenants may have renamed or
+      // re-typed them, and a re-seed must not undo that.
+      update: {},
       create: {
         accountNumber: item.accountNumber,
         name: item.name,
@@ -323,7 +332,7 @@ async function main() {
     { role: 'VENDOR_DEPOSIT', accountNumber: '1.3', sortOrder: 0 },
     { role: 'PROJECT_GUARANTEE', accountNumber: '1.8', sortOrder: 0 },
     { role: 'CUSTOMER_DEPOSIT', accountNumber: '2.1.2', sortOrder: 0 },
-    { role: 'COGS', accountNumber: '5', sortOrder: 0 },
+    // COGS is mapped below (guarded) to detail account 5.1, not group '5'.
     { role: 'OPENING_EQUITY', accountNumber: '3.1', sortOrder: 0 },
     { role: 'RETAINED_EARNINGS', accountNumber: '3.2', sortOrder: 0 },
     { role: 'CURRENT_PROFIT', accountNumber: '3.4', sortOrder: 0 },
@@ -403,6 +412,9 @@ async function main() {
   const purchaseRoleDefaults = [
     { role: 'ACCRUED_PAYABLE', accountNumber: '2.2.3' },
     { role: 'PURCHASE_PRICE_VARIANCE', accountNumber: '5.11' },
+    // Fresh installs post COGS to a detail account; tenants that already map
+    // COGS (historically group '5') are left untouched.
+    { role: 'COGS', accountNumber: '5.1' },
   ];
   for (const { role, accountNumber } of purchaseRoleDefaults) {
     const accountId = numberToId[accountNumber];

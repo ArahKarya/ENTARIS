@@ -51,6 +51,7 @@ RUN apk add --no-cache \
     postgresql16 \
     postgresql16-contrib \
     su-exec \
+    tzdata \
     && mkdir -p /var/lib/postgresql/data /run/postgresql \
     && chown -R postgres:postgres /var/lib/postgresql /run/postgresql
 
@@ -72,6 +73,7 @@ RUN chmod +x /docker-entrypoint.sh
 
 # Environment defaults
 ENV NODE_ENV=production \
+    TZ=Asia/Jakarta \
     PORT=3001 \
     POSTGRES_USER=keuangan \
     POSTGRES_PASSWORD=keuangan_secret_2026 \

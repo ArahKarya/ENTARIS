@@ -7,6 +7,7 @@ import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
 import { generateDocumentNumber } from '../../utils/documentNumber';
 import { recalcPartyOutstanding } from '../../utils/accountBalance';
+import { adjustWarehouseStock, resolveWarehouseId } from '../../utils/warehouseStock';
 
 const router = Router();
 
@@ -366,6 +367,17 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       }
 
       // --- Dummy Stock Movements & Production Runs ---
+      // Stock lives per warehouse (inventory_stocks) with inventory_items.currentStock
+      // as the denormalised total — every change goes through applyStock so the two
+      // never drift. Default (or first active) warehouse; one is created if none exist.
+      const whId =
+        (await resolveWarehouseId(tx)) ??
+        (await tx.warehouse.findFirst({ where: { isActive: true }, orderBy: { sortOrder: 'asc' }, select: { id: true } }))?.id ??
+        (await tx.warehouse.create({ data: { code: 'GDG-UTAMA', name: 'Gudang Utama', isDefault: true }, select: { id: true } })).id;
+      const applyStock = async (itemId: string, delta: number) => {
+        await tx.inventoryItem.update({ where: { id: itemId }, data: { currentStock: { increment: delta } } });
+        await adjustWarehouseStock(tx, itemId, whId, delta);
+      };
       // Reload dummy items (may have been created above or exist already)
       const dummyItems = await tx.inventoryItem.findMany({ where: { isDummy: true } });
       const itemByCode = new Map(dummyItems.map(i => [i.code, i]));
@@ -382,6 +394,25 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         const genSM = generateDocumentNumber;
         const getFY = getOpenFiscalYear;
 
+        // Opening stock (saldo awal) for newly created dummy items — recorded as
+        // movements + per-warehouse rows, never by writing currentStock directly.
+        const openingDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        const openingFy = await getFY(tx, openingDate);
+        for (const item of items) {
+          const qty = Number(item.minimumStock ?? 0);
+          if (qty <= 0) continue;
+          const smOpenNum = await genSM(tx, 'SM', openingDate, openingFy.id);
+          await tx.stockMovement.create({
+            data: {
+              movementNumber: smOpenNum, date: openingDate, itemId: item.id, movementType: 'AdjustmentIn',
+              quantity: qty, unitCost: 0, totalValue: 0,
+              notes: 'Saldo awal stok (dummy)', fiscalYearId: openingFy.id, createdById: admin.id, warehouseId: whId,
+            },
+          });
+          await applyStock(item.id, qty);
+          results.movements++;
+        }
+
         for (let monthOffset = 2; monthOffset >= 0; monthOffset--) {
           const month = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
 
@@ -397,10 +428,10 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
                 movementNumber: smNum, date, itemId: gkpItem.id, movementType: 'In',
                 quantity: qty, unitCost, totalValue: qty * unitCost,
                 offsetAccountId: kasId!, notes: 'Pembelian gabah GKP',
-                fiscalYearId: fy.id, createdById: admin.id,
+                fiscalYearId: fy.id, createdById: admin.id, warehouseId: whId,
               },
             });
-            await tx.inventoryItem.update({ where: { id: gkpItem.id }, data: { currentStock: { increment: qty } } });
+            await applyStock(gkpItem.id, qty);
             results.movements++;
           }
 
@@ -414,10 +445,10 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               movementNumber: smOutNum, date: gilingDate, itemId: gkpItem.id, movementType: 'Out',
               quantity: gilingQty, unitCost: 0, totalValue: 0,
               notes: 'Proses giling ke GKG', referenceType: 'ProductionRun',
-              fiscalYearId: gilingFy.id, createdById: admin.id,
+              fiscalYearId: gilingFy.id, createdById: admin.id, warehouseId: whId,
             },
           });
-          await tx.inventoryItem.update({ where: { id: gkpItem.id }, data: { currentStock: { decrement: gilingQty } } });
+          await applyStock(gkpItem.id, -gilingQty);
           results.movements++;
 
           // Stock In: GKG hasil proses giling (yield ~85%)
@@ -428,10 +459,10 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               movementNumber: smGkgNum, date: gilingDate, itemId: gkgItem.id, movementType: 'In',
               quantity: gkgQty, unitCost: 0, totalValue: 0,
               notes: 'Hasil giling dari GKP', referenceType: 'ProductionRun',
-              fiscalYearId: gilingFy.id, createdById: admin.id,
+              fiscalYearId: gilingFy.id, createdById: admin.id, warehouseId: whId,
             },
           });
-          await tx.inventoryItem.update({ where: { id: gkgItem.id }, data: { currentStock: { increment: gkgQty } } });
+          await applyStock(gkgItem.id, gkgQty);
           results.movements++;
 
           // Production Run: GKG → Beras Premium + Bekatul + Sekam + Menir
@@ -452,22 +483,22 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               fiscalYearId: prodFy.id, createdById: admin.id,
               items: {
                 create: [
-                  { itemId: gkgItem.id, lineType: 'Input', quantity: inputGkg },
-                  { itemId: berasPrm.id, lineType: 'Output', quantity: outBeras, yieldPct: yield1 },
-                  ...(bekatul ? [{ itemId: bekatul.id, lineType: 'Output' as const, quantity: outBekatul }] : []),
-                  ...(sekam ? [{ itemId: sekam.id, lineType: 'Output' as const, quantity: outSekam }] : []),
-                  ...(menir ? [{ itemId: menir.id, lineType: 'Output' as const, quantity: outMenir }] : []),
+                  { itemId: gkgItem.id, lineType: 'Input', quantity: inputGkg, warehouseId: whId },
+                  { itemId: berasPrm.id, lineType: 'Output', quantity: outBeras, warehouseId: whId, yieldPct: yield1 },
+                  ...(bekatul ? [{ itemId: bekatul.id, lineType: 'Output' as const, quantity: outBekatul, warehouseId: whId }] : []),
+                  ...(sekam ? [{ itemId: sekam.id, lineType: 'Output' as const, quantity: outSekam, warehouseId: whId }] : []),
+                  ...(menir ? [{ itemId: menir.id, lineType: 'Output' as const, quantity: outMenir, warehouseId: whId }] : []),
                 ],
               },
             },
           });
 
           // Update stock for production
-          await tx.inventoryItem.update({ where: { id: gkgItem.id }, data: { currentStock: { decrement: inputGkg } } });
-          await tx.inventoryItem.update({ where: { id: berasPrm.id }, data: { currentStock: { increment: outBeras } } });
-          if (bekatul) await tx.inventoryItem.update({ where: { id: bekatul.id }, data: { currentStock: { increment: outBekatul } } });
-          if (sekam) await tx.inventoryItem.update({ where: { id: sekam.id }, data: { currentStock: { increment: outSekam } } });
-          if (menir) await tx.inventoryItem.update({ where: { id: menir.id }, data: { currentStock: { increment: outMenir } } });
+          await applyStock(gkgItem.id, -inputGkg);
+          await applyStock(berasPrm.id, outBeras);
+          if (bekatul) await applyStock(bekatul.id, outBekatul);
+          if (sekam) await applyStock(sekam.id, outSekam);
+          if (menir) await applyStock(menir.id, outMenir);
           results.productionRuns++;
 
           // Stock Out: Beras keluar (terjual) — 2x per bulan
@@ -481,10 +512,10 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
                 movementNumber: smSellNum, date: sellDate, itemId: berasPrm.id, movementType: 'Out',
                 quantity: sellQty, unitCost: 12000, totalValue: sellQty * 12000,
                 offsetAccountId: kasId!, notes: 'Penjualan beras premium',
-                fiscalYearId: sellFy.id, createdById: admin.id,
+                fiscalYearId: sellFy.id, createdById: admin.id, warehouseId: whId,
               },
             });
-            await tx.inventoryItem.update({ where: { id: berasPrm.id }, data: { currentStock: { decrement: sellQty } } });
+            await applyStock(berasPrm.id, -sellQty);
             results.movements++;
           }
 
@@ -498,10 +529,10 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               data: {
                 movementNumber: smAdjNum, date: adjDate, itemId: bekatul.id, movementType: 'AdjustmentOut',
                 quantity: adjQty, unitCost: 0, totalValue: 0,
-                notes: 'Stok opname — selisih bekatul', fiscalYearId: adjFy.id, createdById: admin.id,
+                notes: 'Stok opname — selisih bekatul', fiscalYearId: adjFy.id, createdById: admin.id, warehouseId: whId,
               },
             });
-            await tx.inventoryItem.update({ where: { id: bekatul.id }, data: { currentStock: { decrement: adjQty } } });
+            await applyStock(bekatul.id, -adjQty);
             results.movements++;
           }
         }
@@ -521,14 +552,14 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               notes: 'Produksi beras medium', fiscalYearId: prodFy2.id, createdById: admin.id,
               items: {
                 create: [
-                  { itemId: gkgItem.id, lineType: 'Input', quantity: inputQty2 },
-                  { itemId: berasMed.id, lineType: 'Output', quantity: outBeras2, yieldPct: yield2 },
+                  { itemId: gkgItem.id, lineType: 'Input', quantity: inputQty2, warehouseId: whId },
+                  { itemId: berasMed.id, lineType: 'Output', quantity: outBeras2, warehouseId: whId, yieldPct: yield2 },
                 ],
               },
             },
           });
-          await tx.inventoryItem.update({ where: { id: gkgItem.id }, data: { currentStock: { decrement: inputQty2 } } });
-          await tx.inventoryItem.update({ where: { id: berasMed.id }, data: { currentStock: { increment: outBeras2 } } });
+          await applyStock(gkgItem.id, -inputQty2);
+          await applyStock(berasMed.id, outBeras2);
           results.productionRuns++;
         }
       }

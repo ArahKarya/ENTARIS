@@ -21,6 +21,11 @@ const SECRET_KEYS = new Set([
 export function redactSecrets(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactSecrets);
   if (value === null || typeof value !== 'object' || value instanceof Date) return value;
+  // Prisma Decimal (decimal.js) and similar value objects: serialise like
+  // JSON.stringify would. Walking their own keys copies the `constructor`
+  // function, which Prisma then refuses to store in a Json column.
+  const toJSON = (value as { toJSON?: unknown }).toJSON;
+  if (typeof toJSON === 'function') return redactSecrets(toJSON.call(value));
 
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).map(([key, v]) => [

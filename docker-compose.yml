@@ -56,6 +56,8 @@ services:
       COOKIE_DOMAIN: "${COOKIE_DOMAIN:-}"
       # Zona waktu bisnis untuk filter tanggal (default WIB).
       APP_UTC_OFFSET: "${APP_UTC_OFFSET:-+07:00}"
+      # Zona waktu proses server (batas periode laporan). Default WIB.
+      TZ: "${TZ:-Asia/Jakarta}"
       NODE_ENV: "production"
       UPLOADS_DIR: "/app/uploads"
       # ── AIRA (agentic layer) — A3 HMAC shared secret. Sumber: .env (sinkron dgn aira-core). ──
