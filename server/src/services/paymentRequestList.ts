@@ -9,12 +9,14 @@ import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';
 import { PR_STATUSES } from './paymentRequestRules';
+import { SETTLEMENT_STATUSES } from './paymentRequestSettlementRules';
 
-export const PAYMENT_REQUEST_SORT_FIELDS = ['createdAt', 'number', 'neededBy', 'totalAmount', 'requester', 'status'] as const;
+export const PAYMENT_REQUEST_SORT_FIELDS = ['createdAt', 'number', 'neededBy', 'totalAmount', 'requester', 'status', 'paymentDate'] as const;
 export type PaymentRequestSortField = (typeof PAYMENT_REQUEST_SORT_FIELDS)[number];
 export const DEFAULT_PAYMENT_REQUEST_SORT: SortSpec<PaymentRequestSortField> = { field: 'createdAt', dir: 'desc' };
 
 const STATUSES = new Set<string>(PR_STATUSES);
+const SETTLEMENT_STATUS_SET = new Set<string>(SETTLEMENT_STATUSES);
 
 export type PaymentRequestWhereResult =
   | { ok: true; where: Prisma.PaymentRequestWhereInput }
@@ -23,6 +25,7 @@ export type PaymentRequestWhereResult =
 /**
  * Filters:
  *   status              one of PR_STATUSES
+ *   settlementStatus    one of SETTLEMENT_STATUSES (advances tab)
  *   typeId              payment request type id
  *   startDate/endDate   YYYY-MM-DD on the request date (createdAt, business time zone)
  *   search              number, purpose, payee or requester name
@@ -37,6 +40,12 @@ export function buildPaymentRequestWhere(
   if (status) {
     if (!STATUSES.has(status)) return { ok: false, error: 'Status pengajuan tidak dikenal.' };
     and.push({ status });
+  }
+
+  const settlementStatus = firstString(query.settlementStatus);
+  if (settlementStatus) {
+    if (!SETTLEMENT_STATUS_SET.has(settlementStatus)) return { ok: false, error: 'Status pertanggungjawaban tidak dikenal.' };
+    and.push({ settlementStatus });
   }
 
   const typeId = firstString(query.typeId);
@@ -75,7 +84,9 @@ export function paymentRequestOrderBy(
       ? { requester: { fullName: dir } }
       : sort.field === 'neededBy'
         ? { neededBy: { sort: dir, nulls: 'last' } }
-        : { [sort.field]: dir };
+        : sort.field === 'paymentDate'
+          ? { paymentDate: { sort: dir, nulls: 'last' } }
+          : { [sort.field]: dir };
   return [primary, { number: 'desc' }];
 }
 

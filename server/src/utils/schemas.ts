@@ -988,12 +988,18 @@ export const TestTelegramSchema = z.object({
 const IsoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD.');
 const optText = (max: number) => z.string().trim().max(max).nullable().optional();
 
+const TravelCategorySchema = z.enum(['TRANSPORT', 'LODGING', 'PER_DIEM', 'MEALS', 'OTHER']);
+
 export const PaymentRequestLineSchema = z.object({
   description: z.string().trim().min(1, 'Uraian rincian wajib diisi.').max(500),
   amount: z.number().positive('Nominal harus lebih dari 0.').max(1e13, 'Nominal terlalu besar.'),
   expenseAccountId: z.string().min(1).nullable().optional(),
   costCenterId: z.string().min(1).nullable().optional(),
   expenseDate: IsoDay.nullable().optional(),
+  // Perjalanan dinas: kategori + tarif × jumlah (amount = quantity × unitAmount).
+  category: TravelCategorySchema.nullable().optional(),
+  quantity: z.number().positive().max(1e6).nullable().optional(),
+  unitAmount: z.number().positive().max(1e13).nullable().optional(),
 });
 
 export const PaymentRequestInputSchema = z.object({
@@ -1008,7 +1014,45 @@ export const PaymentRequestInputSchema = z.object({
   bankAccountHolder: optText(200),
   purpose: z.string().trim().min(3, 'Keperluan minimal 3 karakter.').max(1000),
   neededBy: IsoDay.nullable().optional(),
+  // Hanya dipakai untuk jenis TRAVEL (diabaikan untuk jenis lain).
+  travelDestination: optText(200),
+  travelStartDate: IsoDay.nullable().optional(),
+  travelEndDate: IsoDay.nullable().optional(),
+  travelParticipants: optText(500),
   lines: z.array(PaymentRequestLineSchema).max(100, 'Maksimal 100 baris rincian.'),
+});
+
+// ── Pertanggungjawaban uang muka / perjalanan dinas (stage 2) ──
+export const PaymentRequestSettlementLineSchema = z.object({
+  description: z.string().trim().min(1, 'Uraian realisasi wajib diisi.').max(500),
+  amount: z.number().positive('Nominal harus lebih dari 0.').max(1e13, 'Nominal terlalu besar.'),
+  expenseDate: IsoDay.nullable().optional(),
+  category: TravelCategorySchema.nullable().optional(),
+  plannedLineId: z.string().min(1).nullable().optional(),
+  expenseAccountId: z.string().min(1).nullable().optional(),
+});
+
+export const PaymentRequestSettlementDraftSchema = z.object({
+  note: optText(1000),
+  deadline: IsoDay.nullable().optional(),
+  lines: z.array(PaymentRequestSettlementLineSchema).max(100, 'Maksimal 100 baris realisasi.'),
+});
+
+const LineAccountsSchema = z.array(z.object({ id: z.string().min(1), expenseAccountId: z.string().min(1).nullable() })).max(100);
+
+/** Finance preview of the settlement journal (nothing is saved). */
+export const PaymentRequestSettlementPreviewSchema = z.object({
+  lineAccounts: LineAccountsSchema.optional(),
+  cashAccountId: z.string().min(1).nullable().optional(),
+});
+
+/** Finance step: verify accounts, record the cash movement (if any) and post. */
+export const PaymentRequestSettlementPostSchema = z.object({
+  settlementDate: IsoDay,
+  lineAccounts: LineAccountsSchema.optional(),
+  cashAccountId: z.string().min(1).nullable().optional(),
+  reference: optText(100),
+  note: optText(1000),
 });
 
 export const PaymentRequestDecisionSchema = z.object({

@@ -229,10 +229,17 @@ describe('visibility', () => {
     expect(scopeWhere('approvals', ctx(SUP))).toEqual({
       AND: [
         { requesterId: { not: SUP } },
-        { OR: [{ status: 'SUBMITTED', supervisorId: SUP }, { status: 'PENDING_DIRECTOR', directorRole: 'StaffProduksi' }] },
+        {
+          OR: [
+            { status: 'SUBMITTED', supervisorId: SUP },
+            { status: 'PAID', settlementStatus: 'SUBMITTED', settlementSupervisorId: SUP },
+            { status: 'PENDING_DIRECTOR', directorRole: 'StaffProduksi' },
+          ],
+        },
       ],
     });
     const fin = scopeWhere('approvals', ctx(FIN, { isFinance: true, role: 'Accountant' })) as { AND: [unknown, { OR: unknown[] }] };
     expect(fin.AND[1].OR).toContainEqual({ status: 'PENDING_FINANCE' });
+    expect(fin.AND[1].OR).toContainEqual({ status: 'PAID', settlementStatus: 'PENDING_FINANCE' });
   });
 });
