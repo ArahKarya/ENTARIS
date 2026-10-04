@@ -11,6 +11,7 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { compareAccountNumber } from '../utils/accountSort';
+import { systemAccountRenumberError } from '../utils/systemAccountGuard';
 
 const router = Router();
 
@@ -111,6 +112,14 @@ router.put('/:id', async (req, res) => {
         where: { accountNumber: body.accountNumber, id: { not: id } },
       });
       if (existing) return res.status(409).json({ error: 'Nomor akun sudah digunakan oleh akun lain.' });
+
+      // Akun yang dipetakan sebagai akun sistem tidak boleh diganti nomornya.
+      const current = await prisma.account.findUnique({ where: { id }, select: { accountNumber: true } });
+      if (current && current.accountNumber !== body.accountNumber) {
+        const mappings = await prisma.systemAccountMapping.findMany({ where: { accountId: id }, select: { role: true } });
+        const err = systemAccountRenumberError(current.accountNumber, body.accountNumber, mappings.map((m) => m.role));
+        if (err) return res.status(400).json({ error: err });
+      }
     }
 
     // If trying to un-group (isGroup: false), check no children exist
