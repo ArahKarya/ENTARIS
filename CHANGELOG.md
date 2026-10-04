@@ -22,6 +22,7 @@
 - Akun bawaan (seed) memakai domain `@entaris.demo`: `admin@entaris.demo`, `staff@entaris.demo`, `produksi@entaris.demo`, `viewer@entaris.demo` (sebelumnya `@entaris.local`). Seed mencari pengguna lewat username, jadi akun yang sudah ada ikut diperbarui tanpa duplikat.
 
 ### Diperbaiki
+- **Instalasi baru: stok opname dengan selisih dan biaya konversi produksi gagal (500).** Seed memetakan peran `INVENTORY_VARIANCE → 6.38` dan `PRODUCTION_CONVERSION → 6.39`, tetapi kedua akun itu tidak ada di COA bawaan sehingga pemetaannya dilewati. Seed kini membuat `6.38 Selisih Persediaan` dan `6.39 Biaya Konversi Produksi` — hanya bila nomornya belum dipakai (akun tenant yang sudah ada tidak diganti namanya).
 - Transaksi Kas & Bank: uang muka pelanggan & refund vendor tampil sebagai uang keluar (kini masuk); daftar terpotong di 50 pembayaran + 100 jurnal; label jurnal Pinbuk tampil sebagai "Beban"; jumlah lampiran jurnal tidak pernah tampil; batalkan uang muka pelanggan dari halaman ini selalu ditolak (kini diarahkan ke halaman uang muka).
 - **Instalasi baru tidak bisa membuat STT/BPB** (error 500): akun sistem "Hutang Pembelian Belum Ditagih" dan "Selisih Harga Pembelian" tidak dipetakan oleh seed. Seed kini menambah akun `5.11 Selisih Harga Pembelian` dan memetakan kedua peran (2.2.3 dan 5.11) — **hanya bila peran itu belum punya pemetaan**, sehingga tenant lama tidak berubah.
 - Migrasi pembersih token AIRA di audit log menyebut tabel yang salah (`audit_logs`, seharusnya `audit_trail`) sehingga selalu gagal tanpa suara; kini benar.
