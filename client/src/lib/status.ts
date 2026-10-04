@@ -38,7 +38,8 @@ export type DocType =
   | 'inventory_item'
   | 'production_run'
   | 'ga_document'
-  | 'payment_request';
+  | 'payment_request'
+  | 'payment_request_settlement';
 
 /** Lower-case, without `_`, `-` or spaces: `IN_PROGRESS` → `inprogress`. */
 export function normalizeStatusKey(status: string): string {
@@ -190,6 +191,14 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
     rejected: m('Ditolak', 'danger'),
     revision: m('Perlu Revisi', 'warning'),
     cancelled: m('Dibatalkan', 'neutral'),
+  },
+  // Pertanggungjawaban uang muka / perjalanan dinas (settlementStatus).
+  payment_request_settlement: {
+    open: m('Belum Dipertanggungjawabkan', 'warning'),
+    submitted: m('Menunggu Atasan', 'warning'),
+    pendingfinance: m('Verifikasi Keuangan', 'warning'),
+    revision: m('Perlu Revisi', 'warning'),
+    settled: m('Sudah Dipertanggungjawabkan', 'success'),
   },
 };
 

@@ -68,6 +68,7 @@ interface UserRow {
   lastLoginAt: string | null;
   createdAt: string;
   telegramLinked?: boolean;
+  supervisor?: { id: string; fullName: string } | null;
 }
 
 interface UserSummary {
@@ -262,6 +263,17 @@ export const UserManagement = () => {
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <span className="whitespace-nowrap">{roleName(row.original.role)}</span>,
+      },
+      {
+        id: 'supervisor',
+        header: 'Atasan',
+        meta: { hideBelow: 'lg', cellClassName: 'max-w-48 truncate whitespace-nowrap' },
+        cell: ({ row }) =>
+          row.original.supervisor ? (
+            <span title={row.original.supervisor.fullName}>{row.original.supervisor.fullName}</span>
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          ),
       },
       {
         id: 'status',
