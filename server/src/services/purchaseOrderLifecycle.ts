@@ -95,6 +95,28 @@ export function matchesApprovalRule(rules: ApprovalRuleLike[], grandTotal: numbe
   return rules.some((r) => r.isActive !== false && Number(String(r.minAmount)) <= grandTotal);
 }
 
+export const PO_INCREASE_NEEDS_APPROVAL_ERROR =
+  'Kenaikan nilai PO melebihi batas persetujuan — ajukan ulang (batalkan PO ini dan buat PO baru, atau turunkan nilainya).';
+
+/**
+ * Editing an ordered (Submitted) PO must not bypass approval: raising the
+ * grand total to a value that an active rule covers is rejected. Decreases,
+ * equal totals, increases with no matching rule and draft edits stay allowed.
+ * (Chosen over re-routing to approval: a rejected re-approval would otherwise
+ * un-order a PO that the supplier already received at the old value.)
+ */
+export function checkSubmittedEditTotal(input: {
+  status: string;
+  previousGrandTotal: number;
+  newGrandTotal: number;
+  rules: ApprovalRuleLike[];
+}): RuleResult {
+  if (input.status !== 'Submitted') return { ok: true };
+  if (!(input.newGrandTotal > input.previousGrandTotal)) return { ok: true };
+  if (!matchesApprovalRule(input.rules, input.newGrandTotal)) return { ok: true };
+  return { ok: false, error: PO_INCREASE_NEEDS_APPROVAL_ERROR };
+}
+
 /** Outcome of "Ajukan". */
 export function resolveSubmitOutcome(ruleMatched: boolean): { status: 'Draft' | 'Submitted'; approvalStatus: string | null } {
   return ruleMatched

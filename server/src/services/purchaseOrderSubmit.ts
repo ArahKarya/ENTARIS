@@ -9,6 +9,7 @@ import {
   checkPurchaseOrderDeletable,
   checkPurchaseOrderEditableLifecycle,
   checkPurchaseOrderSubmittable,
+  checkSubmittedEditTotal,
   isPendingApproval,
   matchesApprovalRule,
   PO_APPROVAL_REJECTED,
@@ -290,6 +291,19 @@ export async function updatePurchaseOrderInTx(tx: Tx, poId: string, body: Submit
   await assertWarehouse(tx, body.warehouseId);
 
   const totals = computePurchaseOrderTotals(body.items, body.otherCosts ?? 0);
+  if (po.status === 'Submitted') {
+    const rules = await tx.approvalRule.findMany({
+      where: { documentType: 'PurchaseOrder', isActive: true },
+      select: { minAmount: true, isActive: true },
+    });
+    const totalCheck = checkSubmittedEditTotal({
+      status: po.status,
+      previousGrandTotal: Number(po.grandTotal) || Number(po.totalEstimated),
+      newGrandTotal: totals.grandTotal.toNumber(),
+      rules,
+    });
+    if (!totalCheck.ok) throw new BusinessError(totalCheck.error);
+  }
   await tx.purchaseOrderItem.deleteMany({ where: { purchaseOrderId: poId } });
   const updated = await tx.purchaseOrder.update({
     where: { id: poId },

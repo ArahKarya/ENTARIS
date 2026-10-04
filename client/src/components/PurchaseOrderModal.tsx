@@ -200,10 +200,14 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
   const { data: approvalCheck } = useQuery({
     queryKey: ['approval-check', 'PurchaseOrder', deferredTotal],
     queryFn: async () => (await api.get('/approvals/check', { params: { documentType: 'PurchaseOrder', amount: deferredTotal } })).data as { required: boolean },
-    enabled: isDraftFlow,
     staleTime: 30_000,
   });
   const needsApproval = !!approvalCheck?.required;
+  // Ordered PO: raising the total into an approval rule's range is refused by the server.
+  const [originalGrandTotal] = useState(() =>
+    source ? computePoTotals(toFormItems(source), Number(source.otherCosts ?? 0) || 0).grandTotal : 0,
+  );
+  const increaseBlocked = !isDraftFlow && needsApproval && totals.grandTotal > originalGrandTotal;
 
   const afterSave = (msg: string) => {
     queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
@@ -492,6 +496,13 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
           {serverError && (
             <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2">
               <AlertCircle size={14} className="mt-0.5 shrink-0" aria-hidden />{serverError}
+            </div>
+          )}
+
+          {increaseBlocked && (
+            <div role="status" className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+              Kenaikan nilai PO ini (dari {formatRupiah(originalGrandTotal)}) melebihi batas persetujuan dan akan ditolak.
+              Turunkan nilainya, atau batalkan PO ini dan buat PO baru untuk diajukan ulang.
             </div>
           )}
 

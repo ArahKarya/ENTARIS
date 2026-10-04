@@ -5,6 +5,9 @@ import {
   checkPurchaseOrderEditableLifecycle,
   checkPurchaseOrderReceivable,
   checkPurchaseOrderSubmittable,
+  checkSubmittedEditTotal,
+  PO_INCREASE_NEEDS_APPROVAL_ERROR,
+  type ApprovalRuleLike,
   derivePurchaseOrderDisplayStatus,
   matchesApprovalRule,
   resolveSubmitOutcome,
@@ -42,7 +45,7 @@ describe('submit (Ajukan)', () => {
   });
 
   it('rule matching uses grandTotal ≥ minAmount on active rules', () => {
-    const rules = [{ minAmount: '10000000', isActive: true }];
+    const rules: ApprovalRuleLike[] = [{ minAmount: '10000000', isActive: true }];
     expect(matchesApprovalRule(rules, 10_000_000)).toBe(true);
     expect(matchesApprovalRule(rules, 9_999_999.99)).toBe(false);
     expect(matchesApprovalRule([{ minAmount: 0, isActive: false }], 5)).toBe(false);
@@ -66,6 +69,31 @@ describe('edit / delete / cancel rules per status', () => {
     expect(checkPurchaseOrderCancellable(ordered).ok).toBe(true);
     expect(checkPurchaseOrderCancellable(draft).ok).toBe(false);
     expect(checkPurchaseOrderCancellable({ status: 'Cancelled' }).ok).toBe(false);
+  });
+});
+
+describe('editing an ordered PO (no approval bypass)', () => {
+  const rules: ApprovalRuleLike[] = [{ minAmount: '10000000', isActive: true }];
+  const edit = (status: string, previousGrandTotal: number, newGrandTotal: number, r = rules) =>
+    checkSubmittedEditTotal({ status, previousGrandTotal, newGrandTotal, rules: r });
+
+  it('blocks an increase that a rule covers', () => {
+    const res = edit('Submitted', 8_000_000, 12_000_000);
+    expect(res.ok).toBe(false);
+    expect(!res.ok && res.error).toBe(PO_INCREASE_NEEDS_APPROVAL_ERROR);
+    expect(edit('Submitted', 11_000_000, 11_000_000.01).ok).toBe(false);
+  });
+  it('allows an increase with no matching rule', () => {
+    expect(edit('Submitted', 1_000_000, 9_999_999).ok).toBe(true);
+    expect(edit('Submitted', 8_000_000, 12_000_000, []).ok).toBe(true);
+    expect(edit('Submitted', 8_000_000, 12_000_000, [{ minAmount: 0, isActive: false }]).ok).toBe(true);
+  });
+  it('allows a decrease or an unchanged total, even above the rule', () => {
+    expect(edit('Submitted', 15_000_000, 12_000_000).ok).toBe(true);
+    expect(edit('Submitted', 12_000_000, 12_000_000).ok).toBe(true);
+  });
+  it('does not apply to drafts (they go through Ajukan)', () => {
+    expect(edit('Draft', 1, 50_000_000).ok).toBe(true);
   });
 });
 
