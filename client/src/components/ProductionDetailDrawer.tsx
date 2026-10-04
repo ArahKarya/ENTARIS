@@ -130,6 +130,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
             )}
             <button
               onClick={onClose}
+              aria-label="Tutup"
               className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600"
             >
               <X size={18} />
@@ -158,7 +159,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                   <p className="text-lg font-bold text-green-700">{fmtNum(totalOutputQty)} <span className="text-xs font-normal">Kg</span></p>
                 </div>
                 <div className="bg-purple-50 rounded-lg p-3 text-center">
-                  <p className="text-xs font-semibold text-purple-500 uppercase">Yield</p>
+                  <p className="text-xs font-semibold text-purple-700 uppercase">Yield</p>
                   <p className="text-lg font-bold text-purple-700">
                     {run.yieldPct != null ? `${Number(run.yieldPct).toFixed(1)}%` : '—'}
                   </p>

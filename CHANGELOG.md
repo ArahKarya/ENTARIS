@@ -31,6 +31,8 @@
 
 ### Tampilan (UI/UX)
 **Diubah**:
+- **Halaman Persediaan & Produksi** (Stok & Produksi, Stok per Gudang, Stok Opname, Transfer Stok, Daftar Gudang) memakai pola daftar baru. Stok & Produksi: tab Barang / Gerakan Stok / Proses Produksi / Item Jasa tersimpan di URL, data per halaman dari server, kartu ringkasan sesuai filter, panel detail gerakan stok, aksi "Riwayat gerakan" per barang, ekspor Excel semua baris terfilter. Stok per Gudang mengikuti tanggal "per" yang dipilih (sebelumnya selalu stok saat ini) dan menandai stok negatif dengan ikon & label. Detail opname/transfer punya URL sendiri.
+
 - **Halaman Kas & Bank** (Transaksi Kas & Bank, Rekonsiliasi Bank, Transaksi Berulang, Uang Jaminan Proyek) memakai pola daftar baru. Transaksi Kas & Bank menggabungkan pembayaran & jurnal kas per halaman dari server dengan ringkasan Kas Masuk/Keluar/Arus Bersih, filter tipe/arah/pihak/akun, dan ekspor Excel. Ruang kerja rekonsiliasi punya URL sendiri (`?recon=`). Uang Jaminan Proyek menandai "Lewat / Segera jatuh tempo" dan menampilkan riwayat settlement di panel detail.
 - "Jalankan sekarang" di Transaksi Berulang kini meminta konfirmasi (jurnal langsung terposting dan jadwal berikutnya dihitung ulang dari hari ini).
 

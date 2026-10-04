@@ -41,6 +41,15 @@ const TARGETS = [
   { path: '/reconciliation', isPublic: false },
   { path: '/recurring', isPublic: false },
   { path: '/project-guarantees', isPublic: false },
+  { path: '/inventory', isPublic: false },
+  { path: '/inventory?tab=items', isPublic: false },
+  { path: '/inventory?tab=movements', isPublic: false },
+  { path: '/inventory?tab=production', isPublic: false },
+  { path: '/inventory?tab=services', isPublic: false },
+  { path: '/stock-opname', isPublic: false },
+  { path: '/stock-transfers', isPublic: false },
+  { path: '/warehouses', isPublic: false },
+  { path: '/warehouse-stock', isPublic: false },
 ]
 
 interface AxeRecord {

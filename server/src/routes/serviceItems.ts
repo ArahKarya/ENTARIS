@@ -5,12 +5,41 @@ import { validateBody } from '../utils/validate';
 import { CreateServiceItemSchema, UpdateServiceItemSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  DEFAULT_SERVICE_ITEM_SORT,
+  SERVICE_ITEM_SORT_FIELDS,
+  buildServiceItemWhere,
+  serviceItemOrderBy,
+} from '../services/serviceItemList';
 
 const router = Router();
 
 // GET /api/service-items
+// Legacy (no `page`): { data } with every matching row, ordered by code.
+// Paged (`page` sent): page, limit (≤200), isActive (true | false), search,
+// sort (code | name | defaultRate, "-" = desc) → { data, total, page, limit }.
 router.get('/', async (req, res) => {
   try {
+    const query = req.query as Record<string, unknown>;
+    if (query.page !== undefined) {
+      const filter = buildServiceItemWhere(query);
+      if (!filter.ok) return res.status(400).json({ error: filter.error });
+      const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+      const sort = parseSort(query.sort, SERVICE_ITEM_SORT_FIELDS, DEFAULT_SERVICE_ITEM_SORT);
+      const [data, total] = await Promise.all([
+        prisma.serviceItem.findMany({
+          where: filter.where,
+          include: { account: { select: { id: true, accountNumber: true, name: true } } },
+          orderBy: serviceItemOrderBy(sort),
+          skip,
+          take: limit,
+        }),
+        prisma.serviceItem.count({ where: filter.where }),
+      ]);
+      return res.json({ data, total, page, limit });
+    }
+
     const { search, isActive } = req.query;
 
     const where: Record<string, unknown> = {};

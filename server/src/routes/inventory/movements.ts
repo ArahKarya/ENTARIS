@@ -13,25 +13,34 @@ import { calcWeightedAverage } from '../../utils/weightedAverage';
 import { settleCogsBackfillForItem } from '../../services/cogsBackfillService';
 import { reverseCogsSettlementsByTrigger } from '../../services/cogsBackfillReverse';
 import { adjustWarehouseStock } from '../../utils/warehouseStock';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  DEFAULT_STOCK_MOVEMENT_SORT,
+  LEGACY_STOCK_MOVEMENT_ORDER,
+  STOCK_MOVEMENT_SORT_FIELDS,
+  buildStockMovementWhere,
+  stockMovementOrderBy,
+  summarizeStockMovements,
+} from '../../services/stockMovementList';
 
 const router = Router();
 
 // GET /api/inventory/movements
+// Query: page, limit (≤200), itemId, warehouseId, movementType, status
+// (active | cancelled), startDate/endDate (YYYY-MM-DD, business-day range),
+// search, sort (date | movementNumber | item | quantity | totalValue, "-" =
+// desc). Without `sort` the historic order (movement number desc) is kept.
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', itemId, warehouseId, movementType, startDate, endDate } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: any = {};
-    if (itemId) where.itemId = itemId;
-    if (warehouseId) where.warehouseId = warehouseId;
-    if (movementType) where.movementType = movementType;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) where.date.gte = new Date(startDate as string);
-      if (endDate) where.date.lte = new Date(endDate as string);
-    }
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildStockMovementWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const orderBy = query.sort === undefined
+      ? LEGACY_STOCK_MOVEMENT_ORDER
+      : stockMovementOrderBy(parseSort(query.sort, STOCK_MOVEMENT_SORT_FIELDS, DEFAULT_STOCK_MOVEMENT_SORT));
 
     const [movements, total] = await Promise.all([
       prisma.stockMovement.findMany({
@@ -41,17 +50,35 @@ router.get('/', async (req, res) => {
           warehouse: { select: { id: true, name: true, code: true } },
           offsetAccount: { select: { id: true, name: true, accountNumber: true } },
         },
-        orderBy: [{ movementNumber: 'desc' }],
+        orderBy,
         skip,
         take,
       }),
       prisma.stockMovement.count({ where }),
     ]);
 
-    return res.json({ data: movements, total, page: Number(page), limit: take });
+    return res.json({ data: movements, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/movements error');
     return res.status(500).json({ error: 'Gagal mengambil data gerakan stok.' });
+  }
+});
+
+// GET /api/inventory/movements/summary — KPI totals (counts, qty & value in /
+// out, cancelled) for the same filters as the list. Declared before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildStockMovementWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const groups = await prisma.stockMovement.groupBy({
+      by: ['movementType', 'isCancelled'],
+      where: filter.where,
+      _count: { _all: true },
+      _sum: { quantity: true, totalValue: true },
+    });
+    return res.json(summarizeStockMovements(groups));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /inventory/movements/summary', 'Gagal menghitung ringkasan gerakan stok.');
   }
 });
 

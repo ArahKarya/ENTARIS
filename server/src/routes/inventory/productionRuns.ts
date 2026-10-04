@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AuthRequest, requireCap } from '../../middleware/auth';
 import { hasCap } from '../../services/permissionService';
@@ -11,22 +12,34 @@ import { editProductionRunInTx } from '../../services/productionRunEdit';
 import { needsApproval, queueApproval, approvalsLink } from '../../services/approvalGate';
 import { notifyAdmins } from '../../services/notificationService';
 import { logger } from '../../lib/logger';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  DEFAULT_PRODUCTION_RUN_SORT,
+  LEGACY_PRODUCTION_RUN_ORDER,
+  PRODUCTION_RUN_SORT_FIELDS,
+  buildProductionRunWhere,
+  productionRunOrderBy,
+  summarizeProductionRuns,
+} from '../../services/productionRunList';
 
 const router = Router();
 
 // GET /api/inventory/production-runs
+// Query: page, limit (≤200), status (active | cancelled), machineId,
+// startDate/endDate (YYYY-MM-DD, business-day range), search (run/reference
+// no., notes, item name/code), sort (date | runNumber | yieldPct, "-" = desc).
+// Without `sort` the historic order (date desc) is kept.
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', startDate, endDate } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: any = {};
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) where.date.gte = new Date(startDate as string);
-      if (endDate) where.date.lte = new Date(endDate as string);
-    }
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildProductionRunWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const orderBy = query.sort === undefined
+      ? LEGACY_PRODUCTION_RUN_ORDER
+      : productionRunOrderBy(parseSort(query.sort, PRODUCTION_RUN_SORT_FIELDS, DEFAULT_PRODUCTION_RUN_SORT));
 
     const [runs, total] = await Promise.all([
       prisma.productionRun.findMany({
@@ -41,17 +54,53 @@ router.get('/', async (req, res) => {
           machine: { select: { id: true, code: true, name: true } },
           createdBy: { select: { id: true, fullName: true } },
         },
-        orderBy: { date: 'desc' },
+        orderBy,
         skip,
         take,
       }),
       prisma.productionRun.count({ where }),
     ]);
 
-    return res.json({ data: runs, total, page: Number(page), limit: take });
+    return res.json({ data: runs, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /inventory/production-runs error');
     return res.status(500).json({ error: 'Gagal mengambil data proses produksi.' });
+  }
+});
+
+// GET /api/inventory/production-runs/summary — KPI totals (run counts, input /
+// main output / by-product qty and overall yield of non-cancelled runs) for the
+// same filters as the list. Same RBAC as the list. Declared before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const filter = buildProductionRunWhere(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const activeRuns: Prisma.ProductionRunWhereInput = { AND: [where, { isCancelled: false }] };
+    const [counts, lines, runs, inputs, units] = await Promise.all([
+      prisma.productionRun.groupBy({ by: ['isCancelled'], where, _count: { _all: true } }),
+      prisma.productionRunItem.groupBy({
+        by: ['lineType', 'isByProduct'],
+        where: { productionRun: activeRuns },
+        _sum: { quantity: true },
+      }),
+      prisma.productionRun.findMany({ where: activeRuns, select: { id: true, yieldPct: true } }),
+      prisma.productionRunItem.groupBy({
+        by: ['productionRunId'],
+        where: { lineType: 'Input', productionRun: activeRuns },
+        _sum: { quantity: true },
+      }),
+      prisma.inventoryItem.findMany({
+        where: { productionLines: { some: { productionRun: activeRuns } } },
+        distinct: ['unit'],
+        select: { unit: true },
+      }),
+    ]);
+    const inputByRun = new Map(inputs.map((i) => [i.productionRunId, i._sum.quantity]));
+    const yields = runs.map((r) => ({ yieldPct: r.yieldPct, inputQty: inputByRun.get(r.id) ?? null }));
+    return res.json(summarizeProductionRuns(counts, lines, yields, units.map((u) => u.unit)));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /inventory/production-runs/summary', 'Gagal menghitung ringkasan proses produksi.');
   }
 });
 

@@ -34,7 +34,9 @@ export type DocType =
   | 'ga_asset'
   | 'ga_work_order'
   | 'ga_material_request'
-  | 'project_guarantee';
+  | 'project_guarantee'
+  | 'inventory_item'
+  | 'production_run';
 
 /** Lower-case, without `_`, `-` or spaces: `IN_PROGRESS` → `inprogress`. */
 export function normalizeStatusKey(status: string): string {
@@ -147,6 +149,14 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
     fullyused: m('Terpakai', 'success'),
     submitted: m('Aktif', 'info'),
   },
+  // Item stok: stock level derived server-side (stockStatus out | low | ok).
+  inventory_item: {
+    out: m('Habis', 'danger'),
+    low: m('Menipis', 'warning'),
+    ok: m('Aman', 'success'),
+  },
+  // Proses produksi: posted on save (stock + GL), Cancelled when reversed.
+  production_run: { posted: POSTED, active: POSTED },
   // Uang jaminan proyek: Indonesian statuses stored as-is (Disetor → Selesai | Dibatalkan).
   project_guarantee: {
     disetor: m('Disetor', 'info'),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Factory, TrendingUp, TrendingDown, Package, ArrowDown, ArrowUp, BarChart3, Clock, Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -46,6 +46,8 @@ export default function ProductionDashboardTab({ items = [] }: Props) {
   const [startDate, setStartDate] = useState(thisMonthStr());
   const [endDate, setEndDate] = useState(todayStr());
   const [itemId, setItemId] = useState('');
+  const startId = useId();
+  const endId = useId();
 
   const params: Record<string, string> = {};
   if (startDate) params.startDate = startDate;
@@ -66,8 +68,9 @@ export default function ProductionDashboardTab({ items = [] }: Props) {
             <Filter size={13} /> Filter
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Dari</label>
+            <label htmlFor={startId} className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Dari</label>
             <input
+              id={startId}
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
@@ -75,8 +78,9 @@ export default function ProductionDashboardTab({ items = [] }: Props) {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Sampai</label>
+            <label htmlFor={endId} className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Sampai</label>
             <input
+              id={endId}
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
@@ -181,7 +185,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
           )}
         </div>
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-          <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide">Produk Samping</p>
+          <p className="text-xs font-semibold text-warning-text uppercase tracking-wide">Produk Samping</p>
           <p className="text-xl font-bold text-amber-700 mt-1 tabular-nums">
             {fmtNum(summary.totalByProductQtyPeriod, 1)} <span className="text-sm font-normal">Kg</span>
           </p>
@@ -295,7 +299,7 @@ function KPICard({ icon, label, value, sub, color }: {
   return (
     <div className={cn('rounded-xl p-4 border border-transparent', c.bg)}>
       <div className={cn('mb-2', c.icon)}>{icon}</div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
       <p className={cn('text-xl font-bold tabular-nums mt-0.5', c.text)}>{value}</p>
       {sub && <div className="mt-1">{sub}</div>}
     </div>

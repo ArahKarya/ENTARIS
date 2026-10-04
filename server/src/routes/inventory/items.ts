@@ -3,17 +3,71 @@ import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { CreateInventoryItemSchema, UpdateInventoryItemSchema } from '../../utils/schemas';
-import { BusinessError } from '../../utils/errors';
+import { BusinessError, handleRouteError } from '../../utils/errors';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  DEFAULT_ITEM_SORT,
+  ITEM_SORT_FIELDS,
+  filterByStockStatus,
+  itemDbWhere,
+  itemStockStatus,
+  parseItemListFilters,
+  sortItems,
+  summarizeItems,
+  usesListMode,
+} from '../../services/inventoryItemList';
 import { logger } from '../../lib/logger';
 
 const router = Router();
+
+// Loads items matching the DB filter; with `warehouseId` the `currentStock`
+// of each item is replaced by its stock in that warehouse (0 if no row).
+async function loadItems(where: Record<string, unknown>, warehouseId: string | undefined) {
+  const allItems = await prisma.inventoryItem.findMany({
+    where,
+    include: { account: { select: { id: true, name: true, accountNumber: true } } },
+  });
+  if (!warehouseId) return allItems;
+  const stockRows = await prisma.inventoryStock.findMany({
+    where: { warehouseId, itemId: { in: allItems.map((i) => i.id) } },
+    select: { itemId: true, currentStock: true },
+  });
+  const stockByItem = new Map(stockRows.map((s) => [s.itemId, s.currentStock]));
+  return allItems.map((i) => ({
+    ...i,
+    currentStock: stockByItem.get(i.id) ?? 0,
+  })) as typeof allItems;
+}
 
 // GET /api/inventory/items
 // When `warehouseId` is provided, `currentStock` is overridden with the
 // per-warehouse stock from inventory_stocks (0 if no row). Without the param,
 // the response shows the global total denormalized on inventory_items.
+//
+// List-page mode (any of sort / stockStatus / category sent — see
+// services/inventoryItemList): whitelisted sort with a code tie-breaker,
+// stockStatus (out | low | ok) and category filters, `total` = matching rows,
+// each row gets `stockStatus`. Without those params the historic behaviour
+// (stock-descending, total = DB count) is kept byte-for-byte for pickers.
 router.get('/', async (req, res) => {
   try {
+    const query = req.query as Record<string, unknown>;
+    const parsed = parseItemListFilters(query);
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+    const { filters } = parsed;
+
+    if (usesListMode(query)) {
+      const { page, limit, skip } = parseListPaging(query, { defaultLimit: 100, maxLimit: 200 });
+      const sort = parseSort(query.sort, ITEM_SORT_FIELDS, DEFAULT_ITEM_SORT);
+      const loaded = await loadItems(itemDbWhere(filters), filters.warehouseId);
+      const rows = sortItems(filterByStockStatus(loaded, filters.stockStatus), sort);
+      const data = rows.slice(skip, skip + limit).map((i) => ({
+        ...i,
+        stockStatus: itemStockStatus(i.currentStock, i.minimumStock),
+      }));
+      return res.json({ data, total: rows.length, page, limit });
+    }
+
     const { page = '1', limit = '100', search, isActive, warehouseId } = req.query;
     const take = Math.min(Number(limit) || 100, 200);
     const skip = (Number(page) - 1) * take;
@@ -27,26 +81,10 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    const [allItems, total] = await Promise.all([
-      prisma.inventoryItem.findMany({
-        where,
-        include: { account: { select: { id: true, name: true, accountNumber: true } } },
-      }),
+    const [items, total] = await Promise.all([
+      loadItems(where, typeof warehouseId === 'string' && warehouseId.length > 0 ? warehouseId : undefined),
       prisma.inventoryItem.count({ where }),
     ]);
-
-    let items = allItems;
-    if (typeof warehouseId === 'string' && warehouseId.length > 0) {
-      const stockRows = await prisma.inventoryStock.findMany({
-        where: { warehouseId, itemId: { in: allItems.map((i) => i.id) } },
-        select: { itemId: true, currentStock: true },
-      });
-      const stockByItem = new Map(stockRows.map((s) => [s.itemId, s.currentStock]));
-      items = allItems.map((i) => ({
-        ...i,
-        currentStock: stockByItem.get(i.id) ?? 0,
-      })) as typeof allItems;
-    }
 
     // Sort by current stock quantity descending
     items.sort((a, b) => Number(b.currentStock) - Number(a.currentStock));
@@ -56,6 +94,25 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /inventory/items error');
     return res.status(500).json({ error: 'Gagal mengambil data item stok.' });
+  }
+});
+
+// GET /api/inventory/items/summary — KPI totals for the same filters as the
+// list (search, isActive, warehouseId, category, stockStatus). Same RBAC as
+// the list (GET open to the inventory mount). Declared before /:id routes.
+router.get('/summary', async (req, res) => {
+  try {
+    const parsed = parseItemListFilters(req.query as Record<string, unknown>);
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+    const { filters } = parsed;
+    const [loaded, categoryRows] = await Promise.all([
+      loadItems(itemDbWhere(filters), filters.warehouseId),
+      prisma.inventoryItem.findMany({ distinct: ['category'], select: { category: true } }),
+    ]);
+    const rows = filterByStockStatus(loaded, filters.stockStatus);
+    return res.json(summarizeItems(rows, categoryRows.map((r) => r.category)));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /inventory/items/summary', 'Gagal menghitung ringkasan item stok.');
   }
 });
 

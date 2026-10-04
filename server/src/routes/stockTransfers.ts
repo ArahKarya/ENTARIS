@@ -1,11 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { handleRouteError } from '../utils/errors';
 import { validateBody } from '../utils/validate';
 import { submitStockTransferInTx, cancelStockTransferInTx } from '../services/stockTransfer';
+import { firstString, parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildStockTransferWhere,
+  DEFAULT_STOCK_TRANSFER_SORT,
+  STOCK_TRANSFER_SORT_FIELDS,
+  stockTransferOrderBy,
+} from '../services/stockTransferList';
 
 const router = Router();
 
@@ -41,13 +47,21 @@ const UpdateHeaderSchema = z.object({
 });
 
 // GET /api/stock-transfers
+// Query: page, limit (default 50, ≤200), status, warehouseId (source or
+// destination), startDate, endDate (YYYY-MM-DD), search (number / notes /
+// vehicle / driver / recipient / warehouse name), sort (e.g. "-date").
+// → { data, total, page, limit }. Without `sort` the legacy order (date desc)
+// is kept, so old callers get byte-identical responses.
 router.get('/', async (req, res) => {
   try {
-    const { status, page = '1', limit = '50' } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-    const where: Prisma.StockTransferWhereInput = {};
-    if (status) where.status = status as any;
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildStockTransferWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const orderBy = firstString(query.sort)
+      ? stockTransferOrderBy(parseSort(query.sort, STOCK_TRANSFER_SORT_FIELDS, DEFAULT_STOCK_TRANSFER_SORT))
+      : { date: 'desc' as const };
 
     const [data, total] = await Promise.all([
       prisma.stockTransfer.findMany({
@@ -60,14 +74,14 @@ router.get('/', async (req, res) => {
           },
           user: { select: { id: true, fullName: true } },
         },
-        orderBy: { date: 'desc' },
+        orderBy,
         skip,
         take,
       }),
       prisma.stockTransfer.count({ where }),
     ]);
 
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /stock-transfers', 'Gagal mengambil daftar transfer.');
   }

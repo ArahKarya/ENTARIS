@@ -140,3 +140,16 @@ describe('project guarantee statuses', () => {
     ]);
   });
 });
+
+describe('inventory statuses', () => {
+  it('labels the derived item stock levels', () => {
+    expect(getStatusMeta('out', 'inventory_item')).toEqual({ label: 'Habis', tone: 'danger' });
+    expect(getStatusMeta('low', 'inventory_item')).toEqual({ label: 'Menipis', tone: 'warning' });
+    expect(getStatusMeta('ok', 'inventory_item')).toEqual({ label: 'Aman', tone: 'success' });
+  });
+
+  it('labels production run states', () => {
+    expect(getStatusLabel('active', 'production_run')).toBe('Diposting');
+    expect(getStatusLabel('Cancelled', 'production_run')).toBe('Dibatalkan');
+  });
+});
