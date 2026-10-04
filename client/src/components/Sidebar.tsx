@@ -211,7 +211,8 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
             className={cn('shrink-0 transition-transform', !isOpen && '-rotate-90')}
           />
         </button>
-        <ul id={listId} hidden={!isOpen} className="mt-0.5 flex flex-col gap-0.5">
+        {/* Pages sit indented under their section label (with a guide line) so the hierarchy reads at a glance. */}
+        <ul id={listId} hidden={!isOpen} className="mt-1 mb-1 ml-4 flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
           {section.items.map(renderLink)}
         </ul>
       </div>
@@ -224,7 +225,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
       className={cn(
         'flex h-full flex-col bg-sidebar text-sidebar-foreground',
         !mobile && 'border-r border-sidebar-border transition-[width] duration-200 ease-out',
-        mobile ? 'w-full' : rail ? 'w-16' : 'w-64',
+        mobile ? 'w-full' : rail ? 'w-16' : 'w-70',
       )}
     >
       <div className={cn('flex h-14 shrink-0 items-center border-b border-sidebar-border', rail ? 'justify-center' : 'px-4')}>
