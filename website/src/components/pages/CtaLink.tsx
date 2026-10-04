@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ARROW_RIGHT_PATHS, BUTTON_ICON_STYLE, TablerIcon } from "@/components/erp/enterprise-28346646/sections/TablerIcon";
+import { ARROW_RIGHT_PATHS, BUTTON_ICON_STYLE, TablerIcon } from "./TablerIcon";
 
 export type CtaSpec = { label: string; href: string; arrow?: boolean };
 

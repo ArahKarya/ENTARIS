@@ -4,7 +4,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   agentRules: false,
   async redirects() {
-    return [{ source: "/self-hosted", destination: "/keamanan", permanent: true }];
+    return [
+      { source: "/keamanan", destination: "/#keamanan-data", permanent: true },
+      { source: "/self-hosted", destination: "/#keamanan-data", permanent: true },
+    ];
   },
 };
 
