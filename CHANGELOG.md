@@ -67,6 +67,7 @@
 
 ### Merek
 **Diubah**:
+- **Logo AIRA baru "Lipat Δ"**: saudara ∇ Entaris (Δ = agen yang bertindak; bilah biru = agen, navy = manusia yang menyetujui, crossbar = Tool Layer). Ikon AIRA di aplikasi kini SVG tajam yang otomatis berganti ke varian negatif di mode gelap; aset lengkap (SVG/PNG, favicon, PWA, generator) & panduan di `docs/brand/aira/`. Sumber logo AIRA lama dihapus.
 - Produk berganti nama (dari nama produk sebelumnya) menjadi **Entaris** (*Enterprise Agentic Reasoning Integrated System*) — tagline "Agentic Reasoning System".
 - Logo baru **"Anyaman ∇"**: tiga bilah yang saling menindih membentuk segitiga terbalik (∇) — tiga pilar operasi yang menyatu dan simbol gradien untuk penalaran AI. Ikon aplikasi berlatar navy, favicon 16/32/48, apple-touch, ikon PWA `any` + `maskable` terpisah (`pwa-maskable-512x512.png`), dan `mask-icon.svg` satu warna untuk Safari.
 - Judul tab, manifest PWA, `theme-color` (navy `#1B2B48`), nama cadangan di login/sidebar/onboarding/landing kini memakai Entaris.
