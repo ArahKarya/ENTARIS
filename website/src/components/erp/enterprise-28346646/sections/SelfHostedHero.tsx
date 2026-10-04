@@ -1,5 +1,6 @@
 import { DEMO_HREF } from "@/components/site/siteConfig";
 import { ARROW_RIGHT_PATHS, BUTTON_ICON_STYLE, DATABASE_PATHS, LOCK_PATHS, SCROLL_PATHS, TablerIcon } from "./TablerIcon";
+import Link from "next/link";
 
 /*
  * Keamanan & Data hero (customer-facing: no technical/deployment jargon). The `observed` classes are added by useErpObserver (called by SelfHostedMain)
@@ -48,10 +49,10 @@ export function SelfHostedHero() {
               Entaris berjalan di server milik perusahaan Anda — di kantor atau di cloud pilihan Anda. Data transaksi, laporan, dan cadangannya tetap di tangan Anda, bukan di tangan vendor.
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-4" data-observe="reveal-up" style={{ "--stagger-index": "4" } as React.CSSProperties}>
-              <a href={DEMO_HREF} className="btn btn--primary btn--xl">
+              <Link href={DEMO_HREF} className="btn btn--primary btn--xl">
                 Minta demo
                 <TablerIcon name="arrow-right" dataIcon="arrow-right" paths={ARROW_RIGHT_PATHS} style={BUTTON_ICON_STYLE} />
-              </a>
+              </Link>
               <a href="#mulai" className="btn btn--ghost btn--xl">
                 Lihat cara mulai ↓
               </a>

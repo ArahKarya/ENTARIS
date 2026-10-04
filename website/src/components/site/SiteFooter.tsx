@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useErpRoot } from "@/components/erp/shared/ErpRoot";
 import { EntarisLogo } from "./EntarisLogo";
-import { COMPANY, CONTACT_EMAIL, DEMO_HREF, NAV_ITEMS } from "./siteConfig";
+import { COMPANY, CONTACT_EMAIL, DEMO_HREF, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
 
 const MODULE_LINKS = [
   { href: "/#modul-penjualan", label: "Penjualan" },
@@ -28,13 +28,13 @@ export function SiteFooter() {
             <p className="ent-footer__summary">
               ERP dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang bernalar di atas data transaksi Anda. Berjalan di server Anda sendiri — data 100% milik Anda.
             </p>
-            <a className="ent-btn ent-btn--light" href={DEMO_HREF}>
+            <Link className="ent-btn ent-btn--light" href={DEMO_HREF}>
               Minta demo &amp; lisensi
-            </a>
+            </Link>
           </div>
           <nav className="ent-footer__cols" aria-label="Navigasi footer">
             <div className="ent-footer__col">
-              <p className="ent-footer__heading">Produk</p>
+              <p className="ent-footer__heading">Kapabilitas</p>
               <ul>
                 {NAV_ITEMS.map((item) => (
                   <li key={item.href}>
@@ -58,6 +58,11 @@ export function SiteFooter() {
               <ul>
                 <li>
                   <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+                </li>
+                <li>
+                  <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
+                    WhatsApp {WHATSAPP_DISPLAY}
+                  </a>
                 </li>
                 <li>
                   <a href={COMPANY.website} target="_blank" rel="noopener noreferrer">

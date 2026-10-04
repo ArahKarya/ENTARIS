@@ -1,4 +1,5 @@
 import { DEMO_HREF } from "@/components/site/siteConfig";
+import Link from "next/link";
 
 /* #operasional — life after go-live, told for customers: copy + CTA beside the record list. */
 type RecordEntry = { term: string; detail: string };
@@ -20,9 +21,9 @@ export function SelfHostedOperations() {
           Cadangan data, laporan, dan pengembangan fitur tetap dalam kendali perusahaan Anda — tanpa menunggu antrean vendor.
         </p>
         <div className="enterprise-operations__actions">
-          <a href={DEMO_HREF} className="btn btn--primary btn--lg">
+          <Link href={DEMO_HREF} className="btn btn--primary btn--lg">
             Minta demo
-          </a>
+          </Link>
         </div>
       </div>
       <dl className="enterprise-operations__record">

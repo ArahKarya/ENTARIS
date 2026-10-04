@@ -47,9 +47,9 @@ export function SiteNav() {
             ))}
           </ul>
           <div className="ent-nav__actions">
-            <a className="ent-btn ent-btn--solid ent-nav__cta" href={DEMO_HREF}>
+            <Link className="ent-btn ent-btn--solid ent-nav__cta" href={DEMO_HREF}>
               Minta demo
-            </a>
+            </Link>
             <button
               type="button"
               className="ent-nav__toggle"
@@ -76,9 +76,9 @@ export function SiteNav() {
             </li>
           ))}
         </ul>
-        <a className="ent-btn ent-btn--solid ent-mobile__cta" href={DEMO_HREF}>
+        <Link className="ent-btn ent-btn--solid ent-mobile__cta" href={DEMO_HREF} onClick={() => setMenuOpen(false)}>
           Minta demo
-        </a>
+        </Link>
       </div>
       <div className="ent-nav-spacer" aria-hidden="true" />
     </>

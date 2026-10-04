@@ -3,14 +3,21 @@
 export type NavItem = { href: string; label: string; description: string };
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { href: "/", label: "Produk", description: "Modul ERP dalam satu buku besar" },
+  { href: "/", label: "Kapabilitas", description: "Modul ERP dalam satu buku besar" },
+  { href: "/integrasi", label: "Integrasi", description: "Terhubung dengan bank, pajak, dan aplikasi yang sudah Anda pakai" },
   { href: "/aira", label: "AIRA", description: "Agen AI yang bernalar di atas data Anda" },
-  { href: "/keamanan", label: "Keamanan & Data", description: "Di server Anda sendiri, data milik Anda" },
+  { href: "/migrasi", label: "Migrasi", description: "Pindah ke Entaris cukup lewat chat dengan AIRA" },
+  { href: "/impact", label: "Impact", description: "Contoh industri dan cerita para pengguna Entaris" },
 ];
 
-export const CONTACT_EMAIL = "solutions@arahkarya.com";
+export const CONTACT_EMAIL = "yayangsn@arahkarya.com";
 
-export const DEMO_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Permintaan demo Entaris")}`;
+/** WhatsApp number in wa.me format (country code, no plus sign or spaces) and as displayed. */
+export const WHATSAPP_NUMBER = "6282282747444";
+export const WHATSAPP_DISPLAY = "0822-8274-7444";
+
+/** Every "Minta demo" button opens the intake form first; it then hands over to WhatsApp or email. */
+export const DEMO_HREF = "/minta-demo";
 
 export const COMPANY = {
   name: "PT Arah Karya Sinergi",

@@ -36,10 +36,10 @@ export function SelfHostedCta() {
         </div>
         <aside className="proto-cta__action-rail" aria-label="Langkah berikutnya">
           <div className="flex flex-stack sm:flex-row items-center proto-cta__actions justify-start gap-6" data-observe="reveal-up">
-            <a href={DEMO_HREF} className="btn btn--primary btn--lg">
+            <Link href={DEMO_HREF} className="btn btn--primary btn--lg">
               Minta demo
               <TablerIcon name="arrow-right" dataIcon="arrow-right" paths={ARROW_RIGHT_PATHS} style={BUTTON_ICON_STYLE} />
-            </a>
+            </Link>
             <Link href="/aira" className="btn btn--ghost btn--lg">
               Kenali AIRA
             </Link>
