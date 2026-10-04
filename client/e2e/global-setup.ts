@@ -13,7 +13,7 @@ const MAX_STATE_AGE_MS = 60 * 60 * 1000
 
 export default async function globalSetup(config: FullConfig): Promise<void> {
   const { baseURL, launchOptions } = config.projects[0].use
-  const username = process.env.E2E_USER ?? 'admin@entaris.local'
+  const username = process.env.E2E_USER ?? 'admin@entaris.demo'
   const password = process.env.E2E_PASSWORD ?? 'Adminentaris123!dsw'
 
   if (isFresh(STORAGE_STATE)) return
