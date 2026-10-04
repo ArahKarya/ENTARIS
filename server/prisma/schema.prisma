@@ -62,6 +62,8 @@ model Account {
   paymentRequestTypes     PaymentRequestType[]     @relation("PaymentRequestTypeAccount")
   paymentRequestLines     PaymentRequestLine[]     @relation("PaymentRequestLineAccount")
   paymentRequestsPaidFrom PaymentRequest[]         @relation("PaymentRequestCashAccount")
+  paymentRequestsSettledFrom PaymentRequest[]      @relation("PaymentRequestSettlementCash")
+  paymentRequestSettlementLines PaymentRequestSettlementLine[] @relation("PaymentRequestSettlementLineAccount")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -161,6 +163,7 @@ model JournalEntry {
   gaVehicleTax               GaVehicleTax?               @relation("GaVehicleTaxJournal")
   gaMaterialRequest          GaMaterialRequest?          @relation("GaMaterialRequestJournal")
   paymentRequest             PaymentRequest?             @relation("PaymentRequestJournal")
+  paymentRequestSettlement   PaymentRequest?             @relation("PaymentRequestSettlementJournal")
   submittedAt                DateTime?                   @map("submitted_at")
   cancelledAt                DateTime?                   @map("cancelled_at")
   createdAt                  DateTime                    @default(now()) @map("created_at")
@@ -805,6 +808,7 @@ model User {
   subordinates                User[]                       @relation("UserSupervisor")
   paymentRequests             PaymentRequest[]             @relation("PaymentRequestRequester")
   paymentRequestsSupervised   PaymentRequest[]             @relation("PaymentRequestSupervisor")
+  paymentRequestSettlementsSupervised PaymentRequest[]     @relation("PaymentRequestSettlementSupervisor")
   paymentRequestsPaid         PaymentRequest[]             @relation("PaymentRequestPaidBy")
   paymentRequestHistory       PaymentRequestHistory[]      @relation("PaymentRequestHistoryActor")
   createdAt                   DateTime                     @default(now()) @map("created_at")
@@ -3228,8 +3232,8 @@ model AiExecutedRun {
 // ─── Pengajuan Pembayaran (Payment Request) ─────────────────────────────────
 // Stage 1: pengajuan → atasan → keuangan → (direktur bila ≥ ApprovalRule
 // 'PaymentRequest') → dibayar (JV DR beban / uang muka, CR kas-bank).
-// Kolom settlement* & source/sourceRef dicadangkan utk stage 2 (pertanggung-
-// jawaban uang muka / perjalanan dinas) dan stage 3 (tagihan EAM).
+// Stage 2: pertanggungjawaban uang muka / perjalanan dinas (settlement*, travel*).
+// source/sourceRef dicadangkan utk stage 3 (tagihan EAM).
 // kind/status disimpan TEXT (lihat services/paymentRequestRules.ts).
 
 model PaymentRequestType {
@@ -3298,14 +3302,35 @@ model PaymentRequest {
   journalEntryId       String?                    @unique @map("journal_entry_id")
   journalEntry         JournalEntry?              @relation("PaymentRequestJournal", fields: [journalEntryId], references: [id], onDelete: SetNull)
   paymentReference     String?                    @map("payment_reference")
-  // Stage 2 (pertanggungjawaban uang muka) — dicadangkan.
-  settlementStatus     String?                    @map("settlement_status") // OPEN | SETTLED
+  // Perjalanan dinas (type.kind = TRAVEL). "Keperluan" perjalanan = purpose.
+  travelDestination    String?                    @map("travel_destination")
+  travelStartDate      DateTime?                  @map("travel_start_date")
+  travelEndDate        DateTime?                  @map("travel_end_date")
+  travelParticipants   String?                    @map("travel_participants")
+  // Stage 2 — pertanggungjawaban uang muka / perjalanan dinas (satu per pengajuan).
+  // settlementStatus: null (bukan uang muka / tidak wajib) | OPEN | SUBMITTED |
+  // PENDING_FINANCE | REVISION | SETTLED.
+  settlementStatus     String?                    @map("settlement_status")
   settledAt            DateTime?                  @map("settled_at")
-  settlementJournalId  String?                    @map("settlement_journal_id")
+  settlementJournalId  String?                    @unique @map("settlement_journal_id")
+  settlementJournal    JournalEntry?              @relation("PaymentRequestSettlementJournal", fields: [settlementJournalId], references: [id], onDelete: SetNull)
+  settlementSupervisorId String?                  @map("settlement_supervisor_id")
+  settlementSupervisor User?                      @relation("PaymentRequestSettlementSupervisor", fields: [settlementSupervisorId], references: [id], onDelete: SetNull)
+  settlementNote       String?                    @map("settlement_note")
+  settlementDeadline   DateTime?                  @map("settlement_deadline")
+  settlementSubmittedAt DateTime?                 @map("settlement_submitted_at")
+  settlementSupervisorApprovedAt DateTime?        @map("settlement_supervisor_approved_at")
+  settlementLastNote   String?                    @map("settlement_last_note")
+  settlementDate       DateTime?                  @map("settlement_date")
+  settlementRealized   Decimal?                   @map("settlement_realized") @db.Decimal(15, 2)
+  settlementCashAccountId String?                 @map("settlement_cash_account_id")
+  settlementCashAccount Account?                  @relation("PaymentRequestSettlementCash", fields: [settlementCashAccountId], references: [id], onDelete: SetNull)
+  settlementReference  String?                    @map("settlement_reference")
   // Stage 3 (tagihan EAM dll) — asal dokumen.
   source               String                     @default("MANUAL")
   sourceRef            String?                    @map("source_ref")
   lines                PaymentRequestLine[]
+  settlementLines      PaymentRequestSettlementLine[]
   attachments          PaymentRequestAttachment[]
   history              PaymentRequestHistory[]
   createdAt            DateTime                   @default(now()) @map("created_at")
@@ -3317,6 +3342,8 @@ model PaymentRequest {
   @@index([typeId])
   @@index([createdAt])
   @@index([source, sourceRef])
+  @@index([settlementStatus])
+  @@index([settlementSupervisorId])
   @@map("payment_requests")
 }
 
@@ -3332,9 +3359,32 @@ model PaymentRequestLine {
   costCenterId     String?        @map("cost_center_id")
   costCenter       GaCostCenter?  @relation("PaymentRequestLineCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
   expenseDate      DateTime?      @map("expense_date")
+  // Perjalanan dinas: kategori + tarif × jumlah (mis. uang saku = tarif × hari). amount tetap total baris.
+  category         String?
+  quantity         Decimal?       @db.Decimal(12, 2)
+  unitAmount       Decimal?       @map("unit_amount") @db.Decimal(15, 2)
 
   @@index([paymentRequestId])
   @@map("payment_request_lines")
+}
+
+// Realisasi pertanggungjawaban uang muka / perjalanan dinas.
+model PaymentRequestSettlementLine {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  lineNo           Int            @default(0) @map("line_no")
+  description      String
+  expenseDate      DateTime?      @map("expense_date")
+  amount           Decimal        @db.Decimal(15, 2)
+  category         String?
+  // Baris rencana asal (perjalanan dinas) — hanya acuan, tanpa FK.
+  plannedLineId    String?        @map("planned_line_id")
+  expenseAccountId String?        @map("expense_account_id")
+  expenseAccount   Account?       @relation("PaymentRequestSettlementLineAccount", fields: [expenseAccountId], references: [id], onDelete: SetNull)
+
+  @@index([paymentRequestId])
+  @@map("payment_request_settlement_lines")
 }
 
 model PaymentRequestAttachment {
@@ -3347,6 +3397,8 @@ model PaymentRequestAttachment {
   fileSize         Int            @map("file_size")
   filePath         String         @map("file_path")
   uploadedBy       String         @map("uploaded_by")
+  // REQUEST (lampiran pengajuan) | SETTLEMENT (bukti pertanggungjawaban)
+  scope            String         @default("REQUEST")
   createdAt        DateTime       @default(now()) @map("created_at")
 
   @@index([paymentRequestId])
@@ -3357,7 +3409,7 @@ model PaymentRequestHistory {
   id               String         @id @default(uuid())
   paymentRequestId String         @map("payment_request_id")
   paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
-  action           String // CREATE | UPDATE | SUBMIT | APPROVE | REJECT | RETURN | CANCEL | PAY | CANCEL_PAYMENT | VERIFY
+  action           String // CREATE | UPDATE | SUBMIT | APPROVE | REJECT | RETURN | CANCEL | PAY | CANCEL_PAYMENT | VERIFY | SETTLE_SUBMIT | SETTLE_APPROVE | SETTLE_RETURN | SETTLE_POST | SETTLE_CANCEL
   actorId          String         @map("actor_id")
   actor            User           @relation("PaymentRequestHistoryActor", fields: [actorId], references: [id])
   note             String?
