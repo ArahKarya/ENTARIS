@@ -68,7 +68,7 @@ function slugifyKey(input: string): string {
 
 interface PermInput { module: string; canView?: boolean; canEdit?: boolean }
 
-function sanitizePermissions(raw: unknown): { module: string; canView: boolean; canEdit: boolean }[] {
+export function sanitizePermissions(raw: unknown): { module: string; canView: boolean; canEdit: boolean }[] {
   if (!Array.isArray(raw)) return [];
   const out: { module: string; canView: boolean; canEdit: boolean }[] = [];
   for (const p of raw as PermInput[]) {
