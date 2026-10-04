@@ -7,6 +7,8 @@ import { formatRupiah } from '../lib/formatters';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
 import AttachmentPreview from './AttachmentPreview';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog, StatusBadge } from '@/components/shared';
 
 export interface ApprovalRequest {
   id: string;
@@ -36,7 +38,6 @@ const STATUS_TABS = [
   { key: 'NeedsRevision', label: 'Perlu Revisi', badge: 'badge-amber' },
 ] as const;
 type StatusKey = typeof STATUS_TABS[number]['key'];
-const badgeOf = (s: string) => STATUS_TABS.find((t) => t.key === s)?.badge ?? 'badge-gray';
 const labelOf = (s: string) => STATUS_TABS.find((t) => t.key === s)?.label ?? s;
 
 const docTypeLabel: Record<string, string> = {
@@ -116,7 +117,6 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const [status, setStatus] = useState<StatusKey>('Pending');
   const [detailReq, setDetailReq] = useState<ApprovalRequest | null>(null);
   const [reasonModal, setReasonModal] = useState<{ mode: 'reject' | 'revision'; id: string } | null>(null);
-  const [reasonText, setReasonText] = useState('');
 
   // Detail pendukung dialog: STT sumber per baris + lampiran pengajuan & STT.
   const { data: detailCtx, isLoading: detailCtxLoading } = useQuery<any>({
@@ -238,28 +238,33 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal minta revisi.'),
   });
 
-  const submitReason = () => {
+  const submitReason = (txt: string) => {
     if (!reasonModal) return;
-    const txt = reasonText.trim();
-    if (txt.length < 5) { toast.error('Alasan minimal 5 karakter.'); return; }
     if (reasonModal.mode === 'reject') rejectMut.mutate({ id: reasonModal.id, notes: txt });
     else revisionMut.mutate({ id: reasonModal.id, notes: txt });
-    setReasonModal(null); setReasonText(''); setDetailReq(null);
+    setReasonModal(null); setDetailReq(null);
   };
 
   const busy = approveMut.isPending || rejectMut.isPending || revisionMut.isPending;
 
   return (
     <div className="space-y-3">
-      {/* Sub-tab status */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Status filter (segmented) */}
+      <div
+        role="group"
+        aria-label="Filter status pengajuan"
+        className="grid w-full grid-cols-4 gap-1 rounded-md bg-muted p-1 text-muted-foreground sm:inline-flex sm:w-auto"
+      >
         {STATUS_TABS.map((t) => (
           <button
             key={t.key}
+            type="button"
+            aria-pressed={status === t.key}
             onClick={() => setStatus(t.key)}
             className={cn(
-              'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-              status === t.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              'inline-flex h-7 items-center justify-center rounded-sm px-1.5 text-[13px] font-medium whitespace-nowrap transition-colors hover:text-foreground sm:px-3 sm:text-sm',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              status === t.key && 'bg-card text-foreground shadow-[var(--shadow-1)]',
             )}
           >
             {t.label}
@@ -269,112 +274,115 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
 
       {/* List */}
       {isLoading ? (
-        <div className="py-10 text-center text-gray-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+        <div className="flex justify-center rounded-lg border border-border bg-card py-10 text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" aria-hidden />
+          <span className="sr-only">Memuat pengajuan…</span>
+        </div>
       ) : requests.length === 0 ? (
-        <div className="py-10 text-center text-sm text-gray-400 bg-white border border-gray-100 rounded-xl">
-          <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
-          Tidak ada pengajuan berstatus "{labelOf(status)}".
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-4 py-10 text-center">
+          <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Clock className="size-5" aria-hidden />
+          </span>
+          <p className="text-sm font-medium text-foreground">Tidak ada pengajuan berstatus "{labelOf(status)}"</p>
+          <p className="text-sm text-muted-foreground">Pengajuan baru akan muncul di sini.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card" aria-label="Daftar pengajuan">
           {requests.map((req) => {
             const ownNeedsRevision = req.status === 'NeedsRevision' && req.requestedBy === currentUserId;
+            const docLabel = docTypeLabel[req.documentType] ?? req.documentType;
             return (
-              <div key={req.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span className="font-medium text-gray-800">{docTypeLabel[req.documentType] ?? req.documentType}</span>
-                    <span className={cn('badge', badgeOf(req.status))}>{labelOf(req.status)}</span>
-                    <span className="text-gray-400">oleh {req.requester.fullName} ({req.requester.role}) • {fmtDate(req.createdAt)}</span>
+              <li key={req.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-medium text-foreground">{docLabel}</span>
+                    <StatusBadge status={req.status} docType="approval" />
+                    {req.documentNumber && req.status === 'Approved' && (
+                      <span className="num text-xs text-muted-foreground">{req.documentNumber}</span>
+                    )}
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {req.documentType === 'ProductionRun'
-                      ? `${fmtNum(Number(req.amount ?? 0))} kg input`
-                      : `Rp ${fmtNum(Number(req.amount ?? 0))}`}
-                    {req.approver && <span className="ml-2 text-emerald-600">✓ {req.approver.fullName}</span>}
-                    {req.documentNumber && req.status === 'Approved' && <span className="ml-2 font-mono text-gray-400">{req.documentNumber}</span>}
-                  </div>
-                  {/* Alasan (tolak / revisi) */}
+                  <p className="text-sm">
+                    <span className="num font-semibold text-foreground">
+                      {req.documentType === 'ProductionRun'
+                        ? `${fmtNum(Number(req.amount ?? 0))} kg input`
+                        : `Rp ${fmtNum(Number(req.amount ?? 0))}`}
+                    </span>
+                    {req.approver && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-success-text">
+                        <Check className="size-3.5" aria-hidden /> {req.approver.fullName}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    oleh {req.requester.fullName} ({req.requester.role}) · <span className="num">{fmtDate(req.createdAt)}</span>
+                  </p>
+                  {/* Reason (reject / revision) */}
                   {(req.status === 'Rejected' || req.status === 'NeedsRevision') && req.notes && (
-                    <div className="mt-1.5 text-xs bg-amber-50 border border-amber-100 rounded px-2 py-1 text-amber-800">
+                    <p className="mt-1.5 rounded-md border border-warning/30 bg-warning-subtle px-2.5 py-1.5 text-xs text-warning-text">
                       <span className="font-medium">{req.status === 'Rejected' ? 'Alasan tolak:' : 'Catatan revisi:'}</span> {req.notes}
-                    </div>
+                    </p>
                   )}
                 </div>
-                <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
-                  <button
-                    onClick={() => setDetailReq(req)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg"
-                  >
-                    <Eye size={13} /> Detail
-                  </button>
+                <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setDetailReq(req)} aria-label={`Detail pengajuan ${docLabel}`}>
+                    <Eye aria-hidden /> Detail
+                  </Button>
                   {isAdmin && req.status === 'Pending' && (
                     <>
-                      <button onClick={() => approveMut.mutate(req.id)} disabled={busy}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">
-                        {approveMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Setuju
-                      </button>
-                      <button onClick={() => { setReasonModal({ mode: 'revision', id: req.id }); setReasonText(''); }} disabled={busy}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 border border-amber-300 hover:bg-amber-50 rounded-lg disabled:opacity-50">
-                        <Pencil size={13} /> Minta Edit
-                      </button>
-                      <button onClick={() => { setReasonModal({ mode: 'reject', id: req.id }); setReasonText(''); }} disabled={busy}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg disabled:opacity-50">
-                        <X size={13} /> Tolak
-                      </button>
+                      <Button size="sm" onClick={() => approveMut.mutate(req.id)} disabled={busy} loading={approveMut.isPending && approveMut.variables === req.id}>
+                        {!(approveMut.isPending && approveMut.variables === req.id) && <Check aria-hidden />} Setuju
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setReasonModal({ mode: 'revision', id: req.id })} disabled={busy}>
+                        <Pencil aria-hidden /> Minta Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReasonModal({ mode: 'reject', id: req.id })}
+                        disabled={busy}
+                        className="text-danger-text hover:bg-danger-subtle"
+                      >
+                        <X aria-hidden /> Tolak
+                      </Button>
                     </>
                   )}
                   {ownNeedsRevision && onResubmit && (
-                    <button onClick={() => onResubmit(req)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-                      <Pencil size={13} /> Edit & Ajukan Ulang
-                    </button>
+                    <Button size="sm" onClick={() => onResubmit(req)}>
+                      <Pencil aria-hidden /> Edit &amp; Ajukan Ulang
+                    </Button>
                   )}
                   {req.status === 'Approved' && req.documentId && onViewDocument && (
-                    <button onClick={() => onViewDocument(req)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 rounded-lg">
-                      <FileText size={13} /> Lihat Dokumen
-                    </button>
+                    <Button size="sm" variant="outline" onClick={() => onViewDocument(req)}>
+                      <FileText aria-hidden /> Lihat Dokumen
+                    </Button>
                   )}
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
-      {/* Modal alasan (Tolak / Minta Edit) */}
-      {reasonModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onClick={() => setReasonModal(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900">
-                {reasonModal.mode === 'reject' ? 'Tolak Pengajuan' : 'Minta Edit (Kembalikan ke Staff)'}
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {reasonModal.mode === 'reject'
-                  ? 'Pengajuan ditolak permanen. Staff perlu mengajukan baru jika ingin lanjut.'
-                  : 'Pengajuan dikembalikan agar staff memperbaiki & mengajukan ulang.'}
-              </p>
-            </div>
-            <div className="p-5">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Alasan (min 5 karakter) *</label>
-              <textarea value={reasonText} onChange={(e) => setReasonText(e.target.value)} rows={3}
-                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                placeholder={reasonModal.mode === 'reject' ? 'contoh: Supplier tidak valid' : 'contoh: Harga rate salah, perbaiki sesuai PO'} />
-            </div>
-            <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
-              <button onClick={() => setReasonModal(null)} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-              <button onClick={submitReason} disabled={busy}
-                className={cn('inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white rounded-lg disabled:opacity-50',
-                  reasonModal.mode === 'reject' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700')}>
-                {busy && <Loader2 size={13} className="animate-spin" />}
-                {reasonModal.mode === 'reject' ? 'Tolak' : 'Minta Edit'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Reason dialog (Tolak / Minta Edit) — reason required, min 5 characters */}
+      <ConfirmDialog
+        open={reasonModal !== null}
+        onOpenChange={(open) => !open && setReasonModal(null)}
+        tone={reasonModal?.mode === 'reject' ? 'danger' : 'default'}
+        title={reasonModal?.mode === 'revision' ? 'Minta Edit (Kembalikan ke Staff)' : 'Tolak Pengajuan'}
+        description={
+          reasonModal?.mode === 'revision'
+            ? 'Pengajuan dikembalikan agar staff memperbaiki & mengajukan ulang.'
+            : 'Pengajuan ditolak permanen. Staff perlu mengajukan baru jika ingin lanjut.'
+        }
+        confirmLabel={reasonModal?.mode === 'revision' ? 'Minta Edit' : 'Tolak'}
+        requireReason={{
+          label: 'Alasan (min 5 karakter)',
+          minLength: 5,
+          placeholder: reasonModal?.mode === 'revision' ? 'contoh: Harga rate salah, perbaiki sesuai PO' : 'contoh: Supplier tidak valid',
+        }}
+        loading={busy}
+        onConfirm={(reason) => submitReason(reason ?? '')}
+      />
 
       {/* Modal detail pengajuan */}
       {detailReq && (() => {
@@ -394,17 +402,17 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         const hppEst = isProd ? prodHppEstimate(p) : null;
         return (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailReq(null)}>
-            <div className={cn('bg-white rounded-xl shadow-xl w-full max-h-[92vh] overflow-auto', (isProd || isDO) ? 'max-w-2xl' : 'max-w-6xl')} onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label={`Detail Pengajuan ${docTypeLabel[detailReq.documentType] ?? ''}`} className={cn('bg-white rounded-xl shadow-xl w-full max-h-[92vh] overflow-auto', (isProd || isDO) ? 'max-w-2xl' : 'max-w-6xl')} onClick={(e) => e.stopPropagation()}>
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Detail Pengajuan {docTypeLabel[detailReq.documentType] ?? ''}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    <span className={cn('badge', badgeOf(detailReq.status))}>{labelOf(detailReq.status)}</span>
+                    <StatusBadge status={detailReq.status} docType="approval" className="align-middle" />
                     {' '}oleh {detailReq.requester.fullName} ({detailReq.requester.role}) • {fmtDate(detailReq.createdAt)}
                     {detailReq.documentNumber && detailReq.status === 'Approved' && <span className="ml-2 font-mono text-gray-400">{detailReq.documentNumber}</span>}
                   </p>
                 </div>
-                <button onClick={() => setDetailReq(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                <button type="button" onClick={() => setDetailReq(null)} aria-label="Tutup" className="p-1 text-muted-foreground hover:text-foreground"><X size={18} aria-hidden /></button>
               </div>
               <div className="p-5 space-y-4 text-sm">
                 {(detailReq.notes && (detailReq.status === 'Rejected' || detailReq.status === 'NeedsRevision')) && (
@@ -541,7 +549,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                       ) : (
                         <p className="text-xs text-gray-500">
                           Biaya: {formatRupiah(hppEst?.costTotal ?? 0)} · Nilai by-product: {formatRupiah(hppEst?.byproductValue ?? 0)}
-                          <br /><span className="text-amber-600">HPP final (termasuk biaya material) dihitung saat disetujui.</span>
+                          <br /><span className="text-warning-text">HPP final (termasuk biaya material) dihitung saat disetujui.</span>
                         </p>
                       )}
                     </div>
@@ -600,7 +608,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-1.5">Item Invoice ({piItems.length} baris)</p>
                       {piItems.length === 0 ? <p className="text-xs text-gray-400">—</p> : (
-                        <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                        <div className="border border-gray-200 rounded-lg overflow-x-auto" role="region" aria-label="Rincian item pengajuan" tabIndex={0}>
                           <table className="w-full text-xs">
                             <thead className="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wide">
                               <tr>
@@ -708,11 +716,11 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                               </p>
                               {s.attachments?.length > 0
                                 ? <AttachmentPreview referenceType="goods_receipt" referenceId={s.id} canDelete={false} />
-                                : <p className="text-xs text-amber-600">Tidak ada lampiran di STT ini.</p>}
+                                : <p className="text-xs text-warning-text">Tidak ada lampiran di STT ini.</p>}
                             </div>
                           ))}
                           {(detailCtx?.requestAttachments?.length ?? 0) === 0 && (detailCtx?.stts?.length ?? 0) === 0 && (
-                            <p className="text-xs text-amber-600">Tidak ada lampiran (pengajuan tidak terhubung ke STT & tidak ada file diunggah).</p>
+                            <p className="text-xs text-warning-text">Tidak ada lampiran (pengajuan tidak terhubung ke STT & tidak ada file diunggah).</p>
                           )}
                         </div>
                       )}
@@ -733,29 +741,28 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
               <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 sticky bottom-0 bg-white">
                 {isAdmin && detailReq.status === 'Pending' && (
                   <>
-                    <button onClick={() => { setReasonModal({ mode: 'reject', id: detailReq.id }); setReasonText(''); }}
-                      className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg">Tolak</button>
-                    <button onClick={() => { setReasonModal({ mode: 'revision', id: detailReq.id }); setReasonText(''); }}
-                      className="px-3 py-1.5 text-xs font-medium text-amber-700 border border-amber-300 hover:bg-amber-50 rounded-lg">Minta Edit</button>
-                    <button onClick={() => { approveMut.mutate(detailReq.id); setDetailReq(null); }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
-                      <Check size={13} /> Setuju
-                    </button>
+                    <Button size="sm" variant="outline" className="text-danger-text hover:bg-danger-subtle" onClick={() => { setReasonModal({ mode: 'reject', id: detailReq.id }); }}>
+                      Tolak
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setReasonModal({ mode: 'revision', id: detailReq.id }); }}>
+                      Minta Edit
+                    </Button>
+                    <Button size="sm" onClick={() => { approveMut.mutate(detailReq.id); setDetailReq(null); }}>
+                      <Check aria-hidden /> Setuju
+                    </Button>
                   </>
                 )}
                 {detailReq.status === 'NeedsRevision' && detailReq.requestedBy === currentUserId && onResubmit && (
-                  <button onClick={() => { onResubmit(detailReq); setDetailReq(null); }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-                    <Pencil size={13} /> Edit & Ajukan Ulang
-                  </button>
+                  <Button size="sm" onClick={() => { onResubmit(detailReq); setDetailReq(null); }}>
+                    <Pencil aria-hidden /> Edit &amp; Ajukan Ulang
+                  </Button>
                 )}
                 {detailReq.status === 'Approved' && detailReq.documentId && onViewDocument && (
-                  <button onClick={() => { onViewDocument(detailReq); setDetailReq(null); }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
-                    <FileText size={13} /> Lihat Dokumen
-                  </button>
+                  <Button size="sm" onClick={() => { onViewDocument(detailReq); setDetailReq(null); }}>
+                    <FileText aria-hidden /> Lihat Dokumen
+                  </Button>
                 )}
-                <button onClick={() => setDetailReq(null)} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Tutup</button>
+                <Button size="sm" variant="ghost" onClick={() => setDetailReq(null)}>Tutup</Button>
               </div>
             </div>
           </div>

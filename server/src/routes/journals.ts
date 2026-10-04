@@ -11,46 +11,26 @@ import { validateBody } from '../utils/validate';
 import { CreateJournalSchema } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildJournalWhere,
+  DEFAULT_JOURNAL_SORT,
+  JOURNAL_SORT_FIELDS,
+  journalOrderBy,
+} from '../services/journalList';
 
 const router = Router();
 
-// GET /api/journals — list all journal entries
+// GET /api/journals — list journal entries (filters/sort: services/journalList.ts)
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50', startDate, endDate, search, hideCancelled } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Math.max(1, Number(page)) - 1) * take;
-
-    const where: Prisma.JournalEntryWhereInput = {};
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as any).gte = new Date(startDate as string);
-      if (endDate) {
-        const end = new Date(endDate as string);
-        end.setHours(23, 59, 59, 999);
-        (where.date as any).lte = end;
-      }
-    }
-    // Server-side search supaya pagination tetap konsisten (kalau client-side
-    // filter, halaman lain bisa miss match). Match di:
-    //   - JE header: entryNumber, narration
-    //   - Line items: account name / accountNumber, line description
-    // Bug fix 2026-05-24: dulu hanya match header → user search "piutang
-    // karyawan" miss JV yg narration-nya "Kasbon Karyawan" meskipun ada
-    // baris ke akun 1.2.2 Piutang Karyawan.
-    if (typeof search === 'string' && search.trim().length > 0) {
-      const q = search.trim();
-      where.OR = [
-        { entryNumber: { contains: q, mode: 'insensitive' } },
-        { narration: { contains: q, mode: 'insensitive' } },
-        { items: { some: { description: { contains: q, mode: 'insensitive' } } } },
-        { items: { some: { account: { name: { contains: q, mode: 'insensitive' } } } } },
-        { items: { some: { account: { accountNumber: { contains: q, mode: 'insensitive' } } } } },
-      ];
-    }
-    if (hideCancelled === 'true') {
-      where.status = { not: 'Cancelled' };
-    }
+    const query = req.query as Record<string, unknown>;
+    // maxLimit 200: same cap as the original endpoint.
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const filter = buildJournalWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    const sort = parseSort(query.sort, JOURNAL_SORT_FIELDS, DEFAULT_JOURNAL_SORT);
 
     const [entries, total] = await Promise.all([
       prisma.journalEntry.findMany({
@@ -59,14 +39,14 @@ router.get('/', async (req, res) => {
           items: { include: { account: { select: { accountNumber: true, name: true } } } },
           user: { select: { fullName: true } },
         },
-        orderBy: { date: 'desc' },
+        orderBy: journalOrderBy(sort),
         skip,
         take,
       }),
       prisma.journalEntry.count({ where }),
     ]);
 
-    return res.json({ data: entries, total, page: Number(page), limit: take });
+    return res.json({ data: entries, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /journals error');
     return res.status(500).json({ error: 'Gagal mengambil data jurnal.' });
