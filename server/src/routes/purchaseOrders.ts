@@ -2,9 +2,15 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
-import { CreatePurchaseOrderSchema } from '../utils/schemas';
+import { CreatePurchaseOrderSchema, ClosePurchaseOrderSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
-import { submitPurchaseOrderInTx, cancelPurchaseOrderInTx } from '../services/purchaseOrderSubmit';
+import {
+  submitPurchaseOrderInTx,
+  cancelPurchaseOrderInTx,
+  updatePurchaseOrderInTx,
+  closePurchaseOrderInTx,
+} from '../services/purchaseOrderSubmit';
+import { derivePurchaseOrderReceiptStatus } from '../services/purchaseOrderRules';
 import { logger } from '../lib/logger';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
@@ -20,24 +26,28 @@ const router = Router();
 
 // ─── GET / list ───────────────────────────────────────────────────────────
 // Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
-// search (PO number / supplier name), sort (e.g. "-date").
-// → { data, total, page, limit }
+// search (PO number / supplier name), receipt (unreceived|partial|full|closed),
+// open=1 (Submitted & not closed — STT picker), sort (e.g. "-date").
+// → { data, total, page, limit }; each row carries a derived `receiptStatus`.
 router.get('/', async (req, res) => {
   try {
     const query = req.query as Record<string, unknown>;
     // Max 200 kept for callers that load a whole list (STT modal pulls open POs).
     const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
-    const filter = buildPurchaseOrderWhere(query);
+    const filter = buildPurchaseOrderWhere(query, {
+      itemQuantity: prisma.purchaseOrderItem.fields.quantity,
+    });
     if (!filter.ok) return res.status(400).json({ error: filter.error });
     const { where } = filter;
     const sort = parseSort(query.sort, PURCHASE_ORDER_SORT_FIELDS, DEFAULT_PURCHASE_ORDER_SORT);
 
-    const [data, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       prisma.purchaseOrder.findMany({
         where,
         include: {
           supplier: { select: { id: true, name: true } },
           _count: { select: { items: true, goodsReceipts: true } },
+          items: { select: { quantity: true, qtyReceived: true } },
         },
         orderBy: purchaseOrderOrderBy(sort),
         skip,
@@ -46,6 +56,12 @@ router.get('/', async (req, res) => {
       prisma.purchaseOrder.count({ where }),
     ]);
 
+    // Items are only loaded to derive the receipt status; the row shape stays
+    // the legacy one plus `receiptStatus` (additive).
+    const data = rows.map(({ items, ...po }) => ({
+      ...po,
+      receiptStatus: derivePurchaseOrderReceiptStatus(po, items),
+    }));
     return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /purchase-orders', 'Gagal mengambil daftar PO.');
@@ -69,7 +85,7 @@ router.get('/:id', async (req, res) => {
       },
     });
     if (!po) return res.status(404).json({ error: 'PO tidak ditemukan.' });
-    return res.json(po);
+    return res.json({ ...po, receiptStatus: derivePurchaseOrderReceiptStatus(po, po.items) });
   } catch (error) {
     return handleRouteError(res, error, 'GET /purchase-orders/:id', 'Gagal mengambil detail PO.');
   }
@@ -103,6 +119,43 @@ router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, re
     return res.json(result);
   } catch (error) {
     return handleRouteError(res, error, 'POST /purchase-orders/:id/cancel', 'Gagal membatalkan PO.');
+  }
+});
+
+// ─── PUT /:id edit ────────────────────────────────────────────────────────
+// Only while the PO is open and nothing has been received against it.
+router.put('/:id', async (req: AuthRequest, res) => {
+  const body = validateBody(CreatePurchaseOrderSchema, req.body, res);
+  if (!body) return;
+
+  try {
+    const result = await prisma.$transaction(
+      (tx) => updatePurchaseOrderInTx(tx, req.params.id as string, body),
+      { timeout: 15000 },
+    );
+    logger.info({ poId: result.id, userId: req.user!.userId }, 'PO updated via API');
+    return res.json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'PUT /purchase-orders/:id', 'Gagal mengubah PO.');
+  }
+});
+
+// ─── POST /:id/close (short-close) ────────────────────────────────────────
+// Same gate as cancel. Status stays Submitted; closedAt marks remaining qty
+// as no longer expected.
+router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
+  const body = validateBody(ClosePurchaseOrderSchema, req.body, res);
+  if (!body) return;
+
+  try {
+    const result = await prisma.$transaction(
+      (tx) => closePurchaseOrderInTx(tx, req.params.id as string, body.reason),
+      { timeout: 15000 },
+    );
+    logger.info({ poId: result.id, userId: req.user!.userId }, 'PO closed via API');
+    return res.json(result);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /purchase-orders/:id/close', 'Gagal menutup PO.');
   }
 });
 

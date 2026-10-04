@@ -2,16 +2,21 @@
  * Pesanan Pembelian (/purchase-orders) — list kit page (pattern: pages/SalesInvoices.tsx).
  * Server-side paging/sort/filter on GET /purchase-orders. No KPI cards: this
  * list never had any. A PO is a planning document (no stock or GL impact);
- * "PO Umum" has no supplier bound to it.
+ * "PO Umum" has no supplier bound to it. Receipt progress ("Penerimaan") is
+ * derived server-side from the lines' qtyReceived (`receiptStatus`).
  */
-import { useMemo, useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useId, useMemo, useState } from 'react';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Eye, Plus } from 'lucide-react';
+import { Copy, Eye, PackageCheck, Pencil, Plus, Printer } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
-import { can } from '@/lib/permissions';
+import { can, cap } from '@/lib/permissions';
+import { purchaseOrderActions } from '@/lib/purchaseOrderActions';
+import { usePurchaseOrderPdf } from '@/lib/pdf/usePurchaseOrderPdf';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useListState } from '@/hooks/useListState';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Button } from '@/components/ui/button';
@@ -26,8 +31,9 @@ import {
   listTableProps,
   type Paginated,
 } from '@/components/shared';
-import PurchaseOrderModal from '@/components/PurchaseOrderModal';
-import PurchaseOrderDetailDrawer from '@/components/PurchaseOrderDetailDrawer';
+import PurchaseOrderModal, { type PurchaseOrderModalMode, type PurchaseOrderSource } from '@/components/PurchaseOrderModal';
+import PurchaseOrderDetailDrawer, { type PurchaseOrderDetail } from '@/components/PurchaseOrderDetailDrawer';
+import GoodsReceiptModal, { type GoodsReceiptSourcePO } from '@/components/GoodsReceiptModal';
 
 type Money = string | number;
 
@@ -37,14 +43,53 @@ interface PurchaseOrderRow {
   date: string;
   expectedDeliveryDate: string | null;
   status: string;
+  closedAt?: string | null;
+  receiptStatus?: string;
   totalEstimated: Money;
   supplier?: { id: string; name: string } | null;
   _count?: { items: number; goodsReceipts: number };
 }
 
 const ENDPOINT = '/purchase-orders';
-const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
+const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate', 'receipt'] as const;
 const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'purchase_order');
+const RECEIPT_FILTER = [
+  { value: 'unreceived', label: 'Belum Diterima' },
+  { value: 'partial', label: 'Diterima Sebagian' },
+  { value: 'full', label: 'Diterima Penuh' },
+  { value: 'closed', label: 'Ditutup' },
+];
+const ALL = '__all__';
+
+function ReceiptFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const id = useId();
+  return (
+    <div className="w-[calc(50%-0.25rem)] sm:w-44">
+      <label htmlFor={id} className="sr-only">
+        Status penerimaan
+      </label>
+      <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
+        <SelectTrigger id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>Semua penerimaan</SelectItem>
+          {RECEIPT_FILTER.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+
+type ModalState =
+  | { kind: 'po'; mode: PurchaseOrderModalMode; source: PurchaseOrderSource | null }
+  | { kind: 'receipt'; po: GoodsReceiptSourcePO }
+  | null;
 
 const withUnit = (label: string) => (
   <>
@@ -65,9 +110,29 @@ function SupplierName({ po, className }: { po: PurchaseOrderRow; className?: str
 export const PurchaseOrders = () => {
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modal, setModal] = useState<ModalState>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const canCreate = can('purchase_order', 'edit');
+  const queryClient = useQueryClient();
+  const { download: downloadPdf } = usePurchaseOrderPdf();
+
+  const openCreate = () => setModal({ kind: 'po', mode: 'create', source: null });
+  const openEdit = (po: PurchaseOrderSource) => setModal({ kind: 'po', mode: 'edit', source: po });
+  const openDuplicate = (po: PurchaseOrderSource) => setModal({ kind: 'po', mode: 'duplicate', source: po });
+  const openReceipt = (po: GoodsReceiptSourcePO) => setModal({ kind: 'receipt', po });
+
+  /** Row menu actions need the full PO (items) — same cache as the drawer. */
+  const withDetail = async (id: string, run: (po: PurchaseOrderDetail) => void) => {
+    try {
+      const po = await queryClient.fetchQuery<PurchaseOrderDetail>({
+        queryKey: ['purchase-order-detail', id],
+        queryFn: async () => (await api.get(`${ENDPOINT}/${id}`)).data,
+      });
+      run(po);
+    } catch {
+      toast.error('Gagal memuat detail PO.');
+    }
+  };
 
   const ordersQuery = useQuery({
     queryKey: ['purchase-orders', 'list', list.params],
@@ -140,6 +205,10 @@ export const PurchaseOrders = () => {
               )}
               {/* Mobile: status stacked here because its column is hidden. */}
               <StatusBadge status={row.original.status} docType="purchase_order" className="sm:hidden" />
+              {/* Mobile/tablet: receipt progress stacked here because its column is hidden. */}
+              {row.original.receiptStatus && row.original.receiptStatus !== 'Cancelled' && (
+                <StatusBadge status={row.original.receiptStatus} docType="purchase_order" className="md:hidden" />
+              )}
             </div>
           );
         },
@@ -151,6 +220,17 @@ export const PurchaseOrders = () => {
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="purchase_order" />,
       },
       {
+        id: 'receiptStatus',
+        header: 'Penerimaan',
+        meta: { hideBelow: 'md' },
+        cell: ({ row }) =>
+          row.original.receiptStatus && row.original.receiptStatus !== 'Cancelled' ? (
+            <StatusBadge status={row.original.receiptStatus} docType="purchase_order" />
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          ),
+      },
+      {
         id: 'goodsReceipts',
         header: () => <abbr title="Jumlah surat tanda terima (penerimaan barang)">STT</abbr>,
         meta: { align: 'right', hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
@@ -160,15 +240,31 @@ export const PurchaseOrders = () => {
         id: 'actions',
         header: () => <span className="sr-only">Aksi</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
-        cell: ({ row }) => (
-          <RowActions
-            label={`Aksi untuk ${row.original.poNumber}`}
-            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
-          />
-        ),
+        cell: ({ row }) => {
+          const po = row.original;
+          const acts = purchaseOrderActions(po, {
+            canEditPO: canCreate,
+            canReceive: can('goods_receipt', 'edit'),
+            canClose: cap('doc.cancel'),
+            hasLinkedReceipts: (po._count?.goodsReceipts ?? 0) > 0,
+          });
+          return (
+            <RowActions
+              label={`Aksi untuk ${po.poNumber}`}
+              actions={[
+                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(po.id) },
+                { label: 'Buat STT dari PO', icon: PackageCheck, hidden: !acts.receive, onSelect: () => withDetail(po.id, openReceipt) },
+                { label: 'Edit', icon: Pencil, hidden: !acts.edit, onSelect: () => withDetail(po.id, openEdit) },
+                { label: 'Duplikat', icon: Copy, hidden: !acts.duplicate, onSelect: () => withDetail(po.id, openDuplicate) },
+                { label: 'Cetak / PDF', icon: Printer, onSelect: () => withDetail(po.id, downloadPdf) },
+              ]}
+            />
+          );
+        },
       },
     ],
-    [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers only close over stable setters/query client
+    [canCreate],
   );
 
   return (
@@ -178,7 +274,7 @@ export const PurchaseOrders = () => {
         description="Pesanan ke pemasok — PO Umum (tanpa pemasok terikat) atau PO Khusus. Belum memengaruhi stok maupun jurnal."
         actions={
           canCreate ? (
-            <Button onClick={() => setIsModalOpen(true)}>
+            <Button onClick={openCreate}>
               <Plus aria-hidden />
               Buat PO
             </Button>
@@ -194,6 +290,7 @@ export const PurchaseOrders = () => {
           status={{ options: STATUS_FILTER }}
           dateRange
         >
+          <ReceiptFilter value={list.filters.receipt} onChange={(v) => list.setFilter('receipt', v)} />
           <PartyFilter partyType="Supplier" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
         </FilterBar>
 
@@ -215,7 +312,7 @@ export const PurchaseOrders = () => {
             title: 'Belum ada pesanan pembelian',
             description: 'PO yang Anda buat akan muncul di sini.',
             action: canCreate ? (
-              <Button size="sm" onClick={() => setIsModalOpen(true)}>
+              <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
                 Buat PO pertama
               </Button>
@@ -224,8 +321,24 @@ export const PurchaseOrders = () => {
         />
       </div>
 
-      {isModalOpen && <PurchaseOrderModal onClose={() => setIsModalOpen(false)} />}
-      <PurchaseOrderDetailDrawer poId={selectedId} onClose={() => setSelectedId(null)} />
+      {modal?.kind === 'po' && (
+        <PurchaseOrderModal
+          key={`${modal.mode}-${modal.source?.id ?? 'new'}`}
+          mode={modal.mode}
+          source={modal.source}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.kind === 'receipt' && (
+        <GoodsReceiptModal key={modal.po.id} initialPurchaseOrder={modal.po} onClose={() => setModal(null)} />
+      )}
+      <PurchaseOrderDetailDrawer
+        poId={selectedId}
+        onClose={() => setSelectedId(null)}
+        onCreateReceipt={openReceipt}
+        onEdit={openEdit}
+        onDuplicate={openDuplicate}
+      />
     </div>
   );
 };

@@ -3,6 +3,9 @@
  *
  * Filters: status (DocumentStatus), partyId, startDate/endDate (YYYY-MM-DD,
  * business-time-zone calendar days), search (PO number / supplier name).
+ * receipt (unreceived|partial|full|closed) — derived from items' qtyReceived
+ * vs quantity, always on open (Submitted, not closed) POs except "closed";
+ * open=1 → Submitted and not short-closed (STT modal PO picker).
  * Sort: whitelisted field, always with the PO number as tie-breaker.
  */
 import { DocumentStatus, Prisma } from '@prisma/client';
@@ -24,8 +27,50 @@ export type PurchaseOrderWhereResult =
   | { ok: true; where: Prisma.PurchaseOrderWhereInput }
   | { ok: false; error: string };
 
-export function buildPurchaseOrderWhere(query: Record<string, unknown>): PurchaseOrderWhereResult {
+export const PURCHASE_ORDER_RECEIPT_FILTERS = ['unreceived', 'partial', 'full', 'closed'] as const;
+export type PurchaseOrderReceiptFilter = (typeof PURCHASE_ORDER_RECEIPT_FILTERS)[number];
+
+/** Column reference to purchase_order_items.quantity (prisma.purchaseOrderItem.fields.quantity). */
+export interface PurchaseOrderFieldRefs {
+  itemQuantity: Prisma.FieldRef<'PurchaseOrderItem', 'Decimal'>;
+}
+
+const OPEN_PO: Prisma.PurchaseOrderWhereInput = { status: 'Submitted', closedAt: null };
+
+function receiptWhere(
+  filter: PurchaseOrderReceiptFilter,
+  refs: PurchaseOrderFieldRefs,
+): Prisma.PurchaseOrderWhereInput {
+  switch (filter) {
+    case 'closed':
+      return { status: 'Submitted', closedAt: { not: null } };
+    case 'unreceived':
+      return { ...OPEN_PO, items: { every: { qtyReceived: { lte: 0 } } } };
+    case 'full':
+      return {
+        ...OPEN_PO,
+        AND: [
+          { items: { some: {} } },
+          { items: { every: { qtyReceived: { gte: refs.itemQuantity } } } },
+        ],
+      };
+    case 'partial':
+      return {
+        ...OPEN_PO,
+        AND: [
+          { items: { some: { qtyReceived: { gt: 0 } } } },
+          { items: { some: { qtyReceived: { lt: refs.itemQuantity } } } },
+        ],
+      };
+  }
+}
+
+export function buildPurchaseOrderWhere(
+  query: Record<string, unknown>,
+  refs?: PurchaseOrderFieldRefs,
+): PurchaseOrderWhereResult {
   const where: Prisma.PurchaseOrderWhereInput = {};
+  const and: Prisma.PurchaseOrderWhereInput[] = [];
 
   const status = firstString(query.status);
   if (status) {
@@ -53,6 +98,21 @@ export function buildPurchaseOrderWhere(query: Record<string, unknown>): Purchas
     ];
   }
 
+  const receipt = firstString(query.receipt);
+  if (receipt) {
+    if (!(PURCHASE_ORDER_RECEIPT_FILTERS as readonly string[]).includes(receipt)) {
+      return { ok: false, error: 'Filter penerimaan PO tidak dikenal.' };
+    }
+    if (!refs && receipt !== 'unreceived' && receipt !== 'closed') {
+      return { ok: false, error: 'Filter penerimaan PO tidak tersedia.' };
+    }
+    and.push(receiptWhere(receipt as PurchaseOrderReceiptFilter, refs as PurchaseOrderFieldRefs));
+  }
+
+  const open = firstString(query.open);
+  if (open === '1' || open === 'true') and.push(OPEN_PO);
+
+  if (and.length > 0) where.AND = and;
   return { ok: true, where };
 }
 
