@@ -5,8 +5,23 @@ import { AuthRequest } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { validateBody } from '../utils/validate';
 import Decimal from 'decimal.js';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  DEFAULT_FIXED_ASSET_SORT,
+  FIXED_ASSET_SORT_FIELDS,
+  buildFixedAssetWhere,
+  fixedAssetOrderBy,
+} from '../services/fixedAssetList';
 
 const router = Router();
+
+/** Relations returned by both list modes (same shape as the legacy list). */
+const FIXED_ASSET_LIST_INCLUDE = {
+  assetAccount: { select: { id: true, accountNumber: true, name: true } },
+  depreciationAccount: { select: { id: true, accountNumber: true, name: true } },
+  accumulatedDepAccount: { select: { id: true, accountNumber: true, name: true } },
+  user: { select: { fullName: true } },
+} as const;
 
 // ── Schemas ─────────────────────────────────────────────────────────────────
 const CreateFixedAssetSchema = z.object({
@@ -69,9 +84,33 @@ const BulkCreateAssetSchema = z.object({
   })).min(1).max(500),
 });
 
-// GET / — list all fixed assets
+// GET / — fixed asset register.
+// Legacy (no `page`): bare array of every matching asset (exact status /
+// category), newest first — unchanged for existing callers.
+// Paged (`page` sent): page, limit (≤500), search, status (Active | Disposed),
+// category, startDate/endDate (acquisition date), sort (see
+// FIXED_ASSET_SORT_FIELDS, "-" = desc) → { data, total, page, limit }.
 router.get('/', async (req, res) => {
   try {
+    const query = req.query as Record<string, unknown>;
+    if (query.page !== undefined) {
+      const filter = buildFixedAssetWhere(query);
+      if (!filter.ok) return res.status(400).json({ error: filter.error });
+      const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 500 });
+      const sort = parseSort(query.sort, FIXED_ASSET_SORT_FIELDS, DEFAULT_FIXED_ASSET_SORT);
+      const [data, total] = await Promise.all([
+        prisma.fixedAsset.findMany({
+          where: filter.where,
+          include: FIXED_ASSET_LIST_INCLUDE,
+          orderBy: fixedAssetOrderBy(sort),
+          skip,
+          take: limit,
+        }),
+        prisma.fixedAsset.count({ where: filter.where }),
+      ]);
+      return res.json({ data, total, page, limit });
+    }
+
     const { status, category } = req.query;
     const where: any = {};
     if (status) where.status = status;
@@ -88,10 +127,10 @@ router.get('/', async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(assets);
+    return res.json(assets);
   } catch (error) {
     logger.error(error, 'GET /fixed-assets error');
-    res.status(500).json({ error: 'Gagal mengambil data aset tetap.' });
+    return res.status(500).json({ error: 'Gagal mengambil data aset tetap.' });
   }
 });
 

@@ -22,6 +22,7 @@
 - Akun bawaan (seed) memakai domain `@entaris.demo`: `admin@entaris.demo`, `staff@entaris.demo`, `produksi@entaris.demo`, `viewer@entaris.demo` (sebelumnya `@entaris.local`). Seed mencari pengguna lewat username, jadi akun yang sudah ada ikut diperbarui tanpa duplikat.
 
 ### Diperbaiki
+- Saldo awal di Bagan Akun: mengetik `1.000.000` terbaca 1 (titik dianggap desimal). Kini mengikuti format Indonesia (titik = ribuan, koma = desimal).
 - **Instalasi baru: stok opname dengan selisih dan biaya konversi produksi gagal (500).** Seed memetakan peran `INVENTORY_VARIANCE → 6.38` dan `PRODUCTION_CONVERSION → 6.39`, tetapi kedua akun itu tidak ada di COA bawaan sehingga pemetaannya dilewati. Seed kini membuat `6.38 Selisih Persediaan` dan `6.39 Biaya Konversi Produksi` — hanya bila nomornya belum dipakai (akun tenant yang sudah ada tidak diganti namanya).
 - Transaksi Kas & Bank: uang muka pelanggan & refund vendor tampil sebagai uang keluar (kini masuk); daftar terpotong di 50 pembayaran + 100 jurnal; label jurnal Pinbuk tampil sebagai "Beban"; jumlah lampiran jurnal tidak pernah tampil; batalkan uang muka pelanggan dari halaman ini selalu ditolak (kini diarahkan ke halaman uang muka).
 - **Instalasi baru tidak bisa membuat STT/BPB** (error 500): akun sistem "Hutang Pembelian Belum Ditagih" dan "Selisih Harga Pembelian" tidak dipetakan oleh seed. Seed kini menambah akun `5.11 Selisih Harga Pembelian` dan memetakan kedua peran (2.2.3 dan 5.11) — **hanya bila peran itu belum punya pemetaan**, sehingga tenant lama tidak berubah.
@@ -31,6 +32,8 @@
 
 ### Tampilan (UI/UX)
 **Diubah**:
+- **Halaman Akuntansi.** Bagan Akun kini tabel pohon yang bisa dinavigasi keyboard (cari dengan induk tetap tampil, filter jenis, buka/tutup semua, subtotal grup, saldo negatif dalam kurung, badge "Sistem"); akun sistem & grup yang masih punya sub-akun tidak bisa dihapus dari UI. Jurnal Umum per halaman dari server dengan filter akun/status/periode; jurnal otomatis dari modul lain menampilkan "Batalkan dari modul asal". Persetujuan: tab di URL, tab Aturan hanya untuk yang berwenang, tolak/minta revisi wajib alasan. Aset Tetap: tab Daftar Aset / Posting Penyusutan, panel detail aset dengan jadwal penyusutan, posting penyusutan dengan konfirmasi. Tagihan Aset & Umum: filter status posting, jenis, tanggal.
+
 - **Halaman Persediaan & Produksi** (Stok & Produksi, Stok per Gudang, Stok Opname, Transfer Stok, Daftar Gudang) memakai pola daftar baru. Stok & Produksi: tab Barang / Gerakan Stok / Proses Produksi / Item Jasa tersimpan di URL, data per halaman dari server, kartu ringkasan sesuai filter, panel detail gerakan stok, aksi "Riwayat gerakan" per barang, ekspor Excel semua baris terfilter. Stok per Gudang mengikuti tanggal "per" yang dipilih (sebelumnya selalu stok saat ini) dan menandai stok negatif dengan ikon & label. Detail opname/transfer punya URL sendiri.
 
 - **Halaman Kas & Bank** (Transaksi Kas & Bank, Rekonsiliasi Bank, Transaksi Berulang, Uang Jaminan Proyek) memakai pola daftar baru. Transaksi Kas & Bank menggabungkan pembayaran & jurnal kas per halaman dari server dengan ringkasan Kas Masuk/Keluar/Arus Bersih, filter tipe/arah/pihak/akun, dan ekspor Excel. Ruang kerja rekonsiliasi punya URL sendiri (`?recon=`). Uang Jaminan Proyek menandai "Lewat / Segera jatuh tempo" dan menampilkan riwayat settlement di panel detail.

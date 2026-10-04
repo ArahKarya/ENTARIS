@@ -157,6 +157,8 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   },
   // Proses produksi: posted on save (stock + GL), Cancelled when reversed.
   production_run: { posted: POSTED, active: POSTED },
+  // Approval requests: Pending → Approved | Rejected | NeedsRevision (back to the requester).
+  approval: { needsrevision: m('Perlu Revisi', 'warning') },
   // Uang jaminan proyek: Indonesian statuses stored as-is (Disetor → Selesai | Dibatalkan).
   project_guarantee: {
     disetor: m('Disetor', 'info'),

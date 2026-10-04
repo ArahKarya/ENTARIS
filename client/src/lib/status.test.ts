@@ -153,3 +153,12 @@ describe('inventory statuses', () => {
     expect(getStatusLabel('Cancelled', 'production_run')).toBe('Dibatalkan');
   });
 });
+
+describe('approval statuses', () => {
+  it('labels the approval request lifecycle', () => {
+    expect(getStatusMeta('Pending', 'approval')).toEqual({ label: 'Menunggu', tone: 'warning' });
+    expect(getStatusMeta('Approved', 'approval')).toEqual({ label: 'Disetujui', tone: 'success' });
+    expect(getStatusMeta('Rejected', 'approval')).toEqual({ label: 'Ditolak', tone: 'danger' });
+    expect(getStatusMeta('NeedsRevision', 'approval')).toEqual({ label: 'Perlu Revisi', tone: 'warning' });
+  });
+});
