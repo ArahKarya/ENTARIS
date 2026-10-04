@@ -16,6 +16,7 @@ import ApplyDepositModal from './ApplyDepositModal';
 import ApplyCustomerDepositModal from './ApplyCustomerDepositModal';
 import DeliveryOrderFromInvoiceModal from './DeliveryOrderFromInvoiceModal';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ThreeWayMatchPanel } from './purchase/ThreeWayMatchPanel';
 
 interface Props {
   type: 'sales' | 'purchase';
@@ -861,6 +862,13 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                   </table>
                 </div>
               </div>
+
+              {/* Three-way match (purchase only; additive `match` on GET /:id) */}
+              {!isSales && invoice?.match && (
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <ThreeWayMatchPanel match={invoice.match} />
+                </div>
+              )}
 
               {/* Attachments (purchase invoice only) */}
               {canHaveAttachments && (

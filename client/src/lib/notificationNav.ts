@@ -35,6 +35,8 @@ export function notificationLink(n: NotifItem, role: string | undefined): string
       return '/quotations';
     case 'guarantee_due':
       return '/project-guarantees';
+    case 'po_overdue':
+      return meta.purchaseOrderId ? `/purchase-orders?po=${encodeURIComponent(meta.purchaseOrderId)}` : '/purchase-orders';
 
     // GA / EAM
     case 'wo_overdue':

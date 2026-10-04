@@ -7,6 +7,9 @@ import { formatRupiah } from '../lib/formatters';
 import WarehousePicker from './WarehousePicker';
 import Select from './Select';
 import { NumberInput } from './ui/number-input';
+import { ThreeWayMatchPanel } from './purchase/ThreeWayMatchPanel';
+import { useMatchPreview } from './purchase/useMatchPreview';
+import { hasMatchVariance } from './purchase/three-way-match';
 
 // Rice-mill purchase invoice item.
 // Flow: timbanganTruk (info only) → refaksi (kg deducted) → timbanganDiterima (net received)
@@ -179,24 +182,26 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const toggleSTT = (sttId: string) => {
     const stt = (pendingSTTs ?? []).find((s: any) => s.id === sttId);
     if (!stt) return;
+    // Updaters stay pure (StrictMode runs them twice in dev): decide once,
+    // then update both states; adding skips STT lines already present.
+    const wasSelected = selectedSTTIds.has(sttId);
+    const grItemIds = new Set((stt.items ?? []).map((l: any) => l.id));
     setSelectedSTTIds((prev) => {
       const next = new Set(prev);
-      if (next.has(sttId)) {
-        next.delete(sttId);
-        setItems((cur) => {
-          const grItemIds = new Set((stt.items ?? []).map((l: any) => l.id));
-          const rest = cur.filter((i) => !i.goodsReceiptItemId || !grItemIds.has(i.goodsReceiptItemId));
-          return rest.length > 0 ? rest : [defaultItem()];
-        });
-      } else {
-        next.add(sttId);
-        setItems((cur) => {
-          // Buang placeholder kosong bawaan modal sebelum menambah baris pertama.
-          const base = cur.filter((i) => i.goodsReceiptItemId || i.itemName || i.rate > 0);
-          return [...base, ...sttLinesOf(stt)];
-        });
-      }
+      if (wasSelected) next.delete(sttId);
+      else next.add(sttId);
       return next;
+    });
+    setItems((cur) => {
+      if (wasSelected) {
+        const rest = cur.filter((i) => !i.goodsReceiptItemId || !grItemIds.has(i.goodsReceiptItemId));
+        return rest.length > 0 ? rest : [defaultItem()];
+      }
+      // Buang placeholder kosong bawaan modal sebelum menambah baris pertama.
+      const base = cur.filter(
+        (i) => (i.goodsReceiptItemId || i.itemName || i.rate > 0) && !(i.goodsReceiptItemId && grItemIds.has(i.goodsReceiptItemId)),
+      );
+      return [...base, ...sttLinesOf(stt)];
     });
   };
 
@@ -338,6 +343,45 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
     (i) => i.itemType === 'material' && i.inventoryItemId && !i.goodsReceiptItemId,
   );
   const hasOrphanInventory = orphanInventoryLines.length > 0;
+
+  // Payload builder shared by submit and the live three-way match preview.
+  const payloadItems = items.map((i) => ({
+    itemName: i.itemName,
+    inventoryItemId: i.inventoryItemId || null,
+    warehouseId: i.itemType === 'material' ? (i.warehouseId || null) : null,
+    description: i.description || null,
+    quantity: i.timbanganDiterima > 0 ? i.timbanganDiterima : 0,
+    unit: i.unit,
+    rate: i.rate,
+    discount: 0,
+    taxPct: i.taxPct,
+    pphPct: i.pphPct,
+    potonganItem: i.potonganItem,
+    kualitas: i.kualitas || null,
+    refaksi: i.refaksi || null,
+    timbanganTruk: i.timbanganTruk || null,
+    timbanganDiterima: i.timbanganDiterima || null,
+    nomorMobil: i.nomorMobil?.trim() || null,
+    goodsReceiptItemId: i.goodsReceiptItemId || null,
+  }));
+  const matchItems = payloadItems.map((i) => ({
+    itemName: i.itemName,
+    unit: i.unit,
+    quantity: i.quantity,
+    timbanganDiterima: i.timbanganDiterima,
+    rate: i.rate,
+    discount: i.discount,
+    goodsReceiptItemId: i.goodsReceiptItemId,
+  }));
+  const matchQuery = useMatchPreview(isOpen ? matchItems : null);
+  const [confirmVariance, setConfirmVariance] = useState(false);
+  const submitPayload = () =>
+    mutation.mutate({ date: invoiceDate, dueDate, partyId, notes, biayaLain, items: payloadItems });
+  const handleSave = () => {
+    // Non-blocking three-way match: ask once when a line exceeds tolerance.
+    if (hasMatchVariance(matchQuery.data)) setConfirmVariance(true);
+    else submitPayload();
+  };
   // Legacy guard: warehouse picker validation (relevan saat direct-purchase
   // masih aktif). Sekarang STT yg handle warehouse, jadi tidak ke-trigger.
   const canSubmit =
@@ -547,7 +591,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                           <NumberInput value={item.timbanganDiterima || ''} onChange={(e) => updateItem(idx, 'timbanganDiterima', Number(e.target.value))} placeholder={isService ? '1' : '0'} className="w-full bg-transparent text-xs text-gray-900 font-semibold text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
-                          <NumberInput value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <NumberInput aria-label={`Harga per unit baris ${idx + 1}`} value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} placeholder="0" className="w-full bg-transparent text-xs text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                         </td>
                         <td className="px-2 py-2 text-right">
                           <NumberInput value={item.taxPct || ''} onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))} placeholder="0" className="w-full bg-transparent text-xs text-blue-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
@@ -652,7 +696,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">{isService ? 'Harga *' : 'Harga/kg *'}</label>
-                        <NumberInput value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
+                        <NumberInput aria-label={`Harga per unit baris ${idx + 1}`} value={item.rate || ''} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} className="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm font-mono" />
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">Potongan</label>
@@ -783,12 +827,43 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
             </div>
           )}
 
+          {matchItems.some((i) => i.goodsReceiptItemId) && (
+            <div className="mx-4 sm:mx-6 mb-4">
+              <ThreeWayMatchPanel match={matchQuery.data} loading={matchQuery.isFetching} />
+            </div>
+          )}
+
           {error && (
             <div className="mx-4 sm:mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
               <AlertCircle size={15} /> <span>{error}</span>
             </div>
           )}
         </div>
+
+        {confirmVariance && (
+          <div role="alertdialog" aria-labelledby="pi-variance-title" aria-describedby="pi-variance-desc" className="mx-4 sm:mx-6 mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <p id="pi-variance-title" className="flex items-center gap-2 font-semibold">
+              <AlertCircle size={15} aria-hidden /> Tetap simpan dengan selisih?
+            </p>
+            <p id="pi-variance-desc" className="mt-1 text-xs">
+              {matchQuery.data?.summary.qtyVariance ?? 0} baris selisih qty dan {matchQuery.data?.summary.priceVariance ?? 0} baris selisih harga
+              melebihi toleransi terhadap PO/STT. Faktur tetap bisa disimpan; selisih harga dicatat seperti biasa.
+            </p>
+            <div className="mt-2 flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setConfirmVariance(false)} className="btn-secondary text-xs py-1.5 px-3">Periksa lagi</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmVariance(false);
+                  submitPayload();
+                }}
+                className="btn-primary text-xs py-1.5 px-3"
+              >
+                Tetap simpan
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* FOOTER */}
         <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-2">
@@ -802,34 +877,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
           <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
             <button onClick={onClose} className="btn-secondary flex-1 sm:flex-none">Batal</button>
             <button
-              onClick={() =>
-                mutation.mutate({
-                  date: invoiceDate,
-                  dueDate,
-                  partyId,
-                  notes,
-                  biayaLain,
-                  items: items.map((i) => ({
-                    itemName: i.itemName,
-                    inventoryItemId: i.inventoryItemId || null,
-                    warehouseId: i.itemType === 'material' ? (i.warehouseId || null) : null,
-                    description: i.description || null,
-                    quantity: i.timbanganDiterima > 0 ? i.timbanganDiterima : 0,
-                    unit: i.unit,
-                    rate: i.rate,
-                    discount: 0,
-                    taxPct: i.taxPct,
-                    pphPct: i.pphPct,
-                    potonganItem: i.potonganItem,
-                    kualitas: i.kualitas || null,
-                    refaksi: i.refaksi || null,
-                    timbanganTruk: i.timbanganTruk || null,
-                    timbanganDiterima: i.timbanganDiterima || null,
-                    nomorMobil: i.nomorMobil?.trim() || null,
-                    goodsReceiptItemId: i.goodsReceiptItemId || null,
-                  })),
-                })
-              }
+              onClick={handleSave}
               disabled={!canSubmit}
               className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed flex-1 sm:flex-none"
             >

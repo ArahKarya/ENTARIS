@@ -12,6 +12,8 @@ import { computePurchaseItem } from '../services/purchaseInvoiceCalc';
 import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { logger } from '../lib/logger';
+import { z } from 'zod';
+import { matchPurchaseInvoiceLines } from '../services/threeWayMatchLoad';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
   buildPurchaseInvoiceWhere,
@@ -83,6 +85,33 @@ router.get('/summary', async (req, res) => {
   }
 });
 
+// POST /api/purchase/invoices/match-preview — three-way match (PO ↔ STT ↔
+// faktur) for an unsaved payload. Advisory only; never blocks saving.
+const MatchPreviewSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        itemName: z.string().optional().nullable(),
+        unit: z.string().optional().nullable(),
+        quantity: z.coerce.number().min(0),
+        timbanganDiterima: z.coerce.number().min(0).nullable().optional(),
+        rate: z.coerce.number(),
+        discount: z.coerce.number().min(0).max(100).nullable().optional(),
+        goodsReceiptItemId: z.string().uuid().nullable().optional(),
+      }),
+    )
+    .max(500),
+});
+router.post('/match-preview', async (req, res) => {
+  const body = validateBody(MatchPreviewSchema, req.body, res);
+  if (!body) return;
+  try {
+    return res.json(await matchPurchaseInvoiceLines(prisma, body.items));
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /purchase/invoices/match-preview', 'Gagal mencocokkan PO–STT–faktur.');
+  }
+});
+
 // GET /api/purchase/invoices/:id — detail single invoice
 router.get('/:id', async (req, res) => {
   try {
@@ -122,7 +151,15 @@ router.get('/:id', async (req, res) => {
       orderBy: { payment: { date: 'asc' } },
     });
 
-    return res.json({ ...invoice, paymentAllocations: allocations });
+    // Additive: three-way match summary. A failure here must not break the detail.
+    let match = null;
+    try {
+      match = await matchPurchaseInvoiceLines(prisma, invoice.items);
+    } catch (err) {
+      logger.warn({ err, invoiceId: invoice.id }, 'three-way match failed (ignored)');
+    }
+
+    return res.json({ ...invoice, paymentAllocations: allocations, match });
   } catch (error) {
     logger.error({ error }, 'GET /purchase/invoices/:id error');
     return res.status(500).json({ error: 'Gagal mengambil detail invoice.' });

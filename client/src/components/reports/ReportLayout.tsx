@@ -168,6 +168,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
           <input
             type="date"
             value={dateFilter.startDate}
+            aria-label="Tanggal mulai"
             onChange={(e) => dateFilter.onStartDateChange(e.target.value)}
             className={dateInputClass}
           />
@@ -175,6 +176,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
           <input
             type="date"
             value={dateFilter.endDate}
+            aria-label="Tanggal akhir"
             onChange={(e) => dateFilter.onEndDateChange(e.target.value)}
             className={dateInputClass}
           />
@@ -186,6 +188,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
           <input
             type="date"
             value={dateFilter.date}
+            aria-label={dateFilter.label || 'Per tanggal'}
             onChange={(e) => dateFilter.onDateChange(e.target.value)}
             className={dateInputClass}
           />

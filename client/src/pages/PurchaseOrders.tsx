@@ -5,10 +5,11 @@
  * "PO Umum" has no supplier bound to it. Receipt progress ("Penerimaan") is
  * derived server-side from the lines' qtyReceived (`receiptStatus`).
  */
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Copy, Eye, PackageCheck, Pencil, Plus, Printer } from 'lucide-react';
+import { AlertTriangle, Copy, Eye, PackageCheck, Pencil, Plus, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -45,6 +46,8 @@ interface PurchaseOrderRow {
   status: string;
   closedAt?: string | null;
   receiptStatus?: string;
+  /** Ordered, past the expected delivery day (WIB) and not fully received. */
+  isOverdue?: boolean;
   /** Draft | PendingApproval | Submitted | Cancelled (server-derived). */
   displayStatus?: string;
   approvalStatus?: string | null;
@@ -55,7 +58,7 @@ interface PurchaseOrderRow {
 }
 
 const ENDPOINT = '/purchase-orders';
-const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate', 'receipt'] as const;
+const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate', 'receipt', 'due'] as const;
 const STATUS_FILTER = statusOptions(['Draft', 'PendingApproval', 'Submitted', 'Cancelled'], 'purchase_order');
 /** Receipt progress only means something once the PO is ordered. */
 const showReceipt = (po: PurchaseOrderRow) =>
@@ -67,6 +70,36 @@ const RECEIPT_FILTER = [
   { value: 'closed', label: 'Ditutup' },
 ];
 const ALL = '__all__';
+
+/** "Terlambat" due marker — icon + text, never colour alone. */
+function OverdueMarker({ className }: { className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-danger-text ${className ?? ''}`}>
+      <AlertTriangle size={12} aria-hidden />
+      Terlambat
+    </span>
+  );
+}
+
+function DueFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const id = useId();
+  return (
+    <div className="w-[calc(50%-0.25rem)] sm:w-40">
+      <label htmlFor={id} className="sr-only">
+        Target terima
+      </label>
+      <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
+        <SelectTrigger id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>Semua target</SelectItem>
+          <SelectItem value="overdue">Terlambat</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 function ReceiptFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const id = useId();
@@ -122,6 +155,17 @@ export const PurchaseOrders = () => {
   const canCreate = can('purchase_order', 'edit');
   const queryClient = useQueryClient();
   const { download: downloadPdf } = usePurchaseOrderPdf();
+
+  // Deep link (e.g. "PO terlambat" notification): /purchase-orders?po=<id> opens the drawer.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const poParam = searchParams.get('po');
+  useEffect(() => {
+    if (!poParam) return;
+    setSelectedId(poParam);
+    const next = new URLSearchParams(searchParams);
+    next.delete('po');
+    setSearchParams(next, { replace: true });
+  }, [poParam, searchParams, setSearchParams]);
 
   const openCreate = () => setModal({ kind: 'po', mode: 'create', source: null });
   const openEdit = (po: PurchaseOrderSource) => setModal({ kind: 'po', mode: 'edit', source: po });
@@ -216,6 +260,7 @@ export const PurchaseOrders = () => {
               {showReceipt(row.original) && (
                 <StatusBadge status={row.original.receiptStatus} docType="purchase_order" className="md:hidden" />
               )}
+              {row.original.isOverdue && <OverdueMarker className="md:hidden" />}
             </div>
           );
         },
@@ -232,7 +277,10 @@ export const PurchaseOrders = () => {
         meta: { hideBelow: 'md' },
         cell: ({ row }) =>
           showReceipt(row.original) ? (
-            <StatusBadge status={row.original.receiptStatus} docType="purchase_order" />
+            <div className="flex flex-col items-start gap-1">
+              <StatusBadge status={row.original.receiptStatus} docType="purchase_order" />
+              {row.original.isOverdue && <OverdueMarker />}
+            </div>
           ) : (
             <span className="text-muted-foreground">-</span>
           ),
@@ -298,6 +346,7 @@ export const PurchaseOrders = () => {
           dateRange
         >
           <ReceiptFilter value={list.filters.receipt} onChange={(v) => list.setFilter('receipt', v)} />
+          <DueFilter value={list.filters.due} onChange={(v) => list.setFilter('due', v)} />
           <PartyFilter partyType="Supplier" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
         </FilterBar>
 
