@@ -1,27 +1,33 @@
-// Report Armada — analisis biaya lintas-kendaraan (TCO fleet-level):
-// distribusi biaya per kategori, trend bulanan, top spender, ringkasan
-// kepatuhan dokumen, dan tabel detail per kendaraan.
-// Data dari GET /ga/vehicle/fleet-report.
-import { useState, useMemo } from 'react';
-import {
-  BarChart3, Loader2, Car, Wallet, TriangleAlert, TrendingUp,
-  Download, ArrowUpDown, Search,
-} from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+/**
+ * Laporan Armada (/ga/vehicle/report) — fleet-level cost of ownership from
+ * GET /ga/vehicle/fleet-report: KPIs, cost distribution, monthly trend, top
+ * spenders, compliance and a per-vehicle table. Period lives in the URL
+ * (?period=…&startDate=…&endDate=…); Excel export of the filtered rows.
+ */
+import { useMemo, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { AlertTriangle, Car, Download, Gauge, Search, TrendingUp, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import api from '../../lib/api';
-import { cn } from '../../lib/utils';
-import { formatRupiah, formatDate } from '../../lib/formatters';
-import { exportToExcel } from '../../lib/exportExcel';
 import { toast } from 'sonner';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { formatDate, formatNumber, formatPercent, formatRupiah } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DataTable, PageHeader, StatCard } from '@/components/shared';
+import { ChartTooltipBox, Panel, PanelState } from '@/components/inventory/dashboard-kit';
+import { CHART_AXIS, CHART_GRID_STROKE } from '@/components/inventory/dashboard-hooks';
+import { ReportPeriodToolbar } from '@/components/ga/vehicle/ReportPeriodToolbar';
+import { useReportPeriod } from '@/components/ga/vehicle/useReportPeriod';
+import { monthLabel } from '@/components/ga/vehicle/fleet-report-model';
+import { DueMarker, UnitHeader } from '@/components/ga/vehicle/vehicle-ui';
+import { FLUSH_TABLE } from '@/components/ga/vehicle/ui-classes';
 
 type ComplianceState = 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE';
 type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident' | 'workorder';
-
-interface Breakdown {
-  service: number; fuel: number; tax: number; insurance: number; incident: number;
-  workorder: number;
-}
+type Breakdown = Record<CostCategory, number>;
 
 interface FleetVehicle {
   assetId: string;
@@ -54,115 +60,89 @@ interface FleetReport {
   vehicles: FleetVehicle[];
   totals: Breakdown & { totalCost: number; vehicleCount: number; costPerVehicle: number };
   distribution: { category: CostCategory; amount: number; percentage: number }[];
-  topSpenders: { assetId: string; code: string; name: string; noPlat: string | null; totalCost: number; costPerMonth: number; breakdown: Breakdown }[];
+  topSpenders: { assetId: string; code: string; name: string; noPlat: string | null; totalCost: number; costPerMonth: number }[];
   monthlyTrend: (Breakdown & { month: string; total: number })[];
-  compliance: { taxIssues: number; insuranceIssues: number; openIncidents: number; openWorkOrders: number; vehiclesWithIssues: number };
+  compliance: { taxIssues: number; insuranceIssues: number; openIncidents: number; openWorkOrders?: number; vehiclesWithIssues: number };
 }
 
+const CATS: CostCategory[] = ['service', 'fuel', 'tax', 'insurance', 'incident', 'workorder'];
 const CAT_LABEL: Record<CostCategory, string> = {
-  service: 'Service & Perawatan',
-  fuel: 'Bahan Bakar',
-  tax: 'Pajak Kendaraan',
+  service: 'Servis & perawatan',
+  fuel: 'Bahan bakar',
+  tax: 'Pajak kendaraan',
   insurance: 'Asuransi',
-  incident: 'Insiden & Perbaikan',
-  workorder: 'Work Order & Sparepart',
+  incident: 'Insiden & perbaikan',
+  workorder: 'Work order & sparepart',
 };
-
-const CAT_BAR: Record<CostCategory, string> = {
-  service: 'bg-teal-500',
-  fuel: 'bg-blue-500',
-  tax: 'bg-amber-500',
-  insurance: 'bg-violet-500',
-  incident: 'bg-rose-500',
-  workorder: 'bg-emerald-600',
+const CAT_COLOR: Record<CostCategory, string> = {
+  service: 'var(--chart-1)',
+  fuel: 'var(--chart-2)',
+  tax: 'var(--chart-4)',
+  insurance: 'var(--chart-3)',
+  incident: 'var(--chart-5)',
+  workorder: 'var(--chart-6)',
 };
-
-const STATE_BADGE: Record<ComplianceState, string> = {
-  EXPIRED: 'badge-red',
-  EXPIRING: 'badge-yellow',
-  OK: 'badge-green',
-  NONE: 'badge-gray',
+const CAT_SHORT: Record<CostCategory, string> = {
+  service: 'Servis', fuel: 'BBM', tax: 'Pajak', insurance: 'Asuransi', incident: 'Insiden', workorder: 'Work order',
 };
+const STATE_LABEL: Record<ComplianceState, string> = { EXPIRED: 'Lewat', EXPIRING: 'Segera', OK: 'Aman', NONE: '-' };
+const toDue = (s: ComplianceState) => (s === 'EXPIRED' ? 'overdue' : s === 'EXPIRING' ? 'dueSoon' : s === 'OK' ? 'ok' : null);
+const money = (v: number) => formatRupiah(v, { symbol: false });
+const compact = (v: number) => formatRupiah(v, { compact: true, symbol: false });
 
-const STATE_LABEL: Record<ComplianceState, string> = {
-  EXPIRED: 'Lewat',
-  EXPIRING: 'Segera',
-  OK: 'Aman',
-  NONE: '—',
-};
-
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const monthLabel = (key: string) => {
-  const [y, m] = key.split('-');
-  return `${MONTH_NAMES[Number(m) - 1] ?? m} '${String(y).slice(2)}`;
-};
-const numId = (v: number, digits = 0) =>
-  v.toLocaleString('id-ID', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-
-type SortKey = 'code' | 'totalCost' | 'costPerMonth' | 'issueCount';
+function vehicleLink(assetId: string, section?: string) {
+  return `/ga/vehicle?vehicle=${assetId}${section ? `&section=${section}` : ''}`;
+}
 
 export function GaFleetReportPage() {
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const { period, setPreset, setRange } = useReportPeriod();
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('totalCost');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const { data, isLoading, isError, error } = useQuery<FleetReport>({
-    queryKey: ['ga-fleet-report', dateFrom, dateTo],
-    queryFn: async () => {
-      const params: Record<string, string> = {};
-      if (dateFrom) params.from = dateFrom;
-      if (dateTo) params.to = dateTo;
-      return (await api.get('/ga/vehicle/fleet-report', { params })).data;
-    },
+  const query = useQuery<FleetReport>({
+    queryKey: ['ga-fleet-report', period.startDate, period.endDate],
+    queryFn: async () => (await api.get('/ga/vehicle/fleet-report', { params: { from: period.startDate, to: period.endDate } })).data,
+    placeholderData: keepPreviousData,
   });
-
-  const trendMax = useMemo(
-    () => Math.max(1, ...(data?.monthlyTrend ?? []).map((m) => m.total)),
-    [data],
-  );
+  const data = query.data;
 
   const rows = useMemo(() => {
     if (!data) return [];
     const q = search.trim().toLowerCase();
-    const filtered = q
-      ? data.vehicles.filter((v) =>
-          [v.code, v.name, v.noPlat, v.brand, v.tipe, v.categoryName]
-            .some((f) => f && f.toLowerCase().includes(q)),
-        )
+    const list = q
+      ? data.vehicles.filter((v) => [v.code, v.name, v.noPlat, v.brand, v.tipe].some((f) => f?.toLowerCase().includes(q)))
       : data.vehicles;
-    const dir = sortDir === 'asc' ? 1 : -1;
-    return [...filtered].sort((a, b) => {
-      if (sortKey === 'code') return a.code.localeCompare(b.code) * dir;
-      return (a[sortKey] - b[sortKey]) * dir;
-    });
-  }, [data, search, sortKey, sortDir]);
+    return [...list].sort((a, b) => b.totalCost - a.totalCost);
+  }, [data, search]);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortKey(key); setSortDir(key === 'code' ? 'asc' : 'desc'); }
-  };
+  const distribution = useMemo(
+    () => [...(data?.distribution ?? [])].filter((d) => d.amount > 0).sort((a, b) => b.amount - a.amount),
+    [data],
+  );
+  const trend = useMemo(() => (data?.monthlyTrend ?? []).map((m) => ({ ...m, label: monthLabel(m.month) })), [data]);
+  const hasTrend = trend.some((m) => m.total > 0);
 
   const handleExport = async () => {
-    if (!rows.length) { toast.error('Tidak ada data untuk diekspor.'); return; }
+    if (!rows.length) {
+      toast.error('Tidak ada data untuk diekspor.');
+      return;
+    }
     try {
       await exportToExcel(
         rows.map((v) => ({
           'Kode Aset': v.code,
-          'Nama': v.name,
+          Nama: v.name,
           'No. Plat': v.noPlat ?? '',
-          'Merek': v.brand ?? '',
-          'Tipe': v.tipe ?? '',
-          'Kategori': v.categoryName ?? '',
-          'Status': v.status,
-          'Kondisi': v.condition,
+          Merek: v.brand ?? '',
+          Tipe: v.tipe ?? '',
+          Kategori: v.categoryName ?? '',
+          Status: v.status,
+          Kondisi: v.condition,
           'Odometer (km)': v.odometerTerakhir ?? '',
-          'Service': v.breakdown.service,
-          'BBM': v.breakdown.fuel,
-          'Pajak': v.breakdown.tax,
-          'Asuransi': v.breakdown.insurance,
-          'Insiden': v.breakdown.incident,
+          Service: v.breakdown.service,
+          BBM: v.breakdown.fuel,
+          Pajak: v.breakdown.tax,
+          Asuransi: v.breakdown.insurance,
+          Insiden: v.breakdown.incident,
           'Work Order & Sparepart': v.breakdown.workorder,
           'Total Biaya': v.totalCost,
           'Biaya/Bulan': Math.round(v.costPerMonth),
@@ -177,324 +157,295 @@ export function GaFleetReportPage() {
           'Jumlah MR Dibayar': v.materialRequestCount,
           'Total Isu': v.issueCount,
         })),
-        `Report-Armada-${new Date().toISOString().slice(0, 10)}`,
+        `Laporan-Armada-${period.startDate}_${period.endDate}`,
       );
-      toast.success('Report armada diekspor.');
+      toast.success('Laporan armada diekspor.');
     } catch {
-      toast.error('Gagal mengekspor report.');
+      toast.error('Gagal mengekspor laporan.');
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-24 text-gray-400">
-        <Loader2 size={20} className="animate-spin mr-2" /> Memuat report armada…
-      </div>
-    );
-  }
+  const columns = useMemo<ColumnDef<FleetVehicle>[]>(
+    () => [
+      {
+        id: 'vehicle',
+        header: 'Kendaraan',
+        meta: { cellClassName: 'min-w-40' },
+        cell: ({ row }) => {
+          const v = row.original;
+          return (
+            <div className="min-w-0">
+              <Link to={vehicleLink(v.assetId, 'laporan')} className="num text-sm font-medium text-primary-hover underline-offset-2 hover:underline">
+                {v.noPlat ?? v.code}
+              </Link>
+              <p className="truncate text-xs text-muted-foreground">{[v.brand, v.tipe].filter(Boolean).join(' ') || v.name}</p>
+            </div>
+          );
+        },
+      },
+      ...(['service', 'fuel', 'tax', 'insurance', 'incident', 'workorder'] as CostCategory[]).map<ColumnDef<FleetVehicle>>((k) => ({
+        id: k,
+        header: () => <UnitHeader label={{ service: 'Servis', fuel: 'BBM', tax: 'Pajak', insurance: 'Asuransi', incident: 'Insiden', workorder: 'WO' }[k]} />,
+        meta: { align: 'right', hideBelow: k === 'service' || k === 'fuel' ? 'md' : 'xl' },
+        cell: ({ row }) => (row.original.breakdown[k] ? money(row.original.breakdown[k]) : <span className="text-muted-foreground">-</span>),
+      })),
+      {
+        id: 'total',
+        header: () => <UnitHeader label="Total" />,
+        meta: { align: 'right' },
+        cell: ({ row }) => <span className="font-semibold text-foreground">{money(row.original.totalCost)}</span>,
+      },
+      {
+        id: 'perMonth',
+        header: () => <UnitHeader label="Per bulan" />,
+        meta: { align: 'right', hideBelow: 'lg' },
+        cell: ({ row }) => money(row.original.costPerMonth),
+      },
+      {
+        id: 'compliance',
+        header: 'Kepatuhan',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => {
+          const v = row.original;
+          const tax = toDue(v.taxState);
+          const ins = toDue(v.insuranceState);
+          const flagged = [tax !== 'ok' && tax && { p: 'Pajak', s: tax }, ins !== 'ok' && ins && { p: 'Asuransi', s: ins }].filter(Boolean) as { p: string; s: 'overdue' | 'dueSoon' }[];
+          return (
+            <div className="flex flex-col items-start gap-0.5">
+              {flagged.map((f) => (
+                <DueMarker key={f.p} state={f.s} prefix={f.p} short />
+              ))}
+              {v.openIncidentCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-text">
+                  <AlertTriangle className="size-3.5" aria-hidden />
+                  {v.openIncidentCount} insiden
+                </span>
+              )}
+              {flagged.length === 0 && v.openIncidentCount === 0 && <span className="text-xs text-muted-foreground">Tidak ada isu</span>}
+            </div>
+          );
+        },
+      },
+    ],
+    [],
+  );
 
-  if (isError || !data) {
-    return (
-      <div className="card p-8 text-center">
-        <TriangleAlert size={28} className="mx-auto text-red-400 mb-3" />
-        <p className="text-sm text-gray-600">
-          Gagal memuat report armada. {(error as any)?.response?.data?.error ?? ''}
-        </p>
-      </div>
-    );
-  }
-
-  const { totals, distribution, compliance, period } = data;
+  const top = data?.distribution.length ? [...data.distribution].sort((a, b) => b.amount - a.amount)[0] : undefined;
+  const loading = !data && query.isLoading;
 
   return (
     <div className="space-y-5 pb-8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <BarChart3 size={20} className="text-teal-600" /> Report Armada
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Analisis biaya kepemilikan lintas-kendaraan: distribusi biaya, trend bulanan, kendaraan
-            paling boros, dan ringkasan kepatuhan dokumen.
-          </p>
-        </div>
-        <button onClick={handleExport} className="btn-secondary w-fit">
-          <Download size={14} /> Export Excel
-        </button>
-      </div>
+      <PageHeader
+        title="Laporan Armada"
+        description="Biaya kepemilikan lintas kendaraan: distribusi biaya, tren bulanan, kendaraan terboros, dan kepatuhan dokumen."
+        breadcrumbs={[{ label: 'Kendaraan', href: '/ga/vehicle' }, { label: 'Laporan Armada' }]}
+        actions={
+          <Button variant="outline" onClick={handleExport} disabled={!rows.length}>
+            <Download aria-hidden />
+            Export Excel
+          </Button>
+        }
+      >
+        <ReportPeriodToolbar period={period} onPresetChange={setPreset} onRangeChange={setRange} />
+      </PageHeader>
 
-      {/* Filter periode */}
-      <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Dari Tanggal</label>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="input-field" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Sampai Tanggal</label>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="input-field" />
-          </div>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={() => { setDateFrom(''); setDateTo(''); }}
-              className="w-full px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              Reset (12 bulan terakhir)
-            </button>
-          </div>
-          <div className="flex items-end">
-            <p className="text-xs text-gray-500">
-              Periode aktif: <span className="font-medium text-gray-700">{formatDate(period.from)} — {formatDate(period.to)}</span>
-              {' '}({period.months} bulan)
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi
-          icon={<Wallet size={16} className="text-teal-600" />} iconBg="bg-teal-50"
-          label="Total Biaya Armada" value={formatRupiah(totals.totalCost)}
-          sub={`${formatRupiah(totals.totalCost / period.months)} / bulan`}
-        />
-        <Kpi
-          icon={<Car size={16} className="text-blue-600" />} iconBg="bg-blue-50"
-          label="Jumlah Kendaraan" value={String(totals.vehicleCount)}
-          sub={`${formatRupiah(totals.costPerVehicle)} / kendaraan`}
-        />
-        <Kpi
-          icon={<TrendingUp size={16} className="text-violet-600" />} iconBg="bg-violet-50"
-          label="Kategori Terbesar"
-          value={distribution.length ? CAT_LABEL[[...distribution].sort((a, b) => b.amount - a.amount)[0].category] : '—'}
-          sub={distribution.length ? `${numId([...distribution].sort((a, b) => b.amount - a.amount)[0].percentage, 1)}% dari total` : '—'}
-        />
-        <Kpi
-          icon={<TriangleAlert size={16} className={compliance.vehiclesWithIssues ? 'text-red-600' : 'text-green-600'} />}
-          iconBg={compliance.vehiclesWithIssues ? 'bg-red-50' : 'bg-green-50'}
-          label="Kendaraan Bermasalah" value={String(compliance.vehiclesWithIssues)}
-          sub={`${compliance.taxIssues} pajak · ${compliance.insuranceIssues} asuransi · ${compliance.openIncidents} insiden · ${compliance.openWorkOrders} WO terbuka`}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Distribusi biaya */}
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Distribusi Biaya per Kategori</h2>
-          {totals.totalCost === 0 ? (
-            <p className="text-sm text-gray-400 py-6 text-center">Belum ada biaya tercatat pada periode ini.</p>
-          ) : (
-            <div className="space-y-3">
-              {[...distribution].sort((a, b) => b.amount - a.amount).map((d) => (
-                <div key={d.category}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium text-gray-700">{CAT_LABEL[d.category]}</span>
-                    <span className="text-gray-500">
-                      {formatRupiah(d.amount)} · {numId(d.percentage, 1)}%
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={cn('h-full rounded-full', CAT_BAR[d.category])} style={{ width: `${d.percentage}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Top spender */}
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">10 Kendaraan Biaya Tertinggi</h2>
-          {data.topSpenders.length === 0 ? (
-            <p className="text-sm text-gray-400 py-6 text-center">Belum ada data biaya.</p>
-          ) : (
-            <div className="space-y-2">
-              {data.topSpenders.map((v, i) => {
-                const pct = data.topSpenders[0].totalCost > 0 ? (v.totalCost / data.topSpenders[0].totalCost) * 100 : 0;
-                return (
-                  <div key={v.assetId} className="flex items-center gap-3">
-                    <span className="w-5 text-xs font-semibold text-gray-400 text-right">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <Link to="/ga/vehicle" className="font-medium text-gray-700 truncate hover:text-teal-600">
-                          {v.noPlat ?? v.code} <span className="text-gray-400 font-normal">· {v.name}</span>
-                        </Link>
-                        <span className="text-gray-500 shrink-0 ml-2">{formatRupiah(v.totalCost)}</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Trend bulanan */}
-      <div className="card p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Trend Biaya Bulanan Armada</h2>
-        {data.monthlyTrend.every((m) => m.total === 0) ? (
-          <p className="text-sm text-gray-400 py-6 text-center">Belum ada biaya tercatat pada periode ini.</p>
-        ) : (
-          <>
-            <div className="flex items-end gap-1.5 h-40 border-b border-gray-100 pb-1">
-              {data.monthlyTrend.map((m) => (
-                <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                  <div
-                    className="w-full bg-teal-500/80 hover:bg-teal-600 rounded-t transition-colors min-h-[2px]"
-                    style={{ height: `${(m.total / trendMax) * 100}%` }}
-                  />
-                  <div className="absolute bottom-full mb-1 hidden group-hover:block z-10 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] text-white">
-                    {monthLabel(m.month)}: {formatRupiah(m.total)}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-1.5 mt-1">
-              {data.monthlyTrend.map((m) => (
-                <span key={m.month} className="flex-1 text-center text-[9px] text-gray-400 truncate">
-                  {monthLabel(m.month)}
-                </span>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Tabel detail */}
-      <div className="card p-0 overflow-hidden">
-        <div className="flex flex-col gap-3 p-4 border-b border-gray-100 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900">Detail per Kendaraan</h2>
-            <p className="text-xs text-gray-500 mt-1">Tampil {rows.length} dari {data.vehicles.length} kendaraan.</p>
-          </div>
-          <div className="relative w-full lg:w-72">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari plat, kode, merek…"
-              className="input-field pl-9"
+      {query.isError && !data ? (
+        <PanelState error={query.error} onRetry={() => query.refetch()}>
+          {null}
+        </PanelState>
+      ) : (
+        <>
+          <section aria-label="Ringkasan biaya armada" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              label="Total Biaya"
+              icon={Wallet}
+              loading={loading}
+              value={data ? formatRupiah(data.totals.totalCost, { compact: true }) : '-'}
+              valueTitle={data ? formatRupiah(data.totals.totalCost) : undefined}
+              hint={data ? `${formatRupiah(data.totals.totalCost / data.period.months, { compact: true })} / bulan` : undefined}
             />
+            <StatCard
+              label="Kendaraan"
+              icon={Car}
+              loading={loading}
+              value={data ? formatNumber(data.totals.vehicleCount) : '-'}
+              hint={data ? `${formatRupiah(data.totals.costPerVehicle, { compact: true })} / kendaraan` : undefined}
+            />
+            <StatCard
+              label="Biaya Terbesar"
+              icon={TrendingUp}
+              loading={loading}
+              value={top && top.amount > 0 ? CAT_SHORT[top.category] : '-'}
+              hint={top && top.amount > 0 ? `${CAT_LABEL[top.category]} · ${formatPercent(top.percentage / 100)}` : 'Belum ada biaya'}
+            />
+            <StatCard
+              label="Kendaraan Bermasalah"
+              icon={AlertTriangle}
+              loading={loading}
+              value={data ? formatNumber(data.compliance.vehiclesWithIssues) : '-'}
+              hint={
+                data
+                  ? `${data.compliance.taxIssues} pajak · ${data.compliance.insuranceIssues} asuransi · ${data.compliance.openIncidents} insiden`
+                  : undefined
+              }
+            />
+          </section>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Panel title="Tren Biaya Bulanan" description={data ? `${data.period.months} bulan · ${formatDate(data.period.from)} – ${formatDate(data.period.to)}` : undefined}>
+              <PanelState loading={loading} skeleton="chart" empty={!hasTrend} emptyTitle="Belum ada biaya pada periode ini">
+                <figure className="m-0">
+                  <div className="h-64" aria-hidden>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart accessibilityLayer={false} data={trend} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                        <CartesianGrid vertical={false} stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                        <XAxis dataKey="label" {...CHART_AXIS} interval="preserveStartEnd" minTickGap={8} />
+                        <YAxis {...CHART_AXIS} width={52} tickFormatter={(v: number) => compact(v)} />
+                        <Tooltip
+                          cursor={{ fill: 'var(--accent)' }}
+                          content={({ active, payload }) => {
+                            const m = active ? (payload?.[0]?.payload as (typeof trend)[number] | undefined) : undefined;
+                            if (!m) return null;
+                            return (
+                              <ChartTooltipBox
+                                title={m.label}
+                                rows={[
+                                  ...CATS.filter((c) => m[c] > 0).map((c) => ({ label: CAT_LABEL[c], value: formatRupiah(m[c]), color: CAT_COLOR[c] })),
+                                  { label: 'Total', value: formatRupiah(m.total) },
+                                ]}
+                              />
+                            );
+                          }}
+                        />
+                        {CATS.map((c, i) => (
+                          <Bar key={c} dataKey={c} stackId="cost" fill={CAT_COLOR[c]} maxBarSize={28} radius={i === CATS.length - 1 ? [3, 3, 0, 0] : 0} />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <figcaption className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    {CATS.map((c) => (
+                      <span key={c} className="inline-flex items-center gap-1.5">
+                        <span className="size-2.5 rounded-sm" style={{ background: CAT_COLOR[c] }} aria-hidden />
+                        {CAT_LABEL[c]}
+                      </span>
+                    ))}
+                    <span className="sr-only">
+                      Total per bulan: {trend.map((m) => `${m.label} ${formatRupiah(m.total)}`).join('; ')}
+                    </span>
+                  </figcaption>
+                </figure>
+              </PanelState>
+            </Panel>
+
+            <Panel title="Distribusi Biaya per Kategori">
+              <PanelState loading={loading} skeleton="chart" empty={distribution.length === 0} emptyTitle="Belum ada biaya pada periode ini">
+                <figure className="m-0">
+                  <div style={{ height: Math.max(120, distribution.length * 40) }} aria-hidden>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart accessibilityLayer={false} data={distribution} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }} barCategoryGap={8}>
+                        <CartesianGrid horizontal={false} stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                        <XAxis type="number" {...CHART_AXIS} tickFormatter={(v: number) => compact(v)} />
+                        <YAxis type="category" dataKey="category" {...CHART_AXIS} width={128} tickFormatter={(v: CostCategory) => CAT_LABEL[v]} />
+                        <Tooltip
+                          cursor={{ fill: 'var(--accent)' }}
+                          content={({ active, payload }) => {
+                            const d = active ? (payload?.[0]?.payload as (typeof distribution)[number] | undefined) : undefined;
+                            if (!d) return null;
+                            return (
+                              <ChartTooltipBox
+                                title={CAT_LABEL[d.category]}
+                                rows={[
+                                  { label: 'Biaya', value: formatRupiah(d.amount) },
+                                  { label: 'Porsi', value: formatPercent(d.percentage / 100) },
+                                ]}
+                              />
+                            );
+                          }}
+                        />
+                        <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                          {distribution.map((d) => (
+                            <Cell key={d.category} fill={CAT_COLOR[d.category]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <figcaption className="sr-only">
+                    {distribution.map((d) => `${CAT_LABEL[d.category]} ${formatRupiah(d.amount)} (${formatPercent(d.percentage / 100)})`).join('; ')}
+                  </figcaption>
+                </figure>
+              </PanelState>
+            </Panel>
           </div>
-        </div>
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th><SortHeader label="Kendaraan" active={sortKey === 'code'} dir={sortDir} onClick={() => toggleSort('code')} /></th>
-                <th className="text-right">Service</th>
-                <th className="text-right">BBM</th>
-                <th className="text-right">Pajak</th>
-                <th className="text-right">Asuransi</th>
-                <th className="text-right">Insiden</th>
-                <th className="text-right">Work Order</th>
-                <th className="text-right"><SortHeader label="Total" active={sortKey === 'totalCost'} dir={sortDir} onClick={() => toggleSort('totalCost')} align="right" /></th>
-                <th className="text-right"><SortHeader label="/Bulan" active={sortKey === 'costPerMonth'} dir={sortDir} onClick={() => toggleSort('costPerMonth')} align="right" /></th>
-                <th className="text-center">Pajak</th>
-                <th className="text-center">Asuransi</th>
-                <th className="text-center"><SortHeader label="Isu" active={sortKey === 'issueCount'} dir={sortDir} onClick={() => toggleSort('issueCount')} align="center" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr><td colSpan={12} className="py-10 text-center text-sm text-gray-400">Tidak ada kendaraan yang cocok.</td></tr>
-              ) : rows.map((v) => (
-                <tr key={v.assetId}>
-                  <td>
-                    <div className="font-medium text-gray-900">{v.noPlat ?? v.code}</div>
-                    <div className="text-xs text-gray-400">
-                      {[v.brand, v.tipe].filter(Boolean).join(' ') || v.name}
-                    </div>
-                  </td>
-                  <td className="text-right text-gray-600">{v.breakdown.service ? formatRupiah(v.breakdown.service) : '—'}</td>
-                  <td className="text-right text-gray-600">{v.breakdown.fuel ? formatRupiah(v.breakdown.fuel) : '—'}</td>
-                  <td className="text-right text-gray-600">{v.breakdown.tax ? formatRupiah(v.breakdown.tax) : '—'}</td>
-                  <td className="text-right text-gray-600">{v.breakdown.insurance ? formatRupiah(v.breakdown.insurance) : '—'}</td>
-                  <td className="text-right text-gray-600">{v.breakdown.incident ? formatRupiah(v.breakdown.incident) : '—'}</td>
-                  <td className="text-right text-gray-600">
-                    {v.breakdown.workorder ? formatRupiah(v.breakdown.workorder) : '—'}
-                    {v.openWorkOrderCount > 0 && (
-                      <span className="ml-1 badge badge-amber" title="Work order belum selesai">{v.openWorkOrderCount}</span>
-                    )}
-                  </td>
-                  <td className="text-right font-semibold text-gray-900">{formatRupiah(v.totalCost)}</td>
-                  <td className="text-right text-gray-600">{formatRupiah(v.costPerMonth)}</td>
-                  <td className="text-center">
-                    <span className={cn('badge', STATE_BADGE[v.taxState])}>{STATE_LABEL[v.taxState]}</span>
-                  </td>
-                  <td className="text-center">
-                    <span className={cn('badge', STATE_BADGE[v.insuranceState])}>{STATE_LABEL[v.insuranceState]}</span>
-                  </td>
-                  <td className="text-center">
-                    {v.issueCount > 0
-                      ? <span className="badge badge-red">{v.issueCount}</span>
-                      : <span className="text-gray-300">—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+
+          <Panel title="10 Kendaraan Biaya Tertinggi" description="Klik untuk membuka laporan per kendaraan.">
+            <PanelState loading={loading} empty={!data?.topSpenders.length} emptyTitle="Belum ada data biaya">
+              <ol className="grid grid-cols-1 gap-x-8 gap-y-2 md:grid-cols-2">
+                {(data?.topSpenders ?? []).map((v, i) => {
+                  const max = data?.topSpenders[0]?.totalCost || 1;
+                  return (
+                    <li key={v.assetId} className="flex items-center gap-3">
+                      <span className="num w-5 text-right text-xs font-semibold text-muted-foreground">{i + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                          <Link to={vehicleLink(v.assetId, 'laporan')} className="min-w-0 truncate font-medium text-foreground hover:underline">
+                            {v.noPlat ?? v.code} <span className="font-normal text-muted-foreground">· {v.name}</span>
+                          </Link>
+                          <span className="num shrink-0 text-muted-foreground">{formatRupiah(v.totalCost, { compact: true })}</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
+                          <div className="h-full rounded-full" style={{ width: `${(v.totalCost / max) * 100}%`, background: 'var(--chart-2)' }} />
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </PanelState>
+          </Panel>
+
+          <Panel
+            title="Detail per Kendaraan"
+            description={data ? `${formatNumber(rows.length)} dari ${formatNumber(data.vehicles.length)} kendaraan · urut total biaya` : undefined}
+            bodyClassName="p-0"
+            action={
+              <div className="relative w-full sm:w-64">
+                <label htmlFor="fleet-report-q" className="sr-only">
+                  Cari kendaraan
+                </label>
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <Input id="fleet-report-q" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari plat, kode, merek" className="pl-9" />
+              </div>
+            }
+          >
+            <DataTable
+              label="Biaya per kendaraan"
+              itemLabel="kendaraan"
+              columns={columns}
+              data={rows}
+              getRowId={(r) => r.assetId}
+              loading={loading}
+              fetching={query.isFetching && query.isPlaceholderData}
+              filtered={!!search.trim()}
+              onClearFilters={() => setSearch('')}
+              stickyHeader={false}
+              pageSize={25}
+              className={FLUSH_TABLE}
+              empty={{ title: 'Belum ada kendaraan', description: 'Kendaraan dengan data kendaraan terisi akan muncul di sini.' }}
+            />
             {rows.length > 0 && (
-              <tfoot>
-                <tr className="border-t-2 border-gray-200 bg-gray-50/60 font-semibold text-gray-900">
-                  <td>Total ({rows.length} kendaraan)</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.service, 0))}</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.fuel, 0))}</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.tax, 0))}</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.insurance, 0))}</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.incident, 0))}</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.breakdown.workorder, 0))}</td>
-                  <td className="text-right text-teal-700">{formatRupiah(rows.reduce((s, v) => s + v.totalCost, 0))}</td>
-                  <td className="text-right">{formatRupiah(rows.reduce((s, v) => s + v.costPerMonth, 0))}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
+              <p className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 border-t border-border px-4 py-2.5 text-sm">
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Gauge className="size-4" aria-hidden /> Total {formatNumber(rows.length)} kendaraan
+                </span>
+                <span className="num font-semibold text-foreground">{formatRupiah(rows.reduce((s, v) => s + v.totalCost, 0))}</span>
+              </p>
             )}
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Kpi({ icon, iconBg, label, value, sub }: {
-  icon: React.ReactNode; iconBg: string; label: string; value: string; sub?: string;
-}) {
-  return (
-    <div className="card p-4">
-      <div className="flex items-start gap-3">
-        <div className={cn('p-2 rounded-lg shrink-0', iconBg)}>{icon}</div>
-        <div className="min-w-0">
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-lg font-semibold text-gray-900 mt-0.5 truncate">{value}</p>
-          {sub && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{sub}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SortHeader({ label, active, dir, onClick, align = 'left' }: {
-  label: string; active: boolean; dir: 'asc' | 'desc'; onClick: () => void; align?: 'left' | 'right' | 'center';
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center gap-1 hover:text-teal-600 transition-colors',
-        active && 'text-teal-600',
-        align === 'right' && 'flex-row-reverse',
+          </Panel>
+        </>
       )}
-    >
-      {label}
-      <ArrowUpDown size={11} className={cn('opacity-40', active && 'opacity-100')} />
-      {active && <span className="sr-only">{dir === 'asc' ? 'naik' : 'turun'}</span>}
-    </button>
+    </div>
   );
 }
 

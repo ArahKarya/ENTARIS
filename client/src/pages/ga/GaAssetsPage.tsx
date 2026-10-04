@@ -1,644 +1,368 @@
-import { useState, useMemo } from 'react';
-import { Search, Boxes, Loader2, Plus, Pencil, Trash2, X, AlertCircle, QrCode, FileText, Camera, ImagePlus } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { ConfirmDialog } from '../../components/ConfirmDialog';
-import GaAssetQRModal from '../../components/GaAssetQRModal';
-import { can } from '../../lib/permissions';
+/**
+ * Daftar Aset (/ga/assets) — physical asset register (EAM).
+ *
+ * Server-paginated list (GET /ga/assets?paginated=1&thumb=1, search via `q`)
+ * following pages/SalesInvoices.tsx: useListState → FilterBar → DataTable.
+ * Row click / ?asset=<id> opens the detail sheet; QR and the documents drawer
+ * stay available per row. Writes need can('ga_assets','edit') (server:
+ * requirePerm('ga_assets') → edit for writes); documents need ga_documents view.
+ */
+import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Boxes, Eye, FileText, Pencil, Plus, QrCode, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/lib/api';
+import { can } from '@/lib/permissions';
+import { statusOptions } from '@/lib/status';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import {
+  ConfirmDialog,
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PageHeader,
+  RowActions,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import { SelectFilter } from '@/components/inventory/filters';
+import GaAssetQRModal from '@/components/GaAssetQRModal';
+import {
+  ASSET_FILTER_KEYS,
+  ASSET_STATUSES,
+  CONDITION_OPTIONS,
+  apiErrorMessage,
+  conditionMeta,
+  toAssetListParams,
+  type AssetRow,
+} from '@/components/ga/assets/asset-model';
+import { AssetThumb } from '@/components/ga/assets/asset-ui';
+import { AssetDetailSheet } from '@/components/ga/assets/AssetDetailSheet';
+import { AssetFormSheet } from '@/components/ga/assets/AssetFormSheet';
+import { useGaMaster } from '@/components/ga/assets/useGaMaster';
 import AssetDocumentsDrawer from './assets/AssetDocumentsDrawer';
 
-// GA — Registri Aset Fisik. List + create/edit modal. Konsumsi /ga/assets,
-// dengan select kategori/cabang/cost-center dari /ga/master/*.
-
-const STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Aktif' },
-  { value: 'IN_REPAIR', label: 'Perbaikan' },
-  { value: 'RETIRED', label: 'Dipensiunkan' },
-  { value: 'LOST', label: 'Hilang' },
-] as const;
-
-const CONDITION_OPTIONS = [
-  { value: 'GOOD', label: 'Baik' },
-  { value: 'FAIR', label: 'Cukup' },
-  { value: 'POOR', label: 'Kurang' },
-  { value: 'BROKEN', label: 'Rusak' },
-] as const;
-
-const statusBadgeClass = (status: string): string => {
-  switch (status) {
-    case 'ACTIVE':
-      return 'badge badge-green';
-    case 'IN_REPAIR':
-      return 'badge badge-yellow';
-    case 'LOST':
-      return 'badge badge-red';
-    case 'RETIRED':
-    default:
-      return 'badge badge-gray';
-  }
-};
-
-const statusLabel = (status: string): string =>
-  STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
-
-const conditionLabel = (condition: string): string =>
-  CONDITION_OPTIONS.find((o) => o.value === condition)?.label ?? condition;
+const ENDPOINT = '/ga/assets';
+const ASSET_PARAM = 'asset';
+const STATUS_FILTER = statusOptions(ASSET_STATUSES, 'ga_asset');
+const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-44';
 
 export const GaAssetsPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<any | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; code: string } | null>(null);
-  const [qrTarget, setQrTarget] = useState<any | null>(null);
-  const [docDrawerAsset, setDocDrawerAsset] = useState<{ id: string; code: string; name: string } | null>(null);
   const queryClient = useQueryClient();
+  const list = useListState({ filters: ASSET_FILTER_KEYS, defaultSort: { id: 'code', desc: false } });
+  const [density, setDensity] = useTableDensity();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const assetId = searchParams.get(ASSET_PARAM);
+
+  const [lastOpened, setLastOpened] = useState<AssetRow | null>(null);
+  const [form, setForm] = useState<{ asset: AssetRow | null } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AssetRow | null>(null);
+  const [qrTarget, setQrTarget] = useState<AssetRow | null>(null);
+  const [docTarget, setDocTarget] = useState<AssetRow | null>(null);
 
   const canEdit = can('ga_assets', 'edit');
   const canViewDocs = can('ga_documents', 'view');
 
-  // ['ga-assets', 'all']: the vehicle/building/equipment pages cache filtered
-  // lists under ['ga-assets', '<category>']; a bare ['ga-assets'] key collided
-  // with them. Invalidation still uses the ['ga-assets'] prefix.
-  const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['ga-assets', 'all'],
-    queryFn: async () => {
-      const res = await api.get('/ga/assets', { params: { limit: 500 } });
-      return res.data;
+  const setAssetParam = useCallback(
+    (id: string | null) =>
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (id) next.set(ASSET_PARAM, id);
+        else next.delete(ASSET_PARAM);
+        return next;
+      }),
+    [setSearchParams],
+  );
+  const openAsset = useCallback(
+    (asset: AssetRow) => {
+      setLastOpened(asset);
+      setAssetParam(asset.id);
     },
+    [setAssetParam],
+  );
+
+  const assetsQuery = useQuery({
+    queryKey: ['ga-assets', 'register', list.params],
+    queryFn: async () =>
+      (await api.get<Paginated<AssetRow>>(ENDPOINT, { params: toAssetListParams(list.params) })).data,
+    placeholderData: keepPreviousData,
   });
+
+  const categories = useGaMaster('asset-categories');
+  const branches = useGaMaster('branches');
+  const categoryOptions = useMemo(
+    () => (categories.data ?? []).map((c) => ({ value: c.id, label: c.name })),
+    [categories.data],
+  );
+  const branchOptions = useMemo(() => (branches.data ?? []).map((b) => ({ value: b.id, label: b.name })), [branches.data]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.post('/ga/assets/bulk/delete', { ids: [id] }),
-    onSuccess: () => {
+    onSuccess: (_res, id) => {
       toast.success('Aset dihapus.');
-      queryClient.invalidateQueries({ queryKey: ['ga-assets'] }); // prefix match: 'all' + per-category lists
+      queryClient.invalidateQueries({ queryKey: ['ga-assets'] }); // prefix: register + per-kind lists
+      if (assetId === id) setAssetParam(null);
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal menghapus aset.'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal menghapus aset.')),
   });
 
-  const filtered = useMemo(() => {
-    if (!searchTerm) return assets;
-    const q = searchTerm.toLowerCase();
-    return assets.filter((a: any) =>
-      a.code?.toLowerCase().includes(q) ||
-      a.name?.toLowerCase().includes(q) ||
-      a.serialNumber?.toLowerCase().includes(q) ||
-      a.location?.toLowerCase().includes(q) ||
-      a.category?.name?.toLowerCase().includes(q) ||
-      a.branch?.name?.toLowerCase().includes(q)
-    );
-  }, [assets, searchTerm]);
+  // The QR modal and documents drawer render outside the sheet, so the sheet
+  // closes first (a modal sheet would keep them inert).
+  const showQr = useCallback(
+    (asset: AssetRow) => {
+      setAssetParam(null);
+      setQrTarget(asset);
+    },
+    [setAssetParam],
+  );
+  const showDocs = useCallback(
+    (asset: AssetRow) => {
+      setAssetParam(null);
+      setDocTarget(asset);
+    },
+    [setAssetParam],
+  );
 
-  const openCreate = () => {
-    setEditTarget(null);
-    setIsModalOpen(true);
-  };
+  const columns = useMemo<ColumnDef<AssetRow>[]>(
+    () => [
+      {
+        id: 'photo',
+        header: () => <span className="sr-only">Foto</span>,
+        meta: { headerClassName: 'w-14', cellClassName: 'w-14 py-1.5' },
+        cell: ({ row }) => <AssetThumb filePath={row.original.photos?.[0]?.filePath} alt={`Foto ${row.original.name}`} />,
+      },
+      {
+        id: 'code',
+        header: 'Kode',
+        enableSorting: true,
+        meta: { cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => {
+          const a = row.original;
+          return (
+            <div className="flex min-w-0 flex-col items-start gap-0.5">
+              <DocumentLink onClick={() => openAsset(a)}>{a.code}</DocumentLink>
+              {/* Mobile: name + category stacked here because their columns are hidden. */}
+              <span className="line-clamp-2 max-w-44 whitespace-normal text-sm font-medium break-words text-foreground sm:hidden">{a.name}</span>
+              <span className="text-xs text-muted-foreground md:hidden">{a.category?.name ?? '-'}</span>
+              <StatusBadge status={a.status} docType="ga_asset" className="mt-0.5 sm:hidden" />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'name',
+        header: 'Nama Aset',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
+        cell: ({ row }) => {
+          const a = row.original;
+          return (
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-1.5 font-medium text-foreground">
+                <span className="break-words">{a.name}</span>
+                {a.fixedAsset && (
+                  <StatusBadge
+                    tone="info"
+                    dot={false}
+                    label="Aset Tetap"
+                    className="text-[11px]"
+                  />
+                )}
+              </p>
+              {(a.location || a.serialNumber) && (
+                <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
+                  {[a.location, a.serialNumber && `SN ${a.serialNumber}`].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'category',
+        header: 'Kategori',
+        meta: { hideBelow: 'md', cellClassName: 'text-muted-foreground' },
+        cell: ({ row }) => row.original.category?.name ?? '-',
+      },
+      {
+        id: 'branch',
+        header: 'Cabang',
+        meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
+        cell: ({ row }) => row.original.branch?.name ?? '-',
+      },
+      {
+        id: 'condition',
+        header: 'Kondisi',
+        enableSorting: true,
+        meta: { hideBelow: 'md' },
+        cell: ({ row }) => {
+          const c = conditionMeta(row.original.condition);
+          return <StatusBadge label={c.label} tone={c.tone} dot={false} />;
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        enableSorting: true,
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.status} docType="ga_asset" />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const a = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${a.code}`}
+              actions={[
+                { label: 'Lihat detail', icon: Eye, onSelect: () => openAsset(a) },
+                { label: 'QR aset', icon: QrCode, onSelect: () => setQrTarget(a) },
+                { label: 'Dokumen', icon: FileText, hidden: !canViewDocs, onSelect: () => setDocTarget(a) },
+                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setForm({ asset: a }) },
+                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(a) },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    [canEdit, canViewDocs, openAsset],
+  );
 
-  const openEdit = (asset: any) => {
-    setEditTarget(asset);
-    setIsModalOpen(true);
-  };
+  const rows = assetsQuery.data?.data;
+  const fallback = rows?.find((r) => r.id === assetId) ?? lastOpened;
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Aset General Affairs</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Registri aset fisik perusahaan beserta status &amp; kondisinya.</p>
-        </div>
-        {canEdit && (
-          <button className="btn-primary bg-teal-600 hover:bg-teal-700 self-start" onClick={openCreate}>
-            <Plus size={15} /> Tambah Aset
-          </button>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Cari kode, nama, kategori, atau lokasi..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-        />
-      </div>
-
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Kode</th>
-                <th scope="col">Nama</th>
-                <th scope="col">Kategori</th>
-                <th scope="col">Cabang</th>
-                <th scope="col" className="text-center">Status</th>
-                <th scope="col" className="text-center">Kondisi</th>
-                <th scope="col" className="w-20 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center text-gray-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-                    Memuat data aset...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <Boxes className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400">Belum ada aset.</p>
-                    {canEdit && (
-                      <button onClick={openCreate} className="mt-3 text-xs text-teal-600 hover:text-teal-700 font-medium">
-                        + Tambah aset pertama
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((a: any) => (
-                  <tr key={a.id}>
-                    <td className="whitespace-nowrap">
-                      <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{a.code}</span>
-                    </td>
-                    <td>
-                      <span className="font-medium text-gray-800">{a.name}</span>
-                      {a.fixedAsset && (
-                        <span className="badge badge-blue text-[10px] ml-1.5" title={`Tercatat sebagai Aset Tetap ${a.fixedAsset.assetNumber} · Nilai buku Rp ${Number(a.fixedAsset.bookValue).toLocaleString('id-ID')}`}>Aset Tetap</span>
-                      )}
-                      {a.location && <span className="block text-[11px] text-gray-400">{a.location}</span>}
-                    </td>
-                    <td className="text-gray-700">{a.category?.name ?? '—'}</td>
-                    <td className="text-gray-700">{a.branch?.name ?? '—'}</td>
-                    <td className="text-center">
-                      <span className={statusBadgeClass(a.status)}>{statusLabel(a.status)}</span>
-                    </td>
-                    <td className="text-center text-gray-600">{conditionLabel(a.condition)}</td>
-                    <td>
-                      <div className="flex items-center justify-end gap-0.5">
-                        <button
-                          onClick={() => setQrTarget(a)}
-                          className="p-1.5 hover:bg-slate-100 rounded text-gray-400 hover:text-slate-700 transition-colors"
-                          title="QR aset"
-                        >
-                          <QrCode size={16} />
-                        </button>
-                        {canViewDocs && (
-                          <button
-                            onClick={() => setDocDrawerAsset({ id: a.id, code: a.code, name: a.name })}
-                            className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Dokumen aset"
-                          >
-                            <FileText size={16} />
-                          </button>
-                        )}
-                        {canEdit && (
-                          <>
-                            <button
-                              onClick={() => openEdit(a)}
-                              className="p-1.5 hover:bg-teal-50 rounded text-gray-400 hover:text-teal-600 transition-colors"
-                              title="Edit aset"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              onClick={() => setDeleteTarget({ id: a.id, code: a.code })}
-                              className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
-                              title="Hapus aset"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isModalOpen && (
-        <AssetModal
-          key={editTarget?.id ?? 'new'}
-          asset={editTarget}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
-
-      <GaAssetQRModal
-        isOpen={qrTarget !== null}
-        onClose={() => setQrTarget(null)}
-        asset={qrTarget}
+      <PageHeader
+        title="Daftar Aset"
+        description="Registri aset fisik perusahaan beserta foto, QR, dokumen, status, dan kondisinya."
+        actions={
+          canEdit && (
+            <Button onClick={() => setForm({ asset: null })}>
+              <Plus aria-hidden />
+              Tambah Aset
+            </Button>
+          )
+        }
       />
 
-      {docDrawerAsset && (
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari aset"
+          searchPlaceholder="Cari kode, nama, seri, lokasi"
+          status={{ options: STATUS_FILTER }}
+        >
+          {!categories.isError && (
+            <SelectFilter
+              label="Filter kategori"
+              allLabel="Semua kategori"
+              value={list.filters.categoryId}
+              onChange={(v) => list.setFilter('categoryId', v)}
+              options={categoryOptions}
+              className={FILTER_CLASS}
+            />
+          )}
+          <SelectFilter
+            label="Filter kondisi"
+            allLabel="Semua kondisi"
+            value={list.filters.condition}
+            onChange={(v) => list.setFilter('condition', v)}
+            options={CONDITION_OPTIONS}
+            className={FILTER_CLASS}
+          />
+          {!branches.isError && (
+            <SelectFilter
+              label="Filter cabang"
+              allLabel="Semua cabang"
+              value={list.filters.branchId}
+              onChange={(v) => list.setFilter('branchId', v)}
+              options={branchOptions}
+              className={FILTER_CLASS}
+            />
+          )}
+        </FilterBar>
+
+        <DataTable
+          {...listTableProps(list, assetsQuery.data?.total)}
+          label="Daftar aset"
+          itemLabel="aset"
+          columns={columns}
+          data={rows}
+          getRowId={(row) => row.id}
+          loading={assetsQuery.isLoading}
+          fetching={assetsQuery.isFetching && assetsQuery.isPlaceholderData}
+          error={assetsQuery.error}
+          onRetry={() => assetsQuery.refetch()}
+          onRowClick={openAsset}
+          rowClassName={(row) => (row.status === 'RETIRED' || row.status === 'LOST' ? 'text-muted-foreground' : undefined)}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada aset',
+            description: 'Daftarkan aset fisik perusahaan (kendaraan, gedung, peralatan, perangkat IT) beserta foto dan QR-nya.',
+            action: canEdit ? (
+              <Button size="sm" onClick={() => setForm({ asset: null })}>
+                <Boxes aria-hidden />
+                Tambah aset pertama
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </div>
+
+      <AssetDetailSheet
+        assetId={assetId}
+        fallback={fallback}
+        onClose={() => setAssetParam(null)}
+        onQr={showQr}
+        onDocuments={canViewDocs ? showDocs : undefined}
+        onEdit={
+          canEdit
+            ? (a) => {
+                setAssetParam(null);
+                setForm({ asset: a });
+              }
+            : undefined
+        }
+        onDelete={canEdit ? (a) => setDeleteTarget(a) : undefined}
+      />
+
+      {form && <AssetFormSheet key={form.asset?.id ?? 'new'} asset={form.asset} onClose={() => setForm(null)} />}
+
+      <GaAssetQRModal isOpen={qrTarget !== null} onClose={() => setQrTarget(null)} asset={qrTarget} />
+
+      {docTarget && (
         <AssetDocumentsDrawer
-          assetId={docDrawerAsset.id}
-          assetCode={docDrawerAsset.code}
-          assetName={docDrawerAsset.name}
-          onClose={() => setDocDrawerAsset(null)}
+          assetId={docTarget.id}
+          assetCode={docTarget.code}
+          assetName={docTarget.name}
+          onClose={() => setDocTarget(null)}
         />
       )}
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) {
-            deleteMutation.mutate(deleteTarget.id);
-            setDeleteTarget(null);
-          }
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        tone="danger"
+        title="Hapus aset?"
+        description={`Hapus aset ${deleteTarget?.code ?? ''} — ${deleteTarget?.name ?? ''}? Foto dan QR-nya ikut terhapus. Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="Ya, hapus"
+        loading={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await deleteMutation.mutateAsync(deleteTarget.id);
+          setDeleteTarget(null);
         }}
-        title="Hapus Aset"
-        message={`Apakah Anda yakin ingin menghapus aset ${deleteTarget?.code}? Tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Ya, Hapus"
-        variant="danger"
       />
-    </div>
-  );
-};
-
-// ─── Create / Edit modal (inline) ──────────────────────────────────
-interface AssetPhoto {
-  id: string;
-  filePath: string;
-  caption: string | null;
-}
-
-const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
-
-interface AssetModalProps {
-  asset: any | null;
-  onClose: () => void;
-}
-
-const AssetModal = ({ asset, onClose }: AssetModalProps) => {
-  const isEdit = !!asset;
-  const queryClient = useQueryClient();
-  const [error, setError] = useState('');
-
-  const [form, setForm] = useState({
-    code: asset?.code ?? '',
-    name: asset?.name ?? '',
-    categoryId: asset?.categoryId ?? '',
-    branchId: asset?.branchId ?? '',
-    costCenterId: asset?.costCenterId ?? '',
-    serialNumber: asset?.serialNumber ?? '',
-    acquisitionDate: asset?.acquisitionDate ? String(asset.acquisitionDate).split('T')[0] : '',
-    acquisitionCost: asset?.acquisitionCost != null ? String(asset.acquisitionCost) : '',
-    status: asset?.status ?? 'ACTIVE',
-    condition: asset?.condition ?? 'GOOD',
-    location: asset?.location ?? '',
-    notes: asset?.notes ?? '',
-  });
-
-  const setField = (key: keyof typeof form, value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ['ga-master', 'asset-categories'],
-    queryFn: async () => (await api.get('/ga/master/asset-categories')).data,
-  });
-  const { data: branches = [] } = useQuery({
-    queryKey: ['ga-master', 'branches'],
-    queryFn: async () => (await api.get('/ga/master/branches')).data,
-  });
-  const { data: costCenters = [] } = useQuery({
-    queryKey: ['ga-master', 'cost-centers'],
-    queryFn: async () => (await api.get('/ga/master/cost-centers')).data,
-  });
-
-  // ── Asset photos ─────────────────────────────────────────────────
-  // Edit: stored photos come from the asset detail (the list endpoint does not
-  // include photos, only /:id). Create: the photo is uploaded after the save.
-  const { data: assetDetail } = useQuery<{ photos?: AssetPhoto[] }>({
-    queryKey: ['ga-asset-detail', asset?.id],
-    queryFn: async () => (await api.get(`/ga/assets/${asset.id}`)).data,
-    enabled: isEdit,
-  });
-  const existingPhotos: AssetPhoto[] = assetDetail?.photos ?? [];
-
-  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
-  const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
-
-  const pickPhoto = (f: File | null) => {
-    if (newPhotoPreview) URL.revokeObjectURL(newPhotoPreview);
-    if (!f) {
-      setNewPhotoFile(null);
-      setNewPhotoPreview(null);
-      return;
-    }
-    if (!PHOTO_TYPES.includes(f.type)) {
-      setNewPhotoFile(null);
-      setNewPhotoPreview(null);
-      setError('Format foto harus JPG, PNG, atau WEBP.');
-      return;
-    }
-    if (f.size > PHOTO_MAX_BYTES) {
-      setNewPhotoFile(null);
-      setNewPhotoPreview(null);
-      setError('Ukuran foto maksimal 5 MB.');
-      return;
-    }
-    setNewPhotoFile(f);
-    setNewPhotoPreview(URL.createObjectURL(f));
-  };
-
-  const uploadPhoto = async (assetId: string) => {
-    if (!newPhotoFile) return;
-    const fd = new FormData();
-    fd.append('photo', newPhotoFile);
-    // Do NOT set Content-Type manually — axios sets the multipart boundary.
-    await api.post(`/ga/assets/${assetId}/photos`, fd);
-    queryClient.invalidateQueries({ queryKey: ['ga-asset-detail', assetId] });
-    queryClient.invalidateQueries({ queryKey: ['ga-asset-photos', assetId] });
-  };
-
-  const deletePhotoMutation = useMutation({
-    mutationFn: (photoId: string) => api.delete(`/ga/assets/${asset?.id}/photos/${photoId}`),
-    onSuccess: () => {
-      toast.success('Foto dihapus.');
-      queryClient.invalidateQueries({ queryKey: ['ga-asset-detail', asset?.id] });
-      queryClient.invalidateQueries({ queryKey: ['ga-asset-photos', asset?.id] });
-    },
-    onError: () => toast.error('Gagal menghapus foto.'),
-  });
-
-  const mutation = useMutation({
-    mutationFn: (payload: any) =>
-      isEdit ? api.put(`/ga/assets/${asset.id}`, payload) : api.post('/ga/assets', payload),
-    onSuccess: async (res) => {
-      try {
-        const savedId: string | undefined = isEdit ? asset.id : res.data?.id;
-        if (savedId) await uploadPhoto(savedId);
-      } catch {
-        toast.error('Aset tersimpan, tapi foto gagal diunggah. Coba unggah ulang lewat Edit.');
-      }
-      toast.success(isEdit ? 'Aset diperbarui.' : 'Aset dibuat.');
-      queryClient.invalidateQueries({ queryKey: ['ga-assets'] }); // prefix match: 'all' + per-category lists
-      onClose();
-    },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan aset.'),
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!form.name.trim()) return setError('Nama aset wajib diisi.');
-    if (!form.categoryId) return setError('Kategori wajib dipilih.');
-    if (!form.branchId) return setError('Cabang wajib dipilih.');
-
-    const payload: any = {
-      code: form.code.trim() || undefined,
-      name: form.name.trim(),
-      categoryId: form.categoryId,
-      branchId: form.branchId,
-      costCenterId: form.costCenterId || null,
-      serialNumber: form.serialNumber.trim() || null,
-      acquisitionDate: form.acquisitionDate || null,
-      acquisitionCost: form.acquisitionCost ? Number(form.acquisitionCost) : null,
-      status: form.status,
-      condition: form.condition,
-      location: form.location.trim() || null,
-      notes: form.notes.trim() || null,
-    };
-    mutation.mutate(payload);
-  };
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">{isEdit ? 'Edit Aset' : 'Tambah Aset'}</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-400"><X size={18} /></button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-5 space-y-4">
-          {error && (
-            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-              <AlertCircle size={15} /> {error}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Kode {!isEdit && <span className="text-gray-400">(opsional, auto)</span>}</label>
-              <input
-                type="text"
-                value={form.code}
-                onChange={(e) => setField('code', e.target.value)}
-                placeholder={isEdit ? '' : 'Kosongkan untuk auto-generate'}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Nama <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setField('name', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Kategori <span className="text-red-500">*</span></label>
-              <select
-                value={form.categoryId}
-                onChange={(e) => setField('categoryId', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                <option value="">— Pilih kategori —</option>
-                {categories.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Cabang <span className="text-red-500">*</span></label>
-              <select
-                value={form.branchId}
-                onChange={(e) => setField('branchId', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                <option value="">— Pilih cabang —</option>
-                {branches.map((b: any) => (
-                  <option key={b.id} value={b.id}>{b.code} — {b.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Cost Center</label>
-              <select
-                value={form.costCenterId}
-                onChange={(e) => setField('costCenterId', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                <option value="">— Tidak ada —</option>
-                {costCenters.map((cc: any) => (
-                  <option key={cc.id} value={cc.id}>{cc.code} — {cc.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">No. Seri</label>
-              <input
-                type="text"
-                value={form.serialNumber}
-                onChange={(e) => setField('serialNumber', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tanggal Perolehan</label>
-              <input
-                type="date"
-                value={form.acquisitionDate}
-                onChange={(e) => setField('acquisitionDate', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Nilai Perolehan</label>
-              <input
-                type="number"
-                min="0"
-                value={form.acquisitionCost}
-                onChange={(e) => setField('acquisitionCost', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 tabular-nums"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-              <select
-                value={form.status}
-                onChange={(e) => setField('status', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Kondisi</label>
-              <select
-                value={form.condition}
-                onChange={(e) => setField('condition', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                {CONDITION_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Lokasi</label>
-              <input
-                type="text"
-                value={form.location}
-                onChange={(e) => setField('location', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Catatan</label>
-              <textarea
-                value={form.notes}
-                onChange={(e) => setField('notes', e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-          </div>
-
-          {/* Asset photos */}
-          <div className="border-t border-border pt-4">
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Camera size={13} aria-hidden /> Foto Aset
-            </p>
-
-            {existingPhotos.length > 0 && (
-              <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {existingPhotos.map((ph) => (
-                  <div key={ph.id} className="group relative">
-                    <img
-                      src={`/uploads/${ph.filePath}`}
-                      alt={ph.caption ?? 'Foto aset'}
-                      className="h-20 w-full rounded-lg border border-border object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => deletePhotoMutation.mutate(ph.id)}
-                      disabled={deletePhotoMutation.isPending}
-                      title="Hapus foto"
-                      aria-label="Hapus foto"
-                      className="absolute right-1 top-1 rounded-full bg-overlay p-1 text-white opacity-0 transition-opacity hover:bg-danger focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50"
-                    >
-                      <Trash2 size={11} aria-hidden />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {newPhotoPreview ? (
-              <div className="relative inline-block">
-                <img src={newPhotoPreview} alt="Pratinjau foto baru" className="h-20 rounded-lg border border-border object-cover" />
-                <button
-                  type="button"
-                  onClick={() => pickPhoto(null)}
-                  title="Batalkan foto"
-                  aria-label="Batalkan foto"
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-foreground p-0.5 text-background hover:bg-danger hover:text-danger-foreground"
-                >
-                  <X size={12} aria-hidden />
-                </button>
-                <p className="mt-1 text-[11px] text-muted-foreground">Diunggah saat aset disimpan.</p>
-              </div>
-            ) : (
-              <label className="flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border-strong px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:bg-surface-hover focus-within:ring-2 focus-within:ring-ring">
-                <ImagePlus size={14} aria-hidden />
-                {existingPhotos.length > 0 ? 'Tambah foto lain' : 'Pilih foto (JPG/PNG/WEBP, maks 5 MB)'}
-                <input
-                  type="file"
-                  accept={PHOTO_TYPES.join(',')}
-                  className="sr-only"
-                  onChange={(e) => {
-                    pickPhoto(e.target.files?.[0] ?? null);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-              Batal
-            </button>
-            <button type="submit" disabled={mutation.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-60">
-              {mutation.isPending && <Loader2 size={15} className="animate-spin" />}
-              {isEdit ? 'Simpan Perubahan' : 'Simpan'}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 };

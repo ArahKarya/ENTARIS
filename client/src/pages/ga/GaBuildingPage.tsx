@@ -1,389 +1,530 @@
-// GA Bangunan — pilih aset, kelola data bangunan (1-1, upsert via PUT)
-// dan sewa/rental (1-many, masuk/keluar).
-import { useState, useMemo, useEffect } from 'react';
-import type { FormEvent } from 'react';
-import {
-  Search, Building2, Loader2, Save, Plus, KeyRound, X, StopCircle, QrCode,
-} from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { can } from '../../lib/permissions';
-import { formatRupiah, formatDate } from '../../lib/formatters';
-import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { AssetPhotoSection } from '../../components/AssetPhotoSection';
-import GaAssetQRModal from '../../components/GaAssetQRModal';
+/**
+ * Gedung & Sewa (/ga/building) — building assets (categoryKind=building,
+ * resolved server-side) with their building data (1-1, upsert via PUT) and
+ * rental contracts (1-many, sewa masuk/keluar).
+ *
+ * Master-detail: the asset list on the left marks the active contract that
+ * ends first; ?asset=<id> keeps the selection. Writes need
+ * can('ga_building','edit') (server: requirePerm('ga_building')).
+ */
+import { useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Building2, KeyRound, Plus, QrCode, Save, StopCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/lib/api';
+import { can } from '@/lib/permissions';
+import { formatDate, formatRupiah } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog, DataTable, EmptyState, Field, PageHeader, RowActions, StatusBadge } from '@/components/shared';
+import { AssetPhotoSection } from '@/components/AssetPhotoSection';
+import GaAssetQRModal from '@/components/GaAssetQRModal';
+import { FormNumberInput } from '@/components/inventory/master-data-kit';
+import {
+  BUILDING_TYPE_OPTIONS,
+  CERTIFICATE_OPTIONS,
+  OWNERSHIP_OPTIONS,
+  apiErrorMessage,
+  nearestActiveRental,
+  numOrNull,
+  rentalExpiry,
+  type AssetRow,
+} from '@/components/ga/assets/asset-model';
+import { DueMarker, Section, TableSection } from '@/components/ga/assets/asset-ui';
+import { AssetPickerList } from '@/components/ga/assets/AssetPickerList';
+import { OptionSelect } from '@/components/ga/assets/OptionSelect';
+import { RentalFormSheet, type BuildingRental } from '@/components/ga/assets/RentalFormSheet';
+import { useAssetSelection } from '@/components/ga/assets/useAssetSelection';
 
-const BUILDING_TYPES = ['KANTOR', 'GUDANG', 'PABRIK', 'RUMAH', 'MESS', 'RUKO', 'LAINNYA'] as const;
-const OWNERSHIP = ['MILIK_SENDIRI', 'SEWA_MASUK', 'SEWA_KELUAR', 'PINJAM_PAKAI'] as const;
-const CERT_TYPES = ['HM', 'HGB', 'HGU', 'HP_AKTA', 'GIRIK', 'BELUM_SERTIFIKAT'] as const;
-const RENTAL_ARAH = ['SEWA_MASUK', 'SEWA_KELUAR'] as const;
-const RENTAL_PERIODE = ['BULANAN', 'TAHUNAN'] as const;
+/** Rental markers are fetched per asset; cap the fan-out for very long lists. */
+const MARKER_LIMIT = 40;
 
-interface Asset { id: string; code: string; name: string; category?: { name?: string } | null }
+type BuildingForm = Record<
+  | 'jenis'
+  | 'ownership'
+  | 'luasTanah'
+  | 'luasBangunan'
+  | 'jumlahLantai'
+  | 'tahunBangun'
+  | 'tahunRenovasi'
+  | 'alamatLengkap'
+  | 'kelurahan'
+  | 'kecamatan'
+  | 'kota'
+  | 'provinsi'
+  | 'kodePos'
+  | 'certificateType'
+  | 'certificateNumber'
+  | 'njopTanah'
+  | 'njopBangunan'
+  | 'notes',
+  string
+>;
 
-const numOrNull = (v: string): number | null => {
-  if (v === '' || v == null) return null;
-  const n = Number(v);
-  return isNaN(n) ? null : n;
-};
+type BuildingData = Partial<Record<keyof BuildingForm, string | number | null>> | null;
+
+const str = (v: string | number | null | undefined) => (v == null ? '' : String(v));
+
+function toForm(d: BuildingData): BuildingForm {
+  return {
+    jenis: str(d?.jenis) || 'KANTOR',
+    ownership: str(d?.ownership) || 'MILIK_SENDIRI',
+    luasTanah: str(d?.luasTanah),
+    luasBangunan: str(d?.luasBangunan),
+    jumlahLantai: str(d?.jumlahLantai),
+    tahunBangun: str(d?.tahunBangun),
+    tahunRenovasi: str(d?.tahunRenovasi),
+    alamatLengkap: str(d?.alamatLengkap),
+    kelurahan: str(d?.kelurahan),
+    kecamatan: str(d?.kecamatan),
+    kota: str(d?.kota),
+    provinsi: str(d?.provinsi),
+    kodePos: str(d?.kodePos),
+    certificateType: str(d?.certificateType),
+    certificateNumber: str(d?.certificateNumber),
+    njopTanah: str(d?.njopTanah),
+    njopBangunan: str(d?.njopBangunan),
+    notes: str(d?.notes),
+  };
+}
+
+const rentalsKey = (assetId: string | null) => ['ga-building-rentals', assetId];
+const fetchRentals = async (assetId: string) =>
+  (await api.get<BuildingRental[]>(`/ga/building/assets/${assetId}/rentals`)).data;
 
 export const GaBuildingPage = () => {
   const queryClient = useQueryClient();
   const canEdit = can('ga_building', 'edit');
+  const canEditAssets = can('ga_assets', 'edit');
+  const detailRef = useRef<HTMLDivElement>(null);
 
-  const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState<Record<string, string>>({});
-  const [showRentalModal, setShowRentalModal] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
-  const [endTarget, setEndTarget] = useState<{ id: string; label: string } | null>(null);
+  const [showRentalSheet, setShowRentalSheet] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+  const [endTarget, setEndTarget] = useState<BuildingRental | null>(null);
 
-  const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ['ga-assets', 'gedung'],
-    queryFn: async () => (await api.get('/ga/assets', { params: { limit: 500, categoryId: 'cmq6bx8z30003vvqjbog7voys,cmq7ja1kg000401lp4k5obtk8' } })).data,
+  const assetsQuery = useQuery({
+    queryKey: ['ga-assets', 'kind', 'building'],
+    queryFn: async () =>
+      (await api.get<AssetRow[]>('/ga/assets', { params: { limit: 500, categoryKind: 'building' } })).data,
   });
+  const assets = assetsQuery.data;
+  const assetIds = useMemo(() => assets?.map((a) => a.id), [assets]);
+  const { selectedId, select } = useAssetSelection(assetIds);
+  const selectedAsset = assets?.find((a) => a.id === selectedId) ?? null;
 
-  const filteredAssets = useMemo(() => {
-    if (!search) return assets;
-    const q = search.toLowerCase();
-    return assets.filter((a) => a.code?.toLowerCase().includes(q) || a.name?.toLowerCase().includes(q));
-  }, [assets, search]);
+  // Per-asset rentals for the list markers (same cache as the detail table).
+  const markerQueries = useQueries({
+    queries: (assets ?? []).slice(0, MARKER_LIMIT).map((a) => ({
+      queryKey: rentalsKey(a.id),
+      queryFn: () => fetchRentals(a.id),
+      staleTime: 60_000,
+    })),
+  });
+  const rentalsByAsset = new Map((assets ?? []).slice(0, MARKER_LIMIT).map((a, i) => [a.id, markerQueries[i]?.data]));
 
-  // QR tersimpan di GaAsset, bukan GaBuildingData -- fetch detail asset
-  // terpisah (endpoint sama yang dipakai halaman Aset generik & Kendaraan).
-  const { data: assetDetailForQr } = useQuery({
+  // QR lives on GaAsset (detail endpoint), not on the building data.
+  const assetDetail = useQuery<AssetRow>({
     queryKey: ['ga-asset-detail', selectedId],
     queryFn: async () => (await api.get(`/ga/assets/${selectedId}`)).data,
     enabled: !!selectedId,
   });
 
-  // Auto-select aset pertama begitu daftar termuat -- klik modul langsung
-  // tampilkan datanya tanpa perlu klik manual salah satu baris dulu.
-  useEffect(() => {
-    if (selectedId && filteredAssets.some((a) => a.id === selectedId)) return;
-    if (filteredAssets.length > 0) setSelectedId(filteredAssets[0]!.id);
-    else if (filteredAssets.length === 0) setSelectedId(null);
-  }, [filteredAssets, selectedId]);
-
-  const selectedAsset = assets.find((a) => a.id === selectedId) ?? null;
-
-  const { data: buildingData, isLoading: bdLoading } = useQuery({
-    queryKey: ['ga-building', selectedId],
-    queryFn: async () => (await api.get(`/ga/building/assets/${selectedId}`)).data,
+  const rentalsQuery = useQuery({
+    queryKey: rentalsKey(selectedId),
+    queryFn: () => fetchRentals(selectedId as string),
     enabled: !!selectedId,
   });
-
-  useEffect(() => {
-    const d = buildingData ?? {};
-    setForm({
-      jenis: d.jenis ?? 'KANTOR', ownership: d.ownership ?? 'MILIK_SENDIRI',
-      luasTanah: d.luasTanah != null ? String(d.luasTanah) : '',
-      luasBangunan: d.luasBangunan != null ? String(d.luasBangunan) : '',
-      jumlahLantai: d.jumlahLantai != null ? String(d.jumlahLantai) : '',
-      tahunBangun: d.tahunBangun != null ? String(d.tahunBangun) : '',
-      tahunRenovasi: d.tahunRenovasi != null ? String(d.tahunRenovasi) : '',
-      alamatLengkap: d.alamatLengkap ?? '', kelurahan: d.kelurahan ?? '', kecamatan: d.kecamatan ?? '',
-      kota: d.kota ?? '', provinsi: d.provinsi ?? '', kodePos: d.kodePos ?? '',
-      certificateType: d.certificateType ?? '', certificateNumber: d.certificateNumber ?? '',
-      njopTanah: d.njopTanah != null ? String(d.njopTanah) : '',
-      njopBangunan: d.njopBangunan != null ? String(d.njopBangunan) : '',
-      notes: d.notes ?? '',
-    });
-  }, [buildingData, selectedId]);
-
-  const saveData = useMutation({
-    mutationFn: () => api.put(`/ga/building/assets/${selectedId}`, {
-      jenis: form.jenis, ownership: form.ownership,
-      luasTanah: numOrNull(form.luasTanah), luasBangunan: numOrNull(form.luasBangunan),
-      jumlahLantai: numOrNull(form.jumlahLantai), tahunBangun: numOrNull(form.tahunBangun),
-      tahunRenovasi: numOrNull(form.tahunRenovasi), alamatLengkap: form.alamatLengkap || null,
-      kelurahan: form.kelurahan || null, kecamatan: form.kecamatan || null, kota: form.kota || null,
-      provinsi: form.provinsi || null, kodePos: form.kodePos || null,
-      certificateType: form.certificateType || null, certificateNumber: form.certificateNumber || null,
-      njopTanah: numOrNull(form.njopTanah), njopBangunan: numOrNull(form.njopBangunan),
-      notes: form.notes || null,
-    }),
-    onSuccess: () => {
-      toast.success('Data bangunan disimpan.');
-      queryClient.invalidateQueries({ queryKey: ['ga-building', selectedId] });
-    },
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan data bangunan.'),
-  });
-
-  const { data: rentals = [] } = useQuery<any[]>({
-    queryKey: ['ga-building-rentals', selectedId],
-    queryFn: async () => (await api.get(`/ga/building/assets/${selectedId}/rentals`)).data,
-    enabled: !!selectedId,
-  });
+  const rentals = useMemo(() => rentalsQuery.data ?? [], [rentalsQuery.data]);
 
   const endRental = useMutation({
     mutationFn: (rid: string) => api.patch(`/ga/building/assets/${selectedId}/rentals/${rid}/end`),
     onSuccess: () => {
       toast.success('Sewa diakhiri.');
-      queryClient.invalidateQueries({ queryKey: ['ga-building-rentals', selectedId] });
+      queryClient.invalidateQueries({ queryKey: rentalsKey(selectedId) });
     },
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal akhiri sewa.'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Gagal akhiri sewa.')),
   });
+
+  const onSelect = (a: AssetRow) => {
+    select(a.id);
+    // Stacked layout (below lg): bring the detail into view.
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  };
+
+  const rentalColumns = useMemo<ColumnDef<BuildingRental>[]>(
+    () => [
+      {
+        id: 'pihak',
+        header: 'Pihak',
+        meta: { cellClassName: 'min-w-40' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">{r.arah === 'SEWA_MASUK' ? 'Pemilik (sewa masuk)' : 'Penyewa (sewa keluar)'}</p>
+              <p className="break-words font-medium text-foreground">{r.pihak}</p>
+              {r.kontak && <p className="text-xs text-muted-foreground">{r.kontak}</p>}
+              {/* Mobile: period stacked here because its column is hidden. */}
+              <p className="num mt-0.5 text-xs text-muted-foreground md:hidden">
+                {formatDate(r.tanggalMulai)} – {formatDate(r.tanggalAkhir)}
+              </p>
+              <DueMarker info={rentalExpiry(r)} hideOk className="md:hidden" />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'period',
+        header: 'Masa Sewa',
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="flex flex-col gap-0.5">
+              <span className="num text-xs text-muted-foreground">mulai {formatDate(r.tanggalMulai)}</span>
+              <DueMarker info={rentalExpiry(r)} date={r.tanggalAkhir} />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'nilaiSewa',
+        header: () => (
+          <>
+            Nilai Sewa <span className="normal-case">(Rp)</span>
+          </>
+        ),
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="flex flex-col items-end gap-1">
+              <span className="font-medium text-foreground">{formatRupiah(r.nilaiSewa, { symbol: false })}</span>
+              <span className="text-xs text-muted-foreground">per {r.periode === 'BULANAN' ? 'bulan' : 'tahun'}</span>
+              <StatusBadge status={r.status} className="sm:hidden" />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => (
+          <RowActions
+            label={`Aksi untuk sewa ${row.original.pihak}`}
+            actions={[
+              {
+                label: 'Akhiri sewa',
+                icon: StopCircle,
+                tone: 'danger',
+                hidden: !canEdit || row.original.status !== 'AKTIF',
+                onSelect: () => setEndTarget(row.original),
+              },
+            ]}
+          />
+        ),
+      },
+    ],
+    [canEdit],
+  );
+
+  const activeRental = nearestActiveRental(rentals);
 
   return (
     <div className="space-y-5 pb-8">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Bangunan & Tanah</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Data properti, sertifikat, dan kontrak sewa per aset.</p>
-      </div>
+      <PageHeader
+        title="Gedung & Sewa"
+        description="Data properti, sertifikat, dan kontrak sewa per gedung, gudang, atau bangunan."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
-        {/* Asset list */}
-        <div className="card p-0 overflow-hidden h-fit">
-          <div className="p-3 border-b border-gray-100">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text" placeholder="Cari aset..." value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-          </div>
-          <div className="max-h-[70vh] overflow-y-auto">
-            {assetsLoading ? (
-              <div className="py-10 text-center text-gray-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
-            ) : filteredAssets.length === 0 ? (
-              <p className="py-10 text-center text-sm text-gray-400">Tidak ada aset.</p>
-            ) : (
-              filteredAssets.map((a) => (
-                <button
-                  key={a.id} onClick={() => setSelectedId(a.id)}
-                  className={`w-full text-left px-4 py-2.5 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
-                    selectedId === a.id ? 'bg-teal-50' : ''
-                  }`}
-                >
-                  <span className="block font-mono text-xs text-gray-500">{a.code}</span>
-                  <span className="block text-sm font-medium text-gray-800 truncate">{a.name}</span>
-                  {a.category?.name && <span className="block text-[11px] text-gray-400">{a.category.name}</span>}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <AssetPickerList
+          label="Daftar gedung"
+          assets={assets ?? []}
+          loading={assetsQuery.isLoading}
+          error={assetsQuery.error}
+          onRetry={() => assetsQuery.refetch()}
+          selectedId={selectedId}
+          onSelect={onSelect}
+          searchPlaceholder="Cari kode, nama, atau lokasi"
+          renderMarker={(a) => {
+            const r = nearestActiveRental(rentalsByAsset.get(a.id) ?? []);
+            return r ? <DueMarker info={rentalExpiry(r)} hideOk className="mt-0.5" /> : null;
+          }}
+          empty={{
+            title: 'Belum ada gedung',
+            description: 'Daftarkan aset dengan kategori Bangunan / Gedung atau Gudang di Daftar Aset.',
+            action: canEditAssets ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/ga/assets">Buka Daftar Aset</Link>
+              </Button>
+            ) : undefined,
+          }}
+        />
 
-        {/* Right panel */}
-        <div className="space-y-5">
+        <div ref={detailRef} className="min-w-0 scroll-mt-20 space-y-5">
           {!selectedAsset ? (
-            <div className="card py-20 text-center text-gray-400">
-              <Building2 className="w-10 h-10 mx-auto mb-2 text-gray-200" />
-              <p className="text-sm">Pilih aset di kiri untuk melihat data bangunan.</p>
-            </div>
+            assetsQuery.isLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : (
+              <div className="rounded-lg border border-border bg-card">
+                <EmptyState icon={Building2} title="Pilih gedung" description="Pilih gedung di daftar untuk melihat data bangunan dan kontrak sewanya." />
+              </div>
+            )
           ) : (
             <>
-              {/* Building data form */}
-              <div className="card p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                    <Building2 size={16} className="text-teal-600" /> Data Bangunan — {selectedAsset.name}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setShowQrModal(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-700" title="QR aset">
-                      <QrCode size={14} /> QR Aset
-                    </button>
-                    {canEdit && (
-                      <button onClick={() => saveData.mutate()} disabled={saveData.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700">
-                        {saveData.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {bdLoading ? (
-                  <div className="py-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-300" /></div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <SelectField label="Jenis" value={form.jenis} onChange={(v) => setForm({ ...form, jenis: v })} disabled={!canEdit} options={BUILDING_TYPES} allowEmpty={false} />
-                    <SelectField label="Kepemilikan" value={form.ownership} onChange={(v) => setForm({ ...form, ownership: v })} disabled={!canEdit} options={OWNERSHIP} allowEmpty={false} />
-                    <Field label="Jumlah Lantai" type="number" value={form.jumlahLantai} onChange={(v) => setForm({ ...form, jumlahLantai: v })} disabled={!canEdit} />
-                    <Field label="Luas Tanah (m²)" type="number" value={form.luasTanah} onChange={(v) => setForm({ ...form, luasTanah: v })} disabled={!canEdit} />
-                    <Field label="Luas Bangunan (m²)" type="number" value={form.luasBangunan} onChange={(v) => setForm({ ...form, luasBangunan: v })} disabled={!canEdit} />
-                    <Field label="Tahun Bangun" type="number" value={form.tahunBangun} onChange={(v) => setForm({ ...form, tahunBangun: v })} disabled={!canEdit} />
-                    <Field label="Tahun Renovasi" type="number" value={form.tahunRenovasi} onChange={(v) => setForm({ ...form, tahunRenovasi: v })} disabled={!canEdit} />
-                    <SelectField label="Jenis Sertifikat" value={form.certificateType} onChange={(v) => setForm({ ...form, certificateType: v })} disabled={!canEdit} options={CERT_TYPES} />
-                    <Field label="No. Sertifikat" value={form.certificateNumber} onChange={(v) => setForm({ ...form, certificateNumber: v })} disabled={!canEdit} />
-                    <Field label="NJOP Tanah" type="number" value={form.njopTanah} onChange={(v) => setForm({ ...form, njopTanah: v })} disabled={!canEdit} />
-                    <Field label="NJOP Bangunan" type="number" value={form.njopBangunan} onChange={(v) => setForm({ ...form, njopBangunan: v })} disabled={!canEdit} />
-                    <div className="col-span-2 md:col-span-3">
-                      <Field label="Alamat Lengkap" value={form.alamatLengkap} onChange={(v) => setForm({ ...form, alamatLengkap: v })} disabled={!canEdit} />
-                    </div>
-                    <Field label="Kelurahan" value={form.kelurahan} onChange={(v) => setForm({ ...form, kelurahan: v })} disabled={!canEdit} />
-                    <Field label="Kecamatan" value={form.kecamatan} onChange={(v) => setForm({ ...form, kecamatan: v })} disabled={!canEdit} />
-                    <Field label="Kota" value={form.kota} onChange={(v) => setForm({ ...form, kota: v })} disabled={!canEdit} />
-                    <Field label="Provinsi" value={form.provinsi} onChange={(v) => setForm({ ...form, provinsi: v })} disabled={!canEdit} />
-                    <Field label="Kode Pos" value={form.kodePos} onChange={(v) => setForm({ ...form, kodePos: v })} disabled={!canEdit} />
-                    <div className="col-span-2 md:col-span-3">
-                      <Field label="Catatan" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} disabled={!canEdit} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <AssetPhotoSection assetId={selectedAsset.id} canEdit={canEdit} />
-
-              {/* Rentals */}
-              <div className="card p-0 overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                  <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                    <KeyRound size={16} className="text-teal-600" /> Kontrak Sewa
-                  </h2>
-                  {canEdit && (
-                    <button onClick={() => setShowRentalModal(true)} className="btn-primary bg-teal-600 hover:bg-teal-700">
-                      <Plus size={14} /> Tambah
-                    </button>
+              <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+                <div className="min-w-0">
+                  <p className="num font-mono text-xs text-muted-foreground">{selectedAsset.code}</p>
+                  <h2 className="break-words text-base font-semibold text-foreground">{selectedAsset.name}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {[selectedAsset.category?.name, selectedAsset.branch?.name, selectedAsset.location].filter(Boolean).join(' · ')}
+                  </p>
+                  {activeRental && (
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-foreground">
+                      <span>
+                        Sewa aktif s/d <span className="num font-medium">{formatDate(activeRental.tanggalAkhir)}</span>
+                      </span>
+                      <DueMarker info={rentalExpiry(activeRental)} hideOk />
+                    </p>
                   )}
                 </div>
-                <div className="table-responsive">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th className="text-center">Arah</th><th>Pihak</th>
-                        <th className="text-right">Nilai Sewa</th><th>Periode</th>
-                        <th>Mulai</th><th>Akhir</th><th className="text-center">Status</th><th className="w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rentals.length === 0 ? (
-                        <tr><td colSpan={8} className="py-10 text-center text-sm text-gray-400">Belum ada kontrak sewa.</td></tr>
-                      ) : rentals.map((r) => {
-                        const isActive = r.status === 'AKTIF';
-                        return (
-                          <tr key={r.id} className={isActive ? '' : 'opacity-60'}>
-                            <td className="text-center">
-                              <span className={`badge ${r.arah === 'SEWA_MASUK' ? 'badge-green' : 'badge-blue'}`}>
-                                {r.arah === 'SEWA_MASUK' ? 'Masuk' : 'Keluar'}
-                              </span>
-                            </td>
-                            <td className="font-medium text-gray-800">{r.pihak}{r.kontak && <span className="block text-[11px] text-gray-400">{r.kontak}</span>}</td>
-                            <td className="text-right font-mono tabular-nums text-gray-900">{formatRupiah(Number(r.nilaiSewa))}</td>
-                            <td className="text-gray-600">{r.periode === 'BULANAN' ? 'Bulanan' : 'Tahunan'}</td>
-                            <td className="text-gray-500 whitespace-nowrap">{formatDate(r.tanggalMulai)}</td>
-                            <td className="text-gray-500 whitespace-nowrap">{formatDate(r.tanggalAkhir)}</td>
-                            <td className="text-center"><span className={`badge ${isActive ? 'badge-green' : 'badge-gray'}`}>{r.status}</span></td>
-                            <td>
-                              {canEdit && isActive && (
-                                <button onClick={() => setEndTarget({ id: r.id, label: `${r.pihak}` })}
-                                  className="p-1.5 hover:bg-amber-50 rounded text-gray-400 hover:text-amber-600 transition-colors" title="Akhiri sewa">
-                                  <StopCircle size={15} />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <Button variant="outline" onClick={() => setShowQr(true)} disabled={!assetDetail.data}>
+                  <QrCode aria-hidden />
+                  QR aset
+                </Button>
               </div>
+
+              <TableSection
+                title="Kontrak Sewa"
+                icon={<KeyRound />}
+                actions={
+                  canEdit && (
+                    <Button size="sm" onClick={() => setShowRentalSheet(true)}>
+                      <Plus aria-hidden />
+                      Tambah Kontrak
+                    </Button>
+                  )
+                }
+              >
+                <DataTable
+                  label={`Kontrak sewa ${selectedAsset.name}`}
+                  itemLabel="kontrak"
+                  columns={rentalColumns}
+                  data={rentals}
+                  getRowId={(r) => r.id}
+                  loading={rentalsQuery.isLoading}
+                  error={rentalsQuery.error}
+                  onRetry={() => rentalsQuery.refetch()}
+                  rowClassName={(r) => (r.status === 'AKTIF' ? undefined : 'text-muted-foreground')}
+                  stickyHeader={false}
+                  empty={{
+                    title: 'Belum ada kontrak sewa',
+                    description: 'Catat sewa masuk (kita menyewa) atau sewa keluar (kita menyewakan) beserta masa berlakunya.',
+                  }}
+                />
+              </TableSection>
+
+              <BuildingDataSection key={selectedAsset.id} assetId={selectedAsset.id} canEdit={canEdit} />
+
+              <AssetPhotoSection assetId={selectedAsset.id} canEdit={canEdit} />
             </>
           )}
         </div>
       </div>
 
-      {showRentalModal && selectedId && (
-        <RentalModal
+      {showRentalSheet && selectedId && (
+        <RentalFormSheet
           assetId={selectedId}
-          onClose={() => setShowRentalModal(false)}
+          onClose={() => setShowRentalSheet(false)}
           onSaved={() => {
-            setShowRentalModal(false);
-            queryClient.invalidateQueries({ queryKey: ['ga-building-rentals', selectedId] });
+            setShowRentalSheet(false);
+            queryClient.invalidateQueries({ queryKey: rentalsKey(selectedId) });
           }}
         />
       )}
 
       <ConfirmDialog
         open={endTarget !== null}
-        onCancel={() => setEndTarget(null)}
-        onConfirm={() => { if (endTarget) { endRental.mutate(endTarget.id); setEndTarget(null); } }}
-        title="Akhiri Kontrak Sewa"
-        message={`Akhiri kontrak sewa dengan ${endTarget?.label}? Status akan berubah menjadi BERAKHIR.`}
-        confirmLabel="Ya, Akhiri"
-        variant="danger"
+        onOpenChange={(open) => !open && setEndTarget(null)}
+        tone="danger"
+        title="Akhiri kontrak sewa?"
+        description={`Akhiri kontrak sewa dengan ${endTarget?.pihak ?? ''}? Status berubah menjadi Berakhir.`}
+        confirmLabel="Ya, akhiri"
+        loading={endRental.isPending}
+        onConfirm={async () => {
+          if (!endTarget) return;
+          await endRental.mutateAsync(endTarget.id);
+          setEndTarget(null);
+        }}
       />
 
-      <GaAssetQRModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} asset={assetDetailForQr ?? null} />
+      <GaAssetQRModal isOpen={showQr} onClose={() => setShowQr(false)} asset={assetDetail.data ?? null} />
     </div>
   );
 };
 
-// ── Field helpers ─────────────────────────────────────────────────────
-interface FieldProps { label: string; value: string; onChange: (v: string) => void; type?: string; disabled?: boolean }
-function Field({ label, value, onChange, type = 'text', disabled }: FieldProps) {
-  return (
-    <label className="block">
-      <span className="block text-xs font-medium text-gray-500 mb-1">{label}</span>
-      <input
-        type={type} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500"
+// ─── Building data (1-1, upsert) ──────────────────────────────────────────
+
+function BuildingDataSection({ assetId, canEdit }: { assetId: string; canEdit: boolean }) {
+  const queryClient = useQueryClient();
+  const dataQuery = useQuery({
+    queryKey: ['ga-building', assetId],
+    queryFn: async () => (await api.get<BuildingData>(`/ga/building/assets/${assetId}`)).data,
+  });
+  const [form, setForm] = useState<BuildingForm>(() => toForm(dataQuery.data ?? null));
+  const [dirty, setDirty] = useState(false);
+  // Reset the form whenever fresh server data arrives (render-phase sync).
+  const [syncedData, setSyncedData] = useState(dataQuery.data);
+  if (dataQuery.data !== syncedData) {
+    setSyncedData(dataQuery.data);
+    if (dataQuery.data !== undefined) {
+      setForm(toForm(dataQuery.data));
+      setDirty(false);
+    }
+  }
+
+  const set = (k: keyof BuildingForm, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    setDirty(true);
+  };
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.put(`/ga/building/assets/${assetId}`, {
+        jenis: form.jenis,
+        ownership: form.ownership,
+        luasTanah: numOrNull(form.luasTanah),
+        luasBangunan: numOrNull(form.luasBangunan),
+        jumlahLantai: numOrNull(form.jumlahLantai),
+        tahunBangun: numOrNull(form.tahunBangun),
+        tahunRenovasi: numOrNull(form.tahunRenovasi),
+        alamatLengkap: form.alamatLengkap || null,
+        kelurahan: form.kelurahan || null,
+        kecamatan: form.kecamatan || null,
+        kota: form.kota || null,
+        provinsi: form.provinsi || null,
+        kodePos: form.kodePos || null,
+        certificateType: form.certificateType || null,
+        certificateNumber: form.certificateNumber || null,
+        njopTanah: numOrNull(form.njopTanah),
+        njopBangunan: numOrNull(form.njopBangunan),
+        notes: form.notes || null,
+      }),
+    onSuccess: () => {
+      toast.success('Data bangunan disimpan.');
+      queryClient.invalidateQueries({ queryKey: ['ga-building', assetId] });
+    },
+    onError: (e) => toast.error(apiErrorMessage(e, 'Gagal simpan data bangunan.')),
+  });
+
+  const ro = !canEdit;
+  const text = (k: keyof BuildingForm, label: string, wide = false) => (
+    <Field label={label} className={wide ? 'sm:col-span-2 lg:col-span-3' : undefined}>
+      <Input value={form[k]} onChange={(e) => set(k, e.target.value)} disabled={ro} />
+    </Field>
+  );
+  const number = (k: keyof BuildingForm, label: string, opts: { right?: boolean; step?: string } = {}) => (
+    <Field label={label}>
+      <FormNumberInput
+        value={form[k]}
+        onChange={(e) => set(k, e.target.value)}
+        disabled={ro}
+        min={0}
+        step={opts.step}
+        className={opts.right ? 'num text-right' : 'num'}
       />
-    </label>
+    </Field>
   );
-}
 
-interface SelectFieldProps { label: string; value: string; onChange: (v: string) => void; options: readonly string[]; disabled?: boolean; allowEmpty?: boolean }
-function SelectField({ label, value, onChange, options, disabled, allowEmpty = true }: SelectFieldProps) {
   return (
-    <label className="block">
-      <span className="block text-xs font-medium text-gray-500 mb-1">{label}</span>
-      <select
-        value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500"
-      >
-        {allowEmpty && <option value="">—</option>}
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </label>
-  );
-}
+    <Section
+      title="Data Bangunan"
+      icon={<Building2 />}
+      actions={
+        canEdit && (
+          <Button size="sm" onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty || dataQuery.isLoading}>
+            <Save aria-hidden />
+            Simpan
+          </Button>
+        )
+      }
+    >
+      {dataQuery.isLoading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : dataQuery.isError ? (
+        <EmptyState
+          kind="error"
+          compact
+          action={
+            <Button variant="outline" size="sm" onClick={() => dataQuery.refetch()}>
+              Coba lagi
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-5">
+          {!dataQuery.data && (
+            <p className="text-sm text-muted-foreground">
+              Data bangunan belum diisi{canEdit ? ' — lengkapi lalu simpan.' : '.'}
+            </p>
+          )}
+          <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <legend className="sr-only">Umum</legend>
+            <Field label="Jenis">
+              <OptionSelect value={form.jenis} onChange={(v) => set('jenis', v)} options={BUILDING_TYPE_OPTIONS} disabled={ro} />
+            </Field>
+            <Field label="Kepemilikan">
+              <OptionSelect value={form.ownership} onChange={(v) => set('ownership', v)} options={OWNERSHIP_OPTIONS} disabled={ro} />
+            </Field>
+            {number('jumlahLantai', 'Jumlah lantai')}
+            {number('luasTanah', 'Luas tanah (m²)', { right: true, step: '0.01' })}
+            {number('luasBangunan', 'Luas bangunan (m²)', { right: true, step: '0.01' })}
+            {number('tahunBangun', 'Tahun bangun')}
+            {number('tahunRenovasi', 'Tahun renovasi')}
+          </fieldset>
 
-function RentalModal({ assetId, onClose, onSaved }: { assetId: string; onClose: () => void; onSaved: () => void }) {
-  const [f, setF] = useState({
-    arah: 'SEWA_MASUK', pihak: '', kontak: '', nilaiSewa: '', periode: 'BULANAN', tanggalMulai: '', tanggalAkhir: '', notes: '',
-  });
-  const mut = useMutation({
-    mutationFn: () => api.post(`/ga/building/assets/${assetId}/rentals`, {
-      arah: f.arah, pihak: f.pihak, kontak: f.kontak || null, nilaiSewa: numOrNull(f.nilaiSewa) ?? 0,
-      periode: f.periode, tanggalMulai: f.tanggalMulai, tanggalAkhir: f.tanggalAkhir, notes: f.notes || null,
-    }),
-    onSuccess: () => { toast.success('Kontrak sewa ditambahkan.'); onSaved(); },
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal simpan kontrak sewa.'),
-  });
-  const submit = (e: FormEvent) => { e.preventDefault(); mut.mutate(); };
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2"><KeyRound size={16} className="text-teal-600" /> Tambah Kontrak Sewa</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-400"><X size={18} /></button>
+          <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Legalitas & NJOP</legend>
+            <Field label="Jenis sertifikat">
+              <OptionSelect
+                value={form.certificateType}
+                onChange={(v) => set('certificateType', v)}
+                options={CERTIFICATE_OPTIONS}
+                noneLabel="Tidak diisi"
+                disabled={ro}
+              />
+            </Field>
+            {text('certificateNumber', 'No. sertifikat')}
+            <div className="hidden lg:block" aria-hidden />
+            {number('njopTanah', 'NJOP tanah (Rp)', { right: true })}
+            {number('njopBangunan', 'NJOP bangunan (Rp)', { right: true })}
+          </fieldset>
+
+          <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Alamat</legend>
+            {text('alamatLengkap', 'Alamat lengkap', true)}
+            {text('kelurahan', 'Kelurahan')}
+            {text('kecamatan', 'Kecamatan')}
+            {text('kota', 'Kota / kabupaten')}
+            {text('provinsi', 'Provinsi')}
+            {text('kodePos', 'Kode pos')}
+            {text('notes', 'Catatan', true)}
+          </fieldset>
         </div>
-        <form onSubmit={submit} className="p-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <SelectField label="Arah" value={f.arah} onChange={(v) => setF({ ...f, arah: v })} options={RENTAL_ARAH} allowEmpty={false} />
-            <SelectField label="Periode" value={f.periode} onChange={(v) => setF({ ...f, periode: v })} options={RENTAL_PERIODE} allowEmpty={false} />
-          </div>
-          <Field label="Pihak" value={f.pihak} onChange={(v) => setF({ ...f, pihak: v })} />
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Kontak" value={f.kontak} onChange={(v) => setF({ ...f, kontak: v })} />
-            <Field label="Nilai Sewa" type="number" value={f.nilaiSewa} onChange={(v) => setF({ ...f, nilaiSewa: v })} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Tanggal Mulai" type="date" value={f.tanggalMulai} onChange={(v) => setF({ ...f, tanggalMulai: v })} />
-            <Field label="Tanggal Akhir" type="date" value={f.tanggalAkhir} onChange={(v) => setF({ ...f, tanggalAkhir: v })} />
-          </div>
-          <Field label="Catatan" value={f.notes} onChange={(v) => setF({ ...f, notes: v })} />
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
-            <button type="submit" disabled={mut.isPending} className="btn-primary bg-teal-600 hover:bg-teal-700">
-              {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      )}
+    </Section>
   );
 }

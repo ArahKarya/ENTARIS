@@ -1,194 +1,295 @@
-import { useState } from 'react';
-import { X, Loader2, Check, Send, ThumbsUp, ThumbsDown, Ban, PackageCheck, Link2 } from 'lucide-react';
+/**
+ * Material request detail (side sheet, deep-linked as ?mr=<id> by the page):
+ * header fields, lifecycle actions (submit / approve / reject with reason /
+ * cancel), payment info once PAID, and per-item procurement editing plus
+ * "Terima barang" (stock in). The receive form uses SearchableSelect and opens
+ * as a plain overlay, so the sheet steps aside while it is open.
+ */
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../../lib/api';
-import { formatRupiah, formatDate } from '../../../lib/formatters';
+import { Ban, Check, Link2, PackageCheck, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
-import SearchableSelect from '../../../components/SearchableSelect';
+import api from '@/lib/api';
+import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import SearchableSelect from '@/components/SearchableSelect';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog, EmptyState, Field, StatusBadge } from '@/components/shared';
+import { FormModal } from '@/components/ga/maintenance/form-modal';
 import {
-  mrFieldClass as fieldClass,
-  mrLabelClass as labelClass,
-  MR_STATUS_LABELS,
-  MR_STATUS_BADGE,
+  PROC_STATUS_EDITABLE,
   PROC_STATUS_LABELS,
-  PROC_STATUS_BADGE,
   apiErrorMessage,
+  estimatedTotal,
+  isItemLocked,
+  mrActions,
+  type CategoryOpt,
   type JsonBody,
+  type LocationOpt,
   type MrDetail,
   type MrItemDetail,
+  type MrStatus,
   type ProcurementStatus,
-  type LocationOpt,
-  type CategoryOpt,
 } from './types';
 
-const PROC_STATUSES: ProcurementStatus[] = ['REQUESTED', 'QUOTED', 'ORDERED', 'CANCELLED'];
+const materialRequestKey = (id: string) => ['ga-material-request', id] as const;
 
-export function MrDetailDrawer({ id, canEdit, onClose }: { id: string; canEdit: boolean; onClose: () => void }) {
+export interface MrDetailDrawerProps {
+  /** MR id from the URL; null closes the sheet. */
+  id: string | null;
+  /** ga_material_request edit. */
+  canEdit: boolean;
+  /** ga_maintenance view (link to the source work order). */
+  canViewWorkOrder: boolean;
+  /** Requester name from the list row, when known. */
+  requesterName?: string | null;
+  onClose: () => void;
+}
+
+function Detail({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
+  return (
+    <div className={wide ? 'col-span-2 min-w-0' : 'min-w-0'}>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 break-words text-sm text-foreground">{children}</dd>
+    </div>
+  );
+}
+
+export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, onClose }: MrDetailDrawerProps) {
   const queryClient = useQueryClient();
   const [receiveItem, setReceiveItem] = useState<MrItemDetail | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
-  const { data: mr, isLoading } = useQuery<MrDetail>({
-    queryKey: ['ga-material-request', id],
+  const query = useQuery<MrDetail>({
+    queryKey: materialRequestKey(id ?? ''),
     queryFn: async () => (await api.get(`/ga/material-requests/${id}`)).data,
+    enabled: !!id,
   });
+  const mr = query.data;
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['ga-material-request', id] });
+    if (id) queryClient.invalidateQueries({ queryKey: materialRequestKey(id) });
     queryClient.invalidateQueries({ queryKey: ['ga-material-requests'] });
   };
 
   const lifecycle = useMutation({
-    mutationFn: (action: { verb: string; body?: JsonBody }) =>
+    mutationFn: (action: { verb: 'submit' | 'approve' | 'reject' | 'cancel'; body?: JsonBody }) =>
       api.patch(`/ga/material-requests/${id}/${action.verb}`, action.body ?? {}),
-    onSuccess: () => {
-      toast.success('Status permintaan diperbarui.');
+    onSuccess: (_res, action) => {
+      const done: Record<string, string> = {
+        submit: 'Permintaan diajukan.',
+        approve: 'Permintaan disetujui.',
+        reject: 'Permintaan ditolak.',
+        cancel: 'Permintaan dibatalkan.',
+      };
+      toast.success(done[action.verb] ?? 'Status permintaan diperbarui.');
       invalidate();
     },
     onError: (err: unknown) => toast.error(apiErrorMessage(err, 'Gagal memperbarui status.')),
   });
 
-  const doReject = () => {
-    const reason = window.prompt('Alasan penolakan:');
-    if (reason === null) return;
-    if (!reason.trim()) return toast.error('Alasan wajib diisi.');
-    lifecycle.mutate({ verb: 'reject', body: { reason: reason.trim() } });
-  };
+  const actions = mr ? mrActions(mr.status) : null;
+  const total = mr ? estimatedTotal(mr.items) : 0;
+  const received = mr ? mr.items.filter((it) => it.procurementStatus === 'RECEIVED').length : 0;
+  const hasFooter = !!mr && canEdit && !!actions && (actions.submit || actions.approve || actions.cancel);
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/40">
-      <div className="bg-white w-full max-w-2xl h-full overflow-y-auto shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-900">{mr?.code ?? 'Memuat…'}</h3>
-            {mr && (
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${MR_STATUS_BADGE[mr.status]}`}>
-                {MR_STATUS_LABELS[mr.status]}
-              </span>
+    <>
+      <Sheet open={!!id && receiveItem === null} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent size="lg">
+          <SheetHeader>
+            {mr ? (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <SheetTitle className="num font-mono">{mr.code}</SheetTitle>
+                  <StatusBadge status={mr.status} docType="ga_material_request" />
+                </div>
+                <SheetDescription>
+                  {mr.asset ? `${mr.asset.code} — ${mr.asset.name}` : mr.machineTarget || 'Tanpa aset spesifik'} ·{' '}
+                  {formatNumber(mr.items.length)} barang
+                </SheetDescription>
+              </>
+            ) : (
+              <>
+                <SheetTitle>Detail Permintaan Barang</SheetTitle>
+                <SheetDescription className="sr-only">Memuat detail permintaan barang</SheetDescription>
+              </>
             )}
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
-        </div>
+          </SheetHeader>
 
-        {isLoading || !mr ? (
-          <div className="p-10 flex justify-center text-gray-400">
-            <Loader2 className="animate-spin" />
-          </div>
-        ) : (
-          <div className="p-6 space-y-6">
-            {/* Header info */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <Info label="Diminta pada" value={formatDate(mr.requestedAt)} />
-              <Info label="Aset" value={mr.asset ? `${mr.asset.code} — ${mr.asset.name}` : '—'} />
-              <Info label="Mesin / Target" value={mr.machineTarget || '—'} />
-              <Info label="Catatan" value={mr.notes || '—'} />
-              {mr.approvedAt && <Info label="Disetujui" value={formatDate(mr.approvedAt)} />}
-              {mr.rejectedAt && <Info label="Ditolak" value={formatDate(mr.rejectedAt)} />}
-            </div>
-
-            {mr.rejectReason && (
-              <div className="text-xs text-red-700 bg-red-50 rounded-lg p-3">Alasan tolak: {mr.rejectReason}</div>
-            )}
-
-            {/* Cross-ref: WO asal */}
-            {mr.workOrder && (
-              <Link
-                to="/ga/maintenance"
-                className="flex items-center gap-2 text-sm text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg p-3"
-              >
-                <Link2 size={14} />
-                Berasal dari Work Order <b>{mr.workOrder.code}</b> — {mr.workOrder.title}
-              </Link>
-            )}
-
-            {/* Lifecycle actions */}
-            {canEdit && (
-              <div className="flex flex-wrap gap-2">
-                {mr.status === 'DRAFT' && (
-                  <ActionBtn icon={<Send size={14} />} label="Ajukan" onClick={() => lifecycle.mutate({ verb: 'submit' })} disabled={lifecycle.isPending} />
-                )}
-                {mr.status === 'SUBMITTED' && (
-                  <>
-                    <ActionBtn icon={<ThumbsUp size={14} />} label="Setujui" tone="teal" onClick={() => lifecycle.mutate({ verb: 'approve' })} disabled={lifecycle.isPending} />
-                    <ActionBtn icon={<ThumbsDown size={14} />} label="Tolak" tone="red" onClick={doReject} disabled={lifecycle.isPending} />
-                  </>
-                )}
-                {['DRAFT', 'SUBMITTED', 'APPROVED'].includes(mr.status) && (
-                  <ActionBtn icon={<Ban size={14} />} label="Batalkan" tone="gray" onClick={() => lifecycle.mutate({ verb: 'cancel' })} disabled={lifecycle.isPending} />
-                )}
+          <SheetBody className="space-y-6">
+            {query.isError ? (
+              <EmptyState
+                kind="error"
+                compact
+                description="Permintaan barang tidak ditemukan atau gagal dimuat."
+                action={
+                  <Button size="sm" variant="outline" onClick={() => query.refetch()}>
+                    Coba lagi
+                  </Button>
+                }
+              />
+            ) : !mr ? (
+              <div className="space-y-3" aria-busy="true">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-32 w-full" />
               </div>
-            )}
+            ) : (
+              <>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <Detail label="Diminta">{formatDate(mr.requestedAt)}</Detail>
+                  <Detail label="Pemohon">{requesterName || '-'}</Detail>
+                  <Detail label="Aset">{mr.asset ? `${mr.asset.code} — ${mr.asset.name}` : '-'}</Detail>
+                  <Detail label="Mesin / target">{mr.machineTarget || '-'}</Detail>
+                  {mr.approvedAt && <Detail label="Disetujui">{formatDate(mr.approvedAt)}</Detail>}
+                  {mr.rejectedAt && <Detail label="Ditolak">{formatDate(mr.rejectedAt)}</Detail>}
+                  <Detail label="Estimasi nilai">
+                    <span className="num">{formatRupiah(total)}</span>
+                  </Detail>
+                  <Detail label="Barang diterima">
+                    {formatNumber(received)} dari {formatNumber(mr.items.length)}
+                  </Detail>
+                  {mr.notes && (
+                    <Detail label="Catatan" wide>
+                      <span className="whitespace-pre-wrap">{mr.notes}</span>
+                    </Detail>
+                  )}
+                  {mr.rejectReason && (
+                    <Detail label="Alasan penolakan" wide>
+                      {mr.rejectReason}
+                    </Detail>
+                  )}
+                </dl>
 
-            {/* Items */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-2">Barang & Pengadaan</h4>
-              <div className="space-y-3">
-                {mr.items.map((it) => (
-                  <ItemRow
-                    key={it.id}
-                    mrId={mr.id}
-                    mrStatus={mr.status}
-                    item={it}
-                    canEdit={canEdit}
-                    onChanged={invalidate}
-                    onReceive={() => setReceiveItem(it)}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                {mr.status === 'PAID' && (
+                  <section aria-labelledby="mr-paid" className="rounded-md border border-border bg-success-subtle/40 px-3 py-2">
+                    <h3 id="mr-paid" className="text-sm font-semibold text-foreground">
+                      Sudah dibayar
+                    </h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {mr.paidAt ? `Dibayar ${formatDate(mr.paidAt)}` : 'Dibayar'}
+                      {mr.paidAmount != null && (
+                        <>
+                          {' '}· <span className="num text-foreground">{formatRupiah(mr.paidAmount)}</span>
+                        </>
+                      )}
+                      {mr.journalEntryId ? ' · jurnal sudah diposting' : ''}
+                    </p>
+                  </section>
+                )}
+
+                {mr.workOrder &&
+                  (canViewWorkOrder ? (
+                    <Link
+                      to={`/ga/maintenance?wo=${mr.workOrder.id}`}
+                      className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <span className="min-w-0">
+                        Dari work order <span className="num font-mono font-medium text-primary">{mr.workOrder.code}</span> —{' '}
+                        {mr.workOrder.title}
+                      </span>
+                    </Link>
+                  ) : (
+                    <p className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-foreground">
+                      <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      Dari work order <span className="num font-mono">{mr.workOrder.code}</span>
+                    </p>
+                  ))}
+
+                <section aria-labelledby="mr-items" className="space-y-2">
+                  <h3 id="mr-items" className="text-sm font-semibold text-foreground">
+                    Barang &amp; pengadaan
+                  </h3>
+                  <ul className="space-y-3">
+                    {mr.items.map((it) => (
+                      <ItemRow
+                        key={it.id}
+                        mrId={mr.id}
+                        mrStatus={mr.status}
+                        item={it}
+                        canEdit={canEdit}
+                        onChanged={invalidate}
+                        onReceive={() => setReceiveItem(it)}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              </>
+            )}
+          </SheetBody>
+
+          {hasFooter && actions && (
+            <SheetFooter className="flex-row flex-wrap justify-end sm:flex-row">
+              {actions.cancel && (
+                <Button variant="ghost" className="mr-auto text-danger-text hover:bg-danger-subtle" onClick={() => setCancelOpen(true)}>
+                  <Ban aria-hidden /> Batalkan
+                </Button>
+              )}
+              {actions.reject && (
+                <Button variant="outline" onClick={() => setRejectOpen(true)}>
+                  <ThumbsDown aria-hidden /> Tolak
+                </Button>
+              )}
+              {actions.approve && (
+                <Button
+                  onClick={() => lifecycle.mutate({ verb: 'approve' })}
+                  loading={lifecycle.isPending && lifecycle.variables?.verb === 'approve'}
+                >
+                  <ThumbsUp aria-hidden /> Setujui
+                </Button>
+              )}
+              {actions.submit && (
+                <Button
+                  onClick={() => lifecycle.mutate({ verb: 'submit' })}
+                  loading={lifecycle.isPending && lifecycle.variables?.verb === 'submit'}
+                >
+                  <Send aria-hidden /> Ajukan
+                </Button>
+              )}
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {receiveItem && mr && (
         <ReceiveModal mrId={mr.id} item={receiveItem} onClose={() => setReceiveItem(null)} onDone={invalidate} />
       )}
-    </div>
+
+      <ConfirmDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        tone="danger"
+        title="Tolak permintaan barang?"
+        description={mr ? `${mr.code} akan ditolak dan tidak bisa diproses lagi.` : undefined}
+        confirmLabel="Tolak"
+        requireReason={{ label: 'Alasan penolakan', minLength: 1 }}
+        loading={lifecycle.isPending}
+        onConfirm={(reason) => lifecycle.mutateAsync({ verb: 'reject', body: { reason: (reason ?? '').slice(0, 500) } })}
+      />
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        tone="danger"
+        title="Batalkan permintaan barang?"
+        description={mr ? `${mr.code} akan dibatalkan.` : undefined}
+        confirmLabel="Batalkan MR"
+        cancelLabel="Kembali"
+        loading={lifecycle.isPending}
+        onConfirm={() => lifecycle.mutateAsync({ verb: 'cancel' })}
+      />
+    </>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="text-sm text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function ActionBtn({
-  icon,
-  label,
-  onClick,
-  disabled,
-  tone = 'blue',
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  tone?: 'blue' | 'teal' | 'red' | 'gray';
-}) {
-  const tones: Record<string, string> = {
-    blue: 'bg-blue-600 hover:bg-blue-700 text-white',
-    teal: 'bg-teal-600 hover:bg-teal-700 text-white',
-    red: 'bg-red-600 hover:bg-red-700 text-white',
-    gray: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
-  };
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg disabled:opacity-50 ${tones[tone]}`}
-    >
-      {icon} {label}
-    </button>
-  );
-}
-
-/** Satu baris item MR + editor procurement inline + tombol Terima. */
+/** One MR item: procurement summary, inline procurement editor and "Terima barang". */
 function ItemRow({
   mrId,
   mrStatus,
@@ -198,14 +299,14 @@ function ItemRow({
   onReceive,
 }: {
   mrId: string;
-  mrStatus: string;
+  mrStatus: MrStatus;
   item: MrItemDetail;
   canEdit: boolean;
   onChanged: () => void;
   onReceive: () => void;
 }) {
   const [vendorName, setVendorName] = useState(item.vendorName ?? '');
-  const [unitPrice, setUnitPrice] = useState<number>(Number(item.unitPrice) || 0);
+  const [unitPrice, setUnitPrice] = useState<string>(item.unitPrice != null ? String(Number(item.unitPrice) || 0) : '0');
   const [poNumber, setPoNumber] = useState(item.poNumber ?? '');
   const [procurementStatus, setProcurementStatus] = useState<ProcurementStatus>(item.procurementStatus);
 
@@ -224,81 +325,86 @@ function ItemRow({
     onError: (err: unknown) => toast.error(apiErrorMessage(err, 'Gagal menyimpan pengadaan.')),
   });
 
-  const locked = ['RECEIVED', 'CANCELLED'].includes(item.procurementStatus) || ['REJECTED', 'CANCELLED'].includes(mrStatus);
-  const canReceive = canEdit && mrStatus === 'APPROVED' && item.procurementStatus !== 'RECEIVED' && item.procurementStatus !== 'CANCELLED';
+  const locked = isItemLocked(item, mrStatus);
+  const canReceive = canEdit && mrActions(mrStatus).receive && !locked;
+  const qty = Number(item.quantity) || 0;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3">
+    <li className="rounded-md border border-border p-3">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-medium text-gray-900">{item.itemName}</div>
-          <div className="text-xs text-gray-500">
-            {Number(item.quantity)} {item.uom}
+        <div className="min-w-0">
+          <p className="font-medium text-foreground">{item.itemName}</p>
+          <p className="text-xs text-muted-foreground">
+            <span className="num">{formatNumber(qty, { maxDecimals: 3 })}</span> {item.uom}
             {item.sku ? ` · SKU ${item.sku}` : ''}
             {item.inventoryItem ? ` · tertaut ${item.inventoryItem.sku}` : ' · belum tertaut inventaris'}
-          </div>
+          </p>
+          {(item.vendorName || Number(item.unitPrice) > 0 || item.poNumber) && (
+            <p className="text-xs text-muted-foreground">
+              {[item.vendorName, item.poNumber ? `PO ${item.poNumber}` : null, Number(item.unitPrice) > 0 ? `${formatRupiah(Number(item.unitPrice))}/${item.uom}` : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
           {item.procurementStatus === 'RECEIVED' && (
-            <div className="text-xs text-green-700 mt-0.5">
-              Diterima {Number(item.receivedQty)} {item.uom} → {item.receivedIntoLocation?.name ?? '—'} ({formatDate(item.receivedAt)})
-            </div>
+            <p className="text-xs text-success-text">
+              Diterima {formatNumber(Number(item.receivedQty), { maxDecimals: 3 })} {item.uom} →{' '}
+              {item.receivedIntoLocation?.name ?? '-'} ({formatDate(item.receivedAt)})
+            </p>
           )}
         </div>
-        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${PROC_STATUS_BADGE[item.procurementStatus]}`}>
-          {PROC_STATUS_LABELS[item.procurementStatus]}
-        </span>
+        <StatusBadge status={item.procurementStatus} label={PROC_STATUS_LABELS[item.procurementStatus]} className="shrink-0" />
       </div>
 
       {canEdit && !locked && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="col-span-2">
-            <label className={labelClass}>Vendor</label>
-            <input className={fieldClass} value={vendorName} onChange={(e) => setVendorName(e.target.value)} />
+        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
+          <Field label="Vendor" className="col-span-2">
+            <Input value={vendorName} onChange={(e) => setVendorName(e.target.value)} />
+          </Field>
+          <Field label="Harga satuan (Rp)">
+            <NumberInput min={0} step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
+          </Field>
+          <Field label="No. PO (manual)">
+            <Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} />
+          </Field>
+          <Field label="Status pengadaan" className="col-span-2 sm:col-span-1">
+            {(control) => (
+              <Select value={procurementStatus} onValueChange={(v) => setProcurementStatus(v as ProcurementStatus)}>
+                <SelectTrigger id={control.id}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROC_STATUS_EDITABLE.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {PROC_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </Field>
+          <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 sm:col-span-1 sm:self-end">
+            <span className="text-xs text-muted-foreground">
+              Total <span className="num text-foreground">{formatRupiah((Number(unitPrice) || 0) * qty)}</span>
+            </span>
           </div>
-          <div>
-            <label className={labelClass}>Harga Satuan</label>
-            <input type="number" min={0} step="any" className={fieldClass} value={unitPrice} onChange={(e) => setUnitPrice(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className={labelClass}>No. PO (manual)</label>
-            <input className={fieldClass} value={poNumber} onChange={(e) => setPoNumber(e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Status Pengadaan</label>
-            <select className={fieldClass} value={procurementStatus} onChange={(e) => setProcurementStatus(e.target.value as ProcurementStatus)}>
-              {PROC_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {PROC_STATUS_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-2 flex items-center justify-between pt-1">
-            <span className="text-xs text-gray-400">Total: {formatRupiah(Number(unitPrice) * Number(item.quantity))}</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => procMutation.mutate()}
-                disabled={procMutation.isPending}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50"
-              >
-                {procMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Simpan
-              </button>
-              {canReceive && (
-                <button
-                  onClick={onReceive}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg"
-                >
-                  <PackageCheck size={12} /> Terima Barang
-                </button>
-              )}
-            </div>
+          <div className="col-span-2 flex flex-wrap justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => procMutation.mutate()} loading={procMutation.isPending}>
+              <Check aria-hidden /> Simpan pengadaan
+            </Button>
+            {canReceive && (
+              <Button size="sm" onClick={onReceive}>
+                <PackageCheck aria-hidden /> Terima barang
+              </Button>
+            )}
           </div>
         </div>
       )}
-    </div>
+    </li>
   );
 }
 
-/** Modal terima barang → tambah stok GA. */
+/** Receive an item into GA stock (link to an existing inventory item or create one). */
 function ReceiveModal({
   mrId,
   item,
@@ -319,19 +425,31 @@ function ReceiveModal({
     queryFn: async () => (await api.get('/ga/master/inventory-categories')).data,
   });
 
-  const needsLink = !item.inventoryItemId; // item belum tertaut → butuh pilih/buat item
+  const needsLink = !item.inventoryItemId; // not linked yet → pick or create an inventory item
   const [locationId, setLocationId] = useState('');
-  const [receivedQty, setReceivedQty] = useState<number>(Number(item.quantity) || 1);
+  const [receivedQty, setReceivedQty] = useState<string>(String(Number(item.quantity) || 1));
   const [mode, setMode] = useState<'existing' | 'new'>('new');
   const [existingItemId, setExistingItemId] = useState('');
   const [newSku, setNewSku] = useState(item.sku ?? '');
   const [categoryId, setCategoryId] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const { data: invItems = [] } = useQuery<{ id: string; sku: string; name: string }[]>({
     queryKey: ['ga-inventory-items-mr-receive'],
-    queryFn: async () => (await api.get('/ga/inventory/items')).data,
+    queryFn: async () => {
+      const res = await api.get('/ga/inventory/items');
+      return Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+    },
     enabled: needsLink,
   });
+
+  const errors = {
+    location: !locationId ? 'Lokasi gudang wajib dipilih.' : undefined,
+    qty: !(Number(receivedQty) > 0) ? 'Qty diterima harus lebih dari 0.' : undefined,
+    existing: needsLink && mode === 'existing' && !existingItemId ? 'Pilih item inventaris.' : undefined,
+    sku: needsLink && mode === 'new' && !newSku.trim() ? 'SKU wajib untuk item baru.' : undefined,
+    category: needsLink && mode === 'new' && !categoryId ? 'Kategori wajib untuk item baru.' : undefined,
+  };
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -351,106 +469,89 @@ function ReceiveModal({
   });
 
   const submit = () => {
-    if (!locationId) return toast.error('Lokasi gudang wajib dipilih.');
-    if (!(Number(receivedQty) > 0)) return toast.error('Qty diterima harus lebih dari 0.');
-    if (needsLink) {
-      if (mode === 'existing' && !existingItemId) return toast.error('Pilih item inventaris.');
-      if (mode === 'new' && (!newSku.trim() || !categoryId)) return toast.error('SKU dan kategori wajib untuk item baru.');
-    }
+    setSubmitted(true);
+    if (Object.values(errors).some(Boolean)) return;
     mutation.mutate();
   };
 
+  const err = (k: keyof typeof errors) => (submitted ? errors[k] : undefined);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-base font-semibold text-gray-900">Terima Barang — {item.itemName}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className={labelClass}>Qty Diterima *</label>
-            <input type="number" min={0} step="any" className={fieldClass} value={receivedQty} onChange={(e) => setReceivedQty(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className={labelClass}>Lokasi Gudang Tujuan *</label>
+    <FormModal
+      title={`Terima Barang — ${item.itemName}`}
+      description="Stok GA bertambah di lokasi tujuan."
+      onClose={onClose}
+      onSubmit={submit}
+      submitLabel="Terima & tambah stok"
+      submitting={mutation.isPending}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label={`Qty diterima (${item.uom})`} required error={err('qty')}>
+          <NumberInput min={0} step="any" value={receivedQty} onChange={(e) => setReceivedQty(e.target.value)} />
+        </Field>
+        <Field label="Lokasi gudang tujuan" required error={err('location')}>
+          {() => (
             <SearchableSelect
               options={locations.map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
               value={locationId}
-              onChange={(v) => setLocationId(v)}
+              onChange={setLocationId}
               placeholder="— Pilih lokasi —"
               allowClear={false}
+              aria-label="Lokasi gudang tujuan"
             />
-          </div>
+          )}
+        </Field>
+      </div>
 
-          {needsLink && (
-            <div className="border border-gray-200 rounded-lg p-3 space-y-3">
-              <p className="text-xs text-gray-500">
-                Item ini belum tertaut ke inventaris GA. Pilih item yang sudah ada, atau buat item inventaris baru agar stok bisa ditambahkan.
-              </p>
-              <div className="flex gap-2 text-sm">
-                <button
-                  onClick={() => setMode('new')}
-                  className={`flex-1 py-1.5 rounded-lg ${mode === 'new' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                >
-                  Buat baru
-                </button>
-                <button
-                  onClick={() => setMode('existing')}
-                  className={`flex-1 py-1.5 rounded-lg ${mode === 'existing' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                >
-                  Pilih existing
-                </button>
-              </div>
-              {mode === 'existing' ? (
-                <div>
-                  <label className={labelClass}>Item Inventaris</label>
-                  <SearchableSelect
-                    options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
-                    value={existingItemId}
-                    onChange={(v) => setExistingItemId(v)}
-                    placeholder="— Pilih item —"
-                    allowClear={true}
-                  />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={labelClass}>SKU Baru *</label>
-                    <input className={fieldClass} value={newSku} onChange={(e) => setNewSku(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Kategori *</label>
-                    <select className={fieldClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                      <option value="">— Pilih —</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.code} — {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+      {needsLink && (
+        <fieldset className="space-y-3 rounded-md border border-border p-3">
+          <legend className="px-1 text-sm font-medium text-foreground">Item inventaris</legend>
+          <p className="text-xs text-muted-foreground">
+            Barang ini belum tertaut ke inventaris GA. Pilih item yang sudah ada, atau buat item baru agar stok bisa
+            ditambahkan.
+          </p>
+          <div className="flex gap-2" role="group" aria-label="Cara menautkan item">
+            <Button size="sm" variant={mode === 'new' ? 'primary' : 'secondary'} aria-pressed={mode === 'new'} onClick={() => setMode('new')} className="flex-1">
+              Buat item baru
+            </Button>
+            <Button size="sm" variant={mode === 'existing' ? 'primary' : 'secondary'} aria-pressed={mode === 'existing'} onClick={() => setMode('existing')} className="flex-1">
+              Pilih yang ada
+            </Button>
+          </div>
+          {mode === 'existing' ? (
+            <Field label="Item inventaris" required error={err('existing')}>
+              {() => (
+                <SearchableSelect
+                  options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
+                  value={existingItemId}
+                  onChange={setExistingItemId}
+                  placeholder="— Pilih item —"
+                  allowClear
+                  aria-label="Item inventaris"
+                />
               )}
+            </Field>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="SKU baru" required error={err('sku')}>
+                <Input value={newSku} onChange={(e) => setNewSku(e.target.value)} />
+              </Field>
+              <Field label="Kategori" required error={err('category')}>
+                {() => (
+                  <SearchableSelect
+                    options={categories.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }))}
+                    value={categoryId}
+                    onChange={setCategoryId}
+                    placeholder="— Pilih kategori —"
+                    allowClear={false}
+                    aria-label="Kategori"
+                  />
+                )}
+              </Field>
             </div>
           )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">
-              Batal
-            </button>
-            <button
-              onClick={submit}
-              disabled={mutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50"
-            >
-              {mutation.isPending && <Loader2 size={14} className="animate-spin" />} Terima & Tambah Stok
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </fieldset>
+      )}
+    </FormModal>
   );
 }
