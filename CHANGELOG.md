@@ -22,6 +22,7 @@
 - Akun bawaan (seed) memakai domain `@entaris.demo`: `admin@entaris.demo`, `staff@entaris.demo`, `produksi@entaris.demo`, `viewer@entaris.demo` (sebelumnya `@entaris.local`). Seed mencari pengguna lewat username, jadi akun yang sudah ada ikut diperbarui tanpa duplikat.
 
 ### Diperbaiki
+- Form Faktur Pembelian: mencentang STT bisa menambahkan barisnya dua kali.
 - **Halaman Kendaraan, Gedung & Sewa, Peralatan & Kalibrasi kosong di instalasi selain klien pertama**: halaman memakai ID kategori yang ditulis mati dari database satu klien. Server kini mencari kategori lewat jenis (`categoryKind`); ID lama tetap dipakai bila ada. Instalasi baru juga mendapat kategori aset bawaan (Kendaraan, Bangunan, Gudang, Peralatan, dll.) — dibuat hanya bila kodenya belum ada.
 - Form Kendaraan: target ganti oli kini mengikuti odometer +5.000 km (sebelumnya membeku di digit pertama yang diketik).
 - Saldo awal di Bagan Akun: mengetik `1.000.000` terbaca 1 (titik dianggap desimal). Kini mengikuti format Indonesia (titik = ribuan, koma = desimal).
@@ -34,6 +35,8 @@
 
 ### Tampilan (UI/UX)
 **Diubah**:
+- **PO Tahap 3:** **pencocokan 3 arah PO ↔ STT ↔ Faktur Pembelian** — per baris Sesuai / Selisih qty / Selisih harga (toleransi qty 0%, harga 2%) di form faktur, detail faktur, dan ringkasan persetujuan; menyimpan dengan selisih meminta konfirmasi (tidak memblokir). **Pengingat PO terlambat** (notifikasi `po_overdue` yang membuka detail PO) dan penanda/filter "Terlambat" di daftar PO. Laporan baru **PO Outstanding** (sisa qty & nilai per PO/item) dan **Kinerja Pemasok** (ketepatan kirim, lead time, fill rate, selisih harga faktur vs PO), dengan ekspor Excel.
+
 - **PO Tahap 2:** PO bisa disimpan sebagai **Draf** lalu **Ajukan**; bila ada aturan persetujuan PO yang cocok (nilai ≥ batas), PO menunggu persetujuan di menu Persetujuan — disetujui → "Dipesan", ditolak → kembali Draf dengan alasan. Tanpa aturan yang cocok, PO langsung "Dipesan". **Harga lengkap** (diskon % & PPN % per item, biaya lain/ongkir, subtotal–diskon–PPN–grand total, perhitungan sama dengan Faktur Pembelian), **termin pembayaran** + jatuh tempo, **gudang tujuan** (otomatis terisi saat Buat STT dari PO), **nomor penawaran pemasok**; PDF PO ikut menampilkan semuanya. Mengedit PO yang sudah Dipesan tidak boleh menaikkan nilai melewati batas persetujuan. PO lama tetap berlaku sebagai "Dipesan".
 
 - **Pesanan Pembelian (PO) dilengkapi:** status penerimaan Belum Diterima / Diterima Sebagian / Diterima Penuh / Ditutup di daftar (+ filter) dan progres per item di detail; tombol **Buat STT dari PO** (STT terisi sisa qty & tertaut ke baris PO); **Tutup PO** dengan alasan untuk sisa qty yang tidak akan dikirim (PO tertutup tidak muncul lagi di pilihan STT dan ditolak server); **Edit** selama belum ada STT/faktur, **Duplikat**; **Cetak / PDF PO** dengan logo, pemasok, item, total, syarat, dan kolom tanda tangan.
