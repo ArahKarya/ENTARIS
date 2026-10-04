@@ -1,0 +1,172 @@
+/* /impact: logo row, result cards and quote cards. Scoped under .erp-root, `entaris` layer. */
+@layer entaris {
+  .erp-root .imp-section .role-intro {
+    margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .erp-root .imp-logos {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0 auto clamp(1.5rem, 3vw, 2.5rem);
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--border);
+    list-style: none;
+    width: var(--tacet-visible-rail);
+    max-width: calc(var(--tacet-section-max) - (2 * var(--tacet-section-pad-x)));
+  }
+
+  .erp-root .imp-logos__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 1.1rem 1.25rem;
+    background: var(--background);
+  }
+
+  .erp-root .imp-logos__mark {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.6rem;
+    background: var(--entaris-navy);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 800;
+  }
+
+  .erp-root.dark .imp-logos__mark {
+    background: var(--entaris-blue-dark);
+  }
+
+  .erp-root .imp-logos__name {
+    overflow: hidden;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .erp-root .imp-stories,
+  .erp-root .imp-quotes {
+    display: grid;
+    gap: 1px;
+    margin: 0 auto;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--border);
+    width: var(--tacet-visible-rail);
+    max-width: calc(var(--tacet-section-max) - (2 * var(--tacet-section-pad-x)));
+  }
+
+  .erp-root .imp-stories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .erp-root .imp-quotes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .erp-root .imp-story,
+  .erp-root .imp-quote {
+    margin: 0;
+    padding: clamp(1.5rem, 2.4vw, 2.25rem);
+    background: var(--background);
+  }
+
+  .erp-root .imp-story__industry {
+    margin: 0;
+    color: var(--tacet-orange-on-light);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .erp-root .imp-story__company {
+    margin: 0.5rem 0 0.75rem;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  .erp-root .imp-story__result {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
+  .erp-root .imp-quote {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .erp-root .imp-quote blockquote {
+    flex: 1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .erp-root .imp-quote blockquote p {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .erp-root .imp-quote figcaption {
+    display: grid;
+    gap: 0.15rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+  }
+
+  .erp-root .imp-quote figcaption strong {
+    color: var(--foreground);
+  }
+
+  .erp-root .imp-quote figcaption span {
+    color: var(--text-m);
+  }
+
+  @media (max-width: 48rem) {
+    .erp-root .imp-logos,
+    .erp-root .imp-stories,
+    .erp-root .imp-quotes {
+      width: min(calc(100% - 2rem), calc(var(--tacet-section-max) - 2rem));
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 64rem) {
+    .erp-root .imp-logos {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .erp-root .imp-quotes {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .erp-root .imp-stories {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

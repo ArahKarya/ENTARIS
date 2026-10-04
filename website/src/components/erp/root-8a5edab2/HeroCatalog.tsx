@@ -107,10 +107,10 @@ export function HeroCatalog() {
                 <p>Double-entry otomatis di setiap transaksi — selalu seimbang.</p>
               </div>
             </div>
-            <a href={DEMO_HREF} className="hero-catalog__cta">
+            <Link href={DEMO_HREF} className="hero-catalog__cta">
               <span>Minta demo</span>
               <Icon name="arrowRight" style={ARROW_STYLE} />
-            </a>
+            </Link>
             <Steps steps={HUMAN_STEPS} label="Langkah mulai untuk tim" />
           </div>
         </section>

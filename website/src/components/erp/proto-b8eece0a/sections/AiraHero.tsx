@@ -2,6 +2,7 @@ import { DEMO_HREF } from "@/components/site/siteConfig";
 import { AiraWindow } from "../mock/AiraWindow";
 import { AiraEyebrow } from "./AiraEyebrow";
 import { AiraIcon } from "./AiraIcon";
+import Link from "next/link";
 
 /** Hero: copy, CTAs and the AIRA chat mockup. */
 export function AiraHero() {
@@ -22,9 +23,9 @@ export function AiraHero() {
             manusia.
           </p>
           <div className="aira-hero__actions">
-            <a href={DEMO_HREF} className="ent-btn ent-btn--solid aira-hero__btn">
+            <Link href={DEMO_HREF} className="ent-btn ent-btn--solid aira-hero__btn">
               Minta demo
-            </a>
+            </Link>
             <a href="#cara-kerja" className="ent-btn ent-btn--ghost aira-hero__btn">
               Lihat cara kerjanya
               <AiraIcon name="arrow-down" className="aira-hero__btn-icon" />
