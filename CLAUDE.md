@@ -55,6 +55,7 @@ Akun-akun berikut digunakan untuk auto GL posting. Defined in `server/src/consta
 | 1.2.1 | Piutang Usaha (Dagang) | Auto-debit on sales invoice |
 | 1.3 | Uang Muka Pembelian | Vendor deposit account |
 | 1.4.0 | Persediaan (Umum) | Inventory account |
+| 1.5.6 | Uang Muka Karyawan | Role EMPLOYEE_ADVANCE — debit saat Pengajuan Pembayaran uang muka/perjalanan dinas dibayar |
 | 2.1.1 | Hutang Usaha (Dagang) | Auto-credit on purchase invoice |
 | 2.1.5 | Hutang Belum Tagih | Accrual saat STT/BPB submit, reversed saat PI submit |
 | 4.1 | Penjualan | Auto-credit on sales revenue |
@@ -75,6 +76,7 @@ Every transaction MUST produce balanced debit/credit GL entries:
 - **Payment receive**: DR Kas/Bank (1.1.x) / CR Piutang (1.2.1)
 - **Payment pay**: DR Hutang (2.1.1) / CR Kas/Bank (1.1.x)
 - **Journal Entry**: Manual balanced entries
+- **Pengajuan Pembayaran dibayar**: DR akun beban per baris (atau DR Uang Muka Karyawan 1.5.6 utk CASH_ADVANCE/TRAVEL) / CR Kas/Bank (1.1.x); batal bayar = void jurnal
 
 Never create unbalanced GL entries. Always verify total debit === total credit.
 
