@@ -45,6 +45,10 @@ interface PurchaseOrderRow {
   status: string;
   closedAt?: string | null;
   receiptStatus?: string;
+  /** Draft | PendingApproval | Submitted | Cancelled (server-derived). */
+  displayStatus?: string;
+  approvalStatus?: string | null;
+  /** = grand total (incl. discount, PPN, other costs) for stage-2 POs. */
   totalEstimated: Money;
   supplier?: { id: string; name: string } | null;
   _count?: { items: number; goodsReceipts: number };
@@ -52,7 +56,10 @@ interface PurchaseOrderRow {
 
 const ENDPOINT = '/purchase-orders';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate', 'receipt'] as const;
-const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'purchase_order');
+const STATUS_FILTER = statusOptions(['Draft', 'PendingApproval', 'Submitted', 'Cancelled'], 'purchase_order');
+/** Receipt progress only means something once the PO is ordered. */
+const showReceipt = (po: PurchaseOrderRow) =>
+  po.status === 'Submitted' && !!po.receiptStatus && po.receiptStatus !== 'Cancelled';
 const RECEIPT_FILTER = [
   { value: 'unreceived', label: 'Belum Diterima' },
   { value: 'partial', label: 'Diterima Sebagian' },
@@ -190,7 +197,7 @@ export const PurchaseOrders = () => {
       },
       {
         id: 'totalEstimated',
-        header: () => withUnit('Estimasi'),
+        header: () => withUnit('Total'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -204,9 +211,9 @@ export const PurchaseOrders = () => {
                 <span className="text-muted-foreground">-</span>
               )}
               {/* Mobile: status stacked here because its column is hidden. */}
-              <StatusBadge status={row.original.status} docType="purchase_order" className="sm:hidden" />
+              <StatusBadge status={row.original.displayStatus ?? row.original.status} docType="purchase_order" className="sm:hidden" />
               {/* Mobile/tablet: receipt progress stacked here because its column is hidden. */}
-              {row.original.receiptStatus && row.original.receiptStatus !== 'Cancelled' && (
+              {showReceipt(row.original) && (
                 <StatusBadge status={row.original.receiptStatus} docType="purchase_order" className="md:hidden" />
               )}
             </div>
@@ -217,14 +224,14 @@ export const PurchaseOrders = () => {
         id: 'status',
         header: 'Status',
         meta: { hideBelow: 'sm' },
-        cell: ({ row }) => <StatusBadge status={row.original.status} docType="purchase_order" />,
+        cell: ({ row }) => <StatusBadge status={row.original.displayStatus ?? row.original.status} docType="purchase_order" />,
       },
       {
         id: 'receiptStatus',
         header: 'Penerimaan',
         meta: { hideBelow: 'md' },
         cell: ({ row }) =>
-          row.original.receiptStatus && row.original.receiptStatus !== 'Cancelled' ? (
+          showReceipt(row.original) ? (
             <StatusBadge status={row.original.receiptStatus} docType="purchase_order" />
           ) : (
             <span className="text-muted-foreground">-</span>

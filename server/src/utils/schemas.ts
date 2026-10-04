@@ -929,6 +929,8 @@ const PurchaseOrderItemSchema = z.object({
   quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
   unit: z.string().min(1, 'Satuan wajib diisi.'),
   estimatedRate: z.coerce.number().min(0).optional().default(0),
+  discount: z.coerce.number().min(0, 'Diskon tidak boleh negatif.').max(100, 'Diskon maksimal 100%.').optional().default(0),
+  taxPct: z.coerce.number().min(0, 'PPN tidak boleh negatif.').max(100, 'PPN maksimal 100%.').optional().default(0),
   description: z.string().nullable().optional(),
 });
 
@@ -938,6 +940,12 @@ export const CreatePurchaseOrderSchema = z.object({
   expectedDeliveryDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   terms: z.string().nullable().optional(),
+  paymentTermDays: z.coerce.number().int('Termin harus bilangan bulat.').min(0).max(365, 'Termin maksimal 365 hari.').nullable().optional(),
+  warehouseId: z.string().uuid().nullable().optional(),
+  supplierQuoteRef: z.string().max(100, 'No. penawaran maksimal 100 karakter.').nullable().optional(),
+  otherCosts: z.coerce.number().min(0, 'Biaya lain tidak boleh negatif.').optional().default(0),
+  otherCostsLabel: z.string().max(100).nullable().optional(),
+  saveAs: z.enum(['draft', 'submit']).optional().default('submit'),
   items: z.array(PurchaseOrderItemSchema).min(1, 'Minimal satu item.'),
 });
 

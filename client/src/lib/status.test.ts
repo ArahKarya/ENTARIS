@@ -117,6 +117,16 @@ describe('purchasing statuses (PO / STT)', () => {
     ]);
   });
 
+  it('labels the PO draft / approval lifecycle', () => {
+    expect(statusOptions(['Draft', 'PendingApproval', 'Submitted', 'Cancelled'], 'purchase_order')).toEqual([
+      { value: 'Draft', label: 'Draf' },
+      { value: 'PendingApproval', label: 'Menunggu Persetujuan' },
+      { value: 'Submitted', label: 'Dipesan' },
+      { value: 'Cancelled', label: 'Dibatalkan' },
+    ]);
+    expect(getStatusMeta('PendingApproval', 'purchase_order').tone).toBe('warning');
+  });
+
   it('labels the derived PO receipt statuses', () => {
     expect(getStatusMeta('Unreceived', 'purchase_order')).toEqual({ label: 'Belum Diterima', tone: 'warning' });
     expect(getStatusMeta('Partial', 'purchase_order')).toEqual({ label: 'Diterima Sebagian', tone: 'info' });

@@ -30,6 +30,7 @@ import { ConfirmDialog, DataTable, Field, PageHeader, RowActions, StatusBadge } 
 import ApprovalPanel, { type ApprovalRequest } from '@/components/ApprovalPanel';
 import InvoiceDetailDrawer from '@/components/InvoiceDetailDrawer';
 import ProductionDetailDrawer from '@/components/ProductionDetailDrawer';
+import PurchaseOrderDetailDrawer from '@/components/PurchaseOrderDetailDrawer';
 
 interface ApprovalRule {
   id: string;
@@ -46,6 +47,7 @@ const TAB_PARAM = 'tab';
 const DOC_TYPES = [
   { value: 'PurchaseInvoice', label: 'Invoice Pembelian' },
   { value: 'ProductionRun', label: 'Data Produksi' },
+  { value: 'PurchaseOrder', label: 'Purchase Order' },
   { value: 'SalesInvoice', label: 'Invoice Penjualan' },
   { value: 'Payment', label: 'Pembayaran' },
   { value: 'JournalEntry', label: 'Jurnal Umum' },
@@ -69,6 +71,7 @@ export default function ApprovalsPage() {
   const [deleteRule, setDeleteRule] = useState<ApprovalRule | null>(null);
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [viewRunId, setViewRunId] = useState<string | null>(null);
+  const [viewPoId, setViewPoId] = useState<string | null>(null);
 
   const changeTab = (next: string) => {
     setSearchParams((prev) => {
@@ -192,6 +195,7 @@ export default function ApprovalsPage() {
             if (!req.documentId) return;
             if (req.documentType === 'PurchaseInvoice') setViewInvoiceId(req.documentId);
             else if (req.documentType === 'ProductionRun') setViewRunId(req.documentId);
+            else if (req.documentType === 'PurchaseOrder') setViewPoId(req.documentId);
           }}
         />
       </TabsContent>
@@ -240,6 +244,7 @@ export default function ApprovalsPage() {
       {/* Final document drawers (from "Lihat Dokumen") */}
       <InvoiceDetailDrawer type="purchase" invoiceId={viewInvoiceId} onClose={() => setViewInvoiceId(null)} />
       <ProductionDetailDrawer runId={viewRunId} onClose={() => setViewRunId(null)} />
+      <PurchaseOrderDetailDrawer poId={viewPoId} onClose={() => setViewPoId(null)} />
     </Tabs>
   );
 }

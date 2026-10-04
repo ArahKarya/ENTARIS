@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
+import { checkPurchaseOrderReceivable } from './purchaseOrderLifecycle';
 import { BusinessError } from '../utils/errors';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
@@ -79,12 +80,9 @@ export async function submitGoodsReceiptInTx(
   if (body.purchaseOrderId) {
     const po = await tx.purchaseOrder.findUnique({ where: { id: body.purchaseOrderId } });
     if (!po) throw new BusinessError('Purchase Order tidak ditemukan.');
-    if (po.status === 'Cancelled') {
-      throw new BusinessError('Purchase Order sudah dibatalkan, tidak bisa dipakai untuk STT.');
-    }
-    if (po.closedAt) {
-      throw new BusinessError('Purchase Order sudah ditutup, tidak bisa dipakai untuk STT.');
-    }
+    // Only ordered (Submitted), non-closed POs — Draft / pending approval excluded.
+    const receivable = checkPurchaseOrderReceivable(po);
+    if (!receivable.ok) throw new BusinessError(receivable.error);
     // PO Khusus: kalau partyId di-set, supplier harus match
     if (po.partyId && po.partyId !== body.partyId) {
       throw new BusinessError(

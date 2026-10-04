@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { C as T } from './theme';
+import { computePoTotals, paymentTermLabel, poDueDate } from '../purchaseOrderCalc';
 
 const C = { ink: T.dark, soft: T.muted, line: T.border, navy: T.primary };
 
@@ -35,6 +36,9 @@ const S = StyleSheet.create({
   center: { textAlign: 'center' as const },
   padR: { paddingRight: 8 },
   totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 6 },
+  subTotalRow: { width: 220, flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 2 },
+  subTotalLabel: { fontSize: 8.5, color: C.soft },
+  subTotalVal: { fontSize: 8.5 },
   totalBox: { width: 220, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderColor: C.ink, paddingTop: 4 },
   totalLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
   totalVal: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
@@ -65,6 +69,8 @@ export interface PurchaseOrderPDFItem {
   unit: string;
   estimatedRate: Num;
   estimatedAmount?: Num;
+  discount?: Num;
+  taxPct?: Num;
 }
 
 export interface PurchaseOrderPDFData {
@@ -74,6 +80,13 @@ export interface PurchaseOrderPDFData {
   notes?: string | null;
   terms?: string | null;
   totalEstimated: Num;
+  /** Draft | PendingApproval | Submitted | Cancelled — non-ordered POs print a DRAF marker. */
+  displayStatus?: string;
+  paymentTermDays?: number | null;
+  supplierQuoteRef?: string | null;
+  otherCosts?: Num;
+  otherCostsLabel?: string | null;
+  warehouse?: { code?: string | null; name: string } | null;
   supplier?: { name: string; address?: string | null; phone?: string | null; taxId?: string | null } | null;
   user?: { fullName?: string | null } | null;
   items: PurchaseOrderPDFItem[];
@@ -84,11 +97,30 @@ export interface PurchaseOrderPDFProps {
   company: { name: string; address?: string | null; phone?: string | null; email?: string | null; taxId?: string | null; logoUrl?: string | null };
 }
 
-const COLS = { no: 0.4, item: 3.4, qty: 1.1, unit: 0.8, rate: 1.6, amount: 1.8 };
+const COLS = { no: 0.4, item: 3.0, qty: 1.0, unit: 0.7, rate: 1.5, disc: 0.7, tax: 0.7, amount: 1.7 };
+
+const STATUS_MARK: Record<string, string> = {
+  Draft: 'DRAF — BELUM DIPESAN',
+  PendingApproval: 'MENUNGGU PERSETUJUAN',
+  Cancelled: 'DIBATALKAN',
+};
 
 const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
   const printDate = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
   const supplier = po.supplier;
+  // Recomputed from lines (same rules as the server) so legacy POs print too.
+  const totals = computePoTotals(
+    po.items.map((it) => ({
+      quantity: toNum(it.quantity),
+      estimatedRate: toNum(it.estimatedRate),
+      discount: toNum(it.discount ?? 0),
+      taxPct: toNum(it.taxPct ?? 0),
+    })),
+    toNum(po.otherCosts ?? 0),
+  );
+  const dueDate = poDueDate(po.date, po.paymentTermDays);
+  const mark = po.displayStatus ? STATUS_MARK[po.displayStatus] : undefined;
+  const pct = (n: Num | undefined) => (toNum(n ?? 0) > 0 ? `${money(n ?? 0)}` : '—');
 
   return (
     <Document title={`Purchase Order ${po.poNumber}`} author={company.name}>
@@ -111,6 +143,7 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
             <Text style={S.title}>PURCHASE ORDER</Text>
             <Text style={S.titleSub}>PESANAN PEMBELIAN</Text>
             <Text style={S.subtitle}>{po.poNumber}</Text>
+            {mark ? <Text style={[S.subtitle, { color: '#B45309' }]}>{mark}</Text> : null}
             <Text
               style={S.printMeta}
               render={({ pageNumber, totalPages }) => `Dicetak ${printDate} • Hal ${pageNumber}/${totalPages}`}
@@ -140,6 +173,17 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
             <Text style={S.valReg}>{dt(po.date)}</Text>
             <Text style={S.label}>Tanggal Kirim Diharapkan</Text>
             <Text style={S.valReg}>{dt(po.expectedDeliveryDate)}</Text>
+            <Text style={S.label}>Termin Pembayaran</Text>
+            <Text style={S.valReg}>
+              {paymentTermLabel(po.paymentTermDays)}
+              {dueDate && po.paymentTermDays ? ` (jatuh tempo ${dt(dueDate)})` : ''}
+            </Text>
+          </View>
+          <View style={S.metaCol}>
+            <Text style={S.label}>Kirim ke Gudang</Text>
+            <Text style={S.valReg}>{po.warehouse ? [po.warehouse.code, po.warehouse.name].filter(Boolean).join(' — ') : '—'}</Text>
+            <Text style={S.label}>No. Penawaran Pemasok</Text>
+            <Text style={S.valReg}>{po.supplierQuoteRef || '—'}</Text>
           </View>
         </View>
 
@@ -148,11 +192,13 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
           <Text style={[S.thText, { flex: COLS.item }]}>Barang</Text>
           <Text style={[S.thText, S.right, S.padR, { flex: COLS.qty }]}>Qty</Text>
           <Text style={[S.thText, { flex: COLS.unit }]}>Satuan</Text>
-          <Text style={[S.thText, S.right, S.padR, { flex: COLS.rate }]}>Harga Est. (Rp)</Text>
+          <Text style={[S.thText, S.right, S.padR, { flex: COLS.rate }]}>Harga (Rp)</Text>
+          <Text style={[S.thText, S.right, S.padR, { flex: COLS.disc }]}>Disk %</Text>
+          <Text style={[S.thText, S.right, S.padR, { flex: COLS.tax }]}>PPN %</Text>
           <Text style={[S.thText, S.right, { flex: COLS.amount }]}>Jumlah (Rp)</Text>
         </View>
         {po.items.map((it, i) => {
-          const amount = it.estimatedAmount ?? toNum(it.quantity) * toNum(it.estimatedRate);
+          const amount = totals.lines[i]?.amount ?? toNum(it.estimatedAmount ?? 0);
           return (
             <View style={S.tr} key={i} wrap={false}>
               <Text style={[S.td, S.center, { flex: COLS.no }]}>{i + 1}</Text>
@@ -163,6 +209,8 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
               <Text style={[S.td, S.right, S.padR, { flex: COLS.qty }]}>{qty(it.quantity)}</Text>
               <Text style={[S.td, { flex: COLS.unit }]}>{it.unit}</Text>
               <Text style={[S.td, S.right, S.padR, { flex: COLS.rate }]}>{money(it.estimatedRate)}</Text>
+              <Text style={[S.td, S.right, S.padR, { flex: COLS.disc }]}>{pct(it.discount)}</Text>
+              <Text style={[S.td, S.right, S.padR, { flex: COLS.tax }]}>{pct(it.taxPct)}</Text>
               <Text style={[S.td, S.right, { flex: COLS.amount }]}>{money(amount)}</Text>
             </View>
           );
@@ -170,11 +218,24 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
 
         <View style={S.totalRow} wrap={false}>
           <View>
+            {[
+              { label: 'Subtotal', value: totals.subtotal, show: true },
+              { label: 'Diskon', value: -totals.discountTotal, show: totals.discountTotal > 0 },
+              { label: 'PPN', value: totals.taxTotal, show: totals.taxTotal > 0 },
+              { label: po.otherCostsLabel || 'Biaya lain', value: totals.otherCosts, show: totals.otherCosts > 0 },
+            ]
+              .filter((r) => r.show)
+              .map((r) => (
+                <View style={S.subTotalRow} key={r.label}>
+                  <Text style={S.subTotalLabel}>{r.label}</Text>
+                  <Text style={S.subTotalVal}>{money(r.value)}</Text>
+                </View>
+              ))}
             <View style={S.totalBox}>
-              <Text style={S.totalLabel}>Total Estimasi</Text>
-              <Text style={S.totalVal}>Rp {money(po.totalEstimated)}</Text>
+              <Text style={S.totalLabel}>Grand Total</Text>
+              <Text style={S.totalVal}>Rp {money(totals.grandTotal)}</Text>
             </View>
-            <Text style={S.note}>Harga estimasi; harga final mengikuti faktur pemasok.</Text>
+            <Text style={S.note}>Harga final mengikuti faktur pemasok.</Text>
           </View>
         </View>
 

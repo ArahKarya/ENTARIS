@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import PurchaseOrderApprovalSummary from './PurchaseOrderApprovalSummary';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Check, X, Loader2, Eye, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -45,6 +46,7 @@ const docTypeLabel: Record<string, string> = {
   ProductionRun: 'Data Produksi',
   SalesReturn: 'Retur Penjualan',
   DeliveryOrder: 'Surat Jalan',
+  PurchaseOrder: 'Purchase Order',
 };
 
 interface Props {
@@ -389,6 +391,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         const p = detailReq.payload ?? {};
         const isProd = detailReq.documentType === 'ProductionRun';
         const isDO = detailReq.documentType === 'DeliveryOrder';
+        const isPO = detailReq.documentType === 'PurchaseOrder';
         const piItems: any[] = p.items ?? [];
         const inputs: any[] = p.inputs ?? [];
         const outputs: any[] = p.outputs ?? [];
@@ -436,7 +439,9 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                   {p.notes && <div className="col-span-2"><span className="text-gray-400">Catatan:</span> <span className="text-gray-800">{p.notes}</span></div>}
                 </div>
 
-                {isDO ? (
+                {isPO ? (
+                  detailReq.documentId ? <PurchaseOrderApprovalSummary poId={detailReq.documentId} /> : null
+                ) : isDO ? (
                   <>
                     {p.negativeStockReason && (
                       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

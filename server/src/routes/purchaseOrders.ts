@@ -9,8 +9,12 @@ import {
   cancelPurchaseOrderInTx,
   updatePurchaseOrderInTx,
   closePurchaseOrderInTx,
+  submitPurchaseOrderDraftInTx,
+  deletePurchaseOrderDraftInTx,
 } from '../services/purchaseOrderSubmit';
 import { derivePurchaseOrderReceiptStatus } from '../services/purchaseOrderRules';
+import { derivePurchaseOrderDisplayStatus } from '../services/purchaseOrderLifecycle';
+import { computePurchaseOrderTotals } from '../services/purchaseOrderCalc';
 import { logger } from '../lib/logger';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
@@ -61,6 +65,7 @@ router.get('/', async (req, res) => {
     const data = rows.map(({ items, ...po }) => ({
       ...po,
       receiptStatus: derivePurchaseOrderReceiptStatus(po, items),
+      displayStatus: derivePurchaseOrderDisplayStatus(po),
     }));
     return res.json({ data, total, page, limit: take });
   } catch (error) {
@@ -76,6 +81,7 @@ router.get('/:id', async (req, res) => {
       include: {
         items: { include: { inventoryItem: true } },
         supplier: true,
+        warehouse: { select: { id: true, code: true, name: true } },
         goodsReceipts: {
           where: { status: { not: 'Cancelled' } },
           select: { id: true, sttNumber: true, date: true, status: true, invoiceId: true },
@@ -85,7 +91,40 @@ router.get('/:id', async (req, res) => {
       },
     });
     if (!po) return res.status(404).json({ error: 'PO tidak ditemukan.' });
-    return res.json({ ...po, receiptStatus: derivePurchaseOrderReceiptStatus(po, po.items) });
+    const approvals = await prisma.approvalRequest.findMany({
+      where: { documentType: 'PurchaseOrder', documentId: po.id },
+      select: {
+        id: true, status: true, amount: true, notes: true, createdAt: true, decidedAt: true,
+        requester: { select: { fullName: true } },
+        approver: { select: { fullName: true } },
+        rejecter: { select: { fullName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    // Totals recomputed from lines so legacy POs (pricing columns = 0) still
+    // show a consistent breakdown.
+    const t = computePurchaseOrderTotals(
+      po.items.map((i) => ({
+        quantity: Number(i.quantity),
+        estimatedRate: Number(i.estimatedRate),
+        discount: Number(i.discount),
+        taxPct: Number(i.taxPct),
+      })),
+      Number(po.otherCosts),
+    );
+    return res.json({
+      ...po,
+      receiptStatus: derivePurchaseOrderReceiptStatus(po, po.items),
+      displayStatus: derivePurchaseOrderDisplayStatus(po),
+      totals: {
+        subtotal: t.subtotal.toNumber(),
+        discountTotal: t.discountTotal.toNumber(),
+        taxTotal: t.taxTotal.toNumber(),
+        otherCosts: t.otherCosts.toNumber(),
+        grandTotal: t.grandTotal.toNumber(),
+      },
+      approvals,
+    });
   } catch (error) {
     return handleRouteError(res, error, 'GET /purchase-orders/:id', 'Gagal mengambil detail PO.');
   }
@@ -105,6 +144,33 @@ router.post('/', async (req: AuthRequest, res) => {
     return res.status(201).json(result);
   } catch (error) {
     return handleRouteError(res, error, 'POST /purchase-orders', 'Gagal membuat PO.');
+  }
+});
+
+// ─── POST /:id/submit ("Ajukan" a draft) ─────────────────────────────────
+// Matching ApprovalRule (PurchaseOrder, grandTotal ≥ minAmount) → stays Draft
+// with approvalStatus Pending + ApprovalRequest; otherwise → Submitted.
+router.post('/:id/submit', async (req: AuthRequest, res) => {
+  try {
+    const result = await prisma.$transaction(
+      (tx) => submitPurchaseOrderDraftInTx(tx, req.params.id as string, req.user!.userId),
+      { timeout: 15000 },
+    );
+    logger.info({ poId: result.po.id, userId: req.user!.userId, pending: !!result.approvalRequest }, 'PO draft submitted via API');
+    return res.json({ ...result.po, approvalRequestId: result.approvalRequest?.id ?? null });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /purchase-orders/:id/submit', 'Gagal mengajukan PO.');
+  }
+});
+
+// ─── DELETE /:id (draft only) ─────────────────────────────────────────────
+router.delete('/:id', async (req: AuthRequest, res) => {
+  try {
+    const result = await prisma.$transaction((tx) => deletePurchaseOrderDraftInTx(tx, req.params.id as string));
+    logger.info({ poId: result.id, userId: req.user!.userId }, 'PO draft deleted via API');
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return handleRouteError(res, error, 'DELETE /purchase-orders/:id', 'Gagal menghapus draf PO.');
   }
 });
 

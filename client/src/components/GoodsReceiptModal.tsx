@@ -34,6 +34,8 @@ const defaultItem = (): GRItem => ({
 export interface GoodsReceiptSourcePO {
   id: string;
   partyId: string | null;
+  /** Destination warehouse of the PO — default for every prefilled line. */
+  warehouseId?: string | null;
   items: Array<{
     id: string;
     inventoryItemId: string | null;
@@ -51,13 +53,14 @@ interface Props {
   initialPurchaseOrder?: GoodsReceiptSourcePO | null;
 }
 
-/** Outstanding PO lines → STT lines (warehouse still to be picked). */
+/** Outstanding PO lines → STT lines (warehouse defaults to the PO destination). */
 function itemsFromPO(po: GoodsReceiptSourcePO): GRItem[] {
   const lines = po.items
     .map((it) => ({ it, remaining: Number(it.quantity) - Number(it.qtyReceived ?? 0) }))
     .filter(({ remaining }) => remaining > 0)
     .map(({ it, remaining }) => ({
       ...defaultItem(),
+      warehouseId: po.warehouseId ?? '',
       inventoryItemId: it.inventoryItemId ?? '',
       itemName: it.itemName,
       unit: it.unit,

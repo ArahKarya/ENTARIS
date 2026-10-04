@@ -147,3 +147,15 @@ describe('buildPurchaseOrderWhere — receipt & open filters', () => {
     expect(buildPurchaseOrderWhere({ receipt: 'full' }).ok).toBe(false);
   });
 });
+
+describe('buildPurchaseOrderWhere — stage 2 statuses', () => {
+  it('PendingApproval = Draft with pending approval', () => {
+    const r = buildPurchaseOrderWhere({ status: 'PendingApproval' });
+    expect(r.ok && r.where).toMatchObject({ status: 'Draft', approvalStatus: 'Pending' });
+  });
+  it('Draft excludes drafts awaiting approval', () => {
+    const r = buildPurchaseOrderWhere({ status: 'Draft' });
+    expect(r.ok && r.where.status).toBe('Draft');
+    expect(r.ok && r.where.AND).toEqual([{ OR: [{ approvalStatus: null }, { approvalStatus: { not: 'Pending' } }] }]);
+  });
+});

@@ -10,6 +10,9 @@ describe('purchaseOrderActions', () => {
       edit: true,
       duplicate: true,
       close: true,
+      submit: false,
+      deleteDraft: false,
+      cancel: true,
     });
   });
 
@@ -34,7 +37,22 @@ describe('purchaseOrderActions', () => {
       edit: false,
       duplicate: false,
       close: false,
+      submit: false,
+      deleteDraft: false,
+      cancel: false,
     });
+  });
+
+  it('draft: edit / ajukan / hapus; never receive, close or cancel', () => {
+    const d = purchaseOrderActions({ status: 'Draft', approvalStatus: null, receiptStatus: 'Unreceived' }, all);
+    expect(d).toMatchObject({ edit: true, submit: true, deleteDraft: true, receive: false, close: false, cancel: false });
+    const rejected = purchaseOrderActions({ status: 'Draft', approvalStatus: 'Rejected' }, all);
+    expect([rejected.edit, rejected.submit, rejected.deleteDraft]).toEqual([true, true, true]);
+  });
+
+  it('pending approval locks the PO (only duplicate stays)', () => {
+    const p = purchaseOrderActions({ status: 'Draft', approvalStatus: 'Pending' }, all);
+    expect(p).toMatchObject({ edit: false, submit: false, deleteDraft: false, receive: false, close: false, cancel: false, duplicate: true });
   });
 });
 

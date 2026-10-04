@@ -10,6 +10,8 @@ export interface PurchaseOrderActionInput {
   status: string;
   closedAt?: string | null;
   receiptStatus?: PurchaseOrderReceiptStatus | string | null;
+  /** null | 'Pending' | 'Rejected' (Draft only). */
+  approvalStatus?: string | null;
 }
 
 export interface PurchaseOrderActionPerms {
@@ -28,6 +30,12 @@ export interface PurchaseOrderActionSet {
   edit: boolean;
   duplicate: boolean;
   close: boolean;
+  /** "Ajukan" a draft. */
+  submit: boolean;
+  /** "Hapus draf". */
+  deleteDraft: boolean;
+  /** "Batalkan" (ordered POs only — drafts are deleted). */
+  cancel: boolean;
 }
 
 export function purchaseOrderActions(
@@ -37,11 +45,15 @@ export function purchaseOrderActions(
   const open = po.status === 'Submitted' && !po.closedAt;
   const notFull = po.receiptStatus !== 'Full';
   const untouched = !perms.hasLinkedReceipts && (po.receiptStatus ?? 'Unreceived') === 'Unreceived';
+  const editableDraft = po.status === 'Draft' && po.approvalStatus !== 'Pending';
   return {
     receive: open && notFull && perms.canReceive,
-    edit: open && untouched && perms.canEditPO,
+    edit: ((open && untouched) || editableDraft) && perms.canEditPO,
     duplicate: perms.canEditPO,
     close: open && notFull && perms.canClose,
+    submit: editableDraft && perms.canEditPO,
+    deleteDraft: editableDraft && perms.canEditPO,
+    cancel: po.status === 'Submitted' && perms.canClose,
   };
 }
 
