@@ -77,6 +77,7 @@ Every transaction MUST produce balanced debit/credit GL entries:
 - **Payment pay**: DR Hutang (2.1.1) / CR Kas/Bank (1.1.x)
 - **Journal Entry**: Manual balanced entries
 - **Pengajuan Pembayaran dibayar**: DR akun beban per baris (atau DR Uang Muka Karyawan 1.5.6 utk CASH_ADVANCE/TRAVEL) / CR Kas/Bank (1.1.x); batal bayar = void jurnal
+- **Pertanggungjawaban uang muka diposting** (realisasi R vs uang muka A): DR akun beban per baris (R) / CR Uang Muka Karyawan 1.5.6 (min(R,A)); R<A: + DR Kas/Bank (A−R) / CR 1.5.6 (A−R) (pengaju mengembalikan sisa); R>A: + CR Kas/Bank (R−A) (kurang bayar dibayar perusahaan); R=A tanpa baris kas. Satu jurnal seimbang; batal posting = void jurnal. Posting uang muka mengikuti `kind` jenis, tetapi wajib-tidaknya pertanggungjawaban hanya mengikuti `type.requiresSettlement`.
 
 Never create unbalanced GL entries. Always verify total debit === total credit.
 

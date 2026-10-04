@@ -79,6 +79,7 @@ const TARGETS = [
   { path: '/parties', isPublic: false },
   { path: '/payment-requests', isPublic: false },
   { path: '/payment-requests/new', isPublic: false },
+  { path: '/payment-requests?tab=advances', isPublic: false },
   { path: '/notifications', isPublic: false },
   { path: '/settings', isPublic: false },
   { path: '/settings?tab=roles', isPublic: false },

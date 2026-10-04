@@ -7,14 +7,16 @@
  *   mine       Pengajuan Saya           — own requests (everyone)
  *   approvals  Perlu Persetujuan        — waiting for MY decision (supervisor / finance / director)
  *   payable    Siap Dibayar             — APPROVED, finance only
+ *   advances   Belum Dipertanggungjawabkan — open employee advances (own; all for finance / "Semua"),
+ *              with age in days, overdue highlight, per-employee totals and Excel export
  *   all        Semua                    — payment_request view only
  * Built on the list kit (see pages/SalesInvoices.tsx for the reference pattern).
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { BadgeCheck, CircleDollarSign, Download, Eye, FilePenLine, Hourglass, Pencil, Plus } from 'lucide-react';
+import { AlarmClock, BadgeCheck, CircleDollarSign, Download, Eye, FilePenLine, HandCoins, Hourglass, Pencil, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -40,7 +42,10 @@ import {
 import {
   PR_ENDPOINT,
   PR_STATUSES,
+  SETTLEMENT_STATUSES,
+  advanceAgeDays,
   formatMoney,
+  type AdvanceSummary,
   type PaymentRequestMeta,
   type PaymentRequestRow,
   type PaymentRequestSummary,
@@ -50,8 +55,9 @@ import {
 } from '@/components/payment-requests/payment-request';
 
 const TAB_PARAM = 'tab';
-const FILTER_KEYS = ['status', 'typeId', 'startDate', 'endDate'] as const;
+const FILTER_KEYS = ['status', 'settlementStatus', 'typeId', 'startDate', 'endDate'] as const;
 const STATUS_FILTER = statusOptions(PR_STATUSES, 'payment_request');
+const SETTLEMENT_FILTER = statusOptions(SETTLEMENT_STATUSES, 'payment_request_settlement');
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-48';
 const IN_APPROVAL: PrStatus[] = ['SUBMITTED', 'PENDING_FINANCE', 'PENDING_DIRECTOR'];
 
@@ -72,14 +78,31 @@ function toExportRows(rows: PaymentRequestRow[]): Record<string, unknown>[] {
   }));
 }
 
-function TabLabel({ label, count }: { label: string; count?: number }) {
+function toAdvanceExportRows(rows: PaymentRequestRow[], overdueDays: number): Record<string, unknown>[] {
+  return rows.map((r) => {
+    const age = advanceAgeDays(r.paymentDate);
+    return {
+      Pengaju: r.requester.fullName,
+      Nomor: r.number,
+      Jenis: r.type.name,
+      Keperluan: r.purpose,
+      'Jumlah Uang Muka': toNumber(r.totalAmount) ?? 0,
+      'Tanggal Bayar': r.paymentDate ? formatDate(r.paymentDate) : '',
+      'Umur (hari)': age,
+      [`Lewat ${overdueDays} hari`]: age > overdueDays ? 'Ya' : 'Tidak',
+      'Status Pertanggungjawaban': getStatusLabel(r.settlementStatus, 'payment_request_settlement'),
+    };
+  });
+}
+
+function TabLabel({ label, count, suffix = 'menunggu' }: { label: string; count?: number; suffix?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="relative inline-flex items-center gap-1.5">
       {label}
       {count ? (
         <span className="num rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground">
           {formatNumber(count)}
-          <span className="sr-only"> menunggu</span>
+          <span className="sr-only"> {suffix}</span>
         </span>
       ) : null}
     </span>
@@ -103,6 +126,7 @@ export const PaymentRequests = () => {
   const allowedTabs = useMemo<PrScope[]>(() => {
     const tabs: PrScope[] = ['mine', 'approvals'];
     if (meta?.isFinance) tabs.push('payable');
+    tabs.push('advances');
     if (meta?.canViewAll) tabs.push('all');
     return tabs;
   }, [meta?.isFinance, meta?.canViewAll]);
@@ -115,9 +139,19 @@ export const PaymentRequests = () => {
       if (next === 'mine') params.delete(TAB_PARAM);
       else params.set(TAB_PARAM, next);
       params.delete('page');
+      params.delete('sort');
+      params.delete('status');
+      params.delete('settlementStatus');
       return params;
     });
   };
+
+  // Open advances: oldest first unless the user picked another order.
+  const { setSort } = list;
+  const hasSort = searchParams.has('sort');
+  useEffect(() => {
+    if (tab === 'advances' && !hasSort) setSort({ id: 'paymentDate', desc: false });
+  }, [tab, hasSort, setSort]);
 
   const params = { ...list.params, scope: tab };
   const filterParams = { ...list.filterParams, scope: tab };
@@ -135,6 +169,14 @@ export const PaymentRequests = () => {
     placeholderData: keepPreviousData,
     enabled: !!meta || rawTab === null || rawTab === 'mine',
   });
+
+  const advancesQuery = useQuery({
+    queryKey: ['payment-requests', 'advances-summary'],
+    queryFn: async () => (await api.get<AdvanceSummary>(`${PR_ENDPOINT}/advances/summary`)).data,
+    staleTime: 30_000,
+  });
+  const advances = advancesQuery.data;
+  const overdueDays = advances?.overdueDays ?? meta?.overdueDays ?? 14;
 
   const typesQuery = useQuery({
     queryKey: ['payment-request-types', 'active'],
@@ -159,7 +201,94 @@ export const PaymentRequests = () => {
   const kpiMoney = (v: number) => formatRupiah(v, { compact: true });
 
   const showRequester = tab !== 'mine';
-  const columns = useMemo<ColumnDef<PaymentRequestRow>[]>(
+  const advanceColumns = useMemo<ColumnDef<PaymentRequestRow>[]>(
+    () => [
+      {
+        id: 'number',
+        header: 'Nomor',
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="flex flex-col items-start gap-0.5">
+              <DocumentLink onClick={() => navigate(`${PR_ENDPOINT}/${r.id}`)}>{r.number}</DocumentLink>
+              <span className="max-w-44 truncate text-sm text-foreground sm:hidden">{r.requester.fullName}</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'requester',
+        header: 'Pengaju',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => row.original.requester.fullName,
+      },
+      {
+        id: 'purpose',
+        header: 'Keperluan',
+        meta: { hideBelow: 'lg', cellClassName: 'min-w-48 max-w-80' },
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground" title={row.original.purpose}>{row.original.purpose}</p>
+            <p className="truncate text-xs text-muted-foreground">{row.original.type.name}</p>
+          </div>
+        ),
+      },
+      {
+        id: 'totalAmount',
+        header: () => (
+          <>
+            Uang Muka <span className="normal-case">(Rp)</span>
+          </>
+        ),
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => <span className="font-medium text-foreground">{money(row.original.totalAmount)}</span>,
+      },
+      {
+        id: 'paymentDate',
+        header: 'Dibayar',
+        enableSorting: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => (row.original.paymentDate ? formatDate(row.original.paymentDate) : '-'),
+      },
+      {
+        id: 'age',
+        header: 'Umur',
+        meta: { align: 'right', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => {
+          const age = advanceAgeDays(row.original.paymentDate);
+          const late = age > overdueDays;
+          return (
+            <span className={late ? 'num font-semibold text-danger' : 'num text-foreground'}>
+              {formatNumber(age)} hari
+              {late && <span className="sr-only"> — melewati batas {overdueDays} hari</span>}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'settlementStatus',
+        header: 'Pertanggungjawaban',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.settlementStatus} docType="payment_request_settlement" />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => (
+          <RowActions
+            label={`Aksi untuk ${row.original.number}`}
+            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => navigate(`${PR_ENDPOINT}/${row.original.id}`) }]}
+          />
+        ),
+      },
+    ],
+    [navigate, overdueDays],
+  );
+  const requestColumns = useMemo<ColumnDef<PaymentRequestRow>[]>(
     () => [
       {
         id: 'number',
@@ -241,7 +370,14 @@ export const PaymentRequests = () => {
         header: 'Status',
         enableSorting: true,
         meta: { hideBelow: 'sm' },
-        cell: ({ row }) => <StatusBadge status={row.original.status} docType="payment_request" />,
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-1">
+            <StatusBadge status={row.original.status} docType="payment_request" />
+            {row.original.status === 'PAID' && row.original.settlementStatus && (
+              <StatusBadge status={row.original.settlementStatus} docType="payment_request_settlement" />
+            )}
+          </div>
+        ),
       },
       {
         id: 'actions',
@@ -264,13 +400,16 @@ export const PaymentRequests = () => {
     ],
     [navigate, showRequester, meta?.me?.id],
   );
+  const columns = tab === 'advances' ? advanceColumns : requestColumns;
 
   const handleExport = async () => {
     setExporting(true);
     try {
       const exportParams = { ...filterParams, ...(list.params.sort ? { sort: list.params.sort } : {}) };
       const { rows, truncated } = await fetchAllPages<PaymentRequestRow>(PR_ENDPOINT, exportParams);
-      await exportToExcel(toExportRows(rows), `pengajuan-pembayaran-${new Date().toISOString().slice(0, 10)}`);
+      const day = new Date().toISOString().slice(0, 10);
+      if (tab === 'advances') await exportToExcel(toAdvanceExportRows(rows, overdueDays), `uang-muka-karyawan-${day}`);
+      else await exportToExcel(toExportRows(rows), `pengajuan-pembayaran-${day}`);
       if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} pengajuan pertama. Persempit filter.`);
     } catch {
       toast.error('Gagal mengekspor pengajuan. Coba lagi.');
@@ -283,6 +422,7 @@ export const PaymentRequests = () => {
     mine: { title: 'Belum ada pengajuan', description: 'Ajukan reimbursement, uang muka, atau pembayaran vendor — tidak perlu lagi lewat email dan Excel.' },
     approvals: { title: 'Tidak ada yang menunggu persetujuan Anda', description: 'Pengajuan yang perlu Anda setujui akan muncul di sini.' },
     payable: { title: 'Belum ada pengajuan siap dibayar', description: 'Pengajuan yang sudah disetujui lengkap akan muncul di sini.' },
+    advances: { title: 'Tidak ada uang muka yang belum dipertanggungjawabkan', description: 'Uang muka dan perjalanan dinas yang sudah dibayar dan belum diselesaikan muncul di sini.' },
     all: { title: 'Belum ada pengajuan', description: 'Semua pengajuan pembayaran akan muncul di sini.' },
   };
 
@@ -314,11 +454,78 @@ export const PaymentRequests = () => {
                 <TabLabel label="Siap Dibayar" count={badges?.payable} />
               </TabsTrigger>
             )}
+            <TabsTrigger value="advances">
+              <TabLabel label="Belum Dipertanggungjawabkan" count={advances?.overdueCount} suffix="lewat batas waktu" />
+            </TabsTrigger>
             {meta?.canViewAll && <TabsTrigger value="all">Semua</TabsTrigger>}
         </TabsList>
       </PageHeader>
 
       <TabsContent value={tab} className="mt-0 space-y-5">
+      {tab === 'advances' ? (
+        <>
+          <section aria-label="Ringkasan uang muka karyawan" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              label="Uang Muka Belum Selesai"
+              icon={HandCoins}
+              loading={!advances}
+              value={advances ? kpiMoney(advances.amount) : '-'}
+              valueTitle={advances ? formatRupiah(advances.amount) : undefined}
+              hint={advances ? `${formatNumber(advances.count)} uang muka` : undefined}
+            />
+            <StatCard
+              label={`Lewat ${overdueDays} Hari`}
+              icon={AlarmClock}
+              loading={!advances}
+              value={advances ? formatNumber(advances.overdueCount) : '-'}
+              hint={advances ? kpiMoney(advances.overdueAmount) : undefined}
+            />
+            <StatCard
+              label="Karyawan"
+              icon={Users}
+              loading={!advances}
+              value={advances ? formatNumber(advances.byEmployee.length) : '-'}
+              hint="dengan uang muka terbuka"
+            />
+            <StatCard
+              label="Terlama"
+              icon={Hourglass}
+              loading={!advances}
+              value={advances ? `${formatNumber(Math.max(0, ...advances.byEmployee.map((e) => e.oldestDays)))} hari` : '-'}
+              hint="sejak dibayar"
+            />
+          </section>
+          {advances && advances.byEmployee.length > 0 && (meta?.isFinance || meta?.canViewAll || advances.byEmployee.length > 1) && (
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be focusable
+            <section aria-label="Uang muka per karyawan" tabIndex={0} className="relative overflow-x-auto rounded-lg border border-border bg-card">
+              <table className="w-full min-w-[28rem] text-sm">
+                <caption className="sr-only">Uang muka belum dipertanggungjawabkan per karyawan</caption>
+                <thead>
+                  <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                    <th scope="col" className="px-3 py-2 text-left font-medium">Karyawan</th>
+                    <th scope="col" className="px-3 py-2 text-right font-medium">Jumlah</th>
+                    <th scope="col" className="px-3 py-2 text-right font-medium">Nilai (Rp)</th>
+                    <th scope="col" className="px-3 py-2 text-right font-medium">Terlama</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {advances.byEmployee.map((e) => (
+                    <tr key={e.employeeId}>
+                      <th scope="row" className="px-3 py-2 text-left font-normal text-foreground">{e.name}</th>
+                      <td className="num px-3 py-2 text-right">{formatNumber(e.count)}</td>
+                      <td className="num px-3 py-2 text-right font-medium text-foreground">{money(e.amount)}</td>
+                      <td className={`num px-3 py-2 text-right ${e.overdueCount > 0 ? 'font-semibold text-danger' : 'text-muted-foreground'}`}>
+                        {formatNumber(e.oldestDays)} hari
+                        {e.overdueCount > 0 && <span className="sr-only"> — melewati batas</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
+        </>
+      ) : (
       <section aria-label="Ringkasan pengajuan sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Dalam Persetujuan"
@@ -350,13 +557,18 @@ export const PaymentRequests = () => {
           hint={summary && (byStatus.REVISION?.count ?? 0) > 0 ? `${formatNumber(byStatus.REVISION?.count ?? 0)} perlu revisi` : 'belum diajukan'}
         />
       </section>
+      )}
 
       <div className="space-y-3">
         <FilterBar
           list={list}
           searchLabel="Cari pengajuan"
           searchPlaceholder="Cari nomor, keperluan, penerima, atau pengaju"
-          status={{ options: STATUS_FILTER }}
+          status={
+            tab === 'advances'
+              ? { options: SETTLEMENT_FILTER, key: 'settlementStatus', label: 'Status pertanggungjawaban', allLabel: 'Semua status' }
+              : { options: STATUS_FILTER }
+          }
           dateRange={{ label: 'Rentang tanggal pengajuan' }}
         >
           <ComboboxFilter
@@ -373,7 +585,7 @@ export const PaymentRequests = () => {
 
         <DataTable
           {...listTableProps(list, listQuery.data?.total)}
-          label="Daftar pengajuan pembayaran"
+          label={tab === 'advances' ? 'Uang muka belum dipertanggungjawabkan' : 'Daftar pengajuan pembayaran'}
           itemLabel="pengajuan"
           columns={columns}
           data={listQuery.data?.data}
@@ -383,7 +595,13 @@ export const PaymentRequests = () => {
           error={listQuery.error}
           onRetry={() => listQuery.refetch()}
           onRowClick={(row) => navigate(`${PR_ENDPOINT}/${row.id}`)}
-          rowClassName={(row) => (row.status === 'CANCELLED' || row.status === 'REJECTED' ? 'text-muted-foreground' : undefined)}
+          rowClassName={(row) =>
+            row.status === 'CANCELLED' || row.status === 'REJECTED'
+              ? 'text-muted-foreground'
+              : tab === 'advances' && advanceAgeDays(row.paymentDate) > overdueDays
+                ? 'bg-danger/5'
+                : undefined
+          }
           density={density}
           onDensityChange={setDensity}
           empty={{

@@ -140,6 +140,7 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/payment-requests/new', label: 'Buat Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['ajukan', 'pengajuan baru', 'reimburse'] }),
   r({ path: '/payment-requests/:id', label: 'Detail Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
   r({ path: '/payment-requests/:id/edit', label: 'Ubah Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
+  r({ path: '/payment-requests/:id/settlement', label: 'Pertanggungjawaban Uang Muka', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['pertanggungjawaban', 'laporan uang muka', 'settlement'] }),
   r({ path: '/notifications', label: 'Notifikasi', section: null, icon: Bell, nav: false, keywords: ['pemberitahuan', 'notification', 'peringatan'] }),
 
   // ── Penjualan ──────────────────────────────────────────────────────────

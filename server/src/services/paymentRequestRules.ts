@@ -13,6 +13,7 @@
  *   Nobody — not even a super admin — decides on their own request.
  */
 import Decimal from 'decimal.js';
+import { OUTSTANDING_SETTLEMENT_STATUSES, checkAdvanceFreeOfSettlement } from './paymentRequestSettlementRules';
 
 export const PR_STATUSES = [
   'DRAFT',
@@ -72,6 +73,9 @@ export interface PrRef {
   requesterId: string;
   supervisorId: string | null;
   directorRole: string | null;
+  /** Stage 2: set once the advance is paid; settlement supervisor snapshot. */
+  settlementStatus?: string | null;
+  settlementSupervisorId?: string | null;
 }
 
 export const SELF_APPROVAL_ERROR = 'Anda tidak dapat memproses pengajuan Anda sendiri.';
@@ -208,10 +212,10 @@ export function checkPayable(pr: Pick<PrRef, 'status' | 'requesterId'>, actor: A
   return ok;
 }
 
-export function checkCancelPayment(pr: Pick<PrRef, 'status'>, actor: Actor): Check {
+export function checkCancelPayment(pr: Pick<PrRef, 'status' | 'settlementStatus'>, actor: Actor): Check {
   if (!actor.isFinance) return fail('Hanya Keuangan yang dapat membatalkan pembayaran.');
   if (pr.status !== 'PAID') return fail('Pengajuan ini belum dibayar.');
-  return ok;
+  return checkAdvanceFreeOfSettlement(pr.settlementStatus);
 }
 
 // ─── Amounts & journal ───────────────────────────────────────────────────────
@@ -292,7 +296,7 @@ export function buildPaymentJournalLines(input: {
 
 // ─── Visibility ──────────────────────────────────────────────────────────────
 
-export const PR_SCOPES = ['mine', 'approvals', 'payable', 'all'] as const;
+export const PR_SCOPES = ['mine', 'approvals', 'payable', 'advances', 'all'] as const;
 export type PrScope = (typeof PR_SCOPES)[number];
 
 export interface ViewerCtx extends Actor {
@@ -304,6 +308,7 @@ export interface ViewerCtx extends Actor {
 export function canViewRequest(pr: PrRef, ctx: ViewerCtx): boolean {
   if (pr.requesterId === ctx.id) return true;
   if (pr.supervisorId && pr.supervisorId === ctx.id) return true;
+  if (pr.settlementSupervisorId && pr.settlementSupervisorId === ctx.id) return true;
   if (ctx.canViewAll || ctx.isFinance || ctx.isSuperAdmin) return true;
   return !!pr.directorRole && pr.directorRole === ctx.role;
 }
@@ -313,9 +318,18 @@ export function scopeWhere(scope: PrScope, ctx: ViewerCtx): Record<string, unkno
   if (scope === 'mine') return { requesterId: ctx.id };
   if (scope === 'all') return ctx.canViewAll ? {} : null;
   if (scope === 'payable') return ctx.isFinance ? { status: 'APPROVED' } : null;
-  // approvals: what waits for THIS user's decision (never their own requests).
-  const or: Record<string, unknown>[] = [{ status: 'SUBMITTED', supervisorId: ctx.id }];
-  if (ctx.isFinance) or.push({ status: 'PENDING_FINANCE' });
+  if (scope === 'advances') {
+    // Open advances: everything for finance / "Semua" viewers, otherwise only my own.
+    const outstanding = { status: 'PAID', settlementStatus: { in: [...OUTSTANDING_SETTLEMENT_STATUSES] } };
+    return ctx.isFinance || ctx.canViewAll || ctx.isSuperAdmin ? outstanding : { ...outstanding, requesterId: ctx.id };
+  }
+  // approvals: what waits for THIS user's decision (never their own requests) —
+  // request approvals and, for PAID advances, settlement approvals.
+  const or: Record<string, unknown>[] = [
+    { status: 'SUBMITTED', supervisorId: ctx.id },
+    { status: 'PAID', settlementStatus: 'SUBMITTED', settlementSupervisorId: ctx.id },
+  ];
+  if (ctx.isFinance) or.push({ status: 'PENDING_FINANCE' }, { status: 'PAID', settlementStatus: 'PENDING_FINANCE' });
   if (ctx.isSuperAdmin) or.push({ status: 'PENDING_DIRECTOR' });
   else or.push({ status: 'PENDING_DIRECTOR', directorRole: ctx.role });
   return { AND: [{ requesterId: { not: ctx.id } }, { OR: or }] };

@@ -7,23 +7,28 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, BookOpen, Check, CircleDollarSign, Pencil, RotateCcw, Save, Send, Undo2, X } from 'lucide-react';
+import { Ban, BookOpen, Check, CircleDollarSign, ClipboardCheck, Pencil, RotateCcw, Save, Send, Undo2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatDateTime, toNumber } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ConfirmDialog, EmptyState, LoadingState, PageHeader, StatusBadge } from '@/components/shared';
+import { Textarea } from '@/components/ui/textarea';
+import { ConfirmDialog, EmptyState, Field, LoadingState, PageHeader, StatusBadge } from '@/components/shared';
 import { AccountPicker, type AccountOption } from '@/components/fixed-assets/AccountPicker';
 import { apiError } from '@/components/fixed-assets/errors';
 import { AttachmentPicker } from '@/components/payment-requests/AttachmentPicker';
 import { PayDialog } from '@/components/payment-requests/PayDialog';
+import { SettlementCard } from '@/components/payment-requests/SettlementCard';
+import { SettlementPostDialog } from '@/components/payment-requests/SettlementPostDialog';
+import { TravelSummary } from '@/components/payment-requests/TravelSummary';
 import { Timeline } from '@/components/payment-requests/Timeline';
 import {
   KIND_LABEL,
   PR_ENDPOINT,
   formatMoney,
   STEP_LABEL,
+  TRAVEL_CATEGORY_LABEL,
   isAdvanceKind,
   type PaymentRequestDetail,
 } from '@/components/payment-requests/payment-request';
@@ -33,7 +38,17 @@ interface FlatAccount extends AccountOption {
   isGroup?: boolean;
 }
 
-type Dialog = 'approve' | 'reject' | 'return' | 'cancel' | 'cancelPayment' | 'submit' | null;
+type Dialog =
+  | 'approve'
+  | 'reject'
+  | 'return'
+  | 'cancel'
+  | 'cancelPayment'
+  | 'submit'
+  | 'settleApprove'
+  | 'settleReturn'
+  | 'settleCancelPosting'
+  | null;
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -50,6 +65,8 @@ export const PaymentRequestDetailPage = () => {
   const qc = useQueryClient();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [paying, setPaying] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [approveNote, setApproveNote] = useState('');
   const [accountEdits, setAccountEdits] = useState<Record<string, string>>({});
 
   const detailQuery = useQuery({
@@ -58,7 +75,7 @@ export const PaymentRequestDetailPage = () => {
   });
   const pr = detailQuery.data;
   const actions = pr?.actions;
-  const financeMode = !!actions && (actions.verify || actions.pay);
+  const financeMode = !!actions && (actions.verify || actions.pay || actions.settlement.post);
 
   const accountsQuery = useQuery({
     queryKey: ['all-accounts-flat'],
@@ -94,7 +111,10 @@ export const PaymentRequestDetailPage = () => {
   const act = useMutation({
     mutationFn: async ({ kind, reason }: { kind: Exclude<Dialog, null>; reason?: string }) => {
       const base = `${PR_ENDPOINT}/${id}`;
-      if (kind === 'approve') return api.post(`${base}/approve`, { lineAccounts: lineAccounts() });
+      if (kind === 'approve') return api.post(`${base}/approve`, { lineAccounts: lineAccounts(), note: approveNote.trim() || null });
+      if (kind === 'settleApprove') return api.post(`${base}/settlement/approve`, { note: approveNote.trim() || null });
+      if (kind === 'settleReturn') return api.post(`${base}/settlement/return`, { reason });
+      if (kind === 'settleCancelPosting') return api.post(`${base}/settlement/cancel-posting`, { reason });
       if (kind === 'reject') return api.post(`${base}/reject`, { reason });
       if (kind === 'return') return api.post(`${base}/return`, { reason });
       if (kind === 'cancel') return api.post(`${base}/cancel`, { reason: reason || null });
@@ -109,8 +129,12 @@ export const PaymentRequestDetailPage = () => {
         cancel: 'Pengajuan dibatalkan.',
         submit: 'Pengajuan berhasil diajukan.',
         cancelPayment: 'Pembayaran dibatalkan; jurnal di-void.',
+        settleApprove: 'Pertanggungjawaban disetujui; diteruskan ke Keuangan.',
+        settleReturn: 'Pertanggungjawaban dikembalikan untuk revisi.',
+        settleCancelPosting: 'Posting dibatalkan; jurnal pertanggungjawaban di-void.',
       };
       toast.success(msg[kind]);
+      setApproveNote('');
       setDialog(null);
       refresh();
     },
@@ -144,6 +168,8 @@ export const PaymentRequestDetailPage = () => {
   const advanceKind = isAdvanceKind(pr.type.kind);
   const accountsDirty = Object.keys(accountEdits).length > 0;
   const missingAccounts = !advanceKind && pr.lines.some((l) => !(accountEdits[l.id] ?? l.expenseAccountId));
+  const sActions = actions?.settlement;
+  const requestAttachments = pr.attachments.filter((a) => a.scope !== 'SETTLEMENT');
   const waitingFor =
     pr.status === 'SUBMITTED'
       ? `Menunggu persetujuan ${pr.supervisor?.fullName ?? 'atasan'}`
@@ -196,6 +222,31 @@ export const PaymentRequestDetailPage = () => {
           Batalkan Pembayaran
         </Button>
       )}
+      {sActions?.decide && (
+        <>
+          <Button variant="outline" onClick={() => setDialog('settleReturn')}>
+            <Undo2 aria-hidden />
+            Minta Revisi Pertanggungjawaban
+          </Button>
+          {sActions.post ? (
+            <Button onClick={() => setPosting(true)}>
+              <ClipboardCheck aria-hidden />
+              Verifikasi & Posting
+            </Button>
+          ) : (
+            <Button onClick={() => setDialog('settleApprove')}>
+              <Check aria-hidden />
+              Setujui Pertanggungjawaban
+            </Button>
+          )}
+        </>
+      )}
+      {sActions?.cancelPosting && (
+        <Button variant="outline" onClick={() => setDialog('settleCancelPosting')}>
+          <RotateCcw aria-hidden />
+          Batalkan Posting Pertanggungjawaban
+        </Button>
+      )}
       {actions?.cancel && (
         <Button variant="ghost" onClick={() => setDialog('cancel')} className="text-danger">
           <Ban aria-hidden />
@@ -204,7 +255,9 @@ export const PaymentRequestDetailPage = () => {
       )}
     </>
   );
-  const hasActions = !!actions && (actions.edit || actions.decide || actions.pay || actions.cancelPayment || actions.cancel);
+  const hasActions =
+    !!actions &&
+    (actions.edit || actions.decide || actions.pay || actions.cancelPayment || actions.cancel || actions.settlement.decide || actions.settlement.cancelPosting);
 
   return (
     <div className="space-y-5 pb-24">
@@ -214,6 +267,7 @@ export const PaymentRequestDetailPage = () => {
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <StatusBadge status={pr.status} docType="payment_request" />
+          {pr.settlementStatus && <StatusBadge status={pr.settlementStatus} docType="payment_request_settlement" />}
           {waitingFor && <span className="text-muted-foreground">{waitingFor}</span>}
           {actions?.decide && actions.step && (
             <span className="font-medium text-foreground">Anda memproses tahap {STEP_LABEL[actions.step]}.</span>
@@ -245,9 +299,11 @@ export const PaymentRequestDetailPage = () => {
             </div>
           </section>
 
+          <TravelSummary pr={pr} />
+
           <Card>
             <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-              <CardTitle>Rincian biaya</CardTitle>
+              <CardTitle>{pr.type.kind === 'TRAVEL' ? 'Rencana biaya' : 'Rincian biaya'}</CardTitle>
               {actions?.verify && accountsDirty && (
                 <Button size="sm" variant="secondary" onClick={() => saveAccounts.mutate()} loading={saveAccounts.isPending}>
                   <Save aria-hidden />
@@ -269,6 +325,17 @@ export const PaymentRequestDetailPage = () => {
                         <span className="num mr-2 text-muted-foreground">{i + 1}.</span>
                         {l.description}
                       </p>
+                      {(l.category || (l.quantity !== null && l.unitAmount !== null)) && (
+                        <p className="text-xs text-muted-foreground">
+                          {l.category && TRAVEL_CATEGORY_LABEL[l.category]}
+                          {l.quantity !== null && l.unitAmount !== null && (
+                            <span className="num">
+                              {l.category ? ' · ' : ''}
+                              {formatMoney(l.unitAmount)} × {toNumber(l.quantity)}
+                            </span>
+                          )}
+                        </p>
+                      )}
                       {l.expenseDate && <p className="text-xs text-muted-foreground">Tanggal biaya {formatDate(l.expenseDate)}</p>}
                       {actions?.verify && !advanceKind ? (
                         <AccountPicker
@@ -300,16 +367,18 @@ export const PaymentRequestDetailPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Lampiran ({pr.attachments.length})</CardTitle>
+              <CardTitle>Lampiran ({requestAttachments.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {pr.attachments.length === 0 ? (
+              {requestAttachments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Tidak ada lampiran.</p>
               ) : (
-                <AttachmentPicker saved={pr.attachments} pending={[]} onPendingChange={() => undefined} readOnly />
+                <AttachmentPicker saved={requestAttachments} pending={[]} onPendingChange={() => undefined} readOnly />
               )}
             </CardContent>
           </Card>
+
+          <SettlementCard pr={pr} onFill={() => navigate(`${PR_ENDPOINT}/${pr.id}/settlement`)} />
         </div>
 
         <div className="space-y-5">
@@ -398,6 +467,44 @@ export const PaymentRequestDetailPage = () => {
         confirmLabel="Setujui"
         loading={busy}
         onConfirm={() => act.mutateAsync({ kind: 'approve' })}
+      >
+        <Field label={actions?.step === 'FINANCE' ? 'Catatan Keuangan' : 'Catatan'} hint="Opsional — terlihat oleh pengaju dan di riwayat.">
+          <Textarea rows={2} maxLength={1000} value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
+        </Field>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={dialog === 'settleApprove'}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={`Setujui pertanggungjawaban ${pr.number}?`}
+        description="Pertanggungjawaban diteruskan ke Keuangan untuk diverifikasi dan diposting."
+        confirmLabel="Setujui"
+        loading={busy}
+        onConfirm={() => act.mutateAsync({ kind: 'settleApprove' })}
+      >
+        <Field label="Catatan" hint="Opsional.">
+          <Textarea rows={2} maxLength={1000} value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
+        </Field>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={dialog === 'settleReturn'}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={`Minta revisi pertanggungjawaban ${pr.number}?`}
+        description="Dikembalikan ke pengaju untuk diperbaiki lalu diajukan ulang."
+        confirmLabel="Kembalikan"
+        requireReason={{ label: 'Yang perlu diperbaiki', minLength: 3 }}
+        loading={busy}
+        onConfirm={(reason) => act.mutateAsync({ kind: 'settleReturn', reason })}
+      />
+      <ConfirmDialog
+        open={dialog === 'settleCancelPosting'}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={`Batalkan posting pertanggungjawaban ${pr.number}?`}
+        description="Jurnal pertanggungjawaban di-void; status kembali ke Verifikasi Keuangan dan uang muka kembali terbuka."
+        tone="danger"
+        confirmLabel="Batalkan Posting"
+        requireReason={{ label: 'Alasan pembatalan', minLength: 3 }}
+        loading={busy}
+        onConfirm={(reason) => act.mutateAsync({ kind: 'settleCancelPosting', reason })}
       />
       <ConfirmDialog
         open={dialog === 'submit'}
@@ -450,6 +557,18 @@ export const PaymentRequestDetailPage = () => {
         loading={busy}
         onConfirm={(reason) => act.mutateAsync({ kind: 'cancelPayment', reason })}
       />
+      {posting && (
+        <SettlementPostDialog
+          request={pr}
+          expenseAccounts={expenseAccounts}
+          cashAccounts={cashAccounts}
+          onClose={() => setPosting(false)}
+          onPosted={() => {
+            setPosting(false);
+            refresh();
+          }}
+        />
+      )}
       {paying && (
         <PayDialog
           request={pr}

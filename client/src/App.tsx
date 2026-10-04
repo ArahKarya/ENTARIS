@@ -51,32 +51,33 @@ import { GaInventoryPage } from './pages/ga/GaInventoryPage';
 import { GaMaintenancePage } from './pages/ga/GaMaintenancePage';
 import { GaMaterialRequestPage } from './pages/ga/GaMaterialRequestPage';
 import { GaVehiclePage } from './pages/ga/GaVehiclePage';
-import { GaFinancePage } from './pages/ga/GaFinancePage';
-import { GaFleetReportPage } from './pages/ga/GaFleetReportPage';
-import { GaBuildingPage } from './pages/ga/GaBuildingPage';
-import { GaEquipmentPage } from './pages/ga/GaEquipmentPage';
-import { GaMasterPage } from './pages/ga/GaMasterPage';
 import { CustomerDeposits } from './pages/CustomerDeposits';
-import TaxReport from './pages/reports/TaxReport';
-import LedgerBook from './pages/reports/LedgerBook';
-import HealthCheckPage from './pages/HealthCheckPage';
-import HppReport from './pages/reports/HppReport';
-import ProfitabilityPerSku from './pages/reports/ProfitabilityPerSku';
-import ProductionCostSummary from './pages/reports/ProductionCostSummary';
-import PayableSchedule from './pages/reports/PayableSchedule';
-import ReceivableSchedule from './pages/reports/ReceivableSchedule';
-import PoOutstanding from './pages/reports/PoOutstanding';
-import SupplierPerformance from './pages/reports/SupplierPerformance';
 import FixedAssetsPage from './pages/FixedAssetsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
-import DailyReport from './pages/reports/DailyReport';
-import OeeReport from './pages/reports/OeeReport';
-import AiraChat from './pages/AiraChat';
 
 // Dev-only component review page; the import is dropped from production builds.
 // Pengajuan Pembayaran pages are code-split (keeps the main chunk under the PWA precache limit).
+const GaFleetReportPage = lazy(() => import('./pages/ga/GaFleetReportPage').then((m) => ({ default: m.GaFleetReportPage })));
+const GaBuildingPage = lazy(() => import('./pages/ga/GaBuildingPage').then((m) => ({ default: m.GaBuildingPage })));
+const GaEquipmentPage = lazy(() => import('./pages/ga/GaEquipmentPage').then((m) => ({ default: m.GaEquipmentPage })));
+const GaFinancePage = lazy(() => import('./pages/ga/GaFinancePage').then((m) => ({ default: m.GaFinancePage })));
+const GaMasterPage = lazy(() => import('./pages/ga/GaMasterPage').then((m) => ({ default: m.GaMasterPage })));
+const DailyReport = lazy(() => import('./pages/reports/DailyReport'));
+const OeeReport = lazy(() => import('./pages/reports/OeeReport'));
+const LedgerBook = lazy(() => import('./pages/reports/LedgerBook'));
+const HealthCheckPage = lazy(() => import('./pages/HealthCheckPage'));
+const AiraChat = lazy(() => import('./pages/AiraChat'));
+const TaxReport = lazy(() => import('./pages/reports/TaxReport'));
+const HppReport = lazy(() => import('./pages/reports/HppReport'));
+const ProfitabilityPerSku = lazy(() => import('./pages/reports/ProfitabilityPerSku'));
+const ProductionCostSummary = lazy(() => import('./pages/reports/ProductionCostSummary'));
+const PayableSchedule = lazy(() => import('./pages/reports/PayableSchedule'));
+const ReceivableSchedule = lazy(() => import('./pages/reports/ReceivableSchedule'));
+const PoOutstanding = lazy(() => import('./pages/reports/PoOutstanding'));
+const SupplierPerformance = lazy(() => import('./pages/reports/SupplierPerformance'));
 const PaymentRequests = lazy(() => import('./pages/PaymentRequests').then((m) => ({ default: m.PaymentRequests })));
 const PaymentRequestForm = lazy(() => import('./pages/PaymentRequestForm').then((m) => ({ default: m.PaymentRequestForm })));
+const PaymentRequestSettlementPage = lazy(() => import('./pages/PaymentRequestSettlement').then((m) => ({ default: m.PaymentRequestSettlementPage })));
 const PaymentRequestDetailPage = lazy(() => import('./pages/PaymentRequestDetail').then((m) => ({ default: m.PaymentRequestDetailPage })));
 const UiPlayground = import.meta.env.DEV ? lazy(() => import('./pages/dev/UiPlayground')) : null;
 
@@ -140,10 +141,11 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/aira" element={<AiraChat />} />
+            <Route path="/aira" element={<Suspense fallback={<LoadingState />}><AiraChat /></Suspense>} />
             <Route path="/payment-requests" element={<Suspense fallback={<LoadingState />}><PaymentRequests /></Suspense>} />
             <Route path="/payment-requests/new" element={<Suspense fallback={<LoadingState />}><PaymentRequestForm /></Suspense>} />
             <Route path="/payment-requests/:id/edit" element={<Suspense fallback={<LoadingState />}><PaymentRequestForm /></Suspense>} />
+            <Route path="/payment-requests/:id/settlement" element={<Suspense fallback={<LoadingState />}><PaymentRequestSettlementPage /></Suspense>} />
             <Route path="/payment-requests/:id" element={<Suspense fallback={<LoadingState />}><PaymentRequestDetailPage /></Suspense>} />
             <Route path="/coa" element={<PermRoute module="coa"><COAPage /></PermRoute>} />
             <Route path="/gl" element={<PermRoute module="journal"><GeneralLedger /></PermRoute>} />
@@ -164,11 +166,11 @@ function App() {
             <Route path="/ga/maintenance" element={<PermRoute module="ga_maintenance"><GaMaintenancePage /></PermRoute>} />
             <Route path="/ga/material-requests" element={<PermRoute module="ga_material_request"><GaMaterialRequestPage /></PermRoute>} />
             <Route path="/ga/vehicle" element={<PermRoute module="ga_vehicle"><GaVehiclePage /></PermRoute>} />
-            <Route path="/ga/vehicle/report" element={<PermRoute module="ga_vehicle"><GaFleetReportPage /></PermRoute>} />
-            <Route path="/ga/building" element={<PermRoute module="ga_building"><GaBuildingPage /></PermRoute>} />
-            <Route path="/ga/equipment" element={<PermRoute module="ga_equipment"><GaEquipmentPage /></PermRoute>} />
-            <Route path="/ga/master" element={<PermRoute module="ga_master"><GaMasterPage /></PermRoute>} />
-            <Route path="/ga/finance" element={<PermRoute module="ga_finance"><GaFinancePage /></PermRoute>} />
+            <Route path="/ga/vehicle/report" element={<PermRoute module="ga_vehicle"><Suspense fallback={<LoadingState />}><GaFleetReportPage /></Suspense></PermRoute>} />
+            <Route path="/ga/building" element={<PermRoute module="ga_building"><Suspense fallback={<LoadingState />}><GaBuildingPage /></Suspense></PermRoute>} />
+            <Route path="/ga/equipment" element={<PermRoute module="ga_equipment"><Suspense fallback={<LoadingState />}><GaEquipmentPage /></Suspense></PermRoute>} />
+            <Route path="/ga/master" element={<PermRoute module="ga_master"><Suspense fallback={<LoadingState />}><GaMasterPage /></Suspense></PermRoute>} />
+            <Route path="/ga/finance" element={<PermRoute module="ga_finance"><Suspense fallback={<LoadingState />}><GaFinancePage /></Suspense></PermRoute>} />
             <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
             <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
             <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />
@@ -182,29 +184,29 @@ function App() {
 
             {/* Report Routes — semua modul 'reports' */}
             <Route path="/reports" element={<PermRoute module="reports"><Reports /></PermRoute>} />
-            <Route path="/reports/daily" element={<PermRoute module="reports"><DailyReport /></PermRoute>} />
+            <Route path="/reports/daily" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><DailyReport /></Suspense></PermRoute>} />
             <Route path="/reports/trial-balance" element={<PermRoute module="reports"><TrialBalance /></PermRoute>} />
             <Route path="/reports/profit-loss" element={<PermRoute module="reports"><ProfitLoss /></PermRoute>} />
             <Route path="/reports/balance-sheet" element={<PermRoute module="reports"><BalanceSheet /></PermRoute>} />
             <Route path="/reports/cash-flow" element={<PermRoute module="reports"><CashFlow /></PermRoute>} />
             <Route path="/reports/aging-ar" element={<PermRoute module="reports"><AgingAnalysis type="Customer" /></PermRoute>} />
             <Route path="/reports/aging-ap" element={<PermRoute module="reports"><AgingAnalysis type="Supplier" /></PermRoute>} />
-            <Route path="/reports/tax" element={<PermRoute module="reports"><TaxReport /></PermRoute>} />
-            <Route path="/reports/ledger-book" element={<PermRoute module="reports"><LedgerBook /></PermRoute>} />
-            <Route path="/reports/hpp" element={<PermRoute module="reports"><HppReport /></PermRoute>} />
-            <Route path="/reports/profitability-per-sku" element={<PermRoute module="reports"><ProfitabilityPerSku /></PermRoute>} />
-            <Route path="/reports/production-cost-summary" element={<PermRoute module="reports"><ProductionCostSummary /></PermRoute>} />
-            <Route path="/reports/oee" element={<PermRoute module="reports"><OeeReport /></PermRoute>} />
-            <Route path="/reports/payable-schedule" element={<PermRoute module="reports"><PayableSchedule /></PermRoute>} />
-            <Route path="/reports/receivable-schedule" element={<PermRoute module="reports"><ReceivableSchedule /></PermRoute>} />
-            <Route path="/reports/po-outstanding" element={<PermRoute module="reports"><PoOutstanding /></PermRoute>} />
-            <Route path="/reports/supplier-performance" element={<PermRoute module="reports"><SupplierPerformance /></PermRoute>} />
+            <Route path="/reports/tax" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><TaxReport /></Suspense></PermRoute>} />
+            <Route path="/reports/ledger-book" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><LedgerBook /></Suspense></PermRoute>} />
+            <Route path="/reports/hpp" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><HppReport /></Suspense></PermRoute>} />
+            <Route path="/reports/profitability-per-sku" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><ProfitabilityPerSku /></Suspense></PermRoute>} />
+            <Route path="/reports/production-cost-summary" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><ProductionCostSummary /></Suspense></PermRoute>} />
+            <Route path="/reports/oee" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><OeeReport /></Suspense></PermRoute>} />
+            <Route path="/reports/payable-schedule" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><PayableSchedule /></Suspense></PermRoute>} />
+            <Route path="/reports/receivable-schedule" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><ReceivableSchedule /></Suspense></PermRoute>} />
+            <Route path="/reports/po-outstanding" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><PoOutstanding /></Suspense></PermRoute>} />
+            <Route path="/reports/supplier-performance" element={<PermRoute module="reports"><Suspense fallback={<LoadingState />}><SupplierPerformance /></Suspense></PermRoute>} />
 
             <Route path="/reconciliation" element={<PermRoute module="reconciliation"><BankReconciliation /></PermRoute>} />
             <Route path="/settings" element={<PermRoute module="settings"><SettingsPage /></PermRoute>} />
             <Route path="/users" element={<PermRoute module="users"><UserManagement /></PermRoute>} />
             <Route path="/audit" element={<PermRoute module="audit"><AuditTrail /></PermRoute>} />
-            <Route path="/health-check" element={<PermRoute module="audit"><HealthCheckPage /></PermRoute>} />
+            <Route path="/health-check" element={<PermRoute module="audit"><Suspense fallback={<LoadingState />}><HealthCheckPage /></Suspense></PermRoute>} />
             <Route path="/fixed-assets" element={<PermRoute module="fixed_assets"><FixedAssetsPage /></PermRoute>} />
             <Route path="/approvals" element={<PermRoute module="approvals"><ApprovalsPage /></PermRoute>} />
             <Route path="/notifications" element={<Notifications />} />

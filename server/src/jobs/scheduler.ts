@@ -4,6 +4,7 @@ import { logger } from '../lib/logger';
 import { runQuotationSweeper } from './quotationSweeper';
 import { runDueRecurringTemplates } from '../services/recurringRunner';
 import { runNotificationChecks } from '../services/notificationService';
+import { runSettlementReminders } from '../services/paymentRequestNotify';
 import { pollTelegramUpdates } from '../services/telegramService';
 
 /**
@@ -101,6 +102,8 @@ export function startScheduler(): void {
         try {
           const { created } = await runNotificationChecks();
           if (created > 0) logger.info({ created }, 'Notification checks daily run');
+          const reminders = await runSettlementReminders();
+          if (reminders.created > 0) logger.info(reminders, 'Advance settlement reminders daily run');
         } catch (err) {
           logger.error({ err }, 'Notification checks daily run failed');
         }

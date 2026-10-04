@@ -6,7 +6,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Paperclip, Save, Send } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Paperclip, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,16 @@ import { ComboField } from '@/components/fixed-assets/ComboField';
 import { apiError } from '@/components/fixed-assets/errors';
 import { AttachmentPicker } from '@/components/payment-requests/AttachmentPicker';
 import { LinesEditor } from '@/components/payment-requests/LinesEditor';
+import { TravelLinesEditor } from '@/components/payment-requests/TravelLinesEditor';
+import { TravelSection } from '@/components/payment-requests/TravelSection';
+import { EMPTY_TRAVEL, validateTravelValue, type TravelErrors, type TravelValue } from '@/components/payment-requests/travel';
 import { linesTotal, newLine, type DraftLine } from '@/components/payment-requests/lines';
 import {
   KIND_LABEL,
   PR_ENDPOINT,
   formatMoney,
   isAdvanceKind,
+  tripDays,
   type PaymentRequestDetail,
   type PaymentRequestMeta,
   type PaymentRequestType,
@@ -91,8 +95,26 @@ function initialForm(detail: PaymentRequestDetail | undefined, meta: PaymentRequ
 function initialLines(detail: PaymentRequestDetail | undefined): DraftLine[] {
   if (!detail?.lines.length) return [newLine()];
   return detail.lines.map((l) =>
-    newLine({ description: l.description, amount: Number(l.amount), expenseDate: isoDay(l.expenseDate), expenseAccountId: l.expenseAccountId }),
+    newLine({
+      description: l.description,
+      amount: Number(l.amount),
+      expenseDate: isoDay(l.expenseDate),
+      expenseAccountId: l.expenseAccountId,
+      category: l.category,
+      quantity: l.quantity === null ? null : Number(l.quantity),
+      unitAmount: l.unitAmount === null ? null : Number(l.unitAmount),
+    }),
   );
+}
+
+function initialTravel(detail: PaymentRequestDetail | undefined): TravelValue {
+  if (!detail) return EMPTY_TRAVEL;
+  return {
+    destination: detail.travelDestination ?? '',
+    startDate: isoDay(detail.travelStartDate),
+    endDate: isoDay(detail.travelEndDate),
+    participants: detail.travelParticipants ?? '',
+  };
 }
 
 const metaQueryOptions = {
@@ -128,6 +150,8 @@ function PaymentRequestFormBody({
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(() => initialForm(initialDetail, initialMeta));
   const [lines, setLines] = useState<DraftLine[]>(() => initialLines(initialDetail));
+  const [travel, setTravel] = useState<TravelValue>(() => initialTravel(initialDetail));
+  const [travelErrors, setTravelErrors] = useState<TravelErrors>({});
   const [pending, setPending] = useState<File[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState('');
@@ -152,7 +176,9 @@ function PaymentRequestFormBody({
 
   const types = typesQuery.data ?? [];
   const selectedType = types.find((t) => t.id === form.typeId) ?? (detailQuery.data?.type.id === form.typeId ? detailQuery.data?.type : undefined);
-  const savedAttachments = detailQuery.data?.attachments ?? [];
+  const isTravel = selectedType?.kind === 'TRAVEL';
+  const days = tripDays(travel.startDate, travel.endDate);
+  const savedAttachments = (detailQuery.data?.attachments ?? []).filter((a) => a.scope !== 'SETTLEMENT');
   const vendorOptions = useMemo(() => (vendorsQuery.data ?? []).map((v) => ({ value: v.id, label: v.name })), [vendorsQuery.data]);
 
   const removeAttachment = useMutation({
@@ -170,11 +196,13 @@ function PaymentRequestFormBody({
     const filled = lines.filter((l) => l.description.trim() || l.amount);
     if (filled.some((l) => !l.description.trim() || !l.amount || l.amount <= 0)) e.lines = 'Setiap baris wajib berisi uraian dan nominal lebih dari 0.';
     else if (forSubmit && filled.length === 0) e.lines = 'Tambahkan minimal satu rincian biaya.';
+    if (isTravel) setTravelErrors(validateTravelValue(travel, forSubmit));
     if (forSubmit && selectedType?.requiresAttachment && savedAttachments.length + pending.length === 0) {
       e.attachments = 'Jenis pengajuan ini wajib melampirkan bukti.';
     }
     return e;
   };
+  const travelInvalid = () => isTravel && Object.keys(validateTravelValue(travel, false)).length > 0;
 
   const save = useMutation({
     mutationFn: async (submit: boolean) => {
@@ -189,6 +217,14 @@ function PaymentRequestFormBody({
         department: form.department.trim() || null,
         purpose: form.purpose.trim(),
         neededBy: form.neededBy || null,
+        ...(isTravel
+          ? {
+              travelDestination: travel.destination.trim() || null,
+              travelStartDate: travel.startDate || null,
+              travelEndDate: travel.endDate || null,
+              travelParticipants: travel.participants.trim() || null,
+            }
+          : {}),
         lines: lines
           .filter((l) => l.description.trim() && l.amount)
           .map((l) => ({
@@ -196,6 +232,13 @@ function PaymentRequestFormBody({
             amount: l.amount as number,
             expenseDate: l.expenseDate || null,
             expenseAccountId: l.expenseAccountId,
+            ...(isTravel
+              ? {
+                  category: l.category ?? 'OTHER',
+                  quantity: l.quantity && l.unitAmount ? l.quantity : null,
+                  unitAmount: l.quantity && l.unitAmount ? l.unitAmount : null,
+                }
+              : {}),
           })),
       };
       const res = isEdit ? await api.put(`${PR_ENDPOINT}/${id}`, payload) : await api.post(PR_ENDPOINT, payload);
@@ -224,7 +267,8 @@ function PaymentRequestFormBody({
     setServerError('');
     const e = validate(submit);
     setErrors(e);
-    if (Object.keys(e).length) return;
+    const tErrors = isTravel ? validateTravelValue(travel, submit) : {};
+    if (Object.keys(e).length || Object.keys(tErrors).length || (!submit && travelInvalid())) return;
     save.mutate(submit);
   };
 
@@ -258,6 +302,17 @@ function PaymentRequestFormBody({
             : 'Setelah diajukan, pengajuan langsung diverifikasi Keuangan (atasan langsung belum diatur).'
         }
       />
+
+      {!isEdit && (metaQuery.data?.openAdvances.overdueCount ?? 0) > 0 && (
+        <div role="status" className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+          <p>
+            Anda masih punya <span className="font-medium">{metaQuery.data?.openAdvances.overdueCount} uang muka</span> yang belum
+            dipertanggungjawabkan lebih dari {metaQuery.data?.overdueDays} hari ({formatMoney(metaQuery.data?.openAdvances.overdueAmount ?? 0)}).
+            Pengajuan baru tetap bisa dibuat, tetapi mohon segera selesaikan pertanggungjawaban.
+          </p>
+        </div>
+      )}
 
       {detailQuery.data?.status === 'REVISION' && detailQuery.data.lastNote && (
         <div role="status" className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
@@ -309,7 +364,7 @@ function PaymentRequestFormBody({
                   </ul>
                 </div>
               )}
-              <Field label="Keperluan" required error={errors.purpose} className="sm:col-span-2">
+              <Field label={isTravel ? 'Keperluan perjalanan' : 'Keperluan'} required error={errors.purpose} className="sm:col-span-2">
                 <Textarea
                   rows={3}
                   maxLength={1000}
@@ -327,13 +382,23 @@ function PaymentRequestFormBody({
             </CardContent>
           </Card>
 
+          {isTravel && <TravelSection value={travel} onChange={setTravel} errors={travelErrors} />}
+
           <Card>
             <CardHeader>
-              <CardTitle>Rincian biaya</CardTitle>
-              <CardDescription>Akun biaya dipilih oleh Keuangan saat verifikasi.</CardDescription>
+              <CardTitle>{isTravel ? 'Rencana biaya perjalanan' : 'Rincian biaya'}</CardTitle>
+              <CardDescription>
+                {isTravel
+                  ? 'Perkiraan biaya per kategori — dipakai sebagai pembanding saat pertanggungjawaban. Akun biaya dipilih Keuangan.'
+                  : 'Akun biaya dipilih oleh Keuangan saat verifikasi.'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <LinesEditor lines={lines} onChange={setLines} error={errors.lines} />
+              {isTravel ? (
+                <TravelLinesEditor lines={lines} onChange={setLines} error={errors.lines} days={days} />
+              ) : (
+                <LinesEditor lines={lines} onChange={setLines} error={errors.lines} />
+              )}
             </CardContent>
           </Card>
 

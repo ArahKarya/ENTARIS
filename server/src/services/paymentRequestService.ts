@@ -19,6 +19,8 @@ import { updateBalancesForItems } from '../utils/accountBalance';
 import { BusinessError } from '../utils/errors';
 import { PaymentRequestInputSchema } from '../utils/schemas';
 import { cancelJournalInTx } from './gaFinance';
+import { checkLineRate, validateTravel } from './paymentRequestTravel';
+import { initialSettlementStatus } from './paymentRequestSettlementRules';
 import {
   PR_APPROVAL_DOC_TYPE,
   STALE_STATUS_ERROR,
@@ -38,6 +40,7 @@ import {
   resolveSubmitStatus,
   type Actor,
   type Check,
+  type JournalLine,
   type PrStatus,
 } from './paymentRequestRules';
 
@@ -55,7 +58,12 @@ export type PrEventKind =
   | 'revision'
   | 'paid'
   | 'payment_cancelled'
-  | 'cancelled';
+  | 'cancelled'
+  | 'settlement_pending_supervisor'
+  | 'settlement_pending_finance'
+  | 'settlement_revision'
+  | 'settlement_settled'
+  | 'settlement_posting_cancelled';
 
 export interface PrEvent {
   kind: PrEventKind;
@@ -72,19 +80,22 @@ export interface PrEvent {
 const assertOk = (check: Check): void => {
   if (!check.ok) throw new BusinessError(check.error);
 };
+const assertCheck = assertOk;
 
-async function loadRequest(tx: Tx, id: string) {
+const isoDay = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
+
+export async function loadRequest(tx: Tx, id: string) {
   const pr = await tx.paymentRequest.findUnique({ where: { id }, include: { type: true } });
   if (!pr) throw new NotFoundError('Pengajuan tidak ditemukan.');
   return pr;
 }
 
-async function claimStatus(tx: Tx, id: string, from: readonly string[], data: Prisma.PaymentRequestUncheckedUpdateManyInput) {
+export async function claimStatus(tx: Tx, id: string, from: readonly string[], data: Prisma.PaymentRequestUncheckedUpdateManyInput) {
   const res = await tx.paymentRequest.updateMany({ where: { id, status: { in: [...from] } }, data });
   if (res.count !== 1) throw new BusinessError(STALE_STATUS_ERROR);
 }
 
-async function addHistory(
+export async function addHistory(
   tx: Tx,
   input: { requestId: string; action: string; actorId: string; fromStatus?: string | null; toStatus?: string | null; note?: string | null },
 ) {
@@ -100,11 +111,12 @@ async function addHistory(
   });
 }
 
-function eventOf(
+export function eventOf(
   pr: { id: string; number: string; requesterId: string; supervisorId: string | null; directorRole: string | null; totalAmount: Decimal.Value | { toString(): string } },
   kind: PrEventKind,
   actorId: string,
   note?: string | null,
+  amountOverride?: number,
 ): PrEvent {
   return {
     kind,
@@ -114,14 +126,14 @@ function eventOf(
     supervisorId: pr.supervisorId,
     directorRole: pr.directorRole,
     actorId,
-    amount: new Decimal(pr.totalAmount.toString()).toNumber(),
+    amount: amountOverride ?? new Decimal(pr.totalAmount.toString()).toNumber(),
     note: note ?? null,
   };
 }
 
 const toDay = (d: string | null | undefined): Date | null => (d ? new Date(`${d}T00:00:00.000Z`) : null);
 
-async function assertDetailAccount(tx: Tx, accountId: string, label: string) {
+export async function assertDetailAccount(tx: Tx, accountId: string, label: string) {
   const acc = await tx.account.findUnique({
     where: { id: accountId },
     select: { id: true, isGroup: true, isActive: true, accountNumber: true, accountType: true, name: true },
@@ -148,7 +160,10 @@ async function normalizeInput(tx: Tx, input: PaymentRequestInput) {
   }
   for (const [i, l] of input.lines.entries()) {
     if (l.expenseAccountId) await assertDetailAccount(tx, l.expenseAccountId, `Akun biaya baris ${i + 1}`);
+    assertCheck(checkLineRate(l, `Baris ${i + 1}`));
   }
+  assertCheck(validateTravel(type.kind, input, false));
+  const isTravel = type.kind === 'TRAVEL';
   const header = {
     typeId: type.id,
     costCenterId: input.costCenterId ?? null,
@@ -161,6 +176,11 @@ async function normalizeInput(tx: Tx, input: PaymentRequestInput) {
     bankAccountHolder: input.bankAccountHolder || null,
     purpose: input.purpose.trim(),
     neededBy: toDay(input.neededBy),
+    // Travel section only applies to TRAVEL types; other kinds always store null.
+    travelDestination: isTravel ? input.travelDestination?.trim() || null : null,
+    travelStartDate: isTravel ? toDay(input.travelStartDate) : null,
+    travelEndDate: isTravel ? toDay(input.travelEndDate) : null,
+    travelParticipants: isTravel ? input.travelParticipants?.trim() || null : null,
     totalAmount: computeTotal(input.lines).toFixed(2),
   };
   const lines = input.lines.map((l, i) => ({
@@ -170,6 +190,9 @@ async function normalizeInput(tx: Tx, input: PaymentRequestInput) {
     expenseAccountId: l.expenseAccountId ?? type.defaultExpenseAccountId ?? null,
     costCenterId: l.costCenterId ?? null,
     expenseDate: toDay(l.expenseDate),
+    category: isTravel ? l.category ?? null : null,
+    quantity: isTravel && l.quantity != null ? new Decimal(l.quantity).toFixed(2) : null,
+    unitAmount: isTravel && l.unitAmount != null ? new Decimal(l.unitAmount).toFixed(2) : null,
   }));
   return { header, lines };
 }
@@ -202,7 +225,7 @@ export async function submitPaymentRequestInTx(tx: Tx, id: string, actor: Actor)
   const pr = await loadRequest(tx, id);
   const [lineCount, attachmentCount, requester] = await Promise.all([
     tx.paymentRequestLine.count({ where: { paymentRequestId: id } }),
-    tx.paymentRequestAttachment.count({ where: { paymentRequestId: id } }),
+    tx.paymentRequestAttachment.count({ where: { paymentRequestId: id, scope: 'REQUEST' } }),
     tx.user.findUnique({ where: { id: pr.requesterId }, select: { supervisor: { select: { id: true, isActive: true } } } }),
   ]);
   assertOk(
@@ -213,6 +236,13 @@ export async function submitPaymentRequestInTx(tx: Tx, id: string, actor: Actor)
       requiresAttachment: pr.type.requiresAttachment,
       typeActive: pr.type.isActive,
     }),
+  );
+  assertOk(
+    validateTravel(
+      pr.type.kind,
+      { travelDestination: pr.travelDestination, travelStartDate: isoDay(pr.travelStartDate), travelEndDate: isoDay(pr.travelEndDate) },
+      true,
+    ),
   );
   const target = resolveSubmitStatus(pr.requesterId, requester?.supervisor ?? null);
   const now = new Date();
@@ -329,7 +359,7 @@ export async function verifyPaymentRequestAccountsInTx(
 
 // ─── Pay / cancel payment ────────────────────────────────────────────────────
 
-async function resolveAdvanceAccountId(tx: Tx): Promise<string | null> {
+export async function resolveAdvanceAccountId(tx: Tx): Promise<string | null> {
   const mapping = await tx.systemAccountMapping.findFirst({
     where: { role: 'EMPLOYEE_ADVANCE' },
     orderBy: { sortOrder: 'asc' },
@@ -338,13 +368,52 @@ async function resolveAdvanceAccountId(tx: Tx): Promise<string | null> {
   return mapping?.accountId ?? null;
 }
 
-async function assertCashAccount(tx: Tx, accountId: string) {
+export async function assertCashAccount(tx: Tx, accountId: string) {
   const acc = await assertDetailAccount(tx, accountId, 'Akun kas/bank');
   const isCashMapped = (await tx.systemAccountMapping.count({ where: { role: 'CASH', accountId } })) > 0;
   if (acc.accountType !== 'ASSET' || !(isCashMapped || acc.accountNumber.startsWith('1.1'))) {
     throw new BusinessError('Akun sumber dana harus akun kas/bank (1.1.x).');
   }
   return acc;
+}
+
+/** Create a Submitted journal + ledger rows + balance updates for already-balanced lines. */
+export async function postJournalInTx(
+  tx: Tx,
+  input: { date: Date; narration: string; fiscalYearId: string; actorId: string; now: Date; lines: readonly JournalLine[] },
+) {
+  const { date, narration, fiscalYearId } = input;
+  const entryNumber = await generateDocumentNumber(tx, 'JV', date, fiscalYearId);
+  const journal = await tx.journalEntry.create({
+    data: {
+      entryNumber,
+      date,
+      narration,
+      status: 'Submitted',
+      fiscalYearId,
+      createdBy: input.actorId,
+      submittedAt: input.now,
+      items: { create: input.lines.map((l) => ({ accountId: l.accountId, debit: l.debit, credit: l.credit, description: l.description })) },
+    },
+    include: { items: true },
+  });
+  await tx.accountingLedgerEntry.createMany({
+    data: journal.items.map((item) => ({
+      date,
+      accountId: item.accountId,
+      debit: item.debit,
+      credit: item.credit,
+      referenceType: 'JournalEntry',
+      referenceId: journal.id,
+      description: item.description ?? narration,
+      fiscalYearId,
+    })),
+  });
+  await updateBalancesForItems(
+    tx,
+    journal.items.map((i) => ({ accountId: i.accountId, debit: Number(i.debit), credit: Number(i.credit) })),
+  );
+  return journal;
 }
 
 export async function payPaymentRequestInTx(
@@ -383,39 +452,13 @@ export async function payPaymentRequestInTx(
     paymentDate: date,
     cashAccountId: input.cashAccountId,
     paymentReference: input.reference || null,
-    settlementStatus: isAdvanceKind(pr.type.kind) ? 'OPEN' : null,
+    // Posting account follows the type KIND (advance kinds → DR 1.5.6); whether a
+    // settlement is REQUIRED follows ONLY type.requiresSettlement. An advance type
+    // that does not require settlement stays untracked here (clear 1.5.6 by journal).
+    settlementStatus: initialSettlementStatus(pr.type.kind, pr.type.requiresSettlement),
   });
 
-  const entryNumber = await generateDocumentNumber(tx, 'JV', date, fiscalYear.id);
-  const journal = await tx.journalEntry.create({
-    data: {
-      entryNumber,
-      date,
-      narration,
-      status: 'Submitted',
-      fiscalYearId: fiscalYear.id,
-      createdBy: actor.id,
-      submittedAt: now,
-      items: { create: built.lines.map((l) => ({ accountId: l.accountId, debit: l.debit, credit: l.credit, description: l.description })) },
-    },
-    include: { items: true },
-  });
-  await tx.accountingLedgerEntry.createMany({
-    data: journal.items.map((item) => ({
-      date,
-      accountId: item.accountId,
-      debit: item.debit,
-      credit: item.credit,
-      referenceType: 'JournalEntry',
-      referenceId: journal.id,
-      description: item.description ?? narration,
-      fiscalYearId: fiscalYear.id,
-    })),
-  });
-  await updateBalancesForItems(
-    tx,
-    journal.items.map((i) => ({ accountId: i.accountId, debit: Number(i.debit), credit: Number(i.credit) })),
-  );
+  const journal = await postJournalInTx(tx, { date, narration, fiscalYearId: fiscalYear.id, actorId: actor.id, now, lines: built.lines });
   await tx.paymentRequest.update({ where: { id }, data: { journalEntryId: journal.id } });
   await addHistory(tx, {
     requestId: id,
@@ -433,9 +476,6 @@ export async function cancelPaymentRequestPaymentInTx(tx: Tx, id: string, actor:
   assertOk(checkReason(reason));
   const pr = await loadRequest(tx, id);
   assertOk(checkCancelPayment(pr, actor));
-  if (pr.settlementStatus === 'SETTLED') {
-    throw new BusinessError('Uang muka sudah dipertanggungjawabkan; batalkan pertanggungjawaban terlebih dahulu.');
-  }
   if (pr.journalEntryId) {
     const je = await tx.journalEntry.findUnique({ where: { id: pr.journalEntryId }, select: { fiscalYear: { select: { isClosed: true } } } });
     if (je?.fiscalYear.isClosed) throw new BusinessError('Tahun buku jurnal pembayaran sudah ditutup; pembayaran tidak bisa dibatalkan.');
@@ -448,8 +488,11 @@ export async function cancelPaymentRequestPaymentInTx(tx: Tx, id: string, actor:
     cashAccountId: null,
     paymentReference: null,
     settlementStatus: null,
+    settlementNote: null,
+    settlementDeadline: null,
     lastNote: reason.trim(),
   });
+  await tx.paymentRequestSettlementLine.deleteMany({ where: { paymentRequestId: id } });
   if (pr.journalEntryId) {
     await cancelJournalInTx(tx, pr.journalEntryId);
     await tx.paymentRequest.update({ where: { id }, data: { journalEntryId: null } });

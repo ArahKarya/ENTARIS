@@ -56,6 +56,7 @@ function makeTx(pr: ReturnType<typeof makeRequest>, opts: { fiscalYear?: object 
       updateMany: vi.fn(async () => ({ count: 1 })),
     },
     paymentRequestAttachment: { count: vi.fn(async () => 0) },
+    paymentRequestSettlementLine: { deleteMany: vi.fn(async () => ({ count: 0 })) },
     paymentRequestHistory: { create: vi.fn(async () => ({})) },
     user: { findUnique: vi.fn(async () => ({ supervisor: null })) },
     account: {
@@ -98,10 +99,17 @@ describe('payPaymentRequestInTx', () => {
   });
 
   it('cash advance debits the EMPLOYEE_ADVANCE account and opens settlement', async () => {
-    const tx = makeTx(makeRequest({ type: { kind: 'CASH_ADVANCE', requiresAttachment: false, isActive: true } }));
+    const tx = makeTx(makeRequest({ type: { kind: 'CASH_ADVANCE', requiresAttachment: false, requiresSettlement: true, isActive: true } }));
     await payPaymentRequestInTx(asTx(tx), 'pr-1', finance, { cashAccountId: 'acc-cash', paymentDate: '2026-10-05' });
     expect(tx.journalEntry.create.mock.calls[0][0].data.items.create[0]).toEqual(expect.objectContaining({ accountId: 'acc-adv', debit: 250000 }));
     expect(tx.paymentRequest.updateMany.mock.calls[0][0].data.settlementStatus).toBe('OPEN');
+  });
+
+  it('an advance type that does not require settlement is posted to 1.5.6 but opens no settlement', async () => {
+    const tx = makeTx(makeRequest({ type: { kind: 'TRAVEL', requiresAttachment: false, requiresSettlement: false, isActive: true } }));
+    await payPaymentRequestInTx(asTx(tx), 'pr-1', finance, { cashAccountId: 'acc-cash', paymentDate: '2026-10-05' });
+    expect(tx.journalEntry.create.mock.calls[0][0].data.items.create[0]).toEqual(expect.objectContaining({ accountId: 'acc-adv' }));
+    expect(tx.paymentRequest.updateMany.mock.calls[0][0].data.settlementStatus).toBeNull();
   });
 
   it('rejects a payment dated in a closed fiscal period — nothing is posted', async () => {
@@ -162,6 +170,20 @@ describe('cancelPaymentRequestPaymentInTx', () => {
     await cancelPaymentRequestPaymentInTx(asTx(tx), 'pr-1', finance, 'Salah rekening');
     expect(cancelJournalInTx).toHaveBeenCalledWith(tx, 'je-1');
     expect(tx.paymentRequest.updateMany.mock.calls[0][0].data.status).toBe('APPROVED');
+  });
+
+  it('stays blocked once the advance is settled or a settlement is in progress', async () => {
+    for (const settlementStatus of ['SETTLED', 'SUBMITTED', 'PENDING_FINANCE', 'REVISION']) {
+      const tx = makeTx(makeRequest({ status: 'PAID', journalEntryId: 'je-1', settlementStatus }));
+      await expect(cancelPaymentRequestPaymentInTx(asTx(tx), 'pr-1', finance, 'Salah rekening')).rejects.toThrow(/pertanggungjawaban/i);
+      expect(cancelJournalInTx).not.toHaveBeenCalled();
+    }
+  });
+
+  it('an untouched OPEN advance can still be cancelled and drops its settlement draft', async () => {
+    const tx = makeTx(makeRequest({ status: 'PAID', journalEntryId: 'je-1', settlementStatus: 'OPEN' }));
+    await cancelPaymentRequestPaymentInTx(asTx(tx), 'pr-1', finance, 'Salah rekening');
+    expect(tx.paymentRequestSettlementLine.deleteMany).toHaveBeenCalled();
   });
 
   it('refuses when the journal year is closed', async () => {
