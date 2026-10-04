@@ -38,10 +38,12 @@ RUN cd server && npx prisma generate && npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    TZ=Asia/Jakarta
 
-# Install pg_dump/psql (for backup/restore), gzip, and vips (for sharp image processing)
-RUN apk add --no-cache postgresql16-client gzip vips
+# Install pg_dump/psql (for backup/restore), gzip, vips (for sharp image processing)
+# and tzdata (so TZ resolves to the business timezone, not UTC)
+RUN apk add --no-cache postgresql16-client gzip vips tzdata
 
 # Install only production deps (prisma, tsx, sharp, multer all in dependencies)
 COPY server/package.json server/package-lock.json* ./server/

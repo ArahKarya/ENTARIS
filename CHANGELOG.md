@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Deploy & Operasional
+**Diubah**:
+- Image Docker (`Dockerfile`, `Dockerfile.allinone`) kini menyetel zona waktu proses server `TZ=Asia/Jakarta` (paket `tzdata` dipasang); `docker-compose.yml` meneruskan `TZ` (default `Asia/Jakarta`, dapat diubah di `.env`). Batas periode laporan (awal/akhir hari & bulan) pada deployment Docker kini sesuai WIB, bukan UTC.
+
 ### Arsitektur
 **Diubah**:
 - EAM kini menjadi modul di aplikasi utama; aplikasi/subdomain EAM terpisah (`client-eam/`, service Docker `client-eam`) dihapus. `COOKIE_DOMAIN` tetap didukung tetapi opsional — hanya perlu bila sesi dibagi lintas subdomain.
