@@ -21,7 +21,9 @@ export function PlanVsActual({ planned, actual, className }: PlanVsActualProps) 
   const diffText = (d: number) => (d === 0 ? '-' : `${d > 0 ? '+' : '-'}${formatMoney(Math.abs(d))}`);
 
   return (
-    <div className={cn('overflow-x-auto rounded-lg border border-border', className)}>
+    // Scrollable region must be keyboard-focusable (axe: scrollable-region-focusable).
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div role="region" aria-label="Rencana vs realisasi per kategori" tabIndex={0} className={cn('relative overflow-x-auto rounded-lg border border-border', className)}>
       <table className="w-full min-w-[26rem] text-sm">
         <caption className="sr-only">Rencana dan realisasi biaya per kategori</caption>
         <thead>

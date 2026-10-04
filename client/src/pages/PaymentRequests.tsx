@@ -95,14 +95,14 @@ function toAdvanceExportRows(rows: PaymentRequestRow[], overdueDays: number): Re
   });
 }
 
-function TabLabel({ label, count }: { label: string; count?: number }) {
+function TabLabel({ label, count, suffix = 'menunggu' }: { label: string; count?: number; suffix?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="relative inline-flex items-center gap-1.5">
       {label}
       {count ? (
         <span className="num rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground">
           {formatNumber(count)}
-          <span className="sr-only"> menunggu</span>
+          <span className="sr-only"> {suffix}</span>
         </span>
       ) : null}
     </span>
@@ -455,7 +455,7 @@ export const PaymentRequests = () => {
               </TabsTrigger>
             )}
             <TabsTrigger value="advances">
-              <TabLabel label="Belum Dipertanggungjawabkan" count={advances?.overdueCount} />
+              <TabLabel label="Belum Dipertanggungjawabkan" count={advances?.overdueCount} suffix="lewat batas waktu" />
             </TabsTrigger>
             {meta?.canViewAll && <TabsTrigger value="all">Semua</TabsTrigger>}
         </TabsList>
@@ -496,7 +496,8 @@ export const PaymentRequests = () => {
             />
           </section>
           {advances && advances.byEmployee.length > 0 && (meta?.isFinance || meta?.canViewAll || advances.byEmployee.length > 1) && (
-            <section aria-label="Uang muka per karyawan" className="overflow-x-auto rounded-lg border border-border bg-card">
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be focusable
+            <section aria-label="Uang muka per karyawan" tabIndex={0} className="relative overflow-x-auto rounded-lg border border-border bg-card">
               <table className="w-full min-w-[28rem] text-sm">
                 <caption className="sr-only">Uang muka belum dipertanggungjawabkan per karyawan</caption>
                 <thead>
