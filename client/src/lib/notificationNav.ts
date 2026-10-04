@@ -39,6 +39,7 @@ export function notificationLink(n: NotifItem, role: string | undefined): string
     case 'payment_request_revision':
     case 'payment_request_paid':
     case 'payment_request_cancelled':
+    case 'payment_request_settlement_due':
       return meta.paymentRequestId ? `/payment-requests/${encodeURIComponent(meta.paymentRequestId)}` : '/payment-requests';
     case 'guarantee_due':
       return '/project-guarantees';

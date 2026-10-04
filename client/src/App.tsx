@@ -77,6 +77,7 @@ import AiraChat from './pages/AiraChat';
 // Pengajuan Pembayaran pages are code-split (keeps the main chunk under the PWA precache limit).
 const PaymentRequests = lazy(() => import('./pages/PaymentRequests').then((m) => ({ default: m.PaymentRequests })));
 const PaymentRequestForm = lazy(() => import('./pages/PaymentRequestForm').then((m) => ({ default: m.PaymentRequestForm })));
+const PaymentRequestSettlementPage = lazy(() => import('./pages/PaymentRequestSettlement').then((m) => ({ default: m.PaymentRequestSettlementPage })));
 const PaymentRequestDetailPage = lazy(() => import('./pages/PaymentRequestDetail').then((m) => ({ default: m.PaymentRequestDetailPage })));
 const UiPlayground = import.meta.env.DEV ? lazy(() => import('./pages/dev/UiPlayground')) : null;
 
@@ -144,6 +145,7 @@ function App() {
             <Route path="/payment-requests" element={<Suspense fallback={<LoadingState />}><PaymentRequests /></Suspense>} />
             <Route path="/payment-requests/new" element={<Suspense fallback={<LoadingState />}><PaymentRequestForm /></Suspense>} />
             <Route path="/payment-requests/:id/edit" element={<Suspense fallback={<LoadingState />}><PaymentRequestForm /></Suspense>} />
+            <Route path="/payment-requests/:id/settlement" element={<Suspense fallback={<LoadingState />}><PaymentRequestSettlementPage /></Suspense>} />
             <Route path="/payment-requests/:id" element={<Suspense fallback={<LoadingState />}><PaymentRequestDetailPage /></Suspense>} />
             <Route path="/coa" element={<PermRoute module="coa"><COAPage /></PermRoute>} />
             <Route path="/gl" element={<PermRoute module="journal"><GeneralLedger /></PermRoute>} />
