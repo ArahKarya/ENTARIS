@@ -1,4 +1,4 @@
-import { TablerIcon } from "@/components/erp/enterprise-28346646/sections/TablerIcon";
+import { TablerIcon } from "./TablerIcon";
 import { CtaLink, type CtaSpec } from "./CtaLink";
 
 /*

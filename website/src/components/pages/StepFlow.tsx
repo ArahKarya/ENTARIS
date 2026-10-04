@@ -13,9 +13,11 @@ type StepFlowProps = {
   lead?: string;
   caption: { label: string; title: string };
   steps: readonly FlowStep[];
+  /** Optional evidence row under the cards ("Hasilnya: …"). */
+  results?: { label: string; items: readonly string[] };
 };
 
-export function StepFlow({ id, kicker, title, lead, caption, steps }: StepFlowProps) {
+export function StepFlow({ id, kicker, title, lead, caption, steps, results }: StepFlowProps) {
   // With three steps the highlighted "gate" card should land on the last-but-one, as with four.
   const variants = steps.length === 3 ? (["identity", "gate", "target"] as const) : VARIANTS;
   return (
@@ -46,6 +48,14 @@ export function StepFlow({ id, kicker, title, lead, caption, steps }: StepFlowPr
             </Fragment>
           ))}
         </div>
+        {results ? (
+          <div className="enterprise-map__evidence">
+            <strong>{results.label}</strong>
+            {results.items.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        ) : null}
       </figure>
     </section>
   );

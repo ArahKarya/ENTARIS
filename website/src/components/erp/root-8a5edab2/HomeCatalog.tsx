@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/home/HomeIcons";
 import { ModuleCard } from "@/components/home/ModuleCard";
 import { SectionEyebrow } from "@/components/home/SectionEyebrow";
 import { PillarsSection } from "@/components/home/Pillars";
+import { SecuritySection } from "@/components/home/SecuritySection";
+import { PageCta } from "@/components/pages/PageCta";
+import { DEMO_HREF } from "@/components/site/siteConfig";
+import { useErpObserver } from "@/components/erp/shared/useErpObserver";
 import { FitSection, WhySection } from "@/components/home/WhyEntaris";
 import { CATEGORIES } from "@/components/home/homeContent";
 import type { ModuleCategory } from "@/components/home/homeContent";
@@ -93,10 +97,13 @@ function CategoryBlock({ category, hidden }: { category: ModuleCategory; hidden:
 
 export function HomeCatalog() {
   const [filter, setFilter] = useState<string>(ALL);
+  const mainRef = useRef<HTMLElement>(null);
   useAnchorReset(setFilter);
+  // Reveals for the Keamanan & Data section and the closing card ([data-observe] elements).
+  useErpObserver(mainRef);
 
   return (
-    <main id="main-content" className="flex-1 main--full-bleed tacet-home-page">
+    <main ref={mainRef} id="main-content" className="flex-1 main--full-bleed tacet-home-page">
       <PillarsSection />
       <section id="modul" className="home-row-catalog home-modules" aria-labelledby="modul-heading">
         <div className="home-section-head">
@@ -118,6 +125,26 @@ export function HomeCatalog() {
       </section>
       <WhySection />
       <FitSection />
+      {/* proto-saas supplies the shared section-width variables the ported sub-page sections rely on. */}
+      <div className="proto-saas">
+        <SecuritySection />
+        <PageCta
+          eyebrow={{ name: "Keamanan & Data", context: "Demo & lisensi" }}
+          lines={["Data Anda,", "tetap milik Anda."]}
+          text="Hubungi kami untuk demo, lisensi, dan pemasangan Entaris di server perusahaan Anda."
+          primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
+          secondary={{ label: "Kenali AIRA", href: "/aira" }}
+          checklist={{
+            title: "Yang Anda dapat",
+            items: [
+              "Aplikasi & data di server perusahaan Anda",
+              "Empat peran bawaan, plus peran sesuai struktur Anda",
+              "Persetujuan dokumen & jejak audit lengkap",
+              "AIRA, agen AI untuk tanya data & analisis laporan",
+            ],
+          }}
+        />
+      </div>
     </main>
   );
 }

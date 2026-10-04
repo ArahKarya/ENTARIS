@@ -6,13 +6,13 @@ mandiri, terpisah dari aplikasi ERP (`client/`, `server/`).
 
 | Rute | Menu | Isi |
 |---|---|---|
-| `/` | Kapabilitas | Hero, 4 pilar, katalog modul, Kenapa Entaris, Cocok untuk |
+| `/` | Kapabilitas | Hero, 4 pilar, katalog modul, Kenapa Entaris, Cocok untuk, Keamanan & Data |
 | `/integrasi` | Integrasi | Yang sudah tersedia (bank, pajak, spreadsheet, Telegram, aplikasi aset) dan yang dibangun sesuai kebutuhan |
 | `/aira` | AIRA | Agen AI: tanya data, analitik, draf & persetujuan, keamanan |
 | `/migrasi` | Migrasi | Pindah ke Entaris cukup lewat chat dengan AIRA |
 | `/impact` | Impact | Contoh industri, perusahaan pengguna, kutipan — **masih data dummy**, lihat bawah |
 | `/minta-demo` | tombol *Minta demo* | Formulir data awal, lalu lanjut via WhatsApp atau email |
-| `/keamanan` | — | Keamanan & Data; tidak ada di menu (`/self-hosted` dialihkan ke sini) |
+| `/keamanan`, `/self-hosted` | — | Dialihkan ke bagian Keamanan & Data di halaman Kapabilitas (`/#keamanan-data`) |
 
 ## Menjalankan
 
