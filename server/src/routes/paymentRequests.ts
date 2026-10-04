@@ -76,7 +76,9 @@ import { dispatchPaymentRequestEvents } from '../services/paymentRequestNotify';
 import {
   OUTSTANDING_SETTLEMENT_STATUSES,
   SETTLEMENT_OVERDUE_DAYS,
+  advanceAgeDays,
   checkCancelSettlementPosting,
+  isAdvanceOverdue,
   checkSettlementDecide,
   checkSettlementEditable,
   summarizeAdvances,
@@ -352,7 +354,11 @@ router.get('/:id', async (req: AuthRequest, res) => {
         cancelPosting: checkCancelSettlementPosting(pr, ctx).ok,
       },
     };
-    return res.json({ ...pr, actions });
+    const outstanding = pr.status === 'PAID' && (OUTSTANDING_SETTLEMENT_STATUSES as readonly string[]).includes(pr.settlementStatus ?? '');
+    const advanceAge = outstanding
+      ? { days: advanceAgeDays(pr.paymentDate), overdue: isAdvanceOverdue(pr), overdueDays: SETTLEMENT_OVERDUE_DAYS }
+      : null;
+    return res.json({ ...pr, advanceAge, actions });
   } catch (error) {
     return fail(res, error, 'GET /payment-requests/:id', 'Gagal mengambil detail pengajuan.');
   }
