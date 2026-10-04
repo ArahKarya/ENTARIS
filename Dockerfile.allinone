@@ -19,7 +19,7 @@
 # Logs:
 #   docker logs -f entaris
 #
-# Login default: admin@entaris.local (lihat README)
+# Login default: admin@entaris.demo (lihat README)
 # ============================================================================
 
 # ── Stage 1: Install dependencies ───────────────────────────────────────────

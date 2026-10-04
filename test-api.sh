@@ -3,7 +3,7 @@
 BASE="http://localhost:3001/api"
 # Fallback admin credentials (seed admin). Set SEED_ADMIN_PASSWORD in the env;
 # never hardcode the real password here.
-ADMIN_EMAIL="${ADMIN_EMAIL:-admin@entaris.local}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@entaris.demo}"
 SEED_ADMIN_PASSWORD="${SEED_ADMIN_PASSWORD:-}"
 TOKEN=""
 PASS=0

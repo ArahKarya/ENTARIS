@@ -152,10 +152,10 @@ docker compose logs -f app      # View logs
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@entaris.local | Adminentaris123!dsw | Admin |
-| staff@entaris.local | Admin123! | Accountant |
-| produksi@entaris.local | Admin123! | StaffProduksi |
-| viewer@entaris.local | Admin123! | Viewer |
+| admin@entaris.demo | Adminentaris123!dsw | Admin |
+| staff@entaris.demo | Admin123! | Accountant |
+| produksi@entaris.demo | Admin123! | StaffProduksi |
+| viewer@entaris.demo | Admin123! | Viewer |
 
 ## Agent Workflow (Recommended)
 

@@ -49,7 +49,7 @@ USER_COUNT=$(node -e "
 if [ "$USER_COUNT" = "0" ]; then
   echo "[APP] Database kosong, menjalankan seed data awal..."
   npx tsx prisma/seed.ts
-  echo "[APP] Seed selesai — login: admin@entaris.local / Adminentaris123!dsw"
+  echo "[APP] Seed selesai — login: admin@entaris.demo / Adminentaris123!dsw"
 else
   echo "[APP] Database sudah berisi data ($USER_COUNT user), skip seed."
 fi
