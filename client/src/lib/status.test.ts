@@ -127,3 +127,16 @@ describe('purchasing statuses (PO / STT)', () => {
     ).toEqual(['Belum Ditagih', 'Sudah Ditagih', 'Titipan', 'Dibatalkan']);
   });
 });
+
+describe('project guarantee statuses', () => {
+  it('labels the stored Indonesian statuses', () => {
+    expect(getStatusMeta('Disetor', 'project_guarantee')).toEqual({ label: 'Disetor', tone: 'info' });
+    expect(getStatusMeta('Selesai', 'project_guarantee')).toEqual({ label: 'Selesai', tone: 'success' });
+    expect(getStatusMeta('Dibatalkan', 'project_guarantee')).toEqual({ label: 'Dibatalkan', tone: 'neutral' });
+    expect(statusOptions(['Disetor', 'Selesai', 'Dibatalkan'], 'project_guarantee').map((o) => o.label)).toEqual([
+      'Disetor',
+      'Selesai',
+      'Dibatalkan',
+    ]);
+  });
+});

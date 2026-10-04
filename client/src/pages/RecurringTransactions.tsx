@@ -1,11 +1,22 @@
-import { useState } from 'react';
-import { Plus, Repeat, Play, Pause, Pencil, Loader2, CalendarClock, Clock } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * Transaksi Berulang (/recurring) — recurring template list on the Phase 3
+ * list kit. GET /recurring returns every template (small set, no paging), so
+ * the DataTable runs in client mode; search and filters are URL-synced via
+ * useListState and applied in memory.
+ */
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Pause, Pencil, Play, Plus, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatDate } from '../lib/formatters';
-import RecurringTemplateModal from '../components/RecurringTemplateModal';
+import api from '@/lib/api';
+import { formatDate } from '@/lib/format';
+import { can } from '@/lib/permissions';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import { ComboboxFilter, ConfirmDialog, DataTable, FilterBar, PageHeader, RowActions, StatusBadge } from '@/components/shared';
+import RecurringTemplateModal from '@/components/RecurringTemplateModal';
 
 interface RecurringTemplate {
   id: string;
@@ -16,20 +27,28 @@ interface RecurringTemplate {
   nextRunDate: string;
   lastRunDate?: string | null;
   isActive: boolean;
-  templateData: any;
+  templateData: unknown;
   createdBy: string;
   user?: { fullName: string };
   createdAt: string;
   updatedAt: string;
 }
 
-const typeLabels: Record<string, { label: string; color: string }> = {
-  journal: { label: 'Jurnal', color: 'badge-purple' },
-  sales_invoice: { label: 'Invoice Penjualan', color: 'badge-blue' },
-  purchase_invoice: { label: 'Invoice Pembelian', color: 'badge-orange' },
+const TYPE_LABELS: Record<string, string> = {
+  journal: 'Jurnal',
+  sales_invoice: 'Invoice Penjualan',
+  purchase_invoice: 'Invoice Pembelian',
 };
 
-const frequencyLabels: Record<string, string> = {
+// One schedule period, used to explain how a manual run moves the next run.
+const PERIOD_LABELS: Record<string, string> = {
+  daily: '1 hari',
+  weekly: '1 minggu',
+  monthly: '1 bulan',
+  quarterly: '3 bulan',
+  yearly: '1 tahun',
+};
+const FREQUENCY_LABELS: Record<string, string> = {
   daily: 'Harian',
   weekly: 'Mingguan',
   monthly: 'Bulanan',
@@ -37,216 +56,263 @@ const frequencyLabels: Record<string, string> = {
   yearly: 'Tahunan',
 };
 
+const FILTER_KEYS = ['status', 'templateType'] as const;
+const STATUS_FILTER = [
+  { value: 'active', label: 'Aktif' },
+  { value: 'inactive', label: 'Nonaktif' },
+];
+const TYPE_FILTER = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+
+const typeLabel = (t: string) => TYPE_LABELS[t] ?? TYPE_LABELS.journal;
+const frequencyLabel = (t: RecurringTemplate) => {
+  const base = FREQUENCY_LABELS[t.frequency] ?? t.frequency;
+  return t.dayOfMonth && t.frequency === 'monthly' ? `${base} (tgl ${t.dayOfMonth})` : base;
+};
+const errorMessage = (e: unknown, fallback: string) =>
+  (e as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback;
+
 export const RecurringTransactions = () => {
+  const queryClient = useQueryClient();
+  const list = useListState({ filters: FILTER_KEYS });
+  const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTemplate, setEditTemplate] = useState<RecurringTemplate | null>(null);
-  const queryClient = useQueryClient();
+  // "Jalankan sekarang" posts a real journal, so it asks for confirmation first.
+  const [runTarget, setRunTarget] = useState<RecurringTemplate | null>(null);
+  const canEdit = can('recurring', 'edit');
 
-  const { data, isLoading } = useQuery({
+  const templatesQuery = useQuery({
     queryKey: ['recurring-templates'],
-    queryFn: async () => {
-      const res = await api.get('/recurring');
-      return res.data.data as RecurringTemplate[];
-    },
+    queryFn: async () => (await api.get('/recurring')).data.data as RecurringTemplate[],
   });
 
   const executeMutation = useMutation({
     mutationFn: (id: string) => api.post(`/recurring/${id}/execute`),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-      if (res.data.success) {
-        toast.success('Template berhasil dieksekusi.');
-      } else {
-        toast.error(res.data.error || 'Gagal mengeksekusi template.');
-      }
+      if (res.data.success) toast.success('Template berhasil dieksekusi.');
+      else toast.error(res.data.error || 'Gagal mengeksekusi template.');
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal mengeksekusi template.');
-    },
+    onError: (e) => toast.error(errorMessage(e, 'Gagal mengeksekusi template.')),
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      api.put(`/recurring/${id}`, { isActive }),
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => api.put(`/recurring/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
       toast.success('Status template diperbarui.');
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal mengubah status template.');
-    },
+    onError: (e) => toast.error(errorMessage(e, 'Gagal mengubah status template.')),
   });
 
-  const handleEdit = (template: RecurringTemplate) => {
+  const openCreate = () => {
+    setEditTemplate(null);
+    setIsModalOpen(true);
+  };
+  const openEdit = (template: RecurringTemplate) => {
     setEditTemplate(template);
     setIsModalOpen(true);
   };
-
-  const handleCloseModal = () => {
+  const closeModal = () => {
     setIsModalOpen(false);
     setEditTemplate(null);
   };
 
-  const templates = data || [];
+  const { search, filters } = list;
+  const rows = useMemo(() => {
+    const q = search.toLowerCase();
+    return (templatesQuery.data ?? []).filter(
+      (t) =>
+        (!q || t.name.toLowerCase().includes(q)) &&
+        (!filters.status || (filters.status === 'active') === t.isActive) &&
+        (!filters.templateType || t.templateType === filters.templateType),
+    );
+  }, [templatesQuery.data, search, filters]);
+
+  const columns = useMemo<ColumnDef<RecurringTemplate>[]>(
+    () => [
+      {
+        id: 'name',
+        accessorFn: (t) => t.name,
+        header: 'Nama',
+        enableSorting: true,
+        meta: { cellClassName: 'min-w-36 max-w-44 sm:max-w-80' },
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{row.original.name}</p>
+            {/* Mobile: type + frequency stacked here because their columns are hidden. */}
+            <p className="truncate text-xs text-muted-foreground md:hidden">
+              {typeLabel(row.original.templateType)} · {frequencyLabel(row.original)}
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 'templateType',
+        accessorFn: (t) => typeLabel(t.templateType),
+        header: 'Tipe',
+        enableSorting: true,
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap text-muted-foreground' },
+        cell: ({ getValue }) => getValue<string>(),
+      },
+      {
+        id: 'frequency',
+        accessorFn: (t) => frequencyLabel(t),
+        header: 'Frekuensi',
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap text-muted-foreground' },
+        cell: ({ getValue }) => getValue<string>(),
+      },
+      {
+        id: 'nextRunDate',
+        accessorFn: (t) => new Date(t.nextRunDate).getTime(),
+        header: () => (
+          <>
+            <span className="sm:hidden">Jadwal</span>
+            <span className="hidden sm:inline">Jadwal Berikutnya</span>
+          </>
+        ),
+        enableSorting: true,
+        meta: { cellClassName: 'num whitespace-nowrap' },
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-foreground">{formatDate(row.original.nextRunDate)}</span>
+            {/* Mobile: status stacked here because its column is hidden. */}
+            <StatusBadge status={row.original.isActive ? 'Active' : 'Inactive'} className="sm:hidden" />
+          </div>
+        ),
+      },
+      {
+        id: 'lastRunDate',
+        accessorFn: (t) => (t.lastRunDate ? new Date(t.lastRunDate).getTime() : 0),
+        header: 'Terakhir Dijalankan',
+        enableSorting: true,
+        meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => (row.original.lastRunDate ? formatDate(row.original.lastRunDate) : '-'),
+      },
+      {
+        id: 'status',
+        accessorFn: (t) => (t.isActive ? 0 : 1),
+        header: 'Status',
+        enableSorting: true,
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'Active' : 'Inactive'} />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${t.name}`}
+              actions={[
+                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => openEdit(t) },
+                {
+                  label: 'Jalankan sekarang',
+                  icon: Zap,
+                  hidden: !canEdit,
+                  disabled: executeMutation.isPending,
+                  onSelect: () => setRunTarget(t),
+                },
+                {
+                  label: t.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  icon: t.isActive ? Pause : Play,
+                  hidden: !canEdit,
+                  disabled: toggleMutation.isPending,
+                  onSelect: () => toggleMutation.mutate({ id: t.id, isActive: !t.isActive }),
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    // Mutations/openEdit are stable enough; re-create when pending flags flip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canEdit, executeMutation.isPending, toggleMutation.isPending],
+  );
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Transaksi Berulang
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-            Kelola template transaksi otomatis berdasarkan jadwal.
-          </p>
-        </div>
-        <button
-          className="btn-primary self-start"
-          onClick={() => { setEditTemplate(null); setIsModalOpen(true); }}
+      <PageHeader
+        title="Transaksi Berulang"
+        description="Kelola template transaksi otomatis berdasarkan jadwal."
+        actions={
+          canEdit && (
+            <Button onClick={openCreate}>
+              <Plus aria-hidden />
+              Buat Template
+            </Button>
+          )
+        }
+      />
+
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari template"
+          searchPlaceholder="Cari nama template"
+          status={{ options: STATUS_FILTER }}
         >
-          <Plus size={15} /> Buat Template
-        </button>
+          <ComboboxFilter
+            label="Filter tipe template"
+            allLabel="Semua tipe"
+            searchPlaceholder="Cari tipe…"
+            value={list.filters.templateType}
+            onChange={(v) => list.setFilter('templateType', v)}
+            options={TYPE_FILTER}
+            className="w-[calc(50%-0.25rem)] sm:w-52"
+          />
+        </FilterBar>
+
+        <DataTable
+          label="Daftar template transaksi berulang"
+          itemLabel="template"
+          columns={columns}
+          data={templatesQuery.data ? rows : undefined}
+          getRowId={(row) => row.id}
+          pageSize={25}
+          loading={templatesQuery.isLoading}
+          error={templatesQuery.error}
+          onRetry={() => templatesQuery.refetch()}
+          filtered={list.hasActiveFilters}
+          onClearFilters={list.resetFilters}
+          onRowClick={canEdit ? openEdit : undefined}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada template transaksi berulang',
+            description: 'Template jurnal yang dijadwalkan akan muncul di sini.',
+            action: canEdit ? (
+              <Button size="sm" onClick={openCreate}>
+                <Plus aria-hidden />
+                Buat template pertama
+              </Button>
+            ) : undefined,
+          }}
+        />
       </div>
 
-      {/* Table */}
-      <div
-        className="border rounded-xl overflow-hidden"
-        style={{
-          backgroundColor: 'var(--color-bg-primary)',
-          borderColor: 'var(--color-border)',
-        }}
-      >
-        {isLoading ? (
-          <div className="py-16 text-center">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Memuat data...</p>
-          </div>
-        ) : templates.length === 0 ? (
-          <div className="py-16 text-center">
-            <Repeat size={28} className="mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              Belum ada template transaksi berulang.
-            </p>
-          </div>
-        ) : (
-          <div className="table-responsive">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Nama</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Tipe</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Frekuensi</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Jadwal Berikutnya</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Terakhir Dijalankan</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Status</th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {templates.map((t) => {
-                  const typeInfo = typeLabels[t.templateType] || typeLabels.journal;
-                  return (
-                    <tr
-                      key={t.id}
-                      className={cn(
-                        'border-b transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30',
-                        !t.isActive && 'opacity-50'
-                      )}
-                      style={{ borderColor: 'var(--color-border-light)' }}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Repeat size={14} className="text-gray-400 flex-shrink-0" />
-                          <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                            {t.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cn('badge rounded-full text-xs', typeInfo!.color)}>
-                          {typeInfo!.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
-                        {frequencyLabels[t.frequency] || t.frequency}
-                        {t.dayOfMonth && t.frequency === 'monthly' && (
-                          <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>
-                            (tgl {t.dayOfMonth})
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                          <CalendarClock size={12} className="text-gray-400" />
-                          {formatDate(t.nextRunDate)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {t.lastRunDate ? (
-                          <div className="flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                            <Clock size={12} className="text-gray-400" />
-                            {formatDate(t.lastRunDate)}
-                          </div>
-                        ) : (
-                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cn(
-                          'badge rounded-full text-xs',
-                          t.isActive ? 'badge-green' : 'badge-gray'
-                        )}>
-                          {t.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleEdit(t)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            style={{ color: 'var(--color-text-muted)' }}
-                            title="Edit"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={() => executeMutation.mutate(t.id)}
-                            disabled={executeMutation.isPending}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"
-                            title="Jalankan Sekarang"
-                          >
-                            <Play size={13} />
-                          </button>
-                          <button
-                            onClick={() => toggleMutation.mutate({ id: t.id, isActive: !t.isActive })}
-                            disabled={toggleMutation.isPending}
-                            className={cn(
-                              'p-1.5 rounded-lg transition-colors',
-                              t.isActive
-                                ? 'hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-600'
-                                : 'hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600'
-                            )}
-                            title={t.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                          >
-                            <Pause size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <RecurringTemplateModal isOpen={isModalOpen} onClose={closeModal} editTemplate={editTemplate} />
 
-      {/* Modal */}
-      <RecurringTemplateModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        editTemplate={editTemplate}
+      <ConfirmDialog
+        open={runTarget !== null}
+        onOpenChange={(open) => !open && setRunTarget(null)}
+        title="Jalankan template sekarang?"
+        description={
+          runTarget ? (
+            <>
+              Template <strong>{runTarget.name}</strong> akan langsung membuat jurnal bertanggal hari ini yang
+              terposting ke buku besar. Jadwal berikutnya dihitung ulang menjadi{' '}
+              <strong>{PERIOD_LABELS[runTarget.frequency] ?? 'satu periode'}</strong> setelah hari ini (jadwal
+              saat ini: {formatDate(runTarget.nextRunDate)}).
+            </>
+          ) : null
+        }
+        confirmLabel="Ya, jalankan"
+        loading={executeMutation.isPending}
+        onConfirm={() => (runTarget ? executeMutation.mutateAsync(runTarget.id) : undefined)}
       />
     </div>
   );

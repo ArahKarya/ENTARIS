@@ -18,6 +18,7 @@
 - Foto unggahan tampil di mode pengembangan (proxy `/uploads`).
 
 ### Diperbaiki
+- Transaksi Kas & Bank: uang muka pelanggan & refund vendor tampil sebagai uang keluar (kini masuk); daftar terpotong di 50 pembayaran + 100 jurnal; label jurnal Pinbuk tampil sebagai "Beban"; jumlah lampiran jurnal tidak pernah tampil; batalkan uang muka pelanggan dari halaman ini selalu ditolak (kini diarahkan ke halaman uang muka).
 - **Instalasi baru tidak bisa membuat STT/BPB** (error 500): akun sistem "Hutang Pembelian Belum Ditagih" dan "Selisih Harga Pembelian" tidak dipetakan oleh seed. Seed kini menambah akun `5.11 Selisih Harga Pembelian` dan memetakan kedua peran (2.2.3 dan 5.11) — **hanya bila peran itu belum punya pemetaan**, sehingga tenant lama tidak berubah.
 - Migrasi pembersih token AIRA di audit log menyebut tabel yang salah (`audit_logs`, seharusnya `audit_trail`) sehingga selalu gagal tanpa suara; kini benar.
 - Modal refund/offset uang muka (pelanggan & vendor) menampilkan saldo hutang/piutang Rp 0 sehingga offset tidak bisa dilakukan — endpoint `GET /api/parties/:id` yang dipanggil modal kini tersedia.
@@ -25,6 +26,9 @@
 
 ### Tampilan (UI/UX)
 **Diubah**:
+- **Halaman Kas & Bank** (Transaksi Kas & Bank, Rekonsiliasi Bank, Transaksi Berulang, Uang Jaminan Proyek) memakai pola daftar baru. Transaksi Kas & Bank menggabungkan pembayaran & jurnal kas per halaman dari server dengan ringkasan Kas Masuk/Keluar/Arus Bersih, filter tipe/arah/pihak/akun, dan ekspor Excel. Ruang kerja rekonsiliasi punya URL sendiri (`?recon=`). Uang Jaminan Proyek menandai "Lewat / Segera jatuh tempo" dan menampilkan riwayat settlement di panel detail.
+- "Jalankan sekarang" di Transaksi Berulang kini meminta konfirmasi (jurnal langsung terposting dan jadwal berikutnya dihitung ulang dari hari ini).
+
 - **Halaman daftar Pembelian** (Pesanan Pembelian, Penerimaan Barang, Faktur Pembelian, Uang Muka Vendor): data dimuat per halaman dari server, filter & urutan di URL, kartu ringkasan sesuai filter, status Indonesia ("Belum/Sudah Ditagih", "Titipan" untuk STT). Faktur Pembelian: tab Daftar / Persetujuan; "Edit lengkap" di menu baris. Tombol "Bayar Hutang" kini butuh izin edit pembayaran.
 
 - **Halaman daftar Penjualan** (Pertanyaan Pelanggan, Penawaran, Pesanan Penjualan, Surat Jalan, Faktur Penjualan, Retur Penjualan, Uang Muka Pelanggan): data dimuat per halaman dari server — tidak lagi terpotong diam-diam di 200/500 baris. Filter (cari, status, pelanggan, tanggal) & urutan tersimpan di URL; kartu ringkasan dihitung server sesuai filter; status berbahasa Indonesia; angka rata kanan; baris bisa dibuka dengan keyboard; tampilan mobile ringkas.

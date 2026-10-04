@@ -139,7 +139,7 @@ export const CustomerDeposits = () => {
           <div className="flex flex-col items-start gap-0.5">
             <span className="num font-mono text-xs font-medium text-foreground">{row.original.paymentNumber}</span>
             {/* Mobile: customer + date stacked here because their columns are hidden. */}
-            <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
+            <span className="line-clamp-2 max-w-44 text-sm font-medium break-words text-foreground sm:hidden">
               {row.original.party?.name ?? '-'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>

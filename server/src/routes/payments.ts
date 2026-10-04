@@ -10,6 +10,14 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
 import { systemAccounts } from '../services/systemAccounts';
 import { submitPaymentInTx } from '../services/paymentSubmit';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildCashLedgerFilter,
+  CASH_LEDGER_SORT_FIELDS,
+  DEFAULT_CASH_LEDGER_SORT,
+  listCashLedger,
+  summarizeCashLedgerQuery,
+} from '../services/paymentList';
 
 const router = Router();
 
@@ -81,6 +89,40 @@ router.get('/cash-journals', async (_req, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /payments/cash-journals error');
     return res.status(500).json({ error: 'Gagal mengambil data jurnal kas.' });
+  }
+});
+
+// GET /api/payments/ledger — "Transaksi Kas & Bank" list: payments and
+// cash-affecting journal lines as one server-paginated list (see
+// services/paymentList). Query: page, limit (≤500), search, type, direction,
+// status, partyId, accountId, startDate, endDate (YYYY-MM-DD),
+// sort (date | number | party | amount, "-" = descending).
+// → { data, total, page, limit }. GET / and /cash-journals stay unchanged.
+router.get('/ledger', async (req, res) => {
+  try {
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 500 });
+    const parsed = buildCashLedgerFilter(query);
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+    const sort = parseSort(query.sort, CASH_LEDGER_SORT_FIELDS, DEFAULT_CASH_LEDGER_SORT);
+    const { rows, total } = await listCashLedger(prisma, parsed.filter, sort, { skip, take });
+    return res.json({ data: rows, total, page, limit: take });
+  } catch (error) {
+    logger.error({ error }, 'GET /payments/ledger error');
+    return res.status(500).json({ error: 'Gagal mengambil data transaksi kas & bank.' });
+  }
+});
+
+// GET /api/payments/ledger/summary — KPI totals (count, money in/out, net) for
+// the same filters as /ledger. Declared before /:id.
+router.get('/ledger/summary', async (req, res) => {
+  try {
+    const parsed = buildCashLedgerFilter(req.query as Record<string, unknown>);
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+    return res.json(await summarizeCashLedgerQuery(prisma, parsed.filter));
+  } catch (error) {
+    logger.error({ error }, 'GET /payments/ledger/summary error');
+    return res.status(500).json({ error: 'Gagal menghitung ringkasan transaksi kas & bank.' });
   }
 });
 
