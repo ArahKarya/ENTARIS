@@ -1,10 +1,35 @@
-import { useState, useCallback, useEffect } from 'react';
+/**
+ * Proses Produksi → Mesin (?view=machines). Machine master for OEE: the ideal
+ * capacity (unit/hour) drives the Performance factor. The list also shows each
+ * machine's average OEE over the last 30 days (/inventory/dashboard/oee —
+ * inventory module; hidden when that read is not permitted).
+ * Writes need can('production','edit') (server: requireWrite('production')).
+ */
+import { useId, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Edit2, Trash2, X, Cog, AlertCircle } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { can } from '../lib/permissions';
+import api from '@/lib/api';
+import { can } from '@/lib/permissions';
+import { formatNumber, formatPercent } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { ConfirmDialog, DataTable, Field, RowActions, StatusBadge } from '@/components/shared';
+import { FormNumberInput, FormSheet, InfoNote, MasterToolbar } from '@/components/inventory/master-data-kit';
+import {
+  countActive,
+  filterMasterRows,
+  hasErrors,
+  parseOptionalNonNegative,
+  validateMachine,
+  type ActiveFilter,
+} from '@/components/inventory/master-data';
+import { toIsoDate } from '@/components/inventory/dashboard-model';
+import { errorMessage } from '@/components/inventory/inventory-rows';
 
 interface Machine {
   id: string;
@@ -14,8 +39,12 @@ interface Machine {
   unit: string;
   isActive: boolean;
   notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+}
+
+interface MachineOee {
+  machineId: string;
+  runs: number;
+  avgOee: number;
 }
 
 interface FormState {
@@ -27,370 +56,390 @@ interface FormState {
   isActive: boolean;
 }
 
-const blankForm: FormState = {
-  code: '',
-  name: '',
-  idealRatePerHour: '',
-  unit: 'kg',
-  notes: '',
-  isActive: true,
-};
+const QUERY_KEY = ['machines-all'];
+const blankForm: FormState = { code: '', name: '', idealRatePerHour: '', unit: 'kg', notes: '', isActive: true };
+const OEE_DAYS = 30;
 
-const fmtRate = (v: string | number | null) =>
-  v == null ? null : Number(v).toLocaleString('id-ID', { maximumFractionDigits: 3 });
+const fmtRate = (v: string | number | null) => (v == null ? null : formatNumber(v, { maxDecimals: 3 }));
+
+function payloadOf(m: Machine, patch: Partial<{ isActive: boolean }> = {}) {
+  return {
+    code: m.code,
+    name: m.name,
+    idealRatePerHour: m.idealRatePerHour == null ? null : Number(m.idealRatePerHour),
+    unit: m.unit || 'kg',
+    notes: m.notes,
+    isActive: m.isActive,
+    ...patch,
+  };
+}
 
 export default function MachinesTab() {
   const canEdit = can('production', 'edit');
   const queryClient = useQueryClient();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Machine | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<ActiveFilter>('');
+  const [sheet, setSheet] = useState<{ edit: Machine | null } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Machine | null>(null);
 
-  const { data: raw, isLoading } = useQuery({
-    queryKey: ['machines-all'],
-    queryFn: () => api.get('/inventory/machines').then(r => r.data),
+  const query = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: async () => (await api.get<{ data: Machine[] }>('/inventory/machines')).data,
   });
-  const machines: Machine[] = raw?.data ?? [];
+  const oeeRange = useMemo(() => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (OEE_DAYS - 1));
+    return { startDate: toIsoDate(start), endDate: toIsoDate(today) };
+  }, []);
+  const oeeQuery = useQuery({
+    queryKey: ['inventory-dashboard', 'oee', oeeRange],
+    queryFn: async () => (await api.get<{ perMachine: MachineOee[] }>('/inventory/dashboard/oee', { params: oeeRange })).data,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const oeeById = useMemo(() => new Map((oeeQuery.data?.perMachine ?? []).map((m) => [m.machineId, m])), [oeeQuery.data]);
+  const showOee = !oeeQuery.isError;
+
+  const all = useMemo(() => query.data?.data ?? [], [query.data]);
+  const rows = useMemo(
+    () => filterMasterRows(all, { search, status }, (m) => [m.code, m.name, m.notes]),
+    [all, search, status],
+  );
+  const counts = countActive(all);
+  const missingRate = all.filter((m) => m.isActive && m.idealRatePerHour == null).length;
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['machines-all'] });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     queryClient.invalidateQueries({ queryKey: ['machines-active'] });
+    queryClient.invalidateQueries({ queryKey: ['machines-namemap'] });
   };
 
-  const handleOpenAdd = () => { setEditTarget(null); setModalOpen(true); };
-  const handleOpenEdit = (m: Machine) => { setEditTarget(m); setModalOpen(true); };
-
-  const handleDelete = async (m: Machine) => {
-    if (!confirm(`Hapus mesin "${m.name}"? Jika sudah dipakai produksi, hapus akan ditolak.`)) return;
-    setDeletingId(m.id);
+  const toggleActive = async (m: Machine) => {
     try {
-      const res = await api.delete(`/inventory/machines/${m.id}`);
-      toast.success(res.data?.message || 'Mesin dihapus.');
+      await api.put(`/inventory/machines/${m.id}`, payloadOf(m, { isActive: !m.isActive }));
+      toast.success(m.isActive ? `Mesin "${m.name}" dinonaktifkan.` : `Mesin "${m.name}" diaktifkan.`);
       invalidate();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Gagal menghapus mesin.');
-    } finally {
-      setDeletingId(null);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Gagal mengubah status mesin.'));
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await api.delete(`/inventory/machines/${deleteTarget.id}`);
+      toast.success(res.data?.message || 'Mesin dihapus.');
+      invalidate();
+    } catch (err) {
+      toast.error(errorMessage(err, 'Gagal menghapus mesin.'));
+      throw err;
+    }
+  };
+
+  const columns = useMemo<ColumnDef<Machine>[]>(
+    () => [
+      {
+        id: 'code',
+        accessorKey: 'code',
+        header: 'Kode',
+        enableSorting: true,
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => <span className="num font-mono text-xs text-foreground">{row.original.code}</span>,
+      },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Nama Mesin',
+        enableSorting: true,
+        meta: { cellClassName: 'min-w-36' },
+        cell: ({ row }) => {
+          const m = row.original;
+          return (
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">{m.name}</p>
+              <p className="num font-mono text-xs text-muted-foreground md:hidden">{m.code}</p>
+              {m.notes && <p className="line-clamp-1 text-xs text-muted-foreground max-md:hidden">{m.notes}</p>}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'idealRatePerHour',
+        accessorFn: (m) => (m.idealRatePerHour == null ? -1 : Number(m.idealRatePerHour)),
+        header: 'Kapasitas Ideal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const m = row.original;
+          const rate = fmtRate(m.idealRatePerHour);
+          return rate != null ? (
+            <span className="text-foreground">
+              {rate} <span className="text-xs text-muted-foreground">{m.unit}/jam</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-text" title="Performance OEE tidak terhitung">
+              <AlertTriangle className="size-3.5" aria-hidden />
+              Belum diisi
+            </span>
+          );
+        },
+      },
+      ...(showOee
+        ? ([
+            {
+              id: 'oee',
+              accessorFn: (m) => oeeById.get(m.id)?.avgOee ?? -1,
+              header: `OEE ${OEE_DAYS} hr`,
+              enableSorting: true,
+              sortDescFirst: true,
+              meta: { align: 'right', hideBelow: 'md' },
+              cell: ({ row }) => {
+                const o = oeeById.get(row.original.id);
+                if (!o || o.runs === 0) return <span className="text-muted-foreground">-</span>;
+                return (
+                  <span
+                    className={cn(
+                      'font-medium',
+                      o.avgOee >= 85 ? 'text-success-text' : o.avgOee >= 60 ? 'text-foreground' : 'text-danger-text',
+                    )}
+                  >
+                    {formatPercent(o.avgOee / 100, { decimals: 1 })}
+                  </span>
+                );
+              },
+            },
+            {
+              id: 'runs',
+              accessorFn: (m) => oeeById.get(m.id)?.runs ?? 0,
+              header: `Proses ${OEE_DAYS} hr`,
+              enableSorting: true,
+              sortDescFirst: true,
+              meta: { align: 'right', hideBelow: 'lg' },
+              cell: ({ row }) => (
+                <span className="text-muted-foreground">{formatNumber(oeeById.get(row.original.id)?.runs ?? 0)}</span>
+              ),
+            },
+          ] satisfies ColumnDef<Machine>[])
+        : []),
+      {
+        id: 'status',
+        accessorFn: (m) => (m.isActive ? 1 : 0),
+        header: 'Status',
+        enableSorting: true,
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const m = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${m.code}`}
+              actions={[
+                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: m }) },
+                {
+                  label: m.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  icon: m.isActive ? PowerOff : Power,
+                  hidden: !canEdit,
+                  onSelect: () => toggleActive(m),
+                },
+                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(m) },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toggleActive only closes over stable setters
+    [canEdit, showOee, oeeById],
+  );
+
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 flex items-start gap-3">
-        <div className="shrink-0 p-1.5 rounded-lg bg-sky-100 text-sky-700">
-          <Cog size={15} />
-        </div>
-        <div className="text-sm leading-relaxed">
-          <p className="font-semibold text-sky-900">
-            Master Mesin
-            <span className="text-sky-500 font-normal"> (OEE)</span>
-          </p>
-          <p className="text-sky-800/80 mt-0.5">
-            Daftar mesin produksi beserta kapasitas ideal (kg/jam). Dipakai untuk menghitung
-            Performance pada OEE (Overall Equipment Effectiveness) saat input produksi.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
-          {machines.length > 0 && (
-            <>
-              <span className="font-medium text-gray-700">{machines.length}</span> mesin
-              {' · '}
-              <span className="text-emerald-600">{machines.filter(m => m.isActive).length} aktif</span>
-            </>
-          )}
-        </div>
-        {canEdit && (
-          <button onClick={handleOpenAdd} className="btn-primary">
-            <Plus size={15} /> Mesin Baru
-          </button>
+      <InfoNote>
+        Mesin produksi beserta kapasitas idealnya per jam. Kapasitas dipakai untuk menghitung Performance pada OEE
+        (Overall Equipment Effectiveness) saat produksi dicatat.
+        {missingRate > 0 && (
+          <span className="mt-1 block font-medium text-warning-text">
+            {formatNumber(missingRate)} mesin aktif belum punya kapasitas ideal — Performance OEE-nya tidak terhitung.
+          </span>
         )}
-      </div>
+      </InfoNote>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="animate-spin text-gray-300" />
-        </div>
-      ) : machines.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-10 text-center">
-          <div className="mx-auto w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2 text-gray-300">
-            <Cog size={16} />
-          </div>
-          <p className="text-sm text-gray-500">Belum ada master mesin.</p>
-          {canEdit && (
-            <p className="text-xs text-gray-400 mt-1">
-              Klik <span className="font-semibold text-gray-600">Mesin Baru</span> untuk menambahkan
-              (mis. Mesin Pellet 1).
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-          <ul className="divide-y divide-gray-100">
-            {machines.map(m => {
-              const rate = fmtRate(m.idealRatePerHour);
-              return (
-                <li
-                  key={m.id}
-                  className={cn(
-                    'px-4 py-3 hover:bg-gray-50/60 transition-colors',
-                    !m.isActive && 'opacity-50',
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-[11px] text-gray-400">{m.code}</span>
-                        <span className="font-medium text-gray-900 text-sm">{m.name}</span>
-                        {!m.isActive && (
-                          <span className="badge badge-gray text-[10px]">Nonaktif</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {rate != null
-                          ? <>Kapasitas ideal: <span className="font-medium text-gray-700">{rate} {m.unit}/jam</span></>
-                          : <span className="text-amber-600">Kapasitas ideal belum diisi — Performance OEE tidak terhitung</span>}
-                      </p>
-                      {m.notes && (
-                        <p className="text-xs text-gray-400 mt-0.5">{m.notes}</p>
-                      )}
-                    </div>
-                    {canEdit && (
-                      <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => handleOpenEdit(m)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(m)}
-                          disabled={deletingId === m.id}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                          title="Hapus"
-                        >
-                          {deletingId === m.id
-                            ? <Loader2 size={14} className="animate-spin" />
-                            : <Trash2 size={14} />}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      <MasterToolbar
+        search={search}
+        onSearch={setSearch}
+        searchLabel="Cari mesin"
+        searchPlaceholder="Cari kode, nama, atau catatan"
+        status={status}
+        onStatus={setStatus}
+        summary={all.length > 0 ? `${formatNumber(counts.total)} mesin · ${formatNumber(counts.active)} aktif` : undefined}
+        action={
+          canEdit && (
+            <Button onClick={() => setSheet({ edit: null })}>
+              <Plus aria-hidden />
+              Mesin Baru
+            </Button>
+          )
+        }
+      />
 
-      {modalOpen && (
-        <MachineFormModal
-          editTarget={editTarget}
-          onClose={() => setModalOpen(false)}
-          onSaved={() => { invalidate(); setModalOpen(false); }}
+      <DataTable
+        label="Daftar mesin"
+        itemLabel="mesin"
+        columns={columns}
+        data={rows}
+        getRowId={(r) => r.id}
+        loading={query.isLoading}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        filtered={!!search.trim() || !!status}
+        onClearFilters={() => {
+          setSearch('');
+          setStatus('');
+        }}
+        onRowClick={canEdit ? (m) => setSheet({ edit: m }) : undefined}
+        rowClassName={(m) => (m.isActive ? undefined : 'text-muted-foreground')}
+        pageSize={25}
+        empty={{
+          title: 'Belum ada master mesin',
+          description: 'Tambahkan mesin produksi (mis. Mesin Pellet 1) beserta kapasitas idealnya.',
+          action: canEdit ? (
+            <Button size="sm" onClick={() => setSheet({ edit: null })}>
+              <Plus aria-hidden />
+              Tambah mesin pertama
+            </Button>
+          ) : undefined,
+        }}
+      />
+
+      {sheet && (
+        <MachineFormSheet
+          editTarget={sheet.edit}
+          onClose={() => setSheet(null)}
+          onSaved={() => {
+            invalidate();
+            setSheet(null);
+          }}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        tone="danger"
+        title="Hapus mesin?"
+        description={`Hapus mesin "${deleteTarget?.name ?? ''}"? Mesin yang sudah dipakai di produksi tidak bisa dihapus — nonaktifkan saja agar histori OEE tetap utuh.`}
+        confirmLabel="Ya, hapus"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
 
-interface FormModalProps {
-  editTarget: Machine | null;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function MachineFormModal({ editTarget, onClose, onSaved }: FormModalProps) {
+function MachineFormSheet({ editTarget, onClose, onSaved }: { editTarget: Machine | null; onClose: () => void; onSaved: () => void }) {
   const isEdit = !!editTarget;
-  const [form, setForm] = useState<FormState>(() => {
-    if (!editTarget) return blankForm;
-    return {
-      code: editTarget.code,
-      name: editTarget.name,
-      idealRatePerHour: editTarget.idealRatePerHour != null ? String(Number(editTarget.idealRatePerHour)) : '',
-      unit: editTarget.unit ?? 'kg',
-      notes: editTarget.notes ?? '',
-      isActive: editTarget.isActive,
-    };
-  });
+  const switchId = useId();
+  const [form, setForm] = useState<FormState>(() =>
+    editTarget
+      ? {
+          code: editTarget.code,
+          name: editTarget.name,
+          idealRatePerHour: editTarget.idealRatePerHour != null ? String(Number(editTarget.idealRatePerHour)) : '',
+          unit: editTarget.unit ?? 'kg',
+          notes: editTarget.notes ?? '',
+          isActive: editTarget.isActive,
+        }
+      : blankForm,
+  );
+  const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const errors = touched ? validateMachine(form) : {};
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const unit = form.unit.trim() || 'kg';
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !saving) onClose();
-  }, [saving, onClose]);
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  const handleSubmit = async () => {
-    setError(null);
-    if (!form.code.trim()) { setError('Kode mesin wajib diisi.'); return; }
-    if (!form.name.trim()) { setError('Nama mesin wajib diisi.'); return; }
+  const submit = async () => {
+    setTouched(true);
+    setServerError(null);
+    if (hasErrors(validateMachine(form))) return;
     setSaving(true);
     try {
       const payload = {
         code: form.code.trim(),
         name: form.name.trim(),
-        idealRatePerHour: form.idealRatePerHour.trim() ? Number(form.idealRatePerHour) : null,
-        unit: form.unit.trim() || 'kg',
+        idealRatePerHour: parseOptionalNonNegative(form.idealRatePerHour).value,
+        unit,
         notes: form.notes.trim() || null,
         isActive: form.isActive,
       };
       if (isEdit) {
-        await api.put(`/inventory/machines/${editTarget!.id}`, payload);
+        await api.put(`/inventory/machines/${editTarget.id}`, payload);
         toast.success('Mesin diperbarui.');
       } else {
         await api.post('/inventory/machines', payload);
         toast.success('Mesin dibuat.');
       }
       onSaved();
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Gagal menyimpan mesin.');
+    } catch (err) {
+      setServerError(errorMessage(err, 'Gagal menyimpan mesin.'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}
+    <FormSheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={isEdit ? 'Edit mesin' : 'Mesin baru'}
+      description="Master mesin untuk perhitungan OEE."
+      error={serverError}
+      saving={saving}
+      submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan mesin'}
+      onSubmit={submit}
     >
-      <div
-        className="rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-sky-50 text-sky-600">
-              <Cog size={16} />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">
-                {isEdit ? 'Edit Mesin' : 'Mesin Baru'}
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Master mesin untuk perhitungan OEE
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-4 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Kode <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.code}
-                onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
-                placeholder="MESIN-PELLET-01"
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-gray-400"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Satuan
-              </label>
-              <input
-                type="text"
-                value={form.unit}
-                onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                placeholder="kg"
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-gray-400"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Nama Mesin <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Mesin Pellet 1"
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-gray-400"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Kapasitas Ideal ({form.unit || 'kg'}/jam)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.001"
-              value={form.idealRatePerHour}
-              onChange={e => setForm(f => ({ ...f, idealRatePerHour: e.target.value }))}
-              placeholder="Misal: 1000"
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-gray-400"
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Output maksimal mesin per jam. Dipakai untuk komponen Performance OEE.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Catatan
-            </label>
-            <textarea
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="Keterangan tambahan..."
-              rows={2}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none placeholder:text-gray-400"
-            />
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
-              className="rounded border-gray-300 text-sky-600 focus:ring-sky-500 w-4 h-4"
-            />
-            <span className="text-sm text-gray-700">Mesin aktif</span>
-          </label>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-2">
-          <button onClick={onClose} disabled={saving} className="btn-secondary">Batal</button>
-          <button
-            onClick={handleSubmit}
-            disabled={!form.code.trim() || !form.name.trim() || saving}
-            className="btn-primary disabled:opacity-40"
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-            {isEdit ? 'Simpan Perubahan' : 'Simpan Mesin'}
-          </button>
-        </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Kode" required error={errors.code}>
+          <Input value={form.code} onChange={(e) => set('code', e.target.value)} placeholder="MSN-PELLET-01" maxLength={50} />
+        </Field>
+        <Field label="Satuan" hint="Default kg" error={errors.unit}>
+          <Input value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="kg" maxLength={20} />
+        </Field>
       </div>
-    </div>
+      <Field label="Nama mesin" required error={errors.name}>
+        <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Mesin Pellet 1" maxLength={150} />
+      </Field>
+      <Field
+        label={`Kapasitas ideal (${unit}/jam)`}
+        hint="Output maksimal mesin per jam; dipakai untuk komponen Performance OEE. Kosongkan bila belum diketahui."
+        error={errors.idealRatePerHour}
+      >
+        <FormNumberInput
+          value={form.idealRatePerHour}
+          onChange={(e) => set('idealRatePerHour', e.target.value)}
+          min={0}
+          step="0.001"
+          placeholder="Mis. 1000"
+          className="num text-right"
+        />
+      </Field>
+      <Field label="Catatan">
+        <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Keterangan tambahan…" rows={3} />
+      </Field>
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
+        <div>
+          <label htmlFor={switchId} className="text-sm font-medium text-foreground">
+            Mesin aktif
+          </label>
+          <p className="text-xs text-muted-foreground">Mesin nonaktif tidak muncul saat mencatat produksi.</p>
+        </div>
+        <Switch id={switchId} checked={form.isActive} onCheckedChange={(v: boolean) => set('isActive', v)} />
+      </div>
+    </FormSheet>
   );
 }

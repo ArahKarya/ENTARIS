@@ -1,475 +1,445 @@
-import { useId, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Loader2, Factory, TrendingUp, TrendingDown, Package, ArrowDown, ArrowUp, BarChart3, Clock, Filter } from 'lucide-react';
-import { cn } from '../lib/utils';
-import api from '../lib/api';
-import { formatDate } from '../lib/formatters';
-import Select from './Select';
+/**
+ * Stok & Produksi → Proses Produksi → Dashboard (?tab=production, no ?view).
+ *
+ * Server-side aggregates only:
+ *  • KPIs        /inventory/production-runs/summary (period + previous period):
+ *                runs, input, main output, by-products, input-weighted yield
+ *  • Cost/trend  /inventory/dashboard/production: daily yield trend, top
+ *                outputs, loaded HPP (conversion cost), recent runs
+ *  • Approvals   /approvals/requests?status=Pending (ProductionRun)
+ * Period lives in the URL (?period / ?startDate / ?endDate).
+ */
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import {
+  ArrowRight,
+  Boxes,
+  CircleDollarSign,
+  ClipboardCheck,
+  Factory,
+  Layers,
+  PackageCheck,
+  Percent,
+} from 'lucide-react';
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import api from '@/lib/api';
+import { formatDate, formatDateTime, formatNumber, formatRupiah } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { StatCard, StatusBadge } from '@/components/shared';
+import { CHART_AXIS, CHART_GRID_STROKE, useDashboardPeriod } from '@/components/inventory/dashboard-hooks';
+import {
+  ChartTooltipBox,
+  Panel,
+  PanelState,
+  PeriodToolbar,
+} from '@/components/inventory/dashboard-kit';
+import {
+  conversionCost,
+  countDelta,
+  formatYield,
+  mainOutputQty,
+  pointDelta,
+  previousPeriod,
+  topProductRows,
+  yieldDomain,
+  yieldTrendRows,
+  type LoadedHppTotals,
+  type ProductHpp,
+  type TopProduct,
+  type YieldTrendPoint,
+} from '@/components/inventory/dashboard-model';
+import { formatQty, type ProductionRunSummary } from '@/components/inventory/inventory-rows';
+import {
+  approvalRequestsKey,
+  fetchApprovalRequests,
+  formatQueueCount,
+  waitingDays,
+} from '@/components/inventory/approval-queue';
 
-const fmtNum = (val: number, decimals = 0) =>
-  Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
-
-const thisMonthStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-};
-const todayStr = () => new Date().toISOString().split('T')[0];
-
-interface DashboardData {
-  summary: {
-    totalRuns: number;
-    periodRuns: number;
-    prevPeriodRuns: number;
-    avgYield: number;
-    avgYieldPeriod: number;
-    totalInputQtyPeriod: number;
-    totalOutputQtyPeriod: number;
-    totalByProductQtyPeriod: number;
-  };
-  yieldTrend: { date: string; avgYield: number; count: number }[];
-  topInputs: { id: string; name: string; unit: string; quantity: number }[];
-  topOutputs: { id: string; name: string; unit: string; quantity: number }[];
-  bestYield: { runNumber: string; date: string; yieldPct: number }[];
-  worstYield: { runNumber: string; date: string; yieldPct: number }[];
-  recentProduction: {
-    id: string; runNumber: string; date: string; yieldPct: number | null;
-    referenceNumber: string | null; totalInput: number; totalOutput: number;
-    inputSummary: string; outputSummary: string;
-  }[];
+interface ProductionDashboardData {
+  yieldTrend: YieldTrendPoint[];
+  topOutputs: TopProduct[];
+  recentProduction: Array<{
+    id: string;
+    runNumber: string;
+    date: string;
+    yieldPct: number | null;
+    referenceNumber: string | null;
+    totalInput: number;
+    totalOutput: number;
+    inputSummary: string;
+    outputSummary: string;
+  }>;
+  loadedHpp: LoadedHppTotals & { perProduct: Array<ProductHpp & { itemName: string }> };
 }
 
-interface Props {
-  items?: any[];
+interface ProductionDashboardTabProps {
+  /** Opens the production run detail drawer. */
+  onOpenRun: (runId: string) => void;
 }
 
-export default function ProductionDashboardTab({ items = [] }: Props) {
-  const [startDate, setStartDate] = useState(thisMonthStr());
-  const [endDate, setEndDate] = useState(todayStr());
-  const [itemId, setItemId] = useState('');
-  const startId = useId();
-  const endId = useId();
+const APPROVAL_HREF = '/inventory?tab=production&view=approval';
+const linkClass =
+  'inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-  const params: Record<string, string> = {};
-  if (startDate) params.startDate = startDate;
-  if (endDate) params.endDate = endDate;
-  if (itemId) params.itemId = itemId;
-
-  const { data, isLoading } = useQuery<DashboardData>({
-    queryKey: ['production-dashboard', params],
-    queryFn: () => api.get('/inventory/dashboard/production', { params }).then(r => r.data),
+function useRunSummary(range: { startDate: string; endDate: string }) {
+  return useQuery({
+    queryKey: ['production-runs', 'summary', { ...range, status: 'active' }],
+    queryFn: async () =>
+      (await api.get<ProductionRunSummary>('/inventory/production-runs/summary', { params: { ...range, status: 'active' } })).data,
+    placeholderData: keepPreviousData,
   });
+}
+
+export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboardTabProps) {
+  const { period, setPreset, setRange } = useDashboardPeriod();
+  const range = useMemo(() => ({ startDate: period.startDate, endDate: period.endDate }), [period.startDate, period.endDate]);
+  const prevRange = useMemo(() => previousPeriod(range), [range]);
+
+  const summaryQuery = useRunSummary(range);
+  const prevQuery = useRunSummary(prevRange);
+  const dashQuery = useQuery({
+    queryKey: ['production-dashboard', range],
+    queryFn: async () => (await api.get<ProductionDashboardData>('/inventory/dashboard/production', { params: range })).data,
+    placeholderData: keepPreviousData,
+  });
+  const pendingQuery = useQuery({
+    queryKey: approvalRequestsKey('ProductionRun', 'Pending'),
+    queryFn: () => fetchApprovalRequests('ProductionRun', 'Pending'),
+    refetchInterval: 30_000,
+  });
+
+  const s = summaryQuery.data;
+  const prev = prevQuery.data;
+  const unit = s?.unit ?? '';
+  const qty = (v: number) => `${formatQty(v)}${unit ? ` ${unit}` : ''}`;
+  const kpiLoading = !s && !summaryQuery.isError;
+  const conv = conversionCost(dashQuery.data?.loadedHpp);
+  const hpp = dashQuery.data?.loadedHpp;
 
   return (
     <div className="space-y-5">
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 self-center">
-            <Filter size={13} /> Filter
-          </div>
-          <div>
-            <label htmlFor={startId} className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Dari</label>
-            <input
-              id={startId}
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="border border-gray-200 rounded-lg py-1.5 px-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label htmlFor={endId} className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Sampai</label>
-            <input
-              id={endId}
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="border border-gray-200 rounded-lg py-1.5 px-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1">Produk</label>
-            <Select
-              value={itemId}
-              onChange={e => setItemId(e.target.value)}
-              className="w-full"
-            >
-              <option value="">Semua Produk</option>
-              {items.filter((i: any) => i.isActive !== false).map((i: any) => (
-                <option key={i.id} value={i.id}>{i.code} — {i.name}</option>
-              ))}
-            </Select>
-          </div>
-          {(startDate !== thisMonthStr() || endDate !== todayStr() || itemId) && (
-            <button
-              type="button"
-              onClick={() => { setStartDate(thisMonthStr()); setEndDate(todayStr()); setItemId(''); }}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium py-1.5"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-      </div>
+      <PeriodToolbar period={period} onPresetChange={setPreset} onRangeChange={setRange} />
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
-        </div>
-      ) : !data ? null : (
-        <DashboardContent data={data} />
+      <section aria-label="Ringkasan produksi" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
+        <StatCard
+          label="Proses Produksi"
+          icon={Factory}
+          loading={kpiLoading}
+          value={s ? formatNumber(s.activeCount) : '-'}
+          delta={s ? countDelta(s.activeCount, prev?.activeCount) : undefined}
+          href={`/inventory?tab=production&view=data&startDate=${range.startDate}&endDate=${range.endDate}`}
+        />
+        <StatCard
+          label="Bahan Diproses"
+          icon={Boxes}
+          loading={kpiLoading}
+          value={s ? qty(s.inputQty) : '-'}
+          hint="total input"
+        />
+        <StatCard
+          label="Output Utama"
+          icon={PackageCheck}
+          loading={kpiLoading}
+          value={s ? qty(mainOutputQty(s)) : '-'}
+          hint="tanpa produk samping"
+        />
+        <StatCard
+          label="Produk Samping"
+          icon={Layers}
+          loading={kpiLoading}
+          value={s ? qty(s.byproductQty) : '-'}
+          hint={s && s.outputQty > 0 ? `${formatYield((s.byproductQty / s.outputQty) * 100)} dari output` : undefined}
+        />
+        <StatCard
+          label="Yield Tertimbang"
+          icon={Percent}
+          loading={kpiLoading}
+          value={s ? formatYield(s.yieldPct) : '-'}
+          delta={s ? pointDelta(s.yieldPct, prev?.yieldPct) : undefined}
+          hint={s && !prev ? 'dibobot qty input' : undefined}
+        />
+        <StatCard
+          label="Biaya Konversi"
+          icon={CircleDollarSign}
+          loading={!dashQuery.data && !dashQuery.isError}
+          value={conv !== null ? formatRupiah(conv, { compact: true }) : '-'}
+          valueTitle={conv !== null ? formatRupiah(conv) : undefined}
+          hint={
+            dashQuery.isError
+              ? 'gagal dimuat'
+              : hpp && hpp.runsWithHppCount > 0
+              ? `HPP rata-rata ${formatRupiah(hpp.avgLoadedHppPerKg)}/kg`
+              : 'belum ada HPP pada periode'
+          }
+        />
+      </section>
+      {summaryQuery.isError && (
+        <p role="alert" className="text-sm text-danger-text">
+          Ringkasan produksi gagal dimuat.{' '}
+          <button type="button" className="font-medium underline" onClick={() => summaryQuery.refetch()}>
+            Coba lagi
+          </button>
+        </p>
       )}
-    </div>
-  );
-}
-
-function DashboardContent({ data }: { data: DashboardData }) {
-  const { summary } = data;
-  const periodDelta = summary.periodRuns - summary.prevPeriodRuns;
-  const yieldPeriod = summary.totalInputQtyPeriod > 0
-    ? (summary.totalOutputQtyPeriod / summary.totalInputQtyPeriod * 100)
-    : 0;
-
-  return (
-    <>
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard
-          icon={<Factory size={16} />}
-          label="Total Produksi"
-          value={fmtNum(summary.totalRuns)}
-          color="blue"
-        />
-        <KPICard
-          icon={<Package size={16} />}
-          label="Periode Ini"
-          value={fmtNum(summary.periodRuns)}
-          sub={periodDelta !== 0 ? (
-            <span className={cn('text-xs font-medium flex items-center gap-0.5',
-              periodDelta > 0 ? 'text-green-600' : 'text-red-500')}>
-              {periodDelta > 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
-              {Math.abs(periodDelta)} vs periode sebelumnya
-            </span>
-          ) : undefined}
-          color="green"
-        />
-        <KPICard
-          icon={<BarChart3 size={16} />}
-          label="Yield Keseluruhan"
-          value={`${summary.avgYield.toFixed(1)}%`}
-          color="purple"
-        />
-        <KPICard
-          icon={<TrendingUp size={16} />}
-          label="Yield Periode"
-          value={`${summary.avgYieldPeriod.toFixed(1)}%`}
-          color="amber"
-        />
-      </div>
-
-      {/* Volume summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Total Input</p>
-          <p className="text-xl font-bold text-blue-700 mt-1 tabular-nums">
-            {fmtNum(summary.totalInputQtyPeriod, 1)} <span className="text-sm font-normal">Kg</span>
-          </p>
-        </div>
-        <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-          <p className="text-xs font-semibold text-green-500 uppercase tracking-wide">Total Output</p>
-          <p className="text-xl font-bold text-green-700 mt-1 tabular-nums">
-            {fmtNum(summary.totalOutputQtyPeriod, 1)} <span className="text-sm font-normal">Kg</span>
-          </p>
-          {yieldPeriod > 0 && (
-            <p className="text-xs text-green-600 mt-0.5">Yield: {yieldPeriod.toFixed(1)}%</p>
-          )}
-        </div>
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-          <p className="text-xs font-semibold text-warning-text uppercase tracking-wide">Produk Samping</p>
-          <p className="text-xl font-bold text-amber-700 mt-1 tabular-nums">
-            {fmtNum(summary.totalByProductQtyPeriod, 1)} <span className="text-sm font-normal">Kg</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Yield Trend Chart */}
-      {data.yieldTrend.length > 0 && <YieldTrendChart trend={data.yieldTrend} />}
-
-      {/* Top Inputs & Outputs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RankList
-          title="Top Bahan Input"
-          icon={<ArrowDown size={14} className="text-blue-500" />}
-          items={data.topInputs}
-          color="blue"
-        />
-        <RankList
-          title="Top Hasil Output"
-          icon={<ArrowUp size={14} className="text-green-500" />}
-          items={data.topOutputs}
-          color="green"
-        />
-      </div>
-
-      {/* Best & Worst Yield */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <YieldList
-          title="Yield Tertinggi"
-          icon={<TrendingUp size={14} className="text-green-500" />}
-          items={data.bestYield}
-          color="green"
-        />
-        <YieldList
-          title="Yield Terendah"
-          icon={<TrendingDown size={14} className="text-red-500" />}
-          items={data.worstYield}
-          color="red"
-        />
-      </div>
-
-      {/* Recent Production */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Clock size={14} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-700">Produksi Terakhir</h3>
-        </div>
-        {data.recentProduction.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-400">Tidak ada data produksi di periode ini.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs">
-                  <th className="text-left px-4 py-2.5 font-medium">Tanggal</th>
-                  <th className="text-left px-4 py-2.5 font-medium">No. Produksi</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Input</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Output</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Yield</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentProduction.map((r) => (
-                  <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50/50">
-                    <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{formatDate(r.date)}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">
-                        {r.runNumber}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[200px] truncate" title={r.inputSummary}>
-                      {r.inputSummary || '\u2014'}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[200px] truncate" title={r.outputSummary}>
-                      {r.outputSummary || '\u2014'}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      {r.yieldPct !== null ? (
-                        <span className={cn(
-                          'font-mono font-semibold tabular-nums text-sm',
-                          r.yieldPct >= 60 ? 'text-green-600' : r.yieldPct >= 50 ? 'text-amber-600' : 'text-red-600'
-                        )}>
-                          {r.yieldPct.toFixed(1)}%
-                        </span>
-                      ) : '\u2014'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-/* ---------- Sub-components ---------- */
-
-const COLOR_MAP: Record<string, { bg: string; text: string; icon: string }> = {
-  blue: { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' },
-  green: { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-500' },
-  purple: { bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
-  amber: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'text-amber-500' },
-};
-
-function KPICard({ icon, label, value, sub, color }: {
-  icon: React.ReactNode; label: string; value: string; sub?: React.ReactNode; color: string;
-}) {
-  const c = COLOR_MAP[color] ?? COLOR_MAP.blue;
-  return (
-    <div className={cn('rounded-xl p-4 border border-transparent', c.bg)}>
-      <div className={cn('mb-2', c.icon)}>{icon}</div>
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
-      <p className={cn('text-xl font-bold tabular-nums mt-0.5', c.text)}>{value}</p>
-      {sub && <div className="mt-1">{sub}</div>}
-    </div>
-  );
-}
-
-function RankList({ title, icon, items, color }: {
-  title: string; icon: React.ReactNode;
-  items: { id: string; name: string; unit: string; quantity: number }[]; color: string;
-}) {
-  const barColor = color === 'blue' ? 'bg-blue-400' : 'bg-green-400';
-  const maxVal = items.length > 0 ? items[0].quantity : 1;
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center gap-2 mb-4">
-        {icon}
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-xs text-gray-400 italic">Tidak ada data</p>
-      ) : (
-        <div className="space-y-2.5">
-          {items.map((item, i) => {
-            const pct = Math.max(5, (item.quantity / maxVal) * 100);
-            return (
-              <div key={item.id}>
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs text-gray-700 font-medium truncate mr-2">
-                    <span className="text-gray-400 mr-1">{i + 1}.</span>
-                    {item.name}
-                  </span>
-                  <span className="text-xs font-mono font-semibold text-gray-600 tabular-nums shrink-0">
-                    {fmtNum(item.quantity, 1)} {item.unit}
-                  </span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={cn(barColor, 'h-full rounded-full')} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {s && !s.unit && s.inputQty > 0 && (
+        <p className="text-xs text-muted-foreground">Kuantitas memakai satuan campuran; angka dijumlahkan apa adanya.</p>
       )}
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <YieldTrendPanel
+          className="lg:col-span-2"
+          query={dashQuery}
+          periodYield={s?.yieldPct ?? null}
+          rangeLabel={period.rangeLabel}
+        />
+        <PendingApprovalsPanel query={pendingQuery} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <TopProductsPanel query={dashQuery} />
+        <RecentRunsPanel query={dashQuery} onOpenRun={onOpenRun} />
+      </div>
     </div>
   );
 }
 
-function YieldTrendChart({ trend }: { trend: { date: string; avgYield: number; count: number }[] }) {
-  const values = trend.map(d => d.avgYield);
-  const minVal = Math.floor(Math.min(...values) / 5) * 5; // round down to nearest 5
-  const maxVal = Math.ceil(Math.max(...values) / 5) * 5;  // round up to nearest 5
-  const range = maxVal - minVal || 10;
+type DashQuery = ReturnType<typeof useQuery<ProductionDashboardData>>;
 
-  // Y-axis grid lines
-  const gridLines = [];
-  const step = range <= 20 ? 5 : 10;
-  for (let v = minVal; v <= maxVal; v += step) {
-    gridLines.push(v);
-  }
-
+function YieldTrendPanel({
+  query,
+  periodYield,
+  rangeLabel,
+  className,
+}: {
+  query: DashQuery;
+  periodYield: number | null;
+  rangeLabel: string;
+  className?: string;
+}) {
+  const rows = useMemo(() => yieldTrendRows(query.data?.yieldTrend ?? []), [query.data]);
+  const domain = useMemo(() => yieldDomain(rows.map((r) => r.avgYield), periodYield), [rows, periodYield]);
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-        <BarChart3 size={14} className="text-gray-400" />
-        Tren Yield Harian
-      </h3>
-      <div className="relative" style={{ minHeight: '200px' }}>
-        {/* Y-axis grid + labels */}
-        <div className="absolute left-0 top-0 bottom-6 w-10 flex flex-col justify-between">
-          {gridLines.slice().reverse().map(v => (
-            <span key={v} className="text-[9px] text-gray-400 font-mono tabular-nums text-right pr-1">
-              {v}%
-            </span>
-          ))}
-        </div>
+    <Panel className={className} title="Tren yield harian" description={`Rata-rata yield proses per hari · ${rangeLabel}`}>
+      <PanelState
+        loading={query.isLoading}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        empty={rows.length === 0}
+        emptyTitle="Belum ada data yield"
+        emptyDescription="Yield tampil setelah ada proses produksi pada periode ini."
+        skeleton="chart"
+      >
+        <figure className={cn('m-0', query.isFetching && query.isPlaceholderData && 'opacity-60')}>
+          <div className="h-64" aria-hidden>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis dataKey="label" {...CHART_AXIS} minTickGap={12} />
+                <YAxis
+                  {...CHART_AXIS}
+                  width={48}
+                  domain={domain}
+                  allowDecimals={false}
+                  tickCount={Math.min(6, (domain[1] - domain[0]) / 5 + 1)}
+                  tickFormatter={(v: number) => `${formatNumber(v)}%`}
+                />
+                <Tooltip
+                  cursor={{ stroke: 'var(--border-strong)' }}
+                  content={({ active, payload }) => {
+                    const p = active ? (payload?.[0]?.payload as (typeof rows)[number] | undefined) : undefined;
+                    if (!p) return null;
+                    return (
+                      <ChartTooltipBox
+                        title={formatDate(p.date, 'long')}
+                        rows={[
+                          { label: 'Yield rata-rata', value: formatYield(p.avgYield), color: 'var(--chart-2)' },
+                          { label: 'Jumlah proses', value: formatNumber(p.count) },
+                        ]}
+                      />
+                    );
+                  }}
+                />
+                {periodYield !== null && (
+                  <ReferenceLine
+                    y={periodYield}
+                    stroke="var(--chart-4)"
+                    strokeDasharray="4 4"
+                    label={{ value: `Tertimbang ${formatYield(periodYield)}`, position: 'insideTopRight', fontSize: 11, fill: 'var(--text-muted)' }}
+                  />
+                )}
+                <Line
+                  type="monotone"
+                  dataKey="avgYield"
+                  stroke="var(--chart-2)"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: 'var(--chart-2)', strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <figcaption className="sr-only">
+            Yield harian: {rows.map((r) => `${formatDate(r.date)} ${formatYield(r.avgYield)} (${r.count} proses)`).join('; ')}
+          </figcaption>
+        </figure>
+      </PanelState>
+    </Panel>
+  );
+}
 
-        {/* Chart area */}
-        <div className="ml-11 relative" style={{ height: '180px' }}>
-          {/* Horizontal grid lines */}
-          {gridLines.map(v => {
-            const bottom = ((v - minVal) / range) * 100;
-            return (
-              <div
-                key={v}
-                className="absolute left-0 right-0 border-t border-gray-100"
-                style={{ bottom: `${bottom}%` }}
-              />
-            );
-          })}
-
-          {/* Bars */}
-          <div className="absolute inset-0 flex items-end gap-1.5 px-1">
-            {trend.map((d) => {
-              const heightPct = Math.max(3, ((d.avgYield - minVal) / range) * 100);
-              const isGood = d.avgYield >= 60;
-              const day = d.date.slice(8);
-              const month = d.date.slice(5, 7);
+function PendingApprovalsPanel({ query }: { query: ReturnType<typeof useQuery<Awaited<ReturnType<typeof fetchApprovalRequests>>>> }) {
+  const rows = query.data ?? [];
+  return (
+    <Panel
+      title="Menunggu persetujuan"
+      description={rows.length ? `${formatQueueCount(rows.length)} pengajuan proses produksi` : 'Pengajuan proses produksi'}
+      bodyClassName="p-0"
+      action={
+        <Link to={APPROVAL_HREF} className={linkClass}>
+          Buka antrean
+          <ArrowRight className="size-3.5" aria-hidden />
+        </Link>
+      }
+    >
+      <div className="p-4 pt-3">
+        <PanelState
+          loading={query.isLoading}
+          error={query.error}
+          onRetry={() => query.refetch()}
+          empty={rows.length === 0}
+          emptyIcon={ClipboardCheck}
+          emptyTitle="Tidak ada antrean"
+          emptyDescription="Semua pengajuan proses produksi sudah diputuskan."
+        >
+          <ul className="-mx-4 -my-3 divide-y divide-border">
+            {rows.slice(0, 6).map((r) => {
+              const days = waitingDays(r.createdAt);
               return (
-                <div key={d.date} className="flex-1 flex flex-col items-center" style={{ height: '100%' }}>
-                  <div className="flex-1 w-full flex flex-col items-center justify-end">
-                    {/* Value label on top */}
-                    <span className={cn(
-                      'text-[9px] font-semibold tabular-nums mb-0.5',
-                      isGood ? 'text-green-600' : 'text-amber-600'
-                    )}>
-                      {d.avgYield.toFixed(1)}%
+                <li key={r.id}>
+                  <Link
+                    to={APPROVAL_HREF}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-foreground">{r.requester.fullName}</span>
+                      <span className="num block text-xs text-muted-foreground">
+                        {formatDateTime(r.createdAt)} · {formatQty(Number(r.amount ?? 0))} kg input
+                      </span>
                     </span>
-                    {/* Bar */}
-                    <div
-                      className={cn(
-                        'w-full max-w-[40px] rounded-t-md transition-all',
-                        isGood ? 'bg-green-400' : 'bg-amber-400'
-                      )}
-                      style={{ height: `${heightPct}%`, minHeight: '6px' }}
+                    <StatusBadge
+                      status="Pending"
+                      label={days > 0 ? `${days} hari` : 'Hari ini'}
+                      tone={days >= 3 ? 'danger' : 'warning'}
                     />
-                  </div>
-                  {/* X-axis label */}
-                  <span className="text-[9px] text-gray-400 mt-1 tabular-nums">{day}/{month}</span>
-                </div>
+                  </Link>
+                </li>
               );
             })}
-          </div>
-        </div>
-
-        {/* Count labels */}
-        <div className="ml-11 flex gap-1.5 px-1 mt-0.5">
-          {trend.map(d => (
-            <div key={d.date} className="flex-1 text-center">
-              <span className="text-[8px] text-gray-300">{d.count}x</span>
-            </div>
-          ))}
-        </div>
+          </ul>
+        </PanelState>
       </div>
-    </div>
+    </Panel>
   );
 }
 
-function YieldList({ title, icon, items, color }: {
-  title: string; icon: React.ReactNode;
-  items: { runNumber: string; date: string; yieldPct: number }[]; color: string;
-}) {
+function TopProductsPanel({ query }: { query: DashQuery }) {
+  const rows = useMemo(
+    () => topProductRows(query.data?.topOutputs ?? [], query.data?.loadedHpp.perProduct ?? []),
+    [query.data],
+  );
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center gap-2 mb-4">
-        {icon}
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-xs text-gray-400 italic">Tidak ada data</p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div key={item.runNumber} className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-xs text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded shrink-0">
-                  {item.runNumber}
+    <Panel title="Produk teratas" description="Output terbesar pada periode, dengan HPP rata-rata.">
+      <PanelState
+        loading={query.isLoading}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        empty={rows.length === 0}
+        emptyTitle="Belum ada output"
+        emptyDescription="Hasil produksi pada periode ini akan muncul di sini."
+      >
+        <ol className="space-y-3">
+          {rows.map((r, i) => (
+            <li key={r.id}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate">
+                  <span className="num mr-1.5 text-xs text-muted-foreground">{i + 1}.</span>
+                  <span className="font-medium text-foreground">{r.name}</span>
                 </span>
-                <span className="text-xs text-gray-400 truncate">{formatDate(item.date)}</span>
+                <span className="num shrink-0 font-medium text-foreground">
+                  {formatQty(r.quantity)} <span className="font-normal text-muted-foreground">{r.unit}</span>
+                </span>
               </div>
-              <span className={cn(
-                'font-mono font-semibold text-sm tabular-nums shrink-0 ml-2',
-                color === 'green' ? 'text-green-600' : 'text-red-600'
-              )}>
-                {item.yieldPct.toFixed(1)}%
-              </span>
-            </div>
+              <div className="mt-1 flex items-center gap-3">
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+                  <span className="block h-full rounded-full bg-chart-2" style={{ width: `${Math.max(3, r.share * 100)}%` }} />
+                </span>
+                <span className="num w-32 shrink-0 text-right text-xs text-muted-foreground">
+                  {r.avgHpp !== null ? `HPP ${formatRupiah(r.avgHpp)}/${r.unit || 'unit'}` : 'HPP belum ada'}
+                </span>
+              </div>
+            </li>
           ))}
-        </div>
-      )}
-    </div>
+        </ol>
+      </PanelState>
+    </Panel>
+  );
+}
+
+function RecentRunsPanel({ query, onOpenRun }: { query: DashQuery; onOpenRun: (id: string) => void }) {
+  const rows = query.data?.recentProduction ?? [];
+  return (
+    <Panel
+      title="Proses terbaru"
+      description="10 proses terakhir pada periode."
+      bodyClassName="p-0"
+      action={
+        <Link to="/inventory?tab=production&view=data" className={linkClass}>
+          Data produksi
+          <ArrowRight className="size-3.5" aria-hidden />
+        </Link>
+      }
+    >
+      <div className={cn(rows.length === 0 && 'p-4')}>
+        <PanelState
+          loading={query.isLoading}
+          error={query.error}
+          onRetry={() => query.refetch()}
+          empty={rows.length === 0}
+          emptyTitle="Belum ada proses"
+          emptyDescription="Tidak ada proses produksi pada periode ini."
+        >
+          <ul className="divide-y divide-border">
+            {rows.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpenRun(r.id)}
+                  aria-label={`${r.runNumber}, ${formatDate(r.date)}, yield ${formatYield(r.yieldPct)}`}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                >
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2">
+                      <span className="num font-mono text-xs font-medium text-primary-hover">{r.runNumber}</span>
+                      <span className="num text-xs text-muted-foreground">{formatDate(r.date)}</span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground" title={r.outputSummary}>
+                      {r.outputSummary || '-'}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="num block text-sm font-semibold text-foreground">{formatYield(r.yieldPct)}</span>
+                    <span className="num block text-xs text-muted-foreground">
+                      {formatQty(r.totalInput)} → {formatQty(r.totalOutput)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </PanelState>
+      </div>
+    </Panel>
   );
 }
