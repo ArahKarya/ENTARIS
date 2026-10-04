@@ -16,6 +16,7 @@ import { derivePurchaseOrderReceiptStatus } from '../services/purchaseOrderRules
 import { derivePurchaseOrderDisplayStatus } from '../services/purchaseOrderLifecycle';
 import { computePurchaseOrderTotals } from '../services/purchaseOrderCalc';
 import { logger } from '../lib/logger';
+import { businessToday, isPurchaseOrderOverdue } from '../services/purchaseOrderOverdue';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
   buildPurchaseOrderWhere,
@@ -31,8 +32,8 @@ const router = Router();
 // ─── GET / list ───────────────────────────────────────────────────────────
 // Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
 // search (PO number / supplier name), receipt (unreceived|partial|full|closed),
-// open=1 (Submitted & not closed — STT picker), sort (e.g. "-date").
-// → { data, total, page, limit }; each row carries a derived `receiptStatus`.
+// open=1 (Submitted & not closed — STT picker), due=overdue, sort (e.g. "-date").
+// → { data, total, page, limit }; each row carries derived `receiptStatus` + `isOverdue`.
 router.get('/', async (req, res) => {
   try {
     const query = req.query as Record<string, unknown>;
@@ -62,10 +63,12 @@ router.get('/', async (req, res) => {
 
     // Items are only loaded to derive the receipt status; the row shape stays
     // the legacy one plus `receiptStatus` (additive).
+    const today = businessToday();
     const data = rows.map(({ items, ...po }) => ({
       ...po,
       receiptStatus: derivePurchaseOrderReceiptStatus(po, items),
       displayStatus: derivePurchaseOrderDisplayStatus(po),
+      isOverdue: isPurchaseOrderOverdue({ ...po, items }, today),
     }));
     return res.json({ data, total, page, limit: take });
   } catch (error) {
@@ -116,6 +119,7 @@ router.get('/:id', async (req, res) => {
       ...po,
       receiptStatus: derivePurchaseOrderReceiptStatus(po, po.items),
       displayStatus: derivePurchaseOrderDisplayStatus(po),
+      isOverdue: isPurchaseOrderOverdue(po, businessToday()),
       totals: {
         subtotal: t.subtotal.toNumber(),
         discountTotal: t.discountTotal.toNumber(),

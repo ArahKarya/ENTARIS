@@ -11,6 +11,7 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { pushTelegram, pushTelegramToUser, isPersonalTelegramOn } from './telegramService';
 import { hasCap } from './permissionService';
+import { businessToday, daysOverdue, purchaseOrderOverdueWhere } from './purchaseOrderOverdue';
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -243,5 +244,43 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
     });
   }
 
+  // 5. PO terlambat: Submitted, belum ditutup, target terima < hari ini (WIB),
+  //    belum diterima penuh. Dedup 24 jam per PO seperti tipe lain.
+  created += await notifyOverduePurchaseOrders(userIds, now, oneDayAgo);
+
   return { created };
+}
+
+async function notifyOverduePurchaseOrders(userIds: string[], now: Date, since: Date): Promise<number> {
+  try {
+    const overduePOs = await prisma.purchaseOrder.findMany({
+      where: purchaseOrderOverdueWhere(now, prisma.purchaseOrderItem.fields.quantity),
+      select: { id: true, poNumber: true, expectedDeliveryDate: true, supplier: { select: { name: true } } },
+      orderBy: { expectedDeliveryDate: 'asc' },
+      take: 200,
+    });
+    if (overduePOs.length === 0) return 0;
+    const existing = await prisma.notification.findMany({
+      where: { type: 'po_overdue', createdAt: { gte: since } },
+      select: { metadata: true },
+    });
+    const notified = new Set(existing.map((n) => (n.metadata as any)?.purchaseOrderId).filter(Boolean));
+    const today = businessToday(now);
+    let created = 0;
+    for (const po of overduePOs) {
+      if (notified.has(po.id)) continue;
+      const days = daysOverdue(po.expectedDeliveryDate!, today);
+      created += await notifyUsers(prisma, {
+        userIds,
+        type: 'po_overdue',
+        title: 'PO Terlambat Diterima',
+        message: `${po.poNumber}${po.supplier ? ` (${po.supplier.name})` : ''} melewati target terima ${days} hari dan belum diterima penuh.`,
+        metadata: { purchaseOrderId: po.id, poNumber: po.poNumber, daysOverdue: days },
+      });
+    }
+    return created;
+  } catch (err) {
+    logger.error({ err }, 'po_overdue check gagal (diabaikan)');
+    return 0;
+  }
 }

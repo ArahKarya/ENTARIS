@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Scale, Clock, ClipboardList, Banknote, ChevronRight, Receipt, BookOpen, Package, CreditCard, FileText, CalendarDays, Gauge } from 'lucide-react';
+import { BarChart3, Scale, Clock, ClipboardList, Banknote, ChevronRight, Receipt, BookOpen, Package, CreditCard, FileText, CalendarDays, Gauge, Truck, Award } from 'lucide-react';
 
 const reports = [
   {
@@ -92,6 +92,18 @@ const reports = [
     description: 'Daftar piutang berdasarkan jatuh tempo dan status penagihan.',
     icon: FileText,
     path: '/reports/receivable-schedule',
+  },
+  {
+    title: 'PO Outstanding',
+    description: 'Sisa pesanan pembelian yang belum diterima per item, nilai sisa, dan PO terlambat.',
+    icon: Truck,
+    path: '/reports/po-outstanding',
+  },
+  {
+    title: 'Kinerja Pemasok',
+    description: 'Ketepatan kirim, lead time, fill rate, dan selisih harga faktur vs PO per pemasok.',
+    icon: Award,
+    path: '/reports/supplier-performance',
   },
 ];
 

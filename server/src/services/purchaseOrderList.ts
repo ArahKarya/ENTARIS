@@ -6,10 +6,13 @@
  * receipt (unreceived|partial|full|closed) — derived from items' qtyReceived
  * vs quantity, always on open (Submitted, not closed) POs except "closed";
  * open=1 → Submitted and not short-closed (STT modal PO picker).
+ * due=overdue → Submitted, not closed, expected delivery before today (business
+ * time zone) and not fully received (see purchaseOrderOverdue).
  * Sort: whitelisted field, always with the PO number as tie-breaker.
  */
 import { DocumentStatus, Prisma } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';
+import { purchaseOrderOverdueWhere } from './purchaseOrderOverdue';
 
 export const PURCHASE_ORDER_SORT_FIELDS = [
   'date',
@@ -68,6 +71,7 @@ function receiptWhere(
 export function buildPurchaseOrderWhere(
   query: Record<string, unknown>,
   refs?: PurchaseOrderFieldRefs,
+  now: Date = new Date(),
 ): PurchaseOrderWhereResult {
   const where: Prisma.PurchaseOrderWhereInput = {};
   const and: Prisma.PurchaseOrderWhereInput[] = [];
@@ -116,6 +120,13 @@ export function buildPurchaseOrderWhere(
 
   const open = firstString(query.open);
   if (open === '1' || open === 'true') and.push(OPEN_PO);
+
+  const due = firstString(query.due);
+  if (due) {
+    if (due !== 'overdue') return { ok: false, error: 'Filter jatuh tempo PO tidak dikenal.' };
+    if (!refs) return { ok: false, error: 'Filter jatuh tempo PO tidak tersedia.' };
+    and.push(purchaseOrderOverdueWhere(now, refs.itemQuantity));
+  }
 
   if (and.length > 0) where.AND = and;
   return { ok: true, where };

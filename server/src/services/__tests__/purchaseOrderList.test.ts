@@ -92,6 +92,30 @@ describe('purchase order paging', () => {
   });
 });
 
+describe('buildPurchaseOrderWhere — due=overdue', () => {
+  const refs = {
+    itemQuantity: { modelName: 'PurchaseOrderItem', name: 'quantity' },
+  } as unknown as PurchaseOrderFieldRefs;
+
+  it('overdue → open POs due before today (WIB) with an unreceived line', () => {
+    // 2026-10-04 01:00 WIB = 2026-10-03 18:00Z → "today" is 2026-10-04 WIB.
+    const r = buildPurchaseOrderWhere({ due: 'overdue' }, refs, new Date('2026-10-03T18:00:00.000Z'));
+    expect(r.ok && r.where.AND).toEqual([
+      {
+        status: 'Submitted',
+        closedAt: null,
+        expectedDeliveryDate: { lt: new Date('2026-10-03T17:00:00.000Z') },
+        items: { some: { qtyReceived: { lt: refs.itemQuantity } } },
+      },
+    ]);
+  });
+
+  it('rejects unknown due values and due without refs', () => {
+    expect(buildPurchaseOrderWhere({ due: 'soon' }, refs).ok).toBe(false);
+    expect(buildPurchaseOrderWhere({ due: 'overdue' }).ok).toBe(false);
+  });
+});
+
 describe('buildPurchaseOrderWhere — receipt & open filters', () => {
   // Stand-in for prisma.purchaseOrderItem.fields.quantity (a column reference).
   const refs = {

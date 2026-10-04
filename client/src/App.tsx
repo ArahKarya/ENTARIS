@@ -64,6 +64,8 @@ import ProfitabilityPerSku from './pages/reports/ProfitabilityPerSku';
 import ProductionCostSummary from './pages/reports/ProductionCostSummary';
 import PayableSchedule from './pages/reports/PayableSchedule';
 import ReceivableSchedule from './pages/reports/ReceivableSchedule';
+import PoOutstanding from './pages/reports/PoOutstanding';
+import SupplierPerformance from './pages/reports/SupplierPerformance';
 import FixedAssetsPage from './pages/FixedAssetsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import DailyReport from './pages/reports/DailyReport';
@@ -186,6 +188,8 @@ function App() {
             <Route path="/reports/oee" element={<PermRoute module="reports"><OeeReport /></PermRoute>} />
             <Route path="/reports/payable-schedule" element={<PermRoute module="reports"><PayableSchedule /></PermRoute>} />
             <Route path="/reports/receivable-schedule" element={<PermRoute module="reports"><ReceivableSchedule /></PermRoute>} />
+            <Route path="/reports/po-outstanding" element={<PermRoute module="reports"><PoOutstanding /></PermRoute>} />
+            <Route path="/reports/supplier-performance" element={<PermRoute module="reports"><SupplierPerformance /></PermRoute>} />
 
             <Route path="/reconciliation" element={<PermRoute module="reconciliation"><BankReconciliation /></PermRoute>} />
             <Route path="/settings" element={<PermRoute module="settings"><SettingsPage /></PermRoute>} />

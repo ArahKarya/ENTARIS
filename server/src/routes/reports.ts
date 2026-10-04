@@ -7,12 +7,14 @@ import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { compareAccountNumber } from '../utils/accountSort';
 import operationalRouter from './reports/operational';
+import purchasingReportRouter from './reports/purchasing';
 
 const router = Router();
 
 // Operational reports (HPP, payable/receivable schedule, daily) live in
 // reports/operational.ts to keep this file scannable.
 router.use(operationalRouter);
+router.use(purchasingReportRouter);
 
 function parseQueryDate(value: unknown, endOfDay = false): Date | undefined {
   if (typeof value !== 'string' || !value) return undefined;

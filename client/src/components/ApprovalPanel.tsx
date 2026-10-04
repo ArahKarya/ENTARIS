@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PurchaseOrderApprovalSummary from './PurchaseOrderApprovalSummary';
+import { ThreeWayMatchPreview } from './purchase/ThreeWayMatchPanel';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Check, X, Loader2, Eye, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -697,6 +698,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                       )}
                       <p className="text-[10px] text-gray-400 mt-1">Harga Lalu = harga beli item sama pada invoice terakhir (supplier ini bila ada). Arahkan kursor untuk lihat 5 riwayat. ▲ merah = lebih mahal.</p>
                     </div>
+                    <ThreeWayMatchPreview items={piItems} />
                     {/* Lampiran: pengajuan + STT sumber */}
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-1.5">Lampiran</p>

@@ -203,6 +203,8 @@ export const ROUTES: readonly RouteEntry[] = [
       ['/reports/oee', 'Laporan OEE', ['oee', 'efektivitas mesin', 'downtime']],
       ['/reports/payable-schedule', 'Jadwal Utang', ['jadwal hutang', 'payable']],
       ['/reports/receivable-schedule', 'Jadwal Piutang', ['receivable', 'penagihan']],
+      ['/reports/po-outstanding', 'PO Outstanding', ['po outstanding', 'sisa po', 'pesanan pembelian', 'po terlambat']],
+      ['/reports/supplier-performance', 'Kinerja Pemasok', ['kinerja pemasok', 'supplier performance', 'vendor', 'lead time', 'fill rate']],
     ] as const
   ).map(([path, label, keywords]) =>
     r({ path, label, section: 'reports', icon: FileBarChart, module: 'reports', parent: '/reports', nav: false, keywords: [...keywords] }),
