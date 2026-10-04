@@ -82,6 +82,9 @@ export async function submitGoodsReceiptInTx(
     if (po.status === 'Cancelled') {
       throw new BusinessError('Purchase Order sudah dibatalkan, tidak bisa dipakai untuk STT.');
     }
+    if (po.closedAt) {
+      throw new BusinessError('Purchase Order sudah ditutup, tidak bisa dipakai untuk STT.');
+    }
     // PO Khusus: kalau partyId di-set, supplier harus match
     if (po.partyId && po.partyId !== body.partyId) {
       throw new BusinessError(

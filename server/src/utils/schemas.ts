@@ -941,6 +941,11 @@ export const CreatePurchaseOrderSchema = z.object({
   items: z.array(PurchaseOrderItemSchema).min(1, 'Minimal satu item.'),
 });
 
+// Short-close PO ("Tutup PO") — alasan wajib.
+export const ClosePurchaseOrderSchema = z.object({
+  reason: z.string().trim().min(5, 'Alasan penutupan minimal 5 karakter.').max(500),
+});
+
 // ─── Revisi Harga Purchase Invoice ───────────────────────────────────────────
 // Supplier mengoreksi harga setelah PI submit (barang bisa sudah diproduksi).
 export const RevisePurchaseInvoiceSchema = z.object({

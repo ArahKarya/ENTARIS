@@ -4,6 +4,7 @@ import {
   DEFAULT_PURCHASE_ORDER_SORT,
   PURCHASE_ORDER_SORT_FIELDS,
   purchaseOrderOrderBy,
+  type PurchaseOrderFieldRefs,
 } from '../purchaseOrderList';
 import { parseListPaging, parseSort } from '../../utils/listQuery';
 
@@ -88,5 +89,61 @@ describe('purchase order paging', () => {
     const opts = { defaultLimit: 50, maxLimit: 200 };
     expect(parseListPaging({ limit: '100' }, opts)).toEqual({ page: 1, limit: 100, skip: 0 });
     expect(parseListPaging({ limit: '500', page: '2' }, opts)).toEqual({ page: 2, limit: 200, skip: 200 });
+  });
+});
+
+describe('buildPurchaseOrderWhere — receipt & open filters', () => {
+  // Stand-in for prisma.purchaseOrderItem.fields.quantity (a column reference).
+  const refs = {
+    itemQuantity: { modelName: 'PurchaseOrderItem', name: 'quantity' },
+  } as unknown as PurchaseOrderFieldRefs;
+  const qty = refs.itemQuantity;
+  const OPEN = { status: 'Submitted', closedAt: null };
+
+  it('unreceived → open POs whose every line has qtyReceived ≤ 0', () => {
+    expect(buildPurchaseOrderWhere({ receipt: 'unreceived' }, refs)).toEqual({
+      ok: true,
+      where: { AND: [{ ...OPEN, items: { every: { qtyReceived: { lte: 0 } } } }] },
+    });
+  });
+
+  it('full → open POs with ≥1 line and every line received ≥ ordered (column ref)', () => {
+    const r = buildPurchaseOrderWhere({ receipt: 'full' }, refs);
+    expect(r.ok && r.where.AND).toEqual([
+      { ...OPEN, AND: [{ items: { some: {} } }, { items: { every: { qtyReceived: { gte: qty } } } }] },
+    ]);
+  });
+
+  it('partial → something received and some line still short', () => {
+    const r = buildPurchaseOrderWhere({ receipt: 'partial' }, refs);
+    expect(r.ok && r.where.AND).toEqual([
+      {
+        ...OPEN,
+        AND: [{ items: { some: { qtyReceived: { gt: 0 } } } }, { items: { some: { qtyReceived: { lt: qty } } } }],
+      },
+    ]);
+  });
+
+  it('closed → short-closed POs; open=1 → Submitted and not closed', () => {
+    const closed = buildPurchaseOrderWhere({ receipt: 'closed' });
+    expect(closed.ok && closed.where.AND).toEqual([{ status: 'Submitted', closedAt: { not: null } }]);
+    expect(buildPurchaseOrderWhere({ status: 'Submitted', open: '1' })).toEqual({
+      ok: true,
+      where: { status: 'Submitted', AND: [OPEN] },
+    });
+  });
+
+  it('keeps the status filter alongside receipt (AND, never overwritten)', () => {
+    const r = buildPurchaseOrderWhere({ status: 'Cancelled', receipt: 'unreceived' }, refs);
+    expect(r.ok && r.where.status).toBe('Cancelled');
+    expect(r.ok && r.where.AND).toHaveLength(1);
+  });
+
+  it('rejects unknown receipt values, and column-ref filters without refs', () => {
+    expect(buildPurchaseOrderWhere({ receipt: 'half' }, refs)).toEqual({
+      ok: false,
+      error: 'Filter penerimaan PO tidak dikenal.',
+    });
+    expect(buildPurchaseOrderWhere({ receipt: 'full' }).ok).toBe(false);
   });
 });

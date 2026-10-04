@@ -122,7 +122,14 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   sales_invoice: { submitted: m('Belum Lunas', 'warning') },
   purchase_invoice: { submitted: m('Belum Lunas', 'warning') },
   sales_order: { submitted: m('Dikonfirmasi', 'info') },
-  purchase_order: { submitted: m('Dipesan', 'info') },
+  // PO: document status + receipt progress derived server-side (`receiptStatus`).
+  purchase_order: {
+    submitted: m('Dipesan', 'info'),
+    unreceived: m('Belum Diterima', 'warning'),
+    partial: m('Diterima Sebagian', 'info'),
+    full: m('Diterima Penuh', 'success'),
+    closed: m('Ditutup', 'neutral'),
+  },
   journal: { submitted: POSTED },
   payment: { submitted: POSTED },
   // STT list: billing state derived from the purchase-invoice link.

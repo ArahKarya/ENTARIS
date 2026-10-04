@@ -1772,6 +1772,9 @@ model PurchaseOrder {
   user                 User                @relation("PurchaseOrderCreator", fields: [createdBy], references: [id])
   submittedAt          DateTime?           @map("submitted_at")
   cancelledAt          DateTime?           @map("cancelled_at")
+  // Short-close ("Tutup PO"): status tetap Submitted, sisa qty tidak lagi diharapkan.
+  closedAt             DateTime?           @map("closed_at")
+  closeReason          String?             @map("close_reason")
   createdAt            DateTime            @default(now()) @map("created_at")
   updatedAt            DateTime            @updatedAt @map("updated_at")
 

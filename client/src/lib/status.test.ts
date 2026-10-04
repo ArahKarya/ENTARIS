@@ -117,6 +117,14 @@ describe('purchasing statuses (PO / STT)', () => {
     ]);
   });
 
+  it('labels the derived PO receipt statuses', () => {
+    expect(getStatusMeta('Unreceived', 'purchase_order')).toEqual({ label: 'Belum Diterima', tone: 'warning' });
+    expect(getStatusMeta('Partial', 'purchase_order')).toEqual({ label: 'Diterima Sebagian', tone: 'info' });
+    expect(getStatusMeta('Full', 'purchase_order')).toEqual({ label: 'Diterima Penuh', tone: 'success' });
+    expect(getStatusMeta('Closed', 'purchase_order')).toEqual({ label: 'Ditutup', tone: 'neutral' });
+    expect(getStatusLabel('Cancelled', 'purchase_order')).toBe('Dibatalkan');
+  });
+
   it('labels the derived goods receipt (STT) billing statuses', () => {
     expect(getStatusMeta('Invoiced', 'goods_receipt')).toEqual({ label: 'Sudah Ditagih', tone: 'success' });
     expect(getStatusMeta('Uninvoiced', 'goods_receipt')).toEqual({ label: 'Belum Ditagih', tone: 'warning' });

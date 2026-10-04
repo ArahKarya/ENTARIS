@@ -28,22 +28,64 @@ const defaultItem = (): POItem => ({
   description: '',
 });
 
-interface Props {
-  onClose: () => void;
+/** Existing PO (GET /purchase-orders/:id) used to prefill edit / duplicate. */
+export interface PurchaseOrderSource {
+  id: string;
+  poNumber: string;
+  date: string;
+  partyId: string | null;
+  expectedDeliveryDate: string | null;
+  notes: string | null;
+  terms: string | null;
+  items: Array<{
+    inventoryItemId: string | null;
+    itemName: string;
+    quantity: number | string;
+    unit: string;
+    estimatedRate: number | string;
+    description: string | null;
+  }>;
 }
 
-const PurchaseOrderModal: React.FC<Props> = ({ onClose }) => {
+export type PurchaseOrderModalMode = 'create' | 'edit' | 'duplicate';
+
+interface Props {
+  onClose: () => void;
+  /** edit → PUT the source PO; duplicate → new PO prefilled from source, dated today. */
+  mode?: PurchaseOrderModalMode;
+  source?: PurchaseOrderSource | null;
+}
+
+const dayPart = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : '');
+
+const toFormItems = (source?: PurchaseOrderSource | null): POItem[] =>
+  source && source.items.length > 0
+    ? source.items.map((it) => ({
+        id: crypto.randomUUID(),
+        inventoryItemId: it.inventoryItemId ?? '',
+        itemName: it.itemName,
+        quantity: Number(it.quantity) || 0,
+        unit: it.unit,
+        estimatedRate: Number(it.estimatedRate) || 0,
+        description: it.description ?? '',
+      }))
+    : [defaultItem()];
+
+const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source = null }) => {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
+  const isEdit = mode === 'edit' && !!source;
 
-  const [date, setDate] = useState(today);
-  const [partyId, setPartyId] = useState('');
-  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
-  const [notes, setNotes] = useState('');
-  const [terms, setTerms] = useState('');
-  const [items, setItems] = useState<POItem[]>([defaultItem()]);
+  const [date, setDate] = useState(() => (isEdit ? dayPart(source?.date) : today));
+  const [partyId, setPartyId] = useState(source?.partyId ?? '');
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(() =>
+    isEdit ? dayPart(source?.expectedDeliveryDate) : '',
+  );
+  const [notes, setNotes] = useState(source?.notes ?? '');
+  const [terms, setTerms] = useState(source?.terms ?? '');
+  const [items, setItems] = useState<POItem[]>(() => toFormItems(source));
   const [error, setError] = useState('');
-  const [isUmum, setIsUmum] = useState(false);
+  const [isUmum, setIsUmum] = useState(() => !!source && !source.partyId);
 
   const { data: parties } = useQuery({
     queryKey: ['parties-suppliers'],
@@ -93,10 +135,12 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose }) => {
   const grandTotal = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.estimatedRate) || 0), 0);
 
   const mutation = useMutation({
-    mutationFn: (data: any) => api.post('/purchase-orders', data),
+    mutationFn: (data: any) =>
+      isEdit ? api.put(`/purchase-orders/${source!.id}`, data) : api.post('/purchase-orders', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-      toast.success('PO tersimpan.');
+      if (isEdit) queryClient.invalidateQueries({ queryKey: ['purchase-order-detail', source!.id] });
+      toast.success(isEdit ? `PO ${source!.poNumber} diperbarui.` : 'PO tersimpan.');
       onClose();
     },
     onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan PO.'),
@@ -135,11 +179,17 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose }) => {
               <ClipboardList size={18} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Buat Purchase Order (PO)</h2>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {isEdit
+                  ? `Edit PO ${source!.poNumber}`
+                  : mode === 'duplicate' && source
+                    ? `Duplikat PO ${source.poNumber}`
+                    : 'Buat Purchase Order (PO)'}
+              </h2>
               <p className="text-xs text-gray-400">Pesanan pembelian ke supplier — tidak ada GL/stock impact</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+          <button onClick={onClose} aria-label="Tutup" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
@@ -277,7 +327,7 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose }) => {
           <button onClick={onClose} className="btn-secondary" disabled={mutation.isPending}>Batal</button>
           <button onClick={handleSubmit} disabled={mutation.isPending} className="btn-primary flex items-center gap-1.5">
             {mutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <ClipboardList size={14} />}
-            {mutation.isPending ? 'Menyimpan...' : 'Simpan PO'}
+            {mutation.isPending ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan PO'}
           </button>
         </div>
       </div>

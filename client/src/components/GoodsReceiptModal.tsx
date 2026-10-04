@@ -16,6 +16,8 @@ interface GRItem {
   quantity: number;
   unit: string;
   description: string;
+  /** Set when the line was prefilled from a PO line (bumps its qtyReceived). */
+  purchaseOrderItemId?: string;
 }
 
 const defaultItem = (): GRItem => ({
@@ -28,8 +30,42 @@ const defaultItem = (): GRItem => ({
   description: '',
 });
 
+/** PO (GET /purchase-orders/:id) to receive against — "Buat STT dari PO". */
+export interface GoodsReceiptSourcePO {
+  id: string;
+  partyId: string | null;
+  items: Array<{
+    id: string;
+    inventoryItemId: string | null;
+    itemName: string;
+    unit: string;
+    quantity: number | string;
+    qtyReceived: number | string;
+    description?: string | null;
+  }>;
+}
+
 interface Props {
   onClose: () => void;
+  /** Prefill supplier, PO and the PO's outstanding lines (remaining qty). */
+  initialPurchaseOrder?: GoodsReceiptSourcePO | null;
+}
+
+/** Outstanding PO lines → STT lines (warehouse still to be picked). */
+function itemsFromPO(po: GoodsReceiptSourcePO): GRItem[] {
+  const lines = po.items
+    .map((it) => ({ it, remaining: Number(it.quantity) - Number(it.qtyReceived ?? 0) }))
+    .filter(({ remaining }) => remaining > 0)
+    .map(({ it, remaining }) => ({
+      ...defaultItem(),
+      inventoryItemId: it.inventoryItemId ?? '',
+      itemName: it.itemName,
+      unit: it.unit,
+      quantity: Math.round(remaining * 1000) / 1000,
+      description: it.description ?? '',
+      purchaseOrderItemId: it.id,
+    }));
+  return lines.length > 0 ? lines : [defaultItem()];
 }
 
 // Pull current logged-in user's full name from localStorage to auto-fill
@@ -44,13 +80,13 @@ function getCurrentUserName(): string {
   }
 }
 
-const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
+const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = null }) => {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
-  const [partyId, setPartyId] = useState('');
-  const [purchaseOrderId, setPurchaseOrderId] = useState('');
+  const [partyId, setPartyId] = useState(initialPurchaseOrder?.partyId ?? '');
+  const [purchaseOrderId, setPurchaseOrderId] = useState(initialPurchaseOrder?.id ?? '');
   const [nomorMobil, setNomorMobil] = useState('');
   const [driverName, setDriverName] = useState('');
   // Read-only — derived dari user login. setRecipientName tidak dipakai
@@ -59,7 +95,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
   const [recipientName, _setRecipientName] = useState(() => getCurrentUserName());
   const [notes, setNotes] = useState('');
   const [isCustomerOwned, setIsCustomerOwned] = useState(false);
-  const [items, setItems] = useState<GRItem[]>([defaultItem()]);
+  const [items, setItems] = useState<GRItem[]>(() =>
+    initialPurchaseOrder ? itemsFromPO(initialPurchaseOrder) : [defaultItem()],
+  );
   const [error, setError] = useState('');
 
   const { data: parties } = useQuery({
@@ -92,9 +130,10 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
     queryFn: async () => {
       // Phase 4 will implement /purchase-orders. For now empty.
       try {
-        const res = await api.get('/purchase-orders?status=Submitted&limit=100');
+        // open=1 leaves out short-closed POs ("Tutup PO"); closedAt check is a fallback.
+        const res = await api.get('/purchase-orders?status=Submitted&open=1&limit=100');
         const all = res.data.data ?? res.data;
-        return (all as any[]).filter((po: any) => !po.partyId || po.partyId === partyId);
+        return (all as any[]).filter((po: any) => !po.closedAt && (!po.partyId || po.partyId === partyId));
       } catch {
         return [];
       }
@@ -148,6 +187,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
     mutationFn: (data: any) => api.post('/goods-receipts', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
+      // STT linked to a PO bumps its qtyReceived → receipt status changes.
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-detail'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       toast.success('STT/BPB tersimpan. Stok masuk ke gudang.');
@@ -182,6 +224,11 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose }) => {
         // provisional cost untuk JE accrual + weighted average.
         lockedUnitCost: 0,
         description: it.description.trim() || null,
+        // Only keep the PO-line link while the STT still points at that PO.
+        purchaseOrderItemId:
+          it.purchaseOrderItemId && !isCustomerOwned && purchaseOrderId === initialPurchaseOrder?.id
+            ? it.purchaseOrderItemId
+            : null,
       })),
     });
   };
