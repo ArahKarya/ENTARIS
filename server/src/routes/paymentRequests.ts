@@ -8,6 +8,9 @@
 //
 // GL (on pay): DR beban per baris (or DR Uang Muka Karyawan for CASH_ADVANCE /
 // TRAVEL) / CR kas-bank. Cancel payment voids that journal.
+// Stage 2: pertanggungjawaban uang muka (/:id/settlement/*) — requester submits
+// realization lines, supervisor approves, Finance verifies accounts and posts
+// DR beban / CR Uang Muka Karyawan (+ kas-bank for sisa / kurang bayar).
 import { Router, type Response } from 'express';
 import multer from 'multer';
 import { prisma } from '../lib/prisma';
@@ -29,6 +32,9 @@ import {
   PaymentRequestInputSchema,
   PaymentRequestPaySchema,
   PaymentRequestReasonSchema,
+  PaymentRequestSettlementDraftSchema,
+  PaymentRequestSettlementPostSchema,
+  PaymentRequestSettlementPreviewSchema,
   PaymentRequestVerifySchema,
 } from '../utils/schemas';
 import { can, isSuperAdminRole } from '../services/permissionService';
@@ -67,6 +73,23 @@ import {
   type PrEvent,
 } from '../services/paymentRequestService';
 import { dispatchPaymentRequestEvents } from '../services/paymentRequestNotify';
+import {
+  OUTSTANDING_SETTLEMENT_STATUSES,
+  SETTLEMENT_OVERDUE_DAYS,
+  checkCancelSettlementPosting,
+  checkSettlementDecide,
+  checkSettlementEditable,
+  summarizeAdvances,
+} from '../services/paymentRequestSettlementRules';
+import {
+  approveSettlementInTx,
+  cancelSettlementPostingInTx,
+  postSettlementInTx,
+  previewSettlementInTx,
+  returnSettlementInTx,
+  saveSettlementDraftInTx,
+  submitSettlementInTx,
+} from '../services/paymentRequestSettlementService';
 
 const router = Router();
 
@@ -119,7 +142,15 @@ const parseScope = (v: unknown): PrScope => {
 async function visibleRequest(id: string, ctx: ViewerCtx) {
   const pr = await prisma.paymentRequest.findUnique({
     where: { id },
-    select: { id: true, status: true, requesterId: true, supervisorId: true, directorRole: true },
+    select: {
+      id: true,
+      status: true,
+      requesterId: true,
+      supervisorId: true,
+      directorRole: true,
+      settlementStatus: true,
+      settlementSupervisorId: true,
+    },
   });
   if (!pr || !canViewRequest(pr, ctx)) throw new NotFoundError('Pengajuan tidak ditemukan.');
   return pr;
@@ -137,6 +168,9 @@ const LIST_SELECT = {
   createdAt: true,
   submittedAt: true,
   paidAt: true,
+  paymentDate: true,
+  settlementStatus: true,
+  settlementDeadline: true,
   directorRole: true,
   type: { select: { id: true, name: true, kind: true } },
   requester: { select: { id: true, fullName: true } },
@@ -156,7 +190,7 @@ async function badgeCounts(ctx: ViewerCtx) {
 router.get('/meta', async (req: AuthRequest, res) => {
   try {
     const ctx = await viewerOf(req);
-    const [me, last, badges] = await Promise.all([
+    const [me, last, badges, myAdvances] = await Promise.all([
       prisma.user.findUnique({
         where: { id: ctx.id },
         select: { id: true, fullName: true, supervisor: { select: { id: true, fullName: true, isActive: true } } },
@@ -167,8 +201,21 @@ router.get('/meta', async (req: AuthRequest, res) => {
         select: { bankName: true, bankAccountNo: true, bankAccountHolder: true, department: true },
       }),
       badgeCounts(ctx),
+      prisma.paymentRequest.findMany({
+        where: { requesterId: ctx.id, status: 'PAID', settlementStatus: { in: [...OUTSTANDING_SETTLEMENT_STATUSES] } },
+        select: { requesterId: true, totalAmount: true, paymentDate: true, settlementDeadline: true, requester: { select: { fullName: true } } },
+      }),
     ]);
+    const mine = summarizeAdvances(myAdvances.map((r) => ({ ...r, requesterName: r.requester.fullName })));
     return res.json({
+      openAdvances: {
+        count: mine.count,
+        amount: mine.amount,
+        overdueCount: mine.overdueCount,
+        overdueAmount: mine.overdueAmount,
+        oldestDays: mine.byEmployee[0]?.oldestDays ?? 0,
+      },
+      overdueDays: SETTLEMENT_OVERDUE_DAYS,
       me,
       role: ctx.role,
       isFinance: ctx.isFinance,
@@ -221,6 +268,22 @@ router.get('/summary', async (req: AuthRequest, res) => {
   }
 });
 
+// GET /advances/summary — outstanding employee advances (same visibility as the "Belum
+// Dipertanggungjawabkan" tab): totals, overdue and a per-employee breakdown.
+router.get('/advances/summary', async (req: AuthRequest, res) => {
+  try {
+    const ctx = await viewerOf(req);
+    const scope = scopeWhere('advances', ctx)!;
+    const rows = await prisma.paymentRequest.findMany({
+      where: scope,
+      select: { requesterId: true, totalAmount: true, paymentDate: true, settlementDeadline: true, requester: { select: { fullName: true } } },
+    });
+    return res.json(summarizeAdvances(rows.map((r) => ({ ...r, requesterName: r.requester.fullName }))));
+  } catch (error) {
+    return fail(res, error, 'GET /payment-requests/advances/summary', 'Gagal menghitung uang muka karyawan.');
+  }
+});
+
 // GET /attachments/:attId — download / preview (same visibility as the request).
 router.get('/attachments/:attId', async (req: AuthRequest, res) => {
   try {
@@ -257,12 +320,20 @@ router.get('/:id', async (req: AuthRequest, res) => {
           orderBy: { lineNo: 'asc' },
           include: { expenseAccount: { select: { id: true, accountNumber: true, name: true } } },
         },
+        settlementSupervisor: { select: { id: true, fullName: true } },
+        settlementCashAccount: { select: { id: true, accountNumber: true, name: true } },
+        settlementJournal: { select: { id: true, entryNumber: true, status: true } },
+        settlementLines: {
+          orderBy: { lineNo: 'asc' },
+          include: { expenseAccount: { select: { id: true, accountNumber: true, name: true } } },
+        },
         attachments: { orderBy: { createdAt: 'asc' } },
         history: { orderBy: { createdAt: 'asc' }, include: { actor: { select: { id: true, fullName: true } } } },
       },
     });
     const isRequester = pr.requesterId === ctx.id;
     const decide = checkCanDecide(pr, ctx);
+    const settleDecide = checkSettlementDecide(pr, ctx);
     const actions = {
       edit: checkEditable(pr, ctx.id).ok,
       submit: checkEditable(pr, ctx.id).ok,
@@ -273,6 +344,13 @@ router.get('/:id', async (req: AuthRequest, res) => {
       cancel: isRequester && checkRequesterCancel(pr, ctx.id).ok,
       cancelPayment: checkCancelPayment(pr, ctx).ok,
       viewJournal: await can(ctx.role, 'journal', 'view'),
+      settlement: {
+        edit: checkSettlementEditable(pr, ctx.id).ok,
+        decide: settleDecide.ok,
+        step: settleDecide.ok ? settleDecide.step : null,
+        post: settleDecide.ok && settleDecide.step === 'FINANCE',
+        cancelPosting: checkCancelSettlementPosting(pr, ctx).ok,
+      },
     };
     return res.json({ ...pr, actions });
   } catch (error) {
@@ -399,18 +477,102 @@ router.post('/:id/cancel-payment', async (req: AuthRequest, res) => {
   });
 });
 
-// ─── Attachments (requester, while DRAFT / REVISION) ─────────────────────────
+// ─── Pertanggungjawaban (settlement) ─────────────────────────────────────────
+
+// PUT /:id/settlement — requester saves the realization lines (status unchanged).
+router.put('/:id/settlement', async (req: AuthRequest, res) => {
+  const body = validateBody(PaymentRequestSettlementDraftSchema, req.body, res);
+  if (!body) return;
+  try {
+    const ctx = await viewerOf(req);
+    await visibleRequest(req.params.id as string, ctx);
+    const pr = await prisma.$transaction((tx) => saveSettlementDraftInTx(tx, req.params.id as string, ctx, body));
+    return res.json(pr);
+  } catch (error) {
+    return fail(res, error, 'PUT /payment-requests/:id/settlement', 'Gagal menyimpan pertanggungjawaban.');
+  }
+});
+
+router.post('/:id/settlement/submit', async (req: AuthRequest, res) => {
+  const ctx = await viewerOf(req);
+  return runTransition(res, 'POST /payment-requests/:id/settlement/submit', 'Gagal mengajukan pertanggungjawaban.', async (tx) => {
+    await visibleRequest(req.params.id as string, ctx);
+    return submitSettlementInTx(tx, req.params.id as string, ctx);
+  });
+});
+
+// Supervisor approval (Finance step is /settlement/post).
+router.post('/:id/settlement/approve', async (req: AuthRequest, res) => {
+  const body = validateBody(PaymentRequestDecisionSchema, req.body ?? {}, res);
+  if (!body) return;
+  const ctx = await viewerOf(req);
+  return runTransition(res, 'POST /payment-requests/:id/settlement/approve', 'Gagal menyetujui pertanggungjawaban.', async (tx) => {
+    await visibleRequest(req.params.id as string, ctx);
+    return approveSettlementInTx(tx, req.params.id as string, ctx, body.note);
+  });
+});
+
+router.post('/:id/settlement/return', async (req: AuthRequest, res) => {
+  const body = validateBody(PaymentRequestReasonSchema, req.body, res);
+  if (!body) return;
+  const ctx = await viewerOf(req);
+  return runTransition(res, 'POST /payment-requests/:id/settlement/return', 'Gagal mengembalikan pertanggungjawaban.', async (tx) => {
+    await visibleRequest(req.params.id as string, ctx);
+    return returnSettlementInTx(tx, req.params.id as string, ctx, body.reason);
+  });
+});
+
+// POST /:id/settlement/preview — DR/CR journal preview for the finance step (nothing saved).
+router.post('/:id/settlement/preview', async (req: AuthRequest, res) => {
+  const body = validateBody(PaymentRequestSettlementPreviewSchema, req.body ?? {}, res);
+  if (!body) return;
+  try {
+    const ctx = await viewerOf(req);
+    await visibleRequest(req.params.id as string, ctx);
+    const preview = await prisma.$transaction((tx) => previewSettlementInTx(tx, req.params.id as string, body));
+    return res.json(preview);
+  } catch (error) {
+    return fail(res, error, 'POST /payment-requests/:id/settlement/preview', 'Gagal menghitung pratinjau jurnal.');
+  }
+});
+
+router.post('/:id/settlement/post', async (req: AuthRequest, res) => {
+  const body = validateBody(PaymentRequestSettlementPostSchema, req.body, res);
+  if (!body) return;
+  const ctx = await viewerOf(req);
+  return runTransition(res, 'POST /payment-requests/:id/settlement/post', 'Gagal memposting pertanggungjawaban.', async (tx) => {
+    await visibleRequest(req.params.id as string, ctx);
+    const out = await postSettlementInTx(tx, req.params.id as string, ctx, body);
+    logger.info({ id: out.request.id, journal: out.journal.entryNumber, mode: out.preview.mode, by: ctx.id }, 'Payment request settlement posted');
+    return out;
+  });
+});
+
+router.post('/:id/settlement/cancel-posting', async (req: AuthRequest, res) => {
+  const body = validateBody(PaymentRequestReasonSchema, req.body, res);
+  if (!body) return;
+  const ctx = await viewerOf(req);
+  return runTransition(res, 'POST /payment-requests/:id/settlement/cancel-posting', 'Gagal membatalkan posting pertanggungjawaban.', async (tx) => {
+    await visibleRequest(req.params.id as string, ctx);
+    return cancelSettlementPostingInTx(tx, req.params.id as string, ctx, body.reason);
+  });
+});
+
+// ─── Attachments (requester, while DRAFT / REVISION; settlement scope while OPEN / REVISION) ──
+
+const scopeOf = (v: unknown): 'REQUEST' | 'SETTLEMENT' => (firstString(v) === 'settlement' ? 'SETTLEMENT' : 'REQUEST');
 
 router.post('/:id/attachments', uploadFiles, async (req: AuthRequest, res) => {
   try {
     const ctx = await viewerOf(req);
     const id = req.params.id as string;
     const pr = await visibleRequest(id, ctx);
-    const editable = checkEditable(pr, ctx.id);
+    const scope = scopeOf(req.query.scope);
+    const editable = scope === 'SETTLEMENT' ? checkSettlementEditable(pr, ctx.id) : checkEditable(pr, ctx.id);
     if (!editable.ok) return res.status(400).json({ error: editable.error });
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
     if (files.length === 0) return res.status(400).json({ error: 'Tidak ada file yang diupload.' });
-    const existing = await prisma.paymentRequestAttachment.count({ where: { paymentRequestId: id } });
+    const existing = await prisma.paymentRequestAttachment.count({ where: { paymentRequestId: id, scope } });
     if (existing + files.length > MAX_FILES_PER_REQUEST) {
       return res.status(400).json({ error: `Maksimal ${MAX_FILES_PER_REQUEST} lampiran per pengajuan.` });
     }
@@ -433,6 +595,7 @@ router.post('/:id/attachments', uploadFiles, async (req: AuthRequest, res) => {
             fileSize: saved.fileSize,
             filePath: saved.filePath,
             uploadedBy: ctx.id,
+            scope,
           },
         }),
       );
@@ -448,10 +611,10 @@ router.delete('/:id/attachments/:attId', async (req: AuthRequest, res) => {
     const ctx = await viewerOf(req);
     const id = req.params.id as string;
     const pr = await visibleRequest(id, ctx);
-    const editable = checkEditable(pr, ctx.id);
-    if (!editable.ok) return res.status(400).json({ error: editable.error });
     const att = await prisma.paymentRequestAttachment.findFirst({ where: { id: req.params.attId as string, paymentRequestId: id } });
     if (!att) return res.status(404).json({ error: 'File tidak ditemukan.' });
+    const editable = att.scope === 'SETTLEMENT' ? checkSettlementEditable(pr, ctx.id) : checkEditable(pr, ctx.id);
+    if (!editable.ok) return res.status(400).json({ error: editable.error });
     await prisma.paymentRequestAttachment.delete({ where: { id: att.id } });
     await deleteAttachment(att.filePath).catch((err) => logger.warn({ err, id: att.id }, 'attachment file delete failed'));
     return res.json({ ok: true });

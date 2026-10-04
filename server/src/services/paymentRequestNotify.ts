@@ -9,6 +9,7 @@ import { notifyUsers } from './notificationService';
 import { roleKeysWithPerm } from './permissionService';
 import type { PrEvent } from './paymentRequestService';
 import { PR_MODULE } from './paymentRequestRules';
+import { advanceAgeDays, isAdvanceOverdue } from './paymentRequestSettlementRules';
 
 const formatRupiahPlain = (n: number): string => `Rp ${n.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`;
 
@@ -56,6 +57,18 @@ async function planFor(e: PrEvent): Promise<Plan | null> {
       return { userIds: [e.requesterId], type: 'payment_request_paid', title: 'Pengajuan pembayaran sudah dibayar', message: `${e.number} (${amount}) sudah dibayarkan.` };
     case 'payment_cancelled':
       return { userIds: [e.requesterId], type: 'payment_request_revision', title: 'Pembayaran pengajuan dibatalkan', message: `Pembayaran ${e.number} dibatalkan Keuangan dan kembali ke Siap Dibayar.${note}` };
+    case 'settlement_pending_supervisor':
+      return e.supervisorId
+        ? { userIds: [e.supervisorId], type: 'payment_request_pending', title: 'Pertanggungjawaban uang muka menunggu persetujuan Anda', message: `Pertanggungjawaban ${e.number} (realisasi ${amount}) menunggu persetujuan atasan.` }
+        : null;
+    case 'settlement_pending_finance':
+      return { userIds: await financeUserIds(), type: 'payment_request_pending', title: 'Pertanggungjawaban uang muka perlu diposting Keuangan', message: `Pertanggungjawaban ${e.number} (realisasi ${amount}) menunggu verifikasi dan posting Keuangan.${note}` };
+    case 'settlement_revision':
+      return { userIds: [e.requesterId], type: 'payment_request_revision', title: 'Pertanggungjawaban perlu revisi', message: `Pertanggungjawaban ${e.number} dikembalikan untuk direvisi.${note}` };
+    case 'settlement_settled':
+      return { userIds: [e.requesterId], type: 'payment_request_paid', title: 'Pertanggungjawaban uang muka selesai', message: `Pertanggungjawaban ${e.number} (realisasi ${amount}) sudah diposting.` };
+    case 'settlement_posting_cancelled':
+      return { userIds: [e.requesterId], type: 'payment_request_revision', title: 'Posting pertanggungjawaban dibatalkan', message: `Posting pertanggungjawaban ${e.number} dibatalkan Keuangan dan kembali ke verifikasi.${note}` };
     case 'cancelled':
       return {
         userIds: [...(e.supervisorId ? [e.supervisorId] : []), ...(await financeUserIds())],
@@ -85,5 +98,44 @@ export async function dispatchPaymentRequestEvents(events: readonly PrEvent[]): 
     } catch (err) {
       logger.error({ err, kind: e.kind, requestId: e.requestId }, 'payment request notification gagal (diabaikan)');
     }
+  }
+}
+
+const REMINDER_TYPE = 'payment_request_settlement_due';
+
+/**
+ * Daily reminder to requesters whose advance is still unsettled after
+ * SETTLEMENT_OVERDUE_DAYS (or past the deadline they set). At most one
+ * reminder per request per 3 days; never throws.
+ */
+export async function runSettlementReminders(now: Date = new Date()): Promise<{ created: number }> {
+  try {
+    const rows = await prisma.paymentRequest.findMany({
+      where: { status: 'PAID', settlementStatus: { in: ['OPEN', 'REVISION'] } },
+      select: { id: true, number: true, requesterId: true, totalAmount: true, paymentDate: true, settlementDeadline: true },
+    });
+    const due = rows.filter((r) => isAdvanceOverdue(r, now));
+    if (due.length === 0) return { created: 0 };
+    const recent = await prisma.notification.findMany({
+      where: { type: REMINDER_TYPE, createdAt: { gte: new Date(now.getTime() - 3 * 86_400_000) } },
+      select: { metadata: true },
+    });
+    const already = new Set(recent.map((n) => (n.metadata as { paymentRequestId?: string } | null)?.paymentRequestId).filter(Boolean));
+    let created = 0;
+    for (const r of due) {
+      if (already.has(r.id)) continue;
+      const days = advanceAgeDays(r.paymentDate, now);
+      created += await notifyUsers(prisma, {
+        userIds: [r.requesterId],
+        type: REMINDER_TYPE,
+        title: 'Uang muka belum dipertanggungjawabkan',
+        message: `${r.number} (${formatRupiahPlain(Number(r.totalAmount))}) sudah ${days} hari sejak dibayar. Segera isi pertanggungjawaban.`,
+        metadata: { paymentRequestId: r.id, number: r.number, link: `/payment-requests/${r.id}` },
+      });
+    }
+    return { created };
+  } catch (err) {
+    logger.error({ err }, 'settlement reminder gagal (diabaikan)');
+    return { created: 0 };
   }
 }
