@@ -1,53 +1,293 @@
-import { useState, useMemo } from 'react';
-import { Search, XCircle, CreditCard, TrendingDown, TrendingUp, ArrowRightLeft, FileText, Wallet, Paperclip } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+/**
+ * Transaksi Kas & Bank (/payments) — list kit page (see pages/SalesInvoices.tsx).
+ *
+ * One server-paginated list of every cash movement: payments (all six types)
+ * plus journal lines on cash/bank accounts that are not linked to a payment
+ * (pinbuk, beban, other cash journals). Rows, KPIs and export all come from
+ * GET /payments/ledger(+/summary) with the same filters.
+ *
+ * Transactions are never edited here: a payment is cancelled (with
+ * confirmation) and re-entered; deposits and journals are cancelled in their
+ * own modules, so their ⋯ action links there.
+ */
+import { useCallback, useId, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../lib/api';
-import { formatRupiah, formatDate } from '../lib/formatters';
-import PaymentModal from '../components/PaymentModal';
-import TransferModal from '../components/TransferModal';
-import TableRowSkeleton from '../components/TableRowSkeleton';
-import { useDebounce } from '../hooks/useDebounce';
-import ExpenseModal from '../components/ExpenseModal';
-import BulkExpenseModal from '../components/BulkExpenseModal';
-import { Layers } from 'lucide-react';
-import VendorDepositModal from '../components/VendorDepositModal';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import PaymentDetailDrawer from '../components/PaymentDetailDrawer';
-import JournalDetailDrawer from '../components/JournalDetailDrawer';
-import { cap } from '../lib/permissions';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import {
+  ArrowDownLeft,
+  ArrowRightLeft,
+  ArrowUpRight,
+  ChevronDown,
+  Download,
+  Eye,
+  FileText,
+  Info,
+  Layers,
+  Paperclip,
+  Plus,
+  Receipt,
+  Scale,
+  Wallet,
+  XCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import { statusOptions } from '@/lib/status';
+import { can, cap } from '@/lib/permissions';
+import { cn } from '@/lib/utils';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  ComboboxFilter,
+  ConfirmDialog,
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PageHeader,
+  RowActions,
+  StatCard,
+  StatusBadge,
+  fetchAllPages,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import {
+  DIRECTION_LABEL,
+  JOURNAL_KINDS,
+  KIND_LABEL,
+  PAYMENT_KINDS,
+  cancelRoute,
+  kindLabel,
+  signedPrefix,
+  statusDocType,
+  toExportRows,
+  type CashLedgerRow,
+  type CashLedgerSummary,
+} from '@/components/payments/cash-ledger';
+import PaymentModal from '@/components/PaymentModal';
+import TransferModal from '@/components/TransferModal';
+import ExpenseModal from '@/components/ExpenseModal';
+import BulkExpenseModal from '@/components/BulkExpenseModal';
+import VendorDepositModal from '@/components/VendorDepositModal';
+import PaymentDetailDrawer from '@/components/PaymentDetailDrawer';
+import JournalDetailDrawer from '@/components/JournalDetailDrawer';
 
-interface CashTransaction {
+const ENDPOINT = '/payments/ledger';
+const FILTER_KEYS = ['type', 'direction', 'status', 'partyId', 'accountId', 'startDate', 'endDate'] as const;
+const STATUS_FILTER = statusOptions(['Draft', 'Submitted', 'Cancelled'], 'payment');
+const ALL = '__all__';
+
+type Modal = 'receive' | 'pay' | 'expense' | 'bulkExpense' | 'transfer' | 'deposit' | null;
+
+interface AccountOption {
   id: string;
-  date: string;
-  number: string;
-  partyName: string | null;
-  partyType: string | null;
-  type: 'Receive' | 'Pay' | 'VendorDeposit' | 'Expense' | 'Transfer';
-  amount: number;
-  status: string;
-  source: 'payment' | 'journal';
-  journalEntryId?: string;
+  accountNumber: string;
+  name: string;
+  accountType: string;
+  isGroup: boolean;
+}
+
+interface PartyOption {
+  id: string;
+  name: string;
+  partyType?: string;
+}
+
+const PARTY_TYPE_LABEL: Record<string, string> = { Customer: 'Pelanggan', Supplier: 'Pemasok', Both: 'Pelanggan & Pemasok' };
+
+const withUnit = (label: string) => (
+  <>
+    {label} <span className="normal-case">(Rp)</span>
+  </>
+);
+
+const errorMessage = (e: unknown, fallback: string) =>
+  (e as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback;
+
+/** Same source/filter as BankReconciliation (shared cache key): leaf cash/bank accounts. */
+function useCashAccounts() {
+  return useQuery<AccountOption[]>({
+    queryKey: ['coa-cash-accounts'],
+    queryFn: async () => {
+      const res = await api.get('/coa/flat');
+      const all: AccountOption[] = Array.isArray(res.data) ? res.data : res.data.data || [];
+      return all.filter((a) => a.accountType === 'ASSET' && a.accountNumber.startsWith('1.1.') && !a.isGroup);
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Customers and suppliers together: a cash movement can involve either. */
+function useAllParties() {
+  return useQuery<PartyOption[]>({
+    queryKey: ['parties', 'filter-options', 'all'],
+    queryFn: async () => {
+      const res = await api.get('/parties', { params: { limit: 200 } });
+      return (res.data.data ?? res.data) as PartyOption[];
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Attachment counts for the rows on screen (payments by id, journals by entry id). */
+function useAttachmentCounts(rows: CashLedgerRow[] | undefined) {
+  const paymentIds = useMemo(() => (rows ?? []).filter((r) => r.source === 'payment').map((r) => r.id), [rows]);
+  const journalIds = useMemo(
+    () => [...new Set((rows ?? []).flatMap((r) => (r.source === 'journal' && r.journalEntryId ? [r.journalEntryId] : [])))],
+    [rows],
+  );
+  const counts = (referenceType: 'payment' | 'journal', ids: string[]) => ({
+    queryKey: ['attachment-counts', referenceType, ids],
+    queryFn: async () =>
+      (await api.post<Record<string, number>>('/attachments/counts', { referenceType, referenceIds: ids })).data,
+    enabled: ids.length > 0,
+  });
+  const payment = useQuery(counts('payment', paymentIds));
+  const journal = useQuery(counts('journal', journalIds));
+  const paymentCounts = payment.data;
+  const journalCounts = journal.data;
+  return useCallback(
+    (row: CashLedgerRow) =>
+      row.source === 'payment'
+        ? (paymentCounts?.[row.id] ?? 0)
+        : row.journalEntryId
+          ? (journalCounts?.[row.journalEntryId] ?? 0)
+          : 0,
+    [paymentCounts, journalCounts],
+  );
+}
+
+interface SelectFilterProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  allLabel: string;
+  className?: string;
+  children: ReactNode;
+}
+
+function SelectFilter({ label, value, onChange, allLabel, className, children }: SelectFilterProps) {
+  const id = useId();
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
+        <SelectTrigger id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>{allLabel}</SelectItem>
+          {children}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function Amount({ row }: { row: CashLedgerRow }) {
+  const isIn = row.direction === 'in';
+  const Icon = isIn ? ArrowDownLeft : ArrowUpRight;
+  const cancelled = row.status === 'Cancelled';
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center justify-end gap-1 whitespace-nowrap font-medium',
+        cancelled ? 'text-muted-foreground line-through' : isIn ? 'text-success-text' : 'text-foreground',
+      )}
+    >
+      <Icon className="size-3.5 shrink-0" aria-hidden />
+      <span className="sr-only">{DIRECTION_LABEL[row.direction]}: </span>
+      {signedPrefix(row.direction)}
+      {formatRupiah(row.amount, { symbol: false })}
+    </span>
+  );
+}
+
+function PartyCell({ row }: { row: CashLedgerRow }) {
+  if (row.partyName) {
+    return (
+      <div className="min-w-0">
+        <p className="truncate font-medium text-foreground">{row.partyName}</p>
+        <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
+          {row.notes || (row.partyType ? PARTY_TYPE_LABEL[row.partyType] ?? row.partyType : '')}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <p className="truncate text-muted-foreground" title={row.notes ?? undefined}>
+      {row.notes || '-'}
+    </p>
+  );
 }
 
 export const Payments = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 200);
-  const [isReceiveOpen, setIsReceiveOpen] = useState(false);
-  const [isPayOpen, setIsPayOpen] = useState(false);
-  const [isExpenseOpen, setIsExpenseOpen] = useState(false);
-  const [isBulkExpenseOpen, setIsBulkExpenseOpen] = useState(false);
-  const [isTransferOpen, setIsTransferOpen] = useState(false);
-  const [isDepositOpen, setIsDepositOpen] = useState(false);
-  const [cancelTarget, setCancelTarget] = useState<CashTransaction | null>(null);
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
+  const [density, setDensity] = useTableDensity();
+  const [modal, setModal] = useState<Modal>(null);
+  const [cancelTarget, setCancelTarget] = useState<CashLedgerRow | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
-
+  const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const canCancel = cap('doc.cancel');
+  const canCreate = can('payment', 'edit');
+  const canCancel = canCreate && cap('doc.cancel');
+
+  const ledgerQuery = useQuery({
+    queryKey: ['payments', 'ledger', list.params],
+    queryFn: async () => (await api.get<Paginated<CashLedgerRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
+  });
+
+  const summaryQuery = useQuery({
+    queryKey: ['payments', 'ledger-summary', list.filterParams],
+    queryFn: async () => (await api.get<CashLedgerSummary>(`${ENDPOINT}/summary`, { params: list.filterParams })).data,
+    placeholderData: keepPreviousData,
+  });
+
+  const accountsQuery = useCashAccounts();
+  const partiesQuery = useAllParties();
+  const attachmentCount = useAttachmentCounts(ledgerQuery.data?.data);
+
+  const accountOptions = useMemo(
+    () => (accountsQuery.data ?? []).map((a) => ({ value: a.id, label: a.name, hint: a.accountNumber })),
+    [accountsQuery.data],
+  );
+  const partyOptions = useMemo(
+    () =>
+      (partiesQuery.data ?? []).map((p) => ({
+        value: p.id,
+        label: p.name,
+        hint: p.partyType ? PARTY_TYPE_LABEL[p.partyType] : undefined,
+      })),
+    [partiesQuery.data],
+  );
 
   const cancelPaymentMutation = useMutation({
     mutationFn: (id: string) => api.post(`/payments/${id}/cancel`),
@@ -58,321 +298,397 @@ export const Payments = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal membatalkan pembayaran.');
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err, 'Gagal membatalkan pembayaran.'));
     },
   });
 
-  const { data: payments, isLoading: loadingPayments } = useQuery({
-    queryKey: ['payments'],
-    queryFn: async () => {
-      const response = await api.get('/payments');
-      return response.data.data ?? response.data;
-    },
-  });
+  const openDetail = (row: CashLedgerRow) => {
+    if (row.source === 'payment') setDetailId(row.id);
+    else if (row.journalEntryId) setJournalDetailId(row.journalEntryId);
+  };
 
-  const { data: cashJournals, isLoading: loadingJournals } = useQuery({
-    queryKey: ['cash-journals'],
-    queryFn: async () => {
-      const response = await api.get('/payments/cash-journals');
-      return response.data.data ?? response.data;
-    },
-  });
-
-  const isLoading = loadingPayments || loadingJournals;
-
-  // Fetch attachment counts for all payments + journals
-  const paymentIds = useMemo(() => (payments || []).map((p: any) => p.id), [payments]);
-  const journalIds = useMemo(() => (cashJournals || []).map((j: any) => j.id), [cashJournals]);
-
-  const { data: paymentAttCounts } = useQuery({
-    queryKey: ['attachment-counts', 'payment', paymentIds],
-    queryFn: async () => {
-      const res = await api.post('/attachments/counts', { referenceType: 'payment', referenceIds: paymentIds });
-      return res.data as Record<string, number>;
-    },
-    enabled: paymentIds.length > 0,
-  });
-
-  const { data: journalAttCounts } = useQuery({
-    queryKey: ['attachment-counts', 'journal', journalIds],
-    queryFn: async () => {
-      const res = await api.post('/attachments/counts', { referenceType: 'journal', referenceIds: journalIds });
-      return res.data as Record<string, number>;
-    },
-    enabled: journalIds.length > 0,
-  });
-
-  // Merge payments + cash-affecting journals into unified list
-  const allTransactions: CashTransaction[] = useMemo(() => {
-    const txns: CashTransaction[] = [];
-    const paymentJournalIds = new Set<string>();
-
-    if (payments) {
-      for (const p of payments) {
-        txns.push({
-          id: p.id,
-          date: p.date,
-          number: p.paymentNumber,
-          partyName: p.party?.name ?? null,
-          partyType: p.party?.partyType ?? null,
-          type: p.paymentType,
-          amount: Number(p.amount),
-          status: p.status,
-          source: 'payment',
-        });
-        // Track journal IDs linked to payments to avoid duplicates
-        if (p.journalEntryId) paymentJournalIds.add(p.journalEntryId);
-      }
+  const requestCancel = (row: CashLedgerRow) => {
+    const route = cancelRoute(row);
+    if (route.kind === 'redirect') {
+      toast.info(route.message);
+      navigate(route.path);
+      return;
     }
+    setCancelTarget(row);
+  };
 
-    if (cashJournals) {
-      for (const j of cashJournals) {
-        if (paymentJournalIds.has(j.journalEntryId)) continue;
-        txns.push({
-          id: j.id,
-          date: j.date,
-          number: j.entryNumber,
-          partyName: j.partyName ?? null,
-          partyType: null,
-          type: j.isCredit ? 'Expense' : 'Transfer',
-          amount: j.amount,
-          status: j.status,
-          source: 'journal',
-          journalEntryId: j.journalEntryId,
-        });
-      }
+  const total = ledgerQuery.data?.total;
+  const summary = summaryQuery.data;
+  const summaryLoading = !summary && !summaryQuery.isError;
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = { ...list.filterParams, ...(list.params.sort ? { sort: list.params.sort } : {}) };
+      const { rows, truncated } = await fetchAllPages<CashLedgerRow>(ENDPOINT, params);
+      const stamp = new Date().toISOString().slice(0, 10);
+      await exportToExcel(toExportRows(rows), `transaksi-kas-bank-${stamp}`);
+      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} transaksi pertama. Persempit filter.`);
+    } catch {
+      toast.error('Gagal mengekspor transaksi. Coba lagi.');
+    } finally {
+      setExporting(false);
     }
+  };
 
-    txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return txns;
-  }, [payments, cashJournals]);
+  const columns = useMemo<ColumnDef<CashLedgerRow>[]>(
+    () => [
+      {
+        id: 'number',
+        header: 'Nomor',
+        enableSorting: true,
+        sortDescFirst: true,
+        cell: ({ row }) => {
+          const r = row.original;
+          const count = attachmentCount(r);
+          return (
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="inline-flex items-center gap-1.5">
+                <DocumentLink onClick={() => openDetail(r)}>{r.number}</DocumentLink>
+                {count > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground" title={`${count} lampiran`}>
+                    <Paperclip className="size-3" aria-hidden />
+                    <span className="num">{count}</span>
+                    <span className="sr-only">lampiran</span>
+                  </span>
+                )}
+              </span>
+              {/* Mobile: party / narration stacked here because its column is hidden. */}
+              <span className="max-w-[7.5rem] truncate text-sm font-medium text-foreground sm:hidden">
+                {r.partyName ?? r.notes ?? '-'}
+              </span>
+              <span className="num text-xs text-muted-foreground md:hidden">{formatDate(r.date)}</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'date',
+        header: 'Tanggal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => formatDate(row.original.date),
+      },
+      {
+        id: 'party',
+        header: 'Pihak / Keterangan',
+        enableSorting: true,
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
+        cell: ({ row }) => <PartyCell row={row.original} />,
+      },
+      {
+        id: 'kind',
+        header: 'Tipe / Akun',
+        meta: { hideBelow: 'lg', cellClassName: 'max-w-52' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="flex min-w-0 flex-col items-start gap-0.5">
+              <Badge variant="neutral">{kindLabel(r.kind)}</Badge>
+              <span
+                className="max-w-full truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden"
+                title={r.accountNumber ? `${r.accountNumber} ${r.accountName ?? ''}` : undefined}
+              >
+                {r.accountName ?? '-'}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'amount',
+        header: () => withUnit('Jumlah'),
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="flex flex-col items-end gap-1">
+              <Amount row={r} />
+              {/* Mobile/tablet: type (and a non-posted status) stacked here. */}
+              <span className="max-w-[7.5rem] truncate text-xs text-muted-foreground sm:max-w-none lg:hidden">
+                {kindLabel(r.kind)}
+              </span>
+              {r.status !== 'Submitted' && (
+                <StatusBadge status={r.status} docType={statusDocType(r)} className="sm:hidden" />
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.status} docType={statusDocType(row.original)} />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const r = row.original;
+          const route = cancelRoute(r);
+          return (
+            <RowActions
+              label={`Aksi untuk ${r.number}`}
+              actions={[
+                {
+                  label: r.source === 'journal' ? 'Lihat jurnal' : 'Lihat detail',
+                  icon: Eye,
+                  onSelect: () => openDetail(r),
+                },
+                {
+                  label: route.kind === 'redirect' ? route.label : 'Batalkan',
+                  icon: XCircle,
+                  tone: 'danger',
+                  hidden: !canCancel || r.status === 'Cancelled',
+                  onSelect: () => requestCancel(r),
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    // openDetail / requestCancel only close over stable setters and navigate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canCancel, attachmentCount],
+  );
+
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Bank & Kas</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Pantau mutasi kas, pembayaran vendor, dan pelunasan piutang.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
-            onClick={() => setIsDepositOpen(true)}
-          >
-            <Wallet size={15} /> Uang Muka
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors"
-            onClick={() => setIsTransferOpen(true)}
-          >
-            <ArrowRightLeft size={15} /> Pinbuk
-          </button>
-          <button className="btn-primary" onClick={() => setIsReceiveOpen(true)}>
-            <TrendingDown size={15} /> Terima Pembayaran
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors"
-            onClick={() => setIsPayOpen(true)}
-          >
-            <TrendingUp size={15} /> Bayar Hutang
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white transition-colors"
-            onClick={() => setIsExpenseOpen(true)}
-          >
-            <FileText size={15} /> Catat Pengeluaran
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-amber-500 hover:bg-amber-600 text-white transition-colors"
-            onClick={() => setIsBulkExpenseOpen(true)}
-            title="Input banyak pengeluaran sekaligus (petty cash)"
-          >
-            <Layers size={15} /> Input Banyak
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Transaksi Kas & Bank"
+        description="Pantau mutasi kas, pembayaran vendor, dan pelunasan piutang."
+        actions={
+          <>
+            <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
+              <Download aria-hidden />
+              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+            </Button>
+            {canCreate && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <Plus aria-hidden />
+                    Catat Transaksi
+                    <ChevronDown aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-60">
+                  <DropdownMenuLabel>Kas masuk</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setModal('receive')}>
+                    <ArrowDownLeft aria-hidden strokeWidth={1.75} />
+                    Terima Pembayaran
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Kas keluar</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setModal('pay')}>
+                    <ArrowUpRight aria-hidden strokeWidth={1.75} />
+                    Bayar Hutang
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setModal('expense')}>
+                    <FileText aria-hidden strokeWidth={1.75} />
+                    Catat Pengeluaran
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setModal('bulkExpense')}>
+                    <Layers aria-hidden strokeWidth={1.75} />
+                    Input Banyak Pengeluaran
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setModal('deposit')}>
+                    <Wallet aria-hidden strokeWidth={1.75} />
+                    Uang Muka Vendor
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Antar akun</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setModal('transfer')}>
+                    <ArrowRightLeft aria-hidden strokeWidth={1.75} />
+                    Pindah Buku (Pinbuk)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </>
+        }
+      />
 
-      {/* Info: cara kerja edit & pembatalan */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-        <p className="font-semibold mb-1">Cara kerja edit & pembatalan</p>
-        <p className="leading-relaxed">
-          Transaksi bank/kas tidak bisa diedit untuk menjaga integritas Buku Besar. Bila ada kesalahan,
-          <b> batalkan transaksi lalu buat ulang</b>. Uang Muka Vendor/Pelanggan wajib dibatalkan dari modulnya
-          masing-masing. Transaksi yang berasal dari jurnal manual (Beban, Pinbuk) dibatalkan dari Buku Besar.
-          Hanya role <b>Admin</b> yang boleh membatalkan.
+      <section aria-label="Ringkasan transaksi sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Jumlah Transaksi"
+          icon={Receipt}
+          loading={summaryLoading}
+          value={summary ? formatNumber(summary.count) : '-'}
+          hint={summary && summary.cancelledCount > 0 ? `${formatNumber(summary.cancelledCount)} dibatalkan` : undefined}
+        />
+        <StatCard
+          label="Kas Masuk"
+          icon={ArrowDownLeft}
+          loading={summaryLoading}
+          value={kpiMoney(summary?.inTotal)}
+          valueTitle={summary ? formatRupiah(summary.inTotal) : undefined}
+          hint={summary ? `${formatNumber(summary.inCount)} transaksi` : undefined}
+        />
+        <StatCard
+          label="Kas Keluar"
+          icon={ArrowUpRight}
+          loading={summaryLoading}
+          value={kpiMoney(summary?.outTotal)}
+          valueTitle={summary ? formatRupiah(summary.outTotal) : undefined}
+          hint={summary ? `${formatNumber(summary.outCount)} transaksi` : undefined}
+        />
+        <StatCard
+          label="Arus Kas Bersih"
+          icon={Scale}
+          loading={summaryLoading}
+          value={kpiMoney(summary?.net)}
+          valueTitle={summary ? formatRupiah(summary.net) : undefined}
+          hint="masuk − keluar"
+        />
+      </section>
+
+      <details className="group rounded-md border border-border bg-muted/40 px-4 py-2.5 text-sm">
+        <summary className="flex cursor-pointer list-none items-center gap-2 font-medium text-foreground [&::-webkit-details-marker]:hidden">
+          <Info className="size-4 text-muted-foreground" aria-hidden />
+          Cara kerja edit &amp; pembatalan
+          <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <p className="mt-2 leading-relaxed text-muted-foreground">
+          Transaksi bank/kas tidak bisa diedit untuk menjaga integritas Buku Besar. Bila ada kesalahan,{' '}
+          <b className="font-semibold text-foreground">batalkan transaksi lalu buat ulang</b>. Uang Muka Vendor/Pelanggan
+          wajib dibatalkan dari modulnya masing-masing. Transaksi yang berasal dari jurnal manual (Beban, Pinbuk)
+          dibatalkan dari Buku Besar. Hanya role <b className="font-semibold text-foreground">Admin</b> yang boleh
+          membatalkan.
         </p>
-      </div>
+      </details>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Cari nomor transaksi atau pihak..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari transaksi"
+          searchPlaceholder="Cari nomor, pihak, atau keterangan"
+          status={{ options: STATUS_FILTER }}
+          dateRange
+        >
+          <SelectFilter
+            label="Tipe transaksi"
+            allLabel="Semua tipe"
+            value={list.filters.type}
+            onChange={(v) => list.setFilter('type', v)}
+            className="w-[calc(50%-0.25rem)] sm:w-48"
+          >
+            <SelectSeparator />
+            <SelectGroup>
+              <SelectLabel>Pembayaran</SelectLabel>
+              {PAYMENT_KINDS.map((k) => (
+                <SelectItem key={k} value={k}>
+                  {KIND_LABEL[k]}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectSeparator />
+            <SelectGroup>
+              <SelectLabel>Jurnal kas</SelectLabel>
+              {JOURNAL_KINDS.map((k) => (
+                <SelectItem key={k} value={k}>
+                  {KIND_LABEL[k]}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectFilter>
+          <SelectFilter
+            label="Arah kas"
+            allLabel="Masuk & keluar"
+            value={list.filters.direction}
+            onChange={(v) => list.setFilter('direction', v)}
+            className="w-[calc(50%-0.25rem)] sm:w-40"
+          >
+            <SelectItem value="in">Kas masuk (+)</SelectItem>
+            <SelectItem value="out">Kas keluar (−)</SelectItem>
+          </SelectFilter>
+          <ComboboxFilter
+            label="Pihak"
+            allLabel="Semua pihak"
+            searchPlaceholder="Cari pelanggan/pemasok…"
+            value={list.filters.partyId}
+            onChange={(v) => list.setFilter('partyId', v)}
+            options={partyOptions}
+            loading={partiesQuery.isLoading}
+            className="w-[calc(50%-0.25rem)] sm:w-52"
+          />
+          <ComboboxFilter
+            label="Akun kas/bank"
+            allLabel="Semua akun"
+            searchPlaceholder="Cari akun…"
+            value={list.filters.accountId}
+            onChange={(v) => list.setFilter('accountId', v)}
+            options={accountOptions}
+            loading={accountsQuery.isLoading}
+            className="w-[calc(50%-0.25rem)] sm:w-52"
+          />
+        </FilterBar>
+
+        <DataTable
+          {...listTableProps(list, total)}
+          label="Daftar transaksi kas & bank"
+          itemLabel="transaksi"
+          columns={columns}
+          data={ledgerQuery.data?.data}
+          getRowId={(row) => `${row.source}-${row.id}`}
+          loading={ledgerQuery.isLoading}
+          fetching={ledgerQuery.isFetching && ledgerQuery.isPlaceholderData}
+          error={ledgerQuery.error}
+          onRetry={() => ledgerQuery.refetch()}
+          onRowClick={openDetail}
+          rowClassName={(row) => (row.status === 'Cancelled' ? 'text-muted-foreground' : undefined)}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada transaksi kas & bank',
+            description: 'Penerimaan, pembayaran, pengeluaran, dan pinbuk yang dicatat akan muncul di sini.',
+            action: canCreate ? (
+              <Button size="sm" onClick={() => setModal('receive')}>
+                <Plus aria-hidden />
+                Terima pembayaran pertama
+              </Button>
+            ) : undefined,
+          }}
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-       <div className="table-responsive">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th scope="col">Tanggal</th>
-              <th scope="col">Nomor</th>
-              <th scope="col">Pihak Terkait</th>
-              <th scope="col" className="text-center">Tipe</th>
-              <th scope="col" className="text-right">Jumlah</th>
-              <th scope="col" className="text-center">Status</th>
-              <th scope="col" className="w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <TableRowSkeleton columns={7} rows={6} />
-            ) : allTransactions.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-16 text-center">
-                  <CreditCard className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">Belum ada transaksi bank/kas.</p>
-                </td>
-              </tr>
-            ) : (
-              allTransactions.filter((t) =>
-                !debouncedSearch ||
-                t.number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                t.partyName?.toLowerCase().includes(debouncedSearch.toLowerCase())
-              ).map((txn) => {
-                const isIncoming = txn.type === 'Receive';
-                const isDeposit = txn.type === 'VendorDeposit';
-                const typeLabel = txn.type === 'Receive' ? 'Masuk' : isDeposit ? 'Uang Muka' : txn.type === 'Expense' ? 'Beban' : txn.type === 'Transfer' ? 'Pinbuk' : 'Keluar';
-                const badgeClass = isIncoming ? 'badge-green' : isDeposit ? 'badge-yellow' : txn.type === 'Expense' ? 'badge-yellow' : txn.type === 'Transfer' ? 'badge-blue' : 'badge-red';
-                const icon = isIncoming ? <TrendingDown size={10} /> : isDeposit ? <Wallet size={10} /> : txn.type === 'Transfer' ? <ArrowRightLeft size={10} /> : <TrendingUp size={10} />;
+      <PaymentModal isOpen={modal === 'receive'} onClose={() => setModal(null)} defaultType="Receive" />
+      <PaymentModal isOpen={modal === 'pay'} onClose={() => setModal(null)} defaultType="Pay" />
+      <ExpenseModal isOpen={modal === 'expense'} onClose={() => setModal(null)} />
+      <BulkExpenseModal isOpen={modal === 'bulkExpense'} onClose={() => setModal(null)} />
+      <TransferModal isOpen={modal === 'transfer'} onClose={() => setModal(null)} />
+      <VendorDepositModal isOpen={modal === 'deposit'} onClose={() => setModal(null)} />
 
-                return (
-                  <tr
-                    key={`${txn.source}-${txn.id}`}
-                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                    onClick={() => {
-                      if (txn.source === 'payment') setDetailId(txn.id);
-                      else if (txn.journalEntryId) setJournalDetailId(txn.journalEntryId);
-                    }}
-                  >
-                    <td className="text-gray-500 whitespace-nowrap">{formatDate(txn.date)}</td>
-                    <td className="whitespace-nowrap">
-                      <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{txn.number}</span>
-                      {(() => {
-                        const counts = txn.source === 'payment' ? paymentAttCounts : journalAttCounts;
-                        const count = counts?.[txn.id] ?? 0;
-                        return count > 0 ? (
-                          <span className="inline-flex items-center gap-0.5 ml-1.5 text-blue-500" title={`${count} lampiran`}>
-                            <Paperclip size={11} />
-                            <span className="text-xs font-medium">{count}</span>
-                          </span>
-                        ) : null;
-                      })()}
-                    </td>
-                    <td>
-                      <span className="font-medium text-gray-800">{txn.partyName ?? '—'}</span>
-                      {txn.partyType && <span className="text-xs text-gray-400 uppercase ml-1.5">{txn.partyType}</span>}
-                    </td>
-                    <td className="text-center">
-                      <span className={cn('badge', badgeClass)}>
-                        {icon}
-                        {typeLabel}
-                      </span>
-                    </td>
-                    <td className="text-right">
-                      <span className={cn(
-                        'font-mono font-medium tabular-nums',
-                        isIncoming ? 'text-green-600' : 'text-red-500'
-                      )}>
-                        {isIncoming ? '+' : '-'} {formatRupiah(txn.amount)}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span className={cn('badge', txn.status === 'Cancelled' ? 'badge-red' : 'badge-blue')}>{txn.status}</span>
-                    </td>
-                    <td>
-                      {txn.status === 'Cancelled' ? null : !canCancel ? null : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (txn.type === 'VendorDeposit') {
-                              toast.info('Batalkan dari modul Uang Muka Vendor.');
-                              navigate('/vendor-deposits');
-                              return;
-                            }
-                            if (txn.source === 'journal') {
-                              toast.info('Transaksi ini dibuat dari jurnal. Batalkan dari Buku Besar.');
-                              navigate('/gl');
-                              return;
-                            }
-                            setCancelTarget(txn);
-                          }}
-                          className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
-                          title="Batalkan"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-       </div>
-      </div>
-      <PaymentModal
-        isOpen={isReceiveOpen}
-        onClose={() => setIsReceiveOpen(false)}
-        defaultType="Receive"
-      />
-      <PaymentModal
-        isOpen={isPayOpen}
-        onClose={() => setIsPayOpen(false)}
-        defaultType="Pay"
-      />
-      <ExpenseModal
-        isOpen={isExpenseOpen}
-        onClose={() => setIsExpenseOpen(false)}
-      />
-      <BulkExpenseModal
-        isOpen={isBulkExpenseOpen}
-        onClose={() => setIsBulkExpenseOpen(false)}
-      />
-      <TransferModal
-        isOpen={isTransferOpen}
-        onClose={() => setIsTransferOpen(false)}
-      />
-      <VendorDepositModal
-        isOpen={isDepositOpen}
-        onClose={() => setIsDepositOpen(false)}
-      />
       <ConfirmDialog
         open={cancelTarget !== null}
-        onCancel={() => setCancelTarget(null)}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title="Batalkan Transaksi"
+        description={`Batalkan ${cancelTarget?.number}? Alokasi ke faktur, saldo kas/bank, dan jurnal akan otomatis di-reverse. Tindakan tidak dapat dibatalkan.`}
+        confirmLabel="Ya, Batalkan"
+        tone="danger"
+        loading={cancelPaymentMutation.isPending}
         onConfirm={() => {
           if (cancelTarget) {
             cancelPaymentMutation.mutate(cancelTarget.id);
             setCancelTarget(null);
           }
         }}
-        title="Batalkan Transaksi"
-        message={`Batalkan ${cancelTarget?.number}? Alokasi ke faktur, saldo kas/bank, dan jurnal akan otomatis di-reverse. Tindakan tidak dapat dibatalkan.`}
-        confirmLabel="Ya, Batalkan"
-        variant="danger"
       />
-      {detailId && (
-        <PaymentDetailDrawer paymentId={detailId} onClose={() => setDetailId(null)} />
-      )}
+      {detailId && <PaymentDetailDrawer paymentId={detailId} onClose={() => setDetailId(null)} />}
       {journalDetailId && (
         <JournalDetailDrawer journalEntryId={journalDetailId} onClose={() => setJournalDetailId(null)} />
       )}

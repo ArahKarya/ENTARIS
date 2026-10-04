@@ -10,30 +10,56 @@ import {
   UnmatchItemSchema,
 } from '../utils/schemas';
 import { BusinessError, handleRouteError } from '../utils/errors';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildReconciliationWhere,
+  DEFAULT_RECONCILIATION_SORT,
+  RECONCILIATION_SORT_FIELDS,
+  reconciliationOrderBy,
+} from '../services/reconciliationList';
 
 const router = Router();
 
-// GET /api/reconciliation — list all reconciliations
+// GET /api/reconciliation — paged list of reconciliation sessions.
+// Query (all optional): page, limit (default 50, max 200), accountId,
+// status (Draft | Completed), startDate/endDate (statement date, YYYY-MM-DD),
+// search (account name / number / notes), sort (statementDate | account |
+// bookBalance | statementBalance | createdAt, "-" = desc; default -statementDate).
+// → { data, total, page, limit }
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '50' } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
+    const query = req.query as Record<string, unknown>;
+    const filter = buildReconciliationWhere(query);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { page, limit, skip } = parseListPaging(query, { defaultLimit: 50, maxLimit: 200 });
+    const sort = parseSort(query.sort, RECONCILIATION_SORT_FIELDS, DEFAULT_RECONCILIATION_SORT);
 
     const [data, total] = await Promise.all([
       prisma.bankReconciliation.findMany({
+        where: filter.where,
         include: {
           account: { select: { id: true, name: true, accountNumber: true, balance: true } },
           _count: { select: { items: true } },
         },
-        orderBy: { statementDate: 'desc' },
+        orderBy: reconciliationOrderBy(sort),
         skip,
-        take,
+        take: limit,
       }),
-      prisma.bankReconciliation.count(),
+      prisma.bankReconciliation.count({ where: filter.where }),
     ]);
 
-    return res.json({ data, total, page: Number(page), limit: take });
+    // Additive per-row figure for the list: statement items already matched.
+    const matched = data.length
+      ? await prisma.bankReconciliationItem.groupBy({
+          by: ['reconciliationId'],
+          where: { reconciliationId: { in: data.map((r) => r.id) }, isMatched: true },
+          _count: { _all: true },
+        })
+      : [];
+    const matchedById = new Map(matched.map((m) => [m.reconciliationId, m._count._all]));
+    const rows = data.map((r) => ({ ...r, matchedCount: matchedById.get(r.id) ?? 0 }));
+
+    return res.json({ data: rows, total, page, limit });
   } catch (error) {
     return handleRouteError(res, error, 'GET /reconciliation', 'Gagal mengambil data rekonsiliasi.');
   }

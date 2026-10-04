@@ -166,7 +166,7 @@ export const PurchaseInvoices = () => {
           <div className="flex flex-col items-start gap-0.5">
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.invoiceNumber}</DocumentLink>
             {/* Mobile: supplier stacked here because its column is hidden. */}
-            <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
+            <span className="line-clamp-2 max-w-44 text-sm font-medium break-words text-foreground sm:hidden">
               {row.original.supplier?.name ?? '-'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>

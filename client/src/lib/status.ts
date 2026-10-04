@@ -33,7 +33,8 @@ export type DocType =
   | 'fixed_asset'
   | 'ga_asset'
   | 'ga_work_order'
-  | 'ga_material_request';
+  | 'ga_material_request'
+  | 'project_guarantee';
 
 /** Lower-case, without `_`, `-` or spaces: `IN_PROGRESS` → `inprogress`. */
 export function normalizeStatusKey(status: string): string {
@@ -145,6 +146,12 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
     partiallyused: m('Terpakai Sebagian', 'warning'),
     fullyused: m('Terpakai', 'success'),
     submitted: m('Aktif', 'info'),
+  },
+  // Uang jaminan proyek: Indonesian statuses stored as-is (Disetor → Selesai | Dibatalkan).
+  project_guarantee: {
+    disetor: m('Disetor', 'info'),
+    selesai: m('Selesai', 'success'),
+    dibatalkan: m('Dibatalkan', 'neutral'),
   },
 };
 

@@ -37,6 +37,10 @@ const TARGETS = [
   { path: '/purchase-orders', isPublic: false },
   { path: '/goods-receipts', isPublic: false },
   { path: '/vendor-deposits', isPublic: false },
+  { path: '/payments', isPublic: false },
+  { path: '/reconciliation', isPublic: false },
+  { path: '/recurring', isPublic: false },
+  { path: '/project-guarantees', isPublic: false },
 ]
 
 interface AxeRecord {

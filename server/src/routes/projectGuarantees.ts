@@ -13,7 +13,7 @@
 // special-case akun 1.8 seperti akun UM) sehingga piutang pihak terdistorsi.
 // Link pihak cukup di row ProjectGuarantee. Mount dgn requirePerm('project_guarantee').
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
@@ -26,6 +26,17 @@ import { CreateProjectGuaranteeSchema, SettleProjectGuaranteeSchema } from '../u
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
+import { parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildProjectGuaranteeWhere,
+  DEFAULT_PROJECT_GUARANTEE_SORT,
+  dueBoundaries,
+  guaranteeFigures,
+  pageGuarantees,
+  PROJECT_GUARANTEE_SORT_FIELDS,
+  summarizeProjectGuarantees,
+  toGuaranteeLightRow,
+} from '../services/projectGuaranteeList';
 
 const router = Router();
 
@@ -39,9 +50,62 @@ function sumSettled(settlements: SettlementRow[]): Decimal {
   );
 }
 
-// GET /api/project-guarantees — list + summary untuk cards
+const GUARANTEE_LIST_INCLUDE = {
+  party: { select: { id: true, name: true } },
+  settlements: { orderBy: { createdAt: 'asc' } },
+} satisfies Prisma.ProjectGuaranteeInclude;
+
+type GuaranteeWithSettlements = Prisma.ProjectGuaranteeGetPayload<{ include: typeof GUARANTEE_LIST_INCLUDE }>;
+
+/** Account names (plain-scalar FKs) for the guarantees and their settlements, in one query. */
+async function loadAccountMap(guarantees: GuaranteeWithSettlements[]) {
+  const accountIds = [
+    ...new Set(
+      guarantees.flatMap((g) => [
+        g.accountId,
+        ...g.settlements.flatMap((s) => [s.returnAccountId, s.forfeitAccountId]),
+      ]).filter((id): id is string => !!id),
+    ),
+  ];
+  const accounts = await prisma.account.findMany({
+    where: { id: { in: accountIds } },
+    select: { id: true, accountNumber: true, name: true },
+  });
+  return new Map(accounts.map((a) => [a.id, a]));
+}
+
+type AccountMap = Awaited<ReturnType<typeof loadAccountMap>>;
+
+/** Row shape returned by both list modes: the guarantee + account names + computed figures. */
+function enrichGuarantee(g: GuaranteeWithSettlements, accountMap: AccountMap) {
+  return {
+    ...g,
+    account: accountMap.get(g.accountId) ?? null,
+    settlements: g.settlements.map((s) => ({
+      ...s,
+      returnAccount: s.returnAccountId ? accountMap.get(s.returnAccountId) ?? null : null,
+      forfeitAccount: s.forfeitAccountId ? accountMap.get(s.forfeitAccountId) ?? null : null,
+    })),
+    ...guaranteeFigures(g.amount, g.status, g.settlements),
+  };
+}
+
+// GET /api/project-guarantees — list uang jaminan.
+//
+// Two modes (backward compatible):
+//  • without `page` (legacy — AIRA tool pg_list and other callers): every
+//    guarantee, raw filters `partyId`, `status`, `guaranteeType`, ordered by
+//    date desc, response `{ data, summary }` exactly as before.
+//  • with `page` (list page): `page`, `limit` (≤200), `status` (Disetor |
+//    Selesai | Dibatalkan), `due` (overdue | dueSoon), `partyId`,
+//    `guaranteeType`, `startDate`/`endDate` (YYYY-MM-DD), `search`, `sort`
+//    (e.g. "-outstanding") → `{ data, total, page, limit }`; each row also
+//    carries `dueState`. Invalid filters → 400.
 router.get('/', async (req, res) => {
   try {
+    const query = req.query as Record<string, unknown>;
+    if (query.page !== undefined) return await listGuaranteesPaged(query, res);
+
     const { partyId, status, guaranteeType } = req.query;
 
     const where: Prisma.ProjectGuaranteeWhereInput = {};
@@ -51,27 +115,10 @@ router.get('/', async (req, res) => {
 
     const guarantees = await prisma.projectGuarantee.findMany({
       where,
-      include: {
-        party: { select: { id: true, name: true } },
-        settlements: { orderBy: { createdAt: 'asc' } },
-      },
+      include: GUARANTEE_LIST_INCLUDE,
       orderBy: { date: 'desc' },
     });
-
-    // Nama akun via satu query (plain-scalar FK).
-    const accountIds = [
-      ...new Set(
-        guarantees.flatMap((g) => [
-          g.accountId,
-          ...g.settlements.flatMap((s) => [s.returnAccountId, s.forfeitAccountId]),
-        ]).filter((id): id is string => !!id),
-      ),
-    ];
-    const accounts = await prisma.account.findMany({
-      where: { id: { in: accountIds } },
-      select: { id: true, accountNumber: true, name: true },
-    });
-    const accountMap = new Map(accounts.map((a) => [a.id, a]));
+    const accountMap = await loadAccountMap(guarantees);
 
     let totalActive = new Decimal(0);
     let totalReturnedAll = new Decimal(0);
@@ -79,39 +126,14 @@ router.get('/', async (req, res) => {
     let totalOutstanding = new Decimal(0);
 
     const data = guarantees.map((g) => {
-      const active = g.settlements.filter((s) => !s.isCancelled);
-      const totalReturned = active.reduce(
-        (sum, s) => sum.plus(new Decimal(s.returnAmount.toString())),
-        new Decimal(0),
-      );
-      const totalForfeited = active.reduce(
-        (sum, s) => sum.plus(new Decimal(s.forfeitAmount.toString())),
-        new Decimal(0),
-      );
-      const outstanding =
-        g.status === 'Dibatalkan'
-          ? new Decimal(0)
-          : new Decimal(g.amount.toString()).minus(totalReturned).minus(totalForfeited);
-
+      const row = enrichGuarantee(g, accountMap);
       if (g.status !== 'Dibatalkan') {
         totalActive = totalActive.plus(new Decimal(g.amount.toString()));
-        totalReturnedAll = totalReturnedAll.plus(totalReturned);
-        totalForfeitedAll = totalForfeitedAll.plus(totalForfeited);
-        totalOutstanding = totalOutstanding.plus(outstanding);
+        totalReturnedAll = totalReturnedAll.plus(row.totalReturned);
+        totalForfeitedAll = totalForfeitedAll.plus(row.totalForfeited);
+        totalOutstanding = totalOutstanding.plus(row.outstanding);
       }
-
-      return {
-        ...g,
-        account: accountMap.get(g.accountId) ?? null,
-        settlements: g.settlements.map((s) => ({
-          ...s,
-          returnAccount: s.returnAccountId ? accountMap.get(s.returnAccountId) ?? null : null,
-          forfeitAccount: s.forfeitAccountId ? accountMap.get(s.forfeitAccountId) ?? null : null,
-        })),
-        totalReturned: totalReturned.toNumber(),
-        totalForfeited: totalForfeited.toNumber(),
-        outstanding: outstanding.toNumber(),
-      };
+      return row;
     });
 
     return res.json({
@@ -127,6 +149,64 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /project-guarantees error');
     return res.status(500).json({ error: 'Gagal mengambil data uang jaminan.' });
+  }
+});
+
+/** Light projection for paging / summary (see services/projectGuaranteeList). */
+async function loadGuaranteeLightRows(where: Prisma.ProjectGuaranteeWhereInput, now: Date) {
+  const rows = await prisma.projectGuarantee.findMany({
+    where,
+    select: {
+      id: true,
+      guaranteeNumber: true,
+      date: true,
+      expectedReturnDate: true,
+      status: true,
+      amount: true,
+      projectName: true,
+      party: { select: { name: true } },
+      settlements: { select: { returnAmount: true, forfeitAmount: true, isCancelled: true } },
+    },
+  });
+  const bounds = dueBoundaries(now);
+  return rows.map((r) => toGuaranteeLightRow(r, bounds));
+}
+
+async function listGuaranteesPaged(query: Record<string, unknown>, res: Response) {
+  const now = new Date();
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+  const filter = buildProjectGuaranteeWhere(query, now);
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const sort = parseSort(query.sort, PROJECT_GUARANTEE_SORT_FIELDS, DEFAULT_PROJECT_GUARANTEE_SORT);
+
+  const light = await loadGuaranteeLightRows(filter.where, now);
+  const { ids, total } = pageGuarantees(light, { sort, skip, limit });
+  const dueById = new Map(light.map((r) => [r.id, r.dueState]));
+
+  const rows = ids.length
+    ? await prisma.projectGuarantee.findMany({ where: { id: { in: ids } }, include: GUARANTEE_LIST_INCLUDE })
+    : [];
+  const accountMap = await loadAccountMap(rows);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const data = ids.flatMap((id) => {
+    const row = byId.get(id);
+    return row ? [{ ...enrichGuarantee(row, accountMap), dueState: dueById.get(id) ?? null }] : [];
+  });
+
+  return res.json({ data, total, page, limit });
+}
+
+// GET /api/project-guarantees/summary — KPI totals for the same filters as the
+// paged list. Declared before '/:id'; same module gate (requirePerm at mount).
+router.get('/summary', async (req, res) => {
+  try {
+    const now = new Date();
+    const filter = buildProjectGuaranteeWhere(req.query as Record<string, unknown>, now);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    return res.json(summarizeProjectGuarantees(await loadGuaranteeLightRows(filter.where, now)));
+  } catch (error) {
+    logger.error({ error }, 'GET /project-guarantees/summary error');
+    return res.status(500).json({ error: 'Gagal menghitung ringkasan uang jaminan.' });
   }
 });
 
