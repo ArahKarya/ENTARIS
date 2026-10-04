@@ -8,6 +8,20 @@
 - Pembayaran memposting jurnal seimbang: DR akun beban per baris / CR kas-bank; uang muka & perjalanan dinas DR **1.5.6 Uang Muka Karyawan** (akun sistem baru `EMPLOYEE_ADVANCE`). Periode terkunci ditolak; batal bayar membatalkan jurnal.
 - Field "Atasan langsung" di Manajemen Pengguna; modul RBAC `payment_request` (Akuntan: edit).
 
+### Pengajuan Pembayaran — tahap 2 (pertanggungjawaban & perjalanan dinas)
+**Ditambah**:
+- **Pertanggungjawaban uang muka / perjalanan dinas** (`/payment-requests/:id/settlement`): setelah dibayar, pengaju mengisi rincian realisasi (uraian, tanggal, nominal, kategori, bukti nota) → atasan menyetujui → Keuangan memverifikasi akun biaya dan memposting. Alur `OPEN → SUBMITTED → PENDING_FINANCE → SETTLED` (+ `REVISION` bila dikembalikan), riwayat, notifikasi, dan tidak ada yang menyetujui pertanggungjawabannya sendiri.
+- Posting satu jurnal seimbang dengan pratinjau DR/CR sebelum konfirmasi: realisasi < uang muka (sisa dikembalikan ke kas/bank), = (tanpa baris kas), atau > (kurang bayar dibayar dari kas/bank). Periode terkunci ditolak; batal posting mem-void jurnal dan kembali ke Verifikasi Keuangan. Batal bayar uang muka tetap ditolak selama pertanggungjawaban berjalan atau sudah selesai.
+- Tab **Belum Dipertanggungjawabkan** (umur dalam hari, sorotan > 14 hari, kartu total & per karyawan, ekspor Excel "Uang Muka Karyawan"), peringatan non-blokir saat membuat pengajuan baru bila masih ada uang muka lewat batas, dan pengingat harian ke pengaju.
+- **Form Perjalanan Dinas**: kota/tujuan, tanggal berangkat & kembali (durasi otomatis), peserta, rincian per kategori (Transportasi, Penginapan, Uang Saku/Harian, Konsumsi, Lain-lain) dengan tombol tambah cepat dan bantuan tarif × hari; ringkasan perjalanan di detail; form pertanggungjawaban terisi dari rencana dengan pembanding rencana vs realisasi.
+- Kolom **Atasan** di Manajemen Pengguna; kolom catatan di dialog Setujui.
+
+**Diubah**:
+- Pembayaran jenis uang muka/perjalanan dinas hanya membuka pertanggungjawaban bila `requiresSettlement` aktif (akun posting tetap mengikuti jenis).
+- Halaman laporan/GA yang jarang dipakai dimuat lazy agar chunk utama tetap di bawah batas precache PWA.
+
+**Deploy**: migrasi loose SQL `2026100800000_payment_request_settlement_travel.sql` (aditif, idempotent; jalan otomatis saat start) — hanya menambah kolom/tabel nullable.
+
 ### Deploy & Operasional
 **Diubah**:
 - Image Docker (`Dockerfile`, `Dockerfile.allinone`) kini menyetel zona waktu proses server `TZ=Asia/Jakarta` (paket `tzdata` dipasang); `docker-compose.yml` meneruskan `TZ` (default `Asia/Jakarta`, dapat diubah di `.env`). Batas periode laporan (awal/akhir hari & bulan) pada deployment Docker kini sesuai WIB, bukan UTC.
