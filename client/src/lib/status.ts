@@ -36,7 +36,8 @@ export type DocType =
   | 'ga_material_request'
   | 'project_guarantee'
   | 'inventory_item'
-  | 'production_run';
+  | 'production_run'
+  | 'ga_document';
 
 /** Lower-case, without `_`, `-` or spaces: `IN_PROGRESS` → `inprogress`. */
 export function normalizeStatusKey(status: string): string {
@@ -164,6 +165,10 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   },
   // Proses produksi: posted on save (stock + GL), Cancelled when reversed.
   production_run: { posted: POSTED, active: POSTED },
+  // Dokumen & sertifikat GA: an expired document needs renewal (danger).
+  ga_document: { expired: m('Kedaluwarsa', 'danger') },
+  // Permintaan barang GA: FULFILLED = every item received into stock; PAID = billed and posted by GA finance.
+  ga_material_request: { fulfilled: m('Selesai', 'success'), paid: m('Dibayar', 'success') },
   // Approval requests: Pending → Approved | Rejected | NeedsRevision (back to the requester).
   approval: { needsrevision: m('Perlu Revisi', 'warning') },
   // Uang jaminan proyek: Indonesian statuses stored as-is (Disetor → Selesai | Dibatalkan).

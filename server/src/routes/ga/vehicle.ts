@@ -10,8 +10,19 @@ import multer from 'multer';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
+import { parseCategoryKind, resolveCategoryIds } from '../../services/gaCategoryKind';
 import { AuthRequest } from '../../middleware/auth';
 import { postVehicleServiceJournalInTx, cancelVehicleServiceJournalInTx } from '../../services/gaVehicleServiceJournal';
+import {
+  buildFleetRows,
+  filterFleetRows,
+  pageFleetRows,
+  parseFleetFilters,
+  parseFleetSort,
+  sortFleetRows,
+} from '../../services/gaFleetList';
+import { dueBoundaries } from '../../services/projectGuaranteeList';
+import { parseListPaging } from '../../utils/listQuery';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError, BusinessError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
@@ -1559,10 +1570,96 @@ router.delete('/assets/:id/oil-logs/:oid', async (req, res) => {
   }
 });
 
+// ── Fleet list (Kendaraan page) ──────────────────────────────────────
+// GET /fleet?page=&limit=&search=&id=&status=&due=overdue|dueSoon|attention
+//            &doc=tax|stnk|kir|insurance|inspection&sort=-nextDue&categoryKind=vehicle
+// → { data: FleetRow[], total, page, limit }. Vehicles = assets in the
+// categories resolved for categoryKind (default vehicle). Rows carry the due
+// state per obligation (services/gaFleetList). Batch queries only (no N+1).
+router.get('/fleet', async (req: AuthRequest, res) => {
+  try {
+    const kind = parseCategoryKind(req.query.categoryKind ?? 'vehicle');
+    if (!kind) return res.status(400).json({ error: 'categoryKind tidak valid.' });
+    const parsed = parseFleetFilters(req.query as Record<string, unknown>);
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+    const paging = parseListPaging(req.query as Record<string, unknown>, { defaultLimit: 25, maxLimit: 200 });
+    const sort = parseFleetSort(req.query.sort);
+
+    const categoryIds = await resolveCategoryIds(kind);
+    const assets = await prisma.gaAsset.findMany({
+      where: { categoryId: { in: categoryIds } },
+      select: {
+        id: true, code: true, name: true, status: true, condition: true, picUserId: true,
+        category: { select: { name: true } },
+        vehicleData: {
+          select: { noPlat: true, brand: true, tipe: true, tahunProduksi: true, jenisBBM: true, odometerTerakhir: true },
+        },
+      },
+      orderBy: { code: 'asc' },
+      take: 5000,
+    });
+    const ids = assets.map((a) => a.id);
+    const assetFilter = { in: ids };
+    const driverIds = [...new Set(assets.map((a) => a.picUserId).filter((id): id is string => !!id))];
+
+    const [taxes, insurances, inspections, openIncidents, drivers] = ids.length === 0
+      ? [[], [], [], [], []]
+      : await Promise.all([
+        prisma.gaVehicleTax.findMany({
+          where: { assetId: assetFilter, status: 'ACTIVE' },
+          select: { assetId: true, type: true, dueDate: true },
+        }),
+        prisma.gaVehicleInsurance.findMany({
+          where: { assetId: assetFilter, status: 'ACTIVE' },
+          select: { assetId: true, endDate: true },
+        }),
+        prisma.gaVehicleInspection.findMany({
+          where: { assetId: assetFilter, nextDueDate: { not: null } },
+          select: { assetId: true, nextDueDate: true },
+          orderBy: { tanggal: 'desc' },
+        }),
+        prisma.gaVehicleIncident.findMany({
+          where: { assetId: assetFilter, status: { in: ['DILAPORKAN', 'DALAM_PROSES'] } },
+          select: { assetId: true },
+        }),
+        driverIds.length
+          ? prisma.user.findMany({ where: { id: { in: driverIds } }, select: { id: true, fullName: true } })
+          : Promise.resolve([] as Array<{ id: string; fullName: string | null }>),
+      ]);
+
+    const rows = buildFleetRows(
+      {
+        assets,
+        taxes,
+        insurances,
+        inspections,
+        openIncidents,
+        driverNames: new Map(drivers.map((u) => [u.id, u.fullName])),
+      },
+      dueBoundaries(new Date()),
+    );
+    const filtered = sortFleetRows(filterFleetRows(rows, parsed.filters), sort);
+    return res.json({
+      data: pageFleetRows(filtered, paging),
+      total: filtered.length,
+      page: paging.page,
+      limit: paging.limit,
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/vehicle/fleet', 'Gagal mengambil daftar armada.');
+  }
+});
+
 router.get('/fleet-summary', async (req: AuthRequest, res) => {
   try {
+    const kind = parseCategoryKind(req.query.categoryKind);
+    if (kind === null) return res.status(400).json({ error: 'categoryKind tidak valid.' });
     const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
-    const assetWhere: Prisma.GaAssetWhereInput = categoryId ? { categoryId } : {};
+    const assetWhere: Prisma.GaAssetWhereInput = kind
+      ? { categoryId: { in: await resolveCategoryIds(kind) } }
+      : categoryId
+        ? { categoryId }
+        : {};
     const now = new Date();
     const soon = new Date(now.getTime() + 30 * 24 * 3600 * 1000); // 30 hari ke depan
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

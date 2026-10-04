@@ -62,6 +62,20 @@ const TARGETS = [
   { path: '/fixed-assets', isPublic: false },
   { path: '/fixed-assets?tab=depreciation', isPublic: false },
   { path: '/ga/finance', isPublic: false },
+  { path: '/ga', isPublic: false },
+  { path: '/ga/assets', isPublic: false },
+  { path: '/ga/vehicle', isPublic: false },
+  { path: '/ga/vehicle/report', isPublic: false },
+  { path: '/ga/building', isPublic: false },
+  { path: '/ga/equipment', isPublic: false },
+  { path: '/ga/maintenance', isPublic: false },
+  { path: '/ga/maintenance?tab=schedules', isPublic: false },
+  { path: '/ga/maintenance?tab=requests', isPublic: false },
+  { path: '/ga/material-requests', isPublic: false },
+  { path: '/ga/inventory', isPublic: false },
+  { path: '/ga/inventory?tab=items', isPublic: false },
+  { path: '/ga/documents', isPublic: false },
+  { path: '/ga/master', isPublic: false },
 ]
 
 interface AxeRecord {

@@ -1,20 +1,30 @@
 /**
- * Tab "Report" pada halaman Kendaraan — analisis TCO, kepatuhan dokumen,
- * dan kondisi fisik untuk satu kendaraan. Data dari GET /ga/vehicle/assets/:id/report.
+ * Laporan (vehicle detail) — TCO, monthly trend, document compliance and
+ * physical condition of one vehicle from GET /ga/vehicle/assets/:id/report.
+ * Period in the URL (shared with the fleet report); PDF download + print.
  */
-import { useState, useMemo } from 'react';
-import {
-  Loader2, TrendingUp, Wrench, Fuel, FileWarning, ShieldCheck,
-  TriangleAlert, ClipboardCheck, Download, Printer, Gauge, CircleDot,
-} from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
 import { pdf } from '@react-pdf/renderer';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatRupiah, formatDate } from '../lib/formatters';
-import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
-import VehicleReportPDF from '../lib/pdf/VehicleReportPDF';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { AlertTriangle, CircleDot, ClipboardCheck, Download, Fuel, Gauge, Printer, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/lib/api';
+import { formatDate, formatNumber, formatPercent, formatRupiah } from '@/lib/format';
+import { useCompanyPDF } from '@/lib/pdf/useCompanyPDF';
+import VehicleReportPDF from '@/lib/pdf/VehicleReportPDF';
+import { Button } from '@/components/ui/button';
+import { DataTable, StatCard, StatusBadge } from '@/components/shared';
+import { ChartTooltipBox, Panel, PanelState } from '@/components/inventory/dashboard-kit';
+import { CHART_AXIS, CHART_GRID_STROKE } from '@/components/inventory/dashboard-hooks';
+import { ReportPeriodToolbar } from '@/components/ga/vehicle/ReportPeriodToolbar';
+import { useReportPeriod } from '@/components/ga/vehicle/useReportPeriod';
+import { monthLabel } from '@/components/ga/vehicle/fleet-report-model';
+import { INCIDENT_SEVERITY_META, INSPECTION_RESULT_META, INSURANCE_TYPE_LABELS, TAX_TYPE_LABELS, TIRE_POSITION_LABELS } from '@/components/ga/vehicle/constants';
+import { DetailItem, DueMarker, ToneBadge, UnitHeader } from '@/components/ga/vehicle/vehicle-ui';
+import { downloadBlob } from '@/components/ga/vehicle/documents-api';
+import { FLUSH_TABLE } from '@/components/ga/vehicle/ui-classes';
 
 export type ComplianceState = 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE';
 
@@ -47,101 +57,119 @@ export interface VehicleReport {
   };
 }
 
-const COST_META: { key: keyof VehicleReport['tco']['breakdown']; label: string; color: string; bar: string; icon: React.ReactNode }[] = [
-  { key: 'service',   label: 'Service',   color: 'text-teal-700',   bar: 'bg-teal-500',   icon: <Wrench size={14} /> },
-  { key: 'fuel',      label: 'BBM',       color: 'text-purple-700', bar: 'bg-purple-500', icon: <Fuel size={14} /> },
-  { key: 'tax',       label: 'Pajak',     color: 'text-red-700',    bar: 'bg-red-500',    icon: <FileWarning size={14} /> },
-  { key: 'insurance', label: 'Asuransi',  color: 'text-amber-700',  bar: 'bg-amber-500',  icon: <ShieldCheck size={14} /> },
-  { key: 'incident',  label: 'Insiden',   color: 'text-orange-700', bar: 'bg-orange-500', icon: <TriangleAlert size={14} /> },
+type CostKey = keyof VehicleReport['tco']['breakdown'];
+const COSTS: { key: CostKey; label: string; color: string }[] = [
+  { key: 'service', label: 'Servis', color: 'var(--chart-1)' },
+  { key: 'fuel', label: 'BBM', color: 'var(--chart-2)' },
+  { key: 'tax', label: 'Pajak', color: 'var(--chart-4)' },
+  { key: 'insurance', label: 'Asuransi', color: 'var(--chart-3)' },
+  { key: 'incident', label: 'Insiden', color: 'var(--chart-5)' },
 ];
 
-const STATE_BADGE: Record<ComplianceState, string> = {
-  EXPIRED: 'badge-red',
-  EXPIRING: 'badge-amber',
-  OK: 'badge-green',
-  NONE: 'badge-gray',
-};
-const STATE_LABEL: Record<ComplianceState, string> = {
-  EXPIRED: 'Lewat Jatuh Tempo',
-  EXPIRING: 'Segera Jatuh Tempo',
-  OK: 'Aman',
-  NONE: '—',
-};
-
-const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
-
-/** Default rentang: 12 bulan terakhir (awal bulan 11 bulan lalu s/d akhir bulan ini). */
-function defaultRange() {
-  const now = new Date();
-  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const from = new Date(to.getFullYear(), to.getMonth() - 11, 1);
-  return { from: toDateInput(from), to: toDateInput(to) };
+interface ComplianceRow {
+  key: string;
+  kind: string;
+  detail: string;
+  dueDate: string;
+  daysRemaining: number | null;
+  state: ComplianceState;
+  amount: number;
 }
 
-const monthLabel = (key: string) => {
-  const [y, m] = key.split('-');
-  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${names[Number(m) - 1] ?? m} ${String(y).slice(2)}`;
-};
-
-const numberFmt = (v: number, digits = 0) =>
-  v.toLocaleString('id-ID', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const toDue = (s: ComplianceState) => (s === 'EXPIRED' ? 'overdue' : s === 'EXPIRING' ? 'dueSoon' : s === 'OK' ? 'ok' : null);
 
 export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
-  const [range, setRange] = useState(defaultRange);
-  const [isExporting, setIsExporting] = useState(false);
+  const { period, setPreset, setRange } = useReportPeriod();
+  const [busy, setBusy] = useState(false);
   const company = useCompanyPDF();
 
-  const { data: report, isLoading, isError } = useQuery<VehicleReport>({
-    queryKey: ['ga-vehicle-report', assetId, range.from, range.to],
+  const query = useQuery<VehicleReport>({
+    queryKey: ['ga-vehicle-report', assetId, period.startDate, period.endDate],
     queryFn: async () =>
-      (await api.get(`/ga/vehicle/assets/${assetId}/report`, { params: { from: range.from, to: range.to } })).data,
-    enabled: !!assetId,
+      (await api.get(`/ga/vehicle/assets/${assetId}/report`, { params: { from: period.startDate, to: period.endDate } })).data,
+    placeholderData: keepPreviousData,
   });
+  const report = query.data;
 
-  const maxTrend = useMemo(
-    () => Math.max(1, ...(report?.monthlyTrend ?? []).map((m) => m.total)),
+  const trend = useMemo(() => (report?.monthlyTrend ?? []).map((m) => ({ ...m, label: monthLabel(m.month) })), [report]);
+  const complianceRows = useMemo<ComplianceRow[]>(
+    () => [
+      ...(report?.compliance.taxes ?? []).map((t, i) => ({
+        key: `t${i}`, kind: 'Pajak', detail: `${TAX_TYPE_LABELS[t.type] ?? t.type} · ${t.periodYear}`,
+        dueDate: t.dueDate, daysRemaining: t.daysRemaining, state: t.state, amount: t.amount,
+      })),
+      ...(report?.compliance.insurances ?? []).map((x, i) => ({
+        key: `i${i}`, kind: 'Asuransi', detail: `${INSURANCE_TYPE_LABELS[x.type] ?? x.type}${x.provider ? ` · ${x.provider}` : ''}`,
+        dueDate: x.endDate, daysRemaining: x.daysRemaining, state: x.state, amount: x.premium,
+      })),
+    ],
     [report],
   );
 
-  const handleExportPdf = async () => {
+  const columns = useMemo<ColumnDef<ComplianceRow>[]>(
+    () => [
+      {
+        id: 'detail',
+        header: 'Dokumen',
+        cell: ({ row }) => (
+          <div>
+            <p className="font-medium text-foreground">{row.original.kind}</p>
+            <p className="text-xs text-muted-foreground">{row.original.detail}</p>
+          </div>
+        ),
+      },
+      {
+        id: 'due',
+        header: 'Jatuh Tempo',
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="num whitespace-nowrap">{formatDate(row.original.dueDate)}</span>
+            <DueMarker state={toDue(row.original.state)} />
+          </div>
+        ),
+      },
+      {
+        id: 'days',
+        header: 'Sisa Hari',
+        meta: { align: 'right', hideBelow: 'sm' },
+        cell: ({ row }) => (row.original.daysRemaining != null ? formatNumber(row.original.daysRemaining) : '-'),
+      },
+      {
+        id: 'amount',
+        header: () => <UnitHeader label="Nilai" />,
+        meta: { align: 'right' },
+        cell: ({ row }) => formatRupiah(row.original.amount, { symbol: false }),
+      },
+    ],
+    [],
+  );
+
+  const renderPdf = async () =>
+    pdf(
+      <VehicleReportPDF
+        report={report!}
+        company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
+        generatedAt={new Date()}
+      />,
+    ).toBlob();
+
+  const handlePdf = async () => {
     if (!report) return;
-    setIsExporting(true);
+    setBusy(true);
     try {
-      const blob = await pdf(
-        <VehicleReportPDF
-          report={report}
-          company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
-          generatedAt={new Date()}
-        />,
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Report-Kendaraan_${report.asset.code}_${range.from}_${range.to}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error ?? 'Gagal membuat PDF.');
+      downloadBlob(await renderPdf(), `Report-Kendaraan_${report.asset.code}_${period.startDate}_${period.endDate}.pdf`);
+    } catch {
+      toast.error('Gagal membuat PDF.');
     } finally {
-      setIsExporting(false);
+      setBusy(false);
     }
   };
 
   const handlePrint = async () => {
     if (!report) return;
-    setIsExporting(true);
+    setBusy(true);
     try {
-      const blob = await pdf(
-        <VehicleReportPDF
-          report={report}
-          company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
-          generatedAt={new Date()}
-        />,
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(await renderPdf());
       const w = window.open(url);
       if (!w) {
         toast.error('Popup diblokir browser. Izinkan popup untuk mencetak.');
@@ -149,335 +177,238 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
         return;
       }
       w.addEventListener('load', () => w.print());
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error ?? 'Gagal menyiapkan cetak.');
+    } catch {
+      toast.error('Gagal menyiapkan cetak.');
     } finally {
-      setIsExporting(false);
+      setBusy(false);
     }
   };
 
-  if (isLoading) {
+  const loading = !report && query.isLoading;
+  if (query.isError && !report) {
     return (
-      <div className="card py-16 text-center text-gray-400">
-        <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-      </div>
+      <Panel title="Laporan Kendaraan">
+        <PanelState error={query.error} onRetry={() => query.refetch()}>
+          {null}
+        </PanelState>
+      </Panel>
     );
   }
-  if (isError || !report) {
-    return <div className="card py-16 text-center text-sm text-gray-400">Gagal memuat report kendaraan.</div>;
-  }
-
-  const { tco, compliance, condition, asset } = report;
+  const tco = report?.tco;
+  const cond = report?.condition;
+  const insp = cond?.lastInspection ? INSPECTION_RESULT_META[cond.lastInspection.overallResult] : undefined;
 
   return (
     <div className="space-y-4">
-      {/* Filter periode + aksi export */}
-      <div className="card p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Dari</label>
-            <input
-              type="date" value={range.from}
-              onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Sampai</label>
-            <input
-              type="date" value={range.to}
-              onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </div>
-          <button onClick={() => setRange(defaultRange())} className="btn-secondary">12 Bulan Terakhir</button>
-          <div className="ml-auto flex items-center gap-2">
-            <button onClick={handlePrint} disabled={isExporting} className="btn-secondary">
-              {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />} Cetak
-            </button>
-            <button onClick={handleExportPdf} disabled={isExporting} className="btn-primary bg-teal-600 hover:bg-teal-700">
-              {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} PDF
-            </button>
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Periode {formatDate(report.period.from)} — {formatDate(report.period.to)} ({report.period.months} bulan)
-        </p>
-      </div>
+      <ReportPeriodToolbar period={period} onPresetChange={setPreset} onRangeChange={setRange}>
+        <Button variant="outline" size="sm" onClick={handlePrint} disabled={!report || busy}>
+          <Printer aria-hidden />
+          Cetak
+        </Button>
+        <Button size="sm" onClick={handlePdf} loading={busy} disabled={!report}>
+          {!busy && <Download aria-hidden />}
+          Unduh PDF
+        </Button>
+      </ReportPeriodToolbar>
 
-      {/* KPI utama */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <ReportKpi icon={<TrendingUp size={16} className="text-teal-600" />} iconBg="bg-teal-50"
-          label="Total Biaya (TCO)" value={formatRupiah(tco.totalCost)} sub={`${formatRupiah(tco.costPerMonth)}/bulan`} />
-        <ReportKpi icon={<Gauge size={16} className="text-blue-600" />} iconBg="bg-blue-50"
-          label="Biaya per KM" value={tco.costPerKm != null ? formatRupiah(tco.costPerKm) : '—'}
-          sub={tco.distanceKm != null ? `${numberFmt(tco.distanceKm)} km tercatat` : 'Data odometer belum cukup'} />
-        <ReportKpi icon={<Fuel size={16} className="text-purple-600" />} iconBg="bg-purple-50"
-          label="Konsumsi BBM" value={tco.kmPerLiter != null ? `${numberFmt(tco.kmPerLiter, 1)} km/L` : '—'}
-          sub={`${numberFmt(tco.totalLiters, 1)} liter · ${formatRupiah(tco.breakdown.fuel)}`} />
-        <ReportKpi icon={<TriangleAlert size={16} className={compliance.issueCount > 0 ? 'text-red-600' : 'text-green-600'} />}
-          iconBg={compliance.issueCount > 0 ? 'bg-red-50' : 'bg-green-50'}
-          label="Isu Kepatuhan" value={String(compliance.issueCount)}
-          sub={compliance.issueCount > 0 ? 'Perlu tindak lanjut' : 'Semua dokumen aman'} />
-      </div>
+      <section aria-label="Ringkasan biaya kendaraan" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Total Biaya (TCO)"
+          icon={TrendingUp}
+          loading={loading}
+          value={tco ? formatRupiah(tco.totalCost, { compact: true }) : '-'}
+          valueTitle={tco ? formatRupiah(tco.totalCost) : undefined}
+          hint={tco ? `${formatRupiah(tco.costPerMonth, { compact: true })} / bulan` : undefined}
+        />
+        <StatCard
+          label="Biaya per km"
+          icon={Gauge}
+          loading={loading}
+          value={tco?.costPerKm != null ? formatRupiah(tco.costPerKm) : '-'}
+          hint={tco ? (tco.distanceKm != null ? `${formatNumber(tco.distanceKm)} km tercatat` : 'Data odometer belum cukup') : undefined}
+        />
+        <StatCard
+          label="Konsumsi BBM"
+          icon={Fuel}
+          loading={loading}
+          value={tco?.kmPerLiter != null ? `${formatNumber(tco.kmPerLiter, { decimals: 1 })} km/L` : '-'}
+          hint={tco ? `${formatNumber(tco.totalLiters, { maxDecimals: 1 })} L · ${formatRupiah(tco.breakdown.fuel, { compact: true })}` : undefined}
+        />
+        <StatCard
+          label="Isu Kepatuhan"
+          icon={AlertTriangle}
+          loading={loading}
+          value={report ? formatNumber(report.compliance.issueCount) : '-'}
+          hint={report ? (report.compliance.issueCount > 0 ? 'Perlu tindak lanjut' : 'Semua dokumen aman') : undefined}
+        />
+      </section>
 
-      {/* Identitas kendaraan */}
-      <div className="card p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Identitas Kendaraan</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <Field label="Kode Aset" value={asset.code} mono />
-          <Field label="Nomor Plat" value={asset.noPlat ?? '—'} mono />
-          <Field label="Merek / Tipe" value={[asset.brand, asset.tipe].filter(Boolean).join(' ') || '—'} />
-          <Field label="Tahun Produksi" value={asset.tahunProduksi != null ? String(asset.tahunProduksi) : '—'} />
-          <Field label="Kategori" value={asset.categoryName ?? '—'} />
-          <Field label="Status" value={asset.status} />
-          <Field label="Kondisi" value={asset.condition} />
-          <Field label="Odometer Terakhir" value={asset.odometerTerakhir != null ? `${numberFmt(asset.odometerTerakhir)} km` : '—'} />
-        </div>
-      </div>
-
-      {/* Breakdown biaya */}
-      <div className="card p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Rincian Biaya Periode</h2>
-        {tco.totalCost === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-400">Belum ada biaya tercatat pada periode ini.</p>
-        ) : (
-          <div className="space-y-2.5">
-            {COST_META.map((m) => {
-              const amount = tco.breakdown[m.key];
-              const pct = tco.totalCost > 0 ? (amount / tco.totalCost) * 100 : 0;
-              return (
-                <div key={m.key}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className={cn('flex items-center gap-1.5 font-medium', m.color)}>
-                      {m.icon} {m.label}
-                      <span className="text-gray-400 font-normal">({tco.counts[m.key]} transaksi)</span>
-                    </span>
-                    <span className="font-mono tabular-nums text-gray-900">
-                      {formatRupiah(amount)} <span className="text-gray-400">· {numberFmt(pct, 1)}%</span>
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={cn('h-full rounded-full', m.bar)} style={{ width: `${pct}%` }} />
-                  </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <Panel title="Rincian Biaya" className="lg:col-span-2" description={report ? `${report.period.months} bulan · ${formatDate(report.period.from)} – ${formatDate(report.period.to)}` : undefined}>
+          <PanelState loading={loading} empty={!!tco && tco.totalCost === 0} emptyTitle="Belum ada biaya pada periode ini">
+            {tco && (
+              <dl className="space-y-2.5">
+                {COSTS.map((c) => {
+                  const amount = tco.breakdown[c.key];
+                  const pct = tco.totalCost > 0 ? amount / tco.totalCost : 0;
+                  return (
+                    <div key={c.key}>
+                      <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                        <dt className="flex items-center gap-1.5 text-foreground">
+                          <span className="size-2.5 rounded-sm" style={{ background: c.color }} aria-hidden />
+                          {c.label}
+                          <span className="text-xs text-muted-foreground">({tco.counts[c.key]} transaksi)</span>
+                        </dt>
+                        <dd className="num text-foreground">
+                          {formatRupiah(amount)} <span className="text-muted-foreground">· {formatPercent(pct)}</span>
+                        </dd>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
+                        <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: c.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center justify-between border-t border-border pt-2.5 text-sm font-semibold">
+                  <dt className="text-foreground">Total</dt>
+                  <dd className="num text-foreground">{formatRupiah(tco.totalCost)}</dd>
                 </div>
+              </dl>
+            )}
+          </PanelState>
+        </Panel>
+
+        <Panel title="Tren Biaya Bulanan" className="lg:col-span-3">
+          <PanelState loading={loading} skeleton="chart" empty={!trend.some((m) => m.total > 0)} emptyTitle="Belum ada biaya pada periode ini">
+            <figure className="m-0">
+              <div className="h-56" aria-hidden>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart accessibilityLayer={false} data={trend} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" {...CHART_AXIS} interval="preserveStartEnd" minTickGap={8} />
+                    <YAxis {...CHART_AXIS} width={52} tickFormatter={(v: number) => formatRupiah(v, { compact: true, symbol: false })} />
+                    <Tooltip
+                      cursor={{ fill: 'var(--accent)' }}
+                      content={({ active, payload }) => {
+                        const m = active ? (payload?.[0]?.payload as (typeof trend)[number] | undefined) : undefined;
+                        if (!m) return null;
+                        return (
+                          <ChartTooltipBox
+                            title={m.label}
+                            rows={[
+                              ...COSTS.filter((c) => m[c.key] > 0).map((c) => ({ label: c.label, value: formatRupiah(m[c.key]), color: c.color })),
+                              { label: 'Total', value: formatRupiah(m.total) },
+                            ]}
+                          />
+                        );
+                      }}
+                    />
+                    {COSTS.map((c, i) => (
+                      <Bar key={c.key} dataKey={c.key} stackId="cost" fill={c.color} maxBarSize={28} radius={i === COSTS.length - 1 ? [3, 3, 0, 0] : 0} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <figcaption className="sr-only">Total per bulan: {trend.map((m) => `${m.label} ${formatRupiah(m.total)}`).join('; ')}</figcaption>
+            </figure>
+          </PanelState>
+        </Panel>
+      </div>
+
+      <Panel title="Kepatuhan Dokumen" bodyClassName="p-0">
+        <DataTable
+          label="Kepatuhan dokumen kendaraan"
+          itemLabel="dokumen"
+          columns={columns}
+          data={loading ? undefined : complianceRows}
+          getRowId={(r) => r.key}
+          loading={loading}
+          stickyHeader={false}
+          className={FLUSH_TABLE}
+          empty={{ title: 'Belum ada dokumen aktif' }}
+        />
+      </Panel>
+
+      {report && report.compliance.openIncidents.length > 0 && (
+        <Panel title="Insiden Belum Selesai">
+          <ul className="divide-y divide-border">
+            {report.compliance.openIncidents.map((inc, i) => {
+              const sev = INCIDENT_SEVERITY_META[inc.severity];
+              return (
+                <li key={i} className="flex flex-wrap items-start justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground">{inc.description ?? '-'}</p>
+                    <p className="num text-xs text-muted-foreground">{formatDate(inc.tanggal)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {sev && <ToneBadge label={sev.label} tone={sev.tone} />}
+                    <StatusBadge status={inc.status} />
+                    <span className="num text-sm text-foreground">{formatRupiah(inc.cost)}</span>
+                  </div>
+                </li>
               );
             })}
-            <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-gray-100 text-sm font-semibold">
-              <span className="text-gray-700">Total</span>
-              <span className="font-mono tabular-nums text-teal-700">{formatRupiah(tco.totalCost)}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Trend bulanan */}
-      <div className="card p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Trend Biaya Bulanan</h2>
-        {report.monthlyTrend.every((m) => m.total === 0) ? (
-          <p className="py-8 text-center text-sm text-gray-400">Belum ada data biaya pada periode ini.</p>
-        ) : (
-          <div className="flex items-end gap-1.5 h-40 overflow-x-auto pb-1">
-            {report.monthlyTrend.map((m) => (
-              <div key={m.month} className="flex-1 min-w-[32px] flex flex-col items-center justify-end h-full group relative">
-                <div className="w-full flex flex-col justify-end h-full">
-                  {COST_META.map((meta) => {
-                    const v = m[meta.key];
-                    if (!v) return null;
-                    return <div key={meta.key} className={cn('w-full', meta.bar)} style={{ height: `${(v / maxTrend) * 100}%` }} />;
-                  })}
-                </div>
-                <span className="text-[10px] text-gray-400 mt-1 whitespace-nowrap">{monthLabel(m.month)}</span>
-                <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap z-10">
-                  {monthLabel(m.month)}: {formatRupiah(m.total)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-gray-100">
-          {COST_META.map((m) => (
-            <span key={m.key} className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className={cn('w-2.5 h-2.5 rounded-sm', m.bar)} /> {m.label}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Kepatuhan dokumen */}
-      <div className="card p-0 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <FileWarning size={16} className="text-teal-600" /> Kepatuhan Dokumen
-          </h2>
-        </div>
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Dokumen</th><th>Keterangan</th><th>Jatuh Tempo</th>
-                <th className="text-center">Sisa Hari</th><th className="text-center">Status</th>
-                <th className="text-right">Nilai</th>
-              </tr>
-            </thead>
-            <tbody>
-              {compliance.taxes.length === 0 && compliance.insurances.length === 0 ? (
-                <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Belum ada dokumen aktif.</td></tr>
-              ) : (
-                <>
-                  {compliance.taxes.map((t, i) => (
-                    <tr key={`tax-${i}`}>
-                      <td><span className="badge badge-blue">Pajak</span></td>
-                      <td className="text-gray-700">{t.type} · TA {t.periodYear}</td>
-                      <td className="text-gray-700">{formatDate(t.dueDate)}</td>
-                      <td className="text-center font-mono tabular-nums text-gray-700">{t.daysRemaining ?? '—'}</td>
-                      <td className="text-center"><span className={`badge ${STATE_BADGE[t.state]}`}>{STATE_LABEL[t.state]}</span></td>
-                      <td className="text-right font-mono tabular-nums text-gray-900">{formatRupiah(t.amount)}</td>
-                    </tr>
-                  ))}
-                  {compliance.insurances.map((ins, i) => (
-                    <tr key={`ins-${i}`}>
-                      <td><span className="badge badge-purple">Asuransi</span></td>
-                      <td className="text-gray-700">{ins.type}{ins.provider ? ` · ${ins.provider}` : ''}</td>
-                      <td className="text-gray-700">{formatDate(ins.endDate)}</td>
-                      <td className="text-center font-mono tabular-nums text-gray-700">{ins.daysRemaining ?? '—'}</td>
-                      <td className="text-center"><span className={`badge ${STATE_BADGE[ins.state]}`}>{STATE_LABEL[ins.state]}</span></td>
-                      <td className="text-right font-mono tabular-nums text-gray-900">{formatRupiah(ins.premium)}</td>
-                    </tr>
-                  ))}
-                </>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Insiden terbuka */}
-      {compliance.openIncidents.length > 0 && (
-        <div className="card p-0 overflow-hidden">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <TriangleAlert size={16} className="text-orange-600" /> Insiden Belum Selesai
-            </h2>
-          </div>
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr><th>Tanggal</th><th>Deskripsi</th><th className="text-center">Tingkat</th><th className="text-center">Status</th><th className="text-right">Estimasi Biaya</th></tr>
-              </thead>
-              <tbody>
-                {compliance.openIncidents.map((inc, i) => (
-                  <tr key={i}>
-                    <td className="text-gray-700">{formatDate(inc.tanggal)}</td>
-                    <td className="text-gray-700">{inc.description ?? '—'}</td>
-                    <td className="text-center"><span className="badge badge-amber">{inc.severity}</span></td>
-                    <td className="text-center"><span className="badge badge-gray">{inc.status}</span></td>
-                    <td className="text-right font-mono tabular-nums text-gray-900">{formatRupiah(inc.cost)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          </ul>
+        </Panel>
       )}
 
-      {/* Kondisi fisik */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-teal-600" /> Inspeksi & Oli
-          </h2>
-          <div className="space-y-3 text-sm">
-            {condition.lastInspection ? (
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Inspeksi Terakhir</p>
-                  <p className="text-gray-800">{formatDate(condition.lastInspection.tanggal)}</p>
-                  {condition.lastInspection.notes && <p className="text-xs text-gray-500 mt-0.5">{condition.lastInspection.notes}</p>}
-                </div>
-                <span className="badge badge-gray shrink-0">{condition.lastInspection.overallResult}</span>
-              </div>
-            ) : (
-              <p className="text-gray-400">Belum ada catatan inspeksi.</p>
-            )}
-            <div className="border-t border-gray-100 pt-3">
-              {condition.lastOil ? (
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Ganti Oli Terakhir</p>
-                    <p className="text-gray-800">
-                      {formatDate(condition.lastOil.tanggal)} · {numberFmt(condition.lastOil.odometer)} km
-                      {condition.lastOil.brand ? ` · ${condition.lastOil.brand}` : ''}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Jadwal berikutnya {numberFmt(condition.lastOil.nextOdometerDue)} km
-                      {condition.lastOil.remainingKm != null && ` · sisa ${numberFmt(condition.lastOil.remainingKm)} km`}
-                    </p>
-                  </div>
-                  {condition.lastOil.isDue != null && (
-                    <span className={`badge shrink-0 ${condition.lastOil.isDue ? 'badge-red' : 'badge-green'}`}>
-                      {condition.lastOil.isDue ? 'Jatuh Tempo' : 'Aman'}
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <p className="text-gray-400">Belum ada log penggantian oli.</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <CircleDot size={16} className="text-teal-600" /> Ban Terpasang ({condition.activeTireCount})
-          </h2>
-          {condition.activeTires.length === 0 ? (
-            <p className="text-sm text-gray-400">Belum ada data ban terpasang.</p>
-          ) : (
-            <div className="space-y-2">
-              {condition.activeTires.map((t, i) => (
-                <div key={i} className="flex items-center justify-between text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                  <div>
-                    <p className="text-gray-800 font-medium">{t.position}</p>
-                    <p className="text-xs text-gray-500">
-                      {t.brand ?? '—'}{t.serialNumber ? ` · ${t.serialNumber}` : ''} · pasang {formatDate(t.installedAt)}
-                    </p>
-                  </div>
-                  <span className="font-mono tabular-nums text-xs text-gray-600">
-                    {t.usageKm != null ? `${numberFmt(t.usageKm)} km` : '—'}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Inspeksi & Oli" action={<ClipboardCheck className="size-4 text-muted-foreground" aria-hidden />}>
+          <PanelState loading={loading}>
+            <dl className="grid grid-cols-2 gap-3">
+              <DetailItem label="Inspeksi terakhir">
+                {cond?.lastInspection ? (
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <span className="num">{formatDate(cond.lastInspection.tanggal)}</span>
+                    {insp && <ToneBadge label={insp.label} tone={insp.tone} />}
                   </span>
-                </div>
+                ) : (
+                  'Belum ada'
+                )}
+              </DetailItem>
+              <DetailItem label="Ganti oli terakhir">
+                {cond?.lastOil ? (
+                  <span className="num">
+                    {formatDate(cond.lastOil.tanggal)} · {formatNumber(cond.lastOil.odometer)} km
+                  </span>
+                ) : (
+                  'Belum ada'
+                )}
+              </DetailItem>
+              {cond?.lastOil && (
+                <DetailItem label="Ganti oli berikutnya" className="col-span-2">
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <span className="num">{formatNumber(cond.lastOil.nextOdometerDue)} km</span>
+                    {cond.lastOil.remainingKm != null && (
+                      <span className="num text-muted-foreground">(sisa {formatNumber(cond.lastOil.remainingKm)} km)</span>
+                    )}
+                    {cond.lastOil.isDue != null && <DueMarker state={cond.lastOil.isDue ? 'overdue' : 'ok'} />}
+                  </span>
+                </DetailItem>
+              )}
+            </dl>
+          </PanelState>
+        </Panel>
+
+        <Panel title={`Ban Terpasang (${cond?.activeTireCount ?? 0})`} action={<CircleDot className="size-4 text-muted-foreground" aria-hidden />}>
+          <PanelState loading={loading} empty={!!cond && cond.activeTires.length === 0} emptyTitle="Belum ada data ban terpasang">
+            <ul className="divide-y divide-border">
+              {(cond?.activeTires ?? []).map((t, i) => (
+                <li key={i} className="flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{TIRE_POSITION_LABELS[t.position] ?? t.position}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.brand ?? '-'}
+                      {t.serialNumber ? ` · ${t.serialNumber}` : ''} · pasang {formatDate(t.installedAt)}
+                    </p>
+                  </div>
+                  <span className="num text-sm text-foreground">{t.usageKm != null ? `${formatNumber(t.usageKm)} km` : '-'}</span>
+                </li>
               ))}
-            </div>
-          )}
-        </div>
+            </ul>
+          </PanelState>
+        </Panel>
       </div>
-    </div>
-  );
-}
-
-function ReportKpi({ icon, iconBg, label, value, sub }: {
-  icon: React.ReactNode; iconBg: string; label: string; value: string; sub?: string;
-}) {
-  return (
-    <div className="card p-3.5">
-      <div className="flex items-start gap-2.5">
-        <div className={cn('p-1.5 rounded-lg shrink-0', iconBg)}>{icon}</div>
-        <div className="min-w-0">
-          <p className="text-xs text-gray-400 uppercase tracking-wider">{label}</p>
-          <p className="text-sm font-semibold text-gray-900 tabular-nums mt-0.5 truncate">{value}</p>
-          {sub && <p className="text-xs text-gray-500 mt-0.5 truncate">{sub}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{label}</p>
-      <p className={cn('font-medium text-gray-800', mono && 'font-mono text-xs')}>{value}</p>
     </div>
   );
 }

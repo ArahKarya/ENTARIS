@@ -170,3 +170,33 @@ describe('approval statuses', () => {
     expect(getStatusMeta('NeedsRevision', 'approval')).toEqual({ label: 'Perlu Revisi', tone: 'warning' });
   });
 });
+
+describe('GA document statuses', () => {
+  it('labels the document lifecycle and flags expired documents as danger', () => {
+    expect(getStatusMeta('ACTIVE', 'ga_document')).toEqual({ label: 'Aktif', tone: 'success' });
+    expect(getStatusMeta('EXPIRED', 'ga_document')).toEqual({ label: 'Kedaluwarsa', tone: 'danger' });
+    expect(getStatusMeta('REVOKED', 'ga_document')).toEqual({ label: 'Dicabut', tone: 'danger' });
+    expect(getStatusMeta('ARCHIVED', 'ga_document')).toEqual({ label: 'Diarsipkan', tone: 'neutral' });
+    // Generic meaning elsewhere is unchanged.
+    expect(getStatusMeta('EXPIRED')).toEqual({ label: 'Kedaluwarsa', tone: 'warning' });
+  });
+});
+
+describe('GA maintenance statuses', () => {
+  it('labels the work order lifecycle', () => {
+    expect(getStatusMeta('OPEN', 'ga_work_order')).toEqual({ label: 'Terbuka', tone: 'info' });
+    expect(getStatusMeta('IN_PROGRESS', 'ga_work_order')).toEqual({ label: 'Dikerjakan', tone: 'info' });
+    expect(getStatusMeta('DONE', 'ga_work_order')).toEqual({ label: 'Selesai', tone: 'success' });
+    expect(getStatusMeta('CLOSED', 'ga_work_order')).toEqual({ label: 'Ditutup', tone: 'neutral' });
+  });
+
+  it('labels material requests incl. FULFILLED and PAID', () => {
+    expect(getStatusMeta('DRAFT', 'ga_material_request')).toEqual({ label: 'Draf', tone: 'neutral' });
+    expect(getStatusMeta('SUBMITTED', 'ga_material_request')).toEqual({ label: 'Diajukan', tone: 'info' });
+    expect(getStatusMeta('FULFILLED', 'ga_material_request')).toEqual({ label: 'Selesai', tone: 'success' });
+    expect(getStatusMeta('PAID', 'ga_material_request')).toEqual({ label: 'Dibayar', tone: 'success' });
+    // Generic meaning elsewhere is unchanged.
+    expect(getStatusMeta('PAID')).toEqual({ label: 'Lunas', tone: 'success' });
+    expect(getStatusMeta('FULFILLED')).toEqual({ label: 'Terpenuhi', tone: 'success' });
+  });
+});

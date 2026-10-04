@@ -22,7 +22,7 @@
 //             (name/uom diambil dari MR item) lalu link.
 //   Ini mencegah item stok "yatim" tanpa kategori dan menjaga integritas GA inventory.
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import Decimal from 'decimal.js';
@@ -31,6 +31,14 @@ import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { BusinessError, handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  DEFAULT_MR_SORT,
+  MR_SORT_FIELDS,
+  buildMaterialRequestWhere,
+  countByStatus,
+  materialRequestOrderBy,
+} from '../../services/gaMaterialRequestList';
 
 const router = Router();
 
@@ -118,8 +126,16 @@ const mrItemInclude = {
 // ═══════════════════════════════════════════════════════════════════
 
 // GET /material-requests — list, filters status/workOrderId/mine
+//
+// Two modes (backward compatible):
+//  • without `page` (legacy callers): bare array, raw filters, newest first.
+//  • with `page` (Permintaan Barang page): `page`, `limit` (≤200), `status`,
+//    `workOrderId`, `assetId`, `mine`, `startDate`/`endDate` (request date),
+//    `search`, `sort` (code | requestedAt | status) → `{ data, total, page,
+//    limit }`; rows also carry `requester` `{ id, fullName }`.
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    if (req.query.page !== undefined) return await listMaterialRequestsPaged(req, res);
     const where: Prisma.GaMaterialRequestWhereInput = {};
     if (req.query.status) where.status = req.query.status as Prisma.EnumGaMaterialRequestStatusFilter['equals'];
     if (req.query.workOrderId) where.workOrderId = String(req.query.workOrderId);
@@ -138,6 +154,65 @@ router.get('/', async (req: AuthRequest, res) => {
     return res.json(items);
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/material-requests', 'Gagal mengambil daftar permintaan barang.');
+  }
+});
+
+const MR_LIST_INCLUDE = {
+  asset: { select: { id: true, code: true, name: true } },
+  workOrder: { select: { id: true, code: true } },
+  items: { select: { id: true, itemName: true, quantity: true, uom: true, procurementStatus: true } },
+  _count: { select: { items: true } },
+} as const;
+
+async function listMaterialRequestsPaged(req: AuthRequest, res: Response) {
+  const query = req.query as Record<string, unknown>;
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+  const filter = buildMaterialRequestWhere(query, { userId: req.user?.userId });
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const sort = parseSort(query.sort, MR_SORT_FIELDS, DEFAULT_MR_SORT);
+
+  const [items, total] = await prisma.$transaction([
+    prisma.gaMaterialRequest.findMany({
+      where: filter.where,
+      orderBy: materialRequestOrderBy(sort),
+      skip,
+      take: limit,
+      include: MR_LIST_INCLUDE,
+    }),
+    prisma.gaMaterialRequest.count({ where: filter.where }),
+  ]);
+  const ids = [...new Set(items.map((m) => m.requestedById))];
+  const users = ids.length
+    ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, fullName: true } })
+    : [];
+  const names = new Map(users.map((u) => [u.id, u.fullName]));
+  const data = items.map((m) => ({
+    ...m,
+    requester: { id: m.requestedById, fullName: names.get(m.requestedById) ?? null },
+  }));
+  return res.json({ data, total, page, limit });
+}
+
+// GET /material-requests/summary — counts per status for the list filters
+// (the status filter itself is ignored so every status keeps its count):
+// { total, byStatus: { DRAFT, SUBMITTED, … } }. Declared before '/:id'.
+router.get('/summary', async (req: AuthRequest, res) => {
+  try {
+    const filter = buildMaterialRequestWhere(req.query as Record<string, unknown>, {
+      userId: req.user?.userId,
+      ignoreStatus: true,
+    });
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const groups = await prisma.gaMaterialRequest.groupBy({
+      by: ['status'],
+      where: filter.where,
+      _count: { _all: true },
+    });
+    const byStatus = countByStatus(groups);
+    const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
+    return res.json({ total, byStatus });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/material-requests/summary', 'Gagal mengambil ringkasan permintaan barang.');
   }
 });
 

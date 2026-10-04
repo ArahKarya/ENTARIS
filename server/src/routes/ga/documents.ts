@@ -10,7 +10,7 @@
 // documentId+versionNo). File disimpan ke disk (UPLOADS_DIR/ga/documents),
 // hanya filePath relatif + fileSize yang dicatat di GaDocumentVersion.
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
 import path from 'path';
@@ -22,6 +22,18 @@ import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  buildGaDocumentWhere,
+  daysToExpiry,
+  DEFAULT_GA_DOCUMENT_SORT,
+  deriveExpiryState,
+  expiryWhere,
+  expiryWindow,
+  GA_DOCUMENT_SORT_FIELDS,
+  gaDocumentOrderBy,
+  type GaDocumentSummary,
+} from '../../services/gaDocumentList';
 
 const router = Router();
 
@@ -96,10 +108,18 @@ async function nextDocCodeInTx(
   return `${prefix}${String(next).padStart(4, '0')}`;
 }
 
-// GET /api/ga/documents — list + filter (typeId, assetId, status, q),
-// plus expiring-soon (expiringDays → window dari sekarang).
+// GET /api/ga/documents — list + filter.
+//  • without `page` (legacy — asset documents drawer, AIRA gd_list /
+//    gd_expiring): array, filters typeId, assetId, status, q, plus
+//    expiring-soon (expiringDays → window dari sekarang). Unchanged.
+//  • with `page` (Dokumen & Sertifikat list): `{ data, total, page, limit }`
+//    (limit ≤200, default 25), same row shape + `expiryState`
+//    (expired | expiring | valid | null); filters `typeId`, `assetId`,
+//    `status`, `expiry` (expired | expiring | valid), `search`, `sort`
+//    (expiryDate | code | title | effectiveDate). Invalid filters → 400.
 router.get('/', async (req, res) => {
   try {
+    if (req.query.page !== undefined) return await listDocumentsPaged(req.query as Record<string, unknown>, res);
     const where: Prisma.GaDocumentWhereInput = {};
     if (req.query.typeId) where.typeId = String(req.query.typeId);
     if (req.query.assetId) where.assetId = String(req.query.assetId);
@@ -148,6 +168,60 @@ router.get('/', async (req, res) => {
     return res.json(enriched);
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/documents', 'Gagal mengambil daftar dokumen.');
+  }
+});
+
+const DOCUMENT_LIST_INCLUDE = {
+  type: { select: { code: true, name: true, category: true } },
+  asset: { select: { id: true, code: true, name: true } },
+  versions: { orderBy: { versionNo: 'desc' }, take: 1 },
+} satisfies Prisma.GaDocumentInclude;
+
+async function listDocumentsPaged(query: Record<string, unknown>, res: Response) {
+  const now = new Date();
+  const filter = buildGaDocumentWhere(query, now);
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+  const sort = parseSort(query.sort, GA_DOCUMENT_SORT_FIELDS, DEFAULT_GA_DOCUMENT_SORT);
+  const [docs, total] = await prisma.$transaction([
+    prisma.gaDocument.findMany({
+      where: filter.where,
+      orderBy: gaDocumentOrderBy(sort),
+      skip,
+      take: limit,
+      include: DOCUMENT_LIST_INCLUDE,
+    }),
+    prisma.gaDocument.count({ where: filter.where }),
+  ]);
+  const window = expiryWindow(now);
+  const data = docs.map((d) => ({
+    ...d,
+    daysToExpiry: daysToExpiry(d.expiryDate, now),
+    expiryState: deriveExpiryState(d.status, d.expiryDate, window),
+  }));
+  return res.json({ data, total, page, limit });
+}
+
+// GET /api/ga/documents/summary — KPI counts (expired / expiring within 30
+// days / valid) for the same filters as the paged list. Declared before '/:id'.
+router.get('/summary', async (req, res) => {
+  try {
+    const now = new Date();
+    const filter = buildGaDocumentWhere(req.query as Record<string, unknown>, now);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const window = expiryWindow(now);
+    const countWith = (extra?: Prisma.GaDocumentWhereInput) =>
+      prisma.gaDocument.count({ where: extra ? { AND: [filter.where, extra] } : filter.where });
+    const [count, expiredCount, expiringCount, validCount] = await Promise.all([
+      countWith(),
+      countWith(expiryWhere('expired', window)),
+      countWith(expiryWhere('expiring', window)),
+      countWith(expiryWhere('valid', window)),
+    ]);
+    const summary: GaDocumentSummary = { count, expiredCount, expiringCount, validCount };
+    return res.json(summary);
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/documents/summary', 'Gagal menghitung ringkasan dokumen.');
   }
 });
 

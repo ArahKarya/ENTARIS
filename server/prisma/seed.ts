@@ -450,6 +450,29 @@ async function main() {
   });
   console.log('- Machine: MESIN-01 (Mesin Produksi 1)');
 
+  // Default GA asset categories (Aset & Pemeliharaan). Codes match
+  // CATEGORY_PREFIX in routes/ga/assets.ts and the categoryKind resolver
+  // (services/gaCategoryKind.ts). Created only when the code is free;
+  // existing categories are never renamed (update: {}).
+  const gaAssetCategories = [
+    { code: 'KENDARAAN', name: 'Kendaraan' },
+    { code: 'BANGUNAN', name: 'Bangunan / Gedung' },
+    { code: 'GUDANG', name: 'Gudang' },
+    { code: 'EQUIPMENT', name: 'Peralatan' },
+    { code: 'MESIN_PRODUKSI', name: 'Mesin Produksi' },
+    { code: 'IT_EQUIPMENT', name: 'Perangkat IT' },
+    { code: 'FURNITURE', name: 'Furnitur' },
+    { code: 'TANAH', name: 'Tanah' },
+  ];
+  for (const category of gaAssetCategories) {
+    await prisma.gaAssetCategory.upsert({
+      where: { code: category.code },
+      update: {},
+      create: category,
+    });
+  }
+  console.log(`- GA asset categories: ${gaAssetCategories.length} defaults ensured`);
+
   // 6. Seed Vendors & Customers (only if no parties exist yet)
   const partyCount = await prisma.party.count();
   if (partyCount === 0) {

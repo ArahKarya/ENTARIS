@@ -1,11 +1,11 @@
 // Tipe & konstanta bersama untuk panel Pengajuan GA (servis kendaraan + pajak/STNK/KIR).
 import type { StatusTone } from '@/lib/status';
 
+/** URL filter keys of the Pengajuan tab. */
+export const REQUEST_FILTER_KEYS = ['status', 'kind', 'urgensi'] as const;
+
 export type ReqStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 export type Urgensi = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-
-/** GA asset category "Kendaraan" — same id GaVehiclePage filters its fleet list by. */
-export const VEHICLE_CATEGORY_ID = 'cmq7ja1dc000001lpil7negq7';
 
 export const VEHICLE_SERVICE_TYPES = [
   'OLI', 'TUNE_UP', 'SERVIS_BERKALA', 'PERBAIKAN', 'GANTI_BAN', 'ELEKTRIKAL', 'AC', 'LAINNYA',
