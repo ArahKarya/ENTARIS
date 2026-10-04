@@ -44,10 +44,16 @@ async function main() {
       (await prisma.user.findUnique({ where: { email: u.email } }));
 
     if (existing) {
-      await prisma.user.update({
-        where: { id: existing.id },
-        data: { username: u.username, email: u.email, fullName: u.fullName, role: u.role, passwordHash: u.password },
-      });
+      // Only migrate the identifiers. Never reset the password (or role/name)
+      // of an existing user — re-running the seed must not undo admin changes.
+      if (existing.username !== u.username || existing.email !== u.email) {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { username: u.username, email: u.email },
+        });
+      }
+      console.log(`- Kept existing User: ${u.email}`);
+      continue;
     } else {
       await prisma.user.create({
         data: {
@@ -59,7 +65,7 @@ async function main() {
         },
       });
     }
-    console.log(`- Upserted User: ${u.email} (${u.role})`);
+    console.log(`- Created User: ${u.email} (${u.role})`);
   }
 
   // 3. Seed COA — Standard Chart of Accounts (Indonesian PSAK baseline)
@@ -243,7 +249,9 @@ async function main() {
 
     const account = await prisma.account.upsert({
       where: { accountNumber: item.accountNumber },
-      update: { name: item.name, isGroup: item.isGroup, accountType: item.accountType, rootType: item.rootType },
+      // Existing accounts are never touched: tenants may have renamed or
+      // re-typed them, and a re-seed must not undo that.
+      update: {},
       create: {
         accountNumber: item.accountNumber,
         name: item.name,

@@ -27,10 +27,27 @@ echo "🗃️  3/7 Running database migrations..."
 npx prisma generate
 npx prisma migrate deploy
 
-# 4. Seed database (safe — upserts existing users)
+# 4. Seed database — only when the users table is empty (same check as
+#    docker-app-entrypoint.sh), so a redeploy never touches live data.
 echo ""
 echo "🌱 4/7 Seeding database..."
-npx prisma db seed || echo "⚠️  Seed skipped (may need ts-node). Run manually if needed."
+USER_COUNT=$(node -e "
+  require('dotenv').config({ quiet: true });
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  pool.query('SELECT COUNT(*)::int AS c FROM users')
+    .then(r => { console.log(r.rows[0].c); pool.end(); })
+    .catch(() => { console.log('error'); pool.end(); });
+" 2>/dev/null || echo "error")
+
+if [ "$USER_COUNT" = "0" ]; then
+  echo "   Database kosong, menjalankan seed data awal..."
+  npx prisma db seed || echo "⚠️  Seed gagal. Jalankan manual: cd server && npx tsx prisma/seed.ts"
+elif [ "$USER_COUNT" = "error" ]; then
+  echo "⚠️  Tidak dapat memeriksa tabel users — seed dilewati. Jalankan manual bila DB baru."
+else
+  echo "   Database sudah berisi data ($USER_COUNT user), skip seed."
+fi
 
 # 5. Build server
 echo ""
