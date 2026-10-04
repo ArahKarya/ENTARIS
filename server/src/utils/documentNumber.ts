@@ -15,7 +15,7 @@ import { Prisma } from '@prisma/client';
  */
 export async function generateDocumentNumber(
   tx: Prisma.TransactionClient,
-  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ' | 'ST' | 'DO' | 'STT' | 'PO' | 'PSN' | 'RN' | 'UJ',
+  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ' | 'ST' | 'DO' | 'STT' | 'PO' | 'PSN' | 'RN' | 'UJ' | 'PP',
   date: Date,
   fiscalYearId: string
 ): Promise<string> {
@@ -87,6 +87,9 @@ export async function generateDocumentNumber(
   } else if (prefix === 'UJ') {
     const r = await tx.projectGuarantee.findFirst({ where: { guaranteeNumber: startsWith }, orderBy: { guaranteeNumber: 'desc' }, select: { guaranteeNumber: true } });
     lastNumber = r?.guaranteeNumber ?? null;
+  } else if (prefix === 'PP') {
+    const r = await tx.paymentRequest.findFirst({ where: { number: startsWith }, orderBy: { number: 'desc' }, select: { number: true } });
+    lastNumber = r?.number ?? null;
   } else {
     // JV, OB and any other journal-backed prefixes share journalEntry
     const r = await tx.journalEntry.findFirst({ where: { entryNumber: startsWith }, orderBy: { entryNumber: 'desc' }, select: { entryNumber: true } });

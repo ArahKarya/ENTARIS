@@ -80,3 +80,21 @@ export async function getEffectiveForClient(roleKey: string): Promise<{
   for (const [mod, v] of r.modules) permissions[mod] = v;
   return { isSuperAdmin: r.isSuperAdmin, permissions, caps: [...r.caps] };
 }
+
+/** Apakah role adalah super-admin (aktif). */
+export async function isSuperAdminRole(roleKey: string): Promise<boolean> {
+  const r = await getRole(roleKey);
+  return !!r && r.isActive && r.isSuperAdmin;
+}
+
+/** Key semua role aktif yang boleh aksi (view/edit) pada module, termasuk super-admin. */
+export async function roleKeysWithPerm(module: string, action: PermAction): Promise<string[]> {
+  if (!cache) cache = await load();
+  const keys: string[] = [];
+  for (const [key, r] of cache) {
+    if (!r.isActive) continue;
+    const m = r.modules.get(module);
+    if (r.isSuperAdmin || (m && (action === 'edit' ? m.edit : m.view))) keys.push(key);
+  }
+  return keys;
+}

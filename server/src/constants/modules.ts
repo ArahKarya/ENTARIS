@@ -36,6 +36,9 @@ export const MODULES: ModuleDef[] = [
   { key: 'reconciliation', label: 'Rekonsiliasi Bank', group: 'Bank & Kas' },
   { key: 'recurring', label: 'Transaksi Berulang', group: 'Bank & Kas' },
   { key: 'project_guarantee', label: 'Uang Jaminan Proyek', group: 'Bank & Kas' },
+  // Verifikasi & pembayaran Pengajuan Pembayaran (Keuangan). Membuat/melihat pengajuan
+  // sendiri & persetujuan atasan TIDAK butuh izin modul ini (semua user login).
+  { key: 'payment_request', label: 'Pengajuan Pembayaran (Keuangan)', group: 'Bank & Kas' },
   // AKUNTANSI
   { key: 'coa', label: 'Bagan Akun (COA)', group: 'Akuntansi' },
   { key: 'journal', label: 'Buku Besar / Jurnal', group: 'Akuntansi' },
@@ -107,7 +110,7 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
     sales_return: 'edit', customer_deposit: 'edit',
     purchase_order: 'edit', goods_receipt: 'edit', purchase_invoice: 'edit', vendor_deposit: 'edit',
     inventory: 'edit', stock_transfer: 'edit', stock_opname: 'edit', production: 'edit', warehouse: 'edit',
-    payment: 'edit', reconciliation: 'edit', recurring: 'edit', project_guarantee: 'edit',
+    payment: 'edit', reconciliation: 'edit', recurring: 'edit', project_guarantee: 'edit', payment_request: 'edit',
     coa: 'view', journal: 'edit', fixed_assets: 'edit', approvals: 'edit', ga_finance: 'edit',
     reports: 'view', parties: 'edit',
   },
@@ -131,7 +134,7 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
  * — one-shot per key (hanya bila belum ada satupun RolePermission utk modul
  * tsb), supaya izin yang sengaja dicabut Admin tidak dihidupkan kembali tiap boot.
  */
-export const BACKFILL_MODULES: string[] = ['project_guarantee', 'ga_finance'];
+export const BACKFILL_MODULES: string[] = ['project_guarantee', 'ga_finance', 'payment_request'];
 
 /** Capabilities default per role bawaan non-super (kosong = sama seperti sekarang). */
 export const DEFAULT_CAPS: Record<string, string[]> = {
