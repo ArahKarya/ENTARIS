@@ -195,7 +195,7 @@ Laporan utama tersedia dengan *drill-down*: klik angka di laporan → langsung k
 ### 9. Governance, Keamanan & Data
 
 - **Role & Hak Akses Dinamis (RBAC)** — selain 4 role bawaan (Admin / Accountant / StaffProduksi / Viewer), Admin dapat **membuat/menghapus role custom sendiri** (mis. Kasir, Auditor, Staf Pembelian) dan mengatur **matriks izin per modul (Lihat / Edit) + hak khusus** (setujui pengajuan, lewati approval, batalkan/finalisasi dokumen, bypass stok minus, kelola hak akses) langsung dari **Pengaturan → Hak Akses** — tanpa ubah kode. Menu, route, dan tombol aksi otomatis mengikuti izin; enforcement di sisi server. Role `Admin` = super-admin (akses penuh, tak bisa dikunci).
-- **Audit Trail** lengkap — setiap insert/update/delete tercatat dengan user, timestamp, dan *before/after* value. Dapat difilter per user, tabel, atau periode.
+- **Audit Trail** lengkap — setiap insert/update/delete tercatat dengan user, timestamp, dan nilai *after*; untuk dokumen utama (faktur, pembayaran/deposit, jurnal, PO, penerimaan barang, surat jalan, SO, penawaran) dan master (party, item, COA, user, role, pengaturan perusahaan, pajak, tahun buku, aset tetap) nilai *before* juga disimpan sehingga perubahan tampil sebagai diff. Dapat difilter per user, tabel, atau periode.
 - **Manajemen User** dengan reset password, deaktivasi, dan penguncian akun otomatis setelah percobaan login gagal berlebihan (rate limiting).
 - **JWT Authentication** dengan *short-lived token* + refresh strategy; password di-hash bcrypt 12 rounds.
 - **Backup & Restore** via UI — download snapshot SQL, upload restore file, atau jadwalkan backup otomatis via cron di sisi server.
