@@ -1,4 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // Dynamic checklist editor used inside the Complete Work Order modal.
 // Mirrors the backend `checklist` schema: array of { id, label, required, done, notes }.
@@ -12,9 +14,6 @@ export type ChecklistItem = {
   notes: string;
 };
 
-const fieldClass =
-  'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500';
-
 const newItem = (): ChecklistItem => ({
   id: crypto.randomUUID(),
   label: '',
@@ -22,6 +21,8 @@ const newItem = (): ChecklistItem => ({
   done: false,
   notes: '',
 });
+
+const checkboxClass = 'size-4 rounded border-input accent-[var(--primary)]';
 
 export const ChecklistEditor = ({
   items,
@@ -38,62 +39,61 @@ export const ChecklistEditor = ({
   return (
     <div className="space-y-2">
       {items.length === 0 ? (
-        <p className="text-xs text-gray-400">Belum ada item checklist.</p>
+        <p className="text-sm text-muted-foreground">Belum ada item checklist.</p>
       ) : (
-        items.map((it) => (
-          <div key={it.id} className="rounded-lg border border-gray-200 p-3 space-y-2">
-            <div className="flex items-start gap-2">
-              <input
-                className={fieldClass}
-                placeholder="Item checklist (mis. Cek tekanan oli)"
-                value={it.label}
-                onChange={(e) => update(it.id, { label: e.target.value })}
+        <ol className="space-y-2">
+          {items.map((it, idx) => (
+            <li key={it.id} className="space-y-2 rounded-md border border-border p-3">
+              <div className="flex items-start gap-2">
+                <Input
+                  aria-label={`Item checklist ${idx + 1}`}
+                  placeholder="Item checklist (mis. Cek tekanan oli)"
+                  value={it.label}
+                  onChange={(e) => update(it.id, { label: e.target.value })}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => remove(it.id)}
+                  aria-label={`Hapus item checklist ${idx + 1}`}
+                  className="shrink-0 text-danger-text hover:bg-danger-subtle"
+                >
+                  <Trash2 aria-hidden />
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={it.required}
+                    onChange={(e) => update(it.id, { required: e.target.checked })}
+                    className={checkboxClass}
+                  />
+                  Wajib
+                </label>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={it.done}
+                    onChange={(e) => update(it.id, { done: e.target.checked })}
+                    className={checkboxClass}
+                  />
+                  Selesai
+                </label>
+              </div>
+              <Input
+                aria-label={`Catatan item checklist ${idx + 1}`}
+                placeholder="Catatan (opsional)"
+                value={it.notes}
+                onChange={(e) => update(it.id, { notes: e.target.value })}
               />
-              <button
-                type="button"
-                onClick={() => remove(it.id)}
-                className="mt-1.5 p-1.5 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
-                aria-label="Hapus item"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={it.required}
-                  onChange={(e) => update(it.id, { required: e.target.checked })}
-                  className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                />
-                Wajib
-              </label>
-              <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={it.done}
-                  onChange={(e) => update(it.id, { done: e.target.checked })}
-                  className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                />
-                Selesai
-              </label>
-            </div>
-            <input
-              className={fieldClass}
-              placeholder="Catatan (opsional)"
-              value={it.notes}
-              onChange={(e) => update(it.id, { notes: e.target.value })}
-            />
-          </div>
-        ))
+            </li>
+          ))}
+        </ol>
       )}
-      <button
-        type="button"
-        onClick={() => onChange([...items, newItem()])}
-        className="flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-700"
-      >
-        <Plus size={14} /> Tambah item checklist
-      </button>
+      <Button variant="secondary" size="sm" onClick={() => onChange([...items, newItem()])}>
+        <Plus aria-hidden /> Tambah item checklist
+      </Button>
     </div>
   );
 };

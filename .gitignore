@@ -44,3 +44,6 @@ server/backups/
 # Hermes
 .hermes/
 backups/
+
+# User uploads (runtime data, never commit)
+server/uploads/

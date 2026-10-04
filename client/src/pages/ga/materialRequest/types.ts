@@ -1,44 +1,19 @@
-// Tipe & konstanta bersama untuk modul GA Material Request (MR).
+// Types & constants for the GA Material Request (MR) module. Status labels and
+// tones come from lib/status (StatusBadge docType 'ga_material_request').
 export type MrStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'FULFILLED' | 'PAID' | 'CANCELLED';
 export type ProcurementStatus = 'REQUESTED' | 'QUOTED' | 'ORDERED' | 'RECEIVED' | 'CANCELLED';
 
-export const MR_STATUS_LABELS: Record<MrStatus, string> = {
-  DRAFT: 'Draft',
-  SUBMITTED: 'Diajukan',
-  APPROVED: 'Disetujui',
-  REJECTED: 'Ditolak',
-  FULFILLED: 'Selesai',
-  PAID: 'Dibayar',
-  CANCELLED: 'Dibatalkan',
-};
+export const MR_STATUS_FILTERS: MrStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'FULFILLED', 'PAID', 'CANCELLED'];
 
-export const MR_STATUS_BADGE: Record<MrStatus, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  SUBMITTED: 'bg-blue-100 text-blue-700',
-  APPROVED: 'bg-teal-100 text-teal-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  FULFILLED: 'bg-green-100 text-green-700',
-  PAID: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-gray-100 text-gray-500 line-through',
-};
-
+/** Procurement status options for the per-item editor (RECEIVED is set by "Terima barang"). */
 export const PROC_STATUS_LABELS: Record<ProcurementStatus, string> = {
   REQUESTED: 'Diminta',
-  QUOTED: 'Penawaran',
+  QUOTED: 'Penawaran Masuk',
   ORDERED: 'Dipesan',
   RECEIVED: 'Diterima',
   CANCELLED: 'Dibatalkan',
 };
-
-export const PROC_STATUS_BADGE: Record<ProcurementStatus, string> = {
-  REQUESTED: 'bg-gray-100 text-gray-700',
-  QUOTED: 'bg-amber-100 text-amber-700',
-  ORDERED: 'bg-blue-100 text-blue-700',
-  RECEIVED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-gray-100 text-gray-500 line-through',
-};
-
-export const MR_STATUS_FILTERS: MrStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'FULFILLED', 'PAID', 'CANCELLED'];
+export const PROC_STATUS_EDITABLE: ProcurementStatus[] = ['REQUESTED', 'QUOTED', 'ORDERED', 'CANCELLED'];
 
 export interface MrItemDraft {
   inventoryItemId: string | null;
@@ -54,11 +29,20 @@ export interface MrListRow {
   code: string;
   status: MrStatus;
   machineTarget: string | null;
+  notes?: string | null;
   createdAt: string;
+  requestedAt?: string;
   asset?: { id: string; code: string; name: string } | null;
   workOrder?: { id: string; code: string } | null;
   items: { id: string; itemName: string; quantity: string; uom: string; procurementStatus: ProcurementStatus }[];
   _count?: { items: number };
+  /** Paged mode only. */
+  requester?: { id: string; fullName: string | null } | null;
+}
+
+export interface MrSummary {
+  total: number;
+  byStatus: Record<MrStatus, number>;
 }
 
 export interface MrItemDetail {
@@ -88,10 +72,14 @@ export interface MrDetail {
   assetId: string | null;
   machineTarget: string | null;
   notes: string | null;
+  requestedById: string;
   requestedAt: string;
   approvedAt: string | null;
   rejectedAt: string | null;
   rejectReason: string | null;
+  paidAt?: string | null;
+  paidAmount?: string | number | null;
+  journalEntryId?: string | null;
   asset?: { id: string; code: string; name: string } | null;
   workOrder?: { id: string; code: string; title: string; status: string } | null;
   items: MrItemDetail[];
@@ -114,14 +102,36 @@ export interface CategoryOpt {
   name: string;
 }
 
-export const mrFieldClass =
-  'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500';
-export const mrLabelClass = 'block text-xs font-medium text-gray-600 mb-1';
+/** Lifecycle actions an MR status allows (server rules in routes/ga/materialRequest.ts). */
+export function mrActions(status: MrStatus) {
+  return {
+    submit: status === 'DRAFT',
+    approve: status === 'SUBMITTED',
+    reject: status === 'SUBMITTED',
+    cancel: status === 'DRAFT' || status === 'SUBMITTED' || status === 'APPROVED',
+    receive: status === 'APPROVED',
+  };
+}
+
+/** Procurement editing is closed for received/cancelled items and for rejected/cancelled MRs (server rule). */
+export function isItemLocked(item: Pick<MrItemDetail, 'procurementStatus'>, mrStatus: MrStatus): boolean {
+  return (
+    item.procurementStatus === 'RECEIVED' ||
+    item.procurementStatus === 'CANCELLED' ||
+    mrStatus === 'REJECTED' ||
+    mrStatus === 'CANCELLED'
+  );
+}
+
+/** Estimated value: Σ unit price × qty (prices are entered during procurement). */
+export function estimatedTotal(items: ReadonlyArray<Pick<MrItemDetail, 'unitPrice' | 'quantity'>>): number {
+  return items.reduce((sum, it) => sum + (Number(it.unitPrice) || 0) * (Number(it.quantity) || 0), 0);
+}
 
 /** Ekstrak pesan error dari respons Axios tanpa memakai `any`. */
 export function apiErrorMessage(err: unknown, fallback: string): string {
-  const resp = (err as { response?: { data?: { error?: string } } })?.response;
-  return resp?.data?.error ?? fallback;
+  const resp = (err as { response?: { data?: { error?: unknown } } })?.response;
+  return typeof resp?.data?.error === 'string' ? resp.data.error : fallback;
 }
 
 /** Body request generik untuk mutation (menghindari `any`). */

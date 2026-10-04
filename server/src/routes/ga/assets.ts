@@ -20,9 +20,11 @@ import multer from 'multer';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
+import { parseCategoryKind, resolveCategoryIds } from '../../services/gaCategoryKind';
 import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
+import { parseSort } from '../../utils/listQuery';
 import { logger } from '../../lib/logger';
 
 const router = Router();
@@ -185,17 +187,32 @@ async function resolvePicNames(picUserIds: Array<string | null>): Promise<Map<st
 }
 
 // ─── List ──────────────────────────────────────────────────────────
+const ASSET_SORT_FIELDS = ['code', 'name', 'status', 'condition', 'acquisitionDate', 'createdAt'] as const;
+
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    // categoryKind=vehicle|building|equipment resolves the category set on the
+    // server (replaces category ids hard-coded in the pages).
+    const kind = parseCategoryKind(req.query.categoryKind);
+    if (kind === null) return res.status(400).json({ error: 'categoryKind tidak valid.' });
     const where = buildAssetWhere(req.query);
+    if (kind) where.categoryId = { in: await resolveCategoryIds(kind) };
     const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '100'), 10) || 100, 1), 500);
     const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
     const skip = (page - 1) * limit;
 
+    // Optional, opt-in (legacy calls get the exact same response):
+    //   sort=code|name|status|condition|acquisitionDate|createdAt (prefix "-" = desc)
+    //   thumb=1 → first photo per asset (`photos: [{ id, filePath, caption }]`)
+    const sort = parseSort(req.query.sort, ASSET_SORT_FIELDS, { field: 'code', dir: 'asc' });
+    const orderBy: Prisma.GaAssetOrderByWithRelationInput[] =
+      sort.field === 'code' ? [{ code: sort.dir }] : [{ [sort.field]: sort.dir }, { code: 'asc' }];
+    const withThumb = req.query.thumb === '1';
+
     const [items, total] = await prisma.$transaction([
       prisma.gaAsset.findMany({
         where,
-        orderBy: { code: 'asc' },
+        orderBy,
         skip,
         take: limit,
         include: {
@@ -205,6 +222,9 @@ router.get('/', async (req: AuthRequest, res) => {
           qr: { select: { qrCode: true } },
           fixedAsset: { select: { id: true, assetNumber: true, bookValue: true } },
           vehicleData: { select: { noPlat: true } },
+          ...(withThumb
+            ? { photos: { orderBy: { orderIdx: 'asc' as const }, take: 1, select: { id: true, filePath: true, caption: true } } }
+            : {}),
         },
       }),
       prisma.gaAsset.count({ where }),

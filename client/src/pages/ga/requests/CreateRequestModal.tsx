@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { closeButtonClass, controlBase } from '@/components/ui/styles';
 import { DateInput, Field } from '@/components/shared';
 import {
-  VEHICLE_CATEGORY_ID,
   VEHICLE_SERVICE_TYPES,
   SERVICE_TYPE_LABELS,
   VEHICLE_TAX_TYPES,
@@ -37,12 +36,12 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
   const queryClient = useQueryClient();
   const isService = mode === 'SERVICE';
 
-  // Vehicle list: same source as GaVehiclePage (GA assets filtered to the vehicle
-  // category); the list endpoint includes vehicleData.noPlat for the label.
+  // Vehicle list: GA assets in the vehicle category set, resolved on the server
+  // (categoryKind=vehicle); the list endpoint includes vehicleData.noPlat for the label.
   const { data: assets = [], isLoading: loadingAssets } = useQuery<AssetOpt[]>({
     queryKey: ['ga-vehicle-assets-req'],
     queryFn: async () =>
-      (await api.get('/ga/assets', { params: { limit: 500, categoryId: VEHICLE_CATEGORY_ID } })).data,
+      (await api.get('/ga/assets', { params: { limit: 500, categoryKind: 'vehicle' } })).data,
   });
 
   const [assetId, setAssetId] = useState('');

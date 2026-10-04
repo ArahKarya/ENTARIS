@@ -15,7 +15,7 @@
 // handleRouteError + BusinessError, prisma.ga* accessors, req.user!.userId.
 // No auth middleware here — index.ts attaches auth + requirePerm.
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs/promises';
@@ -28,6 +28,13 @@ import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { BusinessError, handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  WO_SORT_FIELDS,
+  buildWorkOrderWhere,
+  workOrderOrderBy,
+  workOrderSummaryWheres,
+} from '../../services/gaWorkOrderList';
 
 const router = Router();
 
@@ -247,8 +254,19 @@ router.put('/schedules/:id', async (req: AuthRequest, res) => {
 // ═══════════════════════════════════════════════════════════════════
 
 // GET /work-orders — list with filters status/priority/type/assetId/assignee
+//
+// Two modes (backward compatible):
+//  • without `page` (legacy — GA dashboard, AIRA gm_wo_list): bare array of
+//    every matching WO, raw filters, ordered status/priority/createdAt.
+//  • with `page` (Pemeliharaan page): `page`, `limit` (≤200), `status`
+//    (enum or ACTIVE), `priority`, `type`, `assetId`, `mine`, `due`
+//    (overdue | dueSoon), `startDate`/`endDate` (report date), `search`,
+//    `sort` (code | reportedAt | dueAt | priority | status, "-" = desc)
+//    → `{ data, total, page, limit }`; rows also carry `assignee`
+//    `{ id, fullName }`. Invalid filters → 400.
 router.get('/work-orders', async (req: AuthRequest, res) => {
   try {
+    if (req.query.page !== undefined) return await listWorkOrdersPaged(req, res);
     const where: Prisma.GaWorkOrderWhereInput = {};
     if (req.query.status) where.status = req.query.status as Prisma.EnumGaWorkOrderStatusFilter['equals'];
     if (req.query.priority) where.priority = req.query.priority as Prisma.EnumGaWorkOrderPriorityFilter['equals'];
@@ -276,6 +294,71 @@ router.get('/work-orders', async (req: AuthRequest, res) => {
     return res.json(withTotalCost);
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/maintenance/work-orders', 'Gagal mengambil work order.');
+  }
+});
+
+const WO_LIST_INCLUDE = {
+  asset: { select: { id: true, code: true, name: true } },
+  _count: { select: { parts: true, photos: true } },
+  parts: { select: { quantity: true, unitCost: true } },
+} as const;
+
+async function resolveUserNames(ids: Array<string | null>): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.filter((id): id is string => !!id))];
+  if (unique.length === 0) return new Map();
+  const users = await prisma.user.findMany({ where: { id: { in: unique } }, select: { id: true, fullName: true } });
+  return new Map(users.map((u) => [u.id, u.fullName]));
+}
+
+async function listWorkOrdersPaged(req: AuthRequest, res: Response) {
+  const query = req.query as Record<string, unknown>;
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+  const filter = buildWorkOrderWhere(query, { userId: req.user?.userId });
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const sortRaw = typeof query.sort === 'string' && query.sort.trim() ? query.sort : undefined;
+  const sort = sortRaw ? parseSort(sortRaw, WO_SORT_FIELDS, { field: 'code', dir: 'desc' }) : null;
+
+  const [items, total] = await prisma.$transaction([
+    prisma.gaWorkOrder.findMany({
+      where: filter.where,
+      orderBy: workOrderOrderBy(sort),
+      skip,
+      take: limit,
+      include: WO_LIST_INCLUDE,
+    }),
+    prisma.gaWorkOrder.count({ where: filter.where }),
+  ]);
+  const names = await resolveUserNames(items.map((wo) => wo.assignedToId));
+  const data = items.map(({ parts, ...wo }) => ({
+    ...wo,
+    totalCost: computeWorkOrderTotalCost(wo.laborCost, wo.externalCost, parts),
+    assignee: wo.assignedToId ? { id: wo.assignedToId, fullName: names.get(wo.assignedToId) ?? null } : null,
+  }));
+  return res.json({ data, total, page, limit });
+}
+
+// GET /work-orders/summary — KPI for the same filters as the paged list:
+// { count, active, overdue, doneThisMonth, totalCost } (cost = labor +
+// external + parts of every matching WO). Declared before '/work-orders/:id'.
+router.get('/work-orders/summary', async (req: AuthRequest, res) => {
+  try {
+    const now = new Date();
+    const filter = buildWorkOrderWhere(req.query as Record<string, unknown>, { userId: req.user?.userId, now });
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const wheres = workOrderSummaryWheres(filter.where, now);
+
+    const [count, active, overdue, doneThisMonth, costs, parts] = await prisma.$transaction([
+      prisma.gaWorkOrder.count({ where: filter.where }),
+      prisma.gaWorkOrder.count({ where: wheres.active }),
+      prisma.gaWorkOrder.count({ where: wheres.overdue }),
+      prisma.gaWorkOrder.count({ where: wheres.doneThisMonth }),
+      prisma.gaWorkOrder.aggregate({ where: filter.where, _sum: { laborCost: true, externalCost: true } }),
+      prisma.gaWorkOrderPart.findMany({ where: { workOrder: filter.where }, select: { quantity: true, unitCost: true } }),
+    ]);
+    const totalCost = computeWorkOrderTotalCost(costs._sum.laborCost, costs._sum.externalCost, parts);
+    return res.json({ count, active, overdue, doneThisMonth, totalCost });
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/maintenance/work-orders/summary', 'Gagal mengambil ringkasan work order.');
   }
 });
 

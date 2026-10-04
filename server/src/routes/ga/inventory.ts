@@ -13,7 +13,7 @@
 //     per-location stock atomically inside a prisma.$transaction.
 //   - Low-stock: total stock across locations vs item.minStock.
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { z } from 'zod';
@@ -26,6 +26,21 @@ import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
 import { logger } from '../../lib/logger';
+import { parseListPaging, parseSort } from '../../utils/listQuery';
+import {
+  buildGaItemFilter,
+  buildGaMovementWhere,
+  DEFAULT_GA_ITEM_SORT,
+  DEFAULT_GA_MOVEMENT_SORT,
+  filterGaItems,
+  GA_ITEM_SORT_FIELDS,
+  GA_MOVEMENT_SORT_FIELDS,
+  gaMovementOrderBy,
+  sortGaItems,
+  summarizeGaItems,
+  toGaItemRow,
+  type GaItemFilter,
+} from '../../services/gaInventoryList';
 
 const router = Router();
 
@@ -73,8 +88,20 @@ function sumStock(stocks: { quantity: Prisma.Decimal }[]): Decimal {
 
 // ── Items ──────────────────────────────────────────────────────────
 // GET /api/ga/inventory/items — list with total stock + low-stock flag.
+//
+// Two modes (backward compatible):
+//  • default (legacy — material requests, maintenance parts picker, AIRA
+//    gi_items): array of items, filters `categoryId`, `q`, `page`/`limit`
+//    (≤500, default 200), ordered by SKU — unchanged.
+//  • `paginated=1` (Inventaris Kantor list): `{ data, total, page, limit }`
+//    with the same row shape; filters `search` (or `q`), `categoryId`,
+//    `locationId` (rows then also carry `locationStock`), `isActive`,
+//    `stockStatus` (out | low | ok) and `sort` (sku | name | category |
+//    totalStock | minStock, "-" = desc). Invalid filters → 400.
 router.get('/items', async (req: AuthRequest, res) => {
   try {
+    if (req.query.paginated === '1') return await listItemsPaged(req.query as Record<string, unknown>, res);
+
     const where: Prisma.GaInventoryItemWhereInput = {};
     if (req.query.categoryId) where.categoryId = String(req.query.categoryId);
     if (req.query.q) {
@@ -89,19 +116,16 @@ router.get('/items', async (req: AuthRequest, res) => {
     const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
     const skip = (page - 1) * limit;
 
-    const [items, total] = await prisma.$transaction([
-      prisma.gaInventoryItem.findMany({
-        where,
-        orderBy: { sku: 'asc' },
-        skip,
-        take: limit,
-        include: {
-          category: { select: { code: true, name: true, type: true } },
-          stocks: { select: { quantity: true } },
-        },
-      }),
-      prisma.gaInventoryItem.count({ where }),
-    ]);
+    const items = await prisma.gaInventoryItem.findMany({
+      where,
+      orderBy: { sku: 'asc' },
+      skip,
+      take: limit,
+      include: {
+        category: { select: { code: true, name: true, type: true } },
+        stocks: { select: { quantity: true } },
+      },
+    });
 
     const enriched = items.map((it) => {
       const totalStock = sumStock(it.stocks);
@@ -120,12 +144,46 @@ router.get('/items', async (req: AuthRequest, res) => {
       };
     });
 
-    if (req.query.paginated === '1') {
-      return res.json({ data: enriched, total, page, limit });
-    }
     return res.json(enriched);
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/inventory/items', 'Gagal mengambil data item.');
+  }
+});
+
+/** Every item matching the filter, with totals + stock state (see services/gaInventoryList). */
+async function loadFilteredItems(filter: GaItemFilter) {
+  const items = await prisma.gaInventoryItem.findMany({
+    where: filter.where,
+    orderBy: { sku: 'asc' },
+    include: {
+      category: { select: { code: true, name: true, type: true } },
+      stocks: { select: { quantity: true, locationId: true } },
+    },
+  });
+  return filterGaItems(
+    items.map((it) => toGaItemRow(it, filter.locationId)),
+    filter.stockStatus,
+  );
+}
+
+async function listItemsPaged(query: Record<string, unknown>, res: Response) {
+  const filter = buildGaItemFilter(query);
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 200, maxLimit: 500 });
+  const sort = parseSort(query.sort, GA_ITEM_SORT_FIELDS, DEFAULT_GA_ITEM_SORT);
+  const rows = sortGaItems(await loadFilteredItems(filter), sort);
+  return res.json({ data: rows.slice(skip, skip + limit).map((r) => r.row), total: rows.length, page, limit });
+}
+
+// GET /api/ga/inventory/items/summary — KPI counts for the same filters as the
+// paged list (`paginated=1`). Declared before '/items/:id'.
+router.get('/items/summary', async (req, res) => {
+  try {
+    const filter = buildGaItemFilter(req.query as Record<string, unknown>);
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    return res.json(summarizeGaItems(await loadFilteredItems(filter)));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /ga/inventory/items/summary', 'Gagal menghitung ringkasan item.');
   }
 });
 
@@ -259,9 +317,17 @@ router.delete('/items/:id/image', async (req: AuthRequest, res) => {
 });
 
 // ── Movements ──────────────────────────────────────────────────────
-// GET /api/ga/inventory/movements — list/filter (latest 100).
+// GET /api/ga/inventory/movements — list/filter.
+//  • without `page` (legacy — AIRA gi_movements): latest 100, filters
+//    `itemId`, `type`, response = array (unchanged).
+//  • with `page` (Inventaris Kantor → Pergerakan): `{ data, total, page, limit }`
+//    (limit ≤200, default 25), same row shape; filters `type`, `itemId`,
+//    `locationId` (either side), `startDate`/`endDate` (YYYY-MM-DD, business
+//    time zone), `search` (item SKU/name, reference, notes), `sort`
+//    (createdAt | quantity). Invalid filters → 400.
 router.get('/movements', async (req: AuthRequest, res) => {
   try {
+    if (req.query.page !== undefined) return await listMovementsPaged(req.query as Record<string, unknown>, res);
     const where: Prisma.GaInventoryMovementWhereInput = {};
     if (req.query.itemId) where.itemId = String(req.query.itemId);
     if (req.query.type) {
@@ -285,6 +351,31 @@ router.get('/movements', async (req: AuthRequest, res) => {
     return handleRouteError(res, error, 'GET /ga/inventory/movements', 'Gagal mengambil data movement.');
   }
 });
+
+const MOVEMENT_LIST_INCLUDE = {
+  item: { select: { sku: true, name: true, uom: true } },
+  fromLocation: { select: { code: true, name: true } },
+  toLocation: { select: { code: true, name: true } },
+} satisfies Prisma.GaInventoryMovementInclude;
+
+async function listMovementsPaged(query: Record<string, unknown>, res: Response) {
+  const filter = buildGaMovementWhere(query);
+  if (!filter.ok) return res.status(400).json({ error: filter.error });
+  const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 200 });
+  const sort = parseSort(query.sort, GA_MOVEMENT_SORT_FIELDS, DEFAULT_GA_MOVEMENT_SORT);
+  const [rows, total] = await prisma.$transaction([
+    prisma.gaInventoryMovement.findMany({
+      where: filter.where,
+      orderBy: gaMovementOrderBy(sort),
+      skip,
+      take: limit,
+      include: MOVEMENT_LIST_INCLUDE,
+    }),
+    prisma.gaInventoryMovement.count({ where: filter.where }),
+  ]);
+  const data = rows.map((m) => ({ ...m, quantity: new Decimal(m.quantity.toString()).toNumber() }));
+  return res.json({ data, total, page, limit });
+}
 
 // POST /api/ga/inventory/movements — record movement + update stock in a tx.
 //   IN          : increment toLocation (upsert).
