@@ -24,12 +24,14 @@ import { NotificationsTab } from './settings/NotificationsTab';
 import { RolePermissionsTab } from './settings/RolePermissionsTab';
 import { AgenticSystemTab } from './settings/AgenticSystemTab';
 import { AppearanceTab } from './settings/AppearanceTab';
+import { PaymentRequestTypesTab } from './settings/PaymentRequestTypesTab';
 
 const PANELS: Record<SettingsTabId, React.FC> = {
   company: CompanySettingsTab,
   fiscal: FiscalYearsTab,
   tax: TaxConfigTab,
   accounts: SystemAccountsTab,
+  'payment-request-types': PaymentRequestTypesTab,
   roles: RolePermissionsTab,
   notifications: NotificationsTab,
   backup: BackupTab,

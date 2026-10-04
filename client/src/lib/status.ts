@@ -37,7 +37,8 @@ export type DocType =
   | 'project_guarantee'
   | 'inventory_item'
   | 'production_run'
-  | 'ga_document';
+  | 'ga_document'
+  | 'payment_request';
 
 /** Lower-case, without `_`, `-` or spaces: `IN_PROGRESS` → `inprogress`. */
 export function normalizeStatusKey(status: string): string {
@@ -178,6 +179,17 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
     disetor: m('Disetor', 'info'),
     selesai: m('Selesai', 'success'),
     dibatalkan: m('Dibatalkan', 'neutral'),
+  },  // Pengajuan Pembayaran: atasan → keuangan → (direktur) → siap dibayar → dibayar.
+  payment_request: {
+    draft: m('Draf', 'neutral'),
+    submitted: m('Menunggu Atasan', 'warning'),
+    pendingfinance: m('Verifikasi Keuangan', 'warning'),
+    pendingdirector: m('Menunggu Direktur', 'warning'),
+    approved: m('Siap Dibayar', 'primary'),
+    paid: m('Dibayar', 'success'),
+    rejected: m('Ditolak', 'danger'),
+    revision: m('Perlu Revisi', 'warning'),
+    cancelled: m('Dibatalkan', 'neutral'),
   },
 };
 

@@ -54,6 +54,7 @@ import {
   Bell,
   ArrowLeftRight,
   Wallet2,
+  HandCoins,
 } from 'lucide-react';
 import { AiraIcon } from '@/components/shell/AiraIcon';
 
@@ -134,6 +135,11 @@ export const ROUTES: readonly RouteEntry[] = [
   // ── Top-level ──────────────────────────────────────────────────────────
   r({ path: '/', label: 'Dasbor', section: null, icon: LayoutDashboard, keywords: ['dashboard', 'beranda', 'home', 'ringkasan'] }),
   r({ path: '/aira', label: 'Asisten AIRA', section: null, icon: AiraIcon, keywords: ['aira', 'ai', 'agen', 'tanya', 'chat', 'asisten'] }),
+  // Every logged-in user files payment requests (no module gate); finance tabs are gated in the page.
+  r({ path: '/payment-requests', label: 'Pengajuan Pembayaran', section: null, icon: HandCoins, keywords: ['pengajuan', 'payment request', 'reimbursement', 'reimburse', 'uang muka', 'kasbon', 'perjalanan dinas', 'klaim'] }),
+  r({ path: '/payment-requests/new', label: 'Buat Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['ajukan', 'pengajuan baru', 'reimburse'] }),
+  r({ path: '/payment-requests/:id', label: 'Detail Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
+  r({ path: '/payment-requests/:id/edit', label: 'Ubah Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
   r({ path: '/notifications', label: 'Notifikasi', section: null, icon: Bell, nav: false, keywords: ['pemberitahuan', 'notification', 'peringatan'] }),
 
   // ── Penjualan ──────────────────────────────────────────────────────────

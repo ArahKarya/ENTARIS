@@ -33,6 +33,13 @@ export function notificationLink(n: NotifItem, role: string | undefined): string
       return '/inventory';
     case 'quotation_expiring':
       return '/quotations';
+    case 'payment_request_pending':
+    case 'payment_request_approved':
+    case 'payment_request_rejected':
+    case 'payment_request_revision':
+    case 'payment_request_paid':
+    case 'payment_request_cancelled':
+      return meta.paymentRequestId ? `/payment-requests/${encodeURIComponent(meta.paymentRequestId)}` : '/payment-requests';
     case 'guarantee_due':
       return '/project-guarantees';
     case 'po_overdue':

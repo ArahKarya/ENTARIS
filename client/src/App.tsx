@@ -43,6 +43,7 @@ import { RecurringTransactions } from './pages/RecurringTransactions';
 import { BankReconciliation } from './pages/BankReconciliation';
 import { VendorDeposits } from './pages/VendorDeposits';
 import { ProjectGuarantees } from './pages/ProjectGuarantees';
+import { LoadingState } from '@/components/shared';
 import { GaDashboardPage } from './pages/ga/GaDashboardPage';
 import { GaAssetsPage } from './pages/ga/GaAssetsPage';
 import { GaDocumentsPage } from './pages/ga/GaDocumentsPage';
@@ -73,6 +74,10 @@ import OeeReport from './pages/reports/OeeReport';
 import AiraChat from './pages/AiraChat';
 
 // Dev-only component review page; the import is dropped from production builds.
+// Pengajuan Pembayaran pages are code-split (keeps the main chunk under the PWA precache limit).
+const PaymentRequests = lazy(() => import('./pages/PaymentRequests').then((m) => ({ default: m.PaymentRequests })));
+const PaymentRequestForm = lazy(() => import('./pages/PaymentRequestForm').then((m) => ({ default: m.PaymentRequestForm })));
+const PaymentRequestDetailPage = lazy(() => import('./pages/PaymentRequestDetail').then((m) => ({ default: m.PaymentRequestDetailPage })));
 const UiPlayground = import.meta.env.DEV ? lazy(() => import('./pages/dev/UiPlayground')) : null;
 
 
@@ -136,6 +141,10 @@ function App() {
           <Route element={<CompanySettingsProvider><MainLayout /></CompanySettingsProvider>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/aira" element={<AiraChat />} />
+            <Route path="/payment-requests" element={<Suspense fallback={<LoadingState />}><PaymentRequests /></Suspense>} />
+            <Route path="/payment-requests/new" element={<Suspense fallback={<LoadingState />}><PaymentRequestForm /></Suspense>} />
+            <Route path="/payment-requests/:id/edit" element={<Suspense fallback={<LoadingState />}><PaymentRequestForm /></Suspense>} />
+            <Route path="/payment-requests/:id" element={<Suspense fallback={<LoadingState />}><PaymentRequestDetailPage /></Suspense>} />
             <Route path="/coa" element={<PermRoute module="coa"><COAPage /></PermRoute>} />
             <Route path="/gl" element={<PermRoute module="journal"><GeneralLedger /></PermRoute>} />
             <Route path="/sales" element={<PermRoute module="sales_invoice"><SalesInvoices /></PermRoute>} />

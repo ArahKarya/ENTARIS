@@ -44,7 +44,10 @@ export interface EditableUser {
   fullName: string;
   email: string;
   role: string;
+  supervisorId?: string | null;
 }
+
+const NO_SUPERVISOR = "__none";
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -106,6 +109,9 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
         }
       : emptyForm(),
   );
+  const [supervisorId, setSupervisorId] = useState<string>(
+    editUser?.supervisorId ?? NO_SUPERVISOR,
+  );
   const [errors, setErrors] = useState<UserFormErrors>({});
   const [submitError, setSubmitError] = useState("");
 
@@ -115,13 +121,23 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
     queryFn: async () => (await api.get("/roles/assignable")).data,
   });
 
+  // Atasan langsung: approver tahap 1 Pengajuan Pembayaran (tidak boleh diri sendiri).
+  const { data: supervisorOptions = [] } = useQuery<
+    Array<{ id: string; fullName: string; isActive: boolean }>
+  >({
+    queryKey: ["users", "supervisor-options"],
+    queryFn: async () =>
+      (await api.get("/users", { params: { limit: 200, sort: "fullName" } })).data
+        .data,
+  });
+
   const set = (field: keyof UserFormValues, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const mutation = useMutation({
-    mutationFn: (payload: Record<string, string>) =>
+    mutationFn: (payload: Record<string, string | null>) =>
       isEdit
         ? api.put(`/users/${editUser!.id}`, payload)
         : api.post("/users", payload),
@@ -144,11 +160,12 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
     setErrors(next);
     setSubmitError("");
     if (Object.keys(next).length > 0) return;
-    const payload: Record<string, string> = {
+    const payload: Record<string, string | null> = {
       username: form.username.trim(),
       email: form.email.trim(),
       fullName: form.fullName.trim(),
       role: form.role,
+      supervisorId: supervisorId === NO_SUPERVISOR ? null : supervisorId,
     };
     if (form.password) payload.password = form.password;
     mutation.mutate(payload);
@@ -216,6 +233,28 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
                   {r.name || roleLabel(r.key)}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        )}
+      </Field>
+      <Field
+        label="Atasan langsung"
+        hint="Menyetujui Pengajuan Pembayaran pengguna ini sebelum Keuangan. Kosong = langsung ke Keuangan."
+      >
+        {(control) => (
+          <Select value={supervisorId} onValueChange={setSupervisorId}>
+            <SelectTrigger {...control}>
+              <SelectValue placeholder="Tidak ada" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_SUPERVISOR}>Tidak ada</SelectItem>
+              {supervisorOptions
+                .filter((u) => u.id !== editUser?.id && (u.isActive || u.id === supervisorId))
+                .map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.fullName}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         )}
