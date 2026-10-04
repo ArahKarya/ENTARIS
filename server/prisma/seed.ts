@@ -258,6 +258,30 @@ async function main() {
     console.log(`- Account: ${account.accountNumber} ${account.name}`);
   }
 
+  // Detail accounts that system-account roles below point to but that are not
+  // in the default chart above (without them stock opname variances and
+  // production conversion postings fail on a fresh install). Created only when
+  // the number is still free, so an existing tenant account is never renamed.
+  const systemRoleAccounts = [
+    { accountNumber: '6.38', name: 'Selisih Persediaan', parentNumber: '6' },
+    { accountNumber: '6.39', name: 'Biaya Konversi Produksi', parentNumber: '6' },
+  ];
+  for (const item of systemRoleAccounts) {
+    const account =
+      (await prisma.account.findUnique({ where: { accountNumber: item.accountNumber } })) ??
+      (await prisma.account.create({
+        data: {
+          accountNumber: item.accountNumber,
+          name: item.name,
+          accountType: X,
+          rootType: RootType.EXPENSE,
+          isGroup: false,
+          parentId: numberToId[item.parentNumber] ?? null,
+        },
+      }));
+    numberToId[item.accountNumber] = account.id;
+  }
+
   // 4. Seed Service Items
   const serviceItemsData = [
     { code: 'JSG-001', name: 'Jasa Giling Padi', unit: 'Ton', defaultRate: 500000, accountNumber: '4.2' },
