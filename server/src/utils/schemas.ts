@@ -523,6 +523,8 @@ export const CreateUserSchema = z.object({
     .regex(/[0-9]/, 'Password harus mengandung angka.')
     .regex(/[^A-Za-z0-9]/, 'Password harus mengandung karakter spesial.'),
   role: UserRoleEnum,
+  /** Atasan langsung (approver tahap 1 Pengajuan Pembayaran). */
+  supervisorId: z.string().min(1).nullable().optional(),
 });
 
 export const UpdateUserSchema = z.object({
@@ -537,6 +539,7 @@ export const UpdateUserSchema = z.object({
     .optional(),
   role: UserRoleEnum.optional(),
   isActive: z.boolean().optional(),
+  supervisorId: z.string().min(1).nullable().optional(),
 }).refine(data => Object.values(data).some(v => v !== undefined), {
   message: 'Minimal satu field harus diisi.',
 });
@@ -979,4 +982,63 @@ export const UpdateTelegramConfigSchema = z.object({
 export const TestTelegramSchema = z.object({
   botToken: z.string().nullable().optional(),
   chatId: z.string().nullable().optional(),
+});
+
+// ─── Pengajuan Pembayaran (Payment Request) ──────────────────────────────────
+const IsoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD.');
+const optText = (max: number) => z.string().trim().max(max).nullable().optional();
+
+export const PaymentRequestLineSchema = z.object({
+  description: z.string().trim().min(1, 'Uraian rincian wajib diisi.').max(500),
+  amount: z.number().positive('Nominal harus lebih dari 0.').max(1e13, 'Nominal terlalu besar.'),
+  expenseAccountId: z.string().min(1).nullable().optional(),
+  costCenterId: z.string().min(1).nullable().optional(),
+  expenseDate: IsoDay.nullable().optional(),
+});
+
+export const PaymentRequestInputSchema = z.object({
+  typeId: z.string().min(1, 'Jenis pengajuan wajib dipilih.'),
+  costCenterId: z.string().min(1).nullable().optional(),
+  department: optText(100),
+  payeeKind: z.enum(['EMPLOYEE', 'VENDOR']),
+  partyId: z.string().min(1).nullable().optional(),
+  payeeName: z.string().trim().min(1, 'Nama penerima wajib diisi.').max(200),
+  bankName: optText(100),
+  bankAccountNo: optText(50),
+  bankAccountHolder: optText(200),
+  purpose: z.string().trim().min(3, 'Keperluan minimal 3 karakter.').max(1000),
+  neededBy: IsoDay.nullable().optional(),
+  lines: z.array(PaymentRequestLineSchema).max(100, 'Maksimal 100 baris rincian.'),
+});
+
+export const PaymentRequestDecisionSchema = z.object({
+  note: optText(1000),
+  /** Finance step only: expense account per line (by line id). */
+  lineAccounts: z.array(z.object({ id: z.string().min(1), expenseAccountId: z.string().min(1).nullable() })).max(100).optional(),
+});
+
+export const PaymentRequestReasonSchema = z.object({
+  reason: z.string().trim().min(3, 'Alasan minimal 3 karakter.').max(1000),
+});
+
+export const PaymentRequestVerifySchema = z.object({
+  lineAccounts: z.array(z.object({ id: z.string().min(1), expenseAccountId: z.string().min(1).nullable() })).min(1).max(100),
+});
+
+export const PaymentRequestPaySchema = z.object({
+  cashAccountId: z.string().min(1, 'Akun kas/bank wajib dipilih.'),
+  paymentDate: IsoDay,
+  reference: optText(100),
+});
+
+export const PaymentRequestTypeSchema = z.object({
+  code: z.string().trim().min(2).max(20).regex(/^[A-Z0-9_-]+$/, 'Kode hanya huruf besar, angka, _ atau -.'),
+  name: z.string().trim().min(2).max(100),
+  kind: z.enum(['REIMBURSEMENT', 'VENDOR_PAYMENT', 'CASH_ADVANCE', 'TRAVEL', 'OTHER']),
+  description: optText(500),
+  defaultExpenseAccountId: z.string().min(1).nullable().optional(),
+  requiresAttachment: z.boolean().default(false),
+  requiresSettlement: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().min(0).max(9999).default(0),
 });
