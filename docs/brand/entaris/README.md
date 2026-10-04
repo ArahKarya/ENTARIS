@@ -74,3 +74,7 @@ Kontras (WCAG): Navy di atas putih 14,1 : 1 · teks putih di atas Biru gelap 5,0
 - Memutar (mis. menjadi segitiga tegak), meregangkan, atau mengubah urutan tindihan bilah.
 - Memakai simbol berwarna di latar gelap — gunakan `entaris-mark-negative.svg`.
 - Memakai nama produk lama (sebelum Entaris) untuk produk ini.
+
+## AIRA
+
+Agen AI **AIRA** punya logo saudara "Lipat Δ" (∇ Entaris yang dibalik). Panduan, file SVG/PNG, favicon dan generator ada di [`docs/brand/aira/`](../aira/README.md).
