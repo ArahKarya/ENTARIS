@@ -68,7 +68,7 @@ const JournalDetailDrawer: React.FC<Props> = ({ journalEntryId, onClose }) => {
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+          <button onClick={onClose} aria-label="Tutup" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
             <X size={18} style={{ color: 'var(--color-text-muted)' }} />
           </button>
         </div>

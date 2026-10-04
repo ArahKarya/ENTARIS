@@ -1,112 +1,189 @@
-import { useState, useEffect } from 'react';
-import {
-  Plus, Search, Calendar as CalendarIcon,
-  FileSpreadsheet, Upload, XCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-} from 'lucide-react';
-import { cn } from '../lib/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import JournalEntryModal from '../components/JournalEntryModal';
-import ImportModal from '../components/ImportModal';
-import TableRowSkeleton from '../components/TableRowSkeleton';
-import { useDebounce } from '../hooks/useDebounce';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { formatRupiah, formatDate } from '../lib/formatters';
+/**
+ * Jurnal Umum (/gl) — server-paginated journal list on the Phase 3 list kit
+ * (pattern: pages/SalesInvoices.tsx). GET /journals keeps its original
+ * response shape ({ data, total, page, limit }, each entry with its lines);
+ * filters/sort live in server/src/services/journalList.ts.
+ *
+ * Opens on the current month (as before) unless the URL already carries list
+ * params; Reset clears it to "all periods".
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { CalendarRange, ChevronDown, Eye, Info, Plus, Upload, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import Select from '../components/Select';
+import api from '@/lib/api';
+import { formatDate, formatRupiah, toNumber } from '@/lib/format';
+import { statusOptions } from '@/lib/status';
+import { can } from '@/lib/permissions';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  ComboboxFilter,
+  ConfirmDialog,
+  DataTable,
+  DocumentLink,
+  FilterBar,
+  PageHeader,
+  RowActions,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import JournalEntryModal from '@/components/JournalEntryModal';
+import ImportModal from '@/components/ImportModal';
+import JournalDetailDrawer from '@/components/JournalDetailDrawer';
+
+type Money = string | number;
+
+interface JournalLine {
+  id: string;
+  debit: Money;
+  credit: Money;
+  description?: string | null;
+  account: { accountNumber: string; name: string };
+}
+
+interface JournalRow {
+  id: string;
+  entryNumber: string;
+  date: string;
+  status: string;
+  narration: string | null;
+  items: JournalLine[];
+  user?: { fullName: string } | null;
+}
+
+interface AccountOption {
+  id: string;
+  accountNumber: string;
+  name: string;
+  isGroup: boolean;
+}
+
+const ENDPOINT = '/journals';
+const FILTER_KEYS = ['status', 'accountId', 'startDate', 'endDate'] as const;
+const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'journal');
+/** Same guard as PATCH /journals/:id/cancel: auto journals are cancelled at their source. */
+const AUTO_JOURNAL = /^JV-(PAY|SI|PI|COGS)/;
+/** URL params that mean "the user already chose what to see". */
+const LIST_URL_KEYS = ['q', 'page', 'sort', ...FILTER_KEYS];
+
+const withUnit = (label: string) => (
+  <>
+    {label} <span className="normal-case">(Rp)</span>
+  </>
+);
+
+const money = (v: number) => formatRupiah(v, { symbol: false });
+/** Cancelled entries no longer count: amounts recede like the rest of the row. */
+const amountClass = (status: string) =>
+  status === 'Cancelled' ? 'text-muted-foreground' : 'font-medium text-foreground';
+
+/** Sum in cents so many 2-decimal lines do not drift. */
+function lineTotals(items: readonly JournalLine[]): { debit: number; credit: number } {
+  let debit = 0;
+  let credit = 0;
+  for (const it of items) {
+    debit += Math.round((toNumber(it.debit) ?? 0) * 100);
+    credit += Math.round((toNumber(it.credit) ?? 0) * 100);
+  }
+  return { debit: debit / 100, credit: credit / 100 };
+}
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+type Preset = 'today' | 'week' | 'month' | 'lastMonth' | 'year';
+
+const PRESETS: Array<{ key: Preset; label: string }> = [
+  { key: 'today', label: 'Hari ini' },
+  { key: 'week', label: 'Minggu ini' },
+  { key: 'month', label: 'Bulan ini' },
+  { key: 'lastMonth', label: 'Bulan lalu' },
+  { key: 'year', label: 'Tahun ini (YTD)' },
+];
+
+function presetRange(preset: Preset, now = new Date()): { startDate: string; endDate: string } {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  switch (preset) {
+    case 'today':
+      return { startDate: ymd(now), endDate: ymd(now) };
+    case 'week': {
+      // Monday → today
+      const monday = new Date(y, m, now.getDate() - ((now.getDay() + 6) % 7));
+      return { startDate: ymd(monday), endDate: ymd(now) };
+    }
+    case 'lastMonth':
+      return { startDate: ymd(new Date(y, m - 1, 1)), endDate: ymd(new Date(y, m, 0)) };
+    case 'year':
+      return { startDate: ymd(new Date(y, 0, 1)), endDate: ymd(now) };
+    case 'month':
+    default:
+      return { startDate: ymd(new Date(y, m, 1)), endDate: ymd(new Date(y, m + 1, 0)) };
+  }
+}
+
+/** Leaf accounts for the account filter (shares the ['coa-flat'] cache). */
+function useAccountOptions() {
+  const query = useQuery<AccountOption[] | { data: AccountOption[] }>({
+    queryKey: ['coa-flat'],
+    queryFn: async () => (await api.get('/coa/flat')).data,
+    staleTime: 5 * 60_000,
+  });
+  const options = useMemo(() => {
+    const raw = query.data;
+    const all = Array.isArray(raw) ? raw : (raw?.data ?? []);
+    return all
+      .filter((a) => !a.isGroup)
+      .map((a) => ({ value: a.id, label: a.name, hint: a.accountNumber }));
+  }, [query.data]);
+  return { options, loading: query.isLoading };
+}
 
 export const GeneralLedger = () => {
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
+  const [density, setDensity] = useTableDensity();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 300);
-  // Default filter ke bulan berjalan supaya JV bulan lama tidak tenggelam di
-  // pagination dalam. Sebelumnya default kosong = semua periode → JV 4 Mei
-  // bisa ada di halaman ke-27 dari 30 (real case 2026-05-24).
-  const initialMonth = (() => {
-    const now = new Date();
-    const fmtFn = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-    return {
-      start: fmtFn(new Date(now.getFullYear(), now.getMonth(), 1)),
-      end: fmtFn(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
-    };
-  })();
-  const [startDate, setStartDate] = useState(initialMonth.start);
-  const [endDate, setEndDate] = useState(initialMonth.end);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<{ id: string; entryNumber: string } | null>(null);
-  const [hideCancelled, setHideCancelled] = useState(false);
-  // Pagination state (server-side)
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const canEdit = can('journal', 'edit');
   const queryClient = useQueryClient();
+  const accounts = useAccountOptions();
 
-  // Reset ke page 1 setiap filter berubah supaya tidak landing di page kosong.
+  // Default to the current month so recent entries are not buried (since
+  // 2026-05-24); skipped when the URL already says what to show.
+  const [pendingDefault, setPendingDefault] = useState(() => !LIST_URL_KEYS.some((k) => searchParams.has(k)));
   useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, startDate, endDate, hideCancelled, pageSize]);
+    if (!pendingDefault) return;
+    const next = new URLSearchParams(searchParams);
+    const range = presetRange('month');
+    next.set('startDate', range.startDate);
+    next.set('endDate', range.endDate);
+    setSearchParams(next, { replace: true });
+    setPendingDefault(false);
+    // Runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fmt = (d: Date) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  const applyPreset = (preset: 'today' | 'week' | 'month' | 'lastMonth' | 'year') => {
-    const now = new Date();
-    if (preset === 'today') {
-      const s = fmt(now);
-      setStartDate(s); setEndDate(s);
-    } else if (preset === 'week') {
-      // Minggu ini (Senin–hari ini)
-      const day = now.getDay(); // 0=Sun
-      const diffToMon = (day + 6) % 7;
-      const monday = new Date(now); monday.setDate(now.getDate() - diffToMon);
-      setStartDate(fmt(monday)); setEndDate(fmt(now));
-    } else if (preset === 'month') {
-      const first = new Date(now.getFullYear(), now.getMonth(), 1);
-      const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setStartDate(fmt(first)); setEndDate(fmt(last));
-    } else if (preset === 'lastMonth') {
-      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const last = new Date(now.getFullYear(), now.getMonth(), 0);
-      setStartDate(fmt(first)); setEndDate(fmt(last));
-    } else if (preset === 'year') {
-      setStartDate(fmt(new Date(now.getFullYear(), 0, 1)));
-      setEndDate(fmt(now));
-    }
-  };
-
-  const clearDateFilter = () => {
-    setStartDate('');
-    setEndDate('');
-  };
-
-  const { data: journalsResp, isLoading, isFetching } = useQuery({
-    queryKey: ['journals', startDate, endDate, debouncedSearch, hideCancelled, page, pageSize],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (startDate) params.set('startDate', startDate);
-      if (endDate) params.set('endDate', endDate);
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      if (hideCancelled) params.set('hideCancelled', 'true');
-      params.set('page', String(page));
-      params.set('limit', String(pageSize));
-      const response = await api.get(`/journals?${params.toString()}`);
-      return response.data;
-    },
-    placeholderData: (prev) => prev,  // smooth transition saat ganti halaman
+  const journalsQuery = useQuery({
+    queryKey: ['journals', 'list', list.params],
+    queryFn: async () => (await api.get<Paginated<JournalRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
+    enabled: !pendingDefault,
   });
-  const journals: any[] = journalsResp?.data ?? [];
-  const total: number = journalsResp?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const fromIdx = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const toIdx = Math.min(page * pageSize, total);
+  const total = journalsQuery.data?.total;
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/journals/${id}/cancel`),
@@ -115,276 +192,246 @@ export const GeneralLedger = () => {
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal membatalkan jurnal.');
+    onError: (err: unknown) => {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast.error(message || 'Gagal membatalkan jurnal.');
     },
   });
 
+  const columns = useMemo<ColumnDef<JournalRow>[]>(
+    () => [
+      {
+        id: 'entryNumber',
+        header: 'Nomor',
+        enableSorting: true,
+        sortDescFirst: true,
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-0.5">
+            <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.entryNumber}</DocumentLink>
+            {/* Mobile: narration and date stacked here because their columns are hidden. */}
+            <span className="line-clamp-2 max-w-48 text-sm break-words sm:hidden">
+              {row.original.narration || '-'}
+            </span>
+            <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'date',
+        header: 'Tanggal',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => formatDate(row.original.date),
+      },
+      {
+        id: 'narration',
+        header: 'Keterangan',
+        meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="line-clamp-2 break-words" title={row.original.narration ?? undefined}>
+              {row.original.narration || '-'}
+            </p>
+            {row.original.user?.fullName && (
+              <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
+                oleh {row.original.user.fullName}
+              </p>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'accounts',
+        header: 'Rincian Akun',
+        meta: { hideBelow: 'lg', cellClassName: 'min-w-52 max-w-72' },
+        cell: ({ row }) => {
+          const lines = row.original.items;
+          return (
+            <ul className="flex min-w-0 flex-col gap-0.5 text-xs">
+              {lines.slice(0, 2).map((it) => (
+                <li key={it.id} className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="num shrink-0 text-muted-foreground">{it.account.accountNumber}</span>
+                  <span className="truncate text-foreground">{it.account.name}</span>
+                </li>
+              ))}
+              {lines.length > 2 && <li className="font-medium text-primary">+{lines.length - 2} lainnya</li>}
+            </ul>
+          );
+        },
+      },
+      {
+        id: 'debit',
+        header: () => withUnit('Debit'),
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const { debit } = lineTotals(row.original.items);
+          return (
+            <div className="flex flex-col items-end gap-1">
+              <span className={amountClass(row.original.status)}>{money(debit)}</span>
+              {/* Mobile: status stacked here because its column is hidden. */}
+              <StatusBadge status={row.original.status} docType="journal" className="sm:hidden" />
+            </div>
+          );
+        },
+      },
+      {
+        id: 'credit',
+        header: () => withUnit('Kredit'),
+        meta: { align: 'right', hideBelow: 'sm' },
+        cell: ({ row }) => (
+          <span className={amountClass(row.original.status)}>{money(lineTotals(row.original.items).credit)}</span>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={row.original.status} docType="journal" />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const je = row.original;
+          const auto = AUTO_JOURNAL.test(je.entryNumber);
+          return (
+            <RowActions
+              label={`Aksi untuk ${je.entryNumber}`}
+              actions={[
+                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(je.id) },
+                {
+                  label: auto ? 'Batalkan dari modul asal' : 'Batalkan jurnal',
+                  icon: XCircle,
+                  tone: 'danger',
+                  disabled: auto,
+                  hidden: !canEdit || je.status === 'Cancelled',
+                  onSelect: () => setCancelTarget({ id: je.id, entryNumber: je.entryNumber }),
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    [canEdit],
+  );
+
   return (
     <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Buku Besar</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Kelola dan tinjau semua transaksi jurnal harian.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn-secondary flex items-center gap-1.5" onClick={() => setIsImportOpen(true)}>
-            <Upload size={14} /> Import
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-            <Plus size={15} /> Buat Jurnal Baru
-          </button>
-        </div>
-      </div>
-
-      {/* Info: cara kerja pembatalan jurnal */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-        <p className="font-semibold mb-1">Cara kerja pembatalan jurnal</p>
-        <p className="leading-relaxed">
-          Jurnal yang dibuat otomatis dari modul lain (Pembayaran <span className="font-mono">JV-PAY-*</span>,
-          Faktur Penjualan <span className="font-mono">JV-SI-*</span>, Faktur Pembelian <span className="font-mono">JV-PI-*</span>,
-          HPP <span className="font-mono">JV-COGS-*</span>) <b>tidak bisa dibatalkan dari halaman Buku Besar</b>.
-          Silakan batalkan dari modul asalnya agar status faktur, alokasi pembayaran, dan saldo kas/piutang ikut terupdate.
-          Pembatalan dari Buku Besar hanya untuk jurnal manual.
-        </p>
-      </div>
-
-      {/* Search + periode */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Cari referensi atau keterangan..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <CalendarIcon size={14} className="text-gray-400" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="text-xs py-2 px-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-xs text-gray-400">s/d</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="text-xs py-2 px-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {(startDate || endDate) && (
-              <button onClick={clearDateFilter} className="btn-secondary text-xs py-2 px-3 text-red-600">
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-gray-400">Preset:</span>
-          <button onClick={() => applyPreset('today')} className="btn-secondary text-xs py-1.5 px-3">Hari Ini</button>
-          <button onClick={() => applyPreset('week')} className="btn-secondary text-xs py-1.5 px-3">Minggu Ini</button>
-          <button onClick={() => applyPreset('month')} className={cn('btn-secondary text-xs py-1.5 px-3', startDate && 'ring-1 ring-blue-200')}>Bulan Ini</button>
-          <button onClick={() => applyPreset('lastMonth')} className="btn-secondary text-xs py-1.5 px-3">Bulan Lalu</button>
-          <button onClick={() => applyPreset('year')} className="btn-secondary text-xs py-1.5 px-3">Tahun Ini (YTD)</button>
-          <label className="ml-auto flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={hideCancelled}
-              onChange={(e) => setHideCancelled(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            Sembunyikan yang dibatalkan
-          </label>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-       <div className="table-responsive">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Referensi</th>
-              <th>Keterangan</th>
-              <th>Rincian Akun</th>
-              <th className="text-right">Debit</th>
-              <th className="text-right">Kredit</th>
-              <th className="text-center">Status</th>
-              <th className="w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <TableRowSkeleton columns={8} rows={6} />
-            ) : journals.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-16 text-center">
-                  <FileSpreadsheet className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">
-                    {debouncedSearch || startDate || endDate
-                      ? 'Tidak ada jurnal yang cocok dengan filter.'
-                      : 'Belum ada transaksi jurnal. Klik tombol di atas untuk memulai.'}
-                  </p>
-                </td>
-              </tr>
-            ) : (
-              journals.map((journal: any) => {
-                const totalDebit = journal.items.reduce((sum: number, item: any) => sum + Number(item.debit), 0);
-                const totalCredit = journal.items.reduce((sum: number, item: any) => sum + Number(item.credit), 0);
-                const isCancelled = journal.status === 'Cancelled';
-
-                return (
-                  <tr key={journal.id} className={isCancelled ? 'opacity-50' : ''}>
-                    <td className="text-gray-500 whitespace-nowrap">{formatDate(journal.date)}</td>
-                    <td className="whitespace-nowrap">
-                      <span className="font-mono text-xs text-gray-800 bg-gray-50 px-1.5 py-0.5 rounded">{journal.entryNumber}</span>
-                    </td>
-                    <td>
-                      <p className="text-gray-700 line-clamp-1 max-w-[200px]" title={journal.narration}>{journal.narration}</p>
-                    </td>
-                    <td>
-                      <div className="flex flex-col gap-1">
-                        {journal.items.slice(0, 2).map((item: any) => (
-                          <div key={item.id} className="flex items-center gap-1.5">
-                            <span className="text-xs font-mono text-gray-400 bg-gray-50 px-1 py-0.5 rounded">{item.account.accountNumber}</span>
-                            <span className="text-xs text-gray-600 truncate max-w-[100px]">{item.account.name}</span>
-                          </div>
-                        ))}
-                        {journal.items.length > 2 && (
-                          <span className="text-xs text-blue-600 font-medium">+{journal.items.length - 2} lainnya</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="text-right font-mono font-medium text-gray-900 tabular-nums">{formatRupiah(totalDebit)}</td>
-                    <td className="text-right font-mono font-medium text-gray-900 tabular-nums">{formatRupiah(totalCredit)}</td>
-                    <td className="text-center">
-                      <span className={cn(
-                        'badge',
-                        isCancelled ? 'badge-red' : journal.status === 'Submitted' ? 'badge-green' : 'badge-gray'
-                      )}>
-                        {isCancelled ? 'Dibatalkan' : journal.status === 'Submitted' ? 'Posted' : journal.status}
-                      </span>
-                    </td>
-                    <td>
-                      {!isCancelled && (
-                        <button
-                          onClick={() => setCancelTarget({ id: journal.id, entryNumber: journal.entryNumber })}
-                          className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
-                          title="Batalkan"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-       </div>
-
-       {/* Pagination footer */}
-       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-         <div className="text-xs text-gray-500">
-           {total === 0 ? (
-             <span>Tidak ada data</span>
-           ) : (
-             <>
-               Menampilkan <span className="font-semibold text-gray-700">{fromIdx.toLocaleString('id-ID')}</span>
-               –<span className="font-semibold text-gray-700">{toIdx.toLocaleString('id-ID')}</span>
-               {' '}dari <span className="font-semibold text-gray-700">{total.toLocaleString('id-ID')}</span> jurnal
-             </>
-           )}
-           {isFetching && !isLoading && (
-             <span className="ml-2 text-gray-400 text-[10px]">memuat ulang…</span>
-           )}
-         </div>
-         <div className="flex items-center gap-2">
-           <label className="flex items-center gap-1.5 text-xs text-gray-600">
-             Per halaman:
-             <Select
-               value={pageSize}
-               onChange={(e) => setPageSize(Number(e.target.value))}
-               className="w-20"
-             >
-               {[25, 50, 100, 200].map((n) => (
-                 <option key={n} value={n}>{n}</option>
-               ))}
-             </Select>
-           </label>
-           <div className="flex items-center gap-0.5">
-             <button
-               onClick={() => setPage(1)}
-               disabled={page <= 1 || isFetching}
-               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
-               title="Halaman pertama"
-             >
-               <ChevronsLeft size={14} />
-             </button>
-             <button
-               onClick={() => setPage((p) => Math.max(1, p - 1))}
-               disabled={page <= 1 || isFetching}
-               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
-               title="Sebelumnya"
-             >
-               <ChevronLeft size={14} />
-             </button>
-             <span className="px-2 text-xs text-gray-700 tabular-nums">
-               Hal <span className="font-semibold">{page}</span> / {totalPages}
-             </span>
-             <button
-               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-               disabled={page >= totalPages || isFetching}
-               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
-               title="Berikutnya"
-             >
-               <ChevronRight size={14} />
-             </button>
-             <button
-               onClick={() => setPage(totalPages)}
-               disabled={page >= totalPages || isFetching}
-               className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
-               title="Halaman terakhir"
-             >
-               <ChevronsRight size={14} />
-             </button>
-           </div>
-         </div>
-       </div>
-      </div>
-
-      <JournalEntryModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+      <PageHeader
+        title="Jurnal Umum"
+        description="Kelola dan tinjau semua transaksi jurnal harian."
+        actions={
+          canEdit ? (
+            <>
+              <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+                <Upload aria-hidden />
+                <span className="sr-only sm:not-sr-only">Impor</span>
+              </Button>
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus aria-hidden />
+                Buat Jurnal
+              </Button>
+            </>
+          ) : undefined
+        }
       />
 
-      <ImportModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        importType="journals"
-      />
+      {canEdit && (
+        <aside
+          aria-label="Cara kerja pembatalan jurnal"
+          className="flex gap-2.5 rounded-md border border-warning/30 bg-warning-subtle px-3.5 py-2.5 text-sm text-warning-text"
+        >
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>
+            Jurnal otomatis (<span className="num">JV-PAY</span>, <span className="num">JV-SI</span>,{' '}
+            <span className="num">JV-PI</span>, <span className="num">JV-COGS</span>) dibatalkan dari modul asalnya
+            agar faktur, pembayaran, dan saldo ikut diperbarui. Halaman ini hanya membatalkan jurnal manual.
+          </p>
+        </aside>
+      )}
+
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari jurnal"
+          searchPlaceholder="Cari nomor, keterangan, akun"
+          status={{ options: STATUS_FILTER }}
+          dateRange
+        >
+          <ComboboxFilter
+            label="Akun"
+            allLabel="Semua akun"
+            searchPlaceholder="Cari nomor/nama akun…"
+            value={list.filters.accountId}
+            onChange={(v) => list.setFilter('accountId', v)}
+            options={accounts.options}
+            loading={accounts.loading}
+            className="w-[calc(50%-0.25rem)] sm:w-52"
+          />
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                <CalendarRange aria-hidden />
+                Periode
+                <ChevronDown aria-hidden className="text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-44">
+              {PRESETS.map((p) => (
+                <DropdownMenuItem key={p.key} onSelect={() => list.setFilters(presetRange(p.key))}>
+                  {p.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </FilterBar>
+
+        <DataTable
+          {...listTableProps(list, total)}
+          label="Daftar jurnal umum"
+          itemLabel="jurnal"
+          columns={columns}
+          data={journalsQuery.data?.data}
+          getRowId={(row) => row.id}
+          loading={pendingDefault || journalsQuery.isLoading}
+          fetching={journalsQuery.isFetching && journalsQuery.isPlaceholderData}
+          error={journalsQuery.error}
+          onRetry={() => journalsQuery.refetch()}
+          onRowClick={(row) => setSelectedId(row.id)}
+          rowClassName={(row) => (row.status === 'Cancelled' ? 'text-muted-foreground' : undefined)}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada transaksi jurnal',
+            description: 'Jurnal manual dan jurnal otomatis dari modul lain akan muncul di sini.',
+            action: canEdit ? (
+              <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                <Plus aria-hidden />
+                Buat jurnal pertama
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </div>
+
+      <JournalEntryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      <ImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} importType="journals" />
+
+      <JournalDetailDrawer journalEntryId={selectedId} onClose={() => setSelectedId(null)} />
 
       <ConfirmDialog
         open={cancelTarget !== null}
-        onCancel={() => setCancelTarget(null)}
-        onConfirm={() => {
-          if (cancelTarget) {
-            cancelMutation.mutate(cancelTarget.id);
-            setCancelTarget(null);
-          }
-        }}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        tone="danger"
         title="Batalkan Jurnal"
-        message={`Apakah Anda yakin ingin membatalkan jurnal ${cancelTarget?.entryNumber}? Saldo akun terkait akan dikembalikan. Tindakan ini tidak dapat dibatalkan.`}
+        description={`Apakah Anda yakin ingin membatalkan jurnal ${cancelTarget?.entryNumber ?? ''}? Saldo akun terkait akan dikembalikan. Tindakan ini tidak dapat dibatalkan.`}
         confirmLabel="Ya, Batalkan"
-        variant="danger"
+        loading={cancelMutation.isPending}
+        onConfirm={() => (cancelTarget ? cancelMutation.mutateAsync(cancelTarget.id) : undefined)}
       />
     </div>
   );

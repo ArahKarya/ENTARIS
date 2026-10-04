@@ -50,6 +50,13 @@ const TARGETS = [
   { path: '/stock-transfers', isPublic: false },
   { path: '/warehouses', isPublic: false },
   { path: '/warehouse-stock', isPublic: false },
+  { path: '/coa', isPublic: false },
+  { path: '/gl', isPublic: false },
+  { path: '/approvals', isPublic: false },
+  { path: '/approvals?tab=rules', isPublic: false },
+  { path: '/fixed-assets', isPublic: false },
+  { path: '/fixed-assets?tab=depreciation', isPublic: false },
+  { path: '/ga/finance', isPublic: false },
 ]
 
 interface AxeRecord {
