@@ -4,6 +4,25 @@ import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import "dotenv/config";
 
+// Kept in sync with prisma/migrations/2026100700000_payment_requests.sql (the
+// runtime image ships prisma/ but not src/, so this cannot import from src).
+const DEFAULT_PAYMENT_REQUEST_TYPES = [
+  { code: 'REIMBURSE', name: 'Reimbursement', kind: 'REIMBURSEMENT', requiresAttachment: true, requiresSettlement: false, sortOrder: 10,
+    description: 'Penggantian biaya yang sudah dibayar karyawan dengan uang pribadi. Wajib melampirkan nota/kuitansi.' },
+  { code: 'VENDOR', name: 'Pembayaran Vendor', kind: 'VENDOR_PAYMENT', requiresAttachment: true, requiresSettlement: false, sortOrder: 20,
+    description: 'Pembayaran langsung ke vendor/pemasok di luar faktur pembelian. Lampirkan tagihan/invoice vendor.' },
+  { code: 'CASH_ADV', name: 'Uang Muka Operasional', kind: 'CASH_ADVANCE', requiresAttachment: false, requiresSettlement: true, sortOrder: 30,
+    description: 'Uang muka untuk kebutuhan operasional; wajib dipertanggungjawabkan setelah dipakai.' },
+  { code: 'TRAVEL', name: 'Perjalanan Dinas', kind: 'TRAVEL', requiresAttachment: false, requiresSettlement: true, sortOrder: 40,
+    description: 'Uang muka perjalanan dinas (transport, akomodasi, uang harian); wajib dipertanggungjawabkan.' },
+  { code: 'ENTERTAIN', name: 'Jamuan/Entertainment', kind: 'OTHER', requiresAttachment: true, requiresSettlement: false, sortOrder: 50,
+    description: 'Biaya jamuan tamu/relasi bisnis. Lampirkan nota dan daftar nominatif.' },
+  { code: 'OFFICE', name: 'Operasional Kantor', kind: 'OTHER', requiresAttachment: false, requiresSettlement: false, sortOrder: 60,
+    description: 'Kebutuhan operasional kantor (ATK, konsumsi rapat, kebersihan, dll).' },
+  { code: 'OTHER', name: 'Lain-lain', kind: 'OTHER', requiresAttachment: false, requiresSettlement: false, sortOrder: 90,
+    description: 'Pengajuan pembayaran lain yang tidak termasuk jenis di atas.' },
+];
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool as any);
 const prisma = new PrismaClient({ adapter });
@@ -429,6 +448,40 @@ async function main() {
     }
     await prisma.systemAccountMapping.create({ data: { role, accountId, sortOrder: 0 } });
     console.log(`- Mapped system account ${role} -> ${accountNumber}`);
+  }
+
+  // Pengajuan Pembayaran: "Uang Muka Karyawan" (EMPLOYEE_ADVANCE) — debited
+  // when a cash advance / travel request is paid. Same guards as above: the
+  // account is created only when 1.5.6 is free, mapped only when the role is
+  // still unmapped and the account really is the employee-advance account.
+  const advanceAccount =
+    (await prisma.account.findUnique({ where: { accountNumber: '1.5.6' } })) ??
+    (await prisma.account.create({
+      data: {
+        accountNumber: '1.5.6',
+        name: 'Uang Muka Karyawan',
+        accountType: A,
+        rootType: RootType.ASSET,
+        isGroup: false,
+        parentId: numberToId['1.5'] ?? null,
+        description: 'Uang muka operasional / perjalanan dinas yang dibayarkan ke karyawan dan wajib dipertanggungjawabkan.',
+      },
+    }));
+  if (
+    advanceAccount.name === 'Uang Muka Karyawan' &&
+    !advanceAccount.isGroup &&
+    (await prisma.systemAccountMapping.count({ where: { role: 'EMPLOYEE_ADVANCE' } })) === 0
+  ) {
+    await prisma.systemAccountMapping.create({ data: { role: 'EMPLOYEE_ADVANCE', accountId: advanceAccount.id, sortOrder: 0 } });
+    console.log('- Mapped system account EMPLOYEE_ADVANCE -> 1.5.6');
+  }
+
+  // Default payment request types — only into an empty table, so types a
+  // tenant deleted on purpose never come back (the loose SQL migration
+  // 2026100700000_payment_requests.sql applies the same rule).
+  if ((await prisma.paymentRequestType.count()) === 0) {
+    await prisma.paymentRequestType.createMany({ data: DEFAULT_PAYMENT_REQUEST_TYPES.map((t) => ({ ...t })) });
+    console.log(`- Seeded ${DEFAULT_PAYMENT_REQUEST_TYPES.length} payment request types`);
   }
 
   // 6. Seed Company Settings

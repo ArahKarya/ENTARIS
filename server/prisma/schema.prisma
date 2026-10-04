@@ -59,6 +59,9 @@ model Account {
   gaMaterialRequestExpense GaMaterialRequest[]     @relation("GaMaterialRequestExpense")
   gaMaterialRequestCredit  GaMaterialRequest[]     @relation("GaMaterialRequestCredit")
   gaVehicleServiceCredit  GaVehicleServiceLog[]    @relation("GaVehicleServiceCredit")
+  paymentRequestTypes     PaymentRequestType[]     @relation("PaymentRequestTypeAccount")
+  paymentRequestLines     PaymentRequestLine[]     @relation("PaymentRequestLineAccount")
+  paymentRequestsPaidFrom PaymentRequest[]         @relation("PaymentRequestCashAccount")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -103,6 +106,7 @@ model Party {
 
   @@index([partyType])
   @@map("parties")
+  paymentRequests        PaymentRequest[]        @relation("PaymentRequestParty")
 }
 
 enum PartyType {
@@ -156,6 +160,7 @@ model JournalEntry {
   gaVehicleServiceLog        GaVehicleServiceLog?        @relation("GaVehicleServiceJournal")
   gaVehicleTax               GaVehicleTax?               @relation("GaVehicleTaxJournal")
   gaMaterialRequest          GaMaterialRequest?          @relation("GaMaterialRequestJournal")
+  paymentRequest             PaymentRequest?             @relation("PaymentRequestJournal")
   submittedAt                DateTime?                   @map("submitted_at")
   cancelledAt                DateTime?                   @map("cancelled_at")
   createdAt                  DateTime                    @default(now()) @map("created_at")
@@ -794,6 +799,14 @@ model User {
   approvalRequests            ApprovalRequest[]            @relation("ApprovalRequester")
   approvalApprovals           ApprovalRequest[]            @relation("ApprovalApprover")
   approvalRejections          ApprovalRequest[]            @relation("ApprovalRejecter")
+  // Atasan langsung (approver tahap 1 Pengajuan Pembayaran). Nullable.
+  supervisorId                String?                      @map("supervisor_id")
+  supervisor                  User?                        @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  subordinates                User[]                       @relation("UserSupervisor")
+  paymentRequests             PaymentRequest[]             @relation("PaymentRequestRequester")
+  paymentRequestsSupervised   PaymentRequest[]             @relation("PaymentRequestSupervisor")
+  paymentRequestsPaid         PaymentRequest[]             @relation("PaymentRequestPaidBy")
+  paymentRequestHistory       PaymentRequestHistory[]      @relation("PaymentRequestHistoryActor")
   createdAt                   DateTime                     @default(now()) @map("created_at")
   updatedAt                   DateTime                     @updatedAt @map("updated_at")
 
@@ -2353,6 +2366,8 @@ model GaCostCenter {
   isActive Boolean   @default(true) @map("is_active")
   branch   GaBranch  @relation(fields: [branchId], references: [id])
   assets   GaAsset[]
+  paymentRequests     PaymentRequest[]     @relation("PaymentRequestCostCenter")
+  paymentRequestLines PaymentRequestLine[] @relation("PaymentRequestLineCostCenter")
 
   @@index([branchId])
   @@map("ga_cost_centers")
@@ -3208,4 +3223,148 @@ model AiExecutedRun {
   ref        String? // journalId / docId hasil eksekusi (opsional)
 
   @@map("ai_executed_runs")
+}
+
+// ─── Pengajuan Pembayaran (Payment Request) ─────────────────────────────────
+// Stage 1: pengajuan → atasan → keuangan → (direktur bila ≥ ApprovalRule
+// 'PaymentRequest') → dibayar (JV DR beban / uang muka, CR kas-bank).
+// Kolom settlement* & source/sourceRef dicadangkan utk stage 2 (pertanggung-
+// jawaban uang muka / perjalanan dinas) dan stage 3 (tagihan EAM).
+// kind/status disimpan TEXT (lihat services/paymentRequestRules.ts).
+
+model PaymentRequestType {
+  id                      String           @id @default(uuid())
+  code                    String           @unique
+  name                    String
+  kind                    String // REIMBURSEMENT | VENDOR_PAYMENT | CASH_ADVANCE | TRAVEL | OTHER
+  description             String?
+  defaultExpenseAccountId String?          @map("default_expense_account_id")
+  defaultExpenseAccount   Account?         @relation("PaymentRequestTypeAccount", fields: [defaultExpenseAccountId], references: [id], onDelete: SetNull)
+  requiresAttachment      Boolean          @default(false) @map("requires_attachment")
+  requiresSettlement      Boolean          @default(false) @map("requires_settlement")
+  isActive                Boolean          @default(true) @map("is_active")
+  sortOrder               Int              @default(0) @map("sort_order")
+  requests                PaymentRequest[]
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+
+  @@map("payment_request_types")
+}
+
+model PaymentRequest {
+  id                   String                     @id @default(uuid())
+  number               String                     @unique
+  requesterId          String                     @map("requester_id")
+  requester            User                       @relation("PaymentRequestRequester", fields: [requesterId], references: [id])
+  // Snapshot atasan saat diajukan (perubahan atasan di user tidak memindah antrian).
+  supervisorId         String?                    @map("supervisor_id")
+  supervisor           User?                      @relation("PaymentRequestSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  typeId               String                     @map("type_id")
+  type                 PaymentRequestType         @relation(fields: [typeId], references: [id])
+  costCenterId         String?                    @map("cost_center_id")
+  costCenter           GaCostCenter?              @relation("PaymentRequestCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
+  department           String?
+  payeeKind            String                     @default("EMPLOYEE") @map("payee_kind") // EMPLOYEE | VENDOR
+  partyId              String?                    @map("party_id")
+  party                Party?                     @relation("PaymentRequestParty", fields: [partyId], references: [id], onDelete: SetNull)
+  payeeName            String                     @map("payee_name")
+  bankName             String?                    @map("bank_name")
+  bankAccountNo        String?                    @map("bank_account_no")
+  bankAccountHolder    String?                    @map("bank_account_holder")
+  purpose              String
+  neededBy             DateTime?                  @map("needed_by")
+  currency             String                     @default("IDR")
+  totalAmount          Decimal                    @default(0) @map("total_amount") @db.Decimal(15, 2)
+  status               String                     @default("DRAFT")
+  // Role direktur yang wajib menyetujui (snapshot ApprovalRule saat verifikasi keuangan).
+  directorRole         String?                    @map("director_role")
+  submittedAt          DateTime?                  @map("submitted_at")
+  supervisorApprovedAt DateTime?                  @map("supervisor_approved_at")
+  financeApprovedAt    DateTime?                  @map("finance_approved_at")
+  financeApprovedBy    String?                    @map("finance_approved_by")
+  directorApprovedAt   DateTime?                  @map("director_approved_at")
+  directorApprovedBy   String?                    @map("director_approved_by")
+  approvedAt           DateTime?                  @map("approved_at")
+  rejectedAt           DateTime?                  @map("rejected_at")
+  lastNote             String?                    @map("last_note")
+  cancelledAt          DateTime?                  @map("cancelled_at")
+  // Pembayaran
+  paidAt               DateTime?                  @map("paid_at")
+  paidById             String?                    @map("paid_by")
+  paidBy               User?                      @relation("PaymentRequestPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  paymentDate          DateTime?                  @map("payment_date")
+  cashAccountId        String?                    @map("cash_account_id")
+  cashAccount          Account?                   @relation("PaymentRequestCashAccount", fields: [cashAccountId], references: [id], onDelete: SetNull)
+  journalEntryId       String?                    @unique @map("journal_entry_id")
+  journalEntry         JournalEntry?              @relation("PaymentRequestJournal", fields: [journalEntryId], references: [id], onDelete: SetNull)
+  paymentReference     String?                    @map("payment_reference")
+  // Stage 2 (pertanggungjawaban uang muka) — dicadangkan.
+  settlementStatus     String?                    @map("settlement_status") // OPEN | SETTLED
+  settledAt            DateTime?                  @map("settled_at")
+  settlementJournalId  String?                    @map("settlement_journal_id")
+  // Stage 3 (tagihan EAM dll) — asal dokumen.
+  source               String                     @default("MANUAL")
+  sourceRef            String?                    @map("source_ref")
+  lines                PaymentRequestLine[]
+  attachments          PaymentRequestAttachment[]
+  history              PaymentRequestHistory[]
+  createdAt            DateTime                   @default(now()) @map("created_at")
+  updatedAt            DateTime                   @updatedAt @map("updated_at")
+
+  @@index([requesterId])
+  @@index([supervisorId])
+  @@index([status])
+  @@index([typeId])
+  @@index([createdAt])
+  @@index([source, sourceRef])
+  @@map("payment_requests")
+}
+
+model PaymentRequestLine {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  lineNo           Int            @default(0) @map("line_no")
+  description      String
+  amount           Decimal        @db.Decimal(15, 2)
+  expenseAccountId String?        @map("expense_account_id")
+  expenseAccount   Account?       @relation("PaymentRequestLineAccount", fields: [expenseAccountId], references: [id], onDelete: SetNull)
+  costCenterId     String?        @map("cost_center_id")
+  costCenter       GaCostCenter?  @relation("PaymentRequestLineCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
+  expenseDate      DateTime?      @map("expense_date")
+
+  @@index([paymentRequestId])
+  @@map("payment_request_lines")
+}
+
+model PaymentRequestAttachment {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  fileName         String         @map("file_name")
+  storedName       String         @map("stored_name")
+  mimeType         String         @map("mime_type")
+  fileSize         Int            @map("file_size")
+  filePath         String         @map("file_path")
+  uploadedBy       String         @map("uploaded_by")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([paymentRequestId])
+  @@map("payment_request_attachments")
+}
+
+model PaymentRequestHistory {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  action           String // CREATE | UPDATE | SUBMIT | APPROVE | REJECT | RETURN | CANCEL | PAY | CANCEL_PAYMENT | VERIFY
+  actorId          String         @map("actor_id")
+  actor            User           @relation("PaymentRequestHistoryActor", fields: [actorId], references: [id])
+  note             String?
+  fromStatus       String?        @map("from_status")
+  toStatus         String?        @map("to_status")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([paymentRequestId, createdAt])
+  @@map("payment_request_history")
 }

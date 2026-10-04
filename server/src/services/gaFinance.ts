@@ -281,7 +281,7 @@ async function createExpensePurchaseInvoice(
 }
 
 /** Soft-cancel JE + balikkan saldo. Dipakai semua jalur pembatalan GA. */
-async function cancelJournalInTx(tx: Tx, journalEntryId: string) {
+export async function cancelJournalInTx(tx: Tx, journalEntryId: string) {
   const entry = await tx.journalEntry.findUnique({
     where: { id: journalEntryId },
     include: { items: true },

@@ -72,6 +72,8 @@ export const DEFAULT_SNAPSHOT_REGISTRY: SnapshotEntry[] = [
   { prefix: 'tax/config', load: byId(prisma.taxConfig) },
   { prefix: 'fiscal-years', load: byId(prisma.fiscalYear) },
   { prefix: 'fixed-assets', load: byId(prisma.fixedAsset) },
+  { prefix: 'payment-requests', load: byId(prisma.paymentRequest, { include: { lines: true } }) },
+  { prefix: 'payment-request-types', load: byId(prisma.paymentRequestType) },
 ];
 
 /** Strip `/api/` and the query string, return path segments. */

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Pengajuan Pembayaran (baru)
+**Ditambah**:
+- **Pengajuan Pembayaran** (`/payment-requests`) menggantikan file Excel pribadi + email: reimbursement, pembayaran vendor, uang muka, perjalanan dinas, jamuan, dan jenis lain (master data di Pengaturan → Jenis Pengajuan). Alur: pemohon → atasan langsung → Keuangan → Direktur (bila nominal mencapai aturan persetujuan "Pengajuan Pembayaran (tahap Direktur)") → bayar. Semua pengguna bisa mengajukan dan hanya melihat pengajuannya sendiri; tidak ada yang bisa menyetujui pengajuannya sendiri. Lampiran nota, timeline riwayat, notifikasi per tahap.
+- Pembayaran memposting jurnal seimbang: DR akun beban per baris / CR kas-bank; uang muka & perjalanan dinas DR **1.5.6 Uang Muka Karyawan** (akun sistem baru `EMPLOYEE_ADVANCE`). Periode terkunci ditolak; batal bayar membatalkan jurnal.
+- Field "Atasan langsung" di Manajemen Pengguna; modul RBAC `payment_request` (Akuntan: edit).
+
 ### Deploy & Operasional
 **Diubah**:
 - Image Docker (`Dockerfile`, `Dockerfile.allinone`) kini menyetel zona waktu proses server `TZ=Asia/Jakarta` (paket `tzdata` dipasang); `docker-compose.yml` meneruskan `TZ` (default `Asia/Jakarta`, dapat diubah di `.env`). Batas periode laporan (awal/akhir hari & bulan) pada deployment Docker kini sesuai WIB, bukan UTC.

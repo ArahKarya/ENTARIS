@@ -1,10 +1,10 @@
 import {
-  Building2, Calendar, Receipt, Shield, KeyRound, Send, HardDrive, Bot, Palette, Info,
+  Building2, Calendar, Receipt, Shield, KeyRound, Send, HardDrive, Bot, Palette, Info, HandCoins,
   type LucideIcon,
 } from 'lucide-react';
 
 export type SettingsTabId =
-  | 'company' | 'fiscal' | 'tax' | 'accounts' | 'roles'
+  | 'company' | 'fiscal' | 'tax' | 'accounts' | 'payment-request-types' | 'roles'
   | 'notifications' | 'backup' | 'agentic' | 'appearance' | 'about';
 
 export interface SettingsNavItem {
@@ -29,6 +29,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       { id: 'fiscal', label: 'Tahun Buku', icon: Calendar, description: 'Kelola periode akuntansi serta tutup dan buka kembali tahun buku.' },
       { id: 'tax', label: 'Pajak', icon: Receipt, description: 'Tarif PPN, PPh, dan pajak lain yang dipakai di transaksi.' },
       { id: 'accounts', label: 'Akun Sistem', icon: Shield, description: 'Pemetaan akun COA yang dipakai otomatis oleh sistem.' },
+      { id: 'payment-request-types', label: 'Jenis Pengajuan', icon: HandCoins, description: 'Jenis Pengajuan Pembayaran: reimbursement, uang muka, perjalanan dinas, dan lainnya.' },
     ],
   },
   {

@@ -136,7 +136,7 @@ describe('navSections', () => {
     expect(onlySales.map((s) => s.id)).toEqual(['main', 'sales']);
     expect(onlySales[1].items.map((i) => i.path)).toEqual(['/sales']);
     // Items without a module are visible to everyone.
-    expect(onlySales[0].items.map((i) => i.path)).toEqual(['/', '/aira']);
+    expect(onlySales[0].items.map((i) => i.path)).toEqual(['/', '/aira', '/payment-requests']);
   });
 
   it('never lists nav-hidden pages', () => {

@@ -71,6 +71,14 @@ export const SYSTEM_ACCOUNT_ROLES = {
     required: false,
     expectedRootType: 'ASSET' as const,
   },
+  EMPLOYEE_ADVANCE: {
+    key: 'EMPLOYEE_ADVANCE',
+    label: 'Uang Muka Karyawan',
+    description: 'Didebit saat Pengajuan Pembayaran jenis uang muka / perjalanan dinas dibayar',
+    multiAccount: false,
+    required: false,
+    expectedRootType: 'ASSET' as const,
+  },
   COGS: {
     key: 'COGS',
     label: 'Beban Pokok Penjualan',
@@ -362,6 +370,7 @@ export const DEFAULT_ACCOUNT_NUMBERS: Record<SystemAccountRole, string | string[
   SALES: '4.1',
   SERVICE_REVENUE: '4.2',
   VENDOR_DEPOSIT: '1.3',
+  EMPLOYEE_ADVANCE: '1.5.6',
   CUSTOMER_DEPOSIT: '2.1.2',
   PROJECT_GUARANTEE: '1.8',
   COGS: '5',

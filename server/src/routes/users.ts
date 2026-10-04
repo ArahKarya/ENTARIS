@@ -36,6 +36,8 @@ router.get('/', requirePerm('users'), async (req, res) => {
           lastLoginAt: true,
           createdAt: true,
           telegramChatId: true,
+          supervisorId: true,
+          supervisor: { select: { id: true, fullName: true } },
         },
         orderBy: buildUserOrderBy(req.query.sort),
         skip,
@@ -67,6 +69,14 @@ router.get('/summary', requirePerm('users'), async (req, res) => {
   }
 });
 
+/** Atasan langsung: must exist and must not be the user themself. */
+async function checkSupervisor(supervisorId: string | null | undefined, userId?: string): Promise<string | null> {
+  if (!supervisorId) return null;
+  if (userId && supervisorId === userId) return 'Atasan langsung tidak boleh diri sendiri.';
+  const sup = await prisma.user.findUnique({ where: { id: supervisorId }, select: { id: true } });
+  return sup ? null : 'Atasan langsung tidak ditemukan.';
+}
+
 // POST /api/users — create new user (Admin only)
 router.post('/', requirePerm('users'), async (req, res) => {
   const body = validateBody(CreateUserSchema, req.body, res);
@@ -91,6 +101,9 @@ router.post('/', requirePerm('users'), async (req, res) => {
       return res.status(400).json({ error: 'Email sudah digunakan.' });
     }
 
+    const supervisorError = await checkSupervisor(body.supervisorId);
+    if (supervisorError) return res.status(400).json({ error: supervisorError });
+
     const passwordHash = await bcrypt.hash(body.password, 10);
 
     const user = await prisma.user.create({
@@ -100,6 +113,7 @@ router.post('/', requirePerm('users'), async (req, res) => {
         fullName: body.fullName,
         passwordHash,
         role: body.role as any,
+        supervisorId: body.supervisorId ?? null,
       },
       select: {
         id: true,
@@ -197,12 +211,18 @@ router.put('/:id', requirePerm('users'), async (req, res) => {
       }
     }
 
+    if (body.supervisorId !== undefined) {
+      const supervisorError = await checkSupervisor(body.supervisorId, id);
+      if (supervisorError) return res.status(400).json({ error: supervisorError });
+    }
+
     const updateData: any = {};
     if (body.username !== undefined) updateData.username = body.username;
     if (body.email !== undefined) updateData.email = body.email;
     if (body.fullName !== undefined) updateData.fullName = body.fullName;
     if (body.role !== undefined) updateData.role = body.role;
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
+    if (body.supervisorId !== undefined) updateData.supervisorId = body.supervisorId;
     if (body.password) {
       updateData.passwordHash = await bcrypt.hash(body.password, 10);
     }

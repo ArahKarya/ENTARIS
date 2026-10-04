@@ -48,6 +48,7 @@ const DOC_TYPES = [
   { value: 'PurchaseInvoice', label: 'Invoice Pembelian' },
   { value: 'ProductionRun', label: 'Data Produksi' },
   { value: 'PurchaseOrder', label: 'Purchase Order' },
+  { value: 'PaymentRequest', label: 'Pengajuan Pembayaran (tahap Direktur)' },
   { value: 'SalesInvoice', label: 'Invoice Penjualan' },
   { value: 'Payment', label: 'Pembayaran' },
   { value: 'JournalEntry', label: 'Jurnal Umum' },
@@ -260,6 +261,15 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
   const [minAmount, setMinAmount] = useState('');
   const [requiredRole, setRequiredRole] = useState(ROLES[0]);
   const [touched, setTouched] = useState(false);
+  // Custom roles (e.g. Direktur) are listed when the user may read /roles (rbac.manage).
+  const rolesQuery = useQuery({
+    queryKey: ['roles', 'rule-options'],
+    queryFn: async () => ((await api.get('/roles')).data as Array<{ key: string; isActive?: boolean }>).filter((r) => r.isActive !== false).map((r) => r.key),
+    enabled: open && cap('rbac.manage'),
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+  const roleOptions = rolesQuery.data?.length ? rolesQuery.data : ROLES;
 
   const amountError =
     touched && (minAmount.trim() === '' || Number(minAmount) < 0) ? 'Isi nominal minimal (0 atau lebih).' : undefined;
@@ -342,7 +352,7 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLES.map((r) => (
+                    {roleOptions.map((r) => (
                       <SelectItem key={r} value={r}>
                         {r}
                       </SelectItem>

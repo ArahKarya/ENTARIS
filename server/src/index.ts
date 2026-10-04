@@ -68,6 +68,8 @@ import { startScheduler } from './jobs/scheduler';
 import healthCheckRoutes from './routes/healthCheck';
 import fixedAssetRoutes from './routes/fixedAssets';
 import approvalRoutes from './routes/approvals';
+import paymentRequestRoutes from './routes/paymentRequests';
+import paymentRequestTypeRoutes from './routes/paymentRequestTypes';
 import roleRoutes from './routes/roles';
 import cogsBackfillRoutes from './routes/cogsBackfill';
 import { systemAccounts } from './services/systemAccounts';
@@ -202,6 +204,7 @@ app.use('/api/tax', requireWrite('settings'), taxRoutes);
 app.use('/api/system-accounts', requireWrite('settings'), systemAccountRoutes);
 app.use('/api/service-items', requireWrite('sales_invoice'), serviceItemRoutes);
 app.use('/api/import', requireWrite('settings'), importRoutes);
+app.use('/api/payment-request-types', requireWrite('settings'), paymentRequestTypeRoutes);
 
 // Transaksional (view+edit per modul):
 app.use('/api/journals', requirePerm('journal'), journalRoutes);
@@ -254,6 +257,7 @@ app.use('/api/settings', settingsRoutes);            // GET /company terbuka; tu
 app.use('/api/users', usersRoutes);                  // /me/password terbuka; admin di-gate di file
 app.use('/api/roles', roleRoutes);                   // kelola RBAC — guard requireCap('rbac.manage') di file
 app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di inventory/index.ts
+app.use('/api/payment-requests', paymentRequestRoutes);    // semua user login; izin keuangan/direktur dicek per endpoint
 
 // ─── AIRA — AI Tool Layer & Tool Router (Agentic System) ──────────────────────
 // config: kelola tool/setting/whitelist → gate requireWrite('settings') + cap

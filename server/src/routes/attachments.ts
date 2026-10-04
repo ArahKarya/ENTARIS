@@ -2,14 +2,14 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
-import { saveAttachment, deleteAttachment, getFullPath } from '../utils/fileStorage';
+import { saveAttachment, deleteAttachment, getFullPath, detectMimeFromMagicBytes, ATTACHMENT_MIME } from '../utils/fileStorage';
 import { handleRouteError } from '../utils/errors';
 import { hasCap } from '../services/permissionService';
 
 const router = Router();
 
 // ─── Multer config (memory storage, max 5MB per file) ────────────────────────
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const ALLOWED_MIME = ATTACHMENT_MIME;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES = 5;
 
@@ -25,29 +25,6 @@ const upload = multer({
   },
 });
 
-// Verify file content matches claimed MIME by inspecting magic bytes.
-// The multer fileFilter only checks the client-supplied Content-Type header,
-// which is trivially spoofable. This guards against PDF/EXE smuggling.
-function detectMimeFromMagicBytes(buf: Buffer): string | null {
-  if (buf.length < 4) return null;
-  // JPEG: FF D8 FF
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (
-    buf.length >= 8 &&
-    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
-    buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a
-  ) return 'image/png';
-  // WebP: "RIFF" .... "WEBP"
-  if (
-    buf.length >= 12 &&
-    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
-    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
-  ) return 'image/webp';
-  // PDF: "%PDF"
-  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return 'application/pdf';
-  return null;
-}
 
 // ─── POST /api/attachments/upload ────────────────────────────────────────────
 router.post(

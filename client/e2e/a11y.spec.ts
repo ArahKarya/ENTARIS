@@ -77,6 +77,8 @@ const TARGETS = [
   { path: '/ga/documents', isPublic: false },
   { path: '/ga/master', isPublic: false },
   { path: '/parties', isPublic: false },
+  { path: '/payment-requests', isPublic: false },
+  { path: '/payment-requests/new', isPublic: false },
   { path: '/notifications', isPublic: false },
   { path: '/settings', isPublic: false },
   { path: '/settings?tab=roles', isPublic: false },
