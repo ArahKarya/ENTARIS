@@ -1,621 +1,616 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+/**
+ * Stok & Produksi → Dashboard (/inventory without ?tab).
+ *
+ * Every figure is aggregated server-side over ALL active items / the selected
+ * period (the old version summed the first 100 items in the browser):
+ *  • KPIs            /inventory/items/summary?isActive=true,
+ *                    /inventory/movements/summary (period + previous period)
+ *  • Perlu tindakan  /inventory/items?stockStatus=out|low (list mode)
+ *  • Nilai stok      /inventory/dashboard/stock-value?groupBy=category|warehouse
+ *  • Gerakan         /inventory/movements (period, newest first)
+ * Period (?period / ?startDate / ?endDate) and the value grouping (?valueBy)
+ * live in the URL.
+ */
+import { useMemo } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
-  Package, CheckCircle, AlertTriangle, ArrowLeftRight, Loader2,
-  TrendingUp, TrendingDown, Minus,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowRight,
+  ArrowUpRight,
+  Boxes,
+  CheckCircle2,
+  History,
+  PackageSearch,
+  PackageX,
+  Wallet,
 } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import api from '@/lib/api';
+import { formatDate, formatNumber, formatPercent, formatRupiah, toNumber } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { DataTable, RowActions, StatCard, StatusBadge, type Paginated } from '@/components/shared';
+import { CHART_AXIS, CHART_GRID_STROKE, useDashboardPeriod } from '@/components/inventory/dashboard-hooks';
 import {
-  BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
-} from 'recharts';
-import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatRupiah } from '../lib/formatters';
+  ChartTooltipBox,
+  Panel,
+  PanelState,
+  PeriodToolbar,
+  SegmentedToggle,
+} from '@/components/inventory/dashboard-kit';
+import { attentionRows, countDelta, previousPeriod, stockCoverage } from '@/components/inventory/dashboard-model';
+import {
+  formatQty,
+  isInbound,
+  itemStockStatus,
+  movementTypeLabel,
+  type InventoryItemRow,
+  type InventoryItemSummary,
+  type StockMovementRow,
+  type StockMovementSummary,
+} from '@/components/inventory/inventory-rows';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+type ValueBy = 'category' | 'warehouse';
+const VALUE_BY_PARAM = 'valueBy';
+const VALUE_BY_OPTIONS: ReadonlyArray<{ value: ValueBy; label: string }> = [
+  { value: 'category', label: 'Kategori' },
+  { value: 'warehouse', label: 'Gudang' },
+];
+const ATTENTION_LIMIT = 8;
+const OTHER_GROUP_KEY = '__other__';
 
-const MIN_STOCK_KG = 20_000;
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface DashboardMetrics {
-  totalItems: number;
-  activeItems: number;
-  lowStockCount: number;
-  movementsThisMonth: number;
+interface StockValueBreakdown {
+  groupBy: ValueBy;
+  total: number;
+  groups: Array<{ key: string; label: string; itemCount: number; value: number; share: number }>;
 }
 
-interface InventoryItem {
-  id: string;
-  code: string;
-  name: string;
-  unit: string;
-  category: string | null;
-  currentStock: number | string;
-  minimumStock: number | string;
-  isActive: boolean;
+const inv = (params: Record<string, string>) => `/inventory?${new URLSearchParams(params).toString()}`;
+const itemsLink = (params: Record<string, string>) => inv({ tab: 'items', ...params });
+const movementsLink = (params: Record<string, string>) => inv({ tab: 'movements', ...params });
+
+function useMovementSummary(range: { startDate: string; endDate: string }) {
+  return useQuery({
+    queryKey: ['stock-movements', 'summary', range],
+    queryFn: async () => (await api.get<StockMovementSummary>('/inventory/movements/summary', { params: range })).data,
+    placeholderData: keepPreviousData,
+  });
 }
 
-interface MovementTrendRaw {
-  month: string;
-  inQty: number;
-  outQty: number;
-  adjInQty: number;
-  adjOutQty: number;
-  netChange: number;
+function useAttentionItems(stockStatus: 'out' | 'low') {
+  return useQuery({
+    queryKey: ['inventory-items', 'list', { dashboard: stockStatus }],
+    queryFn: async () =>
+      (
+        await api.get<Paginated<InventoryItemRow>>('/inventory/items', {
+          params: {
+            isActive: 'true',
+            stockStatus,
+            sort: stockStatus === 'out' ? 'name' : 'currentStock',
+            limit: ATTENTION_LIMIT,
+          },
+        })
+      ).data,
+  });
 }
 
-interface RecentMovement {
-  id: string;
-  date: string;
-  item: { name: string; unit: string; code: string };
-  movementType: 'In' | 'Out' | 'AdjustmentIn' | 'AdjustmentOut';
-  quantity: number;
-  totalValue: number | null;
-}
+export default function InventoryDashboardTab() {
+  const { period, setPreset, setRange } = useDashboardPeriod();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const valueBy: ValueBy = searchParams.get(VALUE_BY_PARAM) === 'warehouse' ? 'warehouse' : 'category';
+  const range = useMemo(() => ({ startDate: period.startDate, endDate: period.endDate }), [period.startDate, period.endDate]);
+  const prevRange = useMemo(() => previousPeriod(range), [range]);
 
-interface ProductionStats {
-  totalRuns: number;
-  thisMonthRuns: number;
-  avgYield: number;
-}
+  const summaryQuery = useQuery({
+    queryKey: ['inventory-items', 'summary', { isActive: 'true' }],
+    queryFn: async () =>
+      (await api.get<InventoryItemSummary>('/inventory/items/summary', { params: { isActive: 'true' } })).data,
+  });
+  const movementQuery = useMovementSummary(range);
+  const prevMovementQuery = useMovementSummary(prevRange);
+  const outQuery = useAttentionItems('out');
+  const lowQuery = useAttentionItems('low');
+  const valueQuery = useQuery({
+    queryKey: ['inventory-dashboard', 'stock-value', valueBy],
+    queryFn: async () =>
+      (await api.get<StockValueBreakdown>('/inventory/dashboard/stock-value', { params: { groupBy: valueBy } })).data,
+    placeholderData: keepPreviousData,
+  });
+  const recentQuery = useQuery({
+    queryKey: ['stock-movements', 'list', { dashboard: true, ...range }],
+    queryFn: async () =>
+      (
+        await api.get<Paginated<StockMovementRow>>('/inventory/movements', {
+          params: { ...range, status: 'active', sort: '-date', limit: 8 },
+        })
+      ).data,
+    placeholderData: keepPreviousData,
+  });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+  const summary = summaryQuery.data;
+  const moves = movementQuery.data;
+  const prevMoves = prevMovementQuery.data;
+  const movementCount = moves ? moves.count - moves.cancelledCount : null;
+  const prevMovementCount = prevMoves ? prevMoves.count - prevMoves.cancelledCount : null;
+  const kpiLoading = !summary && !summaryQuery.isError;
+  const periodLinkParams = { startDate: range.startDate, endDate: range.endDate };
 
-const fmtNum = (val: number | string, decimals = 0) =>
-  Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
+  const setValueBy = (next: ValueBy) =>
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (next === 'category') p.delete(VALUE_BY_PARAM);
+      else p.set(VALUE_BY_PARAM, next);
+      return p;
+    });
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-
-function useIsDark(): boolean {
-  const check = useCallback(() => {
-    const html = document.documentElement;
-    return html.classList.contains('dark') || html.getAttribute('data-theme') === 'dark';
-  }, []);
-
-  const [dark, setDark] = useState(check);
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => setDark(check()));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-    return () => observer.disconnect();
-  }, [check]);
-
-  return dark;
-}
-
-const movementBadge: Record<string, { label: string; cls: string }> = {
-  In: { label: 'Masuk', cls: 'badge badge-green' },
-  Out: { label: 'Keluar', cls: 'badge badge-red' },
-  AdjustmentIn: { label: 'Adj+', cls: 'badge badge-blue' },
-  AdjustmentOut: { label: 'Adj−', cls: 'badge badge-orange' },
-};
-
-function stockStatus(current: number): { label: string; color: string; bgColor: string } {
-  const pct = (current / MIN_STOCK_KG) * 100;
-  if (current <= 0) return { label: 'Habis', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/40' };
-  if (pct <= 50) return { label: 'Kritis', color: 'text-red-700', bgColor: 'bg-red-50 dark:bg-red-900/30' };
-  if (pct <= 100) return { label: 'Menipis', color: 'text-amber-700', bgColor: 'bg-amber-50 dark:bg-amber-900/30' };
-  if (pct <= 200) return { label: 'Normal', color: 'text-green-700', bgColor: 'bg-green-50 dark:bg-green-900/30' };
-  return { label: 'Surplus', color: 'text-blue-700', bgColor: 'bg-blue-50 dark:bg-blue-900/30' };
-}
-
-function stockBarColor(current: number): string {
-  const pct = (current / MIN_STOCK_KG) * 100;
-  if (current <= 0) return '#dc2626';
-  if (pct <= 50) return '#ef4444';
-  if (pct <= 100) return '#f59e0b';
-  if (pct <= 200) return '#22c55e';
-  return '#3b82f6';
-}
-
-function stockBarWidth(current: number): number {
-  return Math.min(100, Math.round((current / (MIN_STOCK_KG * 3)) * 100));
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-interface KpiCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  bgClass: string;
-  iconClass: string;
-  loading: boolean;
-  subtitle?: string;
-}
-
-function KpiCard({ title, value, icon: Icon, bgClass, iconClass, loading, subtitle }: KpiCardProps) {
   return (
-    <div className="border rounded-xl p-5" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-          {title}
-        </span>
-        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', bgClass)}>
-          <Icon size={16} className={iconClass} />
-        </div>
-      </div>
-      {loading ? (
-        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-text-muted)' }} />
-      ) : (
-        <>
-          <p className="text-2xl font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
-            {value}
-          </p>
-          {subtitle && (
-            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{subtitle}</p>
-          )}
-        </>
+    <div className="space-y-5">
+      <PeriodToolbar period={period} onPresetChange={setPreset} onRangeChange={setRange} />
+
+      <section aria-label="Ringkasan persediaan" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard
+          className="col-span-2 lg:col-span-1"
+          label="Nilai Persediaan"
+          icon={Wallet}
+          loading={kpiLoading}
+          value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '-'}
+          valueTitle={summary ? formatRupiah(summary.stockValue) : undefined}
+          hint="stok × harga rata-rata, item aktif"
+        />
+        <StatCard
+          label="Item Aktif"
+          icon={Boxes}
+          loading={kpiLoading}
+          value={summary ? formatNumber(summary.count) : '-'}
+          hint="item persediaan"
+          href={itemsLink({ isActive: 'true' })}
+        />
+        <StatCard
+          label="Stok Habis"
+          icon={PackageX}
+          loading={kpiLoading}
+          value={summary ? formatNumber(summary.outCount) : '-'}
+          hint="stok nol atau minus"
+          href={itemsLink({ isActive: 'true', stockStatus: 'out' })}
+        />
+        <StatCard
+          label="Di Bawah Minimum"
+          icon={AlertTriangle}
+          loading={kpiLoading}
+          value={summary ? formatNumber(summary.lowCount) : '-'}
+          hint="perlu dipesan ulang"
+          href={itemsLink({ isActive: 'true', stockStatus: 'low' })}
+        />
+        <StatCard
+          label="Gerakan Stok"
+          icon={ArrowLeftRight}
+          loading={!moves && !movementQuery.isError}
+          value={movementCount !== null ? formatNumber(movementCount) : '-'}
+          delta={movementCount !== null ? countDelta(movementCount, prevMovementCount) : undefined}
+          hint={moves ? `${formatNumber(moves.inCount)} masuk · ${formatNumber(moves.outCount)} keluar` : period.label}
+          href={movementsLink(periodLinkParams)}
+        />
+      </section>
+      {summaryQuery.isError && (
+        <p role="alert" className="text-sm text-danger-text">
+          Ringkasan persediaan gagal dimuat.{' '}
+          <button type="button" className="font-medium underline" onClick={() => summaryQuery.refetch()}>
+            Coba lagi
+          </button>
+        </p>
       )}
+
+      <div className="grid gap-5 lg:grid-cols-5">
+        <AttentionPanel
+          className="lg:col-span-3"
+          outQuery={outQuery}
+          lowQuery={lowQuery}
+          outCount={summary?.outCount}
+          lowCount={summary?.lowCount}
+        />
+        <StockValuePanel
+          className="lg:col-span-2"
+          valueBy={valueBy}
+          onValueByChange={setValueBy}
+          query={valueQuery}
+        />
+      </div>
+
+      <RecentMovementsPanel
+        rangeLabel={`${period.label} · ${period.rangeLabel}`}
+        query={recentQuery}
+        allHref={movementsLink(periodLinkParams)}
+      />
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
+// ─── Perlu tindakan ─────────────────────────────────────────────────────────
 
-export default function InventoryDashboardTab() {
-  const isDark = useIsDark();
-  const chartGrid = isDark ? '#334155' : '#f3f4f6';
-  const chartTick = isDark ? '#94a3b8' : '#9ca3af';
-  const chartTooltipBg = isDark ? '#1e293b' : '#fff';
-  const chartTooltipBorder = isDark ? '#475569' : '#e5e7eb';
+type ItemsQuery = ReturnType<typeof useAttentionItems>;
 
-  // --- Queries ---
-  const { data: metrics, isLoading: metricsLoading } = useQuery<DashboardMetrics>({
-    queryKey: ['warehouse-metrics'],
-    queryFn: () => api.get('/inventory/dashboard/metrics').then(r => r.data),
-  });
+function AttentionPanel({
+  outQuery,
+  lowQuery,
+  outCount,
+  lowCount,
+  className,
+}: {
+  outQuery: ItemsQuery;
+  lowQuery: ItemsQuery;
+  outCount?: number;
+  lowCount?: number;
+  className?: string;
+}) {
+  const rows = useMemo(
+    () => attentionRows(outQuery.data?.data ?? [], lowQuery.data?.data ?? [], ATTENTION_LIMIT),
+    [outQuery.data, lowQuery.data],
+  );
+  const total = (outQuery.data?.total ?? 0) + (lowQuery.data?.total ?? 0);
+  const loading = (outQuery.isLoading || lowQuery.isLoading) && rows.length === 0;
+  const error = outQuery.error ?? lowQuery.error;
+  const navigate = useNavigate();
 
-  const { data: itemsRaw, isLoading: itemsLoading } = useQuery({
-    queryKey: ['inventory-items'],
-    queryFn: () => api.get('/inventory/items').then(r => r.data),
-  });
-  const allItems: InventoryItem[] = Array.isArray(itemsRaw)
-    ? itemsRaw
-    : (itemsRaw?.data ?? []);
-  const activeItems = allItems.filter(i => i.isActive);
-
-  const { data: trendData, isLoading: trendLoading } = useQuery({
-    queryKey: ['warehouse-movement-trend'],
-    queryFn: async () => {
-      const r = await api.get<MovementTrendRaw[]>('/inventory/dashboard/movement-trend');
-      return r.data.map(d => {
-        const [, m] = d.month.split('-');
-        return {
-          month: MONTH_NAMES[parseInt(m, 10) - 1] ?? d.month,
-          masuk: d.inQty + d.adjInQty,
-          keluar: d.outQty + d.adjOutQty,
-          net: d.netChange,
-        };
-      });
-    },
-  });
-
-  const { data: recentMovements, isLoading: movementsLoading } = useQuery<RecentMovement[]>({
-    queryKey: ['warehouse-recent-movements'],
-    queryFn: () => api.get('/inventory/dashboard/recent-movements').then(r => r.data),
-  });
-
-  const { data: prodStats, isLoading: prodLoading } = useQuery<ProductionStats>({
-    queryKey: ['warehouse-production-stats'],
-    queryFn: () => api.get('/inventory/dashboard/production-stats').then(r => r.data),
-  });
-
-  // --- Derived data ---
-  const totalStockKg = activeItems.reduce((sum, i) => sum + Number(i.currentStock), 0);
-  const lowStockItems = activeItems.filter(i => Number(i.currentStock) < MIN_STOCK_KG);
-  const criticalItems = activeItems.filter(i => Number(i.currentStock) <= MIN_STOCK_KG * 0.5);
-
-  // Sort for stock overview: lowest stock first
-  const sortedItems = [...activeItems].sort((a, b) => Number(b.currentStock) - Number(a.currentStock));
-
-  // Chart data for stock per item
-  const stockChartData = [...activeItems]
-    .sort((a, b) => Number(b.currentStock) - Number(a.currentStock))
-    .slice(0, 15)
-    .map(i => ({
-      name: i.code,
-      fullName: i.name,
-      stock: Number(i.currentStock),
-      min: MIN_STOCK_KG,
-    }));
+  const columns = useMemo<ColumnDef<InventoryItemRow>[]>(
+    () => [
+      {
+        id: 'item',
+        header: 'Item',
+        meta: { cellClassName: 'min-w-36 max-w-72' },
+        cell: ({ row }) => {
+          const i = row.original;
+          return (
+            <div className="min-w-0">
+              <Link
+                to={itemsLink({ q: i.code })}
+                className="line-clamp-2 rounded-sm font-medium text-foreground underline-offset-2 hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {i.name}
+              </Link>
+              <p className="num font-mono text-xs text-muted-foreground">{i.code}</p>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'stock',
+        header: 'Stok / Min.',
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const i = row.original;
+          const coverage = stockCoverage(i.currentStock, i.minimumStock);
+          const out = itemStockStatus(i) === 'out';
+          return (
+            <div className="flex flex-col items-end gap-1">
+              <span className={cn('font-semibold', out ? 'text-danger-text' : 'text-warning-text')}>
+                {formatQty(i.currentStock)}
+                <span className="font-normal text-muted-foreground">
+                  {' '}
+                  / {toNumber(i.minimumStock) ? formatQty(i.minimumStock) : '-'} {i.unit}
+                </span>
+              </span>
+              {coverage !== null && (
+                <span
+                  className="block h-1 w-20 overflow-hidden rounded-full bg-muted"
+                  role="img"
+                  aria-label={`${formatPercent(Math.min(coverage, 1), { decimals: 0 })} dari stok minimum`}
+                >
+                  <span
+                    className={cn('block h-full rounded-full', out ? 'bg-danger' : 'bg-warning')}
+                    style={{ width: `${Math.max(4, Math.min(coverage, 1) * 100)}%` }}
+                  />
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <StatusBadge status={itemStockStatus(row.original)} docType="inventory_item" />,
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const i = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${i.code}`}
+              actions={[
+                {
+                  label: 'Lihat item',
+                  icon: PackageSearch,
+                  onSelect: () => navigate(itemsLink({ q: i.code })),
+                },
+                {
+                  label: 'Riwayat gerakan',
+                  icon: History,
+                  onSelect: () => navigate(movementsLink({ itemId: i.id })),
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    [navigate],
+  );
 
   return (
-    <div className="space-y-5">
-      {/* ─── KPI Cards ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard
-          title="Total Item"
-          value={metrics?.totalItems ?? 0}
-          icon={Package}
-          bgClass="bg-blue-50 dark:bg-blue-900/30"
-          iconClass="text-blue-600"
-          loading={metricsLoading}
-        />
-        <KpiCard
-          title="Total Stok"
-          value={`${fmtNum(totalStockKg)} Kg`}
-          icon={CheckCircle}
-          bgClass="bg-green-50 dark:bg-green-900/30"
-          iconClass="text-green-600"
-          loading={itemsLoading}
-          subtitle={`${activeItems.length} item aktif`}
-        />
-        <KpiCard
-          title="Stok Menipis"
-          value={lowStockItems.length}
-          icon={AlertTriangle}
-          bgClass="bg-amber-50 dark:bg-amber-900/30"
-          iconClass="text-amber-600"
-          loading={itemsLoading}
-          subtitle={`< ${fmtNum(MIN_STOCK_KG)} Kg`}
-        />
-        <KpiCard
-          title="Stok Kritis"
-          value={criticalItems.length}
-          icon={AlertTriangle}
-          bgClass="bg-red-50 dark:bg-red-900/30"
-          iconClass="text-red-600"
-          loading={itemsLoading}
-          subtitle={`< ${fmtNum(MIN_STOCK_KG / 2)} Kg`}
-        />
-        <KpiCard
-          title="Gerakan Bulan Ini"
-          value={metrics?.movementsThisMonth ?? 0}
-          icon={ArrowLeftRight}
-          bgClass="bg-purple-50 dark:bg-purple-900/30"
-          iconClass="text-purple-600"
-          loading={metricsLoading}
-        />
-      </div>
-
-      {/* ─── Stock Level Overview ─── */}
-      <div className="border rounded-xl p-5" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Status Stok Semua Item
-          </h2>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800" style={{ color: 'var(--color-text-muted)' }}>
-            Stok Min: {fmtNum(MIN_STOCK_KG)} Kg
+    <Panel
+      className={className}
+      title="Perlu tindakan"
+      description="Item aktif yang stoknya habis atau di bawah minimum."
+      bodyClassName="p-0"
+      action={
+        total > 0 ? (
+          <Link
+            to={itemsLink({ isActive: 'true', stockStatus: (outCount ?? 0) > 0 ? 'out' : 'low' })}
+            className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Lihat semua ({formatNumber((outCount ?? 0) + (lowCount ?? 0) || total)})
+            <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        ) : undefined
+      }
+    >
+      {!loading && !error && rows.length === 0 ? (
+        <div role="status" className="flex items-center gap-3 px-4 py-6">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success-subtle text-success-text">
+            <CheckCircle2 className="size-5" aria-hidden />
           </span>
+          <div>
+            <p className="text-sm font-medium text-foreground">Semua stok aman</p>
+            <p className="text-xs text-muted-foreground">Tidak ada item aktif yang habis atau di bawah minimum.</p>
+          </div>
         </div>
-        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
-          Perbandingan stok saat ini terhadap batas minimum {fmtNum(MIN_STOCK_KG)} Kg per item.
-        </p>
+      ) : (
+        <DataTable
+          label="Item yang perlu tindakan"
+          columns={columns}
+          data={rows}
+          getRowId={(r) => r.id}
+          loading={loading}
+          error={error}
+          onRetry={() => {
+            outQuery.refetch();
+            lowQuery.refetch();
+          }}
+          stickyHeader={false}
+          pageSize={ATTENTION_LIMIT}
+          className="[&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none"
+        />
+      )}
+    </Panel>
+  );
+}
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-3 mb-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" /> Habis/Kritis (&le;50%)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" /> Menipis (50-100%)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" /> Normal (100-200%)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" /> Surplus (&gt;200%)</span>
-        </div>
+// ─── Nilai stok ─────────────────────────────────────────────────────────────
 
-        {itemsLoading ? (
-          <div className="py-12 flex items-center justify-center">
-            <Loader2 className="animate-spin" size={24} style={{ color: 'var(--color-text-muted)' }} />
-          </div>
-        ) : sortedItems.length === 0 ? (
-          <div className="py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-            <Package size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-xs">Belum ada item persediaan</p>
-          </div>
-        ) : (
-          // Focusable so keyboard users can scroll the overflowing table.
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-          <div className="overflow-x-auto" role="region" aria-label="Tabel stok item" tabIndex={0}>
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ color: 'var(--color-text-muted)' }}>
-                  <th className="text-left font-medium pb-2 pl-1">Kode</th>
-                  <th className="text-left font-medium pb-2">Nama Item</th>
-                  <th className="text-right font-medium pb-2">Stok Saat Ini</th>
-                  <th className="text-right font-medium pb-2">Min ({fmtNum(MIN_STOCK_KG)})</th>
-                  <th className="font-medium pb-2 w-36 text-center">Level</th>
-                  <th className="text-center font-medium pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedItems.map(item => {
-                  const current = Number(item.currentStock);
-                  const pct = MIN_STOCK_KG > 0 ? Math.round((current / MIN_STOCK_KG) * 100) : 0;
-                  const status = stockStatus(current);
-                  const trend = current > MIN_STOCK_KG
-                    ? TrendingUp
-                    : current > 0
-                      ? TrendingDown
-                      : Minus;
+function StockValuePanel({
+  valueBy,
+  onValueByChange,
+  query,
+  className,
+}: {
+  valueBy: ValueBy;
+  onValueByChange: (v: ValueBy) => void;
+  query: ReturnType<typeof useQuery<StockValueBreakdown>>;
+  className?: string;
+}) {
+  const data = query.data;
+  const groups = data?.groups ?? [];
+  const chartHeight = Math.max(160, groups.length * 36 + 24);
 
-                  return (
-                    <tr key={item.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-                      <td className="py-2.5 pl-1">
-                        <span className="font-mono bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
-                          {item.code}
-                        </span>
-                      </td>
-                      <td className="py-2.5 font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                        {item.name}
-                        {item.category && (
-                          <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800" style={{ color: 'var(--color-text-muted)' }}>
-                            {item.category}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                        {fmtNum(current, 1)} <span className="font-normal text-xs" style={{ color: 'var(--color-text-muted)' }}>{item.unit}</span>
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
-                        {fmtNum(MIN_STOCK_KG)}
-                      </td>
-                      <td className="py-2.5 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{
-                                width: `${stockBarWidth(current)}%`,
-                                backgroundColor: stockBarColor(current),
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs tabular-nums w-8 text-right font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                            {pct}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-center">
-                        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold', status.bgColor, status.color)}>
-                          {React.createElement(trend, { size: 10 })}
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* ─── Chart: Stock per Item ─── */}
-      {stockChartData.length > 0 && (
-        <div className="border rounded-xl p-5" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-          <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-            Perbandingan Stok vs Minimum ({fmtNum(MIN_STOCK_KG)} Kg)
-          </h2>
-          <div className="h-72">
+  return (
+    <Panel
+      className={className}
+      title={`Nilai stok per ${valueBy === 'category' ? 'kategori' : 'gudang'}`}
+      description={
+        data
+          ? `Total ${formatRupiah(data.total)}${valueBy === 'warehouse' ? ' · saldo per gudang' : ''}`
+          : 'Stok × harga rata-rata, item aktif.'
+      }
+      action={<SegmentedToggle label="Kelompokkan nilai stok" value={valueBy} options={VALUE_BY_OPTIONS} onChange={onValueByChange} />}
+    >
+      <PanelState
+        loading={query.isLoading}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        empty={groups.length === 0}
+        emptyTitle="Belum ada nilai stok"
+        emptyDescription="Nilai muncul setelah item memiliki stok dan harga rata-rata."
+        skeleton="chart"
+      >
+        <figure className={cn('m-0', query.isFetching && query.isPlaceholderData && 'opacity-60')}>
+          <div style={{ height: chartHeight }} aria-hidden>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stockChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={chartGrid} />
+              <BarChart accessibilityLayer={false} data={groups} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }} barCategoryGap={8}>
+                <CartesianGrid horizontal={false} stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
                 <XAxis
                   type="number"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: chartTick, fontSize: 10 }}
-                  tickFormatter={v => fmtNum(v)}
+                  {...CHART_AXIS}
+                  tickFormatter={(v: number) => formatRupiah(v, { compact: true, symbol: false })}
                 />
                 <YAxis
                   type="category"
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: chartTick, fontSize: 10 }}
-                  width={70}
+                  dataKey="label"
+                  {...CHART_AXIS}
+                  width={104}
+                  tickFormatter={(v: string) => (v.length > 14 ? `${v.slice(0, 13)}…` : v)}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: chartTooltipBg,
-                    border: `1px solid ${chartTooltipBorder}`,
-                    borderRadius: '8px',
-                    fontSize: 12,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    color: isDark ? '#e2e8f0' : '#1e293b',
-                  }}
-                  formatter={(value, name) => {
-                    if (name === 'stock') return [`${fmtNum(Number(value))} Kg`, 'Stok Saat Ini'];
-                    return [`${fmtNum(Number(value))} Kg`, 'Minimum'];
-                  }}
-                  labelFormatter={(label) => {
-                    const item = stockChartData.find(d => d.name === label);
-                    return item?.fullName ?? label;
+                  cursor={{ fill: 'var(--accent)' }}
+                  content={({ active, payload }) => {
+                    const g = active ? (payload?.[0]?.payload as StockValueBreakdown['groups'][number] | undefined) : undefined;
+                    if (!g) return null;
+                    return (
+                      <ChartTooltipBox
+                        title={g.label}
+                        rows={[
+                          { label: 'Nilai', value: formatRupiah(g.value) },
+                          { label: 'Porsi', value: formatPercent(g.share) },
+                          { label: 'Item berstok', value: formatNumber(g.itemCount) },
+                        ]}
+                      />
+                    );
                   }}
                 />
-                <Bar dataKey="stock" radius={[0, 4, 4, 0]} barSize={16}>
-                  {stockChartData.map((entry, idx) => (
-                    <Cell key={idx} fill={stockBarColor(entry.stock)} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                  {groups.map((g) => (
+                    <Cell key={g.key} fill={g.key === OTHER_GROUP_KEY ? 'var(--chart-6)' : 'var(--chart-2)'} />
                   ))}
                 </Bar>
-                {/* Reference line for minimum stock */}
-                <Line
-                  dataKey="min"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  strokeDasharray="6 3"
-                  dot={false}
-                  type="step"
-                  legendType="none"
-                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            <span className="flex items-center gap-1.5">
-              <span className="w-8 h-0.5 border-t-2 border-dashed border-red-500 inline-block" />
-              Batas Minimum ({fmtNum(MIN_STOCK_KG)} Kg)
-            </span>
-          </div>
-        </div>
-      )}
+          <figcaption className="sr-only">
+            Nilai stok per {valueBy === 'category' ? 'kategori' : 'gudang'}:{' '}
+            {groups.map((g) => `${g.label} ${formatRupiah(g.value)} (${formatPercent(g.share)})`).join('; ')}
+          </figcaption>
+        </figure>
+      </PanelState>
+    </Panel>
+  );
+}
 
-      {/* ─── Row: Trend + Production + Recent ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Movement Trend Chart */}
-        <div className="lg:col-span-2 border rounded-xl p-5" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-              Tren Pergerakan Stok (6 Bulan)
-            </h2>
-            <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" /> Masuk
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" /> Keluar
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" /> Net
-              </span>
-            </div>
-          </div>
-          <div className="h-56">
-            {trendLoading ? (
-              <div className="py-12 flex items-center justify-center">
-                <Loader2 className="animate-spin" size={24} style={{ color: 'var(--color-text-muted)' }} />
-              </div>
-            ) : !trendData || trendData.length === 0 ? (
-              <div className="py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-                <p className="text-xs">Belum ada data pergerakan</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={trendData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGrid} />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: chartTick, fontSize: 11 }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: chartTick, fontSize: 11 }} tickFormatter={v => fmtNum(v)} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: chartTooltipBg, border: `1px solid ${chartTooltipBorder}`, borderRadius: '8px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: isDark ? '#e2e8f0' : '#1e293b' }}
-                    formatter={(value, name) => {
-                      const labels: Record<string, string> = { masuk: 'Masuk', keluar: 'Keluar', net: 'Net Change' };
-                      return [fmtNum(Number(value)), labels[String(name)] ?? String(name)];
-                    }}
-                  />
-                  <Bar dataKey="masuk" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="keluar" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="net" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+// ─── Gerakan terbaru ────────────────────────────────────────────────────────
 
-        {/* Production Stats */}
-        <div className="border rounded-xl p-5" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-          <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-            Statistik Produksi
-          </h2>
-          {prodLoading ? (
-            <div className="py-12 flex items-center justify-center">
-              <Loader2 className="animate-spin" size={24} style={{ color: 'var(--color-text-muted)' }} />
-            </div>
-          ) : !prodStats ? (
-            <div className="py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-              <Package size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-xs">Belum ada data produksi</p>
-            </div>
+function RecentMovementsPanel({
+  rangeLabel,
+  query,
+  allHref,
+}: {
+  rangeLabel: string;
+  query: ReturnType<typeof useQuery<Paginated<StockMovementRow>>>;
+  allHref: string;
+}) {
+  const columns = useMemo<ColumnDef<StockMovementRow>[]>(
+    () => [
+      {
+        id: 'date',
+        header: 'Tanggal',
+        meta: { hideBelow: 'sm', cellClassName: 'whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => <span className="num">{formatDate(row.original.date)}</span>,
+      },
+      {
+        id: 'number',
+        header: 'No. Gerakan',
+        meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => {
+          const m = row.original;
+          return m.movementNumber ? (
+            <Link
+              to={movementsLink({ q: m.movementNumber })}
+              className="num rounded-sm font-mono text-xs font-medium text-primary-hover underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {m.movementNumber}
+            </Link>
           ) : (
-            <div className="space-y-5">
-              <div>
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-                  Total Produksi
-                </span>
-                <p className="text-2xl font-semibold tabular-nums mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                  {fmtNum(prodStats.totalRuns)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-                  Produksi Bulan Ini
-                </span>
-                <p className="text-2xl font-semibold tabular-nums mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                  {fmtNum(prodStats.thisMonthRuns)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-                  Rata-rata Yield
-                </span>
-                <p className="text-2xl font-semibold tabular-nums mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                  {Number(prodStats.avgYield).toFixed(1)}%
-                </p>
-              </div>
+            '-'
+          );
+        },
+      },
+      {
+        id: 'item',
+        header: 'Item',
+        meta: { cellClassName: 'min-w-32 max-w-72' },
+        cell: ({ row }) => {
+          const m = row.original;
+          return (
+            <div className="min-w-0">
+              {m.item ? (
+                <Link
+                  to={movementsLink({ itemId: m.item.id })}
+                  className="line-clamp-1 rounded-sm font-medium text-foreground underline-offset-2 hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title="Riwayat gerakan item"
+                >
+                  {m.item.name}
+                </Link>
+              ) : (
+                '-'
+              )}
+              <p className="num text-xs text-muted-foreground sm:hidden">{formatDate(m.date, 'short')}</p>
             </div>
-          )}
-        </div>
-      </div>
+          );
+        },
+      },
+      {
+        id: 'type',
+        header: 'Tipe',
+        meta: { hideBelow: 'sm', cellClassName: 'whitespace-nowrap' },
+        cell: ({ row }) => {
+          const inbound = isInbound(row.original.movementType);
+          const Icon = inbound ? ArrowDownLeft : ArrowUpRight;
+          return (
+            <span className={cn('inline-flex items-center gap-1 text-xs font-medium', inbound ? 'text-success-text' : 'text-danger-text')}>
+              <Icon className="size-3.5" aria-hidden />
+              {movementTypeLabel(row.original.movementType)}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'quantity',
+        header: 'Kuantitas',
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const m = row.original;
+          const inbound = isInbound(m.movementType);
+          return (
+            <span className={cn('font-medium', inbound ? 'text-success-text' : 'text-foreground')}>
+              {inbound ? '+' : '−'}
+              {formatQty(m.quantity)} <span className="font-normal text-muted-foreground">{m.item?.unit}</span>
+            </span>
+          );
+        },
+      },
+      {
+        id: 'value',
+        header: 'Nilai',
+        meta: { align: 'right', hideBelow: 'md' },
+        cell: ({ row }) => (row.original.totalValue != null ? formatRupiah(row.original.totalValue) : '-'),
+      },
+    ],
+    [],
+  );
 
-      {/* ─── Recent Movements ─── */}
-      <div className="border rounded-xl p-5" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-        <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-          Gerakan Stok Terkini
-        </h2>
-        {movementsLoading ? (
-          <div className="py-12 flex items-center justify-center">
-            <Loader2 className="animate-spin" size={24} style={{ color: 'var(--color-text-muted)' }} />
-          </div>
-        ) : !recentMovements || recentMovements.length === 0 ? (
-          <div className="py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-            <ArrowLeftRight size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-xs">Belum ada gerakan stok</p>
-          </div>
-        ) : (
-          // Focusable so keyboard users can scroll the overflowing table.
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-          <div className="overflow-x-auto" role="region" aria-label="Tabel gerakan stok terbaru" tabIndex={0}>
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ color: 'var(--color-text-muted)' }}>
-                  <th className="text-left font-medium pb-2">Tanggal</th>
-                  <th className="text-left font-medium pb-2">Item</th>
-                  <th className="text-center font-medium pb-2">Tipe</th>
-                  <th className="text-right font-medium pb-2">Kuantitas</th>
-                  <th className="text-right font-medium pb-2">Nilai</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentMovements.map(mov => {
-                  const badge = movementBadge[mov.movementType] ?? { label: mov.movementType, cls: 'badge' };
-                  return (
-                    <tr key={mov.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-                      <td className="py-2 whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
-                        {format(new Date(mov.date), 'dd MMM yyyy', { locale: idLocale })}
-                      </td>
-                      <td className="py-2 font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                        <span className="font-mono text-xs bg-gray-50 dark:bg-gray-800 px-1 py-0.5 rounded mr-1.5">
-                          {mov.item?.code}
-                        </span>
-                        {mov.item?.name ?? '-'}
-                      </td>
-                      <td className="py-2 text-center">
-                        <span className={badge.cls}>{badge.label}</span>
-                      </td>
-                      <td className="py-2 text-right tabular-nums font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                        {fmtNum(mov.quantity)} <span className="font-normal text-xs" style={{ color: 'var(--color-text-muted)' }}>{mov.item?.unit}</span>
-                      </td>
-                      <td className="py-2 text-right tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
-                        {mov.totalValue != null ? formatRupiah(Number(mov.totalValue)) : '\u2014'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+  return (
+    <Panel
+      title="Gerakan stok terbaru"
+      description={rangeLabel}
+      bodyClassName="p-0"
+      action={
+        <Link
+          to={allHref}
+          className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Semua gerakan
+          <ArrowRight className="size-3.5" aria-hidden />
+        </Link>
+      }
+    >
+      <DataTable
+        label="Gerakan stok terbaru"
+        columns={columns}
+        data={query.data?.data}
+        getRowId={(r) => r.id}
+        loading={query.isLoading}
+        fetching={query.isFetching && query.isPlaceholderData}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        stickyHeader={false}
+        pageSize={8}
+        empty={{ title: 'Belum ada gerakan', description: 'Tidak ada gerakan stok pada periode ini.' }}
+        className="[&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none"
+      />
+    </Panel>
   );
 }

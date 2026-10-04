@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { logger } from '../../lib/logger';
+import { parseStockValueGroupBy, summarizeStockValue } from '../../services/inventoryDashboard';
 
 const router = Router();
 
@@ -71,6 +72,52 @@ router.get('/by-category', async (_req, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /inventory/dashboard/by-category error');
     return res.status(500).json({ error: 'Gagal mengambil data kategori.' });
+  }
+});
+
+// GET /api/inventory/dashboard/stock-value?groupBy=category|warehouse —
+// operational stock value (qty × average cost) of active items per category
+// or per warehouse (inventory_stocks balance × the item's average cost).
+// → { groupBy, total, groups: [{ key, label, itemCount, value, share }] }
+router.get('/stock-value', async (req, res) => {
+  const groupBy = parseStockValueGroupBy(req.query.groupBy);
+  if (!groupBy) return res.status(400).json({ error: 'Pengelompokan harus category atau warehouse.' });
+  try {
+    if (groupBy === 'category') {
+      const items = await prisma.inventoryItem.findMany({
+        where: { isActive: true },
+        select: { category: true, currentStock: true, averageCost: true },
+      });
+      return res.json(
+        summarizeStockValue(
+          items.map((i) => ({ key: i.category, quantity: i.currentStock, unitCost: i.averageCost })),
+          groupBy,
+        ),
+      );
+    }
+    const stocks = await prisma.inventoryStock.findMany({
+      where: { item: { isActive: true } },
+      select: {
+        warehouseId: true,
+        currentStock: true,
+        warehouse: { select: { name: true } },
+        item: { select: { averageCost: true } },
+      },
+    });
+    return res.json(
+      summarizeStockValue(
+        stocks.map((s) => ({
+          key: s.warehouseId,
+          label: s.warehouse?.name ?? null,
+          quantity: s.currentStock,
+          unitCost: s.item.averageCost,
+        })),
+        groupBy,
+      ),
+    );
+  } catch (error) {
+    logger.error({ error }, 'GET /inventory/dashboard/stock-value error');
+    return res.status(500).json({ error: 'Gagal mengambil nilai stok.' });
   }
 });
 

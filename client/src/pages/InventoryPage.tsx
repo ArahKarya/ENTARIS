@@ -49,6 +49,8 @@ import {
   type ServiceItemRow,
   type StockMovementRow,
 } from '@/components/inventory/inventory-rows';
+import { PERIOD_PARAM } from '@/components/inventory/dashboard-model';
+import { ProductionApprovalView } from '@/components/inventory/ProductionApprovalView';
 
 type Tab = 'dashboard' | 'items' | 'movements' | 'production' | 'services';
 type ProdView = 'dashboard' | 'data' | 'approval' | 'costStandards' | 'processes' | 'machines';
@@ -64,6 +66,8 @@ const PROD_VIEWS: ReadonlyArray<{ value: ProdView; label: string }> = [
   { value: 'processes', label: 'Master Proses' },
   { value: 'machines', label: 'Mesin' },
 ];
+/** Production master-data views carry their own "create" action. */
+const MASTER_VIEWS = new Set<ProdView>(['costStandards', 'processes', 'machines']);
 /** List params owned by the active list (cleared on tab / view switch). */
 const LIST_KEYS = [
   ...new Set<string>([
@@ -74,6 +78,9 @@ const LIST_KEYS = [
     ...MOVEMENT_FILTER_KEYS,
     ...PRODUCTION_FILTER_KEYS,
     ...SERVICE_FILTER_KEYS,
+    // Dashboard state (period selector, stock-value grouping).
+    PERIOD_PARAM,
+    'valueBy',
   ]),
 ];
 
@@ -253,7 +260,7 @@ export function InventoryPage() {
         Catat Gerakan
       </Button>
     );
-  } else if (tab === 'production' && canEditProduction) {
+  } else if (tab === 'production' && canEditProduction && !MASTER_VIEWS.has(prodView)) {
     actions = (
       <Button onClick={openRunCreate}>
         <Plus aria-hidden />
@@ -321,7 +328,7 @@ export function InventoryPage() {
               </TabsList>
             </div>
             <TabsContent value="dashboard" className="mt-0">
-              <ProductionDashboardTab items={productionItems ?? []} />
+              <ProductionDashboardTab onOpenRun={setSelectedProdRunId} />
             </TabsContent>
             <TabsContent value="data" className="mt-0">
               <ProductionRunsTab
@@ -334,18 +341,20 @@ export function InventoryPage() {
               />
             </TabsContent>
             <TabsContent value="approval" className="mt-0">
-              <ApprovalPanel
-                documentType="ProductionRun"
-                onResubmit={(req: ApprovalRequest) => {
-                  setEditProdRun(null);
-                  setProdPrefillPayload(req.payload);
-                  setProdResubmitId(req.id);
-                  setProductionModalOpen(true);
-                }}
-                onViewDocument={(req: ApprovalRequest) => {
-                  if (req.documentId) setSelectedProdRunId(req.documentId);
-                }}
-              />
+              <ProductionApprovalView>
+                <ApprovalPanel
+                  documentType="ProductionRun"
+                  onResubmit={(req: ApprovalRequest) => {
+                    setEditProdRun(null);
+                    setProdPrefillPayload(req.payload);
+                    setProdResubmitId(req.id);
+                    setProductionModalOpen(true);
+                  }}
+                  onViewDocument={(req: ApprovalRequest) => {
+                    if (req.documentId) setSelectedProdRunId(req.documentId);
+                  }}
+                />
+              </ProductionApprovalView>
             </TabsContent>
             <TabsContent value="costStandards" className="mt-0">
               <ProductionCostStandardsTab />
