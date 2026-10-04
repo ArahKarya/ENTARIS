@@ -9,28 +9,23 @@ import { handleRouteError } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import { getBotUsername, sendTestToChat } from '../services/telegramService';
 import { logger } from '../lib/logger';
+import { parseListPaging } from '../utils/listQuery';
+import { buildUserOrderBy, buildUserWhere, summarizeUsers } from '../services/userList';
 
 const router = Router();
 
-// GET /api/users — list all users (Admin only)
+// GET /api/users — list users (Admin only).
+// Legacy contract kept: ?page&limit(default 50, max 200)&search → { data, total, page, limit }.
+// New optional params: role, status (active|inactive), sort (see services/userList).
 router.get('/', requirePerm('users'), async (req, res) => {
   try {
-    const { page = '1', limit = '50', search } = req.query;
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Number(page) - 1) * take;
-
-    const where: any = {};
-    if (typeof search === 'string' && search.trim()) {
-      where.OR = [
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { username: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+    const built = buildUserWhere(req.query);
+    if (!built.ok) return res.status(400).json({ error: built.error });
+    const { page, limit: take, skip } = parseListPaging(req.query, { defaultLimit: 50, maxLimit: 200 });
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
-        where,
+        where: built.where,
         select: {
           id: true,
           username: true,
@@ -42,18 +37,33 @@ router.get('/', requirePerm('users'), async (req, res) => {
           createdAt: true,
           telegramChatId: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: buildUserOrderBy(req.query.sort),
         skip,
         take,
       }),
-      prisma.user.count({ where }),
+      prisma.user.count({ where: built.where }),
     ]);
 
     // Jangan bocorkan chatId mentah — hanya status tertaut.
     const data = users.map(({ telegramChatId, ...u }) => ({ ...u, telegramLinked: !!telegramChatId }));
-    return res.json({ data, total, page: Number(page), limit: take });
+    return res.json({ data, total, page, limit: take });
   } catch (error) {
     return handleRouteError(res, error, 'GET /users', 'Gagal mengambil data user.');
+  }
+});
+
+// GET /api/users/summary — KPI counts with the same filters as the list (Admin only)
+router.get('/summary', requirePerm('users'), async (req, res) => {
+  try {
+    const built = buildUserWhere(req.query);
+    if (!built.ok) return res.status(400).json({ error: built.error });
+    const rows = await prisma.user.findMany({
+      where: built.where,
+      select: { isActive: true, telegramChatId: true },
+    });
+    return res.json(summarizeUsers(rows));
+  } catch (error) {
+    return handleRouteError(res, error, 'GET /users/summary', 'Gagal mengambil ringkasan user.');
   }
 });
 

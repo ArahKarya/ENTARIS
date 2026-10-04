@@ -81,7 +81,7 @@ const SupplierPerformance: React.FC = () => {
       }
     >
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="table-responsive">
+        <div className="table-responsive" role="region" aria-label="Tabel kinerja pemasok" tabIndex={0}>
           <table className="data-table">
             <thead>
               <tr>

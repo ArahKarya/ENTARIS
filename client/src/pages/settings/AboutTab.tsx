@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
-import {
-  Tag, Clock, Sparkles, ExternalLink, RefreshCw, CheckCircle, ArrowUpCircle,
-  Info, Loader2,
-} from 'lucide-react';
+import { Tag, Clock, ExternalLink, RefreshCw, CheckCircle, ArrowUpCircle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { SettingsCard } from '../../components/settings/SettingsCard';
 import { APP_VERSION, APP_BUILD_DATE, APP_NAME, CHANGELOG } from '../../lib/version';
 
 interface UpdateInfo {
@@ -88,191 +88,120 @@ export const AboutTab: React.FC = () => {
     }
   };
 
+  const facts = [
+    { icon: Tag, label: 'Versi', value: APP_VERSION, mono: true },
+    { icon: Clock, label: 'Tanggal build', value: APP_BUILD_DATE },
+    { icon: Info, label: 'Platform', value: runtime?.platform || '…' },
+    { icon: ExternalLink, label: 'Domain', value: runtime?.domain || window.location.origin },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* App Info Card */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Sparkles size={22} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">{APP_NAME}</h3>
-                <p className="text-blue-100 text-xs">Sistem ERP & Operasional</p>
-              </div>
+    <div className="space-y-5">
+      <SettingsCard
+        title={APP_NAME}
+        description="Sistem ERP & Operasional"
+        actions={<Badge variant="primary" className="font-mono text-sm">v{APP_VERSION}</Badge>}
+        contentClassName="space-y-5"
+      >
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {facts.map((f) => (
+            <div key={f.label} className="min-w-0 rounded-lg bg-muted p-3">
+              <dt className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <f.icon className="size-3.5" aria-hidden /> {f.label}
+              </dt>
+              <dd className={cn('truncate text-sm font-semibold text-foreground', f.mono && 'font-mono')} title={f.value}>{f.value}</dd>
             </div>
-            <span className="bg-white/20 text-white text-sm font-mono font-bold px-3 py-1.5 rounded-lg">
-              v{APP_VERSION}
-            </span>
-          </div>
-        </div>
+          ))}
+        </dl>
 
-        <div className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Tag size={12} className="text-gray-400" />
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Versi</span>
-              </div>
-              <p className="text-sm font-bold text-gray-900 font-mono">{APP_VERSION}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Clock size={12} className="text-gray-400" />
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Build Date</span>
-              </div>
-              <p className="text-sm font-bold text-gray-900">{APP_BUILD_DATE}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Info size={12} className="text-gray-400" />
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Platform</span>
-              </div>
-              <p className="text-sm font-bold text-gray-900">{runtime?.platform || '...'}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <ExternalLink size={12} className="text-gray-400" />
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Domain</span>
-              </div>
-              <p className="text-sm font-bold text-gray-900 truncate">{runtime?.domain || window.location.origin}</p>
-            </div>
-          </div>
-
-          {/* Check for updates */}
-          <div className="mt-5 space-y-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCheckUpdate}
-                disabled={checking}
-                className="btn-secondary text-xs py-2"
-              >
-                {checking ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                {checking ? 'Memeriksa...' : 'Periksa Pembaruan'}
-              </button>
-
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" onClick={handleCheckUpdate} loading={checking}>
+              {!checking && <RefreshCw aria-hidden />} {checking ? 'Memeriksa…' : 'Periksa Pembaruan'}
+            </Button>
+            <div aria-live="polite" className="text-xs">
               {updateInfo?.status === 'latest' && (
-                <div className="flex items-center gap-1.5 text-xs text-green-600">
-                  <CheckCircle size={14} />
-                  <span className="font-medium">Aplikasi sudah versi terbaru (v{updateInfo.remoteVersion}).</span>
-                </div>
+                <span className="flex items-center gap-1.5 font-medium text-success-text">
+                  <CheckCircle className="size-4" aria-hidden /> Aplikasi sudah versi terbaru (v{updateInfo.remoteVersion}).
+                </span>
               )}
               {updateInfo?.status === 'error' && (
-                <div className="flex items-center gap-1.5 text-xs text-red-500">
-                  <Info size={14} />
-                  <span className="font-medium">{updateInfo.errorMsg}</span>
-                </div>
+                <span className="flex items-center gap-1.5 font-medium text-danger-text">
+                  <Info className="size-4" aria-hidden /> {updateInfo.errorMsg}
+                </span>
               )}
             </div>
+          </div>
 
-            {/* Update available card */}
-            {updateInfo?.status === 'available' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ArrowUpCircle size={16} className="text-blue-600" />
-                    <span className="text-sm font-semibold text-blue-800">
-                      Pembaruan tersedia: v{updateInfo.remoteVersion}
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono text-blue-500 bg-blue-100 px-2 py-0.5 rounded">
-                    v{APP_VERSION} → v{updateInfo.remoteVersion}
-                  </span>
+          {updateInfo?.status === 'available' && (
+            <div className="space-y-3 rounded-lg border border-primary/30 bg-primary-subtle p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-primary-subtle-foreground">
+                  <ArrowUpCircle className="size-4" aria-hidden /> Pembaruan tersedia: v{updateInfo.remoteVersion}
+                </p>
+                <Badge variant="outline" className="font-mono">v{APP_VERSION} → v{updateInfo.remoteVersion}</Badge>
+              </div>
+              {updateInfo.remoteChangelog && updateInfo.remoteChangelog.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Perubahan baru:</p>
+                  {updateInfo.remoteChangelog.map((entry) => (
+                    <ChangelogEntry key={entry.version} entry={entry} highlight={false} />
+                  ))}
                 </div>
-
-                {/* New changes */}
-                {updateInfo.remoteChangelog && updateInfo.remoteChangelog.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-blue-700">Perubahan baru:</p>
-                    {updateInfo.remoteChangelog.map((entry) => (
-                      <div key={entry.version} className="bg-white/60 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="font-mono text-xs font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
-                            v{entry.version}
-                          </span>
-                          <span className="text-xs font-medium text-gray-800">{entry.title}</span>
-                          <span className="text-xs text-gray-400 font-mono ml-auto">{entry.date}</span>
-                        </div>
-                        <ul className="space-y-0.5">
-                          {entry.changes.map((c, i) => (
-                            <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                              <span className="text-blue-400 mt-0.5">•</span> {c}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="bg-white/60 rounded-lg p-3 text-xs text-gray-600 space-y-1">
-                  <p className="font-semibold text-gray-700">Cara update di server:</p>
-                  <pre className="bg-gray-900 text-green-300 rounded-lg p-2.5 text-xs font-mono overflow-x-auto">
+              )}
+              <div className="space-y-1 rounded-lg bg-card p-3 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground">Cara update di server:</p>
+                <pre className="overflow-x-auto rounded-md bg-neutral-900 p-2.5 font-mono text-xs text-emerald-300" tabIndex={0}>
 {`cd ~/entaris
 git pull origin main
 docker compose up -d --build`}</pre>
-                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      </SettingsCard>
 
-      {/* Changelog */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-base font-semibold text-gray-900">Changelog</h2>
-          <span className="badge badge-blue text-xs">{CHANGELOG.length} rilis</span>
-        </div>
-
-        <div className="relative">
-          {/* Timeline line */}
-          <div className="absolute left-[17px] top-8 bottom-4 w-px bg-gray-200" />
-
-          <div className="space-y-1">
-            {CHANGELOG.map((entry, idx) => (
-              <div key={entry.version} className="relative flex gap-4">
-                {/* Timeline dot */}
-                <div className="relative z-10 mt-1 flex-shrink-0">
-                  <div className={cn(
-                    'w-[9px] h-[9px] rounded-full ring-4 ring-white',
-                    idx === 0 ? 'bg-blue-500' : 'bg-gray-300'
-                  )} />
-                </div>
-
-                {/* Content */}
-                <div className={cn(
-                  'flex-1 bg-white border rounded-xl p-4 mb-3 transition-all',
-                  idx === 0 ? 'border-blue-200 shadow-sm' : 'border-gray-200'
-                )}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        'font-mono text-xs font-bold px-2 py-0.5 rounded',
-                        idx === 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'
-                      )}>
-                        v{entry.version}
-                      </span>
-                      <h4 className="text-sm font-semibold text-gray-900">{entry.title}</h4>
-                    </div>
-                    <span className="text-xs text-gray-400 font-mono">{entry.date}</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {entry.changes.map((change, ci) => (
-                      <li key={ci} className="flex items-start gap-2 text-xs text-gray-600">
-                        <span className="text-gray-300 mt-0.5 flex-shrink-0">•</span>
-                        <span>{change}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <SettingsCard
+        title="Riwayat Perubahan"
+        actions={<Badge variant="info">{CHANGELOG.length} rilis</Badge>}
+      >
+        <ol className="relative space-y-3 border-l border-border pl-5">
+          {CHANGELOG.map((entry, idx) => (
+            <li key={entry.version} className="relative">
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute -left-[25px] top-4 size-2.5 rounded-full ring-4 ring-card',
+                  idx === 0 ? 'bg-primary' : 'bg-border-strong',
+                )}
+              />
+              <ChangelogEntry entry={entry} highlight={idx === 0} />
+            </li>
+          ))}
+        </ol>
+      </SettingsCard>
     </div>
   );
 };
+
+interface ChangelogEntryProps {
+  entry: { version: string; date: string; title: string; changes: string[] };
+  highlight: boolean;
+}
+
+function ChangelogEntry({ entry, highlight }: ChangelogEntryProps) {
+  return (
+    <div className={cn('rounded-lg border bg-card p-4', highlight ? 'border-primary/40' : 'border-border')}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <Badge variant={highlight ? 'primary' : 'neutral'} className="font-mono">v{entry.version}</Badge>
+          <h4 className="text-sm font-semibold text-foreground">{entry.title}</h4>
+        </div>
+        <span className="font-mono text-xs text-muted-foreground">{entry.date}</span>
+      </div>
+      <ul className="ml-4 list-disc space-y-1 text-xs text-muted-foreground">
+        {entry.changes.map((change, ci) => <li key={ci}>{change}</li>)}
+      </ul>
+    </div>
+  );
+}

@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
-import {
-  Calendar, Building2, Settings, Receipt, HardDrive, Info, Shield, Send, KeyRound, Bot, Palette,
-} from 'lucide-react';
+/**
+ * Pengaturan — settings shell.
+ *
+ * Desktop: grouped vertical nav on the left. Mobile: a section select.
+ * The active section lives in the URL (?tab=company|fiscal|tax|accounts|roles|
+ * notifications|backup|agentic|appearance|about); unknown or hidden ids fall
+ * back to "company".
+ */
+import React, { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Settings } from 'lucide-react';
+import { PageHeader } from '@/components/shared';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
+import { resolveSettingsTab, visibleSettingsNav, DEFAULT_SETTINGS_TAB, type SettingsTabId } from '../components/settings/settingsNav';
 import { FiscalYearsTab } from './settings/FiscalYearsTab';
 import { CompanySettingsTab } from './settings/CompanySettingsTab';
 import { SystemAccountsTab } from '../components/SystemAccountsTab';
@@ -15,62 +25,110 @@ import { RolePermissionsTab } from './settings/RolePermissionsTab';
 import { AgenticSystemTab } from './settings/AgenticSystemTab';
 import { AppearanceTab } from './settings/AppearanceTab';
 
+const PANELS: Record<SettingsTabId, React.FC> = {
+  company: CompanySettingsTab,
+  fiscal: FiscalYearsTab,
+  tax: TaxConfigTab,
+  accounts: SystemAccountsTab,
+  roles: RolePermissionsTab,
+  notifications: NotificationsTab,
+  backup: BackupTab,
+  agentic: AgenticSystemTab,
+  appearance: AppearanceTab,
+  about: AboutTab,
+};
+
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'fiscal' | 'company' | 'accounts' | 'tax' | 'notifications' | 'roles' | 'agentic' | 'backup' | 'appearance' | 'about'>('fiscal');
+  const [searchParams, setSearchParams] = useSearchParams();
   const canManageRbac = cap('rbac.manage');
-  const tabs = [
-    { id: 'fiscal', label: 'Tahun Buku', icon: Calendar },
-    { id: 'company', label: 'Profil Perusahaan', icon: Building2 },
-    { id: 'accounts', label: 'Akun Sistem', icon: Shield },
-    { id: 'tax', label: 'Pajak', icon: Receipt },
-    { id: 'notifications', label: 'Notifikasi', icon: Send },
-    ...(canManageRbac ? [{ id: 'roles', label: 'Hak Akses', icon: KeyRound }] : []),
-    ...(canManageRbac ? [{ id: 'agentic', label: 'Agentic System', icon: Bot }] : []),
-    { id: 'appearance', label: 'Tampilan', icon: Palette },
-    { id: 'backup', label: 'Backup', icon: HardDrive },
-    { id: 'about', label: 'Tentang Aplikasi', icon: Info },
-  ];
+  const nav = useMemo(() => visibleSettingsNav(canManageRbac), [canManageRbac]);
+  const active = resolveSettingsTab(searchParams.get('tab'), nav);
+  const Panel = PANELS[active.id];
+
+  const changeTab = (next: string) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      if (next === DEFAULT_SETTINGS_TAB) params.delete('tab');
+      else params.set('tab', next);
+      return params;
+    });
+  };
 
   return (
-    <div className="space-y-5 pb-8">
-      <div className="flex items-center gap-2">
-        <Settings size={18} className="text-gray-400" />
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Pengaturan</h1>
-          <p className="text-sm text-gray-500">Konfigurasi sistem ERP.</p>
+    <div className="pb-8">
+      <PageHeader title="Pengaturan" description="Konfigurasi perusahaan, akses, dan sistem ERP." icon={Settings} />
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
+        {/* Mobile / tablet: section select */}
+        <div className="lg:hidden">
+          <label htmlFor="settings-section" className="sr-only">Bagian pengaturan</label>
+          <Select value={active.id} onValueChange={changeTab}>
+            <SelectTrigger id="settings-section" aria-label="Bagian pengaturan">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {nav.map((group) => (
+                <SelectGroup key={group.label}>
+                  <SelectLabel>{group.label}</SelectLabel>
+                  {group.items.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={cn(
-              'flex items-center gap-2 px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap',
-              activeTab === tab.id
-                ? 'border-blue-500 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            )}
-          >
-            <tab.icon size={15} />
-            <span className="hidden sm:inline">{tab.label}</span>
-            <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-          </button>
-        ))}
-      </div>
+        {/* Desktop: grouped vertical nav */}
+        <nav aria-label="Bagian pengaturan" className="hidden lg:block">
+          <div className="sticky top-4 space-y-5">
+            {nav.map((group) => {
+              const groupId = `settings-group-${group.label.replace(/\W+/g, '-').toLowerCase()}`;
+              return (
+                <div key={group.label}>
+                  <p id={groupId} className="mb-1.5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <ul aria-labelledby={groupId} className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const isActive = item.id === active.id;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            onClick={() => changeTab(item.id)}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={cn(
+                              'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              isActive
+                                ? 'bg-primary-subtle font-medium text-primary-subtle-foreground'
+                                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                            )}
+                          >
+                            <item.icon className="size-4 shrink-0" aria-hidden />
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </nav>
 
-      {activeTab === 'fiscal' && <FiscalYearsTab />}
-      {activeTab === 'company' && <CompanySettingsTab />}
-      {activeTab === 'accounts' && <SystemAccountsTab />}
-      {activeTab === 'tax' && <TaxConfigTab />}
-      {activeTab === 'notifications' && <NotificationsTab />}
-      {activeTab === 'roles' && canManageRbac && <RolePermissionsTab />}
-      {activeTab === 'agentic' && canManageRbac && <AgenticSystemTab />}
-      {activeTab === 'appearance' && <AppearanceTab />}
-      {activeTab === 'backup' && <BackupTab />}
-      {activeTab === 'about' && <AboutTab />}
+        <section aria-labelledby="settings-section-title" className="min-w-0 space-y-5">
+          <div>
+            <h2 id="settings-section-title" className="font-heading text-lg font-semibold text-foreground">
+              {active.label}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">{active.description}</p>
+          </div>
+          <Panel key={active.id} />
+        </section>
+      </div>
     </div>
   );
 };

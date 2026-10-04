@@ -76,6 +76,16 @@ const TARGETS = [
   { path: '/ga/inventory?tab=items', isPublic: false },
   { path: '/ga/documents', isPublic: false },
   { path: '/ga/master', isPublic: false },
+  { path: '/parties', isPublic: false },
+  { path: '/notifications', isPublic: false },
+  { path: '/settings', isPublic: false },
+  { path: '/settings?tab=roles', isPublic: false },
+  { path: '/settings?tab=fiscal', isPublic: false },
+  { path: '/users', isPublic: false },
+  { path: '/audit', isPublic: false },
+  { path: '/health-check', isPublic: false },
+  { path: '/reports/po-outstanding', isPublic: false },
+  { path: '/reports/supplier-performance', isPublic: false },
 ]
 
 interface AxeRecord {

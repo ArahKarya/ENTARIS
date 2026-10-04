@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import api from '../../lib/api';
-import {
-  Calendar, Lock, Unlock, Plus, CheckCircle2, ChevronRight, Loader2,
-} from 'lucide-react';
+import { Calendar, Lock, Unlock, Plus, CheckCircle2, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import api from '../../lib/api';
+import { can, cap } from '../../lib/permissions';
 import { cn } from '../../lib/utils';
-import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { ConfirmDialog, EmptyState, Field, LoadingState, StatusBadge } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { SettingsCard } from '../../components/settings/SettingsCard';
 
 interface FiscalYear {
   id: string;
@@ -19,183 +24,193 @@ interface FiscalYear {
   closedAt: string | null;
 }
 
+interface NewYearForm { name: string; startDate: string; endDate: string }
+type NewYearErrors = Partial<Record<keyof NewYearForm, string>>;
+
+const EMPTY_FORM: NewYearForm = { name: '', startDate: '', endDate: '' };
+
+function validate(f: NewYearForm): NewYearErrors {
+  const errors: NewYearErrors = {};
+  if (!f.name.trim()) errors.name = 'Nama tahun buku wajib diisi.';
+  if (!f.startDate) errors.startDate = 'Tanggal mulai wajib diisi.';
+  if (!f.endDate) errors.endDate = 'Tanggal selesai wajib diisi.';
+  else if (f.startDate && f.endDate <= f.startDate) errors.endDate = 'Tanggal selesai harus setelah tanggal mulai.';
+  return errors;
+}
+
+const fmtDate = (d: string) => format(new Date(d), 'dd MMM yyyy', { locale: id });
+
 export const FiscalYearsTab: React.FC = () => {
   const queryClient = useQueryClient();
+  const canEdit = can('settings', 'edit');
+  const canCloseReopen = canEdit && cap('doc.cancel');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newStart, setNewStart] = useState('');
-  const [newEnd, setNewEnd] = useState('');
-  const [confirmClose, setConfirmClose] = useState<string | null>(null);
-  const [confirmReopen, setConfirmReopen] = useState<string | null>(null);
+  const [form, setForm] = useState<NewYearForm>(EMPTY_FORM);
+  const [submitted, setSubmitted] = useState(false);
+  const [confirmClose, setConfirmClose] = useState<FiscalYear | null>(null);
+  const [confirmReopen, setConfirmReopen] = useState<FiscalYear | null>(null);
 
   const { data: years, isLoading } = useQuery<FiscalYear[]>({
     queryKey: ['fiscal-years'],
-    queryFn: async () => { const res = await api.get('/fiscal-years'); return res.data; }
+    queryFn: async () => { const res = await api.get('/fiscal-years'); return res.data; },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (d: any) => api.post('/fiscal-years', d),
+    mutationFn: async (d: NewYearForm) => api.post('/fiscal-years', d),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
-      setIsModalOpen(false); setNewName(''); setNewStart(''); setNewEnd('');
+      setIsModalOpen(false);
+      setForm(EMPTY_FORM);
+      setSubmitted(false);
       toast.success('Tahun buku berhasil dibuat.');
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat tahun buku.')
+    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat tahun buku.'),
   });
 
   const closeMutation = useMutation({
-    mutationFn: async (id: string) => api.post(`/fiscal-years/${id}/close`),
+    mutationFn: async (yearId: string) => api.post(`/fiscal-years/${yearId}/close`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
       toast.success('Tahun buku berhasil ditutup.');
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menutup tahun buku.')
+    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menutup tahun buku.'),
   });
 
   const reopenMutation = useMutation({
-    mutationFn: async (id: string) => api.post(`/fiscal-years/${id}/reopen`),
+    mutationFn: async (yearId: string) => api.post(`/fiscal-years/${yearId}/reopen`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
       toast.success('Tahun buku berhasil dibuka kembali.');
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuka tahun buku.')
+    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuka tahun buku.'),
   });
+
+  const errors = submitted ? validate(form) : {};
+  const setField = (key: keyof NewYearForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const handleCreate = () => {
+    setSubmitted(true);
+    if (Object.keys(validate(form)).length > 0) return;
+    createMutation.mutate(form);
+  };
+
+  const openModal = () => { setForm(EMPTY_FORM); setSubmitted(false); setIsModalOpen(true); };
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">Periode Akuntansi</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Kelola tahun buku dan proses tutup buku.</p>
-        </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={15} /> Tahun Buku Baru
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="py-16 flex items-center justify-center text-gray-400 gap-2 text-sm">
-          <Loader2 className="animate-spin" size={18} /> Memuat...
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {years?.map((year) => (
-            <div key={year.id} className={cn(
-              'bg-white border rounded-xl p-5 transition-all',
-              year.isClosed ? 'border-gray-200 opacity-70' : 'border-gray-200 shadow-sm'
-            )}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100">
-                  {year.isClosed
-                    ? <Lock size={14} className="text-gray-500" />
-                    : <Unlock size={14} className="text-blue-500" />}
+      <SettingsCard
+        title="Periode Akuntansi"
+        description="Tutup buku membuat jurnal penutup; buka kembali menghapusnya. Kedua aksi memerlukan hak pembatalan dokumen."
+        actions={canEdit && (
+          <Button onClick={openModal}>
+            <Plus aria-hidden /> Tahun Buku Baru
+          </Button>
+        )}
+      >
+        {isLoading ? (
+          <LoadingState />
+        ) : !years || years.length === 0 ? (
+          <EmptyState compact icon={Calendar} title="Belum ada tahun buku" description="Buat tahun buku pertama untuk mulai mencatat periode akuntansi." />
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {years.map((year) => (
+              <li
+                key={year.id}
+                className={cn('flex flex-col rounded-lg border border-border p-4', year.isClosed ? 'bg-muted/40' : 'bg-card')}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      {year.isClosed ? <Lock className="size-4" aria-hidden /> : <Unlock className="size-4 text-primary" aria-hidden />}
+                    </span>
+                    <h4 className="font-heading text-base font-semibold text-foreground">Tahun {year.name}</h4>
+                  </div>
+                  <StatusBadge status={year.isClosed ? 'closed' : 'open'} />
                 </div>
-                <span className={cn('badge', year.isClosed ? 'badge-gray' : 'badge-blue')}>
-                  {year.isClosed ? 'Closed' : 'Open'}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-semibold text-gray-900">Tahun {year.name}</h3>
-              <div className="flex items-center gap-1.5 text-gray-500 text-xs mt-2">
-                <Calendar size={12} />
-                <span>{format(new Date(year.startDate), 'dd MMM yyyy', { locale: id })}</span>
-                <ChevronRight size={10} className="text-gray-300" />
-                <span>{format(new Date(year.endDate), 'dd MMM yyyy', { locale: id })}</span>
-              </div>
-
-              {year.isClosed && year.closedAt && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-3">
-                  <CheckCircle2 size={11} className="text-green-500" />
-                  Ditutup {format(new Date(year.closedAt), 'Pp', { locale: id })}
-                </div>
-              )}
-
-              <div className="mt-4 flex gap-2">
-                {!year.isClosed ? (
-                  <button
-                    onClick={() => setConfirmClose(year.id)}
-                    disabled={closeMutation.isPending}
-                    className="w-full btn-secondary justify-center text-xs py-2 disabled:opacity-50"
-                  >
-                    <Lock size={13} /> Tutup Buku
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setConfirmReopen(year.id)}
-                    disabled={reopenMutation.isPending}
-                    className="w-full btn-secondary justify-center text-xs py-2 disabled:opacity-50"
-                  >
-                    <Unlock size={13} /> Buka Kembali
-                  </button>
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Calendar className="size-3.5" aria-hidden />
+                  <span>{fmtDate(year.startDate)}</span>
+                  <ChevronRight className="size-3" aria-hidden />
+                  <span>{fmtDate(year.endDate)}</span>
+                </p>
+                {year.isClosed && year.closedAt && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CheckCircle2 className="size-3.5 text-success" aria-hidden />
+                    Ditutup {format(new Date(year.closedAt), 'Pp', { locale: id })}
+                  </p>
                 )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                {canCloseReopen && (
+                  <div className="mt-4">
+                    {!year.isClosed ? (
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => setConfirmClose(year)} disabled={closeMutation.isPending}>
+                        <Lock aria-hidden /> Tutup Buku
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => setConfirmReopen(year)} disabled={reopenMutation.isPending}>
+                        <Unlock aria-hidden /> Buka Kembali
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SettingsCard>
 
       <ConfirmDialog
         open={confirmClose !== null}
-        title="Tutup Tahun Buku"
-        message="Yakin ingin menutup tahun buku ini? Jurnal penutup akan dibuat dan saldo revenue/expense akan direset."
+        onOpenChange={(o) => !o && setConfirmClose(null)}
+        tone="danger"
+        title={`Tutup tahun buku ${confirmClose?.name ?? ''}?`}
+        description="Jurnal penutup akan dibuat dan saldo pendapatan/beban akan direset ke laba ditahan."
         confirmLabel="Tutup Buku"
-        variant="danger"
-        onConfirm={() => { if (confirmClose) closeMutation.mutate(confirmClose); setConfirmClose(null); }}
-        onCancel={() => setConfirmClose(null)}
+        loading={closeMutation.isPending}
+        onConfirm={() => (confirmClose ? closeMutation.mutateAsync(confirmClose.id) : undefined)}
       />
 
       <ConfirmDialog
         open={confirmReopen !== null}
-        title="Buka Kembali Tahun Buku"
-        message="Yakin ingin membuka kembali tahun buku ini? Jurnal penutup akan dihapus dan saldo revenue/expense akan dipulihkan."
+        onOpenChange={(o) => !o && setConfirmReopen(null)}
+        tone="danger"
+        title={`Buka kembali tahun buku ${confirmReopen?.name ?? ''}?`}
+        description="Jurnal penutup akan dihapus dan saldo pendapatan/beban akan dipulihkan."
         confirmLabel="Buka Kembali"
-        variant="danger"
-        onConfirm={() => { if (confirmReopen) reopenMutation.mutate(confirmReopen); setConfirmReopen(null); }}
-        onCancel={() => setConfirmReopen(null)}
+        loading={reopenMutation.isPending}
+        onConfirm={() => (confirmReopen ? reopenMutation.mutateAsync(confirmReopen.id) : undefined)}
       />
 
-      {isModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="fy-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30"
-          onKeyDown={(e) => e.key === 'Escape' && setIsModalOpen(false)}
-        >
-          <div className="bg-white rounded-xl border border-gray-200 shadow-xl p-6 w-full max-w-md">
-            <h2 id="fy-modal-title" className="text-base font-semibold text-gray-900 mb-4">Tambah Tahun Buku</h2>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="fy-name" className="block text-xs font-medium text-gray-700 mb-1">Nama Tahun</label>
-                <input id="fy-name" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="2027"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="fy-start" className="block text-xs font-medium text-gray-700 mb-1">Tanggal Mulai</label>
-                  <input id="fy-start" type="date" value={newStart} onChange={(e) => setNewStart(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none" />
-                </div>
-                <div>
-                  <label htmlFor="fy-end" className="block text-xs font-medium text-gray-700 mb-1">Tanggal Selesai</label>
-                  <input id="fy-end" type="date" value={newEnd} onChange={(e) => setNewEnd(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none" />
-                </div>
-              </div>
+      <Dialog open={isModalOpen} onOpenChange={(o) => !createMutation.isPending && setIsModalOpen(o)}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Tambah Tahun Buku</DialogTitle>
+            <DialogDescription>Periode baru dibuat dalam status terbuka.</DialogDescription>
+          </DialogHeader>
+          <form
+            id="fiscal-year-form"
+            noValidate
+            className="space-y-4"
+            onSubmit={(e) => { e.preventDefault(); handleCreate(); }}
+          >
+            <Field label="Nama tahun" required error={errors.name} hint="Contoh: 2027">
+              <Input value={form.name} onChange={setField('name')} placeholder="2027" autoFocus />
+            </Field>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Tanggal mulai" required error={errors.startDate}>
+                <Input type="date" value={form.startDate} onChange={setField('startDate')} />
+              </Field>
+              <Field label="Tanggal selesai" required error={errors.endDate}>
+                <Input type="date" value={form.endDate} onChange={setField('endDate')} />
+              </Field>
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 btn-secondary justify-center">Batal</button>
-              <button
-                onClick={() => createMutation.mutate({ name: newName, startDate: newStart, endDate: newEnd })}
-                disabled={!newName || !newStart || !newEnd || createMutation.isPending}
-                className="flex-1 btn-primary justify-center"
-              >
-                {createMutation.isPending ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </form>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={createMutation.isPending}>Batal</Button>
+            <Button type="submit" form="fiscal-year-form" loading={createMutation.isPending}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

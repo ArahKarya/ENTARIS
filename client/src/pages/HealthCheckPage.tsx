@@ -1,20 +1,37 @@
+/**
+ * Pemeriksaan Sistem (/health-check) — data integrity checks.
+ *
+ * GET /health-check runs every check; "Perbaiki" previews what a fix will
+ * change (GET /health-check/preview/:key) inside a ConfirmDialog and only then
+ * POSTs /health-check/fix/:key. Fixes mutate ledger data, so they are shown
+ * only with audit:edit (the server gates the POST the same way).
+ */
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  HeartPulse,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  RefreshCw,
-  Wrench,
-  ChevronDown,
-  ChevronRight,
-  X,
-  Loader2,
-} from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertTriangle, CheckCircle2, ChevronDown, ListChecks, Play, Wrench, XCircle, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
+import api from '@/lib/api';
+import { formatDateTime, formatNumber } from '@/lib/format';
+import { can } from '@/lib/permissions';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog, EmptyState, LoadingState, PageHeader, StatCard } from '@/components/shared';
+
+type CheckStatus = 'ok' | 'warning' | 'error';
+
+interface CheckResult {
+  name: string;
+  status: CheckStatus;
+  message: string;
+  count: number;
+  details?: Record<string, unknown>[];
+  fixable: boolean;
+}
+
+interface HealthData {
+  status: CheckStatus;
+  checks: CheckResult[];
+}
 
 interface PreviewData {
   check: string;
@@ -24,343 +41,281 @@ interface PreviewData {
   details: Record<string, unknown>[];
 }
 
-interface CheckDetail {
-  [key: string]: unknown;
+interface CheckInfo {
+  title: string;
+  /** What the automatic fix changes, stated up front in the confirmation. */
+  fixKey?: string;
+  fixEffect?: string;
 }
 
-interface CheckResult {
-  name: string;
-  status: 'ok' | 'warning' | 'error';
-  message: string;
-  count: number;
-  details?: CheckDetail[];
-  fixable: boolean;
-}
-
-interface HealthData {
-  status: 'ok' | 'warning' | 'error';
-  checks: CheckResult[];
-}
-
-const CHECK_FIX_KEYS: Record<string, string> = {
-  'ALE vs JournalItem Sync': 'ale-sync',
-  'Account Balance Drift': 'account-balance-drift',
-  'Orphan ALE Entries': 'orphan-ale',
+/** Server check name → Indonesian title and fix metadata. */
+const CHECKS: Record<string, CheckInfo> = {
+  'ALE vs JournalItem Sync': {
+    title: 'Sinkronisasi buku besar (ALE) dengan jurnal',
+    fixKey: 'ale-sync',
+    fixEffect: 'Baris buku besar (ALE) yang berasal dari jurnal dihapus lalu dibuat ulang dari jurnal yang ada.',
+  },
+  'Account Balance Drift': {
+    title: 'Selisih saldo akun',
+    fixKey: 'account-balance-drift',
+    fixEffect: 'Saldo tersimpan akun yang selisih ditimpa dengan saldo hasil hitung ulang dari buku besar.',
+  },
+  'Unbalanced Journal Entries': { title: 'Jurnal tidak seimbang' },
+  'Orphan ALE Entries': {
+    title: 'Baris buku besar tanpa dokumen (ALE yatim)',
+    fixKey: 'orphan-ale',
+    fixEffect: 'Baris buku besar yang dokumen sumbernya sudah tidak ada akan dihapus.',
+  },
+  'Stock vs Movement Mismatch': { title: 'Stok tidak sesuai mutasi' },
+  'Drift Stok per Gudang': { title: 'Selisih stok per gudang' },
 };
 
-const statusConfig = {
-  ok: { icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', label: 'OK' },
-  warning: { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', label: 'Peringatan' },
-  error: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', label: 'Error' },
+const STATUS: Record<CheckStatus, { label: string; icon: LucideIcon; className: string }> = {
+  ok: { label: 'OK', icon: CheckCircle2, className: 'text-success-text' },
+  warning: { label: 'Peringatan', icon: AlertTriangle, className: 'text-warning-text' },
+  error: { label: 'Gagal', icon: XCircle, className: 'text-danger-text' },
 };
 
-export default function HealthCheckPage() {
-  const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [confirmCheck, setConfirmCheck] = useState<string | null>(null);
+const PREVIEW_ROWS = 50;
 
-  const { data, isLoading, refetch, isFetching } = useQuery<HealthData>({
-    queryKey: ['health-check'],
-    queryFn: async () => {
-      const res = await api.get('/health-check');
-      return res.data.data;
-    },
-  });
-
-  const previewQuery = useQuery<PreviewData>({
-    queryKey: ['health-check-preview', confirmCheck],
-    queryFn: async () => {
-      const res = await api.get(`/health-check/preview/${confirmCheck}`);
-      return res.data.data;
-    },
-    enabled: !!confirmCheck,
-  });
-
-  const fixMutation = useMutation({
-    mutationFn: async (checkKey: string) => {
-      const res = await api.post(`/health-check/fix/${checkKey}`);
-      return res.data.data;
-    },
-    onSuccess: (result) => {
-      toast.success(result.message);
-      queryClient.invalidateQueries({ queryKey: ['health-check'] });
-      setConfirmCheck(null);
-    },
-    onError: () => {
-      toast.error('Gagal memperbaiki masalah');
-    },
-  });
-
-  const toggleExpand = (name: string) => {
-    setExpanded((prev) => ({ ...prev, [name]: !prev[name] }));
-  };
-
-  const overallStatus = data?.status ?? 'ok';
-  const overallConfig = statusConfig[overallStatus];
-  const OverallIcon = overallConfig.icon;
-
+function StatusLabel({ status, className }: { status: CheckStatus; className?: string }) {
+  const meta = STATUS[status];
+  const Icon = meta.icon;
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <HeartPulse size={24} className="text-blue-600" />
-          <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-            Health Check
-          </h1>
-        </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="btn-secondary"
-        >
-          <RefreshCw size={16} className={cn(isFetching && 'animate-spin')} />
-          Periksa Ulang
-        </button>
-      </div>
-
-      {/* Overall Status */}
-      {data && (
-        <div className={cn('card p-4 mb-6 flex items-center gap-3', overallConfig.bg, overallConfig.border, 'border')}>
-          <OverallIcon size={28} className={overallConfig.color} />
-          <div>
-            <p className={cn('font-semibold text-lg', overallConfig.color)}>
-              Status: {overallConfig.label}
-            </p>
-            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              {data.checks.filter((c) => c.status === 'ok').length} dari {data.checks.length} pemeriksaan lolos
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading */}
-      {isLoading && (
-        <div className="card p-8 text-center">
-          <RefreshCw size={32} className="animate-spin mx-auto mb-3 text-blue-500" />
-          <p style={{ color: 'var(--color-text-secondary)' }}>Menjalankan pemeriksaan...</p>
-        </div>
-      )}
-
-      {/* Check Results */}
-      {data && (
-        <div className="space-y-3">
-          {data.checks.map((check) => {
-            const config = statusConfig[check.status];
-            const StatusIcon = config.icon;
-            const isExpanded = expanded[check.name];
-            const fixKey = CHECK_FIX_KEYS[check.name];
-            const hasDetails = check.details && check.details.length > 0;
-
-            return (
-              <div key={check.name} className="card overflow-hidden">
-                {/* Check header */}
-                <div
-                  className={cn(
-                    'flex items-center gap-3 p-4 cursor-pointer',
-                    hasDetails && 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                  )}
-                  onClick={() => hasDetails && toggleExpand(check.name)}
-                >
-                  <StatusIcon size={20} className={cn(config.color, 'flex-shrink-0')} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                      {check.name}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                      {check.message}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {check.status !== 'ok' && check.count > 0 && (
-                      <span className={cn('badge', check.status === 'error' ? 'badge-red' : 'badge-yellow')}>
-                        {check.count} masalah
-                      </span>
-                    )}
-                    {check.status !== 'ok' && check.fixable && fixKey && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirmCheck(fixKey);
-                        }}
-                        disabled={fixMutation.isPending}
-                        className="btn-primary text-xs py-1 px-2.5"
-                        title="Perbaiki (dengan konfirmasi)"
-                      >
-                        <Wrench size={14} />
-                        Perbaiki
-                      </button>
-                    )}
-                    {hasDetails && (
-                      isExpanded
-                        ? <ChevronDown size={16} style={{ color: 'var(--color-text-muted)' }} />
-                        : <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
-                    )}
-                  </div>
-                </div>
-
-                {/* Detail table */}
-                {isExpanded && hasDetails && (
-                  <div className="border-t px-4 pb-4 overflow-x-auto" style={{ borderColor: 'var(--color-border-light)' }}>
-                    <table className="data-table mt-2">
-                      <thead>
-                        <tr>
-                          {Object.keys(check.details![0]).map((key) => (
-                            <th key={key} className="text-xs">
-                              {formatColumnName(key)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {check.details!.map((row, idx) => (
-                          <tr key={idx}>
-                            {Object.values(row).map((val, vi) => (
-                              <td key={vi} className="text-xs">
-                                {formatCellValue(val)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Confirm Fix Modal */}
-      {confirmCheck && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => !fixMutation.isPending && setConfirmCheck(null)}
-        >
-          <div
-            className="card max-w-3xl w-full max-h-[85vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--color-border-light)' }}>
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={20} className="text-amber-600" />
-                <h2 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                  Konfirmasi: {confirmCheck}
-                </h2>
-              </div>
-              <button
-                onClick={() => setConfirmCheck(null)}
-                disabled={fixMutation.isPending}
-                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal body */}
-            <div className="flex-1 overflow-auto p-4">
-              {previewQuery.isLoading && (
-                <div className="py-8 text-center">
-                  <Loader2 size={24} className="animate-spin mx-auto mb-2 text-blue-500" />
-                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    Memuat preview...
-                  </p>
-                </div>
-              )}
-
-              {previewQuery.isError && (
-                <div className="py-4 text-center text-red-600">Gagal memuat preview</div>
-              )}
-
-              {previewQuery.data && (
-                <>
-                  <p className="text-sm mb-2" style={{ color: 'var(--color-text-primary)' }}>
-                    {previewQuery.data.description}
-                  </p>
-                  {previewQuery.data.warning && (
-                    <div className="mb-3 p-2 rounded border border-amber-200 bg-amber-50 text-amber-800 text-xs">
-                      ⚠️ {previewQuery.data.warning}
-                    </div>
-                  )}
-                  {previewQuery.data.details.length > 0 && (
-                    <div className="overflow-x-auto border rounded" style={{ borderColor: 'var(--color-border-light)' }}>
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            {Object.keys(previewQuery.data.details[0]).map((key) => (
-                              <th key={key} className="text-xs">{formatColumnName(key)}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {previewQuery.data.details.slice(0, 50).map((row, idx) => (
-                            <tr key={idx}>
-                              {Object.values(row).map((val, vi) => (
-                                <td key={vi} className="text-xs">{formatCellValue(val)}</td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {previewQuery.data.details.length > 50 && (
-                        <p className="text-xs p-2" style={{ color: 'var(--color-text-muted)' }}>
-                          Menampilkan 50 dari {previewQuery.data.details.length} baris. Semua akan diproses saat fix dijalankan.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Modal footer */}
-            <div className="flex items-center justify-end gap-2 p-4 border-t" style={{ borderColor: 'var(--color-border-light)' }}>
-              <button
-                onClick={() => setConfirmCheck(null)}
-                disabled={fixMutation.isPending}
-                className="btn-secondary"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => fixMutation.mutate(confirmCheck)}
-                disabled={fixMutation.isPending || previewQuery.isLoading}
-                className="btn-primary"
-              >
-                {fixMutation.isPending ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Memproses...
-                  </>
-                ) : (
-                  <>
-                    <Wrench size={14} />
-                    Ya, Perbaiki
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <span className={cn('inline-flex items-center gap-1.5 text-sm font-medium', meta.className, className)}>
+      <Icon className="size-4 shrink-0" aria-hidden />
+      {meta.label}
+    </span>
   );
 }
 
 function formatColumnName(key: string): string {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function formatCellValue(val: unknown): string {
   if (val === null || val === undefined) return '-';
   if (typeof val === 'number') {
-    if (Number.isInteger(val)) return val.toLocaleString('id-ID');
-    return val.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Number.isInteger(val) ? formatNumber(val) : formatNumber(val, { decimals: 2 });
   }
+  if (typeof val === 'object') return JSON.stringify(val);
   return String(val);
+}
+
+function DetailTable({ rows, caption }: { rows: Record<string, unknown>[]; caption: string }) {
+  if (rows.length === 0) return null;
+  const keys = Object.keys(rows[0]);
+  return (
+    // Focusable so keyboard users can scroll wide tables horizontally (axe scrollable-region-focusable).
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div role="region" aria-label={caption} tabIndex={0} className="max-w-full overflow-x-auto rounded-md border border-border focus-visible:outline-2 focus-visible:outline-ring">
+      <table className="w-full text-xs">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="bg-muted/50 text-muted-foreground">
+          <tr>
+            {keys.map((k) => (
+              <th key={k} scope="col" className="whitespace-nowrap px-3 py-2 text-left font-medium">
+                {formatColumnName(k)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className="border-t border-border">
+              {keys.map((k) => (
+                <td key={k} className="whitespace-nowrap px-3 py-1.5 text-foreground">
+                  {formatCellValue(row[k])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function HealthCheckPage() {
+  const queryClient = useQueryClient();
+  const canFix = can('audit', 'edit');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [confirm, setConfirm] = useState<{ key: string; info: CheckInfo } | null>(null);
+
+  const healthQuery = useQuery<HealthData>({
+    queryKey: ['health-check'],
+    queryFn: async () => (await api.get('/health-check')).data.data,
+  });
+
+  const previewQuery = useQuery<PreviewData>({
+    queryKey: ['health-check-preview', confirm?.key],
+    queryFn: async () => (await api.get(`/health-check/preview/${confirm!.key}`)).data.data,
+    enabled: !!confirm,
+  });
+
+  const fixMutation = useMutation({
+    mutationFn: async (key: string) => (await api.post(`/health-check/fix/${key}`)).data.data as { message: string },
+    onSuccess: (result) => {
+      toast.success(result.message);
+      queryClient.invalidateQueries({ queryKey: ['health-check'] });
+    },
+    onError: () => toast.error('Gagal memperbaiki masalah.'),
+  });
+
+  const data = healthQuery.data;
+  const checks = data?.checks ?? [];
+  const counts = { ok: 0, warning: 0, error: 0 } as Record<CheckStatus, number>;
+  for (const c of checks) counts[c.status] += 1;
+  const issues = checks.reduce((sum, c) => sum + (c.status === 'ok' ? 0 : c.count), 0);
+  const ranAt = healthQuery.dataUpdatedAt ? formatDateTime(healthQuery.dataUpdatedAt) : null;
+  const loadingKpi = !data && !healthQuery.isError;
+
+  const preview = previewQuery.data;
+
+  return (
+    <div className="space-y-5 pb-8">
+      <PageHeader
+        title="Pemeriksaan Sistem"
+        description={
+          ranAt
+            ? `Pemeriksaan integritas data buku besar dan stok. Terakhir dijalankan ${ranAt}.`
+            : 'Pemeriksaan integritas data buku besar dan stok.'
+        }
+        actions={
+          <Button onClick={() => healthQuery.refetch()} loading={healthQuery.isFetching}>
+            <Play aria-hidden />
+            Jalankan pemeriksaan
+          </Button>
+        }
+      />
+
+      <section aria-label="Ringkasan hasil pemeriksaan" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Status Keseluruhan"
+          icon={ListChecks}
+          loading={loadingKpi}
+          value={data ? STATUS[data.status].label : '-'}
+          hint={data ? `${formatNumber(counts.ok)} dari ${formatNumber(checks.length)} lolos` : undefined}
+        />
+        <StatCard label="OK" icon={CheckCircle2} loading={loadingKpi} value={data ? formatNumber(counts.ok) : '-'} />
+        <StatCard
+          label="Peringatan"
+          icon={AlertTriangle}
+          loading={loadingKpi}
+          value={data ? formatNumber(counts.warning) : '-'}
+        />
+        <StatCard
+          label="Gagal"
+          icon={XCircle}
+          loading={loadingKpi}
+          value={data ? formatNumber(counts.error) : '-'}
+          hint={data ? `${formatNumber(issues)} temuan` : undefined}
+        />
+      </section>
+
+      {healthQuery.isLoading && <LoadingState />}
+      {healthQuery.isError && !data && (
+        <EmptyState
+          kind="error"
+          title="Pemeriksaan gagal dijalankan"
+          description="Coba jalankan ulang beberapa saat lagi."
+          action={
+            <Button size="sm" variant="outline" onClick={() => healthQuery.refetch()}>
+              Coba lagi
+            </Button>
+          }
+        />
+      )}
+
+      {data && (
+        <ul aria-label="Daftar pemeriksaan" className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          {checks.map((check) => {
+            const info = CHECKS[check.name] ?? { title: check.name };
+            const details = check.details ?? [];
+            const isOpen = !!expanded[check.name];
+            const panelId = `check-${check.name.replace(/\W+/g, '-')}`;
+            const showFix = canFix && check.status !== 'ok' && check.fixable && !!info.fixKey;
+            return (
+              <li key={check.name} className="p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <StatusLabel status={check.status} />
+                      <h2 className="text-sm font-semibold text-foreground">{info.title}</h2>
+                    </div>
+                    <p className="break-words text-sm text-muted-foreground">{check.message}</p>
+                    {check.status !== 'ok' && check.count > 0 && (
+                      <p className="text-xs text-muted-foreground">{formatNumber(check.count)} temuan</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {details.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-expanded={isOpen}
+                        aria-controls={panelId}
+                        onClick={() => setExpanded((prev) => ({ ...prev, [check.name]: !prev[check.name] }))}
+                      >
+                        <ChevronDown className={cn('transition-transform', isOpen && 'rotate-180')} aria-hidden />
+                        {isOpen ? 'Sembunyikan detail' : 'Lihat detail'}
+                      </Button>
+                    )}
+                    {showFix && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConfirm({ key: info.fixKey!, info })}
+                        disabled={fixMutation.isPending}
+                      >
+                        <Wrench aria-hidden />
+                        Perbaiki
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {isOpen && details.length > 0 && (
+                  <div id={panelId} className="mt-3">
+                    <DetailTable rows={details} caption={`Detail ${info.title}`} />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <ConfirmDialog
+        open={confirm !== null}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        tone="danger"
+        title={confirm ? `Perbaiki: ${confirm.info.title}?` : ''}
+        description={confirm?.info.fixEffect}
+        confirmLabel="Ya, perbaiki"
+        loading={previewQuery.isLoading}
+        onConfirm={() => fixMutation.mutateAsync(confirm!.key)}
+      >
+        <div className="max-h-[50dvh] min-w-0 space-y-3 overflow-y-auto text-sm">
+          {previewQuery.isLoading && <p className="text-muted-foreground">Memuat pratinjau perubahan…</p>}
+          {previewQuery.isError && <p className="text-danger-text">Gagal memuat pratinjau perubahan.</p>}
+          {preview && (
+            <>
+              <p className="font-medium text-foreground">{preview.description}</p>
+              {preview.warning && (
+                <p className="rounded-md bg-warning-subtle px-3 py-2 text-warning-text">{preview.warning}</p>
+              )}
+              <DetailTable rows={preview.details.slice(0, PREVIEW_ROWS)} caption="Baris yang akan diubah" />
+              {preview.details.length > PREVIEW_ROWS && (
+                <p className="text-xs text-muted-foreground">
+                  Menampilkan {formatNumber(PREVIEW_ROWS)} dari {formatNumber(preview.details.length)} baris. Semua akan
+                  diproses saat perbaikan dijalankan.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Perbaikan dicatat di Jejak Audit.</p>
+            </>
+          )}
+        </div>
+      </ConfirmDialog>
+    </div>
+  );
 }
