@@ -124,6 +124,8 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   sales_order: { submitted: m('Dikonfirmasi', 'info') },
   // PO: document status + receipt progress derived server-side (`receiptStatus`).
   purchase_order: {
+    draft: m('Draf', 'neutral'),
+    pendingapproval: m('Menunggu Persetujuan', 'warning'),
     submitted: m('Dipesan', 'info'),
     unreceived: m('Belum Diterima', 'warning'),
     partial: m('Diterima Sebagian', 'info'),

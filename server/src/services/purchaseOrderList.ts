@@ -1,7 +1,7 @@
 /**
  * Query building for the purchase order list, GET /api/purchase-orders.
  *
- * Filters: status (DocumentStatus), partyId, startDate/endDate (YYYY-MM-DD,
+ * Filters: status (DocumentStatus | PendingApproval), partyId, startDate/endDate (YYYY-MM-DD,
  * business-time-zone calendar days), search (PO number / supplier name).
  * receipt (unreceived|partial|full|closed) — derived from items' qtyReceived
  * vs quantity, always on open (Submitted, not closed) POs except "closed";
@@ -73,9 +73,14 @@ export function buildPurchaseOrderWhere(
   const and: Prisma.PurchaseOrderWhereInput[] = [];
 
   const status = firstString(query.status);
-  if (status) {
+  if (status === 'PendingApproval') {
+    // "Menunggu Persetujuan" = Draft + pending approval (see purchaseOrderLifecycle).
+    where.status = 'Draft';
+    where.approvalStatus = 'Pending';
+  } else if (status) {
     if (!STATUSES.has(status)) return { ok: false, error: 'Status PO tidak dikenal.' };
     where.status = status as DocumentStatus;
+    if (status === 'Draft') and.push({ OR: [{ approvalStatus: null }, { approvalStatus: { not: 'Pending' } }] });
   }
 
   const partyId = firstString(query.partyId);

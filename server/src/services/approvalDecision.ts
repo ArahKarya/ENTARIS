@@ -9,6 +9,7 @@ import { submitPurchaseInvoiceInTx } from './purchaseInvoiceSubmit';
 import { submitProductionRunInTx } from './productionRunSubmit';
 import { submitSalesReturnInTx } from './salesReturnSubmit';
 import { submitDeliveryOrderInTx } from './deliveryOrderSubmit';
+import { applyPurchaseOrderApprovalDecisionInTx } from './purchaseOrderSubmit';
 import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema, CreateDeliveryOrderSchema } from '../utils/schemas';
 import { notifyUsers } from './notificationService';
 
@@ -48,7 +49,14 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
     if (action === 'approve') {
       let createdDoc: { id: string; number: string } | null = null;
 
-      if (request.payload != null) {
+      // PO: status-based pending (documentId set, no payload) → Draft → Submitted.
+      if (request.documentType === 'PurchaseOrder' && request.documentId) {
+        const poId = request.documentId;
+        createdDoc = await prisma.$transaction(async (tx) => {
+          const po = await applyPurchaseOrderApprovalDecisionInTx(tx, poId, 'approve', note);
+          return { id: po.id, number: po.poNumber };
+        });
+      } else if (request.payload != null) {
         const creator = request.requestedBy;
         createdDoc = await prisma.$transaction(async (tx) => {
           if (request.documentType === 'PurchaseInvoice') {
@@ -118,6 +126,11 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
       });
       logger.info({ requestId: request.id, documentType: request.documentType, createdDoc, approvedBy: actorUserId }, 'Approval approved + document executed');
       return { ok: true, status: 'Approved', docNumber: createdDoc?.number, documentType: request.documentType };
+    }
+
+    if (request.documentType === 'PurchaseOrder' && request.documentId && (action === 'reject' || note)) {
+      // Reject / minta-revisi: PO kembali ke Draf (bisa diedit & diajukan ulang).
+      await applyPurchaseOrderApprovalDecisionInTx(prisma, request.documentId, action, note);
     }
 
     if (action === 'reject') {

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   X, ClipboardList, User, Calendar, Package, Loader2, XCircle, AlertTriangle, PackageCheck,
-  Printer, Pencil, Copy, Ban,
+  Printer, Pencil, Copy, Ban, Send, Trash2, Warehouse, ShieldCheck,
 } from 'lucide-react';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
@@ -16,6 +16,7 @@ import { purchaseOrderActions, receiptProgress } from '../lib/purchaseOrderActio
 import type { PurchaseOrderSource } from './PurchaseOrderModal';
 import type { GoodsReceiptSourcePO } from './GoodsReceiptModal';
 import type { PurchaseOrderPDFData } from '../lib/pdf/PurchaseOrderPDF';
+import { paymentTermLabel, poDueDate } from '../lib/purchaseOrderCalc';
 
 /** GET /purchase-orders/:id — fits every follow-up action (edit, duplicate, STT, PDF). */
 export type PurchaseOrderDetail = PurchaseOrderSource & GoodsReceiptSourcePO & PurchaseOrderPDFData;
@@ -60,15 +61,41 @@ function LineProgress({ ordered, received, unit }: { ordered: number; received: 
   );
 }
 
-const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
-  Submitted: { label: 'Submitted', badge: 'badge badge-blue' },
-  Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
-};
+interface ApprovalHistoryRow {
+  id: string;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+  requester?: { fullName: string } | null;
+  approver?: { fullName: string } | null;
+  rejecter?: { fullName: string } | null;
+}
+
+/** Subtotal / diskon / PPN / biaya lain / grand total (from GET totals). */
+function TotalsBreakdown({ totals, otherCostsLabel }: { totals: Record<string, number>; otherCostsLabel?: string | null }) {
+  const row = (label: string, value: number, cls = '') => (
+    <div className={cn('flex justify-between gap-4', cls)}>
+      <dt className="text-gray-600">{label}</dt>
+      <dd className="font-mono">{formatRupiah(value)}</dd>
+    </div>
+  );
+  return (
+    <dl className="ml-auto mt-3 w-full sm:w-80 text-sm space-y-1" aria-label="Rincian total PO">
+      {row('Subtotal', totals.subtotal)}
+      {totals.discountTotal > 0 && row('Diskon', -totals.discountTotal)}
+      {totals.taxTotal > 0 && row('PPN', totals.taxTotal)}
+      {totals.otherCosts > 0 && row(otherCostsLabel || 'Biaya lain', totals.otherCosts)}
+      {row('Grand Total', totals.grandTotal, 'border-t border-gray-200 pt-1.5 font-semibold text-gray-900')}
+    </dl>
+  );
+}
 
 const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateReceipt, onEdit, onDuplicate }) => {
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isAdmin = cap('doc.cancel');
   const { download: downloadPdf, busy: pdfBusy } = usePurchaseOrderPdf();
 
@@ -103,10 +130,39 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
       toast.error(err.response?.data?.error || 'Gagal menutup PO.'),
   });
 
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['purchase-order-detail', poId] });
+    queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+  };
+
+  const submitMutation = useMutation({
+    mutationFn: async () => (await api.post(`/purchase-orders/${poId}/submit`)).data,
+    onSuccess: (po: { approvalRequestId?: string | null }) => {
+      refresh();
+      toast.success(po?.approvalRequestId ? 'PO diajukan — menunggu persetujuan.' : 'PO dipesan.');
+    },
+    onError: (err: { response?: { data?: { error?: string } } }) =>
+      toast.error(err.response?.data?.error || 'Gagal mengajukan PO.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/purchase-orders/${poId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      toast.success('Draf PO dihapus.');
+      onClose();
+    },
+    onError: (err: { response?: { data?: { error?: string } } }) =>
+      toast.error(err.response?.data?.error || 'Gagal menghapus draf PO.'),
+  });
+
   if (!poId) return null;
 
   const status: string = doc?.status ?? 'Submitted';
-  const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.Submitted;
+  const displayStatus: string = doc?.displayStatus ?? status;
+  const approvals: ApprovalHistoryRow[] = doc?.approvals ?? [];
+  const dueDate = doc ? poDueDate(doc.date, doc.paymentTermDays) : null;
   const items: any[] = doc?.items ?? [];
   const linkedSTTs: any[] = doc?.goodsReceipts ?? [];
   const acts = doc
@@ -133,8 +189,8 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            {doc && <span className={cn(sc.badge)}>{sc.label}</span>}
-            {doc?.receiptStatus && doc.receiptStatus !== 'Cancelled' && (
+            {doc && <StatusBadge status={displayStatus} docType="purchase_order" />}
+            {status === 'Submitted' && doc?.receiptStatus && doc.receiptStatus !== 'Cancelled' && (
               <StatusBadge status={doc.receiptStatus} docType="purchase_order" />
             )}
             {!doc?.partyId && doc && <span className="badge badge-purple text-xs">PO Umum</span>}
@@ -178,17 +234,66 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                         {doc.expectedDeliveryDate ? formatDate(doc.expectedDeliveryDate) : '—'}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Termin</p>
+                      <p className="text-xs font-medium text-gray-800">{paymentTermLabel(doc.paymentTermDays)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Jatuh Tempo</p>
+                      <p className="text-xs font-medium text-gray-800">{dueDate ? formatDate(dueDate) : '—'}</p>
+                    </div>
                     <div className="col-span-2">
                       <p className="text-xs text-gray-400">Dibuat oleh</p>
                       <p className="text-xs font-medium text-gray-800">{doc.user?.fullName ?? '—'}</p>
                     </div>
                   </div>
                 </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <Warehouse size={10} aria-hidden /> Gudang Tujuan
+                  </p>
+                  <p className="text-sm text-gray-800">{doc.warehouse ? `${doc.warehouse.code} — ${doc.warehouse.name}` : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">No. Penawaran Pemasok</p>
+                  <p className="text-sm font-mono text-gray-800">{doc.supplierQuoteRef || '—'}</p>
+                </div>
               </div>
+
+              {(displayStatus === 'PendingApproval' || doc.approvalStatus === 'Rejected' || approvals.length > 0) && (
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <ShieldCheck size={10} aria-hidden /> Persetujuan
+                  </p>
+                  {displayStatus === 'PendingApproval' && (
+                    <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      Menunggu persetujuan — PO belum dikirim ke supplier dan belum bisa dipakai untuk STT.
+                    </p>
+                  )}
+                  {doc.approvalStatus === 'Rejected' && (
+                    <p className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                      Pengajuan ditolak{doc.approvalNote ? <>: <b>{doc.approvalNote}</b></> : '.'} Perbaiki draf lalu ajukan ulang.
+                    </p>
+                  )}
+                  <ul className="space-y-1.5">
+                    {approvals.map((a) => {
+                      const decider = a.approver?.fullName ?? a.rejecter?.fullName;
+                      return (
+                        <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-700">
+                          <StatusBadge status={a.status} docType="approval" />
+                          <span>diajukan {a.requester?.fullName ?? '—'} · {formatDate(a.createdAt)}</span>
+                          {decider && a.decidedAt && <span>· diputus {decider} · {formatDate(a.decidedAt)}</span>}
+                          {a.notes && <span className="w-full text-gray-500">“{a.notes}”</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
 
               <div className="px-6 py-4 border-b border-gray-100">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <Package size={10} /> Items dipesan ({items.length}) — Estimasi: <span className="font-mono normal-case text-gray-700">{formatRupiah(Number(doc.totalEstimated))}</span>
+                  <Package size={10} /> Items dipesan ({items.length})
                 </p>
                 <div className="border border-gray-200 rounded-xl overflow-x-auto">
                   <table className="w-full min-w-[34rem] text-sm">
@@ -198,9 +303,10 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                         <th className="text-left px-3 py-2.5">Item</th>
                         <th className="text-right px-3 py-2.5 w-20">Qty</th>
                         <th className="text-right px-3 py-2.5 w-20">Sisa</th>
-                        <th className="text-center px-3 py-2.5 w-16">Sat</th>
-                        <th className="text-right px-3 py-2.5 w-24">Est. Harga</th>
-                        <th className="text-right px-3 py-2.5 w-28">Est. Subtotal</th>
+                        <th className="text-right px-3 py-2.5 w-24">Harga</th>
+                        <th className="text-right px-3 py-2.5 w-14">Disk %</th>
+                        <th className="text-right px-3 py-2.5 w-14">PPN %</th>
+                        <th className="text-right px-3 py-2.5 w-28">Jumlah</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -214,18 +320,19 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                             <td className="px-3 py-2.5 min-w-48">
                               <p className="text-sm font-medium text-gray-800">{it.itemName}</p>
                               {it.description && <p className="text-xs text-gray-400">{it.description}</p>}
-                              <LineProgress ordered={ordered} received={received} unit={it.unit} />
+                              {status === 'Submitted' && <LineProgress ordered={ordered} received={received} unit={it.unit} />}
                             </td>
-                            <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-gray-800">
-                              {ordered.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+                            <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-gray-800 whitespace-nowrap">
+                              {ordered.toLocaleString('id-ID', { maximumFractionDigits: 3 })} <span className="font-sans text-gray-500">{it.unit}</span>
                             </td>
                             <td className={cn('px-3 py-2.5 text-right font-mono text-xs font-medium', isFulfilled ? 'text-green-700' : 'text-gray-800')}>
                               {isFulfilled ? '0' : qtyFmt(ordered - received)}
                             </td>
-                            <td className="px-3 py-2.5 text-center text-xs text-gray-500">{it.unit}</td>
                             <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">
                               {Number(it.estimatedRate) > 0 ? formatRupiah(Number(it.estimatedRate)) : '—'}
                             </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">{Number(it.discount ?? 0) > 0 ? Number(it.discount) : '—'}</td>
+                            <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">{Number(it.taxPct ?? 0) > 0 ? Number(it.taxPct) : '—'}</td>
                             <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-gray-800">
                               {Number(it.estimatedAmount) > 0 ? formatRupiah(Number(it.estimatedAmount)) : '—'}
                             </td>
@@ -235,6 +342,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                     </tbody>
                   </table>
                 </div>
+                {doc.totals && <TotalsBreakdown totals={doc.totals} otherCostsLabel={doc.otherCostsLabel} />}
               </div>
 
               {linkedSTTs.length > 0 && (
@@ -307,7 +415,19 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                 <Ban size={14} /> Tutup PO
               </button>
             )}
-            {status === 'Submitted' && isAdmin && (
+            {acts.deleteDraft && (
+              <button onClick={() => setConfirmDelete(true)} disabled={deleteMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-700 hover:bg-red-50">
+                <Trash2 size={14} aria-hidden /> Hapus Draf
+              </button>
+            )}
+            {acts.submit && (
+              <button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">
+                {submitMutation.isPending ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Send size={14} aria-hidden />} Ajukan
+              </button>
+            )}
+            {acts.cancel && (
               <button onClick={() => setConfirmCancel(true)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50">
                 <XCircle size={14} /> Batalkan PO
@@ -331,6 +451,16 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
         variant="danger"
         onCancel={() => setConfirmCancel(false)}
         onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Hapus Draf PO"
+        message={`Hapus draf ${doc?.poNumber ?? ''}? Draf dihapus permanen; nomor PO ini tidak dipakai ulang.`}
+        confirmLabel="Ya, Hapus"
+        variant="danger"
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => { deleteMutation.mutate(); setConfirmDelete(false); }}
       />
 
       <ReasonDialog

@@ -971,6 +971,7 @@ model Warehouse {
   deliveryOrderItems   DeliveryOrderItem[]      @relation("DOLineWarehouse")
   goodsReceiptItems    GoodsReceiptItem[]       @relation("GRItemWarehouse")
   costStandards        ProductionCostStandard[] @relation("WarehouseCostStandards")
+  purchaseOrders       PurchaseOrder[]          @relation("PurchaseOrderWarehouse")
   createdAt            DateTime                 @default(now()) @map("created_at")
   updatedAt            DateTime                 @updatedAt @map("updated_at")
 
@@ -1763,6 +1764,20 @@ model PurchaseOrder {
   terms                String?
   expectedDeliveryDate DateTime?           @map("expected_delivery_date")
   totalEstimated       Decimal             @default(0) @map("total_estimated") @db.Decimal(15, 2)
+  // Stage 2 pricing (see services/purchaseOrderCalc.ts). totalEstimated = grandTotal.
+  subtotal             Decimal             @default(0) @db.Decimal(15, 2)
+  discountTotal        Decimal             @default(0) @map("discount_total") @db.Decimal(15, 2)
+  taxTotal             Decimal             @default(0) @map("tax_total") @db.Decimal(15, 2)
+  otherCosts           Decimal             @default(0) @map("other_costs") @db.Decimal(15, 2)
+  otherCostsLabel      String?             @map("other_costs_label")
+  grandTotal           Decimal             @default(0) @map("grand_total") @db.Decimal(15, 2)
+  paymentTermDays      Int?                @map("payment_term_days")
+  warehouseId          String?             @map("warehouse_id")
+  warehouse            Warehouse?          @relation("PurchaseOrderWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+  supplierQuoteRef     String?             @map("supplier_quote_ref")
+  // Approval (status stays Draft while pending): null | 'Pending' | 'Rejected'.
+  approvalStatus       String?             @map("approval_status")
+  approvalNote         String?             @map("approval_note")
   items                PurchaseOrderItem[]
   goodsReceipts        GoodsReceipt[]      @relation("GRFromPO")
   purchaseInvoices     PurchaseInvoice[]   @relation("PIFromPO")
@@ -1782,6 +1797,7 @@ model PurchaseOrder {
   @@index([status])
   @@index([date])
   @@index([fiscalYearId])
+  @@index([warehouseId])
   @@map("purchase_orders")
 }
 
@@ -1796,6 +1812,9 @@ model PurchaseOrderItem {
   unit              String
   estimatedRate     Decimal            @default(0) @map("estimated_rate") @db.Decimal(15, 2)
   estimatedAmount   Decimal            @default(0) @map("estimated_amount") @db.Decimal(15, 2)
+  discount          Decimal            @default(0) @db.Decimal(5, 2) // %
+  taxPct            Decimal            @default(0) @map("tax_pct") @db.Decimal(5, 2) // PPN %
+  taxAmount         Decimal            @default(0) @map("tax_amount") @db.Decimal(15, 2)
   // Denormalized counter — bumped when STT items reference this PO item.
   qtyReceived       Decimal            @default(0) @map("qty_received") @db.Decimal(15, 3)
   description       String?

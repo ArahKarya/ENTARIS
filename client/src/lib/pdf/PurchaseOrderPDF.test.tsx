@@ -25,4 +25,22 @@ describe('PurchaseOrderPDF', () => {
     expect(buf.length).toBeGreaterThan(1500);
     expect(buf.subarray(-8).toString()).toContain('%%EOF');
   }, 20000);
+
+  it('renders stage-2 pricing, terms and a draft marker', async () => {
+    const staged: PurchaseOrderPDFData = {
+      ...po,
+      displayStatus: 'Draft',
+      paymentTermDays: 30,
+      supplierQuoteRef: 'QT-2026/0042',
+      otherCosts: 250000,
+      otherCostsLabel: 'Ongkir',
+      warehouse: { code: 'GDG-01', name: 'Gudang Utama' },
+      items: [
+        { itemName: 'Gabah', quantity: 2000, unit: 'Kg', estimatedRate: 5500, discount: 2.5, taxPct: 11 },
+        { itemName: 'Karung', quantity: 300, unit: 'Pcs', estimatedRate: 5000, taxPct: 12 },
+      ],
+    };
+    const buf = await renderToBuffer(<PurchaseOrderPDF po={staged} company={{ name: 'PT Contoh Pangan' }} />);
+    expect(buf.subarray(0, 5).toString()).toBe('%PDF-');
+  }, 20000);
 });
