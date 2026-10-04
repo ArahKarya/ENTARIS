@@ -1,216 +1,294 @@
-import { useState, Fragment } from 'react';
+/**
+ * Stok per Gudang (/warehouse-stock) — stock position dashboard.
+ *
+ * Source: GET /warehouses/stock-snapshot?date=&warehouseIds= — stock per
+ * warehouse "as of" the end of the selected day (live stock for today). The
+ * endpoint returns the whole snapshot (non-zero rows only), so the DataTable
+ * runs in client mode; warehouse, date, search and filters live in the URL.
+ * The PDF export uses the same endpoint and scope (warehouse + date).
+ */
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
 import { pdf } from '@react-pdf/renderer';
-import { ChevronDown, ChevronRight, Loader2, Warehouse as WhIcon, Star, AlertTriangle, Search, FileDown } from 'lucide-react';
+import { AlertTriangle, Boxes, FileDown, Loader2, Package, Wallet, Warehouse as WarehouseIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { useCompanySettings } from '../contexts/CompanySettingsContext';
-import WarehouseStockPDF, { type WarehouseBlock } from '../lib/pdf/WarehouseStockPDF';
-import { groupByCategory } from '../lib/stockCategories';
+import api from '@/lib/api';
+import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import { can } from '@/lib/permissions';
+import { cn } from '@/lib/utils';
+import { CATEGORY_ORDER, categoryGroupLabel } from '@/lib/stockCategories';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { useCompanySettings } from '@/contexts/CompanySettingsContext';
+import { Button } from '@/components/ui/button';
+import { ComboboxFilter, DataTable, DateInput, FilterBar, PageHeader, StatCard } from '@/components/shared';
+import WarehouseStockPDF, { type WarehouseBlock } from '@/lib/pdf/WarehouseStockPDF';
 
-interface Warehouse {
+interface WarehouseOption {
   id: string;
   code: string;
   name: string;
-  location: string | null;
-  isActive: boolean;
   isDefault: boolean;
-  sortOrder: number;
-  itemCount?: number;
-  totalStock?: number;
 }
-
-interface InventoryStockRow {
-  id: string;
-  itemId: string;
-  warehouseId: string;
-  currentStock: number | string;
-  item: {
-    id: string;
-    code: string;
-    name: string;
-    unit: string;
-    averageCost: number | string;
-    category?: string | null;
-  };
-}
-
-interface WarehouseDetail extends Warehouse {
-  stocks: InventoryStockRow[];
-}
-
-function StockSection({ warehouse, search }: { warehouse: Warehouse; search: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['warehouse-detail', warehouse.id],
-    queryFn: async () => {
-      const res = await api.get(`/warehouses/${warehouse.id}`);
-      return res.data as WarehouseDetail;
-    },
-    staleTime: 30 * 1000,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="py-8 text-center text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-      </div>
-    );
-  }
-
-  const allRows = data?.stocks ?? [];
-  // Backend already filters out zero stock; we keep negatives.
-  const filtered = search
-    ? allRows.filter((s) => {
-        const q = search.toLowerCase();
-        return s.item.name.toLowerCase().includes(q) || s.item.code.toLowerCase().includes(q);
-      })
-    : allRows;
-
-  if (filtered.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        {search ? 'Tidak ada item cocok dengan pencarian.' : 'Tidak ada stok di gudang ini.'}
-      </div>
-    );
-  }
-
-  const negativeCount = filtered.filter((s) => Number(s.currentStock) < 0).length;
-  const totalValue = filtered.reduce(
-    (sum, s) => sum + Number(s.currentStock) * Number(s.item.averageCost ?? 0),
-    0,
-  );
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs px-1">
-        <span className="text-muted-foreground">
-          <span className="font-mono tabular-nums text-foreground">{filtered.length}</span> jenis item
-        </span>
-        {negativeCount > 0 && (
-          <span className="text-red-600 inline-flex items-center gap-1">
-            <AlertTriangle size={12} />
-            <span className="font-mono tabular-nums">{negativeCount}</span> stok negatif
-          </span>
-        )}
-        <span className="text-muted-foreground">
-          Nilai buku: <span className="font-mono tabular-nums text-foreground">
-            Rp {totalValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-          </span>
-        </span>
-      </div>
-      <div className="table-responsive">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th className="w-28">Kode</th>
-              <th>Nama</th>
-              <th className="w-20">Satuan</th>
-              <th className="text-right w-32">Stok</th>
-              <th className="text-right w-36">Avg. Cost</th>
-              <th className="text-right w-40">Nilai</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groupByCategory(filtered, (s) => s.item.category).map((group) => {
-              const groupValue = group.rows.reduce(
-                (sum, s) => sum + Number(s.currentStock) * Number(s.item.averageCost ?? 0),
-                0,
-              );
-              return (
-                <Fragment key={group.label}>
-                  {/* Header kategori */}
-                  <tr className="bg-muted/60">
-                    <td colSpan={5} className="font-semibold uppercase tracking-wider text-[11px] text-muted-foreground">
-                      {group.label}
-                      <span className="ml-2 normal-case font-normal text-muted-foreground/70">
-                        ({group.rows.length} item)
-                      </span>
-                    </td>
-                    <td className="text-right font-mono tabular-nums font-semibold text-foreground">
-                      Rp {groupValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-                    </td>
-                  </tr>
-                  {group.rows.map((s) => {
-                    const qty = Number(s.currentStock);
-                    const cost = Number(s.item.averageCost ?? 0);
-                    const value = qty * cost;
-                    const isNegative = qty < 0;
-                    return (
-                      <tr key={s.id}>
-                        <td>
-                          <span className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {s.item.code}
-                          </span>
-                        </td>
-                        <td className="font-medium text-foreground">{s.item.name}</td>
-                        <td className="text-xs text-muted-foreground">{s.item.unit}</td>
-                        <td className={cn(
-                          'text-right font-mono tabular-nums',
-                          isNegative ? 'text-red-600 font-semibold' : 'text-foreground',
-                        )}>
-                          {qty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                        </td>
-                        <td className="text-right font-mono tabular-nums text-muted-foreground">
-                          {cost > 0 ? cost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
-                        </td>
-                        <td className={cn(
-                          'text-right font-mono tabular-nums',
-                          isNegative ? 'text-red-600' : 'text-foreground',
-                        )}>
-                          {value !== 0 ? `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-const today = () => new Date().toISOString().slice(0, 10);
 
 interface SnapshotItem {
-  code: string; name: string; unit: string; category?: string | null;
-  qty: number; averageCost: number; value: number;
+  itemId: string;
+  code: string;
+  name: string;
+  unit: string;
+  category?: string | null;
+  qty: number;
+  averageCost: number;
+  value: number;
 }
 interface SnapshotWarehouse {
-  code: string; name: string; location: string | null;
-  isDefault: boolean; items: SnapshotItem[];
+  warehouseId: string;
+  code: string;
+  name: string;
+  location: string | null;
+  isDefault: boolean;
+  items: SnapshotItem[];
+  totalValue: number;
+  itemCount: number;
 }
 interface StockSnapshotResponse {
   asOfDate: string;
   valuationNote: string;
+  grandTotalValue: number;
   warehouses: SnapshotWarehouse[];
 }
 
-export const WarehouseStockDashboard = () => {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [search, setSearch] = useState('');
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [asOfDate, setAsOfDate] = useState(today());
-  const company = useCompanySettings();
+/** One table row: an item's balance in one warehouse. */
+interface StockRow extends SnapshotItem {
+  key: string;
+  categoryLabel: string;
+  warehouseCode: string;
+  warehouseName: string;
+}
 
-  const { data: warehouses, isLoading } = useQuery({
-    queryKey: ['warehouses'],
-    queryFn: async () => {
-      const res = await api.get('/warehouses?active=true');
-      return res.data.data as Warehouse[];
-    },
+const FILTER_KEYS = ['warehouse', 'date', 'category', 'stock'] as const;
+const STOCK_FILTER = [
+  { value: 'negative', label: 'Stok negatif' },
+  { value: 'positive', label: 'Stok positif' },
+];
+const CATEGORY_OPTIONS = [...CATEGORY_ORDER, 'Lainnya'].map((c) => ({
+  value: c,
+  label: c,
+}));
+const CATEGORY_RANK = new Map(CATEGORY_OPTIONS.map((o, i) => [o.value, i]));
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Today as a local calendar date (YYYY-MM-DD), not the UTC day. */
+function localToday(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const errorMessage = (e: unknown, fallback: string) =>
+  (e as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback;
+
+/** Flattens the snapshot into rows: warehouse order → category order → qty desc. */
+function toRows(snapshot: StockSnapshotResponse | undefined): StockRow[] {
+  if (!snapshot) return [];
+  return snapshot.warehouses.flatMap((w) =>
+    w.items
+      .map((it) => ({
+        ...it,
+        key: `${w.warehouseId}|${it.itemId}`,
+        categoryLabel: categoryGroupLabel(it.category),
+        warehouseCode: w.code,
+        warehouseName: w.name,
+      }))
+      .sort(
+        (a, b) =>
+          (CATEGORY_RANK.get(a.categoryLabel) ?? 99) - (CATEGORY_RANK.get(b.categoryLabel) ?? 99) || b.qty - a.qty,
+      ),
+  );
+}
+
+function StockQty({ row }: { row: StockRow }) {
+  const negative = row.qty < 0;
+  return (
+    <div className="flex flex-col items-end">
+      <span
+        className={cn(
+          'inline-flex items-center gap-1',
+          negative ? 'font-semibold text-danger-text' : 'text-foreground',
+        )}
+      >
+        {negative && <AlertTriangle className="size-3.5 shrink-0" aria-hidden />}
+        {formatNumber(row.qty, { maxDecimals: 3 })}
+        <span className="text-xs font-normal text-muted-foreground">{row.unit}</span>
+      </span>
+      {negative && <span className="text-[11px] font-medium leading-4 text-danger-text">Stok negatif</span>}
+      {/* Mobile: value stacked here because its column is hidden. */}
+      <span className="text-xs text-muted-foreground sm:hidden">{formatRupiah(row.value)}</span>
+    </div>
+  );
+}
+
+export const WarehouseStockDashboard = () => {
+  const list = useListState({ filters: FILTER_KEYS });
+  const [density, setDensity] = useTableDensity();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const company = useCompanySettings();
+  const { filters, search } = list;
+
+  const today = localToday();
+  const asOfDate = ISO_DATE.test(filters.date) && filters.date <= today ? filters.date : today;
+  const warehouseId = filters.warehouse;
+  const snapshotParams = useMemo(
+    () => ({
+      date: asOfDate,
+      ...(warehouseId ? { warehouseIds: warehouseId } : {}),
+    }),
+    [asOfDate, warehouseId],
+  );
+
+  const warehousesQuery = useQuery({
+    queryKey: ['warehouses', 'active'],
+    queryFn: async () => (await api.get('/warehouses?active=true')).data.data as WarehouseOption[],
   });
 
-  // Unduh PDF posisi stok "as of" tanggal terpilih. Selalu pakai snapshot
-  // endpoint (riwayat pergerakan) — utk tanggal hari ini, hasilnya sama dgn
-  // stok live, tapi konsisten satu jalur.
+  const snapshotQuery = useQuery({
+    queryKey: ['warehouses', 'stock-snapshot', snapshotParams],
+    queryFn: async () =>
+      (await api.get('/warehouses/stock-snapshot', { params: snapshotParams })).data as StockSnapshotResponse,
+    staleTime: 30 * 1000,
+  });
+  const snapshot = snapshotQuery.data;
+
+  const allRows = useMemo(() => toRows(snapshot), [snapshot]);
+  const rows = useMemo(() => {
+    const q = search.toLowerCase();
+    return allRows.filter(
+      (r) =>
+        (!q || r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q)) &&
+        (!filters.category || r.categoryLabel === filters.category) &&
+        (!filters.stock || (filters.stock === 'negative' ? r.qty < 0 : r.qty > 0)),
+    );
+  }, [allRows, search, filters.category, filters.stock]);
+
+  const summary = useMemo(() => {
+    if (!snapshot) return null;
+    return {
+      warehouses: snapshot.warehouses.length,
+      rows: allRows.length,
+      items: new Set(allRows.map((r) => r.itemId)).size,
+      negative: allRows.filter((r) => r.qty < 0).length,
+      value: snapshot.grandTotalValue,
+    };
+  }, [snapshot, allRows]);
+
+  const warehouseOptions = useMemo(
+    () =>
+      (warehousesQuery.data ?? []).map((w) => ({
+        value: w.id,
+        label: w.isDefault ? `${w.name} (default)` : w.name,
+        hint: w.code,
+      })),
+    [warehousesQuery.data],
+  );
+  const showWarehouseColumn = !warehouseId && (snapshot?.warehouses.length ?? 0) > 1;
+  // Only search/category/stock narrow the rows; warehouse + date define the scope.
+  const narrowed = !!(search || filters.category || filters.stock);
+  const isToday = asOfDate === today;
+
+  const columns = useMemo<ColumnDef<StockRow>[]>(() => {
+    const all: ColumnDef<StockRow>[] = [
+      {
+        id: 'name',
+        accessorFn: (r) => r.name,
+        header: 'Item',
+        enableSorting: true,
+        meta: { cellClassName: 'min-w-36 max-w-48 sm:max-w-80' },
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="min-w-0">
+              <p className="truncate font-medium text-foreground">{r.name}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                <span className="font-mono">{r.code}</span>
+                {/* Mobile: category (and warehouse) stacked here because their columns are hidden. */}
+                <span className="lg:hidden"> · {r.categoryLabel}</span>
+                {showWarehouseColumn && <span className="md:hidden"> · {r.warehouseCode}</span>}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'category',
+        accessorFn: (r) => CATEGORY_RANK.get(r.categoryLabel) ?? 99,
+        header: 'Kategori',
+        enableSorting: true,
+        meta: {
+          hideBelow: 'lg',
+          cellClassName: 'whitespace-nowrap text-muted-foreground',
+        },
+        cell: ({ row }) => row.original.categoryLabel,
+      },
+      {
+        id: 'warehouse',
+        accessorFn: (r) => r.warehouseName,
+        header: 'Gudang',
+        enableSorting: true,
+        meta: {
+          hideBelow: 'md',
+          cellClassName: 'whitespace-nowrap text-muted-foreground',
+        },
+        cell: ({ row }) => row.original.warehouseName,
+      },
+      {
+        id: 'qty',
+        accessorFn: (r) => r.qty,
+        header: 'Stok',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => <StockQty row={row.original} />,
+      },
+      {
+        id: 'averageCost',
+        accessorFn: (r) => r.averageCost,
+        header: 'Avg. Cost (Rp)',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: {
+          align: 'right',
+          hideBelow: 'lg',
+          cellClassName: 'text-muted-foreground',
+        },
+        cell: ({ row }) =>
+          row.original.averageCost > 0 ? formatRupiah(row.original.averageCost, { symbol: false }) : '-',
+      },
+      {
+        id: 'value',
+        accessorFn: (r) => r.value,
+        header: 'Nilai (Rp)',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right', hideBelow: 'sm' },
+        cell: ({ row }) => (
+          <span className={cn(row.original.value < 0 ? 'text-danger-text' : 'text-foreground')}>
+            {row.original.value !== 0 ? formatRupiah(row.original.value, { symbol: false }) : '-'}
+          </span>
+        ),
+      },
+    ];
+    return showWarehouseColumn ? all : all.filter((c) => c.id !== 'warehouse');
+  }, [showWarehouseColumn]);
+
+  // PDF of the stock position for the selected date (and warehouse, if any).
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
-      const res = await api.get('/warehouses/stock-snapshot', { params: { date: asOfDate } });
+      const res = await api.get('/warehouses/stock-snapshot', {
+        params: snapshotParams,
+      });
       const snap = res.data as StockSnapshotResponse;
 
       const blocks: WarehouseBlock[] = snap.warehouses.map((w) => ({
@@ -234,7 +312,11 @@ export const WarehouseStockDashboard = () => {
           generatedAt={new Date()}
           asOfDate={snap.asOfDate}
           valuationNote={snap.valuationNote}
-          company={{ name: company?.companyName ?? 'Perusahaan', address: company?.address, logoUrl: company?.logoUrl }}
+          company={{
+            name: company?.companyName ?? 'Perusahaan',
+            address: company?.address,
+            logoUrl: company?.logoUrl,
+          }}
         />,
       ).toBlob();
 
@@ -246,127 +328,163 @@ export const WarehouseStockDashboard = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error ?? 'Gagal membuat PDF.');
+    } catch (e) {
+      toast.error(errorMessage(e, 'Gagal membuat PDF.'));
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const toggle = (id: string) =>
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-
-  const expandAll = () => {
-    if (!warehouses) return;
-    setExpanded(Object.fromEntries(warehouses.map((w) => [w.id, true])));
-  };
-  const collapseAll = () => setExpanded({});
+  const noWarehouses = !!snapshot && snapshot.warehouses.length === 0;
+  const scopeLabel = warehouseId
+    ? (snapshot?.warehouses[0]?.name ?? 'gudang terpilih')
+    : `${formatNumber(summary?.warehouses ?? 0)} gudang aktif`;
 
   return (
     <div className="space-y-5 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Dashboard Stok per Gudang</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Tabel menampilkan stok terkini. Unduh PDF mengambil posisi stok per tanggal terpilih.
-            Item dengan stok 0 disembunyikan. Stok negatif ditandai merah.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={expandAll} className="btn-secondary text-xs">Buka semua</button>
-          <button onClick={collapseAll} className="btn-secondary text-xs">Tutup semua</button>
-          <div className="flex items-center gap-1.5 border border-border rounded-lg px-2 py-1 bg-card">
-            <span className="text-xs text-muted-foreground">Posisi tgl:</span>
-            <input
-              type="date"
+      <PageHeader
+        title="Stok per Gudang"
+        description="Posisi stok per gudang pada akhir tanggal terpilih. Item dengan stok 0 tidak ditampilkan."
+        actions={
+          <Button
+            onClick={handleDownloadPDF}
+            disabled={isDownloading || !snapshot || noWarehouses}
+            title="Unduh posisi stok per tanggal terpilih"
+          >
+            {isDownloading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
+            Unduh PDF
+          </Button>
+        }
+      />
+
+      <section aria-label="Ringkasan stok" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Gudang"
+          icon={WarehouseIcon}
+          loading={!summary && !snapshotQuery.isError}
+          value={summary ? formatNumber(summary.warehouses) : '-'}
+          hint={warehouseId ? scopeLabel : 'gudang aktif'}
+        />
+        <StatCard
+          label="Item Bersaldo"
+          icon={Package}
+          loading={!summary && !snapshotQuery.isError}
+          value={summary ? formatNumber(summary.items) : '-'}
+          hint={
+            summary && summary.rows !== summary.items ? `${formatNumber(summary.rows)} saldo per gudang` : 'jenis item'
+          }
+        />
+        <StatCard
+          label="Nilai Persediaan"
+          icon={Wallet}
+          loading={!summary && !snapshotQuery.isError}
+          value={summary ? formatRupiah(summary.value, { compact: true }) : '-'}
+          valueTitle={summary ? formatRupiah(summary.value) : undefined}
+          hint="estimasi avg cost terkini"
+        />
+        <StatCard
+          label="Stok Negatif"
+          icon={summary?.negative ? AlertTriangle : Boxes}
+          loading={!summary && !snapshotQuery.isError}
+          value={summary ? formatNumber(summary.negative) : '-'}
+          hint={summary ? (summary.negative > 0 ? 'perlu ditindaklanjuti' : 'tidak ada') : undefined}
+          className={summary && summary.negative > 0 ? 'border-danger/40' : undefined}
+        />
+      </section>
+
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari item"
+          searchPlaceholder="Cari nama atau kode item"
+          status={{
+            options: STOCK_FILTER,
+            key: 'stock',
+            label: 'Kondisi stok',
+            allLabel: 'Semua stok',
+          }}
+        >
+          <ComboboxFilter
+            label="Gudang"
+            allLabel="Semua gudang"
+            searchPlaceholder="Cari gudang…"
+            value={warehouseId}
+            onChange={(v) => list.setFilter('warehouse', v)}
+            options={warehouseOptions}
+            loading={warehousesQuery.isLoading}
+            className="w-[calc(50%-0.25rem)] sm:w-48"
+          />
+          <ComboboxFilter
+            label="Kategori"
+            allLabel="Semua kategori"
+            searchPlaceholder="Cari kategori…"
+            value={filters.category}
+            onChange={(v) => list.setFilter('category', v)}
+            options={CATEGORY_OPTIONS}
+            className="w-[calc(50%-0.25rem)] sm:w-40"
+          />
+          <div className="flex w-[calc(50%-0.25rem)] items-center gap-2 sm:w-auto">
+            <label
+              htmlFor="stock-as-of"
+              className="sr-only whitespace-nowrap text-sm text-muted-foreground sm:not-sr-only"
+            >
+              Posisi per
+            </label>
+            <DateInput
+              id="stock-as-of"
               value={asOfDate}
-              max={today()}
-              onChange={(e) => setAsOfDate(e.target.value || today())}
-              className="bg-transparent text-xs focus:outline-none text-foreground"
+              max={today}
+              // Partial input reports ''; keep the current date until a full date is typed.
+              onChange={(v) => v && list.setFilter('date', v >= today ? '' : v)}
+              className="min-w-0 flex-1 sm:w-36 sm:flex-none"
             />
           </div>
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isDownloading || !warehouses || warehouses.length === 0}
-            className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
-            title="Unduh stok posisi per tanggal terpilih"
-          >
-            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
-            Unduh PDF
-          </button>
-        </div>
-      </div>
+        </FilterBar>
 
-      <div className="bg-card border border-border rounded-xl px-3 py-2 flex items-center gap-2">
-        <Search size={14} className="text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cari item (nama / kode)..."
-          className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
+        <DataTable
+          label={`Stok per gudang per ${formatDate(asOfDate)}`}
+          itemLabel="saldo"
+          columns={columns}
+          data={snapshot ? rows : undefined}
+          getRowId={(row) => row.key}
+          pageSize={50}
+          loading={snapshotQuery.isLoading}
+          fetching={snapshotQuery.isFetching && !snapshotQuery.isLoading}
+          error={snapshotQuery.error}
+          onRetry={() => snapshotQuery.refetch()}
+          filtered={narrowed}
+          onClearFilters={() => {
+            list.setFilters({ category: '', stock: '' });
+            list.setSearch('');
+          }}
+          rowClassName={(r) => (r.qty < 0 ? 'bg-danger-subtle/40' : undefined)}
+          density={density}
+          onDensityChange={setDensity}
+          empty={
+            noWarehouses
+              ? {
+                  title: 'Belum ada gudang aktif',
+                  description: 'Aktifkan atau tambahkan gudang untuk melihat stok per lokasi.',
+                  action: can('warehouse', 'view') ? (
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to="/warehouses">Buka Daftar Gudang</Link>
+                    </Button>
+                  ) : undefined,
+                }
+              : {
+                  title: isToday ? 'Belum ada stok' : `Tidak ada stok per ${formatDate(asOfDate)}`,
+                  description: 'Saldo stok akan muncul setelah ada penerimaan barang atau pergerakan stok.',
+                }
+          }
         />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="text-xs text-muted-foreground hover:text-foreground underline"
-          >
-            Reset
-          </button>
+
+        {snapshot?.valuationNote && (
+          <p className="text-xs text-muted-foreground">
+            {snapshot.valuationNote}
+            {!isToday && ' Posisi historis dihitung mundur dari stok terkini.'}
+          </p>
         )}
       </div>
-
-      {isLoading ? (
-        <div className="py-16 text-center text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-        </div>
-      ) : !warehouses || warehouses.length === 0 ? (
-        <div className="py-16 text-center bg-card border border-border rounded-xl">
-          <WhIcon className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-40" />
-          <p className="text-sm text-muted-foreground">Belum ada gudang aktif.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {warehouses.map((w) => {
-            const isOpen = !!expanded[w.id];
-            return (
-              <div key={w.id} className="bg-card border border-border rounded-xl overflow-hidden">
-                <button
-                  onClick={() => toggle(w.id)}
-                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-accent/50 transition-colors text-left"
-                >
-                  {isOpen
-                    ? <ChevronDown size={16} className="text-muted-foreground shrink-0" />
-                    : <ChevronRight size={16} className="text-muted-foreground shrink-0" />}
-                  <span className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">{w.code}</span>
-                  <span className="font-medium text-foreground inline-flex items-center gap-1.5">
-                    {w.name}
-                    {w.isDefault && <Star size={12} className="text-amber-500 fill-amber-500" />}
-                  </span>
-                  {w.location && <span className="text-xs text-muted-foreground">— {w.location}</span>}
-                  <div className="ml-auto flex items-center gap-4 text-xs">
-                    <span className="text-muted-foreground">
-                      <span className="font-mono tabular-nums text-foreground">{w.itemCount ?? 0}</span> item
-                    </span>
-                    <span className="text-muted-foreground">
-                      Total: <span className="font-mono tabular-nums text-foreground">
-                        {Number(w.totalStock ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                      </span>
-                    </span>
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="px-4 pb-4 border-t border-border bg-background/50">
-                    <div className="pt-3">
-                      <StockSection warehouse={w} search={search} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 };

@@ -107,7 +107,7 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
           </div>
           <div className="flex items-center gap-1.5">
             {doc && <span className={cn(sc.badge)}>{sc.label}</span>}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+            <button onClick={onClose} aria-label="Tutup" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} aria-hidden /></button>
           </div>
         </div>
 
@@ -184,7 +184,8 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
                   <Package size={10} /> Items ({items.length})
                 </p>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width */}
+                <div className="border border-gray-200 rounded-xl overflow-x-auto" role="region" aria-label="Daftar item transfer" tabIndex={0}>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">

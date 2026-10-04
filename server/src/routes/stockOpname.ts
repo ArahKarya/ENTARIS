@@ -11,20 +11,48 @@ import { cancelJournalsByPrefix } from '../utils/journalCancel';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStock';
+import { firstString, parseListPaging, parseSort } from '../utils/listQuery';
+import {
+  buildStockOpnameWhere,
+  DEFAULT_STOCK_OPNAME_SORT,
+  OPNAME_REFERENCE_TYPE,
+  opnameWarehouses,
+  STOCK_OPNAME_SORT_FIELDS,
+  stockOpnameOrderBy,
+  summarizeOpnameLines,
+} from '../services/stockOpnameList';
 
 const router = Router();
 
-// GET /api/stock-opname — List all sessions
+// GET /api/stock-opname — List sessions
+// Query: page, limit (default 20, ≤100), status, warehouseId, startDate,
+// endDate (YYYY-MM-DD), search (number / notes / creator), sort (e.g. "-date").
+// → { data, total, page, limit }; each row carries totalVariance + itemsWithDiff.
+// Rows also carry `warehouses` when `page` is sent (list kit); without `page`
+// and `sort` the response is byte-identical to the legacy endpoint.
 router.get('/', async (req, res) => {
   try {
-    const { page = '1', limit = '20', status } = req.query;
-    const take = Math.min(Number(limit) || 20, 100);
-    const skip = (Number(page) - 1) * take;
+    const query = req.query as Record<string, unknown>;
+    const { page, limit: take, skip } = parseListPaging(query, { defaultLimit: 20, maxLimit: 100 });
 
-    const where: any = {};
-    if (status && typeof status === 'string') {
-      where.status = status;
-    }
+    const warehouseId = firstString(query.warehouseId);
+    const warehouseOpnameIds = warehouseId
+      ? (
+          await prisma.stockMovement.findMany({
+            where: { referenceType: OPNAME_REFERENCE_TYPE, warehouseId, referenceId: { not: null } },
+            select: { referenceId: true },
+            distinct: ['referenceId'],
+          })
+        ).map((m) => m.referenceId as string)
+      : undefined;
+
+    const filter = buildStockOpnameWhere(query, { warehouseOpnameIds });
+    if (!filter.ok) return res.status(400).json({ error: filter.error });
+    const { where } = filter;
+    // No `sort` → legacy order (date desc) so old callers see the same rows.
+    const orderBy = firstString(query.sort)
+      ? stockOpnameOrderBy(parseSort(query.sort, STOCK_OPNAME_SORT_FIELDS, DEFAULT_STOCK_OPNAME_SORT))
+      : { date: 'desc' as const };
 
     const [data, total] = await Promise.all([
       prisma.stockOpname.findMany({
@@ -33,27 +61,40 @@ router.get('/', async (req, res) => {
           createdBy: { select: { fullName: true } },
           _count: { select: { items: true } },
         },
-        orderBy: { date: 'desc' },
+        orderBy,
         skip,
         take,
       }),
       prisma.stockOpname.count({ where }),
     ]);
 
-    // Compute summary per session
-    const result = await Promise.all(
-      data.map(async (so) => {
-        const items = await prisma.stockOpnameItem.findMany({
-          where: { stockOpnameId: so.id },
-          select: { difference: true, totalValue: true },
-        });
-        const totalVariance = items.reduce((s, i) => s + Math.abs(Number(i.totalValue)), 0);
-        const itemsWithDiff = items.filter((i) => Number(i.difference) !== 0).length;
-        return { ...so, totalVariance, itemsWithDiff };
-      })
-    );
+    const ids = data.map((so) => so.id);
+    const withWarehouses = query.page !== undefined;
+    const [lines, movements] = await Promise.all([
+      ids.length > 0
+        ? prisma.stockOpnameItem.findMany({
+            where: { stockOpnameId: { in: ids } },
+            select: { stockOpnameId: true, difference: true, totalValue: true },
+          })
+        : [],
+      withWarehouses && ids.length > 0
+        ? prisma.stockMovement.findMany({
+            where: { referenceType: OPNAME_REFERENCE_TYPE, referenceId: { in: ids } },
+            select: { referenceId: true, warehouse: { select: { id: true, code: true, name: true } } },
+            orderBy: { createdAt: 'asc' },
+          })
+        : [],
+    ]);
+    const variance = summarizeOpnameLines(lines);
+    const warehousesById = opnameWarehouses(movements);
 
-    return res.json({ data: result, total, page: Number(page), limit: take });
+    const result = data.map((so) => {
+      const v = variance.get(so.id) ?? { totalVariance: 0, itemsWithDiff: 0 };
+      const row = { ...so, totalVariance: v.totalVariance, itemsWithDiff: v.itemsWithDiff };
+      return withWarehouses ? { ...row, warehouses: warehousesById.get(so.id) ?? [] } : row;
+    });
+
+    return res.json({ data: result, total, page, limit: take });
   } catch (error) {
     logger.error({ error }, 'GET /stock-opname error');
     return res.status(500).json({ error: 'Gagal mengambil data stok opname.' });

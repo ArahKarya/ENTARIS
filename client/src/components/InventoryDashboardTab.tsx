@@ -102,10 +102,10 @@ const movementBadge: Record<string, { label: string; cls: string }> = {
 function stockStatus(current: number): { label: string; color: string; bgColor: string } {
   const pct = (current / MIN_STOCK_KG) * 100;
   if (current <= 0) return { label: 'Habis', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/40' };
-  if (pct <= 50) return { label: 'Kritis', color: 'text-red-600', bgColor: 'bg-red-50 dark:bg-red-900/30' };
-  if (pct <= 100) return { label: 'Menipis', color: 'text-amber-600', bgColor: 'bg-amber-50 dark:bg-amber-900/30' };
-  if (pct <= 200) return { label: 'Normal', color: 'text-green-600', bgColor: 'bg-green-50 dark:bg-green-900/30' };
-  return { label: 'Surplus', color: 'text-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-900/30' };
+  if (pct <= 50) return { label: 'Kritis', color: 'text-red-700', bgColor: 'bg-red-50 dark:bg-red-900/30' };
+  if (pct <= 100) return { label: 'Menipis', color: 'text-amber-700', bgColor: 'bg-amber-50 dark:bg-amber-900/30' };
+  if (pct <= 200) return { label: 'Normal', color: 'text-green-700', bgColor: 'bg-green-50 dark:bg-green-900/30' };
+  return { label: 'Surplus', color: 'text-blue-700', bgColor: 'bg-blue-50 dark:bg-blue-900/30' };
 }
 
 function stockBarColor(current: number): string {
@@ -314,7 +314,9 @@ export default function InventoryDashboardTab() {
             <p className="text-xs">Belum ada item persediaan</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          // Focusable so keyboard users can scroll the overflowing table.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          <div className="overflow-x-auto" role="region" aria-label="Tabel stok item" tabIndex={0}>
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ color: 'var(--color-text-muted)' }}>
@@ -570,7 +572,9 @@ export default function InventoryDashboardTab() {
             <p className="text-xs">Belum ada gerakan stok</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          // Focusable so keyboard users can scroll the overflowing table.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          <div className="overflow-x-auto" role="region" aria-label="Tabel gerakan stok terbaru" tabIndex={0}>
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ color: 'var(--color-text-muted)' }}>
