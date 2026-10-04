@@ -1,9 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, ShieldCheck, Lock } from 'lucide-react';
+import { Plus, Trash2, ShieldCheck, Lock, KeyRound } from 'lucide-react';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
+import { ConfirmDialog, EmptyState, Field, LoadingState } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { SettingsCard } from '../../components/settings/SettingsCard';
+import { SaveBar } from '../../components/settings/SaveBar';
+import { PermissionMatrix } from '../../components/settings/PermissionMatrix';
+import {
+  draftFromRole, groupModules, isCapsDirty, isPermDraftDirty, toPermissionsPayload, type PermDraft,
+} from '../../components/settings/permissionMatrixState';
 
 interface ModuleDef { key: string; label: string; group: string }
 interface CapabilityDef { key: string; label: string }
@@ -23,15 +34,20 @@ interface Role {
   caps: string[];
 }
 
+const MIN_NAME = 2;
+
 export const RolePermissionsTab: React.FC = () => {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [draftPerms, setDraftPerms] = useState<Record<string, { view: boolean; edit: boolean }>>({});
+  const [draftPerms, setDraftPerms] = useState<PermDraft>({});
   const [draftCaps, setDraftCaps] = useState<Set<string>>(new Set());
   const [draftName, setDraftName] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newNameTouched, setNewNameTouched] = useState(false);
+  const [confirmSave, setConfirmSave] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: catalog } = useQuery<Catalog>({
     queryKey: ['roles-catalog'],
@@ -44,42 +60,35 @@ export const RolePermissionsTab: React.FC = () => {
 
   const selected = roles.find((r) => r.id === selectedId) || null;
 
-  const groups = useMemo(() => {
-    const g: Record<string, ModuleDef[]> = {};
-    for (const m of catalog?.modules ?? []) (g[m.group] ??= []).push(m);
-    return g;
-  }, [catalog]);
+  const groups = useMemo(
+    () => groupModules(catalog?.modules ?? [], selected?.permissions.map((p) => p.module) ?? []),
+    [catalog, selected],
+  );
 
   const loadDraft = (r: Role) => {
     setSelectedId(r.id);
-    const perms: Record<string, { view: boolean; edit: boolean }> = {};
-    for (const p of r.permissions) perms[p.module] = { view: p.canView, edit: p.canEdit };
-    setDraftPerms(perms);
+    setDraftPerms(draftFromRole(r.permissions));
     setDraftCaps(new Set(r.caps));
     setDraftName(r.name);
     setDraftDesc(r.description ?? '');
   };
 
-  const setPerm = (mod: string, action: 'view' | 'edit', val: boolean) => {
-    setDraftPerms((prev) => {
-      const cur = prev[mod] ?? { view: false, edit: false };
-      const next = { ...cur, [action]: val };
-      if (action === 'edit' && val) next.view = true; // edit menyiratkan view
-      if (action === 'view' && !val) next.edit = false; // tanpa view → tanpa edit
-      return { ...prev, [mod]: next };
-    });
-  };
+  const dirty = !!selected && (
+    draftName !== selected.name ||
+    draftDesc !== (selected.description ?? '') ||
+    isPermDraftDirty(selected.permissions, draftPerms) ||
+    isCapsDirty(selected.caps, draftCaps)
+  );
+  const nameError = selected && draftName.trim().length < MIN_NAME ? `Nama peran minimal ${MIN_NAME} karakter.` : undefined;
+  const newNameError = newNameTouched && newName.trim().length < MIN_NAME ? `Nama peran minimal ${MIN_NAME} karakter.` : undefined;
 
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!selected) return;
-      const permissions = Object.entries(draftPerms)
-        .filter(([, v]) => v.view || v.edit)
-        .map(([module, v]) => ({ module, canView: v.view || v.edit, canEdit: v.edit }));
       return api.put(`/roles/${selected.id}`, {
         name: draftName,
         description: draftDesc,
-        permissions,
+        permissions: toPermissionsPayload(draftPerms),
         caps: [...draftCaps],
       });
     },
@@ -91,9 +100,13 @@ export const RolePermissionsTab: React.FC = () => {
     mutationFn: async () => api.post('/roles', { name: newName }),
     onSuccess: (res: any) => {
       toast.success('Role dibuat.');
-      setCreating(false); setNewName('');
+      setCreating(false); setNewName(''); setNewNameTouched(false);
       qc.invalidateQueries({ queryKey: ['roles'] }).then(() => {
-        if (res?.data?.id) setSelectedId(res.data.id);
+        const id: string | undefined = res?.data?.id;
+        if (!id) return;
+        const fresh = qc.getQueryData<Role[]>(['roles'])?.find((r) => r.id === id);
+        if (fresh) loadDraft(fresh);
+        else setSelectedId(id);
       });
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal membuat role.'),
@@ -105,130 +118,185 @@ export const RolePermissionsTab: React.FC = () => {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal menghapus role.'),
   });
 
-  if (isLoading) return <div className="py-10 text-center text-gray-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>;
+  const toggleCap = (key: string, on: boolean) =>
+    setDraftCaps((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(key); else next.delete(key);
+      return next;
+    });
+
+  const submitCreate = () => {
+    setNewNameTouched(true);
+    if (newName.trim().length < MIN_NAME) return;
+    createMut.mutate();
+  };
+
+  if (isLoading) return <LoadingState />;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-      {/* Daftar role */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Role</h3>
-          <button onClick={() => setCreating(true)} className="btn-primary text-xs"><Plus size={13} /> Role Baru</button>
-        </div>
-        {creating && (
-          <div className="card p-3 space-y-2">
-            <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nama role (mis. Kasir)"
-              className="w-full border rounded-lg px-2.5 py-1.5 text-sm" />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => { setCreating(false); setNewName(''); }} className="btn-secondary text-xs">Batal</button>
-              <button onClick={() => createMut.mutate()} disabled={newName.trim().length < 2 || createMut.isPending} className="btn-primary text-xs">Buat</button>
-            </div>
-          </div>
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+      <SettingsCard
+        title="Peran"
+        className="self-start"
+        actions={!creating && (
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus aria-hidden /> Peran Baru
+          </Button>
         )}
-        <div className="space-y-1">
-          {roles.map((r) => (
-            <button key={r.id} onClick={() => loadDraft(r)}
-              className={cn('w-full text-left px-3 py-2 rounded-lg border text-sm flex items-center justify-between gap-2',
-                selectedId === r.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:bg-gray-50')}>
-              <span className="flex items-center gap-1.5 min-w-0">
-                {r.isSuperAdmin ? <ShieldCheck size={13} className="text-blue-600 flex-shrink-0" /> : null}
-                <span className="truncate">{r.name}</span>
-              </span>
-              <span className="text-[10px] text-gray-400 flex-shrink-0">{r.isSystem ? 'sistem' : 'custom'} · {r.userCount}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+        contentClassName="space-y-3"
+      >
+        {creating && (
+          <form
+            noValidate
+            className="space-y-2 rounded-lg border border-border p-3"
+            onSubmit={(e) => { e.preventDefault(); submitCreate(); }}
+          >
+            <Field label="Nama peran baru" required error={newNameError}>
+              <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="mis. Kasir" />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setCreating(false); setNewName(''); setNewNameTouched(false); }}>Batal</Button>
+              <Button type="submit" size="sm" loading={createMut.isPending}>Buat</Button>
+            </div>
+          </form>
+        )}
+        <ul className="space-y-1" aria-label="Daftar peran">
+          {roles.map((r) => {
+            const isActive = selectedId === r.id;
+            return (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => loadDraft(r)}
+                  aria-current={isActive ? 'true' : undefined}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isActive ? 'border-primary bg-primary-subtle text-primary-subtle-foreground' : 'border-border hover:bg-accent',
+                  )}
+                >
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {r.isSuperAdmin && <ShieldCheck className="size-3.5 shrink-0 text-primary" aria-label="Super-admin" />}
+                      <span className="truncate font-medium">{r.name}</span>
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {r.isSystem ? 'Sistem' : 'Kustom'} · {r.userCount} pengguna
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </SettingsCard>
 
-      {/* Editor */}
-      <div>
+      <div className="min-w-0 space-y-5">
         {!selected ? (
-          <div className="card p-8 text-center text-sm text-gray-400">Pilih role untuk mengatur izin, atau buat role baru.</div>
+          <SettingsCard title="Hak akses">
+            <EmptyState compact icon={KeyRound} title="Pilih peran" description="Pilih peran di daftar untuk mengatur izin, atau buat peran baru." />
+          </SettingsCard>
         ) : selected.isSuperAdmin ? (
-          <div className="card p-6 text-sm text-gray-600 flex items-center gap-2">
-            <Lock size={16} className="text-gray-400" /> Role <b>{selected.name}</b> adalah super-admin — selalu memiliki akses penuh dan tidak dapat dibatasi.
-          </div>
+          <SettingsCard title={selected.name}>
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Lock className="size-4 shrink-0" aria-hidden />
+              Peran ini adalah super-admin — selalu memiliki akses penuh dan tidak dapat dibatasi.
+            </p>
+          </SettingsCard>
         ) : (
-          <div className="space-y-4">
-            <div className="card p-4 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-600">Nama Role</label>
-                  <input value={draftName} onChange={(e) => setDraftName(e.target.value)} className="w-full border rounded-lg px-2.5 py-1.5 text-sm mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600">Deskripsi</label>
-                  <input value={draftDesc} onChange={(e) => setDraftDesc(e.target.value)} className="w-full border rounded-lg px-2.5 py-1.5 text-sm mt-1" />
-                </div>
-              </div>
-              {selected.isSystem && <p className="text-[11px] text-amber-600">Role bawaan — izinnya boleh diubah, tapi role tidak dapat dihapus.</p>}
-            </div>
-
-            {/* Matriks modul */}
-            <div className="card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-xs text-gray-500">
-                    <th className="text-left px-3 py-2">Modul</th>
-                    <th className="px-3 py-2 w-16 text-center">Lihat</th>
-                    <th className="px-3 py-2 w-16 text-center">Edit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(groups).map(([group, mods]) => (
-                    <React.Fragment key={group}>
-                      <tr className="bg-gray-50"><td colSpan={3} className="px-3 py-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{group}</td></tr>
-                      {mods.map((m) => {
-                        const p = draftPerms[m.key] ?? { view: false, edit: false };
-                        return (
-                          <tr key={m.key} className="border-b border-gray-50">
-                            <td className="px-3 py-1.5 text-gray-700">{m.label}</td>
-                            <td className="px-3 py-1.5 text-center">
-                              <input type="checkbox" checked={p.view} onChange={(e) => setPerm(m.key, 'view', e.target.checked)} />
-                            </td>
-                            <td className="px-3 py-1.5 text-center">
-                              <input type="checkbox" checked={p.edit} onChange={(e) => setPerm(m.key, 'edit', e.target.checked)} />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Capabilities */}
-            <div className="card p-4">
-              <h4 className="text-xs font-semibold text-gray-600 mb-2">Hak Khusus</h4>
-              <div className="space-y-1.5">
-                {(catalog?.capabilities ?? []).map((c) => (
-                  <label key={c.key} className="flex items-start gap-2 text-sm text-gray-700">
-                    <input type="checkbox" className="mt-0.5" checked={draftCaps.has(c.key)}
-                      onChange={(e) => setDraftCaps((prev) => { const n = new Set(prev); if (e.target.checked) n.add(c.key); else n.delete(c.key); return n; })} />
-                    <span>{c.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                {!selected.isSystem && (
-                  <button
-                    onClick={() => { if (confirm(`Hapus role "${selected.name}"?`)) deleteMut.mutate(selected.id); }}
+          <>
+            <SettingsCard
+              title="Detail Peran"
+              actions={selected.isSystem
+                ? <Badge variant="warning">Peran bawaan</Badge>
+                : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-danger-text"
+                    onClick={() => setConfirmDelete(true)}
                     disabled={selected.userCount > 0 || deleteMut.isPending}
-                    title={selected.userCount > 0 ? 'Role masih dipakai user' : undefined}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg disabled:opacity-40">
-                    <Trash2 size={13} /> Hapus Role
-                  </button>
+                    title={selected.userCount > 0 ? 'Peran masih dipakai pengguna' : undefined}
+                  >
+                    <Trash2 aria-hidden /> Hapus Peran
+                  </Button>
                 )}
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Nama peran" required error={nameError}>
+                  <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} />
+                </Field>
+                <Field label="Deskripsi">
+                  <Input value={draftDesc} onChange={(e) => setDraftDesc(e.target.value)} />
+                </Field>
               </div>
-              <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="btn-primary text-sm">
-                {saveMut.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Simpan Perubahan'}
-              </button>
-            </div>
-          </div>
+              {selected.isSystem && (
+                <p className="mt-3 text-xs text-muted-foreground">Peran bawaan — izinnya boleh diubah, tetapi peran tidak dapat dihapus.</p>
+              )}
+              {!selected.isSystem && selected.userCount > 0 && (
+                <p className="mt-3 text-xs text-muted-foreground">Peran masih dipakai {selected.userCount} pengguna sehingga tidak dapat dihapus.</p>
+              )}
+            </SettingsCard>
+
+            <SettingsCard
+              title="Hak Akses Modul"
+              description="Ubah otomatis menyertakan Lihat; mencabut Lihat juga mencabut Ubah. Gunakan kotak di header untuk memilih sekaligus."
+            >
+              <PermissionMatrix groups={groups} draft={draftPerms} onChange={setDraftPerms} caption={selected.name} />
+            </SettingsCard>
+
+            <SettingsCard title="Hak Khusus" description="Kemampuan sensitif di luar hak modul.">
+              {(catalog?.capabilities ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Tidak ada hak khusus.</p>
+              ) : (
+                <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {(catalog?.capabilities ?? []).map((c) => (
+                    <li key={c.key}>
+                      <label className="flex items-start gap-2.5 rounded-md p-1.5 text-sm text-foreground hover:bg-accent">
+                        <Checkbox className="mt-0.5" checked={draftCaps.has(c.key)} onCheckedChange={(v) => toggleCap(c.key, v === true)} />
+                        <span>
+                          {c.label}
+                          <span className="block font-mono text-xs text-muted-foreground">{c.key}</span>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SettingsCard>
+
+            <SaveBar
+              dirty={dirty}
+              saveDisabled={!!nameError}
+              saving={saveMut.isPending}
+              onSave={() => setConfirmSave(true)}
+              onReset={() => loadDraft(selected)}
+              saveLabel="Simpan Perubahan"
+            />
+
+            <ConfirmDialog
+              open={confirmSave}
+              onOpenChange={setConfirmSave}
+              title={`Simpan hak akses ${draftName}?`}
+              description={selected.userCount > 0
+                ? `Perubahan langsung berlaku untuk ${selected.userCount} pengguna dengan peran ini.`
+                : 'Perubahan berlaku untuk pengguna yang nanti diberi peran ini.'}
+              confirmLabel="Simpan"
+              loading={saveMut.isPending}
+              onConfirm={() => saveMut.mutateAsync()}
+            />
+
+            <ConfirmDialog
+              open={confirmDelete}
+              onOpenChange={setConfirmDelete}
+              tone="danger"
+              title={`Hapus peran "${selected.name}"?`}
+              description="Peran yang dihapus tidak dapat dipulihkan."
+              confirmLabel="Hapus Peran"
+              loading={deleteMut.isPending}
+              onConfirm={() => deleteMut.mutateAsync(selected.id)}
+            />
+          </>
         )}
       </div>
     </div>

@@ -4,6 +4,14 @@ import { requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreatePartySchema, UpdatePartySchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
+import { parseListPaging } from '../utils/listQuery';
+import {
+  buildPartyWhere,
+  isPartyListQuery,
+  partyOrderBy,
+  parsePartySort,
+  summarizeParties,
+} from '../services/partyList';
 
 const router = Router();
 
@@ -29,7 +37,31 @@ function levenshtein(a: string, b: string): number {
 }
 
 // GET /api/parties
+//
+// Two modes, same { data, total, page, limit } envelope:
+//  • List mode (any of search / sort / isActive / hasOutstanding present) —
+//    used by the "Pelanggan & Vendor" page: filters + whitelisted sort, see
+//    services/partyList. Limit up to 500 (export pages through it).
+//  • Legacy mode (pickers: ?type=Customer&limit=…) — unchanged below.
 router.get('/', async (req, res) => {
+  if (isPartyListQuery(req.query as Record<string, unknown>)) {
+    try {
+      const query = req.query as Record<string, unknown>;
+      const built = buildPartyWhere(query);
+      if (!built.ok) return res.status(400).json({ error: built.error });
+      const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 500 });
+      const orderBy = partyOrderBy(parsePartySort(query.sort), built.type);
+      const [parties, total] = await Promise.all([
+        prisma.party.findMany({ where: built.where, orderBy, skip, take: limit }),
+        prisma.party.count({ where: built.where }),
+      ]);
+      return res.json({ data: parties, total, page, limit });
+    } catch (error) {
+      logger.error({ error }, 'GET /parties (list) error');
+      return res.status(500).json({ error: 'Gagal mengambil data pihak.' });
+    }
+  }
+
   try {
     const type = typeof req.query.type === 'string' ? req.query.type : undefined;
     const { page = '1', limit = '100' } = req.query;
@@ -59,6 +91,26 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /parties error');
     return res.status(500).json({ error: 'Gagal mengambil data pihak.' });
+  }
+});
+
+// GET /api/parties/summary — KPIs for the list page, same filters as GET /
+// (list mode). MUST be before /:id.
+router.get('/summary', async (req, res) => {
+  try {
+    const built = buildPartyWhere(req.query as Record<string, unknown>);
+    if (!built.ok) return res.status(400).json({ error: built.error });
+    const rows = await prisma.party.findMany({
+      where: built.where,
+      select: {
+        partyType: true, isActive: true,
+        outstandingAmount: true, depositBalance: true, customerDepositBalance: true,
+      },
+    });
+    return res.json(summarizeParties(rows));
+  } catch (error) {
+    logger.error({ error }, 'GET /parties/summary error');
+    return res.status(500).json({ error: 'Gagal mengambil ringkasan mitra.' });
   }
 });
 

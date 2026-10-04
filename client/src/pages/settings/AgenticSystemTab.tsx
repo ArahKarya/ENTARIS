@@ -2,10 +2,18 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import {
-  Loader2, Plus, Trash2, Play, Save, Bot, X, Eye, EyeOff, RefreshCw,
-} from 'lucide-react';
+import { Plus, Trash2, Play, X, Eye, EyeOff, RefreshCw, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { can } from '../../lib/permissions';
+import { ConfirmDialog, EmptyState, Field, LoadingState } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SettingsCard } from '../../components/settings/SettingsCard';
+import { SaveBar } from '../../components/settings/SaveBar';
 
 // ─── Tipe ──────────────────────────────────────────────────────────────────
 interface EffectiveTool {
@@ -70,11 +78,23 @@ interface WhitelistEntry {
   enabled: boolean;
 }
 
-const RISK_BADGE: Record<string, string> = {
-  read: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  write: 'bg-amber-50 text-amber-700 border-amber-200',
-  critical: 'bg-red-50 text-red-700 border-red-200',
+const RISK_BADGE: Record<string, BadgeProps['variant']> = {
+  read: 'success',
+  write: 'warning',
+  critical: 'danger',
 };
+const TIER_OPTIONS = [
+  { value: 'auto', label: 'Otomatis (auto)' },
+  { value: 'draft', label: 'Draf (draft)' },
+  { value: 'must_approve', label: 'Wajib approval' },
+];
+const ALL_GROUPS = '__all__';
+
+function generateToken(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID().replace(/-/g, '')
+    : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
 const CHANNELS = ['telegram', 'whatsapp'];
 
 export const AgenticSystemTab: React.FC = () => {
@@ -96,6 +116,8 @@ export const AgenticSystemTab: React.FC = () => {
   });
   const [form, setForm] = useState<Partial<AiSetting> | null>(null);
   const [showToken, setShowToken] = useState(false);
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const canEdit = can('settings', 'edit');
   const s = form ?? settings ?? null;
 
   const saveSettings = useMutation({
@@ -165,163 +187,140 @@ export const AgenticSystemTab: React.FC = () => {
 
   const dirty = form !== null;
 
+  const applyToken = () => {
+    if (!s) return;
+    setForm({ ...s, serviceToken: generateToken() });
+    setShowToken(true);
+  };
+
+  const healthLabel = !airaHealth ? 'Mengecek…' : airaHealth.online ? 'AIRA Online' : 'AIRA Offline';
+  const healthTitle = airaHealth
+    ? `aira-core ${airaHealth.status}` +
+      (airaHealth.version ? ` · v${airaHealth.version}` : '') +
+      (airaHealth.tools_loaded != null ? ` · ${airaHealth.tools_loaded} tools` : '') +
+      ` · ${airaHealth.base_url}`
+    : 'mengecek status aira-core…';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ── Bagian 1: Koneksi AIRA (config sisi-ERP minimal) ── */}
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="mb-1 flex items-center gap-2">
-          <Bot size={16} className="text-blue-600" />
-          <h2 className="text-sm font-semibold text-gray-900">Koneksi AIRA</h2>
-          {/* Badge status aira-core online/offline (Fase 5: detect 2 arah) */}
-          <span
-            title={
-              airaHealth
-                ? `aira-core ${airaHealth.status}` +
-                  (airaHealth.version ? ` · v${airaHealth.version}` : '') +
-                  (airaHealth.tools_loaded != null ? ` · ${airaHealth.tools_loaded} tools` : '') +
-                  ` · ${airaHealth.base_url}`
-                : 'mengecek status aira-core…'
-            }
-            className={cn(
-              'ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium',
-              !airaHealth
-                ? 'border-gray-200 bg-gray-50 text-gray-400'
-                : airaHealth.online
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-red-200 bg-red-50 text-red-700',
-            )}
+      <SettingsCard
+        title="Koneksi AIRA"
+        description="Model AI, memori & konteks dikelola oleh AIRA (aplikasi terpisah). ERP hanya mengatur aktivasi layer agentik & token koneksi."
+        actions={(
+          <Badge
+            title={healthTitle}
+            variant={!airaHealth ? 'neutral' : airaHealth.online ? 'success' : 'danger'}
+            className="gap-1.5"
           >
             <span
-              className={cn(
-                'h-1.5 w-1.5 rounded-full',
-                !airaHealth ? 'bg-gray-300' : airaHealth.online ? 'bg-emerald-500' : 'bg-red-500',
-              )}
+              aria-hidden
+              className={cn('size-1.5 rounded-full', !airaHealth ? 'bg-muted-foreground' : airaHealth.online ? 'bg-success' : 'bg-danger')}
             />
-            {!airaHealth ? 'Mengecek…' : airaHealth.online ? 'AIRA Online' : 'AIRA Offline'}
-          </span>
-        </div>
-        <p className="mb-3 text-xs text-gray-400">
-          Model AI, memori &amp; konteks dikelola oleh AIRA (aplikasi terpisah). ERP hanya mengatur
-          aktivasi layer agentic &amp; token koneksi.
-        </p>
-        {s && (
-          <div className="space-y-4">
-            {/* Toggle Agentic Enabled */}
-            <div className="flex items-center justify-between rounded border border-gray-200 px-3 py-2.5">
-              <div>
-                <div className="text-sm font-medium text-gray-800">Agentic Enabled</div>
-                <div className="text-xs text-gray-400">
-                  Aktifkan/nonaktifkan seluruh layer agentic. Saat nonaktif, semua pemanggilan tool
-                  ditolak (403).
-                </div>
+            {healthLabel}
+          </Badge>
+        )}
+      >
+        {!s ? (
+          <LoadingState />
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+              <div className="min-w-0">
+                <p id="ai-enabled-label" className="text-sm font-medium text-foreground">Layer agentik aktif</p>
+                <p id="ai-enabled-desc" className="mt-0.5 text-xs text-muted-foreground">
+                  Saat nonaktif, semua pemanggilan tool ditolak (403).
+                </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!!s.agenticEnabled}
-                onClick={() => setForm({ ...s, agenticEnabled: !s.agenticEnabled })}
-                className={cn(
-                  'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors',
-                  s.agenticEnabled ? 'bg-emerald-500' : 'bg-gray-300',
-                )}
-              >
-                <span
-                  className={cn(
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    s.agenticEnabled ? 'translate-x-6' : 'translate-x-1',
-                  )}
-                />
-              </button>
+              <Switch
+                checked={!!s.agenticEnabled}
+                disabled={!canEdit}
+                onCheckedChange={(v) => setForm({ ...s, agenticEnabled: v })}
+                aria-labelledby="ai-enabled-label"
+                aria-describedby="ai-enabled-desc"
+              />
             </div>
 
-            {/* Service Token */}
-            <label className="block text-xs font-medium text-gray-600">
-              Service Token <span className="text-gray-400">(Bearer untuk AIRA → ERP Tool Router)</span>
-              <div className="mt-1 flex gap-2">
-                <input
-                  type={showToken ? 'text' : 'password'}
-                  value={s.serviceToken ?? ''}
-                  onChange={(e) => setForm({ ...s, serviceToken: e.target.value })}
-                  placeholder={
-                    s.hasServiceToken
-                      ? 'Token tersimpan (disembunyikan) — isi atau Generate untuk mengganti'
-                      : 'Token rahasia untuk auth AIRA'
-                  }
-                  className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowToken((v) => !v)}
-                  title={showToken ? 'Sembunyikan' : 'Tampilkan'}
-                  className="flex items-center rounded border border-gray-300 px-2 text-gray-500 hover:bg-gray-50"
-                >
-                  {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const tok =
-                      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-                        ? crypto.randomUUID().replace(/-/g, '')
-                        : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-                    setForm({ ...s, serviceToken: tok });
-                    setShowToken(true);
-                  }}
-                  title="Generate token baru"
-                  className="flex items-center gap-1 rounded border border-gray-300 px-2 text-xs text-gray-600 hover:bg-gray-50"
-                >
-                  <RefreshCw size={14} /> Generate
-                </button>
-              </div>
-              {s.serviceToken && (
-                <span className="mt-1 block text-[11px] text-amber-600">
-                  Salin token ini ke konfigurasi AIRA sebelum menyimpan — setelah disimpan token tidak bisa ditampilkan lagi.
-                </span>
+            <Field
+              label="Service token"
+              hint={s.hasServiceToken
+                ? 'Token tersimpan dan disembunyikan (Bearer untuk AIRA → ERP Tool Router). Isi atau buat baru untuk mengganti.'
+                : 'Bearer untuk AIRA → ERP Tool Router.'}
+            >
+              {(control) => (
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    {...control}
+                    type={showToken ? 'text' : 'password'}
+                    autoComplete="off"
+                    disabled={!canEdit}
+                    value={s.serviceToken ?? ''}
+                    onChange={(e) => setForm({ ...s, serviceToken: e.target.value })}
+                    placeholder={s.hasServiceToken ? 'Token tersimpan (disembunyikan)' : 'Token rahasia untuk auth AIRA'}
+                    className="min-w-48 flex-1 basis-48 font-mono"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowToken((v) => !v)}
+                    aria-label={showToken ? 'Sembunyikan token' : 'Tampilkan token'}
+                    aria-pressed={showToken}
+                  >
+                    {showToken ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      onClick={() => (s.hasServiceToken ? setConfirmRegenerate(true) : applyToken())}
+                    >
+                      <RefreshCw aria-hidden /> Buat token
+                    </Button>
+                  )}
+                  {s.serviceToken && (
+                    <p role="status" className="basis-full text-xs font-medium text-warning-text">
+                      Salin token ini ke konfigurasi AIRA sebelum menyimpan — setelah disimpan token tidak bisa ditampilkan lagi.
+                    </p>
+                  )}
+                </div>
               )}
-            </label>
+            </Field>
 
-            {/* M2-A4: Channel aktif (global) */}
-            <div className="rounded border border-gray-200 px-3 py-2.5">
-              <div className="text-sm font-medium text-gray-800">Channel Aktif</div>
-              <div className="mb-2 text-xs text-gray-400">
+            <fieldset className="rounded-lg border border-border p-3">
+              <legend className="px-1 text-sm font-medium text-foreground">Channel aktif</legend>
+              <p className="mb-3 text-xs text-muted-foreground">
                 Channel yang dilayani AIRA. Kosong = semua aktif. (Penegakan di gateway AIRA.)
-              </div>
-              <div className="flex flex-wrap gap-3">
+              </p>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {AI_CHANNELS.map((ch) => {
                   const list = s.activeChannels ?? [];
                   const checked = list.length === 0 || list.includes(ch.id);
                   const allActive = list.length === 0;
                   return (
-                    <label key={ch.id} className="flex items-center gap-1.5 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
+                    <label key={ch.id} className="flex items-center gap-2 text-sm text-foreground">
+                      <Checkbox
                         checked={checked}
-                        onChange={() => {
-                          // Dari "semua aktif" (kosong) → materialisasi penuh dulu, lalu toggle.
+                        disabled={!canEdit}
+                        onCheckedChange={() => {
+                          // From "all active" (empty) → materialise the full list first, then toggle.
                           const base = allActive ? AI_CHANNELS.map((c) => c.id) : [...list];
-                          const next = base.includes(ch.id)
-                            ? base.filter((c) => c !== ch.id)
-                            : [...base, ch.id];
-                          // Bila semua tercentang lagi → simpan sebagai kosong (= semua, lebih ringkas).
+                          const next = base.includes(ch.id) ? base.filter((c) => c !== ch.id) : [...base, ch.id];
+                          // All checked again → store as empty (= all).
                           const normalized = next.length === AI_CHANNELS.length ? [] : next;
                           setForm({ ...s, activeChannels: normalized });
                         }}
-                        className="h-3.5 w-3.5 rounded border-gray-300"
                       />
                       {ch.label}
                     </label>
                   );
                 })}
               </div>
-            </div>
+            </fieldset>
 
-            {/* M2-A4: Whitelist Modul (group bisnis) */}
-            <div className="rounded border border-gray-200 px-3 py-2.5">
-              <div className="text-sm font-medium text-gray-800">Whitelist Modul</div>
-              <div className="mb-2 text-xs text-gray-400">
-                Group modul yang boleh dipakai AIRA. Kosong = semua modul boleh (default).
-                Bila dipilih, tool di luar group ditolak (403).
-              </div>
+            <fieldset className="rounded-lg border border-border p-3">
+              <legend className="px-1 text-sm font-medium text-foreground">Whitelist modul</legend>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Group modul yang boleh dipakai AIRA. Kosong = semua modul boleh (default). Bila dipilih, tool di luar group ditolak (403).
+              </p>
               <div className="flex flex-wrap gap-2">
                 {AI_MODULE_GROUPS.map((g) => {
                   const list = s.whitelistModules ?? [];
@@ -330,15 +329,17 @@ export const AgenticSystemTab: React.FC = () => {
                     <button
                       key={g}
                       type="button"
+                      disabled={!canEdit}
+                      aria-pressed={active}
                       onClick={() => {
                         const next = active ? list.filter((x) => x !== g) : [...list, g];
                         setForm({ ...s, whitelistModules: next });
                       }}
                       className={cn(
-                        'rounded-full border px-2.5 py-1 text-xs transition-colors',
+                        'rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60',
                         active
-                          ? 'border-blue-300 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50',
+                          ? 'border-primary bg-primary-subtle font-medium text-primary-subtle-foreground'
+                          : 'border-border bg-card text-muted-foreground hover:bg-accent',
                       )}
                     >
                       {g}
@@ -347,188 +348,186 @@ export const AgenticSystemTab: React.FC = () => {
                 })}
               </div>
               {(s.whitelistModules ?? []).length === 0 && (
-                <div className="mt-2 text-xs text-emerald-600">● Semua modul aktif (tak ada batasan)</div>
+                <p className="mt-2 text-xs text-success-text">Semua modul aktif (tak ada batasan).</p>
               )}
-            </div>
+            </fieldset>
           </div>
         )}
-        <div className="mt-3 flex justify-end">
-          <button
-            disabled={!dirty || saveSettings.isPending}
-            onClick={() =>
-              s &&
-              saveSettings.mutate({
-                agenticEnabled: s.agenticEnabled,
-                activeChannels: s.activeChannels,
-                whitelistModules: s.whitelistModules,
-                // Omit when blank so saving other fields never clears the stored token.
-                ...(s.serviceToken ? { serviceToken: s.serviceToken } : {}),
-              })
-            }
-            className={cn(
-              'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium text-white',
-              dirty ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed',
-            )}
-          >
-            {saveSettings.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Simpan
-          </button>
-        </div>
-      </section>
+      </SettingsCard>
+
+      {canEdit && (
+        <SaveBar
+          dirty={dirty}
+          saving={saveSettings.isPending}
+          onReset={() => { setForm(null); setShowToken(false); }}
+          onSave={() =>
+            s &&
+            saveSettings.mutate({
+              agenticEnabled: s.agenticEnabled,
+              activeChannels: s.activeChannels,
+              whitelistModules: s.whitelistModules,
+              // Omit when blank so saving other fields never clears the stored token.
+              ...(s.serviceToken ? { serviceToken: s.serviceToken } : {}),
+            })
+          }
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirmRegenerate}
+        onOpenChange={setConfirmRegenerate}
+        tone="danger"
+        title="Buat service token baru?"
+        description="Token baru menggantikan token lama setelah Anda menekan Simpan. AIRA tidak bisa terhubung sampai token baru disalin ke konfigurasi AIRA."
+        confirmLabel="Buat token baru"
+        onConfirm={applyToken}
+      />
 
       {/* ── Bagian 2: Whitelist ── */}
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">Whitelist Akses (channel ↔ user)</h2>
-        <div className="mb-3 flex flex-wrap items-end gap-2">
-          <select
-            value={wlForm.channel}
-            onChange={(e) => setWlForm({ ...wlForm, channel: e.target.value })}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+      <SettingsCard title="Whitelist Akses" description="Pemetaan channel ↔ pengguna yang boleh memakai AIRA." contentClassName="space-y-4 px-0 pb-0">
+        {canEdit && (
+          <form
+            className="grid grid-cols-1 gap-3 px-5 sm:grid-cols-2 lg:grid-cols-[140px_1fr_1fr_120px_auto] lg:items-end"
+            onSubmit={(e) => { e.preventDefault(); if (wlForm.externalId.trim()) addWl.mutate(wlForm); }}
           >
-            {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <input
-            value={wlForm.externalId}
-            onChange={(e) => setWlForm({ ...wlForm, externalId: e.target.value })}
-            placeholder="chat_id / nomor WA"
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm font-mono w-40"
-          />
-          <input
-            value={wlForm.label}
-            onChange={(e) => setWlForm({ ...wlForm, label: e.target.value })}
-            placeholder="Label"
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm w-32"
-          />
-          <input
-            value={wlForm.role}
-            onChange={(e) => setWlForm({ ...wlForm, role: e.target.value })}
-            placeholder="Role"
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm w-24"
-          />
-          <button
-            disabled={!wlForm.externalId || addWl.isPending}
-            onClick={() => addWl.mutate(wlForm)}
-            className="flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1.5 text-sm text-white hover:bg-blue-700 disabled:bg-gray-300"
-          >
-            <Plus size={14} /> Tambah
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs text-gray-500">
+            <Field label="Channel">
+              {(control) => (
+                <Select value={wlForm.channel} onValueChange={(v) => setWlForm({ ...wlForm, channel: v })}>
+                  <SelectTrigger {...control}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CHANNELS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
+            <Field label="External ID" required>
+              <Input value={wlForm.externalId} onChange={(e) => setWlForm({ ...wlForm, externalId: e.target.value })} placeholder="chat_id / nomor WA" className="font-mono" />
+            </Field>
+            <Field label="Label">
+              <Input value={wlForm.label} onChange={(e) => setWlForm({ ...wlForm, label: e.target.value })} placeholder="Label" />
+            </Field>
+            <Field label="Peran">
+              <Input value={wlForm.role} onChange={(e) => setWlForm({ ...wlForm, role: e.target.value })} placeholder="Viewer" />
+            </Field>
+            <Button type="submit" disabled={!wlForm.externalId} loading={addWl.isPending}>
+              {!addWl.isPending && <Plus aria-hidden />} Tambah
+            </Button>
+          </form>
+        )}
+        <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel whitelist akses" tabIndex={0}>
+          <table className="w-full min-w-[520px] text-sm">
+            <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-2 py-1.5">Channel</th>
-                <th className="px-2 py-1.5">External ID</th>
-                <th className="px-2 py-1.5">Label</th>
-                <th className="px-2 py-1.5">Role</th>
-                <th className="px-2 py-1.5"></th>
+                <th scope="col" className="px-5 py-2.5 font-medium">Channel</th>
+                <th scope="col" className="px-3 py-2.5 font-medium">External ID</th>
+                <th scope="col" className="px-3 py-2.5 font-medium">Label</th>
+                <th scope="col" className="px-3 py-2.5 font-medium">Peran</th>
+                <th scope="col" className="px-5 py-2.5"><span className="sr-only">Aksi</span></th>
               </tr>
             </thead>
             <tbody>
               {(whitelist ?? []).map((w) => (
-                <tr key={w.id} className="border-t border-gray-100">
-                  <td className="px-2 py-1.5">{w.channel}</td>
-                  <td className="px-2 py-1.5 font-mono text-xs">{w.externalId}</td>
-                  <td className="px-2 py-1.5">{w.label || '-'}</td>
-                  <td className="px-2 py-1.5">{w.role || 'Viewer'}</td>
-                  <td className="px-2 py-1.5 text-right">
-                    <button onClick={() => delWl.mutate(w.id)} className="text-red-500 hover:text-red-700">
-                      <Trash2 size={14} />
-                    </button>
+                <tr key={w.id} className="border-t border-border">
+                  <td className="px-5 py-2.5">{w.channel}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs">{w.externalId}</td>
+                  <td className="px-3 py-2.5">{w.label || '-'}</td>
+                  <td className="px-3 py-2.5">{w.role || 'Viewer'}</td>
+                  <td className="px-5 py-2.5 text-right">
+                    {canEdit && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => delWl.mutate(w.id)} aria-label={`Hapus whitelist ${w.externalId}`}>
+                        <Trash2 className="text-danger-text" aria-hidden />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
               {(whitelist ?? []).length === 0 && (
-                <tr><td colSpan={5} className="px-2 py-3 text-center text-xs text-gray-400">Belum ada whitelist.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-4 text-center text-xs text-muted-foreground">Belum ada whitelist.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-      </section>
+      </SettingsCard>
 
       {/* ── Bagian 3: Daftar Tool ── */}
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-gray-900">
-            Daftar Tool <span className="text-xs font-normal text-gray-400">({enabledCount}/{tools?.length ?? 0} aktif)</span>
-          </h2>
-          <div className="flex gap-2">
-            <select
-              value={groupFilter}
-              onChange={(e) => setGroupFilter(e.target.value)}
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-            >
-              <option value="">Semua grup</option>
-              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari tool…"
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm w-40"
-            />
+      <SettingsCard
+        title={<>Daftar Tool <span className="text-sm font-normal text-muted-foreground">({enabledCount}/{tools?.length ?? 0} aktif)</span></>}
+        description="Aktifkan tool dan atur tingkat persetujuan. Tool baca bisa diuji langsung."
+        contentClassName="space-y-4 px-0 pb-0"
+      >
+        <div className="flex flex-wrap gap-2 px-5">
+          <Select value={groupFilter || ALL_GROUPS} onValueChange={(v) => setGroupFilter(v === ALL_GROUPS ? '' : v)}>
+            <SelectTrigger className="w-full sm:w-48" aria-label="Filter grup tool"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_GROUPS}>Semua grup</SelectItem>
+              {groups.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="relative w-full sm:w-56">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari tool…" aria-label="Cari tool" className="pl-8" />
           </div>
         </div>
 
         {toolsLoading ? (
-          <div className="flex justify-center py-6"><Loader2 className="animate-spin text-gray-400" /></div>
+          <LoadingState className="pb-5" />
+        ) : filtered.length === 0 ? (
+          <EmptyState compact kind="no-results" title="Tidak ada tool yang cocok" className="pb-5" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs text-gray-500">
+          <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel daftar tool" tabIndex={0}>
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-2 py-1.5">Nama</th>
-                  <th className="px-2 py-1.5">Modul</th>
-                  <th className="px-2 py-1.5">Risk</th>
-                  <th className="px-2 py-1.5">Tier</th>
-                  <th className="px-2 py-1.5">Handler</th>
-                  <th className="px-2 py-1.5 text-center">Aktif</th>
-                  <th className="px-2 py-1.5 text-center">Test</th>
+                  <th scope="col" className="px-5 py-2.5 font-medium">Nama</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Modul</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Risiko</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Tingkat</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Handler</th>
+                  <th scope="col" className="px-3 py-2.5 text-center font-medium">Aktif</th>
+                  <th scope="col" className="px-5 py-2.5 text-center font-medium">Uji</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((t) => (
-                  <tr key={t.name} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-2 py-1.5">
-                      <div className="font-medium text-gray-800">{t.name}</div>
-                      <div className="text-xs text-gray-400">{t.desc}</div>
+                  <tr key={t.name} className="border-t border-border">
+                    <td className="px-5 py-2.5">
+                      <div className="font-medium text-foreground">{t.name}</div>
+                      <div className="text-xs text-muted-foreground">{t.desc}</div>
                     </td>
-                    <td className="px-2 py-1.5 text-xs">{t.module}</td>
-                    <td className="px-2 py-1.5">
-                      <span className={cn('rounded border px-1.5 py-0.5 text-xs', RISK_BADGE[t.risk])}>
-                        {t.risk}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <select
+                    <td className="px-3 py-2.5 text-xs">{t.module}</td>
+                    <td className="px-3 py-2.5"><Badge variant={RISK_BADGE[t.risk] ?? 'neutral'}>{t.risk}</Badge></td>
+                    <td className="px-3 py-2.5">
+                      <Select
                         value={t.tier}
-                        disabled={t.risk === 'read'}
-                        onChange={(e) => patchTool.mutate({ name: t.name, data: { tier: e.target.value } })}
-                        className="rounded border border-gray-300 px-1 py-0.5 text-xs disabled:bg-gray-100 disabled:text-gray-400"
+                        disabled={t.risk === 'read' || !canEdit}
+                        onValueChange={(v) => patchTool.mutate({ name: t.name, data: { tier: v } })}
                       >
-                        <option value="auto">auto 🟢</option>
-                        <option value="draft">draft 🟡</option>
-                        <option value="must_approve">approve 🔴</option>
-                      </select>
+                        <SelectTrigger className="h-8 w-40 text-xs md:h-8" aria-label={`Tingkat persetujuan ${t.name}`}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {TIER_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-xs text-gray-600">{t.handler}</td>
-                    <td className="px-2 py-1.5 text-center">
-                      <input
-                        type="checkbox"
+                    <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{t.handler}</td>
+                    <td className="px-3 py-2.5 text-center">
+                      <Switch
                         checked={t.enabled}
-                        onChange={(e) => patchTool.mutate({ name: t.name, data: { enabled: e.target.checked } })}
+                        disabled={!canEdit}
+                        onCheckedChange={(v) => patchTool.mutate({ name: t.name, data: { enabled: v } })}
+                        aria-label={`Aktifkan ${t.name}`}
                       />
                     </td>
-                    <td className="px-2 py-1.5 text-center">
+                    <td className="px-5 py-2.5 text-center">
                       {t.risk === 'read' && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => testTool.mutate(t.name)}
                           disabled={testTool.isPending}
-                          className="text-blue-600 hover:text-blue-800 disabled:text-gray-300"
-                          title="Test tool (panggil router)"
+                          aria-label={`Uji tool ${t.name}`}
                         >
-                          <Play size={14} />
-                        </button>
+                          <Play aria-hidden />
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -538,19 +537,18 @@ export const AgenticSystemTab: React.FC = () => {
           </div>
         )}
 
-        {/* Hasil Test Tool */}
         {testResult && (
-          <div className="mt-3 rounded border border-gray-200 bg-gray-900 p-3">
+          <div className="mx-5 mb-5 rounded-lg border border-border bg-neutral-900 p-3">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-300">Hasil Test: {testResult.name}</span>
-              <button onClick={() => setTestResult(null)} className="text-gray-400 hover:text-white">
-                <X size={14} />
-              </button>
+              <span className="text-xs font-medium text-neutral-200">Hasil uji: {testResult.name}</span>
+              <Button variant="ghost" size="icon-sm" onClick={() => setTestResult(null)} aria-label="Tutup hasil uji" className="text-neutral-300 hover:bg-neutral-800 hover:text-white">
+                <X aria-hidden />
+              </Button>
             </div>
-            <pre className="max-h-64 overflow-auto text-xs text-emerald-300">{testResult.out}</pre>
+            <pre className="max-h-64 overflow-auto text-xs text-emerald-300" tabIndex={0}>{testResult.out}</pre>
           </div>
         )}
-      </section>
+      </SettingsCard>
     </div>
   );
 };

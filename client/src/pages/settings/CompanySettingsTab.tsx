@@ -1,97 +1,136 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Upload, X, ImageIcon, Plus, Trash2, Sun, Moon } from 'lucide-react';
 import api from '../../lib/api';
-import { Save, Loader2, Upload, X, ImageIcon, Plus, Trash2, Sun, Moon } from 'lucide-react';
+import { can } from '../../lib/permissions';
+import { cn } from '../../lib/utils';
+import { Field } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { SettingsCard } from '../../components/settings/SettingsCard';
+import { SaveBar } from '../../components/settings/SaveBar';
 
+interface InvoiceSectionSettings {
+  bankAccounts?: string;
+  footerNote?: string;
+  showSignature?: boolean;
+  signatureLabels?: string[];
+}
 interface InvoiceFormatSettings {
-  sales?: {
-    bankAccounts?: string;
-    footerNote?: string;
-    showSignature?: boolean;
-    signatureLabels?: string[];
+  sales?: InvoiceSectionSettings;
+  purchase?: Omit<InvoiceSectionSettings, 'bankAccounts'>;
+}
+
+interface CompanyForm {
+  companyName: string;
+  address: string;
+  phone: string;
+  email: string;
+  taxId: string;
+  defaultCurrency: string;
+  logoUrl: string | null;
+  logoUrlDark: string | null;
+}
+type CompanyErrors = Partial<Record<keyof CompanyForm, string>>;
+type LogoKey = 'logoUrl' | 'logoUrlDark';
+type TextKey = Exclude<keyof CompanyForm, LogoKey>;
+
+const DEFAULT_SIGNATURES = ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'];
+const EMPTY_FORM: CompanyForm = {
+  companyName: '', address: '', phone: '', email: '', taxId: '', defaultCurrency: 'IDR', logoUrl: null, logoUrlDark: null,
+};
+const DEFAULT_INVOICE: InvoiceFormatSettings = {
+  sales: { bankAccounts: '', footerNote: '', showSignature: true, signatureLabels: DEFAULT_SIGNATURES },
+  purchase: { footerNote: '', showSignature: true, signatureLabels: DEFAULT_SIGNATURES },
+};
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const LOGO_ACCEPT = 'image/png,image/jpeg,image/jpg,image/svg+xml,image/webp';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const TEXT_FIELDS: Array<{ key: TextKey; label: string; placeholder: string; type: string; required?: boolean; hint?: string }> = [
+  { key: 'companyName', label: 'Nama perusahaan', placeholder: 'Nama Perusahaan Anda', type: 'text', required: true },
+  { key: 'address', label: 'Alamat', placeholder: 'Alamat perusahaan', type: 'text' },
+  { key: 'phone', label: 'Nomor telepon', placeholder: '+62 xxx', type: 'tel' },
+  { key: 'email', label: 'Email', placeholder: 'finance@company.com', type: 'email' },
+  { key: 'taxId', label: 'NPWP', placeholder: '00.000.000.0-000.000', type: 'text' },
+  { key: 'defaultCurrency', label: 'Mata uang', placeholder: 'IDR', type: 'text', hint: 'Kode ISO, mis. IDR.' },
+];
+
+function validate(f: CompanyForm): CompanyErrors {
+  const errors: CompanyErrors = {};
+  if (!f.companyName.trim()) errors.companyName = 'Nama perusahaan wajib diisi.';
+  if (f.email.trim() && !EMAIL_RE.test(f.email.trim())) errors.email = 'Format email tidak valid.';
+  return errors;
+}
+
+function formFromSettings(settings: any, prev: CompanyForm): CompanyForm {
+  return {
+    ...prev,
+    companyName: settings.companyName || settings.name || prev.companyName,
+    address: settings.address || prev.address,
+    phone: settings.phone || '',
+    email: settings.email || '',
+    taxId: settings.taxId || '',
+    defaultCurrency: settings.defaultCurrency || settings.currency || 'IDR',
+    logoUrl: settings.logoUrl || null,
+    logoUrlDark: settings.logoUrlDark || null,
   };
-  purchase?: {
-    footerNote?: string;
-    showSignature?: boolean;
-    signatureLabels?: string[];
+}
+
+function invoiceFromSettings(s: InvoiceFormatSettings): InvoiceFormatSettings {
+  return {
+    sales: {
+      bankAccounts: s.sales?.bankAccounts || '',
+      footerNote: s.sales?.footerNote || '',
+      showSignature: s.sales?.showSignature !== false,
+      signatureLabels: s.sales?.signatureLabels?.length ? s.sales.signatureLabels : DEFAULT_SIGNATURES,
+    },
+    purchase: {
+      footerNote: s.purchase?.footerNote || '',
+      showSignature: s.purchase?.showSignature !== false,
+      signatureLabels: s.purchase?.signatureLabels?.length ? s.purchase.signatureLabels : DEFAULT_SIGNATURES,
+    },
   };
 }
 
 export const CompanySettingsTab: React.FC = () => {
   const queryClient = useQueryClient();
+  const canEdit = can('settings', 'edit');
   const fileInputRefLight = useRef<HTMLInputElement>(null);
   const fileInputRefDark = useRef<HTMLInputElement>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [formData, setFormData] = useState({
-    companyName: '',
-    address: '',
-    phone: '',
-    email: '',
-    taxId: '',
-    defaultCurrency: 'IDR',
-    logoUrl: null as string | null,
-    logoUrlDark: null as string | null,
-  });
-  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceFormatSettings>({
-    sales: { bankAccounts: '', footerNote: '', showSignature: true, signatureLabels: ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'] },
-    purchase: { footerNote: '', showSignature: true, signatureLabels: ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'] },
-  });
+  const [submitted, setSubmitted] = useState(false);
+  const [formData, setFormData] = useState<CompanyForm>(EMPTY_FORM);
+  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceFormatSettings>(DEFAULT_INVOICE);
 
   const { data: settings } = useQuery({
     queryKey: ['company-settings'],
     queryFn: async () => {
       try { const res = await api.get('/settings/company'); return res.data; } catch { return null; }
     },
-    staleTime: 60000
+    staleTime: 60000,
   });
 
-  React.useEffect(() => {
-    if (settings && !isDirty) {
-      setFormData((prev) => ({
-        ...prev,
-        companyName: settings.companyName || settings.name || prev.companyName,
-        address: settings.address || prev.address,
-        phone: settings.phone || '',
-        email: settings.email || '',
-        taxId: settings.taxId || '',
-        defaultCurrency: settings.defaultCurrency || settings.currency || 'IDR',
-        logoUrl: settings.logoUrl || null,
-        logoUrlDark: settings.logoUrlDark || null,
-      }));
-      if (settings.invoiceSettings) {
-        const s = settings.invoiceSettings as InvoiceFormatSettings;
-        setInvoiceSettings({
-          sales: {
-            bankAccounts: s.sales?.bankAccounts || '',
-            footerNote: s.sales?.footerNote || '',
-            showSignature: s.sales?.showSignature !== false,
-            signatureLabels: s.sales?.signatureLabels?.length ? s.sales.signatureLabels : ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'],
-          },
-          purchase: {
-            footerNote: s.purchase?.footerNote || '',
-            showSignature: s.purchase?.showSignature !== false,
-            signatureLabels: s.purchase?.signatureLabels?.length ? s.purchase.signatureLabels : ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'],
-          },
-        });
-      }
-    }
-  }, [settings, isDirty]);
+  const applySettings = useCallback((s: any) => {
+    setFormData((prev) => formFromSettings(s, prev));
+    if (s.invoiceSettings) setInvoiceSettings(invoiceFromSettings(s.invoiceSettings as InvoiceFormatSettings));
+  }, []);
 
-  const handleChange = (key: string, value: string | null) => {
+  React.useEffect(() => {
+    if (settings && !isDirty) applySettings(settings);
+  }, [settings, isDirty, applySettings]);
+
+  const handleChange = (key: keyof CompanyForm, value: string | null) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     setIsDirty(true);
   };
 
-  const updateInvoiceSetting = (
-    section: 'sales' | 'purchase',
-    key: string,
-    value: string | boolean | string[]
-  ) => {
-    setInvoiceSettings((prev) => ({
-      ...prev,
-      [section]: { ...prev[section], [key]: value },
-    }));
+  const updateInvoiceSetting = (section: 'sales' | 'purchase', key: string, value: string | boolean | string[]) => {
+    setInvoiceSettings((prev) => ({ ...prev, [section]: { ...prev[section], [key]: value } }));
     setIsDirty(true);
   };
 
@@ -101,352 +140,264 @@ export const CompanySettingsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['company-settings'] });
       queryClient.invalidateQueries({ queryKey: ['company-settings-pdf'] });
       setIsDirty(false);
+      setSubmitted(false);
       toast.success('Pengaturan berhasil disimpan.');
     },
-    onError: () => toast.error('Gagal menyimpan pengaturan.')
+    onError: () => toast.error('Gagal menyimpan pengaturan.'),
   });
 
-  const handleLogoUpload = (variant: 'logoUrl' | 'logoUrlDark') => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSave = () => {
+    setSubmitted(true);
+    if (Object.keys(validate(formData)).length > 0) {
+      // Move focus to the first invalid field once errors have rendered.
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-settings-form] [aria-invalid="true"]')?.focus());
+      return;
+    }
+    saveMutation.mutate({ ...formData, invoiceSettings });
+  };
+
+  const handleReset = () => {
+    setInvoiceSettings(DEFAULT_INVOICE);
+    setFormData(EMPTY_FORM);
+    if (settings) applySettings(settings);
+    setIsDirty(false);
+    setSubmitted(false);
+    if (fileInputRefLight.current) fileInputRefLight.current.value = '';
+    if (fileInputRefDark.current) fileInputRefDark.current.value = '';
+  };
+
+  const handleLogoUpload = (variant: LogoKey) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > MAX_LOGO_BYTES) {
       toast.error('Ukuran file maksimal 2MB.');
       return;
     }
-
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      handleChange(variant, ev.target?.result as string);
-    };
+    reader.onload = (ev) => handleChange(variant, ev.target?.result as string);
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveLogo = (variant: 'logoUrl' | 'logoUrlDark') => {
+  const handleRemoveLogo = (variant: LogoKey) => {
     handleChange(variant, null);
     const ref = variant === 'logoUrl' ? fileInputRefLight : fileInputRefDark;
     if (ref.current) ref.current.value = '';
   };
 
-  const fields = [
-    { key: 'companyName', label: 'Nama Perusahaan', placeholder: 'Nama Perusahaan Anda', type: 'text' },
-    { key: 'address', label: 'Alamat', placeholder: 'Alamat perusahaan', type: 'text' },
-    { key: 'phone', label: 'Nomor Telepon', placeholder: '+62 xxx', type: 'text' },
-    { key: 'email', label: 'Email', placeholder: 'finance@company.com', type: 'email' },
-    { key: 'taxId', label: 'NPWP', placeholder: '00.000.000.0-000.000', type: 'text' },
-    { key: 'defaultCurrency', label: 'Mata Uang', placeholder: 'IDR', type: 'text' },
-  ];
+  const errors = submitted ? validate(formData) : {};
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-base font-semibold text-gray-900">Profil Perusahaan</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Informasi muncul di laporan keuangan dan tampilan aplikasi.</p>
-      </div>
+      <fieldset disabled={!canEdit} className="min-w-0 space-y-5" data-settings-form>
+        <legend className="sr-only">Profil perusahaan</legend>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-6">
-        {/* Logo Upload Section */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Logo Perusahaan</label>
-          <p className="text-xs text-gray-400 mb-3">
-            Upload 2 varian supaya tetap terlihat di semua tema. Jika varian dark mode kosong, varian light akan dipakai di semua mode.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Light mode variant */}
-            <div className="border border-gray-200 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-gray-700">
-                <Sun size={13} /> Mode Light
-                <span className="text-[10px] font-normal text-gray-400 ml-1">(logo gelap di atas background terang)</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-24 h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-white flex-shrink-0 overflow-hidden">
-                  {formData.logoUrl ? (
-                    <img src={formData.logoUrl} alt="Logo light preview" className="w-full h-full object-contain p-1.5" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-400">
-                      <ImageIcon size={18} />
-                      <span className="text-[10px]">Belum ada</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <input
-                    ref={fileInputRefLight}
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                    onChange={handleLogoUpload('logoUrl')}
-                    className="hidden"
-                    id="logo-upload-light"
-                  />
-                  <label htmlFor="logo-upload-light" className="btn-secondary cursor-pointer text-xs py-1.5 px-3">
-                    <Upload size={12} />
-                    {formData.logoUrl ? 'Ganti' : 'Upload'}
-                  </label>
-                  {formData.logoUrl && (
-                    <button type="button" onClick={() => handleRemoveLogo('logoUrl')}
-                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700">
-                      <X size={11} /> Hapus
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Dark mode variant */}
-            <div className="border border-gray-200 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-gray-700">
-                <Moon size={13} /> Mode Dark
-                <span className="text-[10px] font-normal text-gray-400 ml-1">(logo terang di atas background gelap)</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-24 h-20 border-2 border-dashed border-gray-700 rounded-lg flex items-center justify-center bg-neutral-900 flex-shrink-0 overflow-hidden">
-                  {formData.logoUrlDark ? (
-                    <img src={formData.logoUrlDark} alt="Logo dark preview" className="w-full h-full object-contain p-1.5" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-500">
-                      <ImageIcon size={18} />
-                      <span className="text-[10px]">Belum ada</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <input
-                    ref={fileInputRefDark}
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                    onChange={handleLogoUpload('logoUrlDark')}
-                    className="hidden"
-                    id="logo-upload-dark"
-                  />
-                  <label htmlFor="logo-upload-dark" className="btn-secondary cursor-pointer text-xs py-1.5 px-3">
-                    <Upload size={12} />
-                    {formData.logoUrlDark ? 'Ganti' : 'Upload'}
-                  </label>
-                  {formData.logoUrlDark && (
-                    <button type="button" onClick={() => handleRemoveLogo('logoUrlDark')}
-                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700">
-                      <X size={11} /> Hapus
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+        <SettingsCard
+          title="Logo Perusahaan"
+          description="Unggah dua varian agar tetap terlihat di semua tema. Jika varian gelap kosong, varian terang dipakai di semua mode."
+        >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <LogoSlot
+              id="logo-upload-light"
+              title="Mode terang"
+              hint="Logo gelap di atas latar terang"
+              icon={<Sun className="size-3.5" aria-hidden />}
+              value={formData.logoUrl}
+              dark={false}
+              inputRef={fileInputRefLight}
+              onUpload={handleLogoUpload('logoUrl')}
+              onRemove={() => handleRemoveLogo('logoUrl')}
+              canEdit={canEdit}
+            />
+            <LogoSlot
+              id="logo-upload-dark"
+              title="Mode gelap"
+              hint="Logo terang di atas latar gelap"
+              icon={<Moon className="size-3.5" aria-hidden />}
+              value={formData.logoUrlDark}
+              dark
+              inputRef={fileInputRefDark}
+              onUpload={handleLogoUpload('logoUrlDark')}
+              onRemove={() => handleRemoveLogo('logoUrlDark')}
+              canEdit={canEdit}
+            />
           </div>
+          <p className="mt-3 text-xs text-muted-foreground">PNG, JPG, SVG, WEBP · Maks. 2MB per file · Disarankan latar transparan.</p>
+        </SettingsCard>
 
-          <p className="text-xs text-gray-400 mt-2">
-            PNG, JPG, SVG · Maks. 2MB per file · Disarankan background transparan.
-          </p>
-        </div>
+        <SettingsCard title="Identitas Perusahaan" description="Muncul di laporan keuangan, dokumen PDF, dan tampilan aplikasi.">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {TEXT_FIELDS.map((f) => (
+              <Field key={f.key} label={f.label} required={f.required} error={errors[f.key]} hint={f.hint}>
+                <Input
+                  type={f.type}
+                  value={formData[f.key]}
+                  onChange={(e) => handleChange(f.key, e.target.value)}
+                  placeholder={f.placeholder}
+                  autoComplete="off"
+                />
+              </Field>
+            ))}
+          </div>
+        </SettingsCard>
 
-        <div className="border-t border-gray-100" />
-
-        {/* Company Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {fields.map((f) => (
-            <div key={f.key}>
-              <label htmlFor={`field-${f.key}`} className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-              <input
-                id={`field-${f.key}`}
-                type={f.type}
-                value={(formData as any)[f.key]}
-                onChange={(e) => handleChange(f.key, e.target.value)}
-                placeholder={f.placeholder}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-end pt-2 border-t border-gray-100">
-          <button
-            onClick={() => saveMutation.mutate({ ...formData, invoiceSettings })}
-            disabled={saveMutation.isPending}
-            className="btn-primary"
-          >
-            {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Simpan Pengaturan
-          </button>
-        </div>
-      </div>
-
-      {/* ── Invoice Format Settings ── */}
-      <div className="mt-8">
-        <h2 className="text-base font-semibold text-gray-900">Format Faktur</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Konfigurasi tampilan faktur penjualan dan pembelian (PDF).</p>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-6">
-        {/* Sales Invoice Settings */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Faktur Penjualan</h3>
+        <SettingsCard title="Format Faktur Penjualan" description="Tampilan PDF faktur penjualan.">
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Info Rekening Bank
-              </label>
-              <textarea
+            <Field label="Info rekening bank" hint="Ditampilkan di faktur penjualan untuk membantu pelanggan melakukan pembayaran.">
+              <Textarea
                 value={invoiceSettings.sales?.bankAccounts || ''}
                 onChange={(e) => updateInvoiceSetting('sales', 'bankAccounts', e.target.value)}
-                placeholder="BRI: 0123-4567-8901 a.n. Nama Perusahaan Anda&#10;Mandiri: 1234-5678-9012 a.n. Nama Perusahaan Anda"
+                placeholder={'BRI: 0123-4567-8901 a.n. Nama Perusahaan Anda\nMandiri: 1234-5678-9012 a.n. Nama Perusahaan Anda'}
                 rows={3}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
               />
-              <p className="text-xs text-gray-400 mt-1">Ditampilkan di faktur penjualan untuk membantu pelanggan melakukan pembayaran.</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Catatan Kaki</label>
-              <input
-                type="text"
+            </Field>
+            <Field label="Catatan kaki">
+              <Input
                 value={invoiceSettings.sales?.footerNote || ''}
                 onChange={(e) => updateInvoiceSetting('sales', 'footerNote', e.target.value)}
                 placeholder="Terima kasih atas kepercayaan Anda."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="sales-sig"
-                checked={invoiceSettings.sales?.showSignature !== false}
-                onChange={(e) => updateInvoiceSetting('sales', 'showSignature', e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="sales-sig" className="text-sm text-gray-700">Tampilkan area tanda tangan</label>
-            </div>
-            {invoiceSettings.sales?.showSignature !== false && (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">Label Tanda Tangan</label>
-                <div className="space-y-2">
-                  {(invoiceSettings.sales?.signatureLabels || []).map((label, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={label}
-                        onChange={(e) => {
-                          const labels = [...(invoiceSettings.sales?.signatureLabels || [])];
-                          labels[i] = e.target.value;
-                          updateInvoiceSetting('sales', 'signatureLabels', labels);
-                        }}
-                        className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
-                      />
-                      {(invoiceSettings.sales?.signatureLabels || []).length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const labels = (invoiceSettings.sales?.signatureLabels || []).filter((_, j) => j !== i);
-                            updateInvoiceSetting('sales', 'signatureLabels', labels);
-                          }}
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {(invoiceSettings.sales?.signatureLabels || []).length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const labels = [...(invoiceSettings.sales?.signatureLabels || []), ''];
-                        updateInvoiceSetting('sales', 'signatureLabels', labels);
-                      }}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      <Plus size={12} /> Tambah kolom tanda tangan
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+            </Field>
+            <SignatureSettings
+              idPrefix="sales"
+              show={invoiceSettings.sales?.showSignature !== false}
+              labels={invoiceSettings.sales?.signatureLabels || []}
+              canEdit={canEdit}
+              onShowChange={(v) => updateInvoiceSetting('sales', 'showSignature', v)}
+              onLabelsChange={(l) => updateInvoiceSetting('sales', 'signatureLabels', l)}
+            />
           </div>
-        </div>
+        </SettingsCard>
 
-        <div className="border-t border-gray-100" />
-
-        {/* Purchase Invoice Settings */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Faktur Pembelian</h3>
+        <SettingsCard title="Format Faktur Pembelian" description="Tampilan PDF faktur pembelian.">
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Catatan Kaki</label>
-              <input
-                type="text"
+            <Field label="Catatan kaki">
+              <Input
                 value={invoiceSettings.purchase?.footerNote || ''}
                 onChange={(e) => updateInvoiceSetting('purchase', 'footerNote', e.target.value)}
                 placeholder="Barang yang sudah dibeli tidak dapat dikembalikan."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="purchase-sig"
-                checked={invoiceSettings.purchase?.showSignature !== false}
-                onChange={(e) => updateInvoiceSetting('purchase', 'showSignature', e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="purchase-sig" className="text-sm text-gray-700">Tampilkan area tanda tangan</label>
-            </div>
-            {invoiceSettings.purchase?.showSignature !== false && (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">Label Tanda Tangan</label>
-                <div className="space-y-2">
-                  {(invoiceSettings.purchase?.signatureLabels || []).map((label, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={label}
-                        onChange={(e) => {
-                          const labels = [...(invoiceSettings.purchase?.signatureLabels || [])];
-                          labels[i] = e.target.value;
-                          updateInvoiceSetting('purchase', 'signatureLabels', labels);
-                        }}
-                        className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
-                      />
-                      {(invoiceSettings.purchase?.signatureLabels || []).length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const labels = (invoiceSettings.purchase?.signatureLabels || []).filter((_, j) => j !== i);
-                            updateInvoiceSetting('purchase', 'signatureLabels', labels);
-                          }}
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {(invoiceSettings.purchase?.signatureLabels || []).length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const labels = [...(invoiceSettings.purchase?.signatureLabels || []), ''];
-                        updateInvoiceSetting('purchase', 'signatureLabels', labels);
-                      }}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      <Plus size={12} /> Tambah kolom tanda tangan
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+            </Field>
+            <SignatureSettings
+              idPrefix="purchase"
+              show={invoiceSettings.purchase?.showSignature !== false}
+              labels={invoiceSettings.purchase?.signatureLabels || []}
+              canEdit={canEdit}
+              onShowChange={(v) => updateInvoiceSetting('purchase', 'showSignature', v)}
+              onLabelsChange={(l) => updateInvoiceSetting('purchase', 'signatureLabels', l)}
+            />
           </div>
-        </div>
+        </SettingsCard>
+      </fieldset>
 
-        <div className="flex justify-end pt-2 border-t border-gray-100">
-          <button
-            onClick={() => saveMutation.mutate({ ...formData, invoiceSettings })}
-            disabled={saveMutation.isPending}
-            className="btn-primary"
-          >
-            {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Simpan Pengaturan
-          </button>
-        </div>
-      </div>
+      {canEdit ? (
+        <SaveBar dirty={isDirty} saving={saveMutation.isPending} onSave={handleSave} onReset={handleReset} saveLabel="Simpan Pengaturan" />
+      ) : (
+        <p className="text-sm text-muted-foreground">Anda hanya memiliki akses lihat untuk pengaturan ini.</p>
+      )}
     </div>
   );
 };
+
+interface LogoSlotProps {
+  id: string;
+  title: string;
+  hint: string;
+  icon: React.ReactNode;
+  value: string | null;
+  dark: boolean;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+  canEdit: boolean;
+}
+
+function LogoSlot({ id, title, hint, icon, value, dark, inputRef, onUpload, onRemove, canEdit }: LogoSlotProps) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="mb-2 flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
+        {icon} {title}
+        <span className="text-xs font-normal text-muted-foreground">({hint})</span>
+      </p>
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border-2 border-dashed',
+            dark ? 'border-neutral-700' : 'border-border',
+          )}
+          style={dark ? { background: '#171717', color: '#d4d4d4' } : { background: '#ffffff', color: '#525252' }}
+        >
+          {value ? (
+            <img src={value} alt={`Pratinjau logo ${title.toLowerCase()}`} className="size-full object-contain p-1.5" />
+          ) : (
+            <span className="flex flex-col items-center gap-1 text-[11px]">
+              <ImageIcon className="size-4" aria-hidden /> Belum ada
+            </span>
+          )}
+        </div>
+        {canEdit && (
+          <div className="flex flex-col gap-1.5">
+            <input ref={inputRef} type="file" accept={LOGO_ACCEPT} onChange={onUpload} className="sr-only" id={id} tabIndex={-1} aria-label={`Unggah logo ${title.toLowerCase()}`} />
+            <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+              <Upload aria-hidden /> {value ? 'Ganti' : 'Unggah'}
+            </Button>
+            {value && (
+              <Button variant="ghost" size="sm" onClick={onRemove} className="text-danger-text">
+                <X aria-hidden /> Hapus
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface SignatureSettingsProps {
+  idPrefix: string;
+  show: boolean;
+  labels: string[];
+  canEdit: boolean;
+  onShowChange: (v: boolean) => void;
+  onLabelsChange: (labels: string[]) => void;
+}
+
+function SignatureSettings({ idPrefix, show, labels, canEdit, onShowChange, onLabelsChange }: SignatureSettingsProps) {
+  const checkboxId = `${idPrefix}-sig`;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Checkbox id={checkboxId} checked={show} disabled={!canEdit} onCheckedChange={(v) => onShowChange(v === true)} />
+        <Label htmlFor={checkboxId} className="font-normal">Tampilkan area tanda tangan</Label>
+      </div>
+      {show && (
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-sm font-medium text-foreground">Label tanda tangan</legend>
+          {labels.map((label, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Input
+                value={label}
+                aria-label={`Label tanda tangan ${i + 1}`}
+                onChange={(e) => onLabelsChange(labels.map((l, j) => (j === i ? e.target.value : l)))}
+              />
+              {canEdit && labels.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Hapus label tanda tangan ${i + 1}`}
+                  onClick={() => onLabelsChange(labels.filter((_, j) => j !== i))}
+                >
+                  <Trash2 className="text-danger-text" aria-hidden />
+                </Button>
+              )}
+            </div>
+          ))}
+          {canEdit && labels.length < 5 && (
+            <Button variant="link" size="sm" onClick={() => onLabelsChange([...labels, ''])}>
+              <Plus aria-hidden /> Tambah kolom tanda tangan
+            </Button>
+          )}
+        </fieldset>
+      )}
+    </div>
+  );
+}

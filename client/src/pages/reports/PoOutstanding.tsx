@@ -115,7 +115,7 @@ const PoOutstanding: React.FC = () => {
       }
     >
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="table-responsive">
+        <div className="table-responsive" role="region" aria-label="Tabel PO outstanding" tabIndex={0}>
           <table className="data-table">
             <thead>
               <tr>

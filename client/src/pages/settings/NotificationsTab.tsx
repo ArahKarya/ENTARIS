@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Send, Info } from 'lucide-react';
 import api from '../../lib/api';
-import { Loader2, Send, Save, ToggleLeft, ToggleRight } from 'lucide-react';
+import { can } from '../../lib/permissions';
+import { Field, LoadingState } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { SettingsCard } from '../../components/settings/SettingsCard';
+import { SaveBar } from '../../components/settings/SaveBar';
 
 interface TelegramConfig {
   enabled: boolean;
@@ -13,28 +20,61 @@ interface TelegramConfig {
   notifyLowStock: boolean;
   personalEnabled: boolean;
 }
+type TelegramForm = TelegramConfig & { botToken: string };
+type ToggleKey = 'enabled' | 'notifyApproval' | 'notifyInvoiceOverdue' | 'notifyLowStock' | 'personalEnabled';
 
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string; desc?: string }> = ({ checked, onChange, label, desc }) => (
-  <button type="button" onClick={() => onChange(!checked)} className="flex items-start gap-3 w-full text-left py-2">
-    {checked ? <ToggleRight className="w-9 h-9 text-blue-600 flex-shrink-0" /> : <ToggleLeft className="w-9 h-9 text-gray-300 flex-shrink-0" />}
-    <span>
-      <span className="block text-sm font-medium text-gray-800">{label}</span>
-      {desc && <span className="block text-xs text-gray-500">{desc}</span>}
-    </span>
-  </button>
-);
+const DEFAULT_FORM: TelegramForm = {
+  enabled: false, chatId: '', hasToken: false, botToken: '',
+  notifyApproval: true, notifyInvoiceOverdue: true, notifyLowStock: true, personalEnabled: true,
+};
+const TOGGLE_KEYS: ToggleKey[] = ['enabled', 'notifyApproval', 'notifyInvoiceOverdue', 'notifyLowStock', 'personalEnabled'];
+const TOKEN_RE = /^\d+:[\w-]+$/;
+
+function isDirty(form: TelegramForm, data: TelegramConfig | undefined): boolean {
+  const base = { ...DEFAULT_FORM, ...data };
+  if (form.botToken.trim()) return true;
+  if ((form.chatId ?? '') !== (base.chatId ?? '')) return true;
+  return TOGGLE_KEYS.some((k) => form[k] !== base[k]);
+}
+
+interface ToggleRowProps {
+  id: string;
+  label: string;
+  desc?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}
+
+function ToggleRow({ id, label, desc, checked, disabled, onChange }: ToggleRowProps) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3">
+      <div className="min-w-0">
+        <label id={`${id}-label`} htmlFor={id} className="block text-sm font-medium text-foreground">{label}</label>
+        {desc && <p id={`${id}-desc`} className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
+      </div>
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onChange}
+        aria-labelledby={`${id}-label`}
+        aria-describedby={desc ? `${id}-desc` : undefined}
+        className="mt-0.5"
+      />
+    </div>
+  );
+}
 
 export const NotificationsTab: React.FC = () => {
   const queryClient = useQueryClient();
+  const canEdit = can('settings', 'edit');
   const { data, isLoading } = useQuery<TelegramConfig>({
     queryKey: ['telegram-config'],
     queryFn: async () => { const r = await api.get('/telegram/config'); return r.data; },
   });
 
-  const [form, setForm] = useState<TelegramConfig & { botToken: string }>({
-    enabled: false, chatId: '', hasToken: false, botToken: '',
-    notifyApproval: true, notifyInvoiceOverdue: true, notifyLowStock: true, personalEnabled: true,
-  });
+  const [form, setForm] = useState<TelegramForm>(DEFAULT_FORM);
 
   useEffect(() => {
     if (data) setForm((f) => ({ ...f, ...data, botToken: '' }));
@@ -70,88 +110,104 @@ export const NotificationsTab: React.FC = () => {
     onError: (e: any) => toast.error(e.response?.data?.error || 'Tes gagal.'),
   });
 
-  if (isLoading) {
-    return <div className="py-16 text-center text-gray-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
-  }
+  if (isLoading) return <LoadingState />;
+
+  const tokenError = form.botToken.trim() && !TOKEN_RE.test(form.botToken.trim())
+    ? 'Format token tidak dikenali (contoh: 123456789:ABC-DEF…).'
+    : undefined;
+  const dirty = isDirty(form, data);
+  const setToggle = (key: ToggleKey) => (v: boolean) => setForm((f) => ({ ...f, [key]: v }));
+  const reset = () => setForm({ ...DEFAULT_FORM, ...data, botToken: '' });
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Send className="w-5 h-5 text-blue-600" /> Notifikasi Telegram
-        </h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Kirim notifikasi sistem (approval, invoice jatuh tempo, stok rendah) ke satu grup Telegram.
-        </p>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-        <Toggle
-          checked={form.enabled}
-          onChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
-          label="Aktifkan notifikasi Telegram"
-          desc="Master switch. Jika mati, tidak ada pesan yang dikirim."
-        />
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bot Token</label>
-          <input
-            type="password"
-            autoComplete="off"
-            value={form.botToken}
-            onChange={(e) => setForm((f) => ({ ...f, botToken: e.target.value }))}
-            placeholder={form.hasToken ? '•••••••• (tersimpan — isi untuk ganti)' : 'mis. 123456789:ABC-DEF...'}
-            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="space-y-5">
+      <SettingsCard
+        title="Notifikasi Telegram"
+        description="Kirim notifikasi sistem (approval, invoice jatuh tempo, stok rendah) ke Telegram."
+        actions={canEdit && (
+          <Button variant="outline" onClick={() => testMut.mutate()} loading={testMut.isPending} disabled={!!tokenError}>
+            {!testMut.isPending && <Send aria-hidden />} Tes Koneksi
+          </Button>
+        )}
+      >
+        <div className="divide-y divide-border">
+          <ToggleRow
+            id="tg-enabled"
+            label="Aktifkan notifikasi Telegram"
+            desc="Sakelar utama. Jika mati, tidak ada pesan yang dikirim."
+            checked={form.enabled}
+            disabled={!canEdit}
+            onChange={setToggle('enabled')}
           />
-          <p className="text-xs text-gray-400 mt-1">Token tidak pernah ditampilkan kembali demi keamanan.</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Chat ID grup <span className="font-normal text-gray-400">(opsional)</span></label>
-          <input
-            type="text"
-            value={form.chatId}
-            onChange={(e) => setForm((f) => ({ ...f, chatId: e.target.value }))}
-            placeholder="mis. -1001234567890 (kosongkan jika tak pakai grup)"
-            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-400 mt-1">Notifikasi dikirim japri ke tiap staf yang ditautkan. Chat ID grup hanya untuk mirror pengumuman (pengajuan masuk / jatuh tempo / stok rendah) ke grup — boleh dikosongkan.</p>
-        </div>
-
-        <div className="border-t border-gray-100 pt-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Jenis notifikasi</p>
-          <Toggle checked={form.notifyApproval} onChange={(v) => setForm((f) => ({ ...f, notifyApproval: v }))} label="Approval / Pengajuan menunggu" />
-          <Toggle checked={form.notifyInvoiceOverdue} onChange={(v) => setForm((f) => ({ ...f, notifyInvoiceOverdue: v }))} label="Invoice jatuh tempo" />
-          <Toggle checked={form.notifyLowStock} onChange={(v) => setForm((f) => ({ ...f, notifyLowStock: v }))} label="Stok rendah" />
-          <div className="border-t border-gray-100 mt-2 pt-2">
-            <Toggle
-              checked={form.personalEnabled}
-              onChange={(v) => setForm((f) => ({ ...f, personalEnabled: v }))}
-              label="Notifikasi personal (japri ke user)"
-              desc="Kirim ke Telegram pribadi staf yang sudah ditautkan (mis. hasil approval ke pengaju). Tautkan akun di Manajemen User."
-            />
+          <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
+            <Field
+              label="Bot token"
+              error={tokenError}
+              hint={form.hasToken ? 'Token tersimpan dan tidak ditampilkan kembali. Isi hanya untuk mengganti.' : 'Token tidak pernah ditampilkan kembali demi keamanan.'}
+            >
+              <Input
+                type="password"
+                autoComplete="off"
+                disabled={!canEdit}
+                value={form.botToken}
+                onChange={(e) => setForm((f) => ({ ...f, botToken: e.target.value }))}
+                placeholder={form.hasToken ? '•••••••• (tersimpan)' : 'mis. 123456789:ABC-DEF...'}
+              />
+            </Field>
+            <Field
+              label="Chat ID grup (opsional)"
+              hint="Notifikasi dikirim japri ke staf yang ditautkan; Chat ID grup hanya untuk mirror pengumuman ke grup."
+            >
+              <Input
+                disabled={!canEdit}
+                value={form.chatId}
+                onChange={(e) => setForm((f) => ({ ...f, chatId: e.target.value }))}
+                placeholder="mis. -1001234567890"
+              />
+            </Field>
           </div>
         </div>
+      </SettingsCard>
 
-        <div className="flex items-center gap-2 pt-2">
-          <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="btn-primary text-sm">
-            <Save className="w-4 h-4" /> {saveMut.isPending ? 'Menyimpan…' : 'Simpan'}
-          </button>
-          <button onClick={() => testMut.mutate()} disabled={testMut.isPending} className="btn-secondary text-sm">
-            <Send className="w-4 h-4" /> {testMut.isPending ? 'Mengirim…' : 'Tes Koneksi'}
-          </button>
+      <SettingsCard title="Jenis Notifikasi" description="Pilih kejadian yang dikirim ke Telegram.">
+        <div className="divide-y divide-border">
+          <ToggleRow id="tg-approval" label="Approval / pengajuan menunggu" checked={form.notifyApproval} disabled={!canEdit} onChange={setToggle('notifyApproval')} />
+          <ToggleRow id="tg-overdue" label="Invoice jatuh tempo" checked={form.notifyInvoiceOverdue} disabled={!canEdit} onChange={setToggle('notifyInvoiceOverdue')} />
+          <ToggleRow id="tg-lowstock" label="Stok rendah" checked={form.notifyLowStock} disabled={!canEdit} onChange={setToggle('notifyLowStock')} />
+          <ToggleRow
+            id="tg-personal"
+            label="Notifikasi personal (japri ke user)"
+            desc="Kirim ke Telegram pribadi staf yang sudah ditautkan (mis. hasil approval ke pengaju). Tautkan akun di Manajemen User."
+            checked={form.personalEnabled}
+            disabled={!canEdit}
+            onChange={setToggle('personalEnabled')}
+          />
+        </div>
+      </SettingsCard>
+
+      <div className="flex gap-3 rounded-lg border border-info/30 bg-info-subtle p-4 text-sm text-foreground">
+        <Info className="mt-0.5 size-4 shrink-0 text-info-text" aria-hidden />
+        <div className="space-y-1.5">
+          <p className="font-medium">Cara setup singkat</p>
+          <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
+            <li>Buka <b>@BotFather</b> di Telegram → <code>/newbot</code> → ikuti langkah → dapat <b>Bot Token</b>.</li>
+            <li>Buat grup, tambahkan bot tadi ke grup (jadikan admin agar bisa kirim).</li>
+            <li>Kirim 1 pesan di grup, lalu dapatkan <b>Chat ID</b> grup (mis. via <b>@userinfobot</b> / <b>@getidsbot</b>, atau buka <code className="break-all">https://api.telegram.org/bot&lt;token&gt;/getUpdates</code> dan ambil <code>chat.id</code> yang diawali <code>-100…</code>).</li>
+            <li>Isi Token &amp; Chat ID di atas → <b>Simpan</b> → <b>Tes Koneksi</b>.</li>
+          </ol>
         </div>
       </div>
 
-      <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-4 text-sm text-gray-600 space-y-1.5">
-        <p className="font-medium text-gray-800">Cara setup singkat:</p>
-        <ol className="list-decimal ml-5 space-y-1 text-xs">
-          <li>Buka <b>@BotFather</b> di Telegram → <code>/newbot</code> → ikuti langkah → dapat <b>Bot Token</b>.</li>
-          <li>Buat grup, tambahkan bot tadi ke grup (jadikan admin agar bisa kirim).</li>
-          <li>Kirim 1 pesan di grup, lalu dapatkan <b>Chat ID</b> grup (mis. via <b>@userinfobot</b> / <b>@getidsbot</b>, atau buka <code>https://api.telegram.org/bot&lt;token&gt;/getUpdates</code> dan ambil <code>chat.id</code> yang diawali <code>-100…</code>).</li>
-          <li>Isi Token &amp; Chat ID di atas → <b>Simpan</b> → <b>Tes Koneksi</b>.</li>
-        </ol>
-      </div>
+      {canEdit && (
+        <SaveBar
+          dirty={dirty}
+          saveDisabled={!!tokenError}
+          saving={saveMut.isPending}
+          onSave={() => saveMut.mutate()}
+          onReset={reset}
+          message={tokenError ? 'Perbaiki format token sebelum menyimpan.' : undefined}
+        />
+      )}
     </div>
   );
 };

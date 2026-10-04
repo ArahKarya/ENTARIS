@@ -1,392 +1,532 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, MoreHorizontal, Users, Loader2, Mail, Phone, MapPin, Pencil, Trash2, AlertCircle, Upload, Download, LayoutDashboard, List } from 'lucide-react';
+/**
+ * Pelanggan & Vendor (/parties) — list-kit page (see pages/SalesInvoices.tsx).
+ *
+ * Tabs live in the URL and are not list filters (Reset keeps the tab):
+ *   Semua            ?type omitted
+ *   Pelanggan        ?type=Customer  (includes "Pelanggan & Vendor")
+ *   Vendor           ?type=Supplier  (includes "Pelanggan & Vendor")
+ *   Analisis         ?view=analysis  (aging / top balances dashboard)
+ * List filters: q (name/email/phone/NPWP), isActive, hasOutstanding, sort.
+ * Data: GET /parties (list mode) + GET /parties/summary with the same filters.
+ */
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Download, FileText, Pencil, Plus, ShoppingCart, Trash2, Upload, Users, Wallet, Scale, PiggyBank } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '../lib/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import { formatRupiah } from '../lib/formatters';
-import PartyFormModal from '../components/PartyFormModal';
-import ImportModal from '../components/ImportModal';
-import { exportToExcel } from '../lib/exportExcel';
-import PartiesDashboardTab from '../components/PartiesDashboardTab';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { formatNumber, formatRupiah, toNumber } from '@/lib/format';
+import type { StatusTone } from '@/lib/status';
+import { can, cap } from '@/lib/permissions';
+import { LIST_PARAM, useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  ConfirmDialog,
+  DataTable,
+  FilterBar,
+  PageHeader,
+  RowActions,
+  StatCard,
+  StatusBadge,
+  fetchAllPages,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import PartyFormModal from '@/components/PartyFormModal';
+import ImportModal from '@/components/ImportModal';
+import PartiesDashboardTab from '@/components/PartiesDashboardTab';
+
+type Money = string | number;
+type PartyType = 'Customer' | 'Supplier' | 'Both';
+
+interface PartyRow {
+  id: string;
+  name: string;
+  partyType: PartyType;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  taxId: string | null;
+  outstandingAmount: Money;
+  depositBalance: Money;
+  customerDepositBalance: Money;
+  isActive: boolean;
+  isWapu: boolean;
+}
+
+interface PartySummary {
+  total: number;
+  activeCount: number;
+  inactiveCount: number;
+  byType: Record<PartyType, number>;
+  totalReceivable: number;
+  totalPayable: number;
+  totalCustomerDeposit: number;
+  totalVendorDeposit: number;
+  withOutstandingCount: number;
+}
+
+type Tab = 'all' | 'Customer' | 'Supplier' | 'analysis';
+
+const ENDPOINT = '/parties';
+const FILTER_KEYS = ['isActive', 'hasOutstanding'] as const;
+const TYPE_PARAM = 'type';
+const VIEW_PARAM = 'view';
+/** List params cleared when switching tabs (filters are kept). */
+const TAB_RESET_KEYS = [LIST_PARAM.page];
+const ACTIVE_FILTER = [
+  { value: 'true', label: 'Aktif' },
+  { value: 'false', label: 'Nonaktif' },
+];
+const ALL = '__all__';
+
+const TYPE_META: Record<PartyType, { label: string; tone: StatusTone }> = {
+  Customer: { label: 'Pelanggan', tone: 'info' },
+  Supplier: { label: 'Vendor', tone: 'primary' },
+  Both: { label: 'Pelanggan & Vendor', tone: 'neutral' },
+};
+
+const isCustomerSide = (p: PartyRow) => p.partyType === 'Customer' || p.partyType === 'Both';
+const isSupplierSide = (p: PartyRow) => p.partyType === 'Supplier' || p.partyType === 'Both';
+const num = (v: Money | null | undefined) => toNumber(v) ?? 0;
+const money = (v: Money | null | undefined) => formatRupiah(v, { symbol: false });
+const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+const errorMessage = (err: unknown, fallback: string) =>
+  (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
+
+const withUnit = (label: string) => (
+  <>
+    {label} <span className="normal-case">(Rp)</span>
+  </>
+);
+
+/** What a positive / negative outstanding means for this party. */
+function outstandingCaption(p: PartyRow): string {
+  const value = num(p.outstandingAmount);
+  if (value < 0) return 'Lebih bayar';
+  if (value === 0) return '';
+  if (p.partyType === 'Customer') return 'Piutang';
+  if (p.partyType === 'Supplier') return 'Hutang';
+  return 'Terutang';
+}
+
+function toExportRows(rows: PartyRow[]): Record<string, unknown>[] {
+  // Same columns/keys as the previous "Download" so re-import keeps working.
+  return rows.map((p) => ({
+    name: p.name,
+    partyType: p.partyType,
+    phone: p.phone ?? '',
+    email: p.email ?? '',
+    address: p.address ?? '',
+    taxId: p.taxId ?? '',
+    outstandingAmount: num(p.outstandingAmount),
+    depositBalance: num(p.depositBalance),
+    customerDepositBalance: num(p.customerDepositBalance),
+  }));
+}
 
 export const PartiesPage = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'data'>('dashboard');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('All');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editParty, setEditParty] = useState<any | null>(null);
-  const [menuPartyId, setMenuPartyId] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<any | null>(null);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const rawType = searchParams.get(TYPE_PARAM);
+  const type: PartyType | '' = rawType === 'Customer' || rawType === 'Supplier' ? rawType : '';
+  const tab: Tab = searchParams.get(VIEW_PARAM) === 'analysis' ? 'analysis' : type || 'all';
 
-  const { data: parties, isLoading } = useQuery({
-    queryKey: ['parties', filterType],
-    queryFn: async () => {
-      const params = filterType !== 'All' ? { type: filterType } : {};
-      const response = await api.get('/parties', { params });
-      return response.data.data ?? response.data;
-    }
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'name', desc: false } });
+  const [density, setDensity] = useTableDensity();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editParty, setEditParty] = useState<PartyRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PartyRow | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const canEdit = can('parties', 'edit');
+  const canDelete = canEdit && cap('doc.cancel');
+
+  const params = useMemo(() => (type ? { ...list.params, type } : list.params), [list.params, type]);
+  const filterParams = useMemo(
+    () => (type ? { ...list.filterParams, type } : list.filterParams),
+    [list.filterParams, type],
+  );
+
+  const partiesQuery = useQuery({
+    queryKey: ['parties', 'list', params],
+    queryFn: async () => (await api.get<Paginated<PartyRow>>(ENDPOINT, { params })).data,
+    placeholderData: keepPreviousData,
+    enabled: tab !== 'analysis',
   });
 
-  // Close menu on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuPartyId(null);
-      }
-    };
-    if (menuPartyId) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [menuPartyId]);
+  const summaryQuery = useQuery({
+    queryKey: ['parties', 'summary', filterParams],
+    queryFn: async () => (await api.get<PartySummary>(`${ENDPOINT}/summary`, { params: filterParams })).data,
+    placeholderData: keepPreviousData,
+    enabled: tab !== 'analysis',
+  });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/parties/${id}`),
+    mutationFn: (id: string) => api.delete<{ message?: string; deactivated?: boolean }>(`${ENDPOINT}/${id}`),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       queryClient.invalidateQueries({ queryKey: ['parties-all'] });
-      const data = res.data;
-      if (data.deactivated) {
-        toast.info(data.message || 'Mitra dinonaktifkan karena memiliki transaksi terkait.');
-      } else {
-        toast.success(data.message || 'Mitra berhasil dihapus.');
-      }
-      setDeleteConfirm(null);
+      if (res.data.deactivated) toast.info(res.data.message || 'Mitra dinonaktifkan karena memiliki transaksi terkait.');
+      else toast.success(res.data.message || 'Mitra berhasil dihapus.');
+      setDeleteTarget(null);
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal menghapus mitra.');
-      setDeleteConfirm(null);
+    onError: (err) => {
+      toast.error(errorMessage(err, 'Gagal menghapus mitra.'));
+      setDeleteTarget(null);
     },
   });
 
-  const handleEdit = (party: any) => {
-    setMenuPartyId(null);
-    setEditParty(party);
-    setIsModalOpen(true);
+  const changeTab = (next: string) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      for (const key of TAB_RESET_KEYS) p.delete(key);
+      p.delete(TYPE_PARAM);
+      p.delete(VIEW_PARAM);
+      if (next === 'analysis') p.set(VIEW_PARAM, 'analysis');
+      else if (next === 'Customer' || next === 'Supplier') p.set(TYPE_PARAM, next);
+      return p;
+    });
   };
 
-  const handleDelete = (party: any) => {
-    setMenuPartyId(null);
-    setDeleteConfirm(party);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const openCreate = () => {
     setEditParty(null);
+    setFormOpen(true);
   };
 
-  return (
-    <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Pelanggan & Vendor</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Kelola data mitra bisnis, saldo piutang, dan hutang usaha.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeTab === 'data' && (
-            <>
-              <button
-                className="btn-secondary flex items-center gap-1.5"
-                onClick={() =>
-                  exportToExcel(
-                    (parties ?? []).map((p: any) => ({
-                      name: p.name,
-                      partyType: p.partyType,
-                      phone: p.phone ?? '',
-                      email: p.email ?? '',
-                      address: p.address ?? '',
-                      taxId: p.taxId ?? '',
-                      outstandingAmount: Number(p.outstandingAmount ?? 0),
-                      depositBalance: Number(p.depositBalance ?? 0),
-                      customerDepositBalance: Number(p.customerDepositBalance ?? 0),
-                    })),
-                    'pelanggan-vendor'
-                  )
+  const openEdit = (party: PartyRow) => {
+    setEditParty(party);
+    setFormOpen(true);
+  };
+
+  const invoicesLink = (party: PartyRow) =>
+    `${isCustomerSide(party) ? '/sales' : '/purchase'}?partyId=${encodeURIComponent(party.id)}`;
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const exportParams = { ...filterParams, sort: String(list.params.sort ?? 'name') };
+      const { rows, truncated } = await fetchAllPages<PartyRow>(ENDPOINT, exportParams);
+      exportToExcel(toExportRows(rows), 'pelanggan-vendor');
+      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} mitra pertama. Persempit filter.`);
+    } catch {
+      toast.error('Gagal mengekspor data mitra. Coba lagi.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const columns = useMemo<ColumnDef<PartyRow>[]>(
+    () => [
+      {
+        id: 'name',
+        header: 'Nama',
+        enableSorting: true,
+        meta: { cellClassName: 'min-w-32 max-w-80 sm:min-w-44' },
+        cell: ({ row }) => {
+          const p = row.original;
+          const contact = [p.phone, p.email].filter(Boolean).join(' · ');
+          return (
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-medium break-words text-foreground">{p.name}</span>
+                {p.isWapu && (
+                  <StatusBadge
+                    tone="warning"
+                    label="WAPU"
+                    dot={false}
+                    className="px-1.5"
+                  />
+                )}
+                {!p.isActive && <StatusBadge tone="neutral" label="Nonaktif" dot={false} className="px-1.5" />}
+              </div>
+              {contact && (
+                <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
+                  {contact}
+                </p>
+              )}
+              {/* Mobile: type stacked here because its column is hidden. */}
+              <p className="mt-0.5 text-xs text-muted-foreground md:hidden">{TYPE_META[p.partyType]?.label}</p>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'type',
+        header: 'Jenis',
+        meta: { hideBelow: 'md' },
+        cell: ({ row }) => {
+          const meta = TYPE_META[row.original.partyType];
+          return meta ? <StatusBadge tone={meta.tone} label={meta.label} /> : null;
+        },
+      },
+      {
+        id: 'taxId',
+        header: 'NPWP',
+        meta: { hideBelow: 'xl', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => row.original.taxId || '-',
+      },
+      {
+        id: 'outstanding',
+        header: () => (
+          <>
+            Saldo<span className="hidden sm:inline"> Terutang</span> <span className="normal-case">(Rp)</span>
+          </>
+        ),
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right' },
+        cell: ({ row }) => {
+          const p = row.original;
+          const value = num(p.outstandingAmount);
+          const caption = outstandingCaption(p);
+          return (
+            <div className="flex flex-col items-end">
+              <span
+                className={
+                  value > 0 ? 'font-semibold text-foreground' : value < 0 ? 'text-success-text' : 'text-muted-foreground'
                 }
               >
-                <Download size={14} /> Download
-              </button>
-              <button className="btn-secondary flex items-center gap-1.5" onClick={() => setIsImportOpen(true)}>
-                <Upload size={14} /> Import
-              </button>
-            </>
-          )}
-          <button className="btn-primary" onClick={() => { setEditParty(null); setIsModalOpen(true); setActiveTab('data'); }}>
-            <Plus size={15} /> Tambah Mitra Baru
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={cn(
-            'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
-            activeTab === 'dashboard'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          )}
-        >
-          <LayoutDashboard size={14} /> Dashboard
-        </button>
-        <button
-          onClick={() => setActiveTab('data')}
-          className={cn(
-            'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
-            activeTab === 'data'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          )}
-        >
-          <List size={14} /> Data Mitra
-        </button>
-      </div>
-
-      {/* Dashboard Tab */}
-      {activeTab === 'dashboard' && <PartiesDashboardTab />}
-
-      {/* Data Tab */}
-      {activeTab === 'data' && (
-      <>
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari nama, email, atau telepon..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-          {['All', 'Customer', 'Supplier'].map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilterType(type)}
-              className={cn(
-                'px-3 py-2 text-xs font-medium transition-colors',
-                filterType === type ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-              )}
-            >
-              {type === 'All' ? 'Semua' : type === 'Customer' ? 'Pelanggan' : 'Vendor'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading ? (
-          <div className="col-span-full py-16 text-center">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-            <p className="text-sm text-gray-400">Memuat data mitra...</p>
-          </div>
-        ) : parties?.length === 0 ? (
-          <div className="col-span-full bg-white border border-gray-200 rounded-xl py-16 text-center">
-            <Users className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">Belum ada data mitra bisnis.</p>
-          </div>
-        ) : (
-          parties?.filter((p: any) =>
-            !searchTerm ||
-            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.phone?.includes(searchTerm)
-          ).map((party: any) => (
-            <div key={party.id} className={cn(
-              'bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-all group relative',
-              !party.isActive && 'opacity-50'
-            )}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    'w-9 h-9 rounded-lg flex items-center justify-center text-sm font-semibold',
-                    party.partyType === 'Customer' ? 'bg-blue-50 text-blue-600' :
-                    party.partyType === 'Supplier' ? 'bg-orange-50 text-orange-600' : 'bg-purple-50 text-purple-600'
-                  )}>
-                    {party.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap leading-tight">
-                      <span className="truncate">{party.name}</span>
-                      {party.isWapu && (
-                        <span
-                          className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-100 text-amber-700 border border-amber-200"
-                          title="Wajib Pungut — PPN dipungut sendiri oleh customer ke kas negara"
-                        >
-                          WAPU
-                        </span>
-                      )}
-                      {!party.isActive && (
-                        <span className="shrink-0 text-xs text-red-400 font-normal">(Nonaktif)</span>
-                      )}
-                    </h3>
-                    <p className={cn(
-                      'text-xs font-medium uppercase tracking-wider mt-0.5',
-                      party.partyType === 'Customer' ? 'text-blue-500' :
-                      party.partyType === 'Supplier' ? 'text-orange-500' : 'text-purple-500'
-                    )}>
-                      {party.partyType === 'Customer' ? 'Pelanggan' : party.partyType === 'Supplier' ? 'Vendor' : 'Pelanggan & Vendor'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action Menu */}
-                <div className="relative" ref={menuPartyId === party.id ? menuRef : undefined}>
-                  <button
-                    onClick={() => setMenuPartyId(menuPartyId === party.id ? null : party.id)}
-                    className="p-1 hover:bg-gray-100 rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <MoreHorizontal size={14} />
-                  </button>
-
-                  {menuPartyId === party.id && (
-                    <div className="absolute right-0 top-8 z-50 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 animate-in fade-in slide-in-from-top-1">
-                      <button
-                        onClick={() => handleEdit(party)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Pencil size={13} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(party)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 size={13} /> Hapus
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-1.5 mb-4">
-                {party.email && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Mail size={12} className="text-gray-400" /> {party.email}
-                  </div>
-                )}
-                {party.phone && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Phone size={12} className="text-gray-400" /> {party.phone}
-                  </div>
-                )}
-                {party.address && (
-                  <div className="flex items-start gap-2 text-xs text-gray-500">
-                    <MapPin size={12} className="text-gray-400 mt-0.5 shrink-0" />
-                    <span className="line-clamp-1">{party.address}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-3 border-t border-gray-100 space-y-1.5">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-0.5">Saldo Terutang</p>
-                  <p className={cn(
-                    'text-base font-semibold font-mono tabular-nums',
-                    Number(party.outstandingAmount) > 0 ? 'text-red-500' :
-                    Number(party.outstandingAmount) < 0 ? 'text-green-600' : 'text-gray-400'
-                  )}>
-                    {formatRupiah(Math.abs(Number(party.outstandingAmount)))}
-                    {Number(party.outstandingAmount) !== 0 && (
-                      <span className="text-xs font-normal ml-1 text-gray-400">
-                        {Number(party.outstandingAmount) > 0 ? '(Tagihan)' : '(Deposit)'}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {Number(party.depositBalance) > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-0.5">UM Vendor</p>
-                    <p className="text-sm font-semibold font-mono tabular-nums text-amber-600">
-                      {formatRupiah(Number(party.depositBalance))}
-                    </p>
-                  </div>
-                )}
-                {Number(party.customerDepositBalance) > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-0.5">UM Pelanggan</p>
-                    <p className="text-sm font-semibold font-mono tabular-nums text-teal-600">
-                      {formatRupiah(Number(party.customerDepositBalance))}
-                    </p>
-                  </div>
-                )}
-              </div>
+                {money(Math.abs(value))}
+              </span>
+              {caption && <span className="text-xs text-muted-foreground">{caption}</span>}
             </div>
-          ))
-        )}
-      </div>
-      </>
+          );
+        },
+      },
+      {
+        id: 'deposit',
+        header: () => withUnit('Uang Muka'),
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { align: 'right', hideBelow: 'sm' },
+        cell: ({ row }) => {
+          const p = row.original;
+          const lines: Array<{ label: string; value: number }> = [];
+          if (isCustomerSide(p)) lines.push({ label: 'Pelanggan', value: num(p.customerDepositBalance) });
+          if (isSupplierSide(p)) lines.push({ label: 'Vendor', value: num(p.depositBalance) });
+          return (
+            <div className="flex flex-col items-end">
+              {lines.map((l) => (
+                <span key={l.label} className={l.value > 0 ? 'text-foreground' : 'text-muted-foreground'}>
+                  {money(l.value)}
+                  {lines.length > 1 && <span className="ml-1 text-xs text-muted-foreground">{l.label}</span>}
+                </span>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <RowActions
+              label={`Aksi untuk ${p.name}`}
+              actions={[
+                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => openEdit(p) },
+                {
+                  label: 'Lihat faktur penjualan',
+                  icon: FileText,
+                  hidden: !isCustomerSide(p),
+                  onSelect: () => navigate(`/sales?partyId=${encodeURIComponent(p.id)}`),
+                },
+                {
+                  label: 'Lihat faktur pembelian',
+                  icon: ShoppingCart,
+                  hidden: !isSupplierSide(p),
+                  onSelect: () => navigate(`/purchase?partyId=${encodeURIComponent(p.id)}`),
+                },
+                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(p) },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canEdit, canDelete],
+  );
+
+  const summary = summaryQuery.data;
+  const kpiLoading = !summary && !summaryQuery.isError;
+  const total = partiesQuery.data?.total;
+
+  return (
+    // Manual activation: avoids two history entries per click (see DeliveryOrders).
+    <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
+      <PageHeader
+        title="Pelanggan & Vendor"
+        description="Kelola data mitra bisnis, saldo piutang, dan hutang usaha."
+        actions={
+          <>
+            {tab !== 'analysis' && (
+              <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
+                <Download aria-hidden />
+                <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload aria-hidden />
+                <span className="sr-only sm:not-sr-only">Impor</span>
+              </Button>
+            )}
+            {canEdit && (
+              <Button onClick={openCreate}>
+                <Plus aria-hidden />
+                Tambah Mitra
+              </Button>
+            )}
+          </>
+        }
+      >
+        <TabsList variant="underline" aria-label="Jenis mitra">
+          <TabsTrigger value="all">Semua</TabsTrigger>
+          <TabsTrigger value="Customer">Pelanggan</TabsTrigger>
+          <TabsTrigger value="Supplier">Vendor</TabsTrigger>
+          <TabsTrigger value="analysis">Analisis</TabsTrigger>
+        </TabsList>
+      </PageHeader>
+
+      {tab !== 'analysis' && (
+        <TabsContent value={tab} className="mt-0 space-y-5">
+          <section aria-label="Ringkasan mitra sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              label="Jumlah Mitra"
+              icon={Users}
+              loading={kpiLoading}
+              value={summary ? formatNumber(summary.total) : '-'}
+              hint={
+                summary
+                  ? `${formatNumber(summary.byType.Customer)} pelanggan · ${formatNumber(summary.byType.Supplier)} vendor`
+                  : undefined
+              }
+            />
+            <StatCard
+              label="Total Piutang"
+              icon={Wallet}
+              loading={kpiLoading}
+              value={kpiMoney(summary?.totalReceivable)}
+              valueTitle={summary ? formatRupiah(summary.totalReceivable) : undefined}
+              hint={summary ? `UM pelanggan ${formatRupiah(summary.totalCustomerDeposit, { compact: true })}` : undefined}
+            />
+            <StatCard
+              label="Total Hutang"
+              icon={Scale}
+              loading={kpiLoading}
+              value={kpiMoney(summary?.totalPayable)}
+              valueTitle={summary ? formatRupiah(summary.totalPayable) : undefined}
+              hint={summary ? `UM vendor ${formatRupiah(summary.totalVendorDeposit, { compact: true })}` : undefined}
+            />
+            <StatCard
+              label="Mitra dengan Saldo"
+              icon={PiggyBank}
+              loading={kpiLoading}
+              value={summary ? formatNumber(summary.withOutstandingCount) : '-'}
+              hint={summary ? `${formatNumber(summary.inactiveCount)} nonaktif` : undefined}
+            />
+          </section>
+
+          <div className="space-y-3">
+            <FilterBar
+              list={list}
+              searchLabel="Cari mitra"
+              searchPlaceholder="Cari nama, email, telepon, atau NPWP"
+              status={{ key: 'isActive', options: ACTIVE_FILTER, label: 'Status mitra', allLabel: 'Semua status' }}
+            >
+              <div className="w-[calc(50%-0.25rem)] sm:w-48">
+                <label htmlFor="parties-outstanding" className="sr-only">
+                  Saldo terutang
+                </label>
+                <Select
+                  value={list.filters.hasOutstanding || ALL}
+                  onValueChange={(v) => list.setFilter('hasOutstanding', v === ALL ? '' : v)}
+                >
+                  <SelectTrigger id="parties-outstanding">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>Semua saldo</SelectItem>
+                    <SelectItem value="true">Ada saldo terutang</SelectItem>
+                    <SelectItem value="false">Tanpa saldo terutang</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </FilterBar>
+
+            <DataTable
+              {...listTableProps(list, total)}
+              label="Daftar pelanggan dan vendor"
+              itemLabel="mitra"
+              columns={columns}
+              data={partiesQuery.data?.data}
+              getRowId={(row) => row.id}
+              loading={partiesQuery.isLoading}
+              fetching={partiesQuery.isFetching && partiesQuery.isPlaceholderData}
+              error={partiesQuery.error}
+              onRetry={() => partiesQuery.refetch()}
+              onRowClick={(row) => (canEdit ? openEdit(row) : navigate(invoicesLink(row)))}
+              rowClassName={(row) => (row.isActive ? undefined : 'opacity-60')}
+              density={density}
+              onDensityChange={setDensity}
+              empty={{
+                title: 'Belum ada mitra',
+                description: 'Pelanggan dan vendor yang Anda tambahkan akan muncul di sini.',
+                action: canEdit ? (
+                  <Button size="sm" onClick={openCreate}>
+                    <Plus aria-hidden />
+                    Tambah mitra pertama
+                  </Button>
+                ) : undefined,
+              }}
+            />
+          </div>
+        </TabsContent>
       )}
 
-      {/* Form Modal (Create / Edit) */}
+      <TabsContent value="analysis" className="mt-0">
+        {tab === 'analysis' && <PartiesDashboardTab />}
+      </TabsContent>
+
       <PartyFormModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        isOpen={formOpen}
+        onClose={() => {
+          setFormOpen(false);
+          setEditParty(null);
+        }}
         editParty={editParty}
       />
 
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirm && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-          onClick={() => !deleteMutation.isPending && setDeleteConfirm(null)}
-        >
-          <div
-            className="bg-white rounded-xl w-full max-w-sm shadow-2xl p-6"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                <Trash2 size={18} className="text-red-500" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Hapus Mitra?</h3>
-                <p className="text-xs text-gray-500">
-                  {deleteConfirm.name}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-5 flex items-start gap-2">
-              <AlertCircle size={14} className="text-yellow-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-yellow-700">
-                Jika mitra memiliki transaksi terkait (invoice/pembayaran), data akan dinonaktifkan, bukan dihapus permanen.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                disabled={deleteMutation.isPending}
-                className="btn-secondary"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => deleteMutation.mutate(deleteConfirm.id)}
-                disabled={deleteMutation.isPending}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-40"
-              >
-                {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        importType="parties"
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !deleteMutation.isPending && setDeleteTarget(null)}
+        tone="danger"
+        title="Hapus mitra?"
+        description={
+          <>
+            <span className="font-medium text-foreground">{deleteTarget?.name}</span> akan dihapus. Jika mitra memiliki
+            transaksi terkait (faktur/pembayaran), data akan dinonaktifkan, bukan dihapus permanen.
+          </>
+        }
+        confirmLabel="Hapus"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+        }}
       />
-    </div>
+
+      <ImportModal isOpen={importOpen} onClose={() => setImportOpen(false)} importType="parties" />
+    </Tabs>
   );
 };

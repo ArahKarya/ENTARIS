@@ -1,13 +1,62 @@
 import { Router } from 'express';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requirePerm } from '../middleware/auth';
 import { logger } from '../lib/logger';
 import { runNotificationChecks } from '../services/notificationService';
+import { firstString, parseListPaging } from '../utils/listQuery';
 
 const router = Router();
 
+/** Params that switch GET /api/notifications into the paged list mode. */
+const NOTIFICATION_LIST_PARAMS = ['page', 'limit', 'isRead', 'type', 'search'] as const;
+
 // GET /api/notifications — list for current user
+//  • No params (NotificationBell): latest 50 + unreadCount — unchanged.
+//  • With page / limit / isRead (true|false) / type / search (title, message): paged
+//    { data, total, page, limit, unreadCount } for the /notifications page.
 router.get('/', async (req: AuthRequest, res) => {
+  const query = req.query as Record<string, unknown>;
+  if (NOTIFICATION_LIST_PARAMS.some((key) => firstString(query[key]) !== undefined)) {
+    try {
+      const userId = req.user!.userId;
+      const isRead = firstString(query.isRead);
+      if (isRead && isRead !== 'true' && isRead !== 'false') {
+        return res.status(400).json({ error: 'Filter status baca tidak valid.' });
+      }
+      const type = firstString(query.type);
+      const search = firstString(query.search);
+      const where: Prisma.NotificationWhereInput = {
+        userId,
+        ...(isRead ? { isRead: isRead === 'true' } : {}),
+        ...(type ? { type } : {}),
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { message: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      };
+      const { page, limit, skip } = parseListPaging(query, { defaultLimit: 25, maxLimit: 100 });
+      const [notifications, total, unreadCount] = await Promise.all([
+        prisma.notification.findMany({
+          where,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        prisma.notification.count({ where }),
+        prisma.notification.count({ where: { userId, isRead: false } }),
+      ]);
+      return res.json({ data: notifications, total, page, limit, unreadCount });
+    } catch (error) {
+      logger.error({ error }, 'GET /notifications (list) error');
+      return res.status(500).json({ error: 'Gagal mengambil notifikasi.' });
+    }
+  }
+
   try {
     const userId = req.user!.userId;
     const [notifications, unreadCount] = await Promise.all([
@@ -24,6 +73,24 @@ router.get('/', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error({ error }, 'GET /notifications error');
     return res.status(500).json({ error: 'Gagal mengambil notifikasi.' });
+  }
+});
+
+// GET /api/notifications/types — notification types present for the current
+// user, with counts (feeds the type filter on /notifications).
+router.get('/types', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const groups = await prisma.notification.groupBy({
+      by: ['type'],
+      where: { userId },
+      _count: { _all: true },
+      orderBy: { type: 'asc' },
+    });
+    return res.json({ data: groups.map((g) => ({ type: g.type, count: g._count._all })) });
+  } catch (error) {
+    logger.error({ error }, 'GET /notifications/types error');
+    return res.status(500).json({ error: 'Gagal mengambil jenis notifikasi.' });
   }
 });
 

@@ -1,13 +1,64 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, MoreHorizontal, Users, Loader2, Shield, ShieldCheck, Eye, Pencil, ToggleLeft, ToggleRight, Send, Link2Off, X, Copy } from 'lucide-react';
+/**
+ * Manajemen Pengguna (/users) — list kit page (see pages/SalesInvoices.tsx).
+ *
+ * GET /users (page, limit, search, role, status, sort) + /users/summary for
+ * KPIs. Writes (create/edit, reset password, activate/deactivate, Telegram)
+ * use the existing endpoints and are hidden without users:edit. The server
+ * never sends password hashes; Telegram chat ids arrive as a boolean only.
+ * Account lockout is not modelled server-side, so there is no "Terkunci"
+ * status nor an unlock action.
+ */
+import { useMemo, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import {
+  Copy,
+  KeyRound,
+  Link2Off,
+  Pencil,
+  Plus,
+  Send,
+  ToggleLeft,
+  ToggleRight,
+  UserCheck,
+  UserX,
+  Users,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '../lib/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import { formatDate } from '../lib/formatters';
-import UserFormModal from '../components/UserFormModal';
+import api from '@/lib/api';
+import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatRelativeTime } from '@/lib/auditDiff';
+import { passwordError } from '@/lib/userValidation';
+import { can, getStoredUser } from '@/lib/permissions';
+import { useListState } from '@/hooks/useListState';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { initials, roleLabel } from '@/components/shell/role-label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  ComboboxFilter,
+  ConfirmDialog,
+  DataTable,
+  Field,
+  FilterBar,
+  PageHeader,
+  RowActions,
+  StatCard,
+  StatusBadge,
+  listTableProps,
+  type Paginated,
+} from '@/components/shared';
+import UserFormModal from '@/components/UserFormModal';
 
-interface UserData {
+interface UserRow {
   id: string;
   username: string;
   fullName: string;
@@ -19,349 +70,522 @@ interface UserData {
   telegramLinked?: boolean;
 }
 
-export const UserManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editUser, setEditUser] = useState<UserData | null>(null);
-  const [menuUserId, setMenuUserId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
-  const [linkInfo, setLinkInfo] = useState<{ user: UserData; code: string; deepLink: string | null; botUsername: string | null } | null>(null);
+interface UserSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  telegramLinked: number;
+}
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['users', searchTerm],
-    queryFn: async () => {
-      const params: any = { limit: 200 };
-      if (searchTerm.trim()) params.search = searchTerm;
-      const response = await api.get('/users', { params });
-      return response.data;
-    },
-    // Saat modal tautan terbuka, refresh berkala utk deteksi status "Tertaut".
+interface RoleOption {
+  key: string;
+  name: string;
+}
+
+interface LinkInfo {
+  user: UserRow;
+  code: string;
+  deepLink: string | null;
+  botUsername: string | null;
+}
+
+type Pending =
+  | { kind: 'toggle'; user: UserRow }
+  | { kind: 'reset'; user: UserRow }
+  | { kind: 'unlink'; user: UserRow };
+
+const ENDPOINT = '/users';
+const FILTER_KEYS = ['role', 'status'] as const;
+const STATUS_FILTER = [
+  { value: 'active', label: 'Aktif' },
+  { value: 'inactive', label: 'Nonaktif' },
+];
+
+function apiError(err: unknown, fallback: string): string {
+  const e = err as { response?: { data?: { error?: string } } };
+  return e.response?.data?.error || fallback;
+}
+
+function UserStatus({ user, className }: { user: UserRow; className?: string }) {
+  return <StatusBadge status={user.isActive ? 'Active' : 'Inactive'} className={className} />;
+}
+
+export const UserManagement = () => {
+  const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'createdAt', desc: true } });
+  const [density, setDensity] = useTableDensity();
+  const queryClient = useQueryClient();
+  const canEdit = can('users', 'edit');
+  const selfId = getStoredUser()?.id;
+
+  const [form, setForm] = useState<{ open: boolean; user: UserRow | null }>({ open: false, user: null });
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordErr, setPasswordErr] = useState<string | undefined>();
+  const [linkInfo, setLinkInfo] = useState<LinkInfo | null>(null);
+
+  const usersQuery = useQuery({
+    queryKey: ['users', 'list', list.params],
+    queryFn: async () => (await api.get<Paginated<UserRow>>(ENDPOINT, { params: list.params })).data,
+    placeholderData: keepPreviousData,
+    // Saat dialog tautan Telegram terbuka, refresh berkala untuk mendeteksi status "Tertaut".
     refetchInterval: linkInfo ? 4000 : false,
   });
 
-  const users: UserData[] = data?.data ?? [];
-
-  // Close menu on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuUserId(null);
-      }
-    };
-    if (menuUserId) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [menuUserId]);
-
-  const toggleMutation = useMutation({
-    mutationFn: (id: string) => api.patch(`/users/${id}/toggle`),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      const user = res.data;
-      toast.success(`User ${user.fullName} ${user.isActive ? 'diaktifkan' : 'dinonaktifkan'}.`);
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal mengubah status user.');
-    },
+  const summaryQuery = useQuery({
+    queryKey: ['users', 'summary', list.filterParams],
+    queryFn: async () => (await api.get<UserSummary>(`${ENDPOINT}/summary`, { params: list.filterParams })).data,
+    placeholderData: keepPreviousData,
   });
 
-  const handleEdit = (user: UserData) => {
-    setMenuUserId(null);
-    setEditUser(user);
-    setIsModalOpen(true);
-  };
+  const rolesQuery = useQuery<RoleOption[]>({
+    queryKey: ['roles-assignable'],
+    queryFn: async () => (await api.get('/roles/assignable')).data,
+  });
 
-  const handleToggle = (user: UserData) => {
-    setMenuUserId(null);
-    toggleMutation.mutate(user.id);
-  };
+  const roleName = useMemo(() => {
+    const names = new Map((rolesQuery.data ?? []).map((r) => [r.key, r.name]));
+    return (key: string) => {
+      const label = roleLabel(key);
+      return label !== key ? label : names.get(key) ?? key;
+    };
+  }, [rolesQuery.data]);
+
+  const roleOptions = useMemo(
+    () => (rolesQuery.data ?? []).map((r) => ({ value: r.key, label: roleName(r.key) })),
+    [rolesQuery.data, roleName],
+  );
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] });
+
+  const toggleMutation = useMutation({
+    mutationFn: async (id: string) => (await api.patch<UserRow>(`/users/${id}/toggle`)).data,
+    onSuccess: (user) => {
+      invalidate();
+      toast.success(`Pengguna ${user.fullName} ${user.isActive ? 'diaktifkan' : 'dinonaktifkan'}.`);
+    },
+    onError: (err) => toast.error(apiError(err, 'Gagal mengubah status pengguna.')),
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) => api.put(`/users/${id}`, { password }),
+    onSuccess: () => toast.success('Kata sandi berhasil diatur ulang.'),
+    onError: (err) => toast.error(apiError(err, 'Gagal mengatur ulang kata sandi.')),
+  });
 
   const linkMutation = useMutation({
-    mutationFn: (user: UserData) => api.post(`/users/${user.id}/telegram-link`).then(r => ({ user, ...r.data })),
-    onSuccess: (d: any) => {
-      setLinkInfo({ user: d.user, code: d.code, deepLink: d.deepLink, botUsername: d.botUsername });
-    },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membuat kode tautan.'),
+    mutationFn: async (user: UserRow) => ({ user, ...(await api.post(`/users/${user.id}/telegram-link`)).data }),
+    onSuccess: (d: LinkInfo) => setLinkInfo(d),
+    onError: (err) => toast.error(apiError(err, 'Gagal membuat kode tautan.')),
   });
 
   const unlinkMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}/telegram`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Tautan Telegram diputus.'); },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal memutus tautan.'),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Tautan Telegram diputus.');
+    },
+    onError: (err) => toast.error(apiError(err, 'Gagal memutus tautan.')),
   });
-
-  const handleTelegramLink = (user: UserData) => { setMenuUserId(null); linkMutation.mutate(user); };
 
   const testMutation = useMutation({
     mutationFn: (id: string) => api.post(`/users/${id}/telegram-test`),
-    onSuccess: (res: any) => toast.success(res.data?.message || 'Pesan uji terkirim.'),
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Tes gagal.'),
+    onSuccess: (res) => toast.success(res.data?.message || 'Pesan uji terkirim.'),
+    onError: (err) => toast.error(apiError(err, 'Tes gagal.')),
   });
 
-  // Status tertaut terkini utk user di modal (dari refetch berkala).
-  const linkUserLive = linkInfo ? users.find(u => u.id === linkInfo.user.id) : null;
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditUser(null);
+  const openPending = (p: Pending) => {
+    setNewPassword('');
+    setPasswordErr(undefined);
+    setPending(p);
   };
 
-  // Stats
-  const totalUsers = users.length;
-  const activeUsers = users.filter(u => u.isActive).length;
-  const adminUsers = users.filter(u => u.role === 'Admin').length;
-
-  const roleBadge = (role: string) => {
-    switch (role) {
-      case 'Admin':
-        return <span className="badge badge-blue gap-1 rounded-full text-xs font-semibold"><ShieldCheck size={10} /> Admin</span>;
-      case 'Accountant':
-        return <span className="badge badge-green gap-1 rounded-full text-xs font-semibold"><Shield size={10} /> Accountant</span>;
-      case 'StaffProduksi':
-        return <span className="badge badge-orange gap-1 rounded-full text-xs font-semibold"><Shield size={10} /> Staff Produksi</span>;
-      default:
-        return <span className="badge badge-gray gap-1 rounded-full text-xs font-semibold"><Eye size={10} /> Viewer</span>;
+  const confirmPending = async () => {
+    if (!pending) return;
+    if (pending.kind === 'toggle') return toggleMutation.mutateAsync(pending.user.id);
+    if (pending.kind === 'unlink') return unlinkMutation.mutateAsync(pending.user.id);
+    const err = passwordError(newPassword);
+    if (err) {
+      setPasswordErr(err);
+      throw new Error(err);
     }
+    return resetMutation.mutateAsync({ id: pending.user.id, password: newPassword });
   };
+
+  const users = usersQuery.data?.data;
+  const total = usersQuery.data?.total;
+  const summary = summaryQuery.data;
+  const linkUserLive = linkInfo ? users?.find((u) => u.id === linkInfo.user.id) : null;
+
+  const columns = useMemo<ColumnDef<UserRow>[]>(
+    () => [
+      {
+        id: 'fullName',
+        header: 'Nama',
+        enableSorting: true,
+        meta: { cellClassName: 'min-w-0 max-w-72' },
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                aria-hidden
+                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-semibold text-primary-subtle-foreground"
+              >
+                {initials(u.fullName)}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-medium text-foreground">{u.fullName}</p>
+                <p className="truncate text-xs text-muted-foreground lg:hidden">{u.email}</p>
+                <p className="truncate text-xs text-muted-foreground sm:hidden">{roleName(u.role)}</p>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'username',
+        header: 'Nama Pengguna',
+        enableSorting: true,
+        meta: { hideBelow: 'md', cellClassName: 'font-mono text-xs text-muted-foreground' },
+        cell: ({ row }) => row.original.username,
+      },
+      {
+        id: 'email',
+        header: 'Email',
+        enableSorting: true,
+        meta: { hideBelow: 'lg', cellClassName: 'max-w-64 truncate text-muted-foreground' },
+        cell: ({ row }) => row.original.email,
+      },
+      {
+        id: 'role',
+        header: 'Peran',
+        enableSorting: true,
+        meta: { hideBelow: 'sm' },
+        cell: ({ row }) => <span className="whitespace-nowrap">{roleName(row.original.role)}</span>,
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        cell: ({ row }) => <UserStatus user={row.original} />,
+      },
+      {
+        id: 'lastLoginAt',
+        header: 'Login Terakhir',
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap text-muted-foreground' },
+        cell: ({ row }) => {
+          const at = row.original.lastLoginAt;
+          if (!at) return <span>Belum pernah</span>;
+          return (
+            <time dateTime={at} title={formatDateTime(at)}>
+              {formatRelativeTime(at)}
+            </time>
+          );
+        },
+      },
+      {
+        id: 'telegram',
+        header: 'Telegram',
+        meta: { hideBelow: 'xl' },
+        cell: ({ row }) => (
+          <StatusBadge
+            label={row.original.telegramLinked ? 'Tertaut' : 'Belum'}
+            tone={row.original.telegramLinked ? 'success' : 'neutral'}
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        cell: ({ row }) => {
+          const u = row.original;
+          const isSelf = u.id === selfId;
+          return (
+            <RowActions
+              label={`Aksi untuk ${u.fullName}`}
+              actions={[
+                { label: 'Ubah', icon: Pencil, hidden: !canEdit, onSelect: () => setForm({ open: true, user: u }) },
+                {
+                  label: 'Atur ulang kata sandi',
+                  icon: KeyRound,
+                  hidden: !canEdit,
+                  onSelect: () => openPending({ kind: 'reset', user: u }),
+                },
+                {
+                  label: u.telegramLinked ? 'Tautkan ulang Telegram' : 'Hubungkan Telegram',
+                  icon: Send,
+                  hidden: !canEdit,
+                  onSelect: () => linkMutation.mutate(u),
+                },
+                {
+                  label: 'Tes Telegram',
+                  icon: Send,
+                  hidden: !canEdit || !u.telegramLinked,
+                  onSelect: () => testMutation.mutate(u.id),
+                },
+                {
+                  label: 'Aktifkan',
+                  icon: ToggleLeft,
+                  hidden: !canEdit || u.isActive,
+                  onSelect: () => openPending({ kind: 'toggle', user: u }),
+                },
+                {
+                  label: 'Putuskan Telegram',
+                  icon: Link2Off,
+                  tone: 'danger',
+                  hidden: !canEdit || !u.telegramLinked,
+                  onSelect: () => openPending({ kind: 'unlink', user: u }),
+                },
+                {
+                  label: isSelf ? 'Nonaktifkan (akun sendiri)' : 'Nonaktifkan',
+                  icon: ToggleRight,
+                  tone: 'danger',
+                  disabled: isSelf,
+                  hidden: !canEdit || !u.isActive,
+                  onSelect: () => openPending({ kind: 'toggle', user: u }),
+                },
+              ]}
+            />
+          );
+        },
+      },
+    ],
+    [canEdit, selfId, roleName, linkMutation, testMutation],
+  );
+
+  const dialogCopy = pending ? confirmCopy(pending) : null;
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>Manajemen User</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Kelola akun pengguna aplikasi.</p>
-        </div>
-        <button className="btn-primary self-start" onClick={() => { setEditUser(null); setIsModalOpen(true); }}>
-          <Plus size={15} /> Tambah User
-        </button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: 'Total User', value: totalUsers, color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'User Aktif', value: activeUsers, color: 'text-green-600 dark:text-green-400' },
-          { label: 'Admin', value: adminUsers, color: 'text-purple-600 dark:text-purple-400' },
-        ].map(stat => (
-          <div
-            key={stat.label}
-            className="rounded-xl border p-4"
-            style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-          >
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{stat.label}</p>
-            <p className={cn('text-2xl font-bold mt-1 tabular-nums', stat.color)}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Cari nama, username, atau email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--color-bg-primary)',
-              borderColor: 'var(--color-border)',
-              color: 'var(--color-text-primary)',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-      >
-        <div className="table-responsive">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Nama Lengkap</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Username</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Email</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Role</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Login Terakhir</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Telegram</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
-                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Memuat data user...</p>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <Users className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }} />
-                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Belum ada data user.</p>
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={cn(
-                      'border-b transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/30',
-                      !user.isActive && 'opacity-50'
-                    )}
-                    style={{ borderColor: 'var(--color-border)' }}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-xs flex-shrink-0">
-                          {user.fullName.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{user.fullName}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>{user.username}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{user.email}</td>
-                    <td className="px-4 py-3">{roleBadge(user.role)}</td>
-                    <td className="px-4 py-3">
-                      {user.isActive ? (
-                        <span className="badge badge-green rounded-full text-xs font-semibold">Aktif</span>
-                      ) : (
-                        <span className="badge badge-red rounded-full text-xs font-semibold">Nonaktif</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      {user.lastLoginAt ? formatDate(user.lastLoginAt) : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {user.telegramLinked
-                        ? <span className="badge badge-green rounded-full text-xs font-semibold">Tertaut</span>
-                        : <span className="badge badge-gray rounded-full text-xs font-semibold">Belum</span>}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="relative inline-block" ref={menuUserId === user.id ? menuRef : undefined}>
-                        <button
-                          onClick={() => setMenuUserId(menuUserId === user.id ? null : user.id)}
-                          className="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-                          style={{ color: 'var(--color-text-muted)' }}
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {menuUserId === user.id && (
-                          <div
-                            className="absolute right-0 top-8 z-50 w-44 border rounded-lg shadow-lg py-1 animate-in fade-in slide-in-from-top-1"
-                            style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-                          >
-                            <button
-                              onClick={() => handleEdit(user)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                              style={{ color: 'var(--color-text-primary)' }}
-                            >
-                              <Pencil size={13} /> Edit
-                            </button>
-                            <button
-                              onClick={() => handleToggle(user)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                              style={{ color: user.isActive ? '#dc2626' : '#16a34a' }}
-                            >
-                              {user.isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
-                              {user.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                            </button>
-                            <button
-                              onClick={() => handleTelegramLink(user)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                              style={{ color: 'var(--color-text-primary)' }}
-                            >
-                              <Send size={13} /> {user.telegramLinked ? 'Tautkan Ulang Telegram' : 'Hubungkan Telegram'}
-                            </button>
-                            {user.telegramLinked && (
-                              <button
-                                onClick={() => { setMenuUserId(null); testMutation.mutate(user.id); }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                                style={{ color: 'var(--color-text-primary)' }}
-                              >
-                                <Send size={13} /> Tes Telegram
-                              </button>
-                            )}
-                            {user.telegramLinked && (
-                              <button
-                                onClick={() => { setMenuUserId(null); unlinkMutation.mutate(user.id); }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                                style={{ color: '#dc2626' }}
-                              >
-                                <Link2Off size={13} /> Putuskan Telegram
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Form Modal */}
-      <UserFormModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        editUser={editUser}
+      <PageHeader
+        title="Manajemen Pengguna"
+        description="Kelola akun, peran dan status pengguna aplikasi."
+        actions={
+          canEdit ? (
+            <Button onClick={() => setForm({ open: true, user: null })}>
+              <Plus aria-hidden />
+              Tambah Pengguna
+            </Button>
+          ) : undefined
+        }
       />
 
-      {/* Modal Tautan Telegram */}
-      {linkInfo && (
-        <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLinkInfo(null)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="text-base font-semibold flex items-center gap-2"><Send className="w-4 h-4 text-blue-600" /> Hubungkan Telegram — {linkInfo.user.fullName}</h2>
-              <button onClick={() => setLinkInfo(null)} className="p-1.5 rounded-lg hover:bg-accent"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-5 space-y-3 text-sm">
+      <section aria-label="Ringkasan pengguna sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Jumlah Pengguna"
+          icon={Users}
+          loading={!summary && !summaryQuery.isError}
+          value={summary ? formatNumber(summary.total) : '-'}
+        />
+        <StatCard
+          label="Aktif"
+          icon={UserCheck}
+          loading={!summary && !summaryQuery.isError}
+          value={summary ? formatNumber(summary.active) : '-'}
+          hint="dapat masuk ke aplikasi"
+        />
+        <StatCard
+          label="Nonaktif"
+          icon={UserX}
+          loading={!summary && !summaryQuery.isError}
+          value={summary ? formatNumber(summary.inactive) : '-'}
+          hint="akses diblokir"
+        />
+        <StatCard
+          label="Telegram Tertaut"
+          icon={Send}
+          loading={!summary && !summaryQuery.isError}
+          value={summary ? formatNumber(summary.telegramLinked) : '-'}
+          hint="menerima notifikasi"
+        />
+      </section>
+
+      <div className="space-y-3">
+        <FilterBar
+          list={list}
+          searchLabel="Cari pengguna"
+          searchPlaceholder="Cari nama, email atau nama pengguna"
+          status={{ options: STATUS_FILTER }}
+        >
+          <ComboboxFilter
+            label="Peran"
+            allLabel="Semua peran"
+            value={list.filters.role}
+            onChange={(v) => list.setFilter('role', v)}
+            options={roleOptions}
+            loading={rolesQuery.isLoading}
+          />
+        </FilterBar>
+
+        <DataTable
+          {...listTableProps(list, total)}
+          label="Daftar pengguna"
+          itemLabel="pengguna"
+          columns={columns}
+          data={users}
+          getRowId={(row) => row.id}
+          loading={usersQuery.isLoading}
+          fetching={usersQuery.isFetching && usersQuery.isPlaceholderData}
+          error={usersQuery.error}
+          onRetry={() => usersQuery.refetch()}
+          onRowClick={canEdit ? (row) => setForm({ open: true, user: row }) : undefined}
+          rowClassName={(row) => (row.isActive ? undefined : 'text-muted-foreground')}
+          density={density}
+          onDensityChange={setDensity}
+          empty={{
+            title: 'Belum ada pengguna',
+            description: 'Akun pengguna yang Anda buat akan muncul di sini.',
+          }}
+        />
+      </div>
+
+      <UserFormModal
+        isOpen={form.open}
+        editUser={form.user}
+        onClose={() => setForm({ open: false, user: null })}
+      />
+
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => !open && setPending(null)}
+        title={dialogCopy?.title ?? ''}
+        description={dialogCopy?.description}
+        tone={dialogCopy?.tone}
+        confirmLabel={dialogCopy?.confirmLabel}
+        onConfirm={confirmPending}
+      >
+        {pending?.kind === 'reset' && (
+          <Field
+            label="Kata sandi baru"
+            required
+            error={passwordErr}
+            hint="Minimal 8 karakter, berisi huruf besar, angka dan karakter spesial."
+          >
+            <Input
+              type="password"
+              value={newPassword}
+              autoComplete="new-password"
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setPasswordErr(undefined);
+              }}
+            />
+          </Field>
+        )}
+      </ConfirmDialog>
+
+      <Dialog open={linkInfo !== null} onOpenChange={(open) => !open && setLinkInfo(null)}>
+        <DialogContent size="md">
+          {linkInfo && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Hubungkan Telegram</DialogTitle>
+                <DialogDescription>{linkInfo.user.fullName}</DialogDescription>
+              </DialogHeader>
               {linkUserLive?.telegramLinked ? (
-                <div className="space-y-2">
-                  <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 font-medium">
-                    ✅ Telegram <b>{linkInfo.user.fullName}</b> sudah tertaut. Notifikasi akan dikirim ke japri-nya.
-                  </div>
-                  <button onClick={() => testMutation.mutate(linkInfo.user.id)} disabled={testMutation.isPending} className="btn-secondary text-sm">
-                    <Send className="w-3.5 h-3.5" /> {testMutation.isPending ? 'Mengirim…' : 'Kirim Pesan Uji'}
-                  </button>
+                <div className="space-y-3 text-sm">
+                  <p role="status" className="rounded-md bg-success-subtle px-3 py-2 text-success-text">
+                    Telegram <b>{linkInfo.user.fullName}</b> sudah tertaut. Notifikasi akan dikirim ke pesan pribadinya.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testMutation.mutate(linkInfo.user.id)}
+                    loading={testMutation.isPending}
+                  >
+                    <Send aria-hidden />
+                    Kirim pesan uji
+                  </Button>
                 </div>
               ) : (
-                <>
-                  <p className="text-muted-foreground">Minta <b>{linkInfo.user.fullName}</b> melakukan langkah berikut di HP-nya:</p>
-                  <ol className="list-decimal ml-5 space-y-1 text-xs text-muted-foreground">
-                    <li>Buka link bot di bawah lalu tekan <b>Start</b> (atau kirim <code>/start {linkInfo.code}</code> ke bot).</li>
-                    <li>Status akan otomatis berubah <b>Tertaut</b> dalam &lt; 1 menit.</li>
+                <div className="space-y-3 text-sm">
+                  <p className="text-muted-foreground">
+                    Minta <b className="text-foreground">{linkInfo.user.fullName}</b> melakukan langkah berikut di ponselnya:
+                  </p>
+                  <ol className="ml-5 list-decimal space-y-1 text-muted-foreground">
+                    <li>
+                      Buka tautan bot di bawah lalu tekan <b>Start</b> (atau kirim{' '}
+                      <code className="font-mono">/start {linkInfo.code}</code> ke bot).
+                    </li>
+                    <li>
+                      Status berubah menjadi <b>Tertaut</b> dalam kurang dari 1 menit.
+                    </li>
                   </ol>
                   {linkInfo.deepLink ? (
                     <div className="flex items-center gap-2">
-                      <input readOnly value={linkInfo.deepLink} className="flex-1 border border-border rounded-lg px-2 py-1.5 text-xs bg-background font-mono" />
-                      <button onClick={() => { navigator.clipboard.writeText(linkInfo.deepLink!); toast.success('Link disalin.'); }} className="btn-secondary text-xs"><Copy className="w-3.5 h-3.5" /> Salin</button>
+                      <Input readOnly value={linkInfo.deepLink} aria-label="Tautan bot" className="font-mono text-xs" />
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(linkInfo.deepLink!);
+                          toast.success('Tautan disalin.');
+                        }}
+                      >
+                        <Copy aria-hidden />
+                        Salin
+                      </Button>
                     </div>
                   ) : (
-                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                      Bot belum terkonfigurasi / token belum diisi. Atur dulu di <b>Pengaturan → Notifikasi</b>. Kode tautan: <code className="font-mono">{linkInfo.code}</code>
-                    </div>
+                    <p className="rounded-md bg-warning-subtle px-3 py-2 text-warning-text">
+                      Bot belum dikonfigurasi. Atur dulu di <b>Pengaturan → Notifikasi</b>. Kode tautan:{' '}
+                      <code className="font-mono">{linkInfo.code}</code>
+                    </p>
                   )}
-                  <p className="text-xs text-muted-foreground">Menunggu staf menekan Start… (jendela ini akan memperbarui status otomatis)</p>
-                </>
+                  <p className="text-xs text-muted-foreground" aria-live="polite">
+                    Menunggu pengguna menekan Start… status diperbarui otomatis.
+                  </p>
+                </div>
               )}
-            </div>
-            <div className="flex justify-end px-5 py-3 border-t border-border">
-              <button onClick={() => setLinkInfo(null)} className="btn-secondary text-sm">Tutup</button>
-            </div>
-          </div>
-        </div>
-      )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setLinkInfo(null)}>
+                  Tutup
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+function confirmCopy(p: Pending): {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  tone: 'default' | 'danger';
+} {
+  const name = p.user.fullName;
+  switch (p.kind) {
+    case 'reset':
+      return {
+        title: `Atur ulang kata sandi ${name}?`,
+        description: 'Kata sandi lama langsung tidak berlaku. Sampaikan kata sandi baru kepada pengguna secara aman.',
+        confirmLabel: 'Atur ulang',
+        tone: 'default',
+      };
+    case 'unlink':
+      return {
+        title: `Putuskan Telegram ${name}?`,
+        description: 'Pengguna tidak lagi menerima notifikasi Telegram sampai ditautkan ulang.',
+        confirmLabel: 'Putuskan',
+        tone: 'danger',
+      };
+    case 'toggle':
+      return p.user.isActive
+        ? {
+            title: `Nonaktifkan ${name}?`,
+            description: 'Pengguna tidak dapat masuk ke aplikasi sampai diaktifkan kembali. Data dan riwayatnya tetap tersimpan.',
+            confirmLabel: 'Nonaktifkan',
+            tone: 'danger',
+          }
+        : {
+            title: `Aktifkan ${name}?`,
+            description: 'Pengguna dapat masuk kembali dengan kata sandinya.',
+            confirmLabel: 'Aktifkan',
+            tone: 'default',
+          };
+  }
+}

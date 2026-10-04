@@ -1,266 +1,265 @@
-import React, { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import { X, Loader2, AlertCircle, User, Mail, Lock, Shield } from 'lucide-react';
-import { cn } from '../lib/utils';
-import Select from './Select';
+/**
+ * Create / edit a user (Manajemen Pengguna). Dialog with per-field validation
+ * that mirrors the server schema; the server still validates and enforces
+ * uniqueness. Password is optional on edit (blank = unchanged) and is never
+ * read back from the server.
+ */
+import { useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import api from "@/lib/api";
+import { roleLabel } from "@/components/shell/role-label";
+import {
+  validateUserForm,
+  type UserFormErrors,
+  type UserFormValues,
+} from "@/lib/userValidation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field } from "@/components/shared";
 
-interface RoleOption { key: string; name: string }
-
-interface UserFormData {
-  username: string;
-  email: string;
-  fullName: string;
-  password: string;
-  role: string;
+interface RoleOption {
+  key: string;
+  name: string;
 }
 
-const defaultForm = (): UserFormData => ({
-  username: '',
-  email: '',
-  fullName: '',
-  password: '',
-  role: 'Accountant',
-});
+export interface EditableUser {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  role: string;
+}
 
 interface UserFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editUser?: any | null;
+  editUser?: EditableUser | null;
 }
 
-const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, editUser }) => {
-  const [form, setForm] = useState<UserFormData>(defaultForm());
-  const [error, setError] = useState('');
-  const queryClient = useQueryClient();
+const emptyForm = (): UserFormValues => ({
+  username: "",
+  email: "",
+  fullName: "",
+  password: "",
+  role: "Accountant",
+});
 
+function apiError(err: unknown, fallback: string): string {
+  const e = err as { response?: { data?: { error?: string } } };
+  return e.response?.data?.error || fallback;
+}
+
+export default function UserFormModal({
+  isOpen,
+  onClose,
+  editUser,
+}: UserFormModalProps) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !busy && onClose()}>
+      <DialogContent size="md">
+        {/* Content unmounts when closed, so each opening starts from fresh state. */}
+        <UserForm
+          key={editUser?.id ?? "new"}
+          editUser={editUser ?? null}
+          onClose={onClose}
+          onBusyChange={setBusy}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface UserFormProps {
+  editUser: EditableUser | null;
+  onClose: () => void;
+  onBusyChange: (busy: boolean) => void;
+}
+
+function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
   const isEdit = !!editUser;
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<UserFormValues>(() =>
+    editUser
+      ? {
+          username: editUser.username,
+          email: editUser.email,
+          fullName: editUser.fullName,
+          password: "",
+          role: editUser.role,
+        }
+      : emptyForm(),
+  );
+  const [errors, setErrors] = useState<UserFormErrors>({});
+  const [submitError, setSubmitError] = useState("");
 
   // Daftar role dinamis (RBAC) untuk dropdown.
   const { data: roleOptions = [] } = useQuery<RoleOption[]>({
-    queryKey: ['roles-assignable'],
-    queryFn: async () => (await api.get('/roles/assignable')).data,
-    enabled: isOpen,
+    queryKey: ["roles-assignable"],
+    queryFn: async () => (await api.get("/roles/assignable")).data,
   });
 
-  useEffect(() => {
-    if (isOpen && editUser) {
-      setForm({
-        username: editUser.username || '',
-        email: editUser.email || '',
-        fullName: editUser.fullName || '',
-        password: '',
-        role: editUser.role || 'Accountant',
-      });
-      setError('');
-    } else if (isOpen) {
-      setForm(defaultForm());
-      setError('');
-    }
-  }, [isOpen, editUser]);
-
-  const set = (field: keyof UserFormData, val: string) =>
-    setForm(prev => ({ ...prev, [field]: val }));
+  const set = (field: keyof UserFormValues, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
 
   const mutation = useMutation({
-    mutationFn: (data: any) =>
-      isEdit ? api.put(`/users/${editUser.id}`, data) : api.post('/users', data),
+    mutationFn: (payload: Record<string, string>) =>
+      isEdit
+        ? api.put(`/users/${editUser!.id}`, payload)
+        : api.post("/users", payload),
+    onMutate: () => onBusyChange(true),
+    onSettled: () => onBusyChange(false),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      setForm(defaultForm());
-      setError('');
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success(
+        isEdit ? "Data pengguna disimpan." : "Pengguna baru ditambahkan.",
+      );
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan data user.'),
+    onError: (err) =>
+      setSubmitError(apiError(err, "Gagal menyimpan data pengguna.")),
   });
 
-  const handleSubmit = () => {
-    if (!form.fullName.trim()) { setError('Nama lengkap wajib diisi.'); return; }
-    if (!form.username.trim()) { setError('Username wajib diisi.'); return; }
-    if (!form.email.trim()) { setError('Email wajib diisi.'); return; }
-    if (!isEdit && !form.password) { setError('Password wajib diisi untuk user baru.'); return; }
-    if (form.password && form.password.length < 8) { setError('Password minimal 8 karakter.'); return; }
-
-    const payload: any = {
-      username: form.username,
-      email: form.email,
-      fullName: form.fullName,
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const next = validateUserForm(form, isEdit);
+    setErrors(next);
+    setSubmitError("");
+    if (Object.keys(next).length > 0) return;
+    const payload: Record<string, string> = {
+      username: form.username.trim(),
+      email: form.email.trim(),
+      fullName: form.fullName.trim(),
       role: form.role,
     };
     if (form.password) payload.password = form.password;
-
     mutation.mutate(payload);
   };
 
-  if (!isOpen) return null;
-
-  const inputCls = 'w-full border rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400';
-  const iconCls = 'absolute left-3 top-1/2 -translate-y-1/2';
+  const roles: RoleOption[] =
+    roleOptions.length > 0
+      ? roleOptions
+      : form.role
+        ? [{ key: form.role, name: roleLabel(form.role) }]
+        : [];
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="user-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}
-    >
-      <div
-        className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div>
-            <h2 id="user-modal-title" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-              {isEdit ? 'Edit User' : 'Tambah User Baru'}
-            </h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-              {isEdit ? `Mengubah data ${editUser.fullName}` : 'Buat akun pengguna baru'}
-            </p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
-            <X size={18} />
-          </button>
-        </div>
+    <form onSubmit={handleSubmit} noValidate className="grid gap-4">
+      <DialogHeader>
+        <DialogTitle>
+          {isEdit ? "Ubah Pengguna" : "Tambah Pengguna"}
+        </DialogTitle>
+        <DialogDescription>
+          {isEdit
+            ? `Mengubah data akun ${editUser!.fullName}.`
+            : "Buat akun baru untuk mengakses aplikasi."}
+        </DialogDescription>
+      </DialogHeader>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Nama Lengkap */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Nama Lengkap <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <User size={14} className={iconCls} style={{ color: 'var(--color-text-muted)' }} />
-              <input
-                type="text"
-                value={form.fullName}
-                onChange={e => set('fullName', e.target.value)}
-                placeholder="Nama lengkap pengguna"
-                className={inputCls}
-                style={{
-                  backgroundColor: 'var(--color-bg-primary)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Username */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Username <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <User size={14} className={iconCls} style={{ color: 'var(--color-text-muted)' }} />
-              <input
-                type="text"
-                value={form.username}
-                onChange={e => set('username', e.target.value)}
-                placeholder="username"
-                className={inputCls}
-                style={{
-                  backgroundColor: 'var(--color-bg-primary)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Email <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <Mail size={14} className={iconCls} style={{ color: 'var(--color-text-muted)' }} />
-              <input
-                type="email"
-                value={form.email}
-                onChange={e => set('email', e.target.value)}
-                placeholder="user@email.com"
-                className={inputCls}
-                style={{
-                  backgroundColor: 'var(--color-bg-primary)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Role */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Role <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <Shield size={14} className={iconCls} style={{ color: 'var(--color-text-muted)' }} />
-              <Select
-                value={form.role}
-                onChange={e => set('role', e.target.value)}
-                className={cn(inputCls, 'appearance-none')}
-                style={{
-                  backgroundColor: 'var(--color-bg-primary)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
-              >
-                {roleOptions.length === 0 && <option value={form.role}>{form.role}</option>}
-                {roleOptions.map((r) => (
-                  <option key={r.key} value={r.key}>{r.name}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Password {!isEdit && <span className="text-red-400">*</span>}
-              {isEdit && <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}> (kosongkan jika tidak diubah)</span>}
-            </label>
-            <div className="relative">
-              <Lock size={14} className={iconCls} style={{ color: 'var(--color-text-muted)' }} />
-              <input
-                type="password"
-                value={form.password}
-                onChange={e => set('password', e.target.value)}
-                placeholder={isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 8 karakter'}
-                className={inputCls}
-                style={{
-                  backgroundColor: 'var(--color-bg-primary)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-700 dark:text-red-400 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t flex items-center justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button
-            onClick={handleSubmit}
-            disabled={!form.fullName.trim() || !form.username.trim() || !form.email.trim() || mutation.isPending}
-            className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : isEdit ? 'Simpan Perubahan' : 'Tambah User'}
-          </button>
-        </div>
+      <Field label="Nama lengkap" required error={errors.fullName}>
+        <Input
+          value={form.fullName}
+          onChange={(e) => set("fullName", e.target.value)}
+          autoComplete="off"
+        />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label="Nama pengguna"
+          required
+          error={errors.username}
+          hint="Dipakai untuk masuk."
+        >
+          <Input
+            value={form.username}
+            onChange={(e) => set("username", e.target.value)}
+            autoComplete="off"
+            autoCapitalize="none"
+          />
+        </Field>
+        <Field label="Email" required error={errors.email}>
+          <Input
+            type="email"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            autoComplete="off"
+          />
+        </Field>
       </div>
-    </div>
-  );
-};
+      <Field label="Peran" required error={errors.role}>
+        {(control) => (
+          <Select value={form.role} onValueChange={(v) => set("role", v)}>
+            <SelectTrigger {...control}>
+              <SelectValue placeholder="Pilih peran" />
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((r) => (
+                <SelectItem key={r.key} value={r.key}>
+                  {r.name || roleLabel(r.key)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </Field>
+      <Field
+        label="Kata sandi"
+        required={!isEdit}
+        error={errors.password}
+        hint={
+          isEdit
+            ? "Kosongkan jika tidak diubah. Minimal 8 karakter, huruf besar, angka dan karakter spesial."
+            : "Minimal 8 karakter, berisi huruf besar, angka dan karakter spesial."
+        }
+      >
+        <Input
+          type="password"
+          value={form.password}
+          onChange={(e) => set("password", e.target.value)}
+          autoComplete="new-password"
+        />
+      </Field>
 
-export default UserFormModal;
+      {submitError && (
+        <p
+          role="alert"
+          className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-text"
+        >
+          {submitError}
+        </p>
+      )}
+
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={mutation.isPending}
+        >
+          Batal
+        </Button>
+        <Button type="submit" loading={mutation.isPending}>
+          {isEdit ? "Simpan Perubahan" : "Tambah Pengguna"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
