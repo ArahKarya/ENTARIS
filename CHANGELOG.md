@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Perbaikan: biaya rata-rata tertimbang saat edit/batal
+**Diperbaiki**:
+- Edit/batal produksi, batal STT, dan edit pergerakan stok menghitung ulang biaya rata-rata dengan merata-ratakan semua pergerakan masuk sekaligus — mengabaikan saldo berjalan, urutan, dan pergerakan keluar — sehingga nilai bisa melonjak (mis. 2.330 → 11.500) bila ada penyesuaian stok awal berharga lain. Kini dihitung dengan **memutar ulang pergerakan aktif secara kronologis** (createdAt, lalu id) memakai aturan yang sama dengan jalur langsung; `utils/weightedAverageReplay.ts`, dipakai oleh `services/averageCostRecompute.ts`. Jurnal/HPP yang sudah diposting tidak disentuh.
+- Membatalkan pergerakan stok manual kini juga menghitung ulang biaya rata-rata (sebelumnya tidak).
+- Bila stok barang tidak sepenuhnya dijelaskan oleh pergerakan, penghitungan ulang dilewati (biaya tersimpan dipertahankan) dan peringatan dicatat, bukan menebak.
+- Generator data dummy: pembelian GKP kini memperbarui biaya rata-rata.
+
 ### Approval gate: edit produksi & revisi harga PI
 **Keamanan**: dua mutasi finansial yang sebelumnya lolos gate kini ikut antrian persetujuan untuk role tanpa capability `approval.bypass` — `PUT /api/inventory/production-runs/:id` (edit data produksi) dan `POST /api/purchase/invoices/:id/revise-price` (revisi harga invoice pembelian). Keduanya tidak dieksekusi; dibalas `202 {pendingApproval}` dan dokumen baru berubah setelah Admin menyetujui. Role ber-bypass (Admin) tetap langsung (respons tidak berubah).
 

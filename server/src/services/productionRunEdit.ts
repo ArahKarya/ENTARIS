@@ -6,6 +6,7 @@ import { cancelJournalsByPrefix } from '../utils/journalCancel';
 import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { calcWeightedAverage } from '../utils/weightedAverage';
+import { recomputeAverageCostFromReplay } from './averageCostRecompute';
 import { resolveWarehouseId, adjustWarehouseStock } from '../utils/warehouseStock';
 import { systemAccounts } from './systemAccounts';
 import { settleCogsBackfillForItem } from './cogsBackfillService';
@@ -53,7 +54,7 @@ export async function editProductionRunInTx(
     include: { item: true },
   });
 
-  const outputItemIds = new Set<string>();
+  const affectedItemIds = new Set<string>();
   for (const mov of oldMovements) {
     const isIn = mov.movementType === 'In' || mov.movementType === 'AdjustmentIn';
     const isOut = mov.movementType === 'Out' || mov.movementType === 'AdjustmentOut';
@@ -76,7 +77,7 @@ export async function editProductionRunInTx(
         'Production edit reverse with negative stock bypass',
       );
     }
-    if (isIn) outputItemIds.add(mov.itemId);
+    affectedItemIds.add(mov.itemId);
 
     const reverseDelta = isOut ? qty : -qty;
     await tx.inventoryItem.update({
@@ -87,26 +88,11 @@ export async function editProductionRunInTx(
     await tx.stockMovement.update({ where: { id: mov.id }, data: { isCancelled: true } });
   }
 
-  // ─ 3. Recompute output WAC from remaining active In moves ──────
-  for (const itemId of outputItemIds) {
-    const activeInMovements = await tx.stockMovement.findMany({
-      where: { itemId, movementType: { in: ['In', 'AdjustmentIn'] }, isCancelled: false },
-      select: { quantity: true, unitCost: true },
-    });
-    if (activeInMovements.length === 0) {
-      await tx.inventoryItem.update({ where: { id: itemId }, data: { averageCost: 0 } });
-    } else {
-      let totalQty = new Decimal(0), totalValue = new Decimal(0);
-      for (const m of activeInMovements) {
-        const q = new Decimal(Number(m.quantity));
-        totalQty = totalQty.plus(q);
-        totalValue = totalValue.plus(q.mul(new Decimal(Number(m.unitCost))));
-      }
-      await tx.inventoryItem.update({
-        where: { id: itemId },
-        data: { averageCost: totalQty.gt(0) ? totalValue.div(totalQty).toDecimalPlaces(2).toNumber() : 0 },
-      });
-    }
+  // ─ 3. Recompute WAC by REPLAYING remaining active movements ───
+  // (input items too: re-instating consumed stock changes the base that later
+  // inbound movements were blended against). Historical COGS stays untouched.
+  for (const itemId of affectedItemIds) {
+    await recomputeAverageCostFromReplay(tx, itemId);
   }
 
   // ─ 4. Cancel ALL active journals for this run (incl. earlier revisions) ─

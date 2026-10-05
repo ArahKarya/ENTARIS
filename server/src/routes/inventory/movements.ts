@@ -12,6 +12,7 @@ import { logger } from '../../lib/logger';
 import { calcWeightedAverage } from '../../utils/weightedAverage';
 import { settleCogsBackfillForItem } from '../../services/cogsBackfillService';
 import { reverseCogsSettlementsByTrigger } from '../../services/cogsBackfillReverse';
+import { recomputeAverageCostFromReplay } from '../../services/averageCostRecompute';
 import { adjustWarehouseStock } from '../../utils/warehouseStock';
 import { parseListPaging, parseSort } from '../../utils/listQuery';
 import {
@@ -530,23 +531,10 @@ router.put('/:id', async (req: AuthRequest, res) => {
         });
       }
 
-      // 7. Recompute averageCost from all active In movements (H3). The POST
-      // path updates WAC on receipt; an edit changes qty/cost of an In, so WAC
-      // must be re-derived. Recompute from the authoritative set of active
-      // inbound movements (same pattern as production/GR cancel).
-      const activeIns = await tx.stockMovement.findMany({
-        where: { itemId: oldMov.itemId, movementType: { in: ['In', 'AdjustmentIn', 'TransferIn'] }, isCancelled: false },
-        select: { quantity: true, unitCost: true },
-      });
-      let waQty = new Decimal(0);
-      let waValue = new Decimal(0);
-      for (const m of activeIns) {
-        const q = new Decimal(m.quantity.toString());
-        waQty = waQty.plus(q);
-        waValue = waValue.plus(q.mul(new Decimal(m.unitCost.toString())));
-      }
-      const recomputedAvg = waQty.gt(0) ? waValue.div(waQty).toDecimalPlaces(2).toNumber() : 0;
-      await tx.inventoryItem.update({ where: { id: oldMov.itemId }, data: { averageCost: recomputedAvg } });
+      // 7. Recompute averageCost (H3). The POST path blends WAC on receipt; an
+      // edit changes type/qty/cost of an existing movement, so WAC is re-derived
+      // by REPLAYING all remaining active movements in processing order.
+      await recomputeAverageCostFromReplay(tx, oldMov.itemId);
 
       return updated;
     }, { timeout: 15000 });
@@ -617,6 +605,8 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
       });
       // Balik auto-settle COGS yang dipicu movement manual ini
       await reverseCogsSettlementsByTrigger(tx, 'StockMovement', id);
+      // Cancelled movement no longer contributes: re-derive WAC by replay.
+      await recomputeAverageCostFromReplay(tx, movement.itemId);
     }, { timeout: 15000 });
 
     return res.json({ message: 'Gerakan stok berhasil dibatalkan.' });

@@ -7,6 +7,7 @@ import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
 import { recalcPartyOutstanding } from '../../utils/accountBalance';
 import { adjustWarehouseStock, resolveWarehouseId } from '../../utils/warehouseStock';
+import { calcWeightedAverage } from '../../utils/weightedAverage';
 
 const router = Router();
 
@@ -428,6 +429,15 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
                 offsetAccountId: kasId!, notes: 'Pembelian gabah GKP',
                 fiscalYearId: fy.id, createdById: admin.id, warehouseId: whId,
               },
+            });
+            // Keep averageCost in step with the costed inbound (same WAC rule as the
+            // live receipt path), so a later recompute-by-replay matches the stored value.
+            const gkpNow = await tx.inventoryItem.findUniqueOrThrow({
+              where: { id: gkpItem.id }, select: { currentStock: true, averageCost: true },
+            });
+            await tx.inventoryItem.update({
+              where: { id: gkpItem.id },
+              data: { averageCost: calcWeightedAverage(gkpNow.currentStock, gkpNow.averageCost, qty, unitCost) },
             });
             await applyStock(gkpItem.id, qty);
             results.movements++;
