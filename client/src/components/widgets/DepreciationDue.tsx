@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, Loader2, CheckCircle2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { CalendarClock, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
-import { formatRupiah, formatDate } from '../../lib/formatters';
+import { formatDate, formatRupiah } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
+import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
 
 interface UpcomingEntry {
   id: string;
@@ -13,112 +15,70 @@ interface UpcomingEntry {
   dueDate: string;
 }
 
-interface DepreciationDueData {
-  thisMonthAmount: number;
-  thisMonthEntries: number;
-  upcoming: UpcomingEntry[];
-}
-
 interface ApiResponse {
-  depreciationDue: DepreciationDueData;
+  depreciationDue: {
+    thisMonthAmount: number;
+    thisMonthEntries: number;
+    upcoming: UpcomingEntry[];
+  };
 }
 
 export default function DepreciationDue() {
-  const { data, isLoading } = useQuery<ApiResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
     queryKey: ['dashboard-fixed-assets'],
     queryFn: async () => (await api.get('/dashboard/fixed-assets')).data,
   });
+  const due = data?.depreciationDue;
 
   return (
-    <div className="border rounded-xl p-5"
-      style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Penyusutan Mendatang
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-            Jadwal yang belum di-post
-          </p>
-        </div>
-        <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-          <CalendarClock size={16} className="text-amber-600" />
-        </div>
-      </div>
-
-      {isLoading || !data ? (
-        <div className="py-8 flex items-center justify-center">
-          <Loader2 className="animate-spin" size={20} style={{ color: 'var(--color-text-muted)' }} />
-        </div>
-      ) : (
+    <WidgetCard
+      title="Penyusutan Mendatang"
+      description="Jadwal yang belum diposting"
+      icon={CalendarClock}
+      href="/fixed-assets"
+      hrefLabel="Aset tetap"
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      minHeight={200}
+    >
+      {due && (
         <>
-          {/* Banner bulan ini */}
-          <div className="rounded-lg border border-amber-100 bg-amber-50/60 dark:bg-amber-950/30 dark:border-amber-900 px-3 py-2.5 mb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide">
-                  Bulan ini
-                </p>
-                <p className="text-base font-bold tabular-nums text-amber-900 dark:text-amber-100">
-                  {formatRupiah(data.depreciationDue.thisMonthAmount)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] text-amber-700 dark:text-amber-300">
-                  {data.depreciationDue.thisMonthEntries} entry
-                </p>
-                <Link
-                  to="/aset-tetap"
-                  className="text-[11px] text-blue-600 hover:underline mt-0.5 inline-block"
-                >
-                  Buka Aset Tetap →
-                </Link>
-              </div>
+          <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-muted/50 px-3 py-2.5">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Bulan ini</p>
+              <p className="num text-base font-semibold text-foreground">{formatRupiah(due.thisMonthAmount)}</p>
             </div>
+            <p className="num text-xs text-muted-foreground">{due.thisMonthEntries} entri</p>
           </div>
-
-          {/* List upcoming */}
-          {data.depreciationDue.upcoming.length === 0 ? (
-            <div className="py-6 text-center" style={{ color: 'var(--color-text-muted)' }}>
-              <CheckCircle2 size={24} className="mx-auto mb-2 opacity-50" />
-              <p className="text-xs">Semua jadwal sudah di-post</p>
+          {due.upcoming.length === 0 ? (
+            <div role="status" className="flex flex-col items-center gap-2 py-6 text-center text-muted-foreground">
+              <CheckCircle2 className="size-6 opacity-60" aria-hidden />
+              <p className="text-xs">Semua jadwal sudah diposting</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {data.depreciationDue.upcoming.map((e) => (
-                <div
-                  key={e.id}
-                  className="flex items-center gap-3 py-1.5 border-b last:border-b-0"
-                  style={{ borderColor: 'var(--color-border)' }}
-                >
-                  <div className="flex-1 min-w-0">
+            <ScrollRegion label="Jadwal penyusutan mendatang" className="max-h-48 overflow-y-auto">
+<ul className="divide-y divide-border">
+              {due.upcoming.map((e) => (
+                <li key={e.id} className="flex items-center gap-3 py-1.5">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-medium"
-                        style={{ color: 'var(--color-text-primary)' }}>
-                        {e.assetNumber}
-                      </span>
-                      <span className="badge badge-gray text-[10px]">{e.category}</span>
+                      <span className="font-mono text-xs font-medium text-foreground">{e.assetNumber}</span>
+                      <Badge>{e.category}</Badge>
                     </div>
-                    <p className="text-xs truncate mt-0.5"
-                      style={{ color: 'var(--color-text-muted)' }}>
-                      {e.assetName}
-                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{e.assetName}</p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-semibold tabular-nums"
-                      style={{ color: 'var(--color-text-primary)' }}>
-                      {formatRupiah(e.amount)}
-                    </p>
-                    <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
-                      {formatDate(e.dueDate)}
-                    </p>
+                  <div className="shrink-0 text-right">
+                    <p className="num text-xs font-semibold text-foreground">{formatRupiah(e.amount)}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatDate(e.dueDate)}</p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
+</ScrollRegion>
           )}
         </>
       )}
-    </div>
+    </WidgetCard>
   );
 }

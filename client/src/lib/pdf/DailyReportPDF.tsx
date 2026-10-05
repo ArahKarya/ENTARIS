@@ -1,12 +1,12 @@
 import React from 'react';
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { CompanyInfo } from './ReportPDF';
-import { C } from './theme';
-
-Font.registerHyphenationCallback((word) => [word]);
+import { C, FOOTER_SPACE } from './theme';
+import { pdfDateWeekday, pdfNum, pdfRp, pdfDate } from './pdfFormat';
+import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 7.5, color: C.dark, paddingTop: 30, paddingBottom: 50, paddingHorizontal: 30, backgroundColor: C.white },
+  page: { fontFamily: 'Helvetica', fontSize: 7.5, color: C.dark, paddingTop: 30, paddingBottom: FOOTER_SPACE, paddingHorizontal: 30, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
@@ -17,8 +17,8 @@ const S = StyleSheet.create({
   reportPeriod: { fontSize: 7.5, color: C.muted, textAlign: 'right', marginTop: 2 },
   reportDate: { fontSize: 7, color: C.faint, textAlign: 'right', marginTop: 1 },
   divider: { height: 1.5, backgroundColor: C.primary, marginBottom: 10, marginTop: 6 },
-  sectionHeader: { backgroundColor: C.primary, paddingVertical: 4, paddingHorizontal: 8, marginTop: 8, marginBottom: 0 },
-  sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.5 },
+  sectionHeader: { backgroundColor: C.primaryLt, borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 4, paddingHorizontal: 8, marginTop: 8, marginBottom: 0 },
+  sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
   thRow: { flexDirection: 'row', backgroundColor: C.bgLight, paddingVertical: 3.5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   th: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.muted },
   row: { flexDirection: 'row', paddingVertical: 3, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
@@ -38,50 +38,16 @@ const S = StyleSheet.create({
   emptyText: { fontSize: 7, color: C.faint, textAlign: 'center' },
 });
 
-function idr(n: number): string {
-  return 'Rp ' + Math.abs(n).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-function today(): string {
-  return new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-}
-function num(n: number): string { return n.toLocaleString('id-ID'); }
+const idr = (n: number): string => pdfRp(Math.abs(n));
+const fmtDate = (d: string): string => pdfDateWeekday(d);
+const num = (n: number): string => pdfNum(n, 3);
 
 function Header({ company, date }: { company: CompanyInfo; date: string }) {
-  return (
-    <>
-      <View style={S.headerRow} fixed>
-        <View style={S.companyBlock}>
-          {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
-          <View style={S.companyInfo}>
-            <Text style={S.companyName}>{company.name}</Text>
-            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-            {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
-          </View>
-        </View>
-        <View>
-          <Text style={S.reportTitle}>LAPORAN HARIAN</Text>
-          <Text style={S.reportPeriod}>{fmtDate(date)}</Text>
-          <Text style={S.reportDate}>Dicetak: {today()}</Text>
-        </View>
-      </View>
-      <View style={S.divider} fixed />
-    </>
-  );
+  return <PdfHeader company={company} title="LAPORAN HARIAN" dateLine={fmtDate(date)} extraLines={[`Dicetak: ${pdfDate(new Date())}`]} />;
 }
 
 function Footer({ company }: { company: CompanyInfo }) {
-  return (
-    <View style={S.footer} fixed>
-      <View style={S.footerLine} />
-      <View style={S.footerRow}>
-        <Text style={S.footerText}>{company.name} — Laporan Harian</Text>
-        <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Hal. ${pageNumber} / ${totalPages}`} />
-      </View>
-    </View>
-  );
+  return <PdfFooter company={company.name} docRef="Laporan Harian" paddingHorizontal={30} />;
 }
 
 function SectionTitle({ title }: { title: string }) {
@@ -257,7 +223,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
                     <Text style={[S.cell, { flex: 1 }]}>{it.name}</Text>
                     <Text style={[S.cell, { width: 30, textAlign: 'center', color: C.muted }]}>{it.unit}</Text>
                     <Text style={[S.cellRight, { width: 65, color: it.qty < 0 ? C.red : C.dark }]}>{num(it.qty)}</Text>
-                    <Text style={[S.cellRight, { width: 60, color: C.muted }]}>{it.averageCost > 0 ? Math.round(it.averageCost).toLocaleString('id-ID') : '—'}</Text>
+                    <Text style={[S.cellRight, { width: 60, color: C.muted }]}>{it.averageCost > 0 ? pdfNum(Math.round(it.averageCost)) : '—'}</Text>
                     <Text style={[S.cellRight, { width: 80, color: it.value < 0 ? C.red : C.dark }]}>{it.value !== 0 ? idr(it.value) : '—'}</Text>
                   </View>
                 ))}

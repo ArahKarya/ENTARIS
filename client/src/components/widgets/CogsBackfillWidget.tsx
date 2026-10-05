@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Receipt } from 'lucide-react';
 import api from '../../lib/api';
+import { formatNumber, formatRupiah } from '@/lib/format';
+import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
 
 interface BackfillBreakdown {
   itemId: string;
@@ -17,87 +20,57 @@ interface BackfillSummary {
   breakdown: BackfillBreakdown[];
 }
 
-const formatRupiahCompact = (value: number) => {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-  if (abs >= 1_000_000_000) return `${sign}Rp ${(abs / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} M`;
-  if (abs >= 1_000_000) return `${sign}Rp ${(abs / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Jt`;
-  return `${sign}Rp ${abs.toLocaleString('id-ID')}`;
-};
-
 export default function CogsBackfillWidget() {
-  const { data, isLoading } = useQuery<BackfillSummary>({
+  const { data, isLoading, isError, refetch } = useQuery<BackfillSummary>({
     queryKey: ['cogs-backfill-summary'],
     queryFn: async () => (await api.get('/cogs-backfill/summary')).data,
     refetchInterval: 60_000,
   });
 
-  const empty = !isLoading && (!data || data.pendingCount === 0);
+  const empty = !isLoading && !isError && (!data || data.pendingCount === 0);
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+    <WidgetCard
+      title="COGS Pending Settle"
+      description="Penjualan saat stok minus, otomatis settle saat barang masuk"
+      icon={Receipt}
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      isEmpty={empty}
+      emptyIcon={CheckCircle2}
+      emptyText="Tidak ada COGS pending. Semua penjualan tercover stok."
+      minHeight={110}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            COGS Pending Settle
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-            Sales stok minus — auto-settle saat barang masuk
-          </p>
-        </div>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${empty ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-amber-50 dark:bg-amber-900/30'}`}>
-          {empty ? (
-            <CheckCircle2 size={16} className="text-emerald-600" />
-          ) : (
-            <AlertTriangle size={16} className="text-amber-600" />
-          )}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="py-8 flex justify-center">
-          <Loader2 className="animate-spin" size={20} style={{ color: 'var(--color-text-muted)' }} />
-        </div>
-      ) : empty ? (
-        <p className="text-sm py-4 text-center" style={{ color: 'var(--color-text-muted)' }}>
-          Tidak ada COGS pending. Semua sales tercover stok.
-        </p>
-      ) : (
+      {data && (
         <>
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <dl className="mb-3 grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Item Pending</p>
-              <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
-                {data!.pendingCount}
-              </p>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Item Pending</dt>
+              <dd className="num text-xl font-semibold text-foreground">{data.pendingCount}</dd>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Estimasi Nilai</p>
-              <p className="text-xl font-bold tabular-nums text-amber-600">
-                {formatRupiahCompact(data!.totalPendingValue)}
-              </p>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Estimasi Nilai</dt>
+              <dd className="num text-xl font-semibold text-warning-text" title={formatRupiah(data.totalPendingValue)}>
+                {formatRupiah(data.totalPendingValue, { compact: true })}
+              </dd>
             </div>
-          </div>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {data!.breakdown.slice(0, 8).map((b) => (
-              <div key={b.itemId} className="flex items-center justify-between text-xs py-1.5 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          </dl>
+          <ScrollRegion label="Rincian COGS pending per item" className="max-h-48 overflow-y-auto">
+<ul className="divide-y divide-border">
+            {data.breakdown.slice(0, 8).map((b) => (
+              <li key={b.itemId} className="flex items-center justify-between gap-2 py-1.5 text-xs">
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{b.name}</p>
-                  <p style={{ color: 'var(--color-text-muted)' }}>
-                    {b.qtyPending.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {b.unit}
-                  </p>
+                  <p className="truncate font-medium text-foreground">{b.name}</p>
+                  <p className="num text-muted-foreground">{formatNumber(b.qtyPending, { maxDecimals: 3 })} {b.unit}</p>
                 </div>
-                <span className="font-mono tabular-nums text-amber-700 ml-2">
-                  {formatRupiahCompact(b.estimatedValue)}
-                </span>
-              </div>
+                <span className="num text-warning-text">{formatRupiah(b.estimatedValue, { compact: true })}</span>
+              </li>
             ))}
-          </div>
+          </ul>
+</ScrollRegion>
         </>
       )}
-    </div>
+    </WidgetCard>
   );
 }

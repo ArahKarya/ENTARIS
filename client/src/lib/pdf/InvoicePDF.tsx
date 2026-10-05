@@ -1,8 +1,10 @@
 import React from 'react';
 import {
-  Document, Page, View, Text, Image, StyleSheet, Font,
+  Document, Page, View, Text, StyleSheet, Font,
 } from '@react-pdf/renderer';
-import { C, BADGE } from './theme';
+import { C, BADGE, FOOTER_SPACE } from './theme';
+import { pdfDate, pdfNum, pdfRp } from './pdfFormat';
+import { PdfFooter, PdfHeader, PdfSignatureBlock } from './kit';
 
 // ─── Register fonts (Helvetica is built-in — no download needed) ─────────────
 Font.registerHyphenationCallback((word) => [word]);
@@ -15,7 +17,7 @@ const S = StyleSheet.create({
     fontSize: 8.5,
     color: C.dark,
     paddingTop: 36,
-    paddingBottom: 48,
+    paddingBottom: FOOTER_SPACE,
     paddingHorizontal: 40,
     backgroundColor: C.white,
   },
@@ -53,8 +55,8 @@ const S = StyleSheet.create({
 
   // ── Items table ──
   tableContainer: { marginBottom: 16 },
-  tableHeader: { flexDirection: 'row', backgroundColor: C.primary, paddingVertical: 7, paddingHorizontal: 6 },
-  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.5 },
+  tableHeader: { flexDirection: 'row', marginBottom: 6, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.primary, paddingVertical: 7, paddingHorizontal: 6 },
+  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
   tableRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: C.border },
   tableRowAlt: { backgroundColor: C.bgLight },
   tableCell: { fontSize: 8 },
@@ -72,11 +74,11 @@ const S = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 2 },
   summaryRight: { width: 260, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 6, paddingVertical: 2.5 },
   summaryLabel: { fontSize: 8, color: C.mid },
-  summaryValue: { fontSize: 8, fontFamily: 'Helvetica', textAlign: 'right', minWidth: 90 },
+  summaryValue: { fontSize: 8, fontFamily: 'Helvetica', textAlign: 'right', flex: 1 },
   summaryTotalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 },
-  summaryTotal: { width: 260, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.primary, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 3 },
-  summaryTotalLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.white },
-  summaryTotalValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.white, textAlign: 'right', minWidth: 90 },
+  summaryTotal: { width: 260, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.primaryLt, borderTopWidth: 1, borderTopColor: C.primary, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 3 },
+  summaryTotalLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
+  summaryTotalValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary, textAlign: 'right', flex: 1 },
 
   // ── Notes / Terms ──
   notesBox: { marginTop: 16, padding: 10, backgroundColor: C.bgLight, borderRadius: 4, borderWidth: 0.5, borderColor: C.border },
@@ -97,14 +99,8 @@ const S = StyleSheet.create({
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function idr(n: number): string {
-  return 'Rp ' + n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-function tgl(d: string | null | undefined): string {
-  if (!d) return '—';
-  const dt = new Date(d);
-  return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-}
+const idr = (n: number): string => pdfRp(n);
+const tgl = (d: string | null | undefined): string => pdfDate(d);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface InvoicePDFItem {
@@ -200,7 +196,11 @@ export interface InvoicePDFProps {
   payments?: PaymentBreakdown[];
 }
 
-// ─── Status pill color ────────────────────────────────────────────────────────
+const STATUS_ID: Record<string, string> = {
+  Draft: 'Draf', Submitted: 'Terbit', PartiallyPaid: 'Sebagian Dibayar', Paid: 'Lunas', Overdue: 'Jatuh Tempo', Cancelled: 'Dibatalkan',
+};
+
+// ─── Status color ────────────────────────────────────────────────────────
 function statusStyle(status: string) {
   if (status === 'Paid') return { bg: C.greenLt, text: C.greenDk };
   if (status === 'PartiallyPaid') return { bg: BADGE.yellowLt, text: BADGE.yellowDk };
@@ -254,36 +254,20 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
   const showBiaya = numBiaya > 0;
 
   const pill = statusStyle(status);
-  const today = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
   return (
     <Document>
       <Page size="A4" style={S.page}>
 
         {/* ── HEADER ── */}
-        <View style={S.headerRow} fixed>
-          <View style={S.companyBlock}>
-            {company.logoUrl && (
-              <Image style={S.companyLogo} src={company.logoUrl} />
-            )}
-            <View style={S.companyInfo}>
-              <Text style={S.companyName}>{company.name}</Text>
-              {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-              {company.phone  && <Text style={S.companyMeta}>Telp: {company.phone}</Text>}
-              {company.email  && <Text style={S.companyMeta}>{company.email}</Text>}
-              {company.taxId  && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
-            </View>
-          </View>
-          <View style={S.invoiceBlock}>
-            <Text style={S.invoiceTitle}>{title}</Text>
-            <Text style={S.invoiceNumber}>{invoiceNumber}</Text>
-            <View style={[S.statusPill, { backgroundColor: pill.bg }]}>
-              <Text style={[S.statusText, { color: pill.text }]}>{status.toUpperCase()}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={S.divider} />
+        <PdfHeader
+          company={company}
+          title={title}
+          number={invoiceNumber}
+          dateLine={`Tanggal: ${tgl(date)}`}
+          status={STATUS_ID[status] ?? status}
+          statusColor={pill.text}
+        />
 
         {/* ── META (date / party) ── */}
         <View style={S.metaRow}>
@@ -330,7 +314,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         {/* ── ITEMS TABLE ── */}
         <View style={S.tableContainer}>
           {/* Table header */}
-          <View style={S.tableHeader}>
+          <View style={S.tableHeader} fixed minPresenceAhead={44}>
             <Text style={[S.tableHeaderText, S.colNo]}>#</Text>
             <Text style={[S.tableHeaderText, S.colDesc]}>Nama Barang / Jasa</Text>
             <Text style={[S.tableHeaderText, S.colQty]}>Qty</Text>
@@ -359,7 +343,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                   const refaksi = Number(item.refaksi ?? 0);
                   const diterima = Number(item.timbanganDiterima ?? 0);
                   if (truk > 0 || refaksi > 0) {
-                    parts.push(`Timbangan: ${truk.toLocaleString('id-ID')} − ${refaksi.toLocaleString('id-ID')} = ${diterima.toLocaleString('id-ID')} kg`);
+                    parts.push(`Timbangan: ${pdfNum(truk, 3)} − ${pdfNum(refaksi, 3)} = ${pdfNum(diterima, 3)} kg`);
                   }
                   const pot = Number(item.potonganItem ?? 0);
                   if (pot > 0) parts.push(`Potongan: ${idr(pot)}`);
@@ -372,7 +356,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                 })()}
               </View>
               <Text style={[S.tableCell, S.tableMono, S.colQty]}>
-                {Number(item.quantity).toLocaleString('id-ID')}
+                {pdfNum(Number(item.quantity), 3)}
               </Text>
               <Text style={[S.tableCell, S.colUnit, { color: C.mid }]}>{item.unit}</Text>
               <Text style={[S.tableCell, S.tableMono, S.colRate]}>
@@ -612,27 +596,9 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         )}
 
         {/* ── SIGNATURE ── */}
-        {showSignature && (
-          <View style={S.sigRow}>
-            {sigLabels.map((label, i) => (
-              <View key={i} style={S.sigBox}>
-                <View style={S.sigLine} />
-                <Text style={S.sigLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {showSignature && <PdfSignatureBlock signatures={sigLabels.map((label) => ({ label }))} />}
 
-        {/* ── FOOTER ── */}
-        <View style={S.footer} fixed>
-          <View style={{ flex: 1 }}>
-            <View style={S.footerLine} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={S.footerText}>{company.name} — {invoiceNumber}</Text>
-              <Text style={S.footerText}>Dicetak: {today}</Text>
-            </View>
-          </View>
-        </View>
+        <PdfFooter company={company.name} docRef={invoiceNumber} paddingHorizontal={40} />
 
       </Page>
     </Document>

@@ -1,80 +1,62 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, FileWarning } from 'lucide-react';
 import api from '../../lib/api';
-import { AlertTriangle, Loader2, FileWarning } from 'lucide-react';
-import { formatRupiah } from '../../lib/formatters';
-import { cn } from '../../lib/utils';
+import { formatRupiah } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
+import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
 
-const OverdueInvoices: React.FC = () => {
-  const { data, isLoading } = useQuery({
+interface OverdueItem {
+  type: 'sales' | 'purchase';
+  invoiceNumber: string;
+  partyName: string;
+  amount: number;
+  daysOverdue: number;
+}
+
+export default function OverdueInvoices() {
+  const { data, isLoading, isError, refetch } = useQuery<OverdueItem[]>({
     queryKey: ['dashboard-overdue'],
-    queryFn: async () => {
-      const r = await api.get('/dashboard/overdue');
-      return r.data;
-    },
+    queryFn: async () => (await api.get('/dashboard/overdue')).data,
   });
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+    <WidgetCard
+      title="Faktur Jatuh Tempo"
+      description="Terlama lebih dulu, maksimal 10"
+      icon={FileWarning}
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      isEmpty={!!data && data.length === 0}
+      emptyIcon={CheckCircle2}
+      emptyText="Tidak ada faktur jatuh tempo"
     >
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          Invoice Jatuh Tempo
-        </h2>
-        <AlertTriangle size={16} className="text-orange-500" />
-      </div>
-
-      {isLoading ? (
-        <div className="py-8 flex items-center justify-center">
-          <Loader2 className="animate-spin" size={20} style={{ color: 'var(--color-text-muted)' }} />
-        </div>
-      ) : !data || data.length === 0 ? (
-        <div className="py-8 text-center" style={{ color: 'var(--color-text-muted)' }}>
-          <FileWarning size={28} className="mx-auto mb-2 opacity-50" />
-          <p className="text-xs">Tidak ada invoice jatuh tempo</p>
-        </div>
-      ) : (
-        <div className="space-y-2.5 max-h-64 overflow-y-auto">
-          {data.map((inv: any, i: number) => (
-            <div
-              key={`${inv.type}-${inv.invoiceNumber}-${i}`}
-              className="flex items-center gap-3 py-2 border-b last:border-b-0"
-              style={{ borderColor: 'var(--color-border)' }}
+      <ScrollRegion label="Daftar faktur jatuh tempo" className="max-h-72 overflow-y-auto">
+<ul className="divide-y divide-border">
+        {(data ?? []).map((inv, i) => (
+          <li key={`${inv.type}-${inv.invoiceNumber}-${i}`}>
+            <Link
+              to={inv.type === 'sales' ? '/sales' : '/purchase'}
+              className="flex min-h-11 items-center gap-3 rounded-sm py-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                    {inv.invoiceNumber}
-                  </span>
-                  <span
-                    className={cn(
-                      'badge text-xs',
-                      inv.type === 'sales' ? 'badge-blue' : 'badge-purple'
-                    )}
-                  >
-                    {inv.type === 'sales' ? 'AR' : 'AP'}
-                  </span>
+                  <span className="font-mono text-xs font-medium text-foreground">{inv.invoiceNumber}</span>
+                  <Badge variant={inv.type === 'sales' ? 'info' : 'neutral'}>{inv.type === 'sales' ? 'Piutang' : 'Utang'}</Badge>
                 </div>
-                <p className="text-xs truncate mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                  {inv.partyName}
-                </p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{inv.partyName}</p>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs font-semibold tabular-nums text-red-600">
-                  {formatRupiah(inv.amount)}
-                </p>
-                <p className="text-xs text-orange-600 font-medium">
-                  {inv.daysOverdue} hari
-                </p>
+              <div className="shrink-0 text-right">
+                <p className="num text-xs font-semibold text-danger-text">{formatRupiah(inv.amount)}</p>
+                <p className="num text-xs text-warning-text">{inv.daysOverdue} hari</p>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+</ScrollRegion>
+    </WidgetCard>
   );
-};
-
-export default OverdueInvoices;
+}

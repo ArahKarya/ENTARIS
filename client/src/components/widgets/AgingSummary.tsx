@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import api from '../../lib/api';
-import { cn } from '../../lib/utils';
+import { formatRupiah } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
 
 interface AgingBucket {
   label: string;
@@ -15,84 +18,83 @@ interface AgingData {
   totalPayable: number;
 }
 
-const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const BUCKET_BG = ['bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-foreground/70'];
+
+function Bar({ buckets, total, label }: { buckets: AgingBucket[]; total: number; label: string }) {
+  return (
+    <div
+      role="img"
+      aria-label={`${label}: ${buckets.map((b) => `${b.label} ${formatRupiah(b.amount)}`).join(', ')}`}
+      className="flex h-3 overflow-hidden rounded-full bg-muted"
+    >
+      {total > 0 &&
+        buckets.map((b, i) => {
+          const pct = (b.amount / total) * 100;
+          return pct > 0 ? <div key={b.label} className={BUCKET_BG[i] ?? 'bg-muted-foreground'} style={{ width: `${pct}%` }} /> : null;
+        })}
+    </div>
+  );
+}
 
 export default function AgingSummary() {
-  const { data, isLoading } = useQuery<AgingData>({
+  const { data, isLoading, isError, refetch } = useQuery<AgingData>({
     queryKey: ['aging-summary'],
     queryFn: async () => (await api.get('/dashboard/aging-summary')).data,
   });
 
-  if (isLoading || !data) {
-    return (
-      <div className="card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock size={16} className="text-orange-500" />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Ringkasan Aging</h3>
-        </div>
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-6 rounded" style={{ backgroundColor: 'var(--color-bg-tertiary)' }} />)}
-        </div>
-      </div>
-    );
-  }
-
-  const bucketColors = ['bg-green-500', 'bg-yellow-400', 'bg-orange-500', 'bg-red-500', 'bg-red-700'];
-
-  const renderBar = (buckets: AgingBucket[], total: number) => {
-    if (total === 0) return <div className="h-3 rounded-full bg-gray-200" />;
-    return (
-      <div className="flex h-3 rounded-full overflow-hidden">
-        {buckets.map((b, i) => {
-          const pct = (b.amount / total) * 100;
-          if (pct === 0) return null;
-          return (
-            <div
-              key={b.label}
-              className={cn('transition-all', bucketColors[i])}
-              style={{ width: `${pct}%` }}
-              title={`${b.label}: Rp ${fmt(b.amount)}`}
-            />
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
-    <div className="card p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <Clock size={16} className="text-orange-500" />
-        <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Ringkasan Aging</h3>
-      </div>
-
-      {/* Piutang (AR) */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Piutang (AR)</span>
-          <span className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Rp {fmt(data.totalReceivable)}</span>
+    <WidgetCard
+      title="Umur Piutang & Utang"
+      icon={Clock}
+      href="/reports/aging-ar"
+      hrefLabel="Detail"
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      minHeight={230}
+    >
+      {data && (
+        <div className="space-y-4">
+          {([
+            ['Piutang (AR)', data.receivable, data.totalReceivable],
+            ['Hutang (AP)', data.payable, data.totalPayable],
+          ] as const).map(([label, buckets, total]) => (
+            <div key={label}>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                <span className="num text-xs font-semibold text-foreground">{formatRupiah(total)}</span>
+              </div>
+              <Bar buckets={buckets} total={total} label={label} />
+            </div>
+          ))}
+          <ScrollRegion label="Rincian umur piutang dan utang" className="overflow-x-auto border border-border">
+            <table className="w-full min-w-[320px] border-collapse text-xs">
+              <caption className="sr-only">Umur piutang dan utang per kelompok hari</caption>
+              <thead className="bg-muted text-muted-foreground">
+                <tr>
+                  <th scope="col" className="px-3 py-1.5 text-left font-medium">Umur</th>
+                  <th scope="col" className="px-3 py-1.5 text-right font-medium">Piutang</th>
+                  <th scope="col" className="px-3 py-1.5 text-right font-medium">Hutang</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.receivable.map((b, i) => (
+                  <tr key={b.label} className="border-t border-border">
+                    <th scope="row" className="px-3 py-1.5 text-left font-normal text-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <span aria-hidden className={cn('size-2 rounded-sm', BUCKET_BG[i])} />
+                        {b.label}
+                      </span>
+                    </th>
+                    <td className="num px-3 py-1.5 text-right">{formatRupiah(b.amount, { compact: true })}</td>
+                    <td className="num px-3 py-1.5 text-right">{formatRupiah(data.payable[i]?.amount ?? 0, { compact: true })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollRegion>
         </div>
-        {renderBar(data.receivable, data.totalReceivable)}
-      </div>
-
-      {/* Hutang (AP) */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Hutang (AP)</span>
-          <span className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Rp {fmt(data.totalPayable)}</span>
-        </div>
-        {renderBar(data.payable, data.totalPayable)}
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
-        {data.receivable.map((b, i) => (
-          <span key={b.label} className="flex items-center gap-1">
-            <span className={cn('w-2 h-2 rounded-sm', bucketColors[i])} />
-            {b.label}
-          </span>
-        ))}
-      </div>
-    </div>
+      )}
+    </WidgetCard>
   );
 }

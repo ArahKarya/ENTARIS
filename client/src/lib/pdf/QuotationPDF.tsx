@@ -1,62 +1,17 @@
 import React from 'react';
-import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { CompanyPDF } from './useCompanyPDF';
-import { C } from './theme';
+import { C, F, FOOTER_SPACE } from './theme';
+import { pdfDateShort, pdfNum, pdfRp } from './pdfFormat';
+import {
+  PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSection, PdfSignatureBlock, PdfTable, PdfTotals,
+  type PdfColumn,
+} from './kit';
 
 const S = StyleSheet.create({
-  page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: C.dark },
-  // Header
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  logo: { width: 72, height: 72, objectFit: 'contain' },
-  companyBlock: { flex: 1, marginLeft: 12 },
-  companyName: { fontSize: 13, fontWeight: 700, color: C.dark },
-  companyMeta: { fontSize: 8, color: C.mid, marginTop: 2 },
-  titleBlock: { alignItems: 'flex-end' },
-  title: { fontSize: 16, fontWeight: 700, color: C.primary, letterSpacing: 1 },
-  disclaimer: { fontSize: 7, color: C.faint, textTransform: 'uppercase', marginTop: 2 },
-  // Validity / status box
-  validityBox: { borderWidth: 1, borderColor: C.border, borderRadius: 4, padding: 6, marginTop: 6 },
-  validityLabel: { fontSize: 7, color: C.muted, textTransform: 'uppercase' },
-  validityValue: { fontSize: 10, color: C.dark, fontWeight: 700 },
-  statusBadge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3, marginTop: 4, alignSelf: 'flex-start', textTransform: 'uppercase', fontWeight: 700 },
-  // Meta row
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
-  metaCol: { flex: 1, paddingRight: 12 },
-  metaLabel: { fontSize: 7, color: C.muted, textTransform: 'uppercase', marginBottom: 2 },
-  metaValue: { fontSize: 9, color: C.dark },
-  bold: { fontWeight: 700 },
-  // Items table
-  table: { marginTop: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
-  thead: { flexDirection: 'row', backgroundColor: C.bgLight, paddingVertical: 6, paddingHorizontal: 4 },
-  th: { fontSize: 7.5, fontWeight: 700, color: C.mid, textTransform: 'uppercase' },
-  tr: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 0.5, borderColor: C.bgLight },
-  td: { fontSize: 8.5 },
-  // Column widths
-  colNo: { width: '5%' },
-  colItem: { width: '50%' },
-  colQty: { width: '15%', textAlign: 'right' },
-  colPrice: { width: '15%', textAlign: 'right' },
-  colTotal: { width: '15%', textAlign: 'right' },
-  // Totals
-  totalsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
-  totalsBox: { width: '50%' },
-  totalLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
-  totalLabel: { fontSize: 9, color: C.mid },
-  totalValue: { fontSize: 9, color: C.dark, fontFamily: 'Courier' },
-  grandRow: { borderTopWidth: 1, borderColor: C.border, marginTop: 4, paddingTop: 4, flexDirection: 'row', justifyContent: 'space-between' },
-  grandLabel: { fontSize: 11, fontWeight: 700, color: C.dark },
-  grandValue: { fontSize: 11, fontWeight: 700, color: C.primary, fontFamily: 'Courier' },
-  // Notes / Terms
-  section: { marginTop: 14 },
-  sectionTitle: { fontSize: 9, fontWeight: 700, color: C.dark, marginBottom: 4 },
-  sectionBody: { fontSize: 8.5, color: C.mid, lineHeight: 1.4 },
-  // Signatures
-  sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 36 },
-  sigBox: { width: '40%', alignItems: 'center' },
-  sigLabel: { fontSize: 8, color: C.mid, marginBottom: 30 },
-  sigName: { fontSize: 8, color: C.dark, borderTopWidth: 0.5, borderColor: C.faint, paddingTop: 4, width: '100%', textAlign: 'center' },
-  // Footer
-  footerNote: { marginTop: 24, fontSize: 7.5, color: C.muted, textAlign: 'center', fontStyle: 'italic' },
+  page: { fontFamily: F.regular, fontSize: 9, color: C.dark, paddingTop: 30, paddingBottom: FOOTER_SPACE, paddingHorizontal: 32 },
+  para: { fontSize: 8.5, lineHeight: 1.4 },
+  disclaimer: { fontSize: 7.5, color: C.muted, lineHeight: 1.4, marginTop: 14 },
 });
 
 interface QuotationItem {
@@ -88,22 +43,13 @@ interface Quotation {
   terms?: string | null;
 }
 
+
 interface Props {
   quotation: Quotation;
   company: CompanyPDF;
 }
 
-const formatRupiah = (n: number) =>
-  'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
-
-const formatDateID = (s: string) => {
-  try {
-    const d = new Date(s);
-    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-  } catch {
-    return s;
-  }
-};
+const formatRupiah = (n: number) => pdfRp(n);
 
 const STATUS_LABEL: Record<string, string> = {
   Draft: 'Draft',
@@ -116,14 +62,21 @@ const STATUS_LABEL: Record<string, string> = {
 
 const statusColor = (status: string): string => {
   switch (status) {
-    case 'Accepted': return C.green;
-    case 'Rejected': return C.red;
-    case 'Expired': return C.amber;
-    case 'Cancelled': return C.muted;
+    case 'Accepted': return C.greenDk;
+    case 'Rejected': return C.redDk;
+    case 'Expired': return C.amberDk;
     case 'Sent': return C.accent;
     default: return C.muted;
   }
 };
+
+const COLUMNS: PdfColumn[] = [
+  { key: 'no', label: 'No', width: 0.5, align: 'center' },
+  { key: 'item', label: 'Item', width: 4 },
+  { key: 'qty', label: 'Qty', width: 1.6, align: 'right' },
+  { key: 'rate', label: 'Harga', width: 2, align: 'right' },
+  { key: 'amount', label: 'Total', width: 2.2, align: 'right' },
+];
 
 const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
   const items = (quotation.items ?? []).map((it) => ({
@@ -144,122 +97,77 @@ const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
   const taxAmount = items.reduce((s, it) => s + it.amount * (Number(it.taxPct) / 100), 0);
   const pphAmount = items.reduce((s, it) => s + it.amount * (Number(it.pphPct) / 100), 0);
 
+  const rows = items.map((it, i) => ({
+    no: String(i + 1),
+    item: (
+      <View>
+        <Text style={{ fontSize: 8.5 }}>{it.itemName}</Text>
+        {it.description ? <Text style={{ fontSize: 7.5, color: C.muted, marginTop: 1 }}>{it.description}</Text> : null}
+      </View>
+    ),
+    qty: `${pdfNum(it.quantity, 3)} ${it.unit}`,
+    rate: formatRupiah(it.rate),
+    amount: formatRupiah(it.amount),
+  }));
+
+  const totalRows = [
+    { label: 'Subtotal', value: formatRupiah(subtotal), show: true },
+    { label: 'PPN', value: formatRupiah(taxAmount), show: taxAmount > 0 },
+    { label: 'PPh', value: `−${formatRupiah(pphAmount)}`, show: pphAmount > 0 },
+    { label: quotation.labelPotongan ?? 'Potongan', value: `−${formatRupiah(potongan)}`, show: potongan > 0 },
+    { label: quotation.labelBiaya ?? 'Biaya Lain', value: formatRupiah(biayaLain), show: biayaLain !== 0 },
+  ].filter((r) => r.show);
+
   return (
-    <Document>
+    <Document title={`Penawaran Harga ${quotation.quotationNumber}`} author={company.name}>
       <Page size="A4" style={S.page}>
-        {/* Header */}
-        <View style={S.header}>
-          <View style={{ flexDirection: 'row', flex: 1 }}>
-            {company.logoUrl ? <Image src={company.logoUrl} style={S.logo} /> : <View style={[S.logo, { borderWidth: 0.5, borderColor: C.border }]} />}
-            <View style={S.companyBlock}>
-              <Text style={S.companyName}>{company.name}</Text>
-              {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-              {company.phone && <Text style={S.companyMeta}>Telp: {company.phone}</Text>}
-              {company.email && <Text style={S.companyMeta}>{company.email}</Text>}
-              {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
-            </View>
-          </View>
-          <View style={S.titleBlock}>
-            <Text style={S.title}>PENAWARAN HARGA</Text>
-            <Text style={S.disclaimer}>Bukan Faktur Resmi / Not a Tax Invoice</Text>
-            <View style={S.validityBox}>
-              <Text style={S.validityLabel}>Berlaku Sampai</Text>
-              <Text style={S.validityValue}>{formatDateID(quotation.validUntil)}</Text>
-              <Text
-                style={[S.statusBadge, { color: statusColor(quotation.status), borderWidth: 1, borderColor: statusColor(quotation.status) }]}
-              >
-                {STATUS_LABEL[quotation.status] ?? quotation.status}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <PdfHeader
+          company={company}
+          title="PENAWARAN HARGA"
+          subtitle="Bukan Faktur Resmi / Not a Tax Invoice"
+          number={quotation.quotationNumber}
+          dateLine={`Tanggal: ${pdfDateShort(quotation.date)}`}
+          extraLines={[`Berlaku sampai: ${pdfDateShort(quotation.validUntil)}`]}
+          status={STATUS_LABEL[quotation.status] ?? quotation.status}
+          statusColor={statusColor(quotation.status)}
+        />
 
-        {/* Meta */}
-        <View style={S.metaRow}>
-          <View style={S.metaCol}>
-            <Text style={S.metaLabel}>Kepada</Text>
-            <Text style={[S.metaValue, S.bold]}>{quotation.customer?.name}</Text>
-            {quotation.customer?.address && <Text style={S.metaValue}>{quotation.customer.address}</Text>}
-            {quotation.customer?.phone && <Text style={S.metaValue}>{quotation.customer.phone}</Text>}
+        <PdfMetaRow>
+          <PdfPartyBlock label="Kepada" name={quotation.customer?.name} lines={[quotation.customer?.address, quotation.customer?.phone]} />
+          <View style={{ flex: 1 }}>
+            <PdfMetaField label="No. Penawaran" value={quotation.quotationNumber} bold />
+            <PdfMetaField label="Tanggal" value={pdfDateShort(quotation.date)} />
+            <PdfMetaField label="Berlaku Sampai" value={pdfDateShort(quotation.validUntil)} />
           </View>
-          <View style={S.metaCol}>
-            <Text style={S.metaLabel}>No. Penawaran</Text>
-            <Text style={[S.metaValue, S.bold]}>{quotation.quotationNumber}</Text>
-            <Text style={[S.metaLabel, { marginTop: 4 }]}>Tanggal</Text>
-            <Text style={S.metaValue}>{formatDateID(quotation.date)}</Text>
-          </View>
-        </View>
+        </PdfMetaRow>
 
-        {/* Items table */}
-        <View style={S.table}>
-          <View style={S.thead}>
-            <Text style={[S.th, S.colNo]}>No</Text>
-            <Text style={[S.th, S.colItem]}>Item</Text>
-            <Text style={[S.th, S.colQty]}>Qty</Text>
-            <Text style={[S.th, S.colPrice]}>Harga</Text>
-            <Text style={[S.th, S.colTotal]}>Total</Text>
-          </View>
-          {items.map((it, i) => (
-            <View key={i} style={S.tr}>
-              <Text style={[S.td, S.colNo]}>{i + 1}</Text>
-              <View style={[S.colItem]}>
-                <Text style={S.td}>{it.itemName}</Text>
-                {it.description ? <Text style={[S.td, { color: C.muted, fontSize: 7.5 }]}>{it.description}</Text> : null}
-              </View>
-              <Text style={[S.td, S.colQty]}>{it.quantity} {it.unit}</Text>
-              <Text style={[S.td, S.colPrice]}>{formatRupiah(it.rate)}</Text>
-              <Text style={[S.td, S.colTotal, S.bold]}>{formatRupiah(it.amount)}</Text>
-            </View>
-          ))}
-        </View>
+        <PdfTable columns={COLUMNS} rows={rows} />
 
-        {/* Totals */}
-        <View style={S.totalsRow}>
-          <View style={S.totalsBox}>
-            <View style={S.totalLine}><Text style={S.totalLabel}>Subtotal</Text><Text style={S.totalValue}>{formatRupiah(subtotal)}</Text></View>
-            {taxAmount > 0 && <View style={S.totalLine}><Text style={S.totalLabel}>PPN</Text><Text style={S.totalValue}>{formatRupiah(taxAmount)}</Text></View>}
-            {pphAmount > 0 && <View style={S.totalLine}><Text style={S.totalLabel}>PPh</Text><Text style={S.totalValue}>−{formatRupiah(pphAmount)}</Text></View>}
-            {potongan > 0 && <View style={S.totalLine}><Text style={S.totalLabel}>{quotation.labelPotongan ?? 'Potongan'}</Text><Text style={S.totalValue}>−{formatRupiah(potongan)}</Text></View>}
-            {biayaLain !== 0 && <View style={S.totalLine}><Text style={S.totalLabel}>{quotation.labelBiaya ?? 'Biaya Lain'}</Text><Text style={S.totalValue}>{formatRupiah(biayaLain)}</Text></View>}
-            <View style={S.grandRow}>
-              <Text style={S.grandLabel}>GRAND TOTAL</Text>
-              <Text style={S.grandValue}>{formatRupiah(grandTotal)}</Text>
-            </View>
-          </View>
-        </View>
+        <PdfTotals rows={totalRows} grand={{ label: 'GRAND TOTAL', value: formatRupiah(grandTotal) }} />
 
-        {/* Notes */}
         {quotation.notes ? (
-          <View style={S.section}>
-            <Text style={S.sectionTitle}>Catatan</Text>
-            <Text style={S.sectionBody}>{quotation.notes}</Text>
-          </View>
+          <PdfSection title="Catatan">
+            <Text style={S.para}>{quotation.notes}</Text>
+          </PdfSection>
         ) : null}
-
-        {/* Terms */}
         {quotation.terms ? (
-          <View style={S.section}>
-            <Text style={S.sectionTitle}>Syarat &amp; Ketentuan</Text>
-            <Text style={S.sectionBody}>{quotation.terms}</Text>
-          </View>
+          <PdfSection title="Syarat & Ketentuan">
+            <Text style={S.para}>{quotation.terms}</Text>
+          </PdfSection>
         ) : null}
 
-        {/* Signatures */}
-        <View style={S.sigRow}>
-          <View style={S.sigBox}>
-            <Text style={S.sigLabel}>Hormat Kami,</Text>
-            <Text style={S.sigName}>{company.name}</Text>
-          </View>
-          <View style={S.sigBox}>
-            <Text style={S.sigLabel}>Disetujui Oleh,</Text>
-            <Text style={S.sigName}>{quotation.customer?.name}</Text>
-          </View>
-        </View>
+        <PdfSignatureBlock
+          signatures={[
+            { label: 'Hormat Kami,', name: company.name },
+            { label: 'Disetujui Oleh,', name: quotation.customer?.name },
+          ]}
+        />
 
-        {/* Footer disclaimer */}
-        <Text style={S.footerNote}>
+        <Text style={S.disclaimer}>
           Penawaran ini berlaku sampai dengan tanggal yang tertera di atas. Harga dapat berubah sewaktu-waktu setelah masa berlaku berakhir. Untuk konfirmasi pemesanan, silakan menghubungi sales kami.
         </Text>
+
+        <PdfFooter company={company.name} docRef={quotation.quotationNumber} />
       </Page>
     </Document>
   );

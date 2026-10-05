@@ -3,16 +3,25 @@
  * ordered / received / remaining qty and remaining value (net of discount,
  * incl. line PPN). Filters: supplier, warehouse, PO date range, overdue only.
  */
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ClipboardList, Package, Wallet } from 'lucide-react';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { formatDate, formatNumber, formatRupiah } from '../../lib/format';
-import { ReportLayout, ReportSummaryCards } from '../../components/reports';
-import type { SummaryCard } from '../../components/reports';
-import { PartyFilter } from '../../components/shared/party-filter';
-import WarehousePicker from '../../components/WarehousePicker';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { DateInput, PartyFilter } from '@/components/shared';
+import WarehousePicker from '@/components/WarehousePicker';
+import {
+  ExportMenu,
+  ReportDataTable,
+  ReportFilterSection,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  type DataColumn,
+} from '@/components/report-kit';
 
 interface OutstandingRow {
   poId: string;
@@ -40,7 +49,47 @@ interface OutstandingData {
 
 const qty = (n: number) => formatNumber(n, { maxDecimals: 3 });
 
-const PoOutstanding: React.FC = () => {
+const COLUMNS: DataColumn<OutstandingRow>[] = [
+  { key: 'po', header: 'No. PO', rowHeader: true, className: 'whitespace-nowrap font-mono text-xs', render: (r) => r.poNumber },
+  { key: 'supplier', header: 'Pemasok', render: (r) => r.supplierName },
+  {
+    key: 'item',
+    header: 'Item',
+    render: (r) => (
+      <>
+        <span>{r.itemName}</span>
+        {r.warehouseName && <span className="block text-xs text-muted-foreground">{r.warehouseName}</span>}
+      </>
+    ),
+  },
+  {
+    key: 'eta',
+    header: 'Target Terima',
+    className: 'whitespace-nowrap text-xs',
+    render: (r) => (
+      <>
+        {r.expectedDeliveryDate ? formatDate(r.expectedDeliveryDate) : '-'}
+        {r.isOverdue && (
+          <span className="mt-0.5 flex items-center gap-1 font-medium text-danger-text">
+            <AlertTriangle className="size-3" aria-hidden /> Terlambat {r.daysOverdue} hari
+          </span>
+        )}
+      </>
+    ),
+  },
+  { key: 'ordered', header: 'Dipesan', numeric: true, className: 'whitespace-nowrap', render: (r) => `${qty(r.ordered)} ${r.unit}` },
+  { key: 'received', header: 'Diterima', numeric: true, className: 'whitespace-nowrap', render: (r) => qty(r.received) },
+  { key: 'remaining', header: 'Sisa', numeric: true, className: 'whitespace-nowrap font-medium', render: (r) => qty(r.remaining) },
+  {
+    key: 'value',
+    header: 'Nilai Sisa (Rp)',
+    numeric: true,
+    className: 'whitespace-nowrap font-medium',
+    render: (r) => formatRupiah(r.remainingValue, { symbol: false }),
+  },
+];
+
+export default function PoOutstanding() {
   const overdueId = useId();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -82,90 +131,85 @@ const PoOutstanding: React.FC = () => {
     );
   };
 
-  const cards: SummaryCard[] = [
-    { label: 'Nilai Sisa', value: data?.summary.remainingValue ?? 0, icon: Wallet, color: 'text-gray-900', bgColor: 'bg-gray-100' },
-    { label: 'PO Terbuka', value: data?.summary.poCount ?? 0, icon: ClipboardList, color: 'text-blue-700', bgColor: 'bg-blue-50', formatValue: (v) => formatNumber(v) },
-    { label: 'Baris Item', value: data?.summary.lineCount ?? 0, icon: Package, color: 'text-gray-700', bgColor: 'bg-gray-100', formatValue: (v) => formatNumber(v) },
-    { label: 'PO Terlambat', value: data?.summary.overduePoCount ?? 0, icon: AlertTriangle, color: 'text-red-700', bgColor: 'bg-red-50', formatValue: (v) => formatNumber(v) },
-  ];
+  const counts = (n: number | undefined) => formatNumber(n ?? 0);
+  const rangeInvalid = !!startDate && !!endDate && startDate > endDate;
 
   return (
-    <ReportLayout
+    <ReportPage
       title="PO Outstanding"
-      subtitle="Sisa pesanan pembelian yang belum diterima per item"
-      dateFilter={{ mode: 'range', startDate, endDate, onStartDateChange: setStartDate, onEndDateChange: setEndDate }}
-      onExportExcel={handleExport}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      extraControls={
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <PartyFilter partyType="Supplier" value={partyId} onChange={setPartyId} />
-            <div className="w-full sm:w-56">
-              <WarehousePicker value={warehouseId} onChange={setWarehouseId} autoDefault={false} placeholder="Semua gudang" />
-            </div>
-            <label htmlFor={overdueId} className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input id={overdueId} type="checkbox" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} />
-              Hanya yang terlambat
-            </label>
+      description="Sisa pesanan pembelian yang belum diterima per item"
+      period={startDate || endDate ? `Tanggal PO ${startDate ? formatDate(startDate) : 'awal'} s/d ${endDate ? formatDate(endDate) : 'akhir'}` : 'Semua tanggal PO'}
+      actions={<ExportMenu onExcel={handleExport} disabled={isLoading || isError} />}
+      filters={
+        <ReportFilterSection>
+          <div className="grid gap-1.5">
+            <Label htmlFor="po-start">Tanggal PO dari</Label>
+            <DateInput id="po-start" className="w-40 max-sm:min-w-36" value={startDate} onChange={setStartDate} />
           </div>
-          <ReportSummaryCards cards={cards} />
-        </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="po-end">Sampai tanggal</Label>
+            <DateInput id="po-end" className="w-40 max-sm:min-w-36" value={endDate} onChange={setEndDate} />
+          </div>
+          {(startDate || endDate) && (
+            <Button
+              variant="ghost"
+              className="max-sm:h-11"
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+            >
+              Hapus tanggal
+            </Button>
+          )}
+          <PartyFilter partyType="Supplier" value={partyId} onChange={setPartyId} />
+          <div className="w-full sm:w-56">
+            <WarehousePicker value={warehouseId} onChange={setWarehouseId} autoDefault={false} placeholder="Semua gudang" />
+          </div>
+          <label htmlFor={overdueId} className="inline-flex min-h-11 items-center gap-2 text-sm text-foreground">
+            <input
+              id={overdueId}
+              type="checkbox"
+              className="size-4 accent-[var(--primary)]"
+              checked={overdueOnly}
+              onChange={(e) => setOverdueOnly(e.target.checked)}
+            />
+            Hanya yang terlambat
+          </label>
+          {rangeInvalid && (
+            <p role="alert" className="basis-full text-xs text-danger-text">
+              Tanggal akhir sebelum tanggal mulai: hasil bisa kosong.
+            </p>
+          )}
+        </ReportFilterSection>
+      }
+      summary={
+        <ReportSummaryCards
+          loading={isLoading}
+          items={[
+            { label: 'Nilai Sisa', value: data?.summary.remainingValue ?? 0, icon: Wallet, tone: 'neutral' },
+            { label: 'PO Terbuka', value: data?.summary.poCount ?? 0, formatted: counts(data?.summary.poCount), icon: ClipboardList },
+            { label: 'Baris Item', value: data?.summary.lineCount ?? 0, formatted: counts(data?.summary.lineCount), icon: Package },
+            {
+              label: 'PO Terlambat',
+              value: data?.summary.overduePoCount ?? 0,
+              formatted: counts(data?.summary.overduePoCount),
+              icon: AlertTriangle,
+              tone: (data?.summary.overduePoCount ?? 0) > 0 ? 'negative' : 'neutral',
+            },
+          ]}
+        />
       }
     >
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="table-responsive" role="region" aria-label="Tabel PO outstanding" tabIndex={0}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. PO</th>
-                <th>Pemasok</th>
-                <th>Item</th>
-                <th>Target Terima</th>
-                <th className="text-right">Dipesan</th>
-                <th className="text-right">Diterima</th>
-                <th className="text-right">Sisa</th>
-                <th className="text-right">Nilai Sisa (Rp)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500">
-                    Tidak ada PO outstanding untuk filter ini.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((r) => (
-                  <tr key={`${r.poId}-${r.itemId}`}>
-                    <td className="font-mono text-xs font-medium whitespace-nowrap">{r.poNumber}</td>
-                    <td>{r.supplierName}</td>
-                    <td>
-                      <span className="text-gray-900">{r.itemName}</span>
-                      {r.warehouseName && <span className="block text-xs text-gray-500">{r.warehouseName}</span>}
-                    </td>
-                    <td className="whitespace-nowrap text-xs">
-                      {r.expectedDeliveryDate ? formatDate(r.expectedDeliveryDate) : '-'}
-                      {r.isOverdue && (
-                        <span className="mt-0.5 flex items-center gap-1 font-medium text-red-700">
-                          <AlertTriangle size={12} aria-hidden /> Terlambat {r.daysOverdue} hari
-                        </span>
-                      )}
-                    </td>
-                    <td className="text-right tabular-nums whitespace-nowrap">{qty(r.ordered)} {r.unit}</td>
-                    <td className="text-right tabular-nums whitespace-nowrap">{qty(r.received)}</td>
-                    <td className="text-right tabular-nums whitespace-nowrap font-medium">{qty(r.remaining)}</td>
-                    <td className="text-right tabular-nums whitespace-nowrap font-medium">{formatRupiah(r.remainingValue, { symbol: false })}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ReportLayout>
+      <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
+        <ReportDataTable
+          caption="PO outstanding per item"
+          columns={COLUMNS}
+          rows={rows}
+          emptyText="Tidak ada PO outstanding untuk filter ini."
+          getRowKey={(r) => `${r.poId}-${r.itemId}`}
+        />
+      </ReportState>
+    </ReportPage>
   );
-};
-
-export default PoOutstanding;
+}

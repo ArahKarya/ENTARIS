@@ -6,19 +6,28 @@
  * nilai warna tema di-mirror manual di sini — SATU tempat, bukan hardcode
  * tersebar di tiap file PDF seperti sebelumnya.
  *
- * CATATAN WARNA: PDF sengaja memakai ABU-ABU NETRAL (#374151 gray-700),
- * BUKAN steel blue tema web. Dokumen resmi/cetak (invoice, surat jalan)
- * harus netral supaya logo & isi tidak tenggelam oleh warna brand.
+ * CATATAN WARNA: judul/garis memakai navy Entaris (BRAND.navy); isi tetap
+ * hitam/abu supaya ramah cetak. Dokumen carbonless memakai CARBON (hitam-putih).
  *
  * Kalau tema UI berubah, ubah HANYA berkas ini.
  */
 
+/** Warna brand Entaris (docs/brand/entaris/README.md) — navy untuk judul/garis, biru untuk aksen. */
+export const BRAND = {
+  navy: '#1B2B48',
+  blue: '#2E5CA8',
+  blueLt: '#EAF1FB',
+} as const;
+
+/** Ruang bawah halaman yang dicadangkan untuk PdfFooter (semua template). */
+export const FOOTER_SPACE = 52;
+
 /** Palet berwarna — dipakai laporan analitik & dokumen layar/arsip digital. */
 export const C = {
   // Brand
-  primary: '#374151',   // gray-700 — netral dokumen cetak
-  primaryLt: '#f3f4f6',  // gray-100
-  accent: '#4b5563',     // gray-600
+  primary: '#1B2B48',    // navy Entaris
+  primaryLt: '#EAF1FB',  // biru sangat muda (tanpa fill berat)
+  accent: '#2E5CA8',     // biru Entaris
 
   // Netral
   dark: '#111827',
@@ -79,4 +88,14 @@ export const BADGE = {
   amberText: '#92400e',
   greenSoft: '#86efac',
   redSoft: '#fca5a5',
+} as const;
+
+/** Gaya halaman dokumen carbonless (Surat Jalan, BPB, Transfer, Proses Produksi). */
+export const NCR_PAGE = {
+  fontFamily: F.regular,
+  fontSize: 10,
+  color: CARBON.black,
+  paddingTop: 30,
+  backgroundColor: CARBON.white,
+  paddingHorizontal: 32,
 } as const;

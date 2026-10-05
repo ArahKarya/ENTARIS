@@ -1,22 +1,48 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { TrendingUp, AlertTriangle } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { formatRupiah } from '../../lib/formatters';
-import { AgingPDF } from '../../lib/pdf/ReportPDF';
-import type { AgingRow } from '../../lib/pdf/ReportPDF';
-import { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
-import { ReportLayout, ReportSummaryCards } from '../../components/reports';
-import type { SummaryCard } from '../../components/reports';
+import { AlertTriangle, CalendarClock, CheckCircle2, Wallet } from 'lucide-react';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { AgingPDF } from '@/lib/pdf/ReportPDF';
+import type { AgingRow } from '@/lib/pdf/ReportPDF';
+import { useCompanyPDF } from '@/lib/pdf/useCompanyPDF';
+import {
+  ExportMenu,
+  ReportNotice,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  ReportTable,
+  type ReportRow,
+} from '@/components/report-kit';
 
 interface AgingProps {
   type: 'Customer' | 'Supplier';
 }
 
+interface AgingApiRow {
+  name: string;
+  current: number;
+  1: number;
+  31: number;
+  61: number;
+  91: number;
+  total: number;
+}
+
+const COLUMNS = [
+  { key: 'current', label: 'Belum JT' },
+  { key: 'd1', label: '1-30 Hari' },
+  { key: 'd31', label: '31-60 Hari' },
+  { key: 'd61', label: '61-90 Hari' },
+  { key: 'd91', label: '>90 Hari' },
+  { key: 'total', label: 'Total' },
+];
+
 const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
-  const title = type === 'Customer' ? 'Aging Piutang' : 'Aging Hutang';
+  // Judul = label registry rute (Umur Piutang / Umur Utang); nama file ekspor tetap.
+  const title = type === 'Customer' ? 'Umur Piutang' : 'Umur Utang';
+  const exportName = type === 'Customer' ? 'Aging Piutang' : 'Aging Hutang';
   const subtitle = type === 'Customer' ? 'Analisis saldo tak tertagih per pelanggan' : 'Analisis kewajiban pembayaran per vendor';
   const company = useCompanyPDF();
 
@@ -28,10 +54,10 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
     },
   });
 
-  const rows = Array.isArray(agingData) ? agingData : [];
+  const rows: AgingApiRow[] = Array.isArray(agingData) ? agingData : [];
 
   const totals = rows.reduce(
-    (acc: any, curr: any) => ({
+    (acc, curr) => ({
       current: acc.current + curr.current,
       1: acc[1] + curr[1],
       31: acc[31] + curr[31],
@@ -39,11 +65,13 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
       91: acc[91] + curr[91],
       total: acc.total + curr.total,
     }),
-    { current: 0, 1: 0, 31: 0, 61: 0, 91: 0, total: 0 }
+    { current: 0, 1: 0, 31: 0, 61: 0, 91: 0, total: 0 },
   );
 
+  const stamp = new Date().toISOString().slice(0, 10);
+
   const handleExport = () => {
-    const excelRows = rows.map((r: any) => ({
+    const excelRows = rows.map((r) => ({
       'Nama Mitra': r.name,
       'Belum Jatuh Tempo (Rp)': r.current,
       '1-30 Hari (Rp)': r[1],
@@ -61,10 +89,10 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
       '>90 Hari (Rp)': totals[91],
       'Total (Rp)': totals.total,
     });
-    exportToExcel(excelRows, `${title}-${new Date().toISOString().slice(0, 10)}`);
+    exportToExcel(excelRows, `${exportName}-${stamp}`);
   };
 
-  const pdfRows: AgingRow[] = rows.map((r: any) => ({
+  const pdfRows: AgingRow[] = rows.map((r) => ({
     name: r.name,
     current: r.current,
     d1_30: r[1],
@@ -84,95 +112,67 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
     total: totals.total,
   };
 
-  const summaryCards: SummaryCard[] = [
-    { label: 'Total Outstanding', value: totals.total, icon: TrendingUp, color: 'text-gray-900', bgColor: 'bg-gray-100' },
-    { label: 'Belum Jatuh Tempo', value: totals.current, icon: TrendingUp, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { label: 'Menunggak 31-90 Hari', value: (totals[31] || 0) + (totals[61] || 0), icon: AlertTriangle, color: 'text-amber-600', bgColor: 'bg-amber-50' },
-    { label: 'Kritis (>90 Hari)', value: totals[91] || 0, icon: AlertTriangle, color: 'text-red-600', bgColor: 'bg-red-50' },
-  ];
+  const tableRows: ReportRow[] =
+    rows.length === 0
+      ? [{ key: 'empty', kind: 'note', label: 'Tidak ada saldo outstanding saat ini.' }]
+      : rows.map((r, idx) => ({
+          key: `${idx}-${r.name}`,
+          label: r.name,
+          values: [r.current, r[1], r[31], r[61], r[91], r.total],
+        }));
 
   return (
-    <ReportLayout
+    <ReportPage
       title={title}
-      subtitle={subtitle}
-      dateFilter={{ mode: 'none' }}
-      pdfDocument={<AgingPDF company={company} type={type} rows={pdfRows} totals={pdfTotals} />}
-      pdfFileName={`${title}-${new Date().toISOString().slice(0, 10)}.pdf`}
-      onExportExcel={handleExport}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      extraControls={<ReportSummaryCards cards={summaryCards} />}
-      alert={
+      description={subtitle}
+      period="Posisi saat ini"
+      actions={
+        <ExportMenu
+          disabled={isLoading || isError}
+          onExcel={handleExport}
+          pdf={{
+            fileName: `${exportName}-${stamp}.pdf`,
+            render: () => <AgingPDF company={company} type={type} rows={pdfRows} totals={pdfTotals} />,
+          }}
+        />
+      }
+      filters={
         totals[91] > 0 ? (
-          <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-            <AlertTriangle size={16} className="text-red-600 shrink-0" />
-            <span>Terdapat tagihan kritis yang menunggak lebih dari 90 hari. Mohon lakukan tindakan penagihan intensif.</span>
-          </div>
+          <ReportNotice tone="warning">
+            Terdapat tagihan kritis yang menunggak lebih dari 90 hari. Mohon lakukan tindakan penagihan intensif.
+          </ReportNotice>
         ) : undefined
       }
+      summary={
+        <ReportSummaryCards
+          loading={isLoading}
+          items={[
+            { label: 'Total Outstanding', value: totals.total, icon: Wallet, tone: 'neutral' },
+            { label: 'Belum Jatuh Tempo', value: totals.current, icon: CheckCircle2, tone: 'positive' },
+            { label: 'Menunggak 31-90 Hari', value: (totals[31] || 0) + (totals[61] || 0), icon: CalendarClock, tone: 'neutral' },
+            { label: 'Kritis (>90 Hari)', value: totals[91] || 0, icon: AlertTriangle, tone: totals[91] > 0 ? 'negative' : 'neutral' },
+          ]}
+        />
+      }
     >
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-       <div className="table-responsive">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Nama Mitra</th>
-              <th className="text-right pr-4">Belum JT</th>
-              <th className="text-right pr-4">1-30 Hari</th>
-              <th className="text-right pr-4">31-60 Hari</th>
-              <th className="text-right pr-4">61-90 Hari</th>
-              <th className="text-right pr-4">{'>'}90 Hari</th>
-              <th className="text-right pr-4">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-16 text-center text-gray-400">
-                  Tidak ada saldo outstanding saat ini.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row: any) => (
-                <tr key={row.name}>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className={cn('w-1 h-5 rounded-full', row[91] > 0 ? 'bg-red-500' : row[31] > 0 || row[61] > 0 ? 'bg-amber-400' : 'bg-green-400')} />
-                      <span className="font-medium text-gray-800">{row.name}</span>
-                    </div>
-                  </td>
-                  <td className="text-right pr-4 tabular-nums text-gray-600">{formatRupiah(row.current)}</td>
-                  <td className="text-right pr-4 tabular-nums text-gray-600">{formatRupiah(row[1])}</td>
-                  <td className={cn('text-right pr-4 tabular-nums', row[31] > 0 ? 'text-amber-600 font-medium' : 'text-gray-400')}>
-                    {row[31] > 0 ? formatRupiah(row[31]) : '—'}
-                  </td>
-                  <td className={cn('text-right pr-4 tabular-nums', row[61] > 0 ? 'text-orange-600 font-medium' : 'text-gray-400')}>
-                    {row[61] > 0 ? formatRupiah(row[61]) : '—'}
-                  </td>
-                  <td className={cn('text-right pr-4 tabular-nums', row[91] > 0 ? 'text-red-600 font-semibold' : 'text-gray-400')}>
-                    {row[91] > 0 ? formatRupiah(row[91]) : '—'}
-                  </td>
-                  <td className="text-right pr-4 tabular-nums font-semibold text-gray-900">{formatRupiah(row.total)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="bg-blue-600 text-white">
-              <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">Total Kolektibilitas</td>
-              <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals.current)}</td>
-              <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals[1])}</td>
-              <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals[31])}</td>
-              <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals[61])}</td>
-              <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals[91])}</td>
-              <td className="px-4 py-3 text-right font-bold tabular-nums pr-4">{formatRupiah(totals.total)}</td>
-            </tr>
-          </tfoot>
-        </table>
-       </div>
-      </div>
-    </ReportLayout>
+      <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
+        <ReportTable
+          caption={`${title} per ${type === 'Customer' ? 'pelanggan' : 'vendor'}`}
+          columns={COLUMNS}
+          labelHeader="Nama Mitra"
+          zero="dash"
+          rows={tableRows}
+          footer={[
+            {
+              key: 'total',
+              kind: 'total',
+              label: 'Total Kolektibilitas',
+              values: [totals.current, totals[1], totals[31], totals[61], totals[91], totals.total],
+            },
+          ]}
+        />
+      </ReportState>
+    </ReportPage>
   );
 };
 

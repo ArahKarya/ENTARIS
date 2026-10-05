@@ -1,110 +1,64 @@
-import React from 'react';
-import { Loader2 } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { TrendingUp } from 'lucide-react';
+import { formatRupiah } from '@/lib/format';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
+import { ChartFrame } from '../dashboard-kit/ChartFrame';
+import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE, compactIdrTick } from '../dashboard-kit/chart-theme';
 
-const formatRupiah = (value: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
-
-interface RevenueChartProps {
-  data: any[] | null;
-  loading: boolean;
+interface Point {
+  name: string;
+  pendapatan: number;
+  beban: number;
 }
 
-const RevenueChart: React.FC<RevenueChartProps> = ({ data, loading }) => (
-  <div
-    className="border rounded-xl p-5"
-    style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-  >
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-        Pendapatan vs Beban
-      </h2>
-      <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
-          Pendapatan
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-gray-300 inline-block" />
-          Beban
-        </span>
-      </div>
-    </div>
-    <div className="h-64">
-      {loading ? (
-        <div className="h-full flex items-center justify-center">
-          <Loader2 className="animate-spin" size={28} style={{ color: 'var(--color-text-muted)' }} />
-        </div>
-      ) : (
+interface RevenueChartProps {
+  data: Point[] | null | undefined;
+  loading: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}
+
+export default function RevenueChart({ data, loading, isError, onRetry }: RevenueChartProps) {
+  const rows = data ?? [];
+  const totalIn = rows.reduce((s, r) => s + r.pendapatan, 0);
+  const totalOut = rows.reduce((s, r) => s + r.beban, 0);
+  return (
+    <WidgetCard
+      title="Pendapatan vs Beban"
+      description="Per bulan pada periode terpilih"
+      icon={TrendingUp}
+      href="/reports/profit-loss"
+      hrefLabel="Laba rugi"
+      isLoading={loading}
+      isError={isError}
+      onRetry={onRetry}
+      isEmpty={rows.length === 0}
+      emptyText="Belum ada transaksi pada periode ini"
+      minHeight={290}
+    >
+      <ChartFrame
+        summary={`Grafik area pendapatan dan beban per bulan. Total pendapatan ${formatRupiah(totalIn)}, total beban ${formatRupiah(totalOut)}.`}
+        legend={[
+          { label: 'Pendapatan', color: 'var(--chart-2)', value: formatRupiah(totalIn, { compact: true }) },
+          { label: 'Beban', color: 'var(--chart-4)', dashed: true, value: formatRupiah(totalOut, { compact: true }) },
+        ]}
+        table={{
+          caption: 'Pendapatan dan beban per bulan',
+          columns: ['Bulan', 'Pendapatan', 'Beban'],
+          rows: rows.map((r) => [r.name, formatRupiah(r.pendapatan), formatRupiah(r.beban)]),
+        }}
+      >
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data || []} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2563EB" stopOpacity={0.12} />
-                <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#9ca3af" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#9ca3af', fontSize: 11 }}
-              dy={8}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#9ca3af', fontSize: 11 }}
-              tickFormatter={(v) => (v === 0 ? '0' : `${Math.round(v / 1000000)}jt`)}
-              domain={[0, 'auto']}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'var(--color-bg-primary)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '8px',
-                fontSize: 12,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                color: 'var(--color-text-primary)',
-              }}
-              formatter={(value: any) => [formatRupiah(value), '']}
-            />
-            <Area
-              type="monotone"
-              dataKey="pendapatan"
-              stroke="#2563EB"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorIncome)"
-              dot={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="beban"
-              stroke="#9ca3af"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorExpense)"
-              dot={false}
-            />
+          <AreaChart data={rows} margin={{ top: 5, right: 8, left: 0, bottom: 0 }} accessibilityLayer={false}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_STROKE} />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
+            <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={compactIdrTick} domain={[0, 'auto']} width={44} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatRupiah(Number(v))} />
+            <Area type="monotone" dataKey="pendapatan" name="Pendapatan" stroke="var(--chart-2)" strokeWidth={2} fill="var(--chart-2)" fillOpacity={0.12} dot={rows.length <= 2} isAnimationActive={false} />
+            <Area type="monotone" dataKey="beban" name="Beban" stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="5 3" fill="var(--chart-4)" fillOpacity={0.08} dot={rows.length <= 2} isAnimationActive={false} />
           </AreaChart>
         </ResponsiveContainer>
-      )}
-    </div>
-  </div>
-);
-
-export default RevenueChart;
+      </ChartFrame>
+    </WidgetCard>
+  );
+}

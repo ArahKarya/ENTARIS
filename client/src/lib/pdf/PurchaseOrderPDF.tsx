@@ -1,66 +1,25 @@
 import React from 'react';
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
-import { C as T } from './theme';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { C, F, FOOTER_SPACE } from './theme';
 import { computePoTotals, paymentTermLabel, poDueDate } from '../purchaseOrderCalc';
-
-const C = { ink: T.dark, soft: T.muted, line: T.border, navy: T.primary };
-
-Font.registerHyphenationCallback((word) => [word]);
+import { pdfDate, pdfMoneyAuto, pdfNum, pdfRpAuto } from './pdfFormat';
+import {
+  PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSection, PdfSignatureBlock, PdfTable, PdfTotals,
+  type PdfColumn,
+} from './kit';
 
 // PDF Purchase Order (Pesanan Pembelian) untuk dikirim ke pemasok:
 // header perusahaan + data pemasok + item (estimasi harga) + total + catatan/syarat + tanda tangan.
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, color: C.ink, paddingTop: 30, paddingBottom: 36, paddingHorizontal: 32 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  companyBlock: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
-  logo: { width: 48, height: 48, objectFit: 'contain' as const },
-  companyName: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: C.navy },
-  companyMeta: { fontSize: 8, color: C.soft, marginTop: 1 },
-  title: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: C.navy, textAlign: 'right' as const },
-  titleSub: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.soft, textAlign: 'right' as const, marginTop: 1 },
-  subtitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'right' as const, marginTop: 4 },
-  printMeta: { fontSize: 7, color: C.soft, textAlign: 'right' as const, marginTop: 3 },
-  divider: { height: 1.5, backgroundColor: C.navy, marginTop: 8, marginBottom: 10 },
-  metaRow: { flexDirection: 'row', marginBottom: 12, gap: 20 },
-  metaCol: { flex: 1 },
-  label: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.soft, marginBottom: 1, textTransform: 'uppercase' as const },
-  val: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
-  valReg: { fontSize: 9, marginBottom: 3 },
-  th: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.ink, paddingVertical: 4, paddingHorizontal: 3 },
-  thText: { fontSize: 8, fontFamily: 'Helvetica-Bold' },
-  tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderColor: C.line, paddingVertical: 3.5, paddingHorizontal: 3 },
-  td: { fontSize: 8.5 },
-  tdDesc: { fontSize: 7.5, color: C.soft, marginTop: 1 },
-  right: { textAlign: 'right' as const },
-  center: { textAlign: 'center' as const },
-  padR: { paddingRight: 8 },
-  totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 6 },
-  subTotalRow: { width: 220, flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 2 },
-  subTotalLabel: { fontSize: 8.5, color: C.soft },
-  subTotalVal: { fontSize: 8.5 },
-  totalBox: { width: 220, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderColor: C.ink, paddingTop: 4 },
-  totalLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
-  totalVal: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
-  note: { fontSize: 7.5, color: C.soft, marginTop: 2, textAlign: 'right' as const },
-  sectionTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.navy, marginTop: 14, marginBottom: 3 },
+  page: { fontFamily: F.regular, fontSize: 9, color: C.dark, paddingTop: 30, paddingBottom: FOOTER_SPACE, paddingHorizontal: 32 },
+  tdDesc: { fontSize: 7.5, color: C.muted, marginTop: 1 },
   para: { fontSize: 8.5, lineHeight: 1.4 },
-  signRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 28, gap: 16 },
-  signCol: { flex: 1, alignItems: 'center' as const },
-  signLabel: { fontSize: 8.5, marginBottom: 46 },
-  signLine: { width: '80%', borderTopWidth: 0.8, borderColor: C.ink, paddingTop: 3 },
-  signName: { fontSize: 8, textAlign: 'center' as const },
-  footer: { position: 'absolute' as const, bottom: 16, left: 32, right: 32, fontSize: 7, color: C.soft, textAlign: 'center' as const },
 });
 
 type Num = number | string | null | undefined;
 
 const toNum = (n: Num) => Number(n ?? 0) || 0;
-/** Indonesian grouping, up to 2 decimals for money (no "Rp" in table cells). */
-const money = (n: Num) => toNum(n).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-const qty = (n: Num) => toNum(n).toLocaleString('id-ID', { maximumFractionDigits: 3 });
-const dt = (d?: string | null) =>
-  d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
 
 export interface PurchaseOrderPDFItem {
   itemName: string;
@@ -97,7 +56,16 @@ export interface PurchaseOrderPDFProps {
   company: { name: string; address?: string | null; phone?: string | null; email?: string | null; taxId?: string | null; logoUrl?: string | null };
 }
 
-const COLS = { no: 0.4, item: 3.0, qty: 1.0, unit: 0.7, rate: 1.5, disc: 0.7, tax: 0.7, amount: 1.7 };
+const COLUMNS: PdfColumn[] = [
+  { key: 'no', label: 'No', width: 0.4, align: 'center' },
+  { key: 'item', label: 'Barang', width: 3.0 },
+  { key: 'qty', label: 'Qty', width: 1.0, align: 'right' },
+  { key: 'unit', label: 'Satuan', width: 0.8 },
+  { key: 'rate', label: 'Harga (Rp)', width: 1.5, align: 'right' },
+  { key: 'disc', label: 'Disk %', width: 0.8, align: 'right' },
+  { key: 'tax', label: 'PPN %', width: 0.8, align: 'right' },
+  { key: 'amount', label: 'Jumlah (Rp)', width: 1.7, align: 'right' },
+];
 
 const STATUS_MARK: Record<string, string> = {
   Draft: 'DRAF — BELUM DIPESAN',
@@ -106,7 +74,6 @@ const STATUS_MARK: Record<string, string> = {
 };
 
 const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
-  const printDate = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
   const supplier = po.supplier;
   // Recomputed from lines (same rules as the server) so legacy POs print too.
   const totals = computePoTotals(
@@ -120,158 +87,98 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
   );
   const dueDate = poDueDate(po.date, po.paymentTermDays);
   const mark = po.displayStatus ? STATUS_MARK[po.displayStatus] : undefined;
-  const pct = (n: Num | undefined) => (toNum(n ?? 0) > 0 ? `${money(n ?? 0)}` : '—');
+  const pct = (n: Num | undefined) => (toNum(n ?? 0) > 0 ? pdfNum(n ?? 0, 2) : '—');
+
+  const rows = po.items.map((it, i) => ({
+    no: String(i + 1),
+    item: (
+      <View>
+        <Text style={{ fontSize: 8.5 }}>{it.itemName}</Text>
+        {it.description ? <Text style={S.tdDesc}>{it.description}</Text> : null}
+      </View>
+    ),
+    qty: pdfNum(it.quantity, 3),
+    unit: it.unit,
+    rate: pdfMoneyAuto(it.estimatedRate),
+    disc: pct(it.discount),
+    tax: pct(it.taxPct),
+    amount: pdfMoneyAuto(totals.lines[i]?.amount ?? toNum(it.estimatedAmount ?? 0)),
+  }));
+
+  const totalRows = [
+    { label: 'Subtotal', value: pdfMoneyAuto(totals.subtotal), show: true },
+    { label: 'Diskon', value: pdfMoneyAuto(-totals.discountTotal), show: totals.discountTotal > 0 },
+    { label: 'PPN', value: pdfMoneyAuto(totals.taxTotal), show: totals.taxTotal > 0 },
+    { label: po.otherCostsLabel || 'Biaya lain', value: pdfMoneyAuto(totals.otherCosts), show: totals.otherCosts > 0 },
+  ].filter((r) => r.show);
 
   return (
     <Document title={`Purchase Order ${po.poNumber}`} author={company.name}>
       <Page size="A4" style={S.page} wrap>
-        <View style={S.headerRow} fixed>
-          <View style={S.companyBlock}>
-            {company.logoUrl && <Image style={S.logo} src={company.logoUrl} />}
-            <View style={{ flex: 1 }}>
-              <Text style={S.companyName}>{company.name}</Text>
-              {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-              {(company.phone || company.email) && (
-                <Text style={S.companyMeta}>
-                  {[company.phone && `Telp: ${company.phone}`, company.email].filter(Boolean).join(' • ')}
-                </Text>
-              )}
-              {company.taxId && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
-            </View>
-          </View>
-          <View>
-            <Text style={S.title}>PURCHASE ORDER</Text>
-            <Text style={S.titleSub}>PESANAN PEMBELIAN</Text>
-            <Text style={S.subtitle}>{po.poNumber}</Text>
-            {mark ? <Text style={[S.subtitle, { color: '#B45309' }]}>{mark}</Text> : null}
-            <Text
-              style={S.printMeta}
-              render={({ pageNumber, totalPages }) => `Dicetak ${printDate} • Hal ${pageNumber}/${totalPages}`}
+        <PdfHeader
+          company={company}
+          title="PURCHASE ORDER"
+          subtitle="PESANAN PEMBELIAN"
+          number={po.poNumber}
+          dateLine={`Tanggal: ${pdfDate(po.date)}`}
+          status={mark}
+          statusColor={C.amberDk}
+        />
+
+        <PdfMetaRow>
+          <PdfPartyBlock
+            label="Kepada (Pemasok)"
+            name={supplier ? supplier.name : 'PO Umum'}
+            lines={
+              supplier
+                ? [supplier.address, supplier.phone && `Telp: ${supplier.phone}`, supplier.taxId && `NPWP: ${supplier.taxId}`]
+                : ['Dapat dipenuhi pemasok mana saja']
+            }
+          />
+          <View style={{ flex: 1 }}>
+            <PdfMetaField label="Tanggal Kirim Diharapkan" value={po.expectedDeliveryDate ? pdfDate(po.expectedDeliveryDate) : null} />
+            <PdfMetaField
+              label="Termin Pembayaran"
+              value={`${paymentTermLabel(po.paymentTermDays)}${dueDate && po.paymentTermDays ? ` (jatuh tempo ${pdfDate(dueDate)})` : ''}`}
             />
           </View>
-        </View>
-        <View style={S.divider} />
+          <View style={{ flex: 1 }}>
+            <PdfMetaField
+              label="Kirim ke Gudang"
+              value={po.warehouse ? [po.warehouse.code, po.warehouse.name].filter(Boolean).join(' — ') : null}
+            />
+            <PdfMetaField label="No. Penawaran Pemasok" value={po.supplierQuoteRef} />
+          </View>
+        </PdfMetaRow>
 
-        <View style={S.metaRow}>
-          <View style={S.metaCol}>
-            <Text style={S.label}>Kepada (Pemasok)</Text>
-            {supplier ? (
-              <>
-                <Text style={S.val}>{supplier.name}</Text>
-                {supplier.address && <Text style={S.valReg}>{supplier.address}</Text>}
-                {supplier.phone && <Text style={S.valReg}>Telp: {supplier.phone}</Text>}
-                {supplier.taxId && <Text style={S.valReg}>NPWP: {supplier.taxId}</Text>}
-              </>
-            ) : (
-              <Text style={S.valReg}>PO Umum — dapat dipenuhi pemasok mana saja</Text>
-            )}
-          </View>
-          <View style={S.metaCol}>
-            <Text style={S.label}>Nomor PO</Text>
-            <Text style={S.val}>{po.poNumber}</Text>
-            <Text style={S.label}>Tanggal PO</Text>
-            <Text style={S.valReg}>{dt(po.date)}</Text>
-            <Text style={S.label}>Tanggal Kirim Diharapkan</Text>
-            <Text style={S.valReg}>{dt(po.expectedDeliveryDate)}</Text>
-            <Text style={S.label}>Termin Pembayaran</Text>
-            <Text style={S.valReg}>
-              {paymentTermLabel(po.paymentTermDays)}
-              {dueDate && po.paymentTermDays ? ` (jatuh tempo ${dt(dueDate)})` : ''}
-            </Text>
-          </View>
-          <View style={S.metaCol}>
-            <Text style={S.label}>Kirim ke Gudang</Text>
-            <Text style={S.valReg}>{po.warehouse ? [po.warehouse.code, po.warehouse.name].filter(Boolean).join(' — ') : '—'}</Text>
-            <Text style={S.label}>No. Penawaran Pemasok</Text>
-            <Text style={S.valReg}>{po.supplierQuoteRef || '—'}</Text>
-          </View>
-        </View>
+        <PdfTable columns={COLUMNS} rows={rows} />
 
-        <View style={S.th} fixed>
-          <Text style={[S.thText, S.center, { flex: COLS.no }]}>No</Text>
-          <Text style={[S.thText, { flex: COLS.item }]}>Barang</Text>
-          <Text style={[S.thText, S.right, S.padR, { flex: COLS.qty }]}>Qty</Text>
-          <Text style={[S.thText, { flex: COLS.unit }]}>Satuan</Text>
-          <Text style={[S.thText, S.right, S.padR, { flex: COLS.rate }]}>Harga (Rp)</Text>
-          <Text style={[S.thText, S.right, S.padR, { flex: COLS.disc }]}>Disk %</Text>
-          <Text style={[S.thText, S.right, S.padR, { flex: COLS.tax }]}>PPN %</Text>
-          <Text style={[S.thText, S.right, { flex: COLS.amount }]}>Jumlah (Rp)</Text>
-        </View>
-        {po.items.map((it, i) => {
-          const amount = totals.lines[i]?.amount ?? toNum(it.estimatedAmount ?? 0);
-          return (
-            <View style={S.tr} key={i} wrap={false}>
-              <Text style={[S.td, S.center, { flex: COLS.no }]}>{i + 1}</Text>
-              <View style={{ flex: COLS.item }}>
-                <Text style={S.td}>{it.itemName}</Text>
-                {it.description ? <Text style={S.tdDesc}>{it.description}</Text> : null}
-              </View>
-              <Text style={[S.td, S.right, S.padR, { flex: COLS.qty }]}>{qty(it.quantity)}</Text>
-              <Text style={[S.td, { flex: COLS.unit }]}>{it.unit}</Text>
-              <Text style={[S.td, S.right, S.padR, { flex: COLS.rate }]}>{money(it.estimatedRate)}</Text>
-              <Text style={[S.td, S.right, S.padR, { flex: COLS.disc }]}>{pct(it.discount)}</Text>
-              <Text style={[S.td, S.right, S.padR, { flex: COLS.tax }]}>{pct(it.taxPct)}</Text>
-              <Text style={[S.td, S.right, { flex: COLS.amount }]}>{money(amount)}</Text>
-            </View>
-          );
-        })}
-
-        <View style={S.totalRow} wrap={false}>
-          <View>
-            {[
-              { label: 'Subtotal', value: totals.subtotal, show: true },
-              { label: 'Diskon', value: -totals.discountTotal, show: totals.discountTotal > 0 },
-              { label: 'PPN', value: totals.taxTotal, show: totals.taxTotal > 0 },
-              { label: po.otherCostsLabel || 'Biaya lain', value: totals.otherCosts, show: totals.otherCosts > 0 },
-            ]
-              .filter((r) => r.show)
-              .map((r) => (
-                <View style={S.subTotalRow} key={r.label}>
-                  <Text style={S.subTotalLabel}>{r.label}</Text>
-                  <Text style={S.subTotalVal}>{money(r.value)}</Text>
-                </View>
-              ))}
-            <View style={S.totalBox}>
-              <Text style={S.totalLabel}>Grand Total</Text>
-              <Text style={S.totalVal}>Rp {money(totals.grandTotal)}</Text>
-            </View>
-            <Text style={S.note}>Harga final mengikuti faktur pemasok.</Text>
-          </View>
-        </View>
+        <PdfTotals
+          rows={totalRows}
+          grand={{ label: 'Grand Total', value: pdfRpAuto(totals.grandTotal) }}
+          note="Harga final mengikuti faktur pemasok."
+        />
 
         {po.notes ? (
-          <View wrap={false}>
-            <Text style={S.sectionTitle}>Catatan</Text>
+          <PdfSection title="Catatan">
             <Text style={S.para}>{po.notes}</Text>
-          </View>
+          </PdfSection>
         ) : null}
         {po.terms ? (
-          <View wrap={false}>
-            <Text style={S.sectionTitle}>Syarat & Ketentuan</Text>
+          <PdfSection title="Syarat & Ketentuan">
             <Text style={S.para}>{po.terms}</Text>
-          </View>
+          </PdfSection>
         ) : null}
 
-        <View style={S.signRow} wrap={false}>
-          {[
-            { label: 'Dibuat oleh', name: po.user?.fullName ?? '' },
-            { label: 'Disetujui oleh', name: '' },
-            { label: 'Pemasok', name: supplier?.name ?? '' },
-          ].map((s) => (
-            <View style={S.signCol} key={s.label}>
-              <Text style={S.signLabel}>{s.label}</Text>
-              <View style={S.signLine}>
-                <Text style={S.signName}>{s.name || ' '}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <Text
-          style={S.footer}
-          fixed
-          render={({ pageNumber, totalPages }) => `${company.name} — ${po.poNumber} • Hal ${pageNumber}/${totalPages}`}
+        <PdfSignatureBlock
+          signatures={[
+            { label: 'Dibuat oleh', name: po.user?.fullName },
+            { label: 'Disetujui oleh' },
+            { label: 'Pemasok', name: supplier?.name },
+          ]}
         />
+
+        <PdfFooter company={company.name} docRef={po.poNumber} />
       </Page>
     </Document>
   );

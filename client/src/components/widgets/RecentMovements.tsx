@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
+import { ArrowLeftRight } from 'lucide-react';
 import api from '../../lib/api';
-import { formatRupiah } from '../../lib/formatters';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
+import { MiniTable } from '../dashboard-kit/MiniTable';
 
 interface RecentMovement {
   id: string;
@@ -18,98 +15,60 @@ interface RecentMovement {
   totalValue: number | null;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const formatNumber = (val: number | string, decimals = 0) =>
-  Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
-
-const movementBadge: Record<string, { label: string; className: string }> = {
-  In: { label: 'Masuk', className: 'badge badge-green' },
-  Out: { label: 'Keluar', className: 'badge badge-red' },
-  AdjustmentIn: { label: 'Adj+', className: 'badge badge-blue' },
-  AdjustmentOut: { label: 'Adj-', className: 'badge badge-orange' },
+const MOVEMENT: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
+  In: { label: 'Masuk', variant: 'success' },
+  Out: { label: 'Keluar', variant: 'danger' },
+  AdjustmentIn: { label: 'Adj+', variant: 'info' },
+  AdjustmentOut: { label: 'Adj-', variant: 'warning' },
 };
 
-// ---------------------------------------------------------------------------
-// Main Widget
-// ---------------------------------------------------------------------------
-
 export default function RecentMovements() {
-  const { data, isLoading } = useQuery<RecentMovement[]>({
+  const { data, isLoading, isError, refetch } = useQuery<RecentMovement[]>({
     queryKey: ['warehouse-recent-movements'],
-    queryFn: async () => {
-      const r = await api.get('/inventory/dashboard/recent-movements');
-      return r.data;
-    },
+    queryFn: async () => (await api.get('/inventory/dashboard/recent-movements')).data,
   });
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+    <WidgetCard
+      title="Gerakan Stok Terkini"
+      icon={ArrowLeftRight}
+      href="/inventory"
+      hrefLabel="Stok"
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      isEmpty={!!data && data.length === 0}
+      emptyIcon={ArrowLeftRight}
+      emptyText="Belum ada gerakan stok"
+      minHeight={260}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          Gerakan Stok Terkini
-        </h2>
-      </div>
-      {isLoading ? (
-        <div className="py-12 flex items-center justify-center">
-          <Loader2 className="animate-spin" size={24} style={{ color: 'var(--color-text-muted)' }} />
-        </div>
-      ) : !data || data.length === 0 ? (
-        <div className="py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-          <ArrowLeftRight size={32} className="mx-auto mb-2 opacity-30" />
-          <p className="text-xs">Belum ada gerakan stok</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ color: 'var(--color-text-muted)' }}>
-                <th className="text-left font-medium pb-2">Tanggal</th>
-                <th className="text-left font-medium pb-2">Item</th>
-                <th className="text-center font-medium pb-2">Tipe</th>
-                <th className="text-right font-medium pb-2">Qty</th>
-                <th className="text-right font-medium pb-2">Nilai</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((mov) => {
-                const badge = movementBadge[mov.movementType] ?? {
-                  label: mov.movementType,
-                  className: 'badge',
-                };
-                return (
-                  <tr
-                    key={mov.id}
-                    className="border-t"
-                    style={{ borderColor: 'var(--color-border)' }}
-                  >
-                    <td className="py-2 whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
-                      {format(new Date(mov.date), 'dd MMM', { locale: idLocale })}
-                    </td>
-                    <td className="py-2 font-medium truncate max-w-[120px]" style={{ color: 'var(--color-text-primary)' }}>
-                      {mov.item?.name ?? '-'}
-                    </td>
-                    <td className="py-2 text-center">
-                      <span className={badge.className}>{badge.label}</span>
-                    </td>
-                    <td className="py-2 text-right tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
-                      {formatNumber(mov.quantity)}
-                    </td>
-                    <td className="py-2 text-right tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
-                      {mov.totalValue != null ? formatRupiah(Number(mov.totalValue)) : '\u2014'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+      <MiniTable
+        caption="Gerakan stok terkini"
+        rows={data ?? []}
+        rowKey={(r) => r.id}
+        columns={[
+          { key: 'date', label: 'Tanggal' },
+          { key: 'item', label: 'Item' },
+          { key: 'type', label: 'Tipe' },
+          { key: 'qty', label: 'Qty', numeric: true },
+          { key: 'value', label: 'Nilai', numeric: true, hideOnMobile: true },
+        ]}
+        cell={(r, k) => {
+          const mv = MOVEMENT[r.movementType] ?? { label: r.movementType, variant: 'neutral' as const };
+          switch (k) {
+            case 'date':
+              return <span className="whitespace-nowrap text-muted-foreground">{formatDate(r.date, 'short')}</span>;
+            case 'item':
+              return <span className="block max-w-[140px] truncate font-medium">{r.item?.name ?? '-'}</span>;
+            case 'type':
+              return <Badge variant={mv.variant}>{mv.label}</Badge>;
+            case 'qty':
+              return formatNumber(r.quantity);
+            default:
+              return <span className="text-muted-foreground">{r.totalValue != null ? formatRupiah(Number(r.totalValue)) : '-'}</span>;
+          }
+        }}
+      />
+    </WidgetCard>
   );
 }
