@@ -73,6 +73,10 @@ export const DEFAULT_SNAPSHOT_REGISTRY: SnapshotEntry[] = [
   { prefix: 'fiscal-years', load: byId(prisma.fiscalYear) },
   { prefix: 'fixed-assets', load: byId(prisma.fixedAsset) },
   { prefix: 'payment-requests', load: byId(prisma.paymentRequest, { include: { lines: true, settlementLines: true } }) },
+  // Tagihan EAM: <prefix>/<id>/pay|cancel (kind in the path, upper-case as the client sends it).
+  { prefix: 'payment-requests/eam/VEHICLE_TAX', load: byId(prisma.gaVehicleTax) },
+  { prefix: 'payment-requests/eam/SERVICE_LOG', load: byId(prisma.gaVehicleServiceLog) },
+  { prefix: 'payment-requests/eam/MATERIAL_REQUEST', load: byId(prisma.gaMaterialRequest) },
   { prefix: 'payment-request-types', load: byId(prisma.paymentRequestType) },
 ];
 

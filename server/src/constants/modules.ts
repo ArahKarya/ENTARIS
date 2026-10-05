@@ -44,7 +44,9 @@ export const MODULES: ModuleDef[] = [
   { key: 'journal', label: 'Buku Besar / Jurnal', group: 'Akuntansi' },
   { key: 'fixed_assets', label: 'Aset Tetap', group: 'Akuntansi' },
   { key: 'approvals', label: 'Approval (pengajuan)', group: 'Akuntansi' },
-  { key: 'ga_finance', label: 'Tagihan Aset & Umum', group: 'Akuntansi' },
+  // DEPRECATED: antrian EAM pindah ke Pengajuan Pembayaran > Tagihan EAM (izin payment_request edit).
+  // Tetap terdaftar agar grant lama tidak terhapus sanitizePermissions; hanya melindungi alias /api/ga/finance.
+  { key: 'ga_finance', label: 'Tagihan Aset & Umum (lama — kini lewat Pengajuan Pembayaran)', group: 'Akuntansi' },
   // GENERAL AFFAIRS (modul GA)
   { key: 'ga_assets', label: 'Aset', group: 'EAM — Manajemen Aset' },
   { key: 'ga_vehicle', label: 'Kendaraan', group: 'EAM — Manajemen Aset' },

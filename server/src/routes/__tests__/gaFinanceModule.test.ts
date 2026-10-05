@@ -15,7 +15,7 @@ describe('ga_finance RBAC module', () => {
   it('is a registered module in the Akuntansi group', () => {
     expect(MODULE_KEYS).toContain('ga_finance');
     expect(MODULES.find((m) => m.key === 'ga_finance')).toMatchObject({
-      label: 'Tagihan Aset & Umum',
+      label: expect.stringContaining('Tagihan Aset & Umum (lama'),
       group: 'Akuntansi',
     });
   });

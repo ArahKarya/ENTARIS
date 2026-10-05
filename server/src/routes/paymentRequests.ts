@@ -38,6 +38,7 @@ import {
   PaymentRequestVerifySchema,
 } from '../utils/schemas';
 import { can, isSuperAdminRole } from '../services/permissionService';
+import eamRoutes from './paymentRequestEam';
 import {
   PR_MODULE,
   PR_SCOPES,
@@ -94,6 +95,9 @@ import {
 } from '../services/paymentRequestSettlementService';
 
 const router = Router();
+
+// Tagihan EAM (finance only) — registered before the '/:id' routes.
+router.use('/eam', eamRoutes);
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // same limits as /api/attachments
 const MAX_FILES_PER_REQUEST = 10;

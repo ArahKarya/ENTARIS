@@ -22,6 +22,20 @@
 
 **Deploy**: migrasi loose SQL `2026100800000_payment_request_settlement_travel.sql` (aditif, idempotent; jalan otomatis saat start) — hanya menambah kolom/tabel nullable.
 
+### Pengajuan Pembayaran — tahap 3 (Tagihan EAM)
+**Ditambah**:
+- Tab **Tagihan EAM** di Pengajuan Pembayaran (hanya Keuangan, izin `payment_request` edit; badge = tagihan belum diposting): antrian pajak/STNK/KIR, servis kendaraan, dan MR sparepart dari EAM dengan jenis, aset/tujuan, tanggal, nilai, status, pencarian, filter tanggal/jenis/status posting, paging dari server, dan KPI. Bayar/posting lewat dialog yang sama (Jurnal Langsung DR beban / CR kas-bank, atau Faktur Pembelian DR beban / CR 2.1.1) dengan pratinjau jurnal; batal posting mengembalikan tagihan ke antrian.
+- API `GET /api/payment-requests/eam` (+ `/summary`), `POST /api/payment-requests/eam/:kind/:id/pay|cancel` dengan validasi, guard periode fiskal, dan aturan posting yang sama seperti sebelumnya (satu sumber kebenaran: `gaFinance`). Snapshot audit untuk prefiks baru.
+
+**Diubah**:
+- Menu AKUNTANSI "Tagihan Aset & Umum" dihapus; `/ga/finance` dialihkan ke `/payment-requests?tab=eam`. Pencarian global ("tagihan eam", "tagihan aset", "stnk") menuju Pengajuan Pembayaran.
+- API lama `/api/ga/finance` tetap berjalan sebagai alias **deprecated** selama satu rilis (dihapus di rilis berikutnya).
+- Modul RBAC `ga_finance` ditandai "(lama)" dan hanya melindungi alias lama; akses kini lewat `payment_request`. Migrasi satu kali memberi `payment_request` edit ke role yang punya `ga_finance` edit (baris `payment_request` yang sudah ada tidak ditimpa).
+
+**Dihapus**: halaman `GaFinancePage` dan kode klien lamanya (filter/urut/paging sisi klien).
+
+**Deploy**: migrasi loose SQL `2026100900000_payment_request_eam_perm.sql` (idempotent; backfill izin hanya sekali lewat tabel penanda `data_fix_markers`; tidak ada perubahan skema Prisma). Setelah rilis berikutnya `/api/ga/finance` dan modul `ga_finance` dapat dicabut.
+
 ### Deploy & Operasional
 **Diubah**:
 - Image Docker (`Dockerfile`, `Dockerfile.allinone`) kini menyetel zona waktu proses server `TZ=Asia/Jakarta` (paket `tzdata` dipasang); `docker-compose.yml` meneruskan `TZ` (default `Asia/Jakarta`, dapat diubah di `.env`). Batas periode laporan (awal/akhir hari & bulan) pada deployment Docker kini sesuai WIB, bukan UTC.

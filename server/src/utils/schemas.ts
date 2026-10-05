@@ -1086,3 +1086,15 @@ export const PaymentRequestTypeSchema = z.object({
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().min(0).max(9999).default(0),
 });
+
+// ─── Tagihan EAM (Pengajuan Pembayaran > Tagihan EAM; also the /ga/finance alias) ──
+export const EamPaySchema = z.object({
+  method: z.enum(['JOURNAL', 'PURCHASE_INVOICE']),
+  accountId: z.string().min(1).optional().nullable(),
+  creditAccountId: z.string().min(1).optional().nullable(),
+  partyId: z.string().min(1).optional().nullable(),
+  amount: z.number().positive().optional().nullable(),
+  date: z.string().min(1).optional().nullable(),
+  dueDate: z.string().min(1).optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+});

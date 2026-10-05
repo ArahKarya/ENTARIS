@@ -76,6 +76,7 @@ Every transaction MUST produce balanced debit/credit GL entries:
 - **Payment receive**: DR Kas/Bank (1.1.x) / CR Piutang (1.2.1)
 - **Payment pay**: DR Hutang (2.1.1) / CR Kas/Bank (1.1.x)
 - **Journal Entry**: Manual balanced entries
+- **Tagihan EAM diposting** (Pengajuan Pembayaran > tab Tagihan EAM, finance `payment_request` edit; pajak kendaraan / servis EAM / MR sparepart): JOURNAL = DR akun beban / CR Kas/Bank (lunas); PURCHASE_INVOICE = DR akun beban / CR Hutang Usaha (2.1.1), dilunasi lewat modul Pembayaran; batal posting = void jurnal/faktur. Service log `source='IMPORT'` TIDAK masuk antrian (sudah di GL). Satu-satunya jalur posting: `services/gaFinance.ts` via `services/gaBillQueue.ts`; `/api/ga/finance` hanya alias deprecated (modul RBAC `ga_finance` lama)
 - **Pengajuan Pembayaran dibayar**: DR akun beban per baris (atau DR Uang Muka Karyawan 1.5.6 utk CASH_ADVANCE/TRAVEL) / CR Kas/Bank (1.1.x); batal bayar = void jurnal
 - **Pertanggungjawaban uang muka diposting** (realisasi R vs uang muka A): DR akun beban per baris (R) / CR Uang Muka Karyawan 1.5.6 (min(R,A)); R<A: + DR Kas/Bank (A−R) / CR 1.5.6 (A−R) (pengaju mengembalikan sisa); R>A: + CR Kas/Bank (R−A) (kurang bayar dibayar perusahaan); R=A tanpa baris kas. Satu jurnal seimbang; batal posting = void jurnal. Posting uang muka mengikuti `kind` jenis, tetapi wajib-tidaknya pertanggungjawaban hanya mengikuti `type.requiresSettlement`.
 

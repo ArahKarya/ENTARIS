@@ -136,7 +136,7 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/', label: 'Dasbor', section: null, icon: LayoutDashboard, keywords: ['dashboard', 'beranda', 'home', 'ringkasan'] }),
   r({ path: '/aira', label: 'Asisten AIRA', section: null, icon: AiraIcon, keywords: ['aira', 'ai', 'agen', 'tanya', 'chat', 'asisten'] }),
   // Every logged-in user files payment requests (no module gate); finance tabs are gated in the page.
-  r({ path: '/payment-requests', label: 'Pengajuan Pembayaran', section: null, icon: HandCoins, keywords: ['pengajuan', 'payment request', 'reimbursement', 'reimburse', 'uang muka', 'kasbon', 'perjalanan dinas', 'klaim'] }),
+  r({ path: '/payment-requests', label: 'Pengajuan Pembayaran', section: null, icon: HandCoins, keywords: ['pengajuan', 'payment request', 'reimbursement', 'reimburse', 'uang muka', 'kasbon', 'perjalanan dinas', 'klaim', 'tagihan eam', 'tagihan aset', 'tagihan ga', 'pajak kendaraan', 'stnk', 'biaya aset', 'posting'] }),
   r({ path: '/payment-requests/new', label: 'Buat Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['ajukan', 'pengajuan baru', 'reimburse'] }),
   r({ path: '/payment-requests/:id', label: 'Detail Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
   r({ path: '/payment-requests/:id/edit', label: 'Ubah Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
@@ -175,7 +175,6 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/coa', label: 'Bagan Akun', section: 'accounting', icon: Network, module: 'coa', keywords: ['coa', 'chart of accounts', 'akun', 'perkiraan'] }),
   r({ path: '/gl', label: 'Jurnal Umum', section: 'accounting', icon: BookOpen, module: 'journal', keywords: ['buku besar', 'general ledger', 'gl', 'jurnal', 'journal'] }),
   r({ path: '/fixed-assets', label: 'Aset Tetap', section: 'accounting', icon: Building, module: 'fixed_assets', keywords: ['fixed asset', 'penyusutan', 'depresiasi'] }),
-  r({ path: '/ga/finance', label: 'Tagihan Aset & Umum', section: 'accounting', icon: Receipt, module: 'ga_finance', keywords: ['tagihan ga', 'ga', 'eam', 'biaya aset', 'posting'] }),
   r({ path: '/approvals', label: 'Persetujuan', section: 'accounting', icon: ShieldCheck, module: 'approvals', keywords: ['approval', 'otorisasi', 'setuju'] }),
 
   // ── Aset & Pemeliharaan (GA/EAM) ───────────────────────────────────────
