@@ -60,8 +60,9 @@ router.get('/summary', async (req: AuthRequest, res) => {
   try {
     const parsed = parseEamQuery(req.query as Record<string, unknown>);
     if (!parsed.ok) return res.status(400).json({ error: parsed.error });
-    // Load everything once: the badge counts the unposted queue across all kinds.
-    const all = await loadGaBills('ALL', true);
+    // Load all kinds once (paid ones only when the filter needs them): the badge
+    // counts the unposted queue across all kinds regardless of the other filters.
+    const all = await loadGaBills('ALL', parsed.query.posting !== 'pending');
     const matched = filterAndSortBills(all, parsed.query, DEFAULT_EAM_SORT);
     return res.json(summarizeEam(all, matched));
   } catch (error) {
