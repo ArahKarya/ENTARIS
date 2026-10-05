@@ -49,7 +49,8 @@
     "import",
     "attachments",
     "payment_request",
-    "ga_material_request"
+    "ga_material_request",
+    "chat_history"
   ],
   "roles": [
     "Admin",
@@ -33152,6 +33153,111 @@
         "kas_draft_get",
         "kas_draft_ubah_baris",
         "je_cancel"
+      ]
+    },
+    {
+      "group": "Master & Sistem",
+      "toolset": "obrolan",
+      "module": "chat_history",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "name": "chat_cari_riwayat",
+      "desc": "Cari di riwayat percakapan panel chat MILIK pemanggil sendiri (pesan pengguna dan jawaban AIRA; pencarian teks penuh + kata). Mengembalikan id sesi, judul, tanggal, dan cuplikan; pakai chat_ambil_sesi untuk membaca sesi lengkap. Hanya sesi milik pemanggil: tidak pernah menampilkan percakapan orang lain.",
+      "input": {
+        "q": "string",
+        "limit": "number"
+      },
+      "params": [
+        {
+          "name": "q",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "Kata kunci (min. 2 karakter), mis. nama pelanggan, nomor dokumen, atau topik yang pernah dibahas."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Maks. hasil (default 10, maks. 50)."
+        }
+      ],
+      "output": {
+        "data": "array",
+        "total": "number"
+      },
+      "outputSummary": "{data:[{sessionId, sessionTitle, messageId, role, date, snippet}], total, hint}.",
+      "handler": "GET /api/chat-history/search",
+      "accessNote": "Semua user login; hanya sesi chat MILIK pemanggil (ditegakkan di server berdasarkan uid aktor). Modul \"chat_history\" bukan modul RBAC (tanpa matriks izin).",
+      "related": [
+        "chat_ambil_sesi"
+      ]
+    },
+    {
+      "group": "Master & Sistem",
+      "toolset": "obrolan",
+      "module": "chat_history",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "name": "chat_ambil_sesi",
+      "desc": "Baca pesan satu sesi percakapan panel chat MILIK pemanggil (urut waktu, berpaging). Gunakan setelah chat_cari_riwayat untuk mengingat detail percakapan lama. Sesi milik orang lain ditolak (tidak ditemukan).",
+      "input": {
+        "id": "string",
+        "page": "number",
+        "limit": "number"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID sesi (dari chat_cari_riwayat)."
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Halaman (default 1)."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Pesan per halaman (default 30, maks. 100)."
+        }
+      ],
+      "output": {
+        "session": "object",
+        "data": "array",
+        "total": "number"
+      },
+      "outputSummary": "{session:{id,title,status,...}, data:[{id, role, status, date, content}], total, page, limit}.",
+      "handler": "GET /api/chat-history/sessions/:id",
+      "accessNote": "Semua user login; hanya sesi chat MILIK pemanggil (sesi lain = 404). Isi pesan dipotong 4.000 karakter per pesan.",
+      "related": [
+        "chat_cari_riwayat"
       ]
     }
   ]

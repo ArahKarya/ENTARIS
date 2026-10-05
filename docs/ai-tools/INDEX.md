@@ -2,7 +2,7 @@
 
 > Dibangkitkan otomatis — jangan edit manual (`npm run ai-tools:docs`).
 
-Total **472** tool (read 217 · write 150 · critical 105); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
+Total **474** tool (read 219 · write 150 · critical 105); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
 
 ## Toolset
 
@@ -21,6 +21,7 @@ Total **472** tool (read 217 · write 150 · critical 105); semuanya aktif secar
 | [Dashboard](dashboard.md) | 17 | 17 | 0 | 0 | Ringkasan dan indikator dashboard. |
 | [Master Data](master-data.md) | 12 | 6 | 5 | 1 | Pelanggan & vendor (Party). |
 | [Sistem](sistem.md) | 17 | 14 | 2 | 1 | Jejak audit, notifikasi, pencarian, profil perusahaan, kesehatan sistem. |
+| [Obrolan (memori percakapan)](obrolan.md) | 2 | 2 | 0 | 0 | Pencarian dan pembacaan riwayat percakapan panel chat milik pemanggil sendiri. |
 
 ## Semua tool
 
@@ -54,6 +55,8 @@ Total **472** tool (read 217 · write 150 · critical 105); semuanya aktif secar
 | [`cdep_list`](penjualan.md#cdep_list) | penjualan | read | - | Admin, Accountant | `GET /api/customer-deposits` |
 | [`cdep_refund`](penjualan.md#cdep_refund) | penjualan | critical | tidak | Admin, Accountant | `POST /api/customer-deposits/:id/refund` |
 | [`cdep_summary`](penjualan.md#cdep_summary) | penjualan | read | - | Admin, Accountant | `GET /api/customer-deposits/summary` |
+| [`chat_ambil_sesi`](obrolan.md#chat_ambil_sesi) | obrolan | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/chat-history/sessions/:id` |
+| [`chat_cari_riwayat`](obrolan.md#chat_cari_riwayat) | obrolan | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/chat-history/search` |
 | [`coa_create`](akuntansi.md#coa_create) | akuntansi | write | tidak | Admin | `POST /api/coa` |
 | [`coa_delete`](akuntansi.md#coa_delete) | akuntansi | critical | tidak | Admin | `DELETE /api/coa/:id` |
 | [`coa_flat`](akuntansi.md#coa_flat) | akuntansi | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/coa/flat` |

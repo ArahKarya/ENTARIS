@@ -2,9 +2,12 @@
 // eksekusi langsung / antrian approval) → catat riwayat. Selalu mengembalikan CallToolResult
 // (kegagalan = isError dengan teks Indonesia), tidak pernah melempar ke transport.
 
-import type { McpToken } from '@prisma/client';
+import type { McpToken, Prisma } from '@prisma/client';
 import { logger } from '../lib/logger';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { emitCall } from './callBus';
+import { buildCard, type CardHint } from './cards';
+import { buildIdentityBlock, type IdentityChannel } from '../ai/identityBlock';
 import { claimIdempotency, finishClaimed, hashArgs, recordCall, releaseClaim, type CallDecision } from './callLog';
 import type { ActorContext } from './context';
 import { callHandler, ArgsError, missingRequired, validateArgs } from './execute';
@@ -26,6 +29,9 @@ interface Outcome {
   httpStatus?: number;
   approvalId?: string;
   error?: string;
+  card?: CardHint;
+  /** id baris mcp_call_logs bila sudah dicatat oleh klaim idempotensi. */
+  logId?: string;
 }
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -47,6 +53,8 @@ export async function handleToolCall(ctx: CallContext, name: string, rawArgs: un
   let risk = 'read';
   let out: Outcome;
   let idemKey: string | undefined;
+  const ref = ctx.actor.ref;
+  if (ref) emitCall({ phase: 'start', ref, tool: name === 'panggil_tool' && typeof args.tool === 'string' ? args.tool : name });
 
   try {
     // Mode ringkas: panggil_tool membungkus tool domain; riwayat dicatat atas nama tool dalam.
@@ -77,8 +85,9 @@ export async function handleToolCall(ctx: CallContext, name: string, rawArgs: un
   }
 
   // Panggilan ber-idempotencyKey sudah dicatat oleh runDomainTool (klaim) — jangan duplikasi.
+  let callId: string | undefined = out.logId;
   if (!idemKey) {
-    await recordCall({
+    callId = await recordCall({
       tokenId: ctx.token.id,
       actorUserId: ctx.actor.id,
       channel: ctx.actor.channel,
@@ -90,6 +99,14 @@ export async function handleToolCall(ctx: CallContext, name: string, rawArgs: un
       durationMs: Date.now() - started,
       approvalId: out.approvalId,
       error: out.error,
+      ref,
+      card: out.card as unknown as Prisma.InputJsonValue | undefined,
+    });
+  }
+  if (ref) {
+    emitCall({
+      phase: 'end', ref, tool: toolName, risk, decision: out.decision, callId,
+      durationMs: Date.now() - started, error: out.error ?? null, card: (out.card as unknown as Record<string, unknown>) ?? null,
     });
   }
   return toCallToolResult(out.result);
@@ -99,7 +116,9 @@ async function runMeta(ctx: CallContext, name: string, args: Record<string, unkn
   const allowed = await allowedToolsFor({ role: ctx.actor.role, airaTier: ctx.actor.airaTier, groupFloor: ctx.actor.groupFloor });
   if (name === 'cari_tool') return fromMeta(cariTool(allowed, args));
   if (name === 'dokumen_tool') return fromMeta(dokumenTool(args, new Set(allowed.map((a) => a.tool.name))));
-  return fromMeta(whoami(ctx.actor, ctx.token.name, allowed));
+  const channel: IdentityChannel = ctx.actor.channel ?? 'cli';
+  const identity = await buildIdentityBlock(ctx.actor.id, { channel, groupFloor: ctx.actor.groupFloor }).catch(() => null);
+  return fromMeta(whoami(ctx.actor, ctx.token.name, allowed, identity?.text));
 }
 
 async function runDomainTool(
@@ -146,6 +165,7 @@ async function runDomainTool(
     risk: tool.risk,
     argsHash: hashArgs(args),
     durationMs: 0,
+    ref: ctx.actor.ref ?? null,
   };
   const useIdem = typeof idempotencyKey === 'string' && tool.risk !== 'read';
   let claimId: string | undefined;
@@ -167,6 +187,14 @@ async function runDomainTool(
   }
 
   const finish = async (o: Outcome): Promise<{ outcome: Outcome; risk: string; idemKey?: string }> => {
+    if (!o.result.isError) {
+      const card = buildCard(name, o.result.structured);
+      if (card) {
+        const structured = { ...o.result.structured, card };
+        o.card = card;
+        o.result = { ...o.result, structured, text: JSON.stringify(structured) };
+      }
+    }
     if (claimId) {
       // Hanya hasil sukses/antrian yang dikunci untuk replay; gagal → lepas klaim, catat sebagai baris biasa.
       const keep = !o.result.isError;
@@ -174,7 +202,9 @@ async function runDomainTool(
         await finishClaimed(claimId, {
           decision: o.decision, httpStatus: o.httpStatus, durationMs: Date.now() - started, approvalId: o.approvalId, error: o.error,
           resultJson: o.result.structured as never,
+          card: o.card as never,
         });
+        o.logId = claimId;
         return { outcome: o, risk: tool.risk, idemKey: idempotencyKey as string };
       }
       await releaseClaim(claimId);

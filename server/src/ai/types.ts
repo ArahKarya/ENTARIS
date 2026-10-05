@@ -21,6 +21,7 @@ export const TOOLSETS = [
   'dashboard',
   'master-data',
   'sistem',
+  'obrolan',
 ] as const;
 export type Toolset = (typeof TOOLSETS)[number];
 

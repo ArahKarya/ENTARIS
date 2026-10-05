@@ -7,6 +7,7 @@ import { runNotificationChecks } from '../services/notificationService';
 import { runSettlementReminders } from '../services/paymentRequestNotify';
 import { pollTelegramUpdates } from '../services/telegramService';
 import { purgeExpiredNonces } from '../mcp/tokenService';
+import { purgeArchivedChatSessions } from '../services/chat/retention';
 
 /**
  * Postgres advisory lock helper. Returns true if THIS connection acquired the
@@ -119,6 +120,20 @@ export function startScheduler(): void {
     cron.schedule('* * * * *', () => {
       void withAdvisoryLock(BigInt('123456789004'), () => pollTelegramUpdates());
     }),
+  );
+
+  // Daily 03:30 Asia/Jakarta: retensi chat (hanya bila AIRA_CHAT_RETENTION_DAYS diisi; hanya sesi ARSIP).
+  tasks.push(
+    cron.schedule('30 3 * * *', () => {
+      void withAdvisoryLock(BigInt('123456789005'), async () => {
+        try {
+          const result = await purgeArchivedChatSessions();
+          if (result.deleted > 0) logger.info(result, 'Chat retention daily run');
+        } catch (err) {
+          logger.error({ err }, 'Chat retention daily run failed');
+        }
+      });
+    }, { timezone: 'Asia/Jakarta' }),
   );
 
   // Run quotation sweeper once at startup to catch anything missed during downtime.

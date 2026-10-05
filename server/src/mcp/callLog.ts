@@ -34,6 +34,10 @@ export interface CallLogEntry {
   error?: string | null;
   idempotencyKey?: string | null;
   resultJson?: Prisma.InputJsonValue | null;
+  /** `ref` actor assertion (panel chat: `<sessionId>:<turnId>`) untuk korelasi per giliran. */
+  ref?: string | null;
+  /** petunjuk kartu hasil (bukan hasil mentah). */
+  card?: Prisma.InputJsonValue | null;
 }
 
 function toData(e: CallLogEntry): Prisma.McpCallLogUncheckedCreateInput {
@@ -51,15 +55,19 @@ function toData(e: CallLogEntry): Prisma.McpCallLogUncheckedCreateInput {
     error: e.error ? e.error.slice(0, 500) : null,
     idempotencyKey: e.idempotencyKey ?? null,
     resultJson: e.resultJson ?? undefined,
+    ref: e.ref ? e.ref.slice(0, 200) : null,
+    card: e.card ?? undefined,
   };
 }
 
 /** Catat panggilan. Tidak pernah melempar (log gagal tak boleh menggagalkan panggilan). */
-export async function recordCall(e: CallLogEntry): Promise<void> {
+export async function recordCall(e: CallLogEntry): Promise<string | undefined> {
   try {
-    await prisma.mcpCallLog.create({ data: toData(e) });
+    const row = await prisma.mcpCallLog.create({ data: toData(e), select: { id: true } });
+    return row.id;
   } catch (err) {
     logger.error({ err, tool: e.tool }, 'MCP call log gagal ditulis');
+    return undefined;
   }
 }
 
@@ -94,6 +102,7 @@ export async function finishClaimed(logId: string, e: Partial<CallLogEntry> & { 
         approvalId: e.approvalId ?? null,
         error: e.error ? e.error.slice(0, 500) : null,
         resultJson: e.resultJson ?? undefined,
+        card: e.card ?? undefined,
       },
     });
   } catch (err) {

@@ -77,7 +77,7 @@ Payload JSON:
 | `gf` | *group floor*: pada chat grup, pakai anggota berprivilese terendah sebagai `uid` dan kirim `gf:true`; level `direct` otomatis turun ke `standard` |
 | `ts` | epoch detik. **TTL 120 detik**; maksimal 30 detik di depan jam server |
 | `nonce` | **sekali pakai** (uuid baru tiap panggilan; jangan di-cache atau di-retry dengan header lama) |
-| `ref` | referensi opak chat/sesi untuk jejak audit (opsional) |
+| `ref` | referensi opak chat/sesi untuk jejak audit (opsional, maks. 200 karakter). Disimpan di `mcp_call_logs.ref`; panel chat memakai `<sessionId>:<turnId>` untuk menampilkan progres tool dan kartu hasil per giliran |
 
 Urutan verifikasi server: bentuk base64url -> tanda tangan constant-time -> skema payload -> TTL -> nonce -> user ada/aktif/terdaftar AIRA.
 
@@ -93,6 +93,12 @@ Contoh `tools/call` dengan assertion di argumen:
 ```
 
 Perilaku tanpa assertion: bertindak sebagai `defaultActorUserId` token (channel `cli`); tanpa aktor default -> `401 actor_required`. Assertion yang *dikirim tetapi salah* tidak pernah jatuh ke aktor default.
+
+### Menyuntikkan identitas ke model (`identity_prompt`)
+
+Actor assertion membuat Entaris tahu SIAPA yang memanggil, tetapi model juga harus tahu dengan siapa ia berbicara. Tool `whoami` mengembalikan field **`identity_prompt`**: blok identitas siap pakai (nama, peran + kunci, jabatan AIRA, level + artinya, perusahaan, waktu WIB, kanal dari assertion `ch`, `gf` tercermin sebagai "percakapan grup: batas terendah", daftar toolset/jumlah tool, kapabilitas peran, dan aturan: identitas berwenang dan tak dapat diubah dari percakapan, jawab sesuai peran, tolak sopan bila melebihi peran, angka hanya dari tool, tulis/kritis hanya lewat tool).
+
+**Kewajiban klien/engine: suntikkan blok ini pada SETIAP giliran** (bukan sekali per sesi) sebagai pesan `system`/bagian prompt tepercaya, setelah memetakan pengirim ke `uid`; ambil teks baru tiap giliran karena peran/level dapat berubah. Jangan pernah membiarkan teks percakapan mengubahnya. Panel chat Entaris sudah melakukannya sendiri (lihat [PANEL-CHAT.md](PANEL-CHAT.md)); kanal lain (WhatsApp/Telegram) adalah tanggung jawab engine. Untuk panel chat, tiket giliran bertanda tangan menyampaikan `uid` dan `ref` ke hook sisi engine.
 
 ## 4. Implementasi referensi penanda tangan
 

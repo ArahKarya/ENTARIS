@@ -2,16 +2,17 @@
   "app": "simple-erp",
   "version": 3,
   "counts": {
-    "tools": 472,
+    "tools": 474,
     "byRisk": {
       "critical": 105,
-      "read": 217,
+      "read": 219,
       "write": 150
     },
     "byToolset": {
       "persetujuan": 14,
       "sistem": 17,
       "penjualan": 65,
+      "obrolan": 2,
       "akuntansi": 33,
       "pengajuan-pembayaran": 31,
       "aset-umum": 141,
@@ -23,7 +24,7 @@
       "produksi": 28,
       "master-data": 12
     },
-    "routes": 553
+    "routes": 557
   },
   "toolsets": [
     {
@@ -600,6 +601,16 @@
         "search_global",
         "set_company_get",
         "set_company_update"
+      ]
+    },
+    {
+      "id": "obrolan",
+      "title": "Obrolan (memori percakapan)",
+      "purpose": "Toolset **obrolan** memberi agen (AIRA) memori percakapan: mencari dan membaca riwayat panel chat milik orang yang sedang dilayani. Entaris menyimpan semua sesi dan pesan panel chat sendiri (per pengguna); agen tidak perlu menyimpan transkrip. Kedua tool bersifat read-only dan hanya melihat sesi MILIK aktor (uid dari actor assertion), ditegakkan di server.",
+      "guide": "### Peta tool\n\n| Kebutuhan | Tool | Risiko | Izin |\n|---|---|---|---|\n| Mencari topik/angka/dokumen yang pernah dibahas | `chat_cari_riwayat` | read | semua user login (milik sendiri) |\n| Membaca percakapan lama secara lengkap | `chat_ambil_sesi` | read | semua user login (milik sendiri) |\n\n### Alur memanggil kembali ingatan\n\n1. Pengguna merujuk hal lama (\"seperti kemarin\", \"angka yang tadi saya sebut\").\n2. Panggil `chat_cari_riwayat` dengan kata kunci spesifik (nama, nomor dokumen, topik). Hasil memuat `sessionId`, judul, tanggal, dan cuplikan.\n3. Bila cuplikan belum cukup, panggil `chat_ambil_sesi` dengan `id` sesi tersebut (berpaging, `page`/`limit`).\n4. Jangan mengarang isi percakapan lama: kutip hanya yang dikembalikan tool. Percakapan orang lain tidak pernah dikembalikan; sesi yang bukan milik aktor dijawab \"tidak ditemukan\".\n\n### Catatan konteks\n\n- Pada panel chat, Entaris sudah mengirim pesan terbaru yang muat dalam anggaran konteks ditambah ringkasan bergulir bagian lama sesi itu. Tool ini untuk detail yang tidak ikut terkirim atau berada di sesi lain.\n- Pencarian memakai pencarian teks penuh (`simple`, netral bahasa) digabung pencocokan substring; kata pendek (< 2 karakter) ditolak.\n- Isi tiap pesan dipotong 4.000 karakter pada `chat_ambil_sesi`.",
+      "tools": [
+        "chat_ambil_sesi",
+        "chat_cari_riwayat"
       ]
     }
   ],
@@ -2341,6 +2352,125 @@
         "args": {
           "status": "Active",
           "partyId": "00000000-0000-0000-0000-000000000000"
+        }
+      }
+    },
+    {
+      "group": "Master & Sistem",
+      "toolset": "obrolan",
+      "module": "chat_history",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "name": "chat_ambil_sesi",
+      "desc": "Baca pesan satu sesi percakapan panel chat MILIK pemanggil (urut waktu, berpaging). Gunakan setelah chat_cari_riwayat untuk mengingat detail percakapan lama. Sesi milik orang lain ditolak (tidak ditemukan).",
+      "input": {
+        "id": "string",
+        "page": "number",
+        "limit": "number"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID sesi (dari chat_cari_riwayat)."
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Halaman (default 1)."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Pesan per halaman (default 30, maks. 100)."
+        }
+      ],
+      "output": {
+        "session": "object",
+        "data": "array",
+        "total": "number"
+      },
+      "outputSummary": "{session:{id,title,status,...}, data:[{id, role, status, date, content}], total, page, limit}.",
+      "handler": "GET /api/chat-history/sessions/:id",
+      "accessNote": "Semua user login; hanya sesi chat MILIK pemanggil (sesi lain = 404). Isi pesan dipotong 4.000 karakter per pesan.",
+      "related": [
+        "chat_cari_riwayat"
+      ],
+      "doc": "### chat_ambil_sesi\n\n**Ringkasan:** Baca pesan satu sesi percakapan panel chat MILIK pemanggil (urut waktu, berpaging). Gunakan setelah chat_cari_riwayat untuk mengingat detail percakapan lama. Sesi milik orang lain ditolak (tidak ditemukan).\n\n- **Risk / tier:** `read` / Auto\n- **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `chat_history` / `view`)\n- **Catatan akses:** Semua user login; hanya sesi chat MILIK pemanggil (sesi lain = 404). Isi pesan dipotong 4.000 karakter per pesan.\n- **Handler:** `GET /api/chat-history/sessions/:id` (src/routes/chatHistory.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `id` | path | `string` | ya | ID sesi (dari chat_cari_riwayat). |\n| `page` | query | `number` | tidak | Halaman (default 1). |\n| `limit` | query | `number` | tidak | Pesan per halaman (default 30, maks. 100). |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"chat_ambil_sesi\",\n  \"args\": {\n    \"id\": \"<id>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"read\",\n  \"data\": \"<{session:{id,title,status,...}, data:[{id, role, status, date, content}], total, page, lim>\"\n}\n```\n\n**Isi hasil:** {session:{id,title,status,...}, data:[{id, role, status, date, content}], total, page, limit}.\n\n**Tool terkait:** [`chat_cari_riwayat`](#chat_cari_riwayat)\n",
+      "example": {
+        "tool": "chat_ambil_sesi",
+        "args": {
+          "id": "<id>"
+        }
+      }
+    },
+    {
+      "group": "Master & Sistem",
+      "toolset": "obrolan",
+      "module": "chat_history",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "name": "chat_cari_riwayat",
+      "desc": "Cari di riwayat percakapan panel chat MILIK pemanggil sendiri (pesan pengguna dan jawaban AIRA; pencarian teks penuh + kata). Mengembalikan id sesi, judul, tanggal, dan cuplikan; pakai chat_ambil_sesi untuk membaca sesi lengkap. Hanya sesi milik pemanggil: tidak pernah menampilkan percakapan orang lain.",
+      "input": {
+        "q": "string",
+        "limit": "number"
+      },
+      "params": [
+        {
+          "name": "q",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "Kata kunci (min. 2 karakter), mis. nama pelanggan, nomor dokumen, atau topik yang pernah dibahas."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Maks. hasil (default 10, maks. 50)."
+        }
+      ],
+      "output": {
+        "data": "array",
+        "total": "number"
+      },
+      "outputSummary": "{data:[{sessionId, sessionTitle, messageId, role, date, snippet}], total, hint}.",
+      "handler": "GET /api/chat-history/search",
+      "accessNote": "Semua user login; hanya sesi chat MILIK pemanggil (ditegakkan di server berdasarkan uid aktor). Modul \"chat_history\" bukan modul RBAC (tanpa matriks izin).",
+      "related": [
+        "chat_ambil_sesi"
+      ],
+      "doc": "### chat_cari_riwayat\n\n**Ringkasan:** Cari di riwayat percakapan panel chat MILIK pemanggil sendiri (pesan pengguna dan jawaban AIRA; pencarian teks penuh + kata). Mengembalikan id sesi, judul, tanggal, dan cuplikan; pakai chat_ambil_sesi untuk membaca sesi lengkap. Hanya sesi milik pemanggil: tidak pernah menampilkan percakapan orang lain.\n\n- **Risk / tier:** `read` / Auto\n- **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `chat_history` / `view`)\n- **Catatan akses:** Semua user login; hanya sesi chat MILIK pemanggil (ditegakkan di server berdasarkan uid aktor). Modul \"chat_history\" bukan modul RBAC (tanpa matriks izin).\n- **Handler:** `GET /api/chat-history/search` (src/routes/chatHistory.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `q` | query | `string` | ya | Kata kunci (min. 2 karakter), mis. nama pelanggan, nomor dokumen, atau topik yang pernah dibahas. |\n| `limit` | query | `number` | tidak | Maks. hasil (default 10, maks. 50). |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"chat_cari_riwayat\",\n  \"args\": {\n    \"q\": \"<q>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"read\",\n  \"data\": \"<{data:[{sessionId, sessionTitle, messageId, role, date, snippet}], total, hint}.>\"\n}\n```\n\n**Isi hasil:** {data:[{sessionId, sessionTitle, messageId, role, date, snippet}], total, hint}.\n\n**Tool terkait:** [`chat_ambil_sesi`](#chat_ambil_sesi)\n",
+      "example": {
+        "tool": "chat_cari_riwayat",
+        "args": {
+          "q": "<q>"
         }
       }
     },

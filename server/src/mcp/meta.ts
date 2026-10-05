@@ -2,6 +2,7 @@
 // Hanya membaca registry/katalog — tidak menyentuh data bisnis.
 
 import { TOOLSETS } from '../ai/types';
+import { summarizeToolsets, tierMeaning } from '../ai/identityBlock';
 import { effectiveUserTier } from './policy';
 import { docForTool, docForToolset } from './catalogDocs';
 import type { AllowedTool } from './toolAccess';
@@ -44,7 +45,7 @@ export function metaToolDefs(compact: boolean): McpToolDef[] {
     },
     {
       name: 'whoami',
-      description: 'Siapa Anda bertindak sebagai: user Entaris, jabatan AIRA, level akses (read/standard/direct), channel, dan toolset yang boleh dipakai. Panggil di awal percakapan untuk menyesuaikan persona dan batasan.',
+      description: 'Siapa Anda bertindak sebagai: user Entaris, jabatan AIRA, level akses (read/standard/direct), channel, dan toolset yang boleh dipakai. Hasil menyertakan identity_prompt (blok identitas siap pakai). Panggil di awal percakapan untuk menyesuaikan persona dan batasan.',
       inputSchema: { type: 'object', properties: {} },
       annotations: ro('Identitas aktor'),
     },
@@ -124,15 +125,7 @@ export function dokumenTool(args: Record<string, unknown>, allowedNames: Set<str
   return { isError: false, structured: { toolset, markdown: doc } };
 }
 
-export function whoami(actor: ActorContext, tokenName: string, allowed: AllowedTool[]): MetaResult {
-  const byToolset = new Map<string, { read: number; write: number; critical: number; total: number }>();
-  for (const a of allowed) {
-    const k = a.tool.toolset ?? 'lainnya';
-    const row = byToolset.get(k) ?? { read: 0, write: 0, critical: 0, total: 0 };
-    row[a.tool.risk] += 1;
-    row.total += 1;
-    byToolset.set(k, row);
-  }
+export function whoami(actor: ActorContext, tokenName: string, allowed: AllowedTool[], identityPrompt?: string): MetaResult {
   const effective = effectiveUserTier(actor.airaTier, actor.groupFloor);
   return {
     isError: false,
@@ -142,14 +135,15 @@ export function whoami(actor: ActorContext, tokenName: string, allowed: AllowedT
         level: actor.airaTier,
         level_efektif: effective,
         lantai_grup: actor.groupFloor,
-        arti: effective === 'read' ? 'Hanya tool baca.' : effective === 'direct' ? 'Tool tulis/kritis dijalankan langsung atas nama Anda (tetap tunduk pada RBAC).' : 'Tool baca & draft langsung; tulis non-draft dan kritis menunggu persetujuan manusia.',
+        arti: tierMeaning(effective),
       },
       channel: actor.channel,
       ref: actor.ref ?? null,
       token: tokenName,
       identitas_dari: actor.viaAssertion ? 'actor_assertion' : 'aktor_default_token',
-      toolset: [...byToolset.entries()].map(([toolset, c]) => ({ toolset, ...c })).sort((a, b) => a.toolset.localeCompare(b.toolset)),
+      toolset: summarizeToolsets(allowed),
       total_tool: allowed.length,
+      ...(identityPrompt ? { identity_prompt: identityPrompt } : {}),
     },
   };
 }

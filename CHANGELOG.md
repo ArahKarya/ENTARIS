@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Panel chat AIRA tahap 3: sesi disimpan Entaris, agen lewat API kompatibel-OpenAI
+**Ditambah**:
+- Entaris menyimpan **sesi & pesan chat sendiri** per pengguna (`chat_sessions`, `chat_messages`, `chat_attachments`; migrasi loose idempoten `2026101400000_chat_sessions.sql` dengan FTS `simple` + trigram bila `pg_trgm` tersedia). Riwayat, pencarian, ganti nama, arsip/pulihkan, hapus (diaudit), ekspor Markdown/JSON, sesi terakhir dibuka lintas perangkat, lampiran gambar (dan PDF opsional).
+- Panel memanggil agen pemilik lewat **API kompatibel-OpenAI** (stream SSE): ENV `AIRA_ENGINE_URL`, `AIRA_ENGINE_KEY`, opsional `AIRA_ENGINE_MODEL`, `AIRA_ENGINE_TIMEOUT_MS`, `AIRA_ENGINE_TURN_SECRET`, `AIRA_CHAT_*`; bukan di UI Pengaturan (hanya baris status "Engine terhubung/offline"). Tiap giliran mengirim jendela konteks (anggaran token) + ringkasan bergulir inkremental; `user` = id pengguna Entaris.
+- **Blok identitas tepercaya** (peran, jabatan AIRA, level, toolset, kapabilitas, perusahaan, waktu WIB, aturan) disusun server dari DB pada setiap giliran sebagai pesan `system` pertama; konten `system` dari browser dibuang; `actorSnapshot` disimpan per pesan pengguna. Tool MCP `whoami` kini mengembalikan `identity_prompt` untuk kanal lain.
+- `mcp_call_logs.ref` + `card`: panggilan tool per giliran (`ref` = `<sessionId>:<turnId>`) dan petunjuk **kartu hasil** seragam (`structuredContent.card`: Draft Buku Kas, draft produksi, pengajuan pembayaran, PO/penawaran/SO, antrian persetujuan). Panel menampilkan chip progres tool + kartu secara langsung.
+- Toolset baru **`obrolan`** (14 toolset, 474 tool): `chat_cari_riwayat`, `chat_ambil_sesi` (hanya sesi milik aktor).
+- Retensi opsional `AIRA_CHAT_RETENTION_DAYS` (hanya sesi arsip), batas 20 giliran/menit/pengguna, satu giliran per sesi.
+- UI `/aira` dibangun ulang (daftar sesi dengan pencarian & kelompok waktu, drawer di 390 px, Markdown aman, chip tool, kartu, banner offline, stop/Coba lagi).
+- Dokumen: `docs/ai-tools/PANEL-CHAT.md`; agen tiruan reusable untuk uji (`server/src/__tests__/helpers/mockAgent.ts`).
+
+**Dihapus**: proxy panel chat ke layanan lama (`/api/ai/chat/approve`, `/cashbook-approve`, `/cashbook-cancel`, `aira-health`), env `AIRA_CORE_BASE_URL` / `AIRA_API_TOKEN`, jaringan Docker `aira-net`, komponen `CashBookCard`/`DraftCard`, cache sessionStorage panel.
+
+**Deploy**: jalankan migrasi (`prisma migrate deploy` + file `.sql` lepas; entrypoint menjalankan keduanya). Set `AIRA_ENGINE_URL` + `AIRA_ENGINE_KEY` (+ `AIRA_ENGINE_TURN_SECRET`, >= 32 karakter) di `.env`; hapus `AIRA_CORE_BASE_URL`/`AIRA_API_TOKEN` dan jaringan `aira-net` dari konfigurasi lama. Di sisi agen: pasang hook yang memverifikasi tiket giliran dan menandatangani actor assertion per panggilan MCP (lihat `docs/ai-tools/PANEL-CHAT.md`). Tabel chat ikut `pg_dump` penuh dan volume `uploads` (tanpa perubahan skrip backup).
+
 ### Fitur: Buku Kas dari nota (Draft Buku Kas) - AIRA tahap 2b
 **Ditambah**:
 - **Draft Buku Kas** (`DKB-YYYYMM-NNNN`): halaman buku kas / nota yang dibaca engine AIRA dari foto (atau ditempel/CSV oleh manusia) disimpan sebagai draft tanpa efek ke buku besar. Tabel `cash_book_drafts`, `cash_book_draft_rows`, `cash_book_learned_maps`; migrasi loose idempoten `2026101300000_cash_book_drafts.sql`.
