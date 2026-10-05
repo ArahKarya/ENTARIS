@@ -1,19 +1,19 @@
-# Arsitektur MCP: Entaris sebagai MCP Server untuk Hermes
+# Arsitektur MCP: Entaris sebagai MCP Server untuk engine AIRA
 
-Status: **Tahap 1-2 diimplementasikan** (endpoint `/mcp`, identitas per-user, tier & antrian persetujuan, token & riwayat di Settings). Panel chat masih memakai proxy lama (tahap 3). Katalog tool: [README.md](README.md) · [INDEX.md](INDEX.md). Panduan pemasangan Hermes: [HERMES-SETUP.md](HERMES-SETUP.md).
+Status: **Tahap 1-2 diimplementasikan** (endpoint `/mcp`, identitas per-user, tier & antrian persetujuan, token & riwayat di Settings). Panel chat masih memakai proxy lama (tahap 3). Katalog tool: [README.md](README.md) · [INDEX.md](INDEX.md). Panduan klien MCP (koneksi, assertion, implementasi referensi): [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md).
 
 ## Ringkasan
 
 - **Satu endpoint** `POST /mcp` (Streamable HTTP, **stateless**, respons JSON). Tidak ada endpoint per-toolset.
 - Menyajikan **semua tool registry yang tidak masuk denylist** (462, semuanya `enabled:true` secara default; owner dapat menonaktifkan/menetapkan tier per tool lewat `PATCH /api/ai/config/tools/:name`) ditambah meta-tool `cari_tool`, `dokumen_tool`, `whoami` (+ `panggil_tool` pada mode ringkas).
-- **Entaris, bukan Hermes, memutuskan siapa boleh apa**: tiap panggilan dijalankan lewat handler Express asli dengan JWT berumur pendek atas nama **user Entaris** yang sedang dilayani. RBAC, validasi Zod, `needsApproval`, jejak audit berlaku seperti di UI.
-- Hanya dijangkau lewat jaringan privat (Tailscale); jangan dipublikasikan ke internet.
+- **Entaris, bukan engine AIRA, memutuskan siapa boleh apa**: tiap panggilan dijalankan lewat handler Express asli dengan JWT berumur pendek atas nama **user Entaris** yang sedang dilayani. RBAC, validasi Zod, `needsApproval`, jejak audit berlaku seperti di UI.
+- Hanya dijangkau lewat jaringan privat; jangan dipublikasikan ke internet.
 
 ## Identitas: token + actor assertion
 
 Dua lapis autentikasi per request:
 
-1. **Token servis per profil Hermes**: `Authorization: Bearer entmcp_...` (dibuat di *Settings > AIRA (MCP)*). Hanya `sha256(token)` yang disimpan. Token punya `signing secret` (`entsig_...`) yang dipakai menandatangani assertion.
+1. **Token servis per profil engine AIRA**: `Authorization: Bearer entmcp_...` (dibuat di *Settings > AIRA (MCP)*). Hanya `sha256(token)` yang disimpan. Token punya `signing secret` (`entsig_...`) yang dipakai menandatangani assertion.
 2. **Actor assertion per panggilan** yang menyatakan *siapa* yang sedang dilayani.
 
 ### Spesifikasi actor assertion (v1)
@@ -29,13 +29,13 @@ Payload JSON:
 {"v":1,"uid":"<id user Entaris>","ch":"whatsapp|telegram|panel|cli","gf":false,"ts":1790000000,"nonce":"<uuid>","ref":"<opaque chat/session ref, opsional>"}
 ```
 
-- `uid` = id user Entaris (Hermes memetakan identitas channel -> user id; **nomor WhatsApp/Telegram tidak disimpan di Entaris**).
-- `gf` = *group floor*: Hermes memakai anggota grup berprivilese terendah sebagai `uid`. Bila `gf=true`, level `direct` diturunkan menjadi `standard` (tulis/kritis selalu lewat persetujuan).
+- `uid` = id user Entaris (engine AIRA memetakan identitas channel -> user id; **nomor WhatsApp/Telegram tidak disimpan di Entaris**).
+- `gf` = *group floor*: engine AIRA memakai anggota grup berprivilese terendah sebagai `uid`. Bila `gf=true`, level `direct` diturunkan menjadi `standard` (tulis/kritis selalu lewat persetujuan).
 - `ts` epoch detik. **TTL 120 detik**; `ts` boleh maksimal 30 detik di depan jam server.
 - `nonce` **sekali pakai**. Disimpan di tabel `mcp_nonces` (unique `(token_id, nonce)`): insert unik = atomik lintas replika dan tahan restart; dibersihkan scheduler tiap jam (retensi = TTL + skew). Dipilih dibanding Map in-memory karena TTL 120 detik akan terbuka untuk replay setelah restart bila hanya di memori.
 - Verifikasi (urutan): bentuk base64url -> **tanda tangan constant-time** (`timingSafeEqual`) sebelum payload dipercaya -> skema payload -> TTL -> nonce -> user ada/aktif/**terdaftar AIRA** (`airaEnabled`).
 - Tanpa assertion: panggilan bertindak sebagai `defaultActorUserId` token (untuk CLI/dev/Claude Desktop), channel `cli`. Tanpa aktor default -> `401 actor_required`. Assertion yang *dikirim tetapi salah* tidak pernah jatuh ke aktor default.
-- **Alternatif pembawa** untuk klien yang hanya punya header statis (mis. Hermes, lihat HERMES-SETUP): assertion yang sama boleh dikirim di `params.arguments._entaris_actor` + `_entaris_actor_sig` pada `tools/call`. Kunci itu dibuang sebelum tool dijalankan; keamanan identik (HMAC + TTL + nonce, model AI tidak memegang secret sehingga tak bisa memalsukan). Header menang bila keduanya ada.
+- **Alternatif pembawa** untuk klien yang hanya punya header statis (lihat [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md)): assertion yang sama boleh dikirim di `params.arguments._entaris_actor` + `_entaris_actor_sig` pada `tools/call`. Kunci itu dibuang sebelum tool dijalankan; keamanan identik (HMAC + TTL + nonce, model AI tidak memegang secret sehingga tak bisa memalsukan). Header menang bila keduanya ada.
 
 Kode galat (HTTP + JSON-RPC `error.data.code`): `token_missing|token_invalid|token_revoked|token_expired` (401), `actor_assertion_malformed|actor_signature_invalid|actor_assertion_expired|actor_assertion_future|actor_nonce_replayed|actor_required` (401), `actor_unknown|actor_inactive|actor_not_registered` (403), `agentic_disabled` (503), `rate_limited` (429, `Retry-After`), `payload_too_large` (413), `method_not_allowed` (405).
 
@@ -56,7 +56,7 @@ Override per tool (`AiToolConfig`): `enabled=false` menyembunyikan tool; tier `m
 ## Alur eksekusi
 
 ```
-Hermes --POST /mcp (Bearer + assertion)--> gerbang: token -> kill switch -> rate limit -> aktor
+Engine AIRA --POST /mcp (Bearer + assertion)--> gerbang: token -> kill switch -> rate limit -> aktor
    tools/call:
      meta-tool            -> hasil langsung
      tool domain:
@@ -100,8 +100,7 @@ Manusia di Entaris > Persetujuan:
 
 ## Konteks & fakta terverifikasi
 
-- Hermes Agent punya MCP client (`hermes mcp add --url ... --auth header`) dan platform gateway `api_server`; profil: `aira-dev`, `aira-dpa`, `aira-pmd` (Raspberry Pi 5, Tailscale). Temuan kemampuan klien MCP Hermes: lihat [HERMES-SETUP.md](HERMES-SETUP.md).
-- Plugin `erp_pmd` (repo aira-pmd) saat ini mengotorisasi di sisi klien dengan satu user servis ERP; digantikan oleh model ini.
+- Engine AIRA bertindak sebagai klien MCP standar (token statis + assertion per panggilan). Detail koneksi klien: [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md).
 - Registry: `server/src/ai/aira-tool-router.json` (sumber tunggal) -> [README.md](README.md).
 
 ## Tier katalog
@@ -114,11 +113,11 @@ Manusia di Entaris > Persetujuan:
 
 `draftCapable`, `postingEffect`, `confirm_template` menjadi bahan UI persetujuan (teks konfirmasi dirender dari template + argumen).
 
-## Keputusan: Hermes menggantikan AIRA Core
+## Keputusan: engine AIRA menggantikan AIRA Core
 
-**AIRA Core** (agent core LangGraph.js; tidak berjalan di RPi5) **digantikan oleh profil Hermes Agent** (Opsi 1 owner). Panel chat Entaris akan diarahkan ulang ke `api_server` profil Hermes (tahap 3; sementara proxy `/api/ai/chat/*` dipertahankan dan menampilkan *offline*).
+**AIRA Core** (agent core LangGraph.js) **digantikan oleh engine AIRA** (Opsi 1 owner). Panel chat Entaris akan diarahkan ulang ke API engine AIRA (tahap 3; sementara proxy `/api/ai/chat/*` dipertahankan dan menampilkan *offline*).
 
-**Dipindahkan ke service server Entaris (tahap 2 lanjutan):** logika cashbook-dari-struk (`classifyRows`, `buildCashBookDraft`, `journalBuilder`, `resolvers`) -> tool tulis **`kas_buat_draft_dari_baris`** yang membuat draft jurnal; tier `policy.ts`/`AIRA_AUTO_MAX_AMOUNT` -> ambang tier per tool. **Tidak dipindahkan:** memory/RAG (Honcho) dan penjadwal (cron Hermes).
+**Dipindahkan ke service server Entaris (tahap 2 lanjutan):** logika cashbook-dari-struk (`classifyRows`, `buildCashBookDraft`, `journalBuilder`, `resolvers`) -> tool tulis **`kas_buat_draft_dari_baris`** yang membuat draft jurnal; tier `policy.ts`/`AIRA_AUTO_MAX_AMOUNT` -> ambang tier per tool. **Tidak dipindahkan:** memory/RAG dan penjadwal tetap di sisi engine AIRA.
 
 ## Tahapan
 
@@ -127,5 +126,5 @@ Manusia di Entaris > Persetujuan:
 | 0 | Katalog lengkap + drift guard | selesai |
 | 1-2 | `/mcp`, token + actor assertion, tier, antrian persetujuan, Settings AIRA (MCP), registrasi pengguna | **selesai (dokumen ini)** |
 | 2b | Tool `kas_buat_draft_dari_baris`, prompts MCP, resource katalog | belum |
-| 3 | Panel chat -> `api_server` Hermes | belum |
+| 3 | Panel chat -> API engine AIRA | belum |
 | 4 | Pensiun aira-core (proxy `/api/ai/chat/*`, env `AIRA_CORE_BASE_URL`/`AIRA_API_TOKEN`, jaringan `aira-net`) | belum |

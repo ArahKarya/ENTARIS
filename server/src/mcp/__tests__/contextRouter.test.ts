@@ -197,7 +197,7 @@ describe('POST /mcp (HTTP gates)', () => {
     expect((await post(LIST)).status).toBe(401);
   });
 
-  it('assertion can ride in tools/call arguments (static-header clients like Hermes); keys are stripped', async () => {
+  it('assertion can ride in tools/call arguments (static-header clients); keys are stripped', async () => {
     const a = assertion({ ch: 'telegram' });
     const call = {
       jsonrpc: '2.0', id: 5, method: 'tools/call',

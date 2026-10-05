@@ -25,8 +25,8 @@ interface EmbeddedAssertion {
 }
 
 /**
- * Klien MCP seperti Hermes hanya punya header STATIS per server, tetapi hook `pre_tool_call`-nya
- * dapat menambah argumen. Maka assertion boleh dibawa di `params.arguments` (kunci khusus, dibuang
+ * Sebagian klien MCP hanya punya header STATIS per server, tetapi lapisan integrasinya
+ * dapat menambah argumen sebelum pemanggilan tool. Maka assertion boleh dibawa di `params.arguments` (kunci khusus, dibuang
  * sebelum tool jalan). Keamanan sama dengan header: HMAC dengan signing secret, TTL, nonce sekali pakai —
  * model AI tidak bisa memalsukannya karena tak memegang secret.
  */
@@ -100,7 +100,7 @@ router.post('/', async (req: Request, res: Response) => {
     const methods = methodsOf(req.body);
     const compact = isCompactMode(req.headers, req.query);
     // tools/list mode ringkas hanya memuat definisi meta-tool statis → tak perlu aktor
-    // (klien dengan header statis mis. Hermes dapat menemukan tool tanpa assertion).
+    // (klien dengan header statis dapat menemukan tool tanpa assertion).
     const needsActor = methods.some((m) => m === 'tools/call' || (m === 'tools/list' && !compact));
     const embedded = extractEmbeddedAssertion(req.body);
     const hasHeaderAssertion = req.headers['x-entaris-actor'] !== undefined || req.headers['x-entaris-actor-sig'] !== undefined;

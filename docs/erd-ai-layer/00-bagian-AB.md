@@ -1,7 +1,7 @@
 # Dokumen Teknis: ERD & AI Layer untuk Entaris — Fungsi ERP Lengkap
 
 **Produk:** Lapisan AI Agentic (AI Resident Assistant) untuk Entaris — ArahKarya
-**Arsitektur:** Hermes Agent sebagai engine + ERP Tool API + model Claude Opus via 9router
+**Arsitektur:** engine AIRA + ERP Tool API + model AI terkelola
 **Cakupan:** SELURUH 35 modul ERP (250+ endpoint, 96 entitas)
 **Disiapkan oleh:** Arah Karya Sinergi (AKS)
 **Tanggal:** 23 Juni 2026 · **Versi:** 1.0 (Highest-Effort / ERP-wide)
@@ -21,7 +21,7 @@ Inti dokumen:
    audit aksi, whitelist, identitas agen, memori) beserta relasinya ke 96 entitas ERP yang sudah ada.
 2. **Pemetaan fungsi ERP lengkap** — katalog tool agentic untuk tiap modul (READ / DRAFT / ACTION) lengkap
    dengan tingkat izin (tier), dipetakan ke endpoint dan service nyata di kode.
-3. **Arsitektur & keamanan** — Hermes sebagai engine, kanal WhatsApp (informasi) + Telegram (persetujuan),
+3. **Arsitektur & keamanan** — engine AIRA, kanal WhatsApp (informasi) + Telegram (persetujuan),
    model izin dua-lapis, dan jejak audit penuh untuk setiap aksi AI.
 
 Temuan kunci dari audit kode: **fondasi agentic sudah ~80% tersedia.** ERP telah memiliki RBAC dinamis,
@@ -128,7 +128,7 @@ Entitas ini **menambah**, tidak mengubah, skema ERP existing — relasi ke ERP d
 | content | text | Isi pesan |
 | toolCallId | uuid? (FK→AiToolCall) | Bila pesan = hasil tool |
 | tokensIn / tokensOut | int | Untuk akunting biaya |
-| costUsd | decimal? | Biaya token (Opus@9router) |
+| costUsd | decimal? | Biaya token model AI |
 | createdAt | datetime | |
 
 ### AiToolCall — panggilan tool

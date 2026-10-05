@@ -69,7 +69,7 @@ function RevealDialog({ revealed, onClose }: { revealed: Revealed | null; onClos
             <DialogHeader>
               <DialogTitle>{revealed.title}</DialogTitle>
               <DialogDescription>
-                Simpan sekarang di pengelola rahasia Hermes. Nilai ini <strong>hanya ditampilkan sekali</strong> dan tidak dapat dilihat lagi.
+                Simpan sekarang di pengelola rahasia engine AIRA. Nilai ini <strong>hanya ditampilkan sekali</strong> dan tidak dapat dilihat lagi.
               </DialogDescription>
             </DialogHeader>
 
@@ -160,9 +160,9 @@ function CreateDialog({ open, onClose, onCreated }: { open: boolean; onClose: ()
         <form onSubmit={submit} noValidate className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Buat token MCP</DialogTitle>
-            <DialogDescription>Satu token per profil Hermes (mis. aira-dev). Token dan signing secret ditampilkan sekali setelah dibuat.</DialogDescription>
+            <DialogDescription>Satu token per profil engine AIRA (mis. aira-dev). Token dan signing secret ditampilkan sekali setelah dibuat.</DialogDescription>
           </DialogHeader>
-          <Field label="Nama / label" required hint="Mis. aira-dev atau aira-pmd.">
+          <Field label="Nama / label" required hint="Mis. aira-dev.">
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" />
           </Field>
           <Field label="Aktor default (opsional)" hint="Dipakai bila panggilan tanpa actor assertion (CLI / uji). Kosong = assertion wajib. Hanya pengguna yang diberi Akses AIRA.">
@@ -270,7 +270,7 @@ export function McpTokensCard() {
   return (
     <SettingsCard
       title="Token MCP"
-      description="Satu token per profil Hermes. Identitas pengguna dikirim per pesan lewat actor assertion bertanda tangan (HMAC dengan signing secret token)."
+      description="Satu token per profil engine AIRA. Identitas pengguna dikirim per pesan lewat actor assertion bertanda tangan (HMAC dengan signing secret token)."
       actions={canEdit && <Button type="button" size="sm" onClick={() => setCreating(true)}><Plus aria-hidden />Buat token</Button>}
     >
       {isLoading ? (
@@ -278,7 +278,7 @@ export function McpTokensCard() {
       ) : error ? (
         <p role="alert" className="text-sm text-danger-text">{apiError(error, 'Gagal memuat token.')}</p>
       ) : !tokens || tokens.length === 0 ? (
-        <EmptyState title="Belum ada token" description="Buat token untuk menghubungkan profil Hermes ke Entaris." />
+        <EmptyState title="Belum ada token" description="Buat token untuk menghubungkan profil engine AIRA ke Entaris." />
       ) : (
         <ul className="space-y-3" aria-label="Daftar token MCP">
           {tokens.map((t) => (
@@ -295,7 +295,7 @@ export function McpTokensCard() {
         onOpenChange={(o) => !o && setRotating(null)}
         tone="danger"
         title={`Putar signing secret "${rotating?.name ?? ''}"?`}
-        description="Secret lama berhenti berlaku seketika; actor assertion yang ditandatangani dengan secret lama akan ditolak sampai Hermes memakai secret baru."
+        description="Secret lama berhenti berlaku seketika; actor assertion yang ditandatangani dengan secret lama akan ditolak sampai engine AIRA memakai secret baru."
         confirmLabel="Putar secret"
         onConfirm={() => (rotating ? rotate.mutateAsync(rotating) : undefined)}
       />
@@ -304,7 +304,7 @@ export function McpTokensCard() {
         onOpenChange={(o) => !o && setRevoking(null)}
         tone="danger"
         title={`Cabut token "${revoking?.name ?? ''}"?`}
-        description="Token tidak dapat dipakai lagi dan pencabutan tidak dapat dibatalkan. Buat token baru bila Hermes masih perlu terhubung."
+        description="Token tidak dapat dipakai lagi dan pencabutan tidak dapat dibatalkan. Buat token baru bila engine AIRA masih perlu terhubung."
         confirmLabel="Cabut token"
         onConfirm={() => (revoking ? revoke.mutateAsync(revoking) : undefined)}
       />

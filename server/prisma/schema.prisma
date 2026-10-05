@@ -777,7 +777,7 @@ model User {
   telegramChatId              String?                      @map("telegram_chat_id")
   telegramLinkCode            String?                      @unique @map("telegram_link_code")
   // AIRA (MCP): user harus didaftarkan agar bisa dipakai sebagai aktor agen. Channel
-  // (WhatsApp/Telegram) TIDAK disimpan di Entaris — Hermes memetakan identitas channel ke user id.
+  // (WhatsApp/Telegram) TIDAK disimpan di Entaris — engine AIRA memetakan identitas channel ke user id.
   airaEnabled                 Boolean                      @default(false) @map("aira_enabled")
   // read = hanya tool baca | standard = semua tool dgn tier (tulis non-draft & kritis → antrian approval) | direct = tulis/kritis langsung sebagai aktor
   airaTier                    String                       @default("standard") @map("aira_tier")
@@ -3465,7 +3465,7 @@ model PaymentRequestHistory {
 }
 
 // ─── MCP (AIRA) ──────────────────────────────────────────────────────────────
-/// Token servis per profil Hermes untuk endpoint /mcp. Token TIDAK disimpan (hanya sha256);
+/// Token servis per profil engine AIRA untuk endpoint /mcp. Token TIDAK disimpan (hanya sha256);
 /// signingSecretEnc = secret HMAC (AES-256-GCM) untuk memverifikasi actor assertion.
 model McpToken {
   id                 String       @id @default(uuid())

@@ -66,7 +66,7 @@ services:
       MCP_SECRET_KEY: "${MCP_SECRET_KEY:-}"
       # ── AIRA panel chat (M4.5) — ERP proxy ke aira-core via network aira-net (DNS container). ──
       AIRA_CORE_BASE_URL: "${AIRA_CORE_BASE_URL:-http://aira-core:8080}"
-      # AIRA panel auth - Bearer token utk proxy ke aira-core (/v1/*). OPSIONAL (panel chat; akan diarahkan ke Hermes pada tahap 3).
+      # AIRA panel auth - Bearer token utk proxy ke aira-core (/v1/*). OPSIONAL (panel chat; akan diarahkan ke engine AIRA pada tahap 3).
       AIRA_API_TOKEN: "${AIRA_API_TOKEN:-}"
     volumes:
       - backups:/app/server/backups

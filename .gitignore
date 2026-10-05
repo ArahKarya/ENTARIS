@@ -41,8 +41,6 @@ server/backups/
 
 # Claude
 .claude/
-# Hermes
-.hermes/
 backups/
 
 # User uploads (runtime data, never commit)

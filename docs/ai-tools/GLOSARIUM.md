@@ -63,6 +63,6 @@ Istilah bisnis (Indonesia) dan padanan teknisnya di kode/tool. Lihat juga pandua
 | **Toolset** | Kelompok tool (satu endpoint MCP per toolset) |
 | **Tier** | read=Auto, write=Draft/Approve, critical=Wajib-Approve |
 | **Denylist** | Endpoint yang tidak boleh menjadi tool ([DENYLIST.md](DENYLIST.md)) |
-| **MCP** | Model Context Protocol — cara Hermes memanggil tool Entaris |
+| **MCP** | Model Context Protocol — cara engine AIRA memanggil tool Entaris |
 | **Actor assertion** | Pernyataan identitas bertanda tangan HMAC yang menyertai tiap panggilan ([ARSITEKTUR-MCP.md](ARSITEKTUR-MCP.md)) |
 | **AIRA registry** | Daftar orang yang boleh berbicara dengan AIRA + peran/domain/flag mereka |

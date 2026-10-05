@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { formatNumber } from '@/lib/format';
-import { hermesAddCommand, healthCurl, initializeCurl, mcpUrl, normalizeBaseUrl } from '@/lib/mcpEndpoint';
+import { authorizationHeader, healthCurl, initializeCurl, mcpUrl, normalizeBaseUrl } from '@/lib/mcpEndpoint';
 import { ConfirmDialog, Field, LoadingState } from '@/components/shared';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,7 @@ export function McpStatusCard() {
   return (
     <SettingsCard
       title="Status AIRA (MCP)"
-      description="Entaris menyajikan seluruh tool ke mesin AI (Hermes) lewat satu endpoint MCP. Hak akses mengikuti pengguna yang sedang dilayani."
+      description="Entaris menyajikan seluruh tool ke mesin AI (engine AIRA) lewat satu endpoint MCP. Hak akses mengikuti pengguna yang sedang dilayani."
       actions={status && (
         <Badge variant={status.enabled ? 'success' : 'danger'} className="gap-1.5">
           <span aria-hidden className={status.enabled ? 'size-1.5 rounded-full bg-success' : 'size-1.5 rounded-full bg-danger'} />
@@ -114,7 +114,7 @@ export function McpStatusCard() {
         onOpenChange={setConfirmOff}
         tone="danger"
         title="Matikan AIRA (MCP)?"
-        description="Semua panggilan dari Hermes ditolak (503) sampai Anda mengaktifkannya lagi. Pengajuan yang sudah menunggu persetujuan tidak terpengaruh."
+        description="Semua panggilan dari engine AIRA ditolak (503) sampai Anda mengaktifkannya lagi. Pengajuan yang sudah menunggu persetujuan tidak terpengaruh."
         confirmLabel="Matikan"
         onConfirm={() => toggle.mutateAsync(false)}
       />
@@ -132,7 +132,7 @@ function initialBase(): string {
   }
 }
 
-/** Info endpoint + perintah siap-salin untuk Hermes dan cek kesehatan. */
+/** Info endpoint + header Authorization + cek kesehatan yang berlaku untuk klien MCP mana pun. */
 export function McpEndpointCard() {
   const [base, setBase] = useState(initialBase);
   const clean = normalizeBaseUrl(base) || window.location.origin;
@@ -149,19 +149,19 @@ export function McpEndpointCard() {
   return (
     <SettingsCard
       title="Endpoint MCP"
-      description="Satu endpoint untuk semua tool (Streamable HTTP, stateless). Jangkau lewat jaringan privat (Tailscale); jangan dibuka ke internet publik."
+      description="Satu endpoint untuk semua tool (Streamable HTTP, stateless). Jangkau lewat jaringan privat; jangan dibuka ke internet publik."
     >
       <div className="space-y-4">
         <Field
           label="Alamat dasar Entaris"
-          hint="Alamat yang dipakai Hermes untuk menjangkau Entaris (mis. alamat Tailscale). Hanya mengubah contoh perintah di bawah."
+          hint="Alamat yang dipakai klien MCP untuk menjangkau Entaris (mis. alamat jaringan privat). Hanya mengubah contoh di bawah."
         >
           <Input value={base} onChange={(e) => change(e.target.value)} inputMode="url" autoComplete="off" spellCheck={false} className="font-mono" />
         </Field>
         <CodeLine label="URL endpoint" value={mcpUrl(clean)} what="URL endpoint" />
-        <CodeLine label="Daftarkan ke Hermes (jalankan di profil Hermes)" value={hermesAddCommand(clean)} what="perintah Hermes" />
+        <CodeLine label="Header Authorization (ganti <TOKEN_MCP>)" value={authorizationHeader()} what="header Authorization" />
         <CodeLine label="Cek jangkauan (tanpa token)" value={healthCurl(clean)} what="perintah curl" />
-        <CodeLine label="Uji autentikasi (ganti <TOKEN_MCP>)" value={initializeCurl(clean)} what="perintah curl initialize" />
+        <CodeLine label="Uji JSON-RPC initialize (ganti <TOKEN_MCP>)" value={initializeCurl(clean)} what="perintah curl initialize" />
       </div>
     </SettingsCard>
   );

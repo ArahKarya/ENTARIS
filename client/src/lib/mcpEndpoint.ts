@@ -1,4 +1,4 @@
-/** Helper tampilan untuk Settings → AIRA (MCP): URL endpoint, perintah Hermes, health check. */
+/** Helper tampilan untuk Settings → AIRA (MCP): URL endpoint, header Authorization, health check. */
 
 /** Hapus garis miring akhir & spasi; kosong tetap kosong. */
 export function normalizeBaseUrl(raw: string): string {
@@ -9,9 +9,9 @@ export function mcpUrl(baseUrl: string): string {
   return `${normalizeBaseUrl(baseUrl)}/mcp`;
 }
 
-/** Perintah siap-salin untuk mendaftarkan Entaris ke profil Hermes. */
-export function hermesAddCommand(baseUrl: string): string {
-  return `hermes mcp add entaris --url ${mcpUrl(baseUrl)} --auth header`;
+/** Header Authorization yang dipasang klien MCP mana pun (placeholder bila token tak diberikan). */
+export function authorizationHeader(token = '<TOKEN_MCP>'): string {
+  return `Authorization: Bearer ${token}`;
 }
 
 /** Cek jangkauan tanpa auth. */

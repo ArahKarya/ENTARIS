@@ -1,8 +1,8 @@
 /**
  * Pengaturan → AIRA (MCP).
  *
- * Entaris adalah server MCP untuk mesin AI (Hermes). Tab ini hanya memuat: status + kill switch,
- * info endpoint (perintah Hermes siap-salin), manajemen token MCP, dan riwayat panggilan.
+ * Entaris adalah server MCP untuk mesin AI (engine AIRA). Tab ini hanya memuat: status + kill switch,
+ * info endpoint (URL, header Authorization, health check siap-salin), manajemen token MCP, dan riwayat panggilan.
  * Channel/whitelist, token servis lama, daftar tool & Test Tool sudah dipensiunkan
  * (registrasi pengguna AIRA ada di Manajemen Pengguna).
  */

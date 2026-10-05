@@ -55,6 +55,6 @@ export function verifyAssertion(
   }
   const a = parsed.data;
   if (nowSec - a.ts > ASSERTION_TTL_SEC) return fail('actor_assertion_expired', 'Actor assertion kedaluwarsa (TTL 120 detik).');
-  if (a.ts - nowSec > ASSERTION_FUTURE_SKEW_SEC) return fail('actor_assertion_future', 'Timestamp actor assertion terlalu jauh di masa depan (cek jam server Hermes).');
+  if (a.ts - nowSec > ASSERTION_FUTURE_SKEW_SEC) return fail('actor_assertion_future', 'Timestamp actor assertion terlalu jauh di masa depan (cek jam server klien).');
   return { ok: true, assertion: a };
 }
