@@ -1,5 +1,5 @@
 import type React from 'react';
-import { BarChart3, Clock, Users, AlertTriangle, PieChart, PackageX, Package, ArrowLeftRight, Layers, Factory, TrendingUp, Wallet, Scale, Truck, Percent, Building2, CalendarClock, Trophy, Calculator } from 'lucide-react';
+import { BarChart3, Clock, Users, AlertTriangle, PieChart, PackageX, Package, ArrowLeftRight, Layers, Factory, TrendingUp, Wallet, Scale, Truck, Percent, Building2, CalendarClock, Trophy, Calculator, Wrench } from 'lucide-react';
 
 export interface WidgetConfig {
   id: string;
@@ -31,6 +31,8 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'top-vendors', name: 'Vendor Teratas', description: 'Top 5 vendor berdasarkan total pembelian', icon: Truck, enabled: true },
   { id: 'yield-trend', name: 'Tren Yield', description: 'Rata-rata yield produksi 6 bulan terakhir', icon: Percent, enabled: true },
   { id: 'cogs-backfill', name: 'COGS Pending Settle', description: 'Sales stok minus yang menunggu auto-koreksi COGS', icon: AlertTriangle, enabled: true },
+  { id: 'maintenance', name: 'Pemeliharaan', description: 'Ringkasan terlambat, perlu perhatian, dan daftar pemeliharaan/masa berlaku mendatang (jadwal, work order, kendaraan, dokumen)', icon: Wrench, enabled: true },
+  { id: 'upcoming-due', name: 'Segera Jatuh Tempo', description: 'Faktur penjualan/pembelian yang jatuh tempo dalam 14 hari', icon: CalendarClock, enabled: true },
   // ─── Aset Tetap ───
   { id: 'fixed-assets-kpi', name: 'KPI Aset Tetap', description: 'Total aset, harga perolehan, akumulasi penyusutan, nilai buku', icon: Building2, enabled: true },
   { id: 'fixed-assets-by-category', name: 'Aset per Kategori', description: 'Distribusi nilai buku aset tetap per kategori (pie chart)', icon: PieChart, enabled: true },

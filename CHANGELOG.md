@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Dasbor: area kosong terisi + pemeliharaan
+**Ditambah**:
+- **Pemeliharaan** di Dasbor: tile KPI (terlambat + jatuh tempo minggu ini), baris di "Perlu perhatian" dengan tautan, dan widget "Pemeliharaan Mendatang" (8 item). Sumber: jadwal preventif, work order melewati target, pajak/KIR/asuransi kendaraan, dan dokumen kedaluwarsa (jendela 30 hari) — memakai definisi yang sama dengan halaman GA. Endpoint `GET /api/dashboard/maintenance`, diperiksa per sumber (`ga_maintenance`, `ga_vehicle`, `ga_documents`).
+- Widget baru "Segera Jatuh Tempo" (faktur jatuh tempo 14 hari; `/dashboard/upcoming-due`).
+
+**Diperbaiki**:
+- Staf Produksi mendapat 403 pada Stok Kritis/Stok Negatif (kini cukup izin `inventory` atau `reports`); widget HPP disembunyikan tanpa izin jurnal.
+- "Stok Menipis" menampilkan "–" (klien membaca field yang salah).
+- Grafik pendapatan satu titik kini menampilkan 6 bulan terakhir; Profitabilitas per SKU kembali ke 12 bulan terakhir dengan label "Data terakhir"; kartu kosong menjadi satu baris ringkas; grid dasbor tidak lagi meninggalkan celah saat widget disembunyikan.
+- Bar tab seksi dasbor (Overview/Keuangan/…) tidak lagi berbentuk oval; memakai komponen tab bersama (sudut kecil, garis bawah aktif, navigasi panah, panel tab semantik).
+
 ### Perbaikan PDF (pemeriksaan visual)
 **Diperbaiki**:
 - **Laba Rugi / Neraca / Arus Kas PDF menghilangkan tanda minus** — kerugian tampil sebagai laba positif ("LABA BERSIH" Rp 16,65 jt padahal rugi). Kini negatif tampil `-Rp …`. Neraca Saldo juga tidak lagi menampilkan "—" untuk angka negatif.

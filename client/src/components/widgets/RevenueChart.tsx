@@ -16,16 +16,18 @@ interface RevenueChartProps {
   loading: boolean;
   isError?: boolean;
   onRetry?: () => void;
+  /** Overrides the subtitle (e.g. when a trailing window replaces a one-month period). */
+  description?: string;
 }
 
-export default function RevenueChart({ data, loading, isError, onRetry }: RevenueChartProps) {
+export default function RevenueChart({ data, loading, isError, onRetry, description = 'Per bulan pada periode terpilih' }: RevenueChartProps) {
   const rows = data ?? [];
   const totalIn = rows.reduce((s, r) => s + r.pendapatan, 0);
   const totalOut = rows.reduce((s, r) => s + r.beban, 0);
   return (
     <WidgetCard
       title="Pendapatan vs Beban"
-      description="Per bulan pada periode terpilih"
+      description={description}
       icon={TrendingUp}
       href="/reports/profit-loss"
       hrefLabel="Laba rugi"

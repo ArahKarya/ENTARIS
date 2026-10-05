@@ -5,6 +5,7 @@ import { formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
+import { computePresetRange } from '../dashboardPeriod';
 import { MiniTable } from '../dashboard-kit/MiniTable';
 
 interface SkuRow {
@@ -37,23 +38,37 @@ const fmtPct = (n: number) => `${n.toFixed(1)}%`;
 const marginTone = (p: number) => (p >= 20 ? 'text-success-text' : p >= 0 ? 'text-warning-text' : 'text-danger-text');
 
 export default function ProfitabilityPerSku({ startDate, endDate }: Props) {
-  const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
+  const primary = useQuery<ApiResponse>({
     queryKey: ['dashboard-profitability-per-sku', startDate, endDate],
     queryFn: async () => (await api.get('/reports/profitability-per-sku', { params: { startDate, endDate } })).data,
   });
+  // No sales in the selected period: fall back to the last 12 months (clearly labelled).
+  const periodEmpty = !!primary.data && primary.data.items.length === 0;
+  const fallbackRange = computePresetRange('last12Months');
+  const fallback = useQuery<ApiResponse>({
+    queryKey: ['dashboard-profitability-per-sku', fallbackRange.startDate, fallbackRange.endDate],
+    queryFn: async () => (await api.get('/reports/profitability-per-sku', { params: fallbackRange })).data,
+    enabled: periodEmpty,
+  });
+  const usingFallback = periodEmpty && (fallback.data?.items.length ?? 0) > 0;
+  const { data, isLoading, isError, refetch } = usingFallback || (periodEmpty && fallback.isLoading) ? { ...fallback, isLoading: primary.isLoading || fallback.isLoading } : primary;
   const rows = (data?.items ?? []).slice(0, 10);
 
   return (
     <WidgetCard
       title="Profitabilitas per SKU"
-      description="Margin material vs loaded HPP (10 teratas berdasarkan pendapatan)"
+      description={
+        usingFallback
+          ? 'Data terakhir: 12 bulan terakhir (tidak ada penjualan pada periode terpilih)'
+          : 'Margin material vs loaded HPP (10 teratas berdasarkan pendapatan)'
+      }
       icon={Calculator}
       href="/reports/profitability-per-sku"
       hrefLabel="Laporan lengkap"
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
-      isEmpty={!!data && rows.length === 0}
+      isEmpty={!!data && rows.length === 0 && !fallback.isLoading}
       emptyIcon={Calculator}
       emptyText="Belum ada penjualan terkait inventory pada periode ini"
       minHeight={240}

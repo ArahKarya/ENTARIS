@@ -86,8 +86,8 @@ export function WidgetCard({
     );
   } else if (isEmpty) {
     body = (
-      <div role="status" className="flex flex-col items-center justify-center gap-2 text-center text-muted-foreground" style={{ minHeight }}>
-        {EmptyIcon && <EmptyIcon className="size-7 opacity-60" strokeWidth={1.5} aria-hidden />}
+      <div role="status" className="flex items-center gap-2.5 rounded-md bg-muted/40 px-3 py-3 text-muted-foreground">
+        {EmptyIcon && <EmptyIcon className="size-5 shrink-0 opacity-70" strokeWidth={1.5} aria-hidden />}
         <p className="text-sm">{emptyText}</p>
       </div>
     );

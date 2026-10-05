@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, HandCoins, Package, PackageX, Receipt, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { CreditCard, HandCoins, Package, PackageX, Receipt, TrendingDown, TrendingUp, Wallet, Wrench } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
 import { StatCard, type StatDelta } from '../shared/stat-card';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { deltaPct, previousPeriod } from '../dashboard-kit/period';
 import type { PeriodRange } from '../DashboardPeriodFilter';
+import { useMaintenanceDashboard } from './maintenanceData';
 
 interface Metrics {
   cashBalance: number;
@@ -29,6 +30,8 @@ interface KPICardsProps {
   period: PeriodRange;
   /** Finance KPIs need the 'reports' module; others only see the stock tile. */
   canFinance: boolean;
+  /** Show the Pemeliharaan tile (any EAM module + widget enabled). */
+  canMaintenance?: boolean;
 }
 
 const sumRevenue = (rows?: ChartPoint[]) => (rows ?? []).reduce((s, r) => s + r.pendapatan, 0);
@@ -43,7 +46,12 @@ function toDelta(cur: number | undefined, prev: number | undefined, enabled: boo
  * Executive KPI strip. Same endpoints/params as before (metrics, charts, stock-alerts);
  * the previous-period delta re-uses them with the comparison window (no new endpoints).
  */
-export default function KPICards({ period, canFinance }: KPICardsProps) {
+/** Desktop columns that leave no hole in the last row for a given tile count. */
+const LG_COLS: Record<number, string> = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 9: 'lg:grid-cols-3' };
+const gridClass = (count: number) =>
+  `grid grid-cols-2 gap-3 sm:gap-4 ${LG_COLS[count] ?? 'lg:grid-cols-4'} [&>*:last-child:nth-child(odd)]:col-span-2 lg:[&>*:last-child:nth-child(odd)]:col-span-1`;
+
+export default function KPICards({ period, canFinance, canMaintenance = false }: KPICardsProps) {
   const prev = previousPeriod(period);
   const params = { startDate: period.startDate, endDate: period.endDate };
   const prevParams = prev ?? params;
@@ -68,6 +76,7 @@ export default function KPICards({ period, canFinance }: KPICardsProps) {
     queryFn: async () => (await api.get('/dashboard/charts', { params: prevParams })).data,
     enabled: canFinance && !!prev,
   });
+  const maintenance = useMaintenanceDashboard(canMaintenance);
   const stock = useQuery<StockAlertRow[]>({
     queryKey: ['dashboard-stock-alerts'],
     queryFn: async () => (await api.get('/dashboard/stock-alerts')).data,
@@ -107,12 +116,34 @@ export default function KPICards({ period, canFinance }: KPICardsProps) {
     />
   );
 
+  const mk = maintenance.data?.kpi;
+  const mAccess = maintenance.data?.access;
+  const maintenanceTile = canMaintenance ? (
+    <StatCard
+      key="maintenance"
+      label="Pemeliharaan"
+      value={maintenance.isError ? '-' : mk ? String(mk.overdue) : '-'}
+      icon={Wrench}
+      loading={maintenance.isLoading}
+      hint={
+        maintenance.isError
+          ? 'gagal dimuat'
+          : mk
+            ? mk.overdue === 0 && mk.dueThisWeek === 0
+              ? 'tidak ada yang terlambat'
+              : `terlambat, ${mk.dueThisWeek} jatuh tempo minggu ini`
+            : undefined
+      }
+      href={mAccess?.maintenance === false ? (mAccess.vehicle ? '/ga/vehicle' : '/ga/documents') : '/ga/maintenance'}
+    />
+  ) : null;
+
   if (!canFinance) {
-    return <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">{stockTile}</div>;
+    return <div className={gridClass(1 + (maintenanceTile ? 1 : 0))}>{stockTile}{maintenanceTile}</div>;
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+    <div className={gridClass(8 + (maintenanceTile ? 1 : 0))}>
       <StatCard
         label="Omzet"
         {...money(revenue)}
@@ -137,6 +168,7 @@ export default function KPICards({ period, canFinance }: KPICardsProps) {
       {stockTile}
       <StatCard label="Nilai Persediaan" {...money(m?.inventoryValue)} icon={Package} loading={loadingFin} hint="saldo saat ini" href="/inventory" />
       <StatCard label="Deposit Supplier" {...money(m?.vendorDeposit)} icon={HandCoins} loading={loadingFin} hint="saldo saat ini" href="/vendor-deposits" />
+      {maintenanceTile}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { WidgetCard } from '../dashboard-kit/WidgetCard';
 interface DashboardMetrics {
   totalItems: number;
   activeItems: number;
-  lowStockItems: number;
+  lowStockCount: number;
   movementsThisMonth: number;
   inventoryValue: number;
 }
@@ -29,10 +29,10 @@ export default function WarehouseKPICards() {
       <StatCard label="Item Aktif" value={formatNumber(m?.activeItems)} icon={CheckCircle} loading={isLoading} />
       <StatCard
         label="Stok Menipis"
-        value={formatNumber(m?.lowStockItems)}
+        value={formatNumber(m?.lowStockCount)}
         icon={AlertTriangle}
         loading={isLoading}
-        hint={m && m.lowStockItems > 0 ? 'Perlu restock' : undefined}
+        hint={m ? (m.lowStockCount > 0 ? 'Perlu restock' : 'semua stok aman') : undefined}
       />
       <StatCard label="Gerakan Bulan Ini" value={formatNumber(m?.movementsThisMonth)} icon={ArrowLeftRight} loading={isLoading} />
       <StatCard

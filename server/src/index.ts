@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
-import { authMiddleware, requirePerm, requireWrite } from './middleware/auth';
+import { authMiddleware, requireAnyPerm, requirePerm, requireWrite } from './middleware/auth';
 import { auditTrailMiddleware } from './middleware/auditTrail';
 import { logger } from './lib/logger';
 
@@ -30,6 +30,7 @@ import purchaseRoutes from './routes/purchase';
 import paymentRoutes from './routes/payments';
 import partyRoutes from './routes/parties';
 import dashboardRoutes from './routes/dashboard';
+import dashboardMaintenanceRoutes from './routes/dashboardMaintenance';
 import reportRoutes from './routes/reports';
 import aiConfigRoutes from './routes/ai/config';
 import aiRouterRoutes from './routes/ai/router';
@@ -249,7 +250,16 @@ app.use('/api/backup', requirePerm('audit'), backupRoutes);
 app.use('/api/telegram', requirePerm('settings'), telegramRoutes);
 
 // Gate di dalam file (mixed-sensitivity / endpoint terbuka khusus):
-app.use('/api/dashboard', requirePerm('reports'), dashboardRoutes); // ringkasan finansial → izin 'reports'
+// Pemeliharaan: gate per sumber (ga_maintenance/ga_vehicle/ga_documents) di dalam route, bukan 'reports'.
+app.use('/api/dashboard/maintenance', dashboardMaintenanceRoutes);
+// Ringkasan finansial → izin 'reports'. Peringatan stok dipakai kartu stok semua role gudang,
+// jadi cukup izin 'inventory' ATAU 'reports'.
+const INVENTORY_DASHBOARD_PATHS = new Set(['/stock-alerts', '/negative-stock']);
+app.use(
+  '/api/dashboard',
+  (req, res, next) => (INVENTORY_DASHBOARD_PATHS.has(req.path) ? requireAnyPerm(['reports', 'inventory']) : requirePerm('reports'))(req, res, next),
+  dashboardRoutes,
+);
 app.use('/api/search', searchRoutes);                // pencarian global
 app.use('/api/attachments', attachmentRoutes);       // lampiran — ikut dokумен induk
 app.use('/api/notifications', notificationRoutes);   // per-user; POST /check di-gate di file
