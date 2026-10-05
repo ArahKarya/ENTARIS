@@ -52,7 +52,7 @@ Alur untuk engine AIRA bila pengguna mengirim **foto/scan nota atau halaman buku
 
 Yang dilakukan server (deterministik, bukan LLM):
 
-- **Arah ditentukan kolom masuk/keluar**, bukan `txnType`. Jenis yang bertentangan (mis. `pemasukan` pada kas keluar) dikoreksi ke jenis polos arah itu, keyakinan dibatasi 0,5 dan baris ditandai perlu ditinjau dengan alasannya.
+- **Arah ditentukan kolom masuk/keluar**, bukan `txnType`. Jenis yang bertentangan (mis. `pemasukan` pada kas keluar) dikoreksi ke jenis polos arah itu, keyakinan dibatasi 0,5, akun usulan engine dibuang (diganti pola terpelajari atau akun default) dan baris ditandai perlu ditinjau dengan alasannya.
 - `uang_muka` / `terima_kasbon` selalu memakai akun sistem Uang Muka Karyawan (role `EMPLOYEE_ADVANCE`); `accountCode` dari engine diabaikan.
 - Baris tanpa akun / akun tak dikenal / akun grup / nonaktif / sama dengan akun kas: **tidak membatalkan draft**; baris ditandai, akunnya dikosongkan atau diganti usulan default (Beban Diluar Usaha Lainnya `OTHER_EXPENSE` untuk kas keluar, Pendapatan Diluar Usaha Lainnya `OTHER_INCOME` untuk kas masuk).
 - **Pola terpelajari** dipakai bila engine tak memberi akun atau keyakinannya rendah; akun berkeyakinan tinggi dari engine tidak pernah ditimpa diam-diam (hanya dicatat di `reason`). Satu koreksi manusia = keyakinan 0,65 (tetap perlu ditinjau); dua kali 0,75; tiga kali atau lebih 0,85.
