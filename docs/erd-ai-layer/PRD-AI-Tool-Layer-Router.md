@@ -33,7 +33,7 @@ Prinsip kunci: **"tinggal tambah list."** Menambah kemampuan AI baru = menambah 
 bukan menulis ulang logika. UI Settings memungkinkan owner menyalakan/mematikan tiap tool dan mengatur
 tingkat izinnya (otomatis / konfirmasi / wajib approval) secara visual.
 
-Fitur ini **belum** menyambungkan model AI (Hermes/Opus) maupun kanal WA/Telegram — itu tahap berikutnya.
+Fitur ini **belum** menyambungkan model AI (engine AIRA) maupun kanal WA/Telegram — itu tahap berikutnya.
 Fokus PRD ini: **kerangka tool layer + router + UI config yang teruji**, siap disambung ke engine nanti.
 
 ## 2. Latar Belakang & Tujuan
@@ -60,7 +60,7 @@ dipanggil AI secara aman dan terkontrol, plus UI untuk mengaturnya.
 - UI **Settings → Agentic System**: pengaturan global API-based, whitelist terstruktur, tabel tool (toggle/tier/badge), tombol **Test Tool**.
 
 ### Tidak termasuk (tahap lain)
-- Sambungan model AI (Hermes/Opus) & tool-calling nyata.
+- Sambungan model AI (engine AIRA) & tool-calling nyata.
 - Kanal WhatsApp/Telegram.
 - Eksekusi penuh aksi finansial (fase ini: stub approval — buat ApprovalRequest, tak auto-eksekusi).
 - Entitas percakapan penuh (AiConversation/Message) — menyusul saat engine tersambung.
@@ -81,7 +81,7 @@ dipanggil AI secara aman dan terkontrol, plus UI untuk mengaturnya.
 | FR2 | Registry default dapat di-*override* per-tool via DB (`AiToolConfig`): `enabled` & `tier`. UI mengubah override, bukan file. |
 | FR3 | `GET /api/ai/config/tools` mengembalikan gabungan registry + override (status efektif tiap tool). |
 | FR4 | `PATCH /api/ai/config/tools/:name` mengubah `enabled`/`tier` satu tool (gate `settings` + cap `rbac.manage`). |
-| FR5 | `GET/PUT /api/ai/config/settings` membaca/menyimpan setting global AI: **provider** (`9router`/`claude`/`ollama`/`openai`), **baseUrl**, **apiKeyEnv** (nama env var — bukan key asli), **model**, **channels**. Semua model AI dipanggil **via API** (OpenAI-compatible). `GET/POST/DELETE /api/ai/config/whitelist` mengelola tabel **`AiWhitelist` terstruktur** (channel ↔ user). |
+| FR5 | `GET/PUT /api/ai/config/settings` membaca/menyimpan setting global AI: **provider** (`gateway`/`claude`/`ollama`/`openai`), **baseUrl**, **apiKeyEnv** (nama env var — bukan key asli), **model**, **channels**. Semua model AI dipanggil **via API** (OpenAI-compatible). `GET/POST/DELETE /api/ai/config/whitelist` mengelola tabel **`AiWhitelist` terstruktur** (channel ↔ user). |
 | FR6 | **Tool Router** `POST /api/ai/router` menerima `{ tool, args }`: (a) cari tool di config; (b) tolak bila tak ada / `enabled=false`; (c) cek izin: role user ∈ `roles` tool + `can(role,module,permAction)` + `requiresCapability` (warisi izin app, BRD AIRA prinsip); (d) bila `risk=read` → panggil handler & kembalikan data; (e) bila `risk=write`/`critical` → tampilkan `confirm_template` + **benar-benar buat `ApprovalRequest` di DB** (bukan dummy), kembalikan status `pending_approval` + `approvalId`. Engine AI belum tersambung — pipa router→approval terbukti jalan via Test Tool, nanti engine cukup colok ke router yang sama. |
 | FR7 | Semua keputusan router dicatat (log + nanti `AiToolCall`). |
 | FR8 | UI Settings menampilkan tabel tool dikelompokkan per grup, dengan: nama, modul, kind, badge tier, endpoint, toggle enabled, dropdown tier. |
@@ -118,14 +118,14 @@ dipanggil AI secara aman dan terkontrol, plus UI untuk mengaturnya.
 | Field | Tipe | Keterangan |
 |---|---|---|
 | id | uuid (PK) | |
-| provider | string | `9router` / `claude` / `ollama` / `openai` |
+| provider | string | `gateway` / `claude` / `ollama` / `openai` |
 | baseUrl | string | endpoint API (OpenAI-compatible), mis. `http://localhost:20128/v1` |
 | apiKeyEnv | string | **nama env var** tempat key asli (mis. `AIRA_API_KEY`) — key TAK PERNAH masuk DB |
 | model | string | mis. `claude-opus-4`, `qwen2.5:32b` |
 | channels | json | kanal aktif, mis. `["telegram","whatsapp"]` |
 | updatedAt | datetime | |
 
-> **Keputusan (Opsi B):** API key disimpan **sebagai referensi env var**, bukan terenkripsi di DB. Router baca `process.env[apiKeyEnv]` saat memanggil API. Ganti provider = ubah `provider/baseUrl/apiKeyEnv/model` dari UI; ganti key = edit `.env` ERP + restart. Provider-agnostic: 9router, Claude native, Ollama, OpenAI semua lewat pola HTTP API yang sama.
+> **Keputusan (Opsi B):** API key disimpan **sebagai referensi env var**, bukan terenkripsi di DB. Router baca `process.env[apiKeyEnv]` saat memanggil API. Ganti provider = ubah `provider/baseUrl/apiKeyEnv/model` dari UI; ganti key = edit `.env` ERP + restart. Provider-agnostic: gateway OpenAI-compatible, Claude native, Ollama, OpenAI semua lewat pola HTTP API yang sama.
 
 ### AiWhitelist — daftar akses terstruktur
 | Field | Tipe | Keterangan |
@@ -155,7 +155,7 @@ body { enabled?: boolean, tier?: "auto"|"draft"|"must_approve" }
 → 200 { name, enabled, tier, source: "override" }
 
 GET /api/ai/config/settings
-→ 200 { provider: "9router", baseUrl: "http://localhost:20128/v1",
+→ 200 { provider: "gateway", baseUrl: "http://localhost:20128/v1",
         apiKeyEnv: "AIRA_API_KEY", model: "claude-opus-4",
         channels: ["telegram","whatsapp"] }     // apiKeyEnv = NAMA env var, bukan key
 
@@ -180,7 +180,7 @@ body { tool: "pay_list", args: { ... } }
 Tab baru "Agentic System" (ikon Bot/Cpu) di `Settings.tsx`. Isi:
 
 **Bagian 1 — Pengaturan Global AI (card atas) — semua via API:**
-- **Provider** (dropdown): `9router` / `claude` / `ollama` / `openai`
+- **Provider** (dropdown): `gateway` / `claude` / `ollama` / `openai`
 - **Base URL** (teks): endpoint API OpenAI-compatible, mis. `http://localhost:20128/v1`
 - **API Key Env** (teks): nama env var (mis. `AIRA_API_KEY`) — key asli di `.env` ERP, **tak pernah di DB/UI**
 - **Model** (teks bebas, ikut provider): `claude-opus-4`, `qwen2.5:32b`, dst.
@@ -237,7 +237,7 @@ Tab baru "Agentic System" (ikon Bot/Cpu) di `Settings.tsx`. Isi:
 |---|---|
 | Router salah eksekusi aksi finansial | Fase ini action = stub approval (tak auto-eksekusi); cek izin 2-lapis |
 | Override DB konflik dgn registry | Status efektif = merge eksplisit; registry tetap sumber struktur |
-| Build berat di RPi5 (RAM) | Build server & client terpisah, satu per satu |
+| Build berat di server kecil (RAM) | Build server & client terpisah, satu per satu |
 | Regresi ke ERP | Nol perubahan tabel existing; tab gated; route terpisah `/api/ai` |
 
 ## 13. Open Questions — RESOLVED ✅ (24 Jun 2026)
@@ -248,7 +248,7 @@ Tab baru "Agentic System" (ikon Bot/Cpu) di `Settings.tsx`. Isi:
 | 2 | Action router: `ApprovalRequest` nyata vs dummy | **Benar-benar buat `ApprovalRequest` di DB.** Test via tool layer dulu; nanti tinggal sambung engine AI ke router yang sama. |
 | 3 | Tombol "Test Tool" di UI fase ini | **Ada sekarang** — invoke read dari UI sebagai bukti pipa router jalan. |
 | 4 | Nama tab | **"Agentic System"**. |
-| 5 | Konfigurasi model AI | **Selalu via API, provider-agnostic** (9router/claude/ollama/openai). API key = **referensi env var** (Opsi B) — key di `.env` ERP, DB simpan nama var saja. |
+| 5 | Konfigurasi model AI | **Selalu via API, provider-agnostic** (gateway/claude/ollama/openai). API key = **referensi env var** (Opsi B) — key di `.env` ERP, DB simpan nama var saja. |
 
 ---
 

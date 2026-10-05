@@ -152,7 +152,7 @@ app.use(
 );
 
 // ─── MCP (AIRA) ───────────────────────────────────────────────────────────────
-// Endpoint MCP stateless untuk mesin AI (Hermes). Auth sendiri (Bearer token MCP + actor
+// Endpoint MCP stateless untuk mesin AI (engine AIRA). Auth sendiri (Bearer token MCP + actor
 // assertion), body-limit sendiri → dipasang SEBELUM body parser global & auth /api.
 app.use('/mcp', mcpRouter);
 

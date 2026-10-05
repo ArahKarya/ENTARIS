@@ -128,7 +128,7 @@ export function McpCallsCard() {
   const tokenOptions = (tokens.data ?? []).map((t) => ({ value: t.id, label: t.name }));
 
   return (
-    <SettingsCard title="Riwayat panggilan" description="Setiap panggilan tool dari Hermes: siapa, lewat channel apa, keputusan, dan tautan ke persetujuan. Argumen tidak disimpan." contentClassName="space-y-3">
+    <SettingsCard title="Riwayat panggilan" description="Setiap panggilan tool dari engine AIRA: siapa, lewat channel apa, keputusan, dan tautan ke persetujuan. Argumen tidak disimpan." contentClassName="space-y-3">
       <FilterBar
         list={list}
         searchLabel="Cari tool"
@@ -168,7 +168,7 @@ export function McpCallsCard() {
         onRetry={() => calls.refetch()}
         density={density}
         onDensityChange={setDensity}
-        empty={{ title: 'Belum ada panggilan', description: 'Panggilan dari Hermes akan tampil di sini.' }}
+        empty={{ title: 'Belum ada panggilan', description: 'Panggilan dari engine AIRA akan tampil di sini.' }}
       />
     </SettingsCard>
   );

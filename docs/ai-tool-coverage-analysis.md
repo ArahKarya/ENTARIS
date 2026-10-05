@@ -2,7 +2,7 @@
 
 > **Status:** ✅ **APPLIED** ke runtime (live registry + container AKS rebuild + healthy).
 > Versi FULL — **SEMUA endpoint** dipetakan jadi tool, **default DISABLED**.
-> Tanggal apply: 2026-06-25 · Repo: `~/ArahKarya/simple-erp` (RPi5, source of truth).
+> Tanggal apply: 2026-06-25 · Repo: `~/ArahKarya/simple-erp` (source of truth).
 
 ---
 

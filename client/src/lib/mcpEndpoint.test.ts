@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { DECISION_LABEL, DECISION_TONE, healthCurl, hermesAddCommand, initializeCurl, mcpUrl, normalizeBaseUrl } from './mcpEndpoint';
+import { DECISION_LABEL, DECISION_TONE, authorizationHeader, healthCurl, initializeCurl, mcpUrl, normalizeBaseUrl } from './mcpEndpoint';
 
 describe('mcpEndpoint', () => {
   it('normalises the base URL and builds /mcp', () => {
     expect(normalizeBaseUrl(' https://erp.example.com/// ')).toBe('https://erp.example.com');
-    expect(mcpUrl('http://100.101.203.54:3001/')).toBe('http://100.101.203.54:3001/mcp');
+    expect(mcpUrl('http://10.0.0.5:3001/')).toBe('http://10.0.0.5:3001/mcp');
   });
 
-  it('builds the copy-ready Hermes command and health curl', () => {
-    expect(hermesAddCommand('https://erp.example.com')).toBe('hermes mcp add entaris --url https://erp.example.com/mcp --auth header');
+  it('builds the engine-neutral Authorization header and health curl', () => {
+    expect(authorizationHeader()).toBe('Authorization: Bearer <TOKEN_MCP>');
+    expect(authorizationHeader('entmcp_abc')).toBe('Authorization: Bearer entmcp_abc');
     expect(healthCurl('https://erp.example.com/')).toBe('curl -s https://erp.example.com/mcp/health');
   });
 
