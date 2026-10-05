@@ -1,5 +1,5 @@
 /**
- * "Bayar / Posting" dialog for one GA bill. Same inputs, validation and
+ * "Bayar / Posting" dialog for one EAM bill (Tagihan EAM tab). Same inputs, validation and
  * payload as before: choose the payment method (direct journal from cash/bank,
  * or a purchase invoice to a vendor), the expense account (preselected from
  * the bill's default account), amount and date, then post. The journal
@@ -22,7 +22,8 @@ import { AccountPicker } from '@/components/fixed-assets/AccountPicker';
 import { ComboField } from '@/components/fixed-assets/ComboField';
 import { JournalPreview } from '@/components/fixed-assets/JournalPreview';
 import { apiError } from '@/components/fixed-assets/errors';
-import { KIND_META, type GaBill } from './ga-bills';
+import { PR_ENDPOINT } from '../payment-request';
+import { KIND_META, type GaBill } from './eam-bills';
 
 type Method = 'JOURNAL' | 'PURCHASE_INVOICE';
 
@@ -34,7 +35,7 @@ interface FlatAccount {
   isGroup?: boolean;
 }
 
-interface GaBillPayDialogProps {
+interface EamBillPayDialogProps {
   bill: GaBill | null;
   onClose: () => void;
   onSuccess: () => void;
@@ -47,7 +48,7 @@ const METHODS: { value: Method; title: string; description: string }[] = [
 
 const toIsoDay = (d: string | null) => (d ? String(d).split('T')[0] : new Date().toISOString().split('T')[0]);
 
-export function GaBillPayDialog({ bill, onClose, onSuccess }: GaBillPayDialogProps) {
+export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogProps) {
   const open = bill !== null;
   const [method, setMethod] = useState<Method>('JOURNAL');
   const [accountId, setAccountId] = useState('');
@@ -117,7 +118,7 @@ export function GaBillPayDialog({ bill, onClose, onSuccess }: GaBillPayDialogPro
 
   const mutation = useMutation({
     mutationFn: () =>
-      api.post(`/ga/finance/${bill!.kind}/${bill!.id}/pay`, {
+      api.post(`${PR_ENDPOINT}/eam/${bill!.kind}/${bill!.id}/pay`, {
         method,
         accountId: accountId || null,
         creditAccountId: method === 'JOURNAL' ? creditAccountId || null : null,

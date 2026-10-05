@@ -13,13 +13,16 @@ import {
   isNavVisible,
 } from './routes';
 
-/** Protected paths declared in App.tsx (everything after <ProtectedRoute>), minus "*". */
+/**
+ * Protected paths declared in App.tsx (everything after <ProtectedRoute>), minus "*"
+ * and minus pure redirects (`element={<Navigate …/>}`), which are not pages.
+ */
 function protectedAppPaths(source: string): string[] {
   const start = source.indexOf('<ProtectedRoute');
-  const re = /<Route\s+path="([^"]+)"/g;
+  const re = /<Route\s+path="([^"]+)"(\s+element=\{<Navigate)?/g;
   const paths = new Set<string>();
   for (let m = re.exec(source); m; m = re.exec(source)) {
-    if (m.index > start && m[1] !== '*') paths.add(m[1]);
+    if (m.index > start && m[1] !== '*' && !m[2]) paths.add(m[1]);
   }
   return [...paths];
 }
@@ -42,6 +45,12 @@ describe('route registry', () => {
   it('parses a realistic route list from App.tsx', () => {
     expect(APP_PATHS.length).toBeGreaterThan(50);
     expect(APP_PATHS).toContain('/sales-orders');
+  });
+
+  it('redirects the retired /ga/finance page to the Tagihan EAM tab', () => {
+    expect(appSource).toContain('<Route path="/ga/finance" element={<Navigate to="/payment-requests?tab=eam" replace />} />');
+    expect(ROUTES.some((e) => e.path === '/ga/finance')).toBe(false);
+    expect(searchRoutes('tagihan eam', ALL).map((e) => e.path)).toContain('/payment-requests');
   });
 
   it('has exactly one entry per App.tsx route, and no stale entries', () => {

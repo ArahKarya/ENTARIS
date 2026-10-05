@@ -9,10 +9,12 @@
  *   payable    Siap Dibayar             — APPROVED, finance only
  *   advances   Belum Dipertanggungjawabkan — open employee advances (own; all for finance / "Semua"),
  *              with age in days, overdue highlight, per-employee totals and Excel export
+ *   eam        Tagihan EAM              — finance only: EAM bills (vehicle tax / service / spare parts) to post;
+ *              lazy-loaded components/payment-requests/eam/EamBillsTab.tsx
  *   all        Semua                    — payment_request view only
  * Built on the list kit (see pages/SalesInvoices.tsx for the reference pattern).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -25,9 +27,11 @@ import { getStatusLabel, statusOptions } from '@/lib/status';
 import { useListState } from '@/hooks/useListState';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Button } from '@/components/ui/button';
+import type { EamSummary } from '@/components/payment-requests/eam/eam-bills';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ComboboxFilter,
+  LoadingState,
   DataTable,
   DocumentLink,
   FilterBar,
@@ -54,7 +58,10 @@ import {
   type PrStatus,
 } from '@/components/payment-requests/payment-request';
 
+const EamBillsTab = lazy(() => import('@/components/payment-requests/eam/EamBillsTab'));
+
 const TAB_PARAM = 'tab';
+type Tab = PrScope | 'eam';
 const FILTER_KEYS = ['status', 'settlementStatus', 'typeId', 'startDate', 'endDate'] as const;
 const STATUS_FILTER = statusOptions(PR_STATUSES, 'payment_request');
 const SETTLEMENT_FILTER = statusOptions(SETTLEMENT_STATUSES, 'payment_request_settlement');
@@ -123,15 +130,15 @@ export const PaymentRequests = () => {
   });
   const meta = metaQuery.data;
 
-  const allowedTabs = useMemo<PrScope[]>(() => {
-    const tabs: PrScope[] = ['mine', 'approvals'];
-    if (meta?.isFinance) tabs.push('payable');
+  const allowedTabs = useMemo<Tab[]>(() => {
+    const tabs: Tab[] = ['mine', 'approvals'];
+    if (meta?.isFinance) tabs.push('payable', 'eam');
     tabs.push('advances');
     if (meta?.canViewAll) tabs.push('all');
     return tabs;
   }, [meta?.isFinance, meta?.canViewAll]);
-  const rawTab = searchParams.get(TAB_PARAM) as PrScope | null;
-  const tab: PrScope = rawTab && allowedTabs.includes(rawTab) ? rawTab : 'mine';
+  const rawTab = searchParams.get(TAB_PARAM) as Tab | null;
+  const tab: Tab = rawTab && allowedTabs.includes(rawTab) ? rawTab : 'mine';
 
   const changeTab = (next: string) => {
     setSearchParams((prev) => {
@@ -142,6 +149,7 @@ export const PaymentRequests = () => {
       params.delete('sort');
       params.delete('status');
       params.delete('settlementStatus');
+      if (next !== 'eam') ['kind', 'posting'].forEach((k) => params.delete(k));
       return params;
     });
   };
@@ -153,22 +161,33 @@ export const PaymentRequests = () => {
     if (tab === 'advances' && !hasSort) setSort({ id: 'paymentDate', desc: false });
   }, [tab, hasSort, setSort]);
 
-  const params = { ...list.params, scope: tab };
-  const filterParams = { ...list.filterParams, scope: tab };
+  const isEam = tab === 'eam';
+  const scope: PrScope = isEam ? 'mine' : tab;
+  const params = { ...list.params, scope };
+  const filterParams = { ...list.filterParams, scope };
 
   const listQuery = useQuery({
     queryKey: ['payment-requests', 'list', params],
     queryFn: async () => (await api.get<Paginated<PaymentRequestRow>>(PR_ENDPOINT, { params })).data,
     placeholderData: keepPreviousData,
-    enabled: !!meta || rawTab === null || rawTab === 'mine',
+    enabled: !isEam && (!!meta || rawTab === null || rawTab === 'mine'),
   });
 
   const summaryQuery = useQuery({
     queryKey: ['payment-requests', 'summary', filterParams],
     queryFn: async () => (await api.get<PaymentRequestSummary>(`${PR_ENDPOINT}/summary`, { params: filterParams })).data,
     placeholderData: keepPreviousData,
-    enabled: !!meta || rawTab === null || rawTab === 'mine',
+    enabled: !isEam && (!!meta || rawTab === null || rawTab === 'mine'),
   });
+
+  // Tab badge: unposted EAM bills (finance only; same endpoint/cache as the tab KPI).
+  const eamBadgeQuery = useQuery({
+    queryKey: ['payment-requests', 'eam', 'summary', {}],
+    queryFn: async () => (await api.get<EamSummary>(`${PR_ENDPOINT}/eam/summary`)).data,
+    enabled: !!meta?.isFinance,
+    staleTime: 30_000,
+  });
+  const eamBadge = eamBadgeQuery.data?.pendingCount;
 
   const advancesQuery = useQuery({
     queryKey: ['payment-requests', 'advances-summary'],
@@ -433,10 +452,12 @@ export const PaymentRequests = () => {
         description="Reimbursement, uang muka, perjalanan dinas, dan pembayaran vendor — diajukan, disetujui, dan dibayar di satu tempat."
         actions={
           <>
-            <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!listQuery.data?.total}>
-              <Download aria-hidden />
-              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
-            </Button>
+            {!isEam && (
+              <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!listQuery.data?.total}>
+                <Download aria-hidden />
+                <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              </Button>
+            )}
             <Button onClick={() => navigate(`${PR_ENDPOINT}/new`)}>
               <Plus aria-hidden />
               Buat Pengajuan
@@ -454,6 +475,11 @@ export const PaymentRequests = () => {
                 <TabLabel label="Siap Dibayar" count={badges?.payable} />
               </TabsTrigger>
             )}
+            {meta?.isFinance && (
+              <TabsTrigger value="eam">
+                <TabLabel label="Tagihan EAM" count={eamBadge} suffix="menunggu posting" />
+              </TabsTrigger>
+            )}
             <TabsTrigger value="advances">
               <TabLabel label="Belum Dipertanggungjawabkan" count={advances?.overdueCount} suffix="lewat batas waktu" />
             </TabsTrigger>
@@ -462,6 +488,12 @@ export const PaymentRequests = () => {
       </PageHeader>
 
       <TabsContent value={tab} className="mt-0 space-y-5">
+      {isEam ? (
+        <Suspense fallback={<LoadingState />}>
+          <EamBillsTab />
+        </Suspense>
+      ) : (
+      <>
       {tab === 'advances' ? (
         <>
           <section aria-label="Ringkasan uang muka karyawan" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -616,6 +648,8 @@ export const PaymentRequests = () => {
           }}
         />
       </div>
+      </>
+      )}
       </TabsContent>
     </Tabs>
   );

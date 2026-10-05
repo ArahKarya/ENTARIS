@@ -60,7 +60,6 @@ import ApprovalsPage from './pages/ApprovalsPage';
 const GaFleetReportPage = lazy(() => import('./pages/ga/GaFleetReportPage').then((m) => ({ default: m.GaFleetReportPage })));
 const GaBuildingPage = lazy(() => import('./pages/ga/GaBuildingPage').then((m) => ({ default: m.GaBuildingPage })));
 const GaEquipmentPage = lazy(() => import('./pages/ga/GaEquipmentPage').then((m) => ({ default: m.GaEquipmentPage })));
-const GaFinancePage = lazy(() => import('./pages/ga/GaFinancePage').then((m) => ({ default: m.GaFinancePage })));
 const GaMasterPage = lazy(() => import('./pages/ga/GaMasterPage').then((m) => ({ default: m.GaMasterPage })));
 const DailyReport = lazy(() => import('./pages/reports/DailyReport'));
 const OeeReport = lazy(() => import('./pages/reports/OeeReport'));
@@ -170,7 +169,8 @@ function App() {
             <Route path="/ga/building" element={<PermRoute module="ga_building"><Suspense fallback={<LoadingState />}><GaBuildingPage /></Suspense></PermRoute>} />
             <Route path="/ga/equipment" element={<PermRoute module="ga_equipment"><Suspense fallback={<LoadingState />}><GaEquipmentPage /></Suspense></PermRoute>} />
             <Route path="/ga/master" element={<PermRoute module="ga_master"><Suspense fallback={<LoadingState />}><GaMasterPage /></Suspense></PermRoute>} />
-            <Route path="/ga/finance" element={<PermRoute module="ga_finance"><Suspense fallback={<LoadingState />}><GaFinancePage /></Suspense></PermRoute>} />
+            {/* Retired page: Tagihan Aset & Umum moved into Pengajuan Pembayaran > Tagihan EAM. */}
+            <Route path="/ga/finance" element={<Navigate to="/payment-requests?tab=eam" replace />} />
             <Route path="/customer-deposits" element={<PermRoute module="customer_deposit"><CustomerDeposits /></PermRoute>} />
             <Route path="/parties" element={<PermRoute module="parties"><PartiesPage /></PermRoute>} />
             <Route path="/inventory" element={<PermRoute module="inventory"><InventoryPage /></PermRoute>} />

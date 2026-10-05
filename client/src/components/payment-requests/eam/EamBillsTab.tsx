@@ -1,16 +1,14 @@
 /**
- * Tagihan Aset & Umum (/ga/finance) — queue of EAM costs (vehicle tax / STNK /
- * KIR, vehicle service, spare-part material requests) waiting to be posted to
- * the ERP books. HRGA submits and approves them in EAM; this page is the
- * accounting side only: choose the accounts and payment method, then post.
+ * "Tagihan EAM" tab of Pengajuan Pembayaran (/payment-requests?tab=eam) — the
+ * queue of EAM costs (vehicle tax / STNK / KIR, vehicle service, spare-part
+ * material requests) waiting to be posted to the ERP books. HRGA submits and
+ * approves them in EAM; finance chooses the accounts and payment method here.
+ * Finance only (payment_request edit); the parent page gates the tab.
  *
- * Phase 3 list kit (see pages/SalesInvoices.tsx). GET /ga/finance/bills
- * returns the whole queue for a kind at once, so search, date range, sorting
- * and paging run on the client (components/ga-finance/ga-bills.ts); all of it
- * lives in the URL via useListState. The default view is the queue (not yet
- * posted), exactly what the page always showed.
- *
- * Posting / cancelling needs the `ga_finance` edit permission.
+ * Phase 3 list kit with server paging: GET /payment-requests/eam does search,
+ * date range, sorting and paging ({data,total,page,limit}); all of it lives in
+ * the URL via useListState. The default view is the queue (not yet posted).
+ * Lazy-loaded by pages/PaymentRequests.tsx to keep the main chunk small.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,38 +17,34 @@ import { AlertCircle, CheckCircle2, ListFilter, Wallet, XCircle } from 'lucide-r
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
-import { can } from '@/lib/permissions';
+import { PR_ENDPOINT } from '../payment-request';
 import { useListState } from '@/hooks/useListState';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import {
   ConfirmDialog,
   DataTable,
   FilterBar,
-  PageHeader,
   RowActions,
   StatCard,
   StatusBadge,
   listTableProps,
+  type Paginated,
 } from '@/components/shared';
 import { apiError } from '@/components/fixed-assets/errors';
-import { GaBillPayDialog } from '@/components/ga-finance/GaBillPayDialog';
-import { SelectFilter } from '@/components/ga-finance/SelectFilter';
+import { EamBillPayDialog } from './EamBillPayDialog';
+import { SelectFilter } from './SelectFilter';
 import {
   BILL_KINDS,
-  GA_FILTER_KEYS,
+  EAM_FILTER_KEYS,
   KIND_META,
   POSTING_DEFAULT_LABEL,
   POSTING_OPTIONS,
   billState,
-  billsRequestParams,
-  filterBills,
   isPosted,
   itemsSummary,
-  sortBills,
-  sumAmount,
   type GaBill,
-  type GaBillsResponse,
-} from '@/components/ga-finance/ga-bills';
+  type EamSummary,
+} from './eam-bills';
 
 const KIND_OPTIONS = BILL_KINDS.map((k) => ({ value: k, label: KIND_META[k].label }));
 
@@ -86,44 +80,34 @@ function BillStatus({ bill, className }: { bill: GaBill; className?: string }) {
   );
 }
 
-export const GaFinancePage = () => {
+export const EamBillsTab = () => {
   const queryClient = useQueryClient();
-  const list = useListState({ filters: GA_FILTER_KEYS });
+  const list = useListState({ filters: EAM_FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [payTarget, setPayTarget] = useState<GaBill | null>(null);
   const [cancelTarget, setCancelTarget] = useState<GaBill | null>(null);
-  const canEdit = can('ga_finance', 'edit');
 
-  const request = billsRequestParams(list.filters);
+  const params = { ...list.params, kind: list.filters.kind || undefined, posting: list.filters.posting || undefined };
+  const filterParams = { ...list.filterParams, kind: list.filters.kind || undefined, posting: list.filters.posting || undefined };
+
   const billsQuery = useQuery({
-    queryKey: ['ga-finance-bills', request.kind, request.includePaid],
-    queryFn: async () => (await api.get<GaBillsResponse>('/ga/finance/bills', { params: request })).data,
+    queryKey: ['payment-requests', 'eam', 'list', params],
+    queryFn: async () => (await api.get<Paginated<GaBill>>(`${PR_ENDPOINT}/eam`, { params })).data,
+    placeholderData: keepPreviousData,
+  });
+  const summaryQuery = useQuery({
+    queryKey: ['payment-requests', 'eam', 'summary', filterParams],
+    queryFn: async () => (await api.get<EamSummary>(`${PR_ENDPOINT}/eam/summary`, { params: filterParams })).data,
     placeholderData: keepPreviousData,
   });
 
-  const filtered = useMemo(
-    () =>
-      filterBills(billsQuery.data?.bills ?? [], {
-        search: list.search,
-        posting: list.filters.posting,
-        startDate: list.filters.startDate,
-        endDate: list.filters.endDate,
-      }),
-    [billsQuery.data, list.search, list.filters.posting, list.filters.startDate, list.filters.endDate],
-  );
-  const sorted = useMemo(() => sortBills(filtered, list.sort), [filtered, list.sort]);
-  const pageRows = useMemo(
-    () => sorted.slice((list.page - 1) * list.pageSize, list.page * list.pageSize),
-    [sorted, list.page, list.pageSize],
-  );
-
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['ga-finance-bills'] });
+    queryClient.invalidateQueries({ queryKey: ['payment-requests', 'eam'] });
     queryClient.invalidateQueries({ queryKey: ['coa'] });
   };
 
   const cancelMutation = useMutation({
-    mutationFn: (b: GaBill) => api.post(`/ga/finance/${b.kind}/${b.id}/cancel`),
+    mutationFn: (b: GaBill) => api.post(`${PR_ENDPOINT}/eam/${b.kind}/${b.id}/cancel`),
     onSuccess: () => {
       toast.success('Posting tagihan dibatalkan.');
       invalidate();
@@ -227,14 +211,14 @@ export const GaFinancePage = () => {
                 {
                   label: 'Bayar / posting ke jurnal',
                   icon: Wallet,
-                  hidden: !canEdit || posted,
+                  hidden: posted,
                   onSelect: () => setPayTarget(b),
                 },
                 {
                   label: 'Batalkan posting',
                   icon: XCircle,
                   tone: 'danger',
-                  hidden: !canEdit || !posted,
+                  hidden: !posted,
                   onSelect: () => setCancelTarget(b),
                 },
               ]}
@@ -243,26 +227,21 @@ export const GaFinancePage = () => {
         },
       },
     ],
-    [canEdit],
+    [],
   );
 
-  const summary = billsQuery.data?.summary;
-  const kpiLoading = !billsQuery.data && !billsQuery.isError;
+  const summary = summaryQuery.data;
+  const kpiLoading = !summary && !summaryQuery.isError;
 
   return (
-    <div className="space-y-5 pb-8">
-      <PageHeader
-        title="Tagihan Aset & Umum"
-        description="Antrian biaya dari modul EAM (pajak kendaraan, service, sparepart) yang menunggu diposting ke pembukuan. Pengajuan & persetujuan dilakukan HRGA di EAM."
-      />
-
+    <>
       <section aria-label="Ringkasan tagihan" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
           label="Belum Diposting"
           icon={AlertCircle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.pendingCount) : '-'}
-          hint={list.filters.kind ? KIND_META[list.filters.kind as GaBill['kind']]?.label : 'semua jenis'}
+          hint="semua jenis"
         />
         <StatCard
           label="Nilai Belum Diposting"
@@ -276,8 +255,8 @@ export const GaFinancePage = () => {
           label="Sesuai Filter"
           icon={list.filters.posting ? CheckCircle2 : ListFilter}
           loading={kpiLoading}
-          value={billsQuery.data ? formatNumber(filtered.length) : '-'}
-          hint={billsQuery.data ? `Nilai ${formatRupiah(sumAmount(filtered))}` : undefined}
+          value={summary ? formatNumber(summary.matchedCount) : '-'}
+          hint={summary ? `Nilai ${formatRupiah(summary.matchedAmount)}` : undefined}
           className="col-span-2 lg:col-span-1"
         />
       </section>
@@ -300,11 +279,11 @@ export const GaFinancePage = () => {
         </FilterBar>
 
         <DataTable
-          {...listTableProps(list, filtered.length)}
-          label="Daftar tagihan aset & umum"
+          {...listTableProps(list, billsQuery.data?.total)}
+          label="Daftar tagihan EAM"
           itemLabel="tagihan"
           columns={columns}
-          data={billsQuery.data ? pageRows : undefined}
+          data={billsQuery.data?.data}
           getRowId={(row) => `${row.kind}-${row.id}`}
           loading={billsQuery.isLoading}
           fetching={billsQuery.isFetching && billsQuery.isPlaceholderData}
@@ -319,7 +298,7 @@ export const GaFinancePage = () => {
         />
       </div>
 
-      <GaBillPayDialog
+      <EamBillPayDialog
         bill={payTarget}
         onClose={() => setPayTarget(null)}
         onSuccess={() => {
@@ -346,8 +325,8 @@ export const GaFinancePage = () => {
           await cancelMutation.mutateAsync(cancelTarget);
         }}
       />
-    </div>
+    </>
   );
 };
 
-export default GaFinancePage;
+export default EamBillsTab;
