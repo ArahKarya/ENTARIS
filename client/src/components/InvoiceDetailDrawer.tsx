@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { X, FileDown, Clock, CreditCard, Package, User, Calendar, AlertTriangle, CheckCircle2, Loader2, Wallet, XCircle, Pencil, Save, Paperclip, FileText, Image as ImageIcon, Trash2, Download, Truck } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
-import { cn } from '../lib/utils';
-import api from '../lib/api';
-import { formatRupiah, formatDate } from '../lib/formatters';
-import PDFDownloadButton from './PDFDownloadButton';
-import InvoicePDF from '../lib/pdf/InvoicePDF';
+import { Ban, Download, FileDown, Loader2, Package, Pencil, Save, Wallet } from 'lucide-react';
+import { pdf, PDFDownloadLink } from '@react-pdf/renderer';
+import { cn } from '@/lib/utils';
+import api from '@/lib/api';
+import { formatRupiah } from '@/lib/format';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { ConfirmDialog } from '@/components/shared';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import { mergeInvoicePdfWithAttachments } from '../lib/pdf/mergePdfWithAttachments';
 import type { AttachmentRef } from '../lib/pdf/mergePdfWithAttachments';
@@ -15,8 +17,20 @@ import { computeDeductions } from '../lib/invoiceDeductions';
 import ApplyDepositModal from './ApplyDepositModal';
 import ApplyCustomerDepositModal from './ApplyCustomerDepositModal';
 import DeliveryOrderFromInvoiceModal from './DeliveryOrderFromInvoiceModal';
-import { ConfirmDialog } from './ConfirmDialog';
 import { ThreeWayMatchPanel } from './purchase/ThreeWayMatchPanel';
+import { buildInvoicePdf } from './invoice-detail/buildInvoicePdf';
+import { InvoiceStatusProgress } from './invoice-detail/InvoiceStatusProgress';
+import { InvoiceInfoGrid } from './invoice-detail/InvoiceInfoGrid';
+import { InvoiceItemsSection } from './invoice-detail/InvoiceItemsSection';
+import {
+  InvoiceAttachmentsSection,
+  type InvoiceAttachment,
+  type PaymentAttachmentRef,
+} from './invoice-detail/InvoiceAttachmentsSection';
+import { InvoiceSummary } from './invoice-detail/InvoiceSummary';
+import { InvoiceMarginAnalysis } from './invoice-detail/InvoiceMarginAnalysis';
+import { InvoicePaymentTimeline, type PaymentTimelineEntry } from './invoice-detail/InvoicePaymentTimeline';
+import { InvoiceRevisePriceDialog } from './invoice-detail/InvoiceRevisePriceDialog';
 
 interface Props {
   type: 'sales' | 'purchase';
@@ -28,15 +42,6 @@ interface Props {
    */
   onEditFull?: (invoice: any) => void;
 }
-
-const statusConfig: Record<string, { label: string; badge: string; icon: React.ReactNode }> = {
-  Draft:        { label: 'Draft',          badge: 'badge badge-gray',   icon: <Clock size={13} /> },
-  Submitted:    { label: 'Diajukan',       badge: 'badge badge-blue',   icon: <Clock size={13} /> },
-  PartiallyPaid:{ label: 'Sebagian Lunas', badge: 'badge badge-yellow', icon: <AlertTriangle size={13} /> },
-  Paid:         { label: 'Lunas',          badge: 'badge badge-green',  icon: <CheckCircle2 size={13} /> },
-  Cancelled:    { label: 'Dibatalkan',     badge: 'badge badge-red',    icon: <X size={13} /> },
-  Overdue:      { label: 'Jatuh Tempo',    badge: 'badge badge-red',    icon: <AlertTriangle size={13} /> },
-};
 
 const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEditFull }) => {
   const company = useCompanyPDF();
@@ -167,7 +172,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     queryKey: ['invoice-attachments', attachmentRefType, invoiceId],
     queryFn: async () => {
       const res = await api.get(`/attachments/${attachmentRefType}/${invoiceId}`);
-      return res.data as Array<{ id: string; fileName: string; mimeType: string; fileSize: number }>;
+      return res.data as InvoiceAttachment[];
     },
     enabled: !!invoiceId && canHaveAttachments,
   });
@@ -199,13 +204,6 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
 
   // Payment attachments linked to this invoice via payment_allocations or deposit applications.
   // Read-only here — users manage these from the Payments module.
-  interface PaymentAttachmentRef {
-    id: string;
-    fileName: string;
-    mimeType: string;
-    fileSize: number;
-    payment: { id: string; paymentNumber: string; paymentType: string; date: string; status: string } | null;
-  }
   const { data: relatedAttachments } = useQuery({
     queryKey: ['invoice-related-attachments', type, invoiceId],
     queryFn: async () => {
@@ -258,7 +256,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   // dibatalkan (ditampilkan pudar + coret) supaya kronologi revisi pembayaran
   // (mis. UM dibatalkan lalu diganti di tanggal lain) terlihat jelas, bukan
   // hilang begitu saja dari riwayat.
-  const paymentTimeline = [
+  const paymentTimeline: PaymentTimelineEntry[] = [
     ...allocations.map((a: any) => ({
       kind: 'cash' as const,
       id: a.id,
@@ -318,8 +316,6 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     (isSales ? party?.customerDepositBalance : party?.depositBalance) ?? 0,
   );
 
-  const sc = statusConfig[invoice?.status] ?? statusConfig.Draft;
-
   const isOverdue = invoice?.dueDate && new Date(invoice.dueDate) < new Date() && outstanding > 0;
   const canCancel = invoice && invoice.status !== 'Cancelled' && (invoice.status !== 'Paid' || grandTotal === 0); // invoice Rp 0 (sumbangan) auto-Paid tapi tetap boleh dibatalkan
   const canEdit = invoice && invoice.status !== 'Cancelled';
@@ -345,55 +341,10 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     if (!invoice) return;
     try {
       setIsMerging(true);
-      const invoiceDoc = (
-        <InvoicePDF
-          type={type}
-          invoiceNumber={invoice.invoiceNumber}
-          date={invoice.date}
-          dueDate={invoice.dueDate}
-          terms={invoice.terms}
-          customerRefNo={invoice.customerRefNo}
-          status={invoice.status}
-          notes={invoice.notes}
-          taxPct={invoice.taxPct ?? 0}
-          potongan={invoice.potongan ?? 0}
-          biayaLain={invoice.biayaLain ?? 0}
-          labelPotongan={invoice.labelPotongan}
-          labelBiaya={invoice.labelBiaya}
-          grandTotal={invoice.grandTotal}
-          outstanding={outstanding}
-          paidFromCash={paidFromCash}
-          paidFromDeposit={paidFromDeposit}
-          partyDepositBalance={partyDepositBalance}
-          party={{
-            name: party?.name ?? '—',
-            address: party?.address,
-            phone: party?.phone,
-            email: party?.email,
-            taxId: party?.taxId,
-          }}
-          items={items.map((it: any) => ({
-            itemName: it.itemName,
-            quantity: it.quantity,
-            unit: it.unit,
-            rate: it.rate,
-            discount: it.discount ?? 0,
-            taxPct: it.taxPct ?? 0,
-            pphPct: it.pphPct ?? 0,
-            amount: it.amount,
-            description: it.description,
-            kualitas: it.kualitas,
-            nomorMobil: it.nomorMobil,
-            timbanganTruk: it.timbanganTruk,
-            refaksi: it.refaksi,
-            timbanganDiterima: it.timbanganDiterima,
-            potonganItem: it.potonganItem,
-          }))}
-          company={company}
-          invoiceSettings={company.invoiceSettings}
-          payments={paymentBreakdown}
-        />
-      );
+      const invoiceDoc = buildInvoicePdf({
+        type, invoice, party, items, company, outstanding,
+        paidFromCash, paidFromDeposit, partyDepositBalance, paymentBreakdown,
+      });
       const invoiceBlob = await pdf(invoiceDoc).toBlob();
       // Include invoice's own attachments + any payment attachments linked to this
       // invoice (via allocations / deposit applications) so the merged PDF
@@ -433,917 +384,273 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     }
   };
 
+  const mergedCount = attachments.length + paymentAttachments.length;
+  const showMergedPdf = canHaveAttachments && mergedCount > 0;
+  const footBtn = 'max-sm:h-11';
+
+  const openRevise = () => {
+    // Prefill dengan harga sekarang.
+    const init: Record<string, string> = {};
+    items.forEach((it: any) => { init[it.id] = String(Number(it.rate)); });
+    setReviseRates(init);
+    setReviseReason('');
+    setReviseOpen(true);
+  };
+
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/30 transition-opacity" onClick={onClose} />
+      <Sheet open onOpenChange={(open) => !open && onClose()}>
+        <SheetContent size="md" className="sm:max-w-2xl">
+          <SheetHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <SheetTitle className="flex items-center gap-2">
+                {isSales ? <FileDown className="size-5 text-primary" aria-hidden /> : <Package className="size-5 text-primary" aria-hidden />}
+                {isLoading ? 'Memuat…' : invoice?.invoiceNumber ?? (isSales ? 'Invoice Penjualan' : 'Invoice Pembelian')}
+              </SheetTitle>
+            </div>
+            <SheetDescription>{isSales ? 'Invoice Penjualan' : 'Invoice Pembelian'}</SheetDescription>
+          </SheetHeader>
 
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] sm:max-w-2xl bg-white shadow-2xl flex flex-col animate-slide-in-right">
-
-        {/* ── HEADER ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              {isSales ? <FileDown size={18} className="text-blue-600" /> : <Package size={18} className="text-blue-600" />}
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">
-                {isLoading ? 'Memuat...' : invoice?.invoiceNumber}
-              </h2>
-              <p className="text-xs text-gray-400">
-                {isSales ? 'Invoice Penjualan' : 'Invoice Pembelian'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {canEdit && !isEditing && (
-              <button
-                onClick={startEditing}
-                className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
-                title="Edit catatan & jatuh tempo"
-              >
-                <Pencil size={16} />
-              </button>
-            )}
-            {!isSales && canEdit && onEditFull && Number(invoice?.outstanding ?? 0) === Number(invoice?.grandTotal ?? 0) && (
-              <button
-                onClick={() => onEditFull(invoice)}
-                className="px-2 py-1 rounded-lg hover:bg-amber-50 text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 transition-colors"
-                title="Batalkan dan buat ulang invoice ini"
-              >
-                Edit Lengkap
-              </button>
-            )}
-            {!isSales && invoice && invoice.status !== 'Cancelled' && invoice.status !== 'Draft' && (
-              <button
-                onClick={() => {
-                  // Prefill dengan harga sekarang.
-                  const init: Record<string, string> = {};
-                  items.forEach((it: any) => { init[it.id] = String(Number(it.rate)); });
-                  setReviseRates(init);
-                  setReviseReason('');
-                  setReviseOpen(true);
-                }}
-                className="px-2 py-1 rounded-lg hover:bg-blue-50 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 transition-colors"
-                title="Revisi harga dari supplier (selisih diposting otomatis)"
-              >
-                Revisi Harga
-              </button>
-            )}
-            {canCancel && (
-              <button
-                onClick={() => setConfirmCancel(true)}
-                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                title="Batalkan invoice"
-              >
-                <XCircle size={16} />
-              </button>
-            )}
-            {invoice && (canHaveAttachments && (attachments.length + paymentAttachments.length) > 0 ? (
-              <button
-                onClick={downloadMergedPdf}
-                disabled={isMerging}
-                className="btn-secondary btn-sm flex items-center gap-1.5 disabled:opacity-50"
-                title={`Unduh PDF invoice + ${attachments.length + paymentAttachments.length} lampiran (${attachments.length} invoice, ${paymentAttachments.length} pembayaran) dalam 1 file`}
-              >
-                {isMerging ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                <span className="hidden sm:inline">Unduh PDF +{attachments.length + paymentAttachments.length}</span>
-              </button>
-            ) : (
-              <PDFDownloadButton
-                variant="button"
-                fileName={`${invoice.invoiceNumber}.pdf`}
-                label="Unduh PDF"
-                document={
-                  <InvoicePDF
-                    type={type}
-                    invoiceNumber={invoice.invoiceNumber}
-                    date={invoice.date}
-                    dueDate={invoice.dueDate}
-                    terms={invoice.terms}
-          customerRefNo={invoice.customerRefNo}
-                    status={invoice.status}
-                    notes={invoice.notes}
-                    taxPct={invoice.taxPct ?? 0}
-                    potongan={invoice.potongan ?? 0}
-                    biayaLain={invoice.biayaLain ?? 0}
-                    labelPotongan={invoice.labelPotongan}
-                    labelBiaya={invoice.labelBiaya}
-                    grandTotal={invoice.grandTotal}
-          outstanding={outstanding}
-          paidFromCash={paidFromCash}
-          paidFromDeposit={paidFromDeposit}
-          partyDepositBalance={partyDepositBalance}
-                    party={{
-                      name: party?.name ?? '—',
-                      address: party?.address,
-                      phone: party?.phone,
-                      email: party?.email,
-                      taxId: party?.taxId,
-                    }}
-                    items={items.map((it: any) => ({
-                      itemName: it.itemName,
-                      quantity: it.quantity,
-                      unit: it.unit,
-                      rate: it.rate,
-                      discount: it.discount ?? 0,
-                      taxPct: it.taxPct ?? 0,
-                      pphPct: it.pphPct ?? 0,
-                      amount: it.amount,
-                      description: it.description,
-                      kualitas: it.kualitas,
-                      nomorMobil: it.nomorMobil,
-                      timbanganTruk: it.timbanganTruk,
-                      refaksi: it.refaksi,
-                      timbanganDiterima: it.timbanganDiterima,
-                      potonganItem: it.potonganItem,
-                    }))}
-                    company={company}
-                    invoiceSettings={company.invoiceSettings}
-                    payments={paymentBreakdown}
-                  />
-                }
-              />
-            ))}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── BODY ── */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-            </div>
-          ) : !invoice ? (
-            <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-              Invoice tidak ditemukan.
-            </div>
-          ) : (
-            <>
-              {/* Status + Progress bar */}
-              <div className="px-6 pt-5 pb-4 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <span className={cn(sc.badge, 'inline-flex items-center gap-1')}>
-                    {sc.icon} {sc.label}
-                  </span>
-                  {isOverdue && (
-                    <span className="badge badge-red inline-flex items-center gap-1 text-xs">
-                      <AlertTriangle size={11} /> Lewat jatuh tempo
-                    </span>
-                  )}
-                </div>
-                {/* Payment progress */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Pembayaran</span>
-                    <span className="font-mono font-medium text-gray-700">{formatRupiah(paidAmount)} / {formatRupiah(grandTotal)}</span>
-                  </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={cn(
-                        'h-full rounded-full transition-all',
-                        paidPct >= 100 ? 'bg-green-500' : paidPct > 0 ? 'bg-yellow-400' : 'bg-gray-200'
-                      )}
-                      style={{ width: `${Math.min(paidPct, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>{paidPct}% terbayar</span>
-                    {outstanding > 0 && <span className="text-red-400 font-medium">Sisa: {formatRupiah(outstanding)}</span>}
-                  </div>
-                  {/* Payment breakdown */}
-                  {(paidFromCash > 0 || paidFromDeposit > 0) && (
-                    <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
-                      {paidFromCash > 0 && (
-                        <span>💵 Tunai/Bank: <span className="font-mono text-gray-700">{formatRupiah(paidFromCash)}</span></span>
-                      )}
-                      {paidFromDeposit > 0 && (
-                        <span>💰 Uang Muka: <span className="font-mono text-gray-700">{formatRupiah(paidFromDeposit)}</span></span>
-                      )}
-                    </div>
-                  )}
-                </div>
+          <SheetBody className="px-0 py-0">
+            {isLoading ? (
+              <div role="status" className="flex h-64 items-center justify-center">
+                <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
+                <span className="sr-only">Memuat invoice…</span>
               </div>
+            ) : !invoice ? (
+              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+                Invoice tidak ditemukan.
+              </div>
+            ) : (
+              <>
+                <InvoiceStatusProgress
+                  isSales={isSales}
+                  status={invoice.status}
+                  isOverdue={!!isOverdue}
+                  paidAmount={paidAmount}
+                  grandTotal={grandTotal}
+                  paidPct={paidPct}
+                  outstanding={outstanding}
+                  paidFromCash={paidFromCash}
+                  paidFromDeposit={paidFromDeposit}
+                />
 
-              {/* Info Grid */}
-              <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
-                {/* Party info */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <User size={10} /> {partyLabel}
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900">{party?.name ?? '—'}</p>
-                  {party?.phone && <p className="text-xs text-gray-500 mt-0.5">{party.phone}</p>}
-                  {party?.email && <p className="text-xs text-gray-500">{party.email}</p>}
-                  {party?.address && <p className="text-xs text-gray-400 mt-0.5">{party.address}</p>}
-                  {party?.taxId && <p className="text-xs text-gray-400">NPWP: {party.taxId}</p>}
-                </div>
+                <InvoiceInfoGrid
+                  invoice={invoice}
+                  party={party}
+                  partyLabel={partyLabel}
+                  isOverdue={!!isOverdue}
+                  isEditing={isEditing}
+                  editDueDate={editDueDate}
+                  editTerms={editTerms}
+                  onEditDueDate={setEditDueDate}
+                  onEditTerms={setEditTerms}
+                />
 
-                {/* Invoice meta */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <Calendar size={10} /> Informasi Invoice
-                  </p>
+                <InvoiceItemsSection
+                  invoice={invoice}
+                  items={items}
+                  isSales={isSales}
+                  hasPerItemPph={hasPerItemPph}
+                  onCreateDO={() => setCreateDOOpen(true)}
+                />
+
+                {/* Three-way match (purchase only; additive `match` on GET /:id) */}
+                {!isSales && invoice?.match && (
+                  <div className="border-b border-border px-6 py-4">
+                    <ThreeWayMatchPanel match={invoice.match} />
+                  </div>
+                )}
+
+                {canHaveAttachments && (
+                  <InvoiceAttachmentsSection
+                    attachments={attachments}
+                    paymentAttachments={paymentAttachments}
+                    cancelled={invoice.status === 'Cancelled'}
+                    onUpload={(files) => uploadAttachmentMutation.mutate(files)}
+                    onDelete={(id) => deleteAttachmentMutation.mutate(id)}
+                  />
+                )}
+
+                <InvoiceSummary
+                  invoice={invoice}
+                  totalQtyLabel={totalQtyLabel}
+                  subtotal={subtotal}
+                  taxAmount={taxAmount}
+                  hasPerItemTax={hasPerItemTax}
+                  taxPct={taxPct}
+                  pphAmount={pphAmount}
+                  potongan={potongan}
+                  biayaLain={biayaLain}
+                  grandTotal={grandTotal}
+                  deductions={deductions}
+                  netAfterDeductions={netAfterDeductions}
+                />
+
+                {isSales && <InvoiceMarginAnalysis items={items} />}
+
+                <InvoicePaymentTimeline
+                  entries={paymentTimeline}
+                  isSales={isSales}
+                  invoiceCancelled={invoice.status === 'Cancelled'}
+                  onCancelDepositApp={setCancelDepositAppId}
+                />
+
+                {/* Apply Deposit Banner (has outstanding) */}
+                {outstanding > 0.01 && invoice.status !== 'Cancelled' && (
+                  <div className="space-y-2 border-b border-border px-6 py-3">
+                    {partyDepositBalance > 0 && (
+                      <div className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2 text-xs">
+                        <span className="text-warning-text">Saldo Uang Muka {partyLabel}</span>
+                        <span className="font-semibold tabular-nums text-warning-text">{formatRupiah(partyDepositBalance)}</span>
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      className={cn('w-full', footBtn)}
+                      onClick={() => (isSales ? setIsApplyCustomerDepositOpen(true) : setIsApplyDepositOpen(true))}
+                      disabled={partyDepositBalance <= 0}
+                      title={partyDepositBalance <= 0 ? `${partyLabel} belum punya saldo uang muka` : undefined}
+                    >
+                      <Wallet aria-hidden /> Gunakan Uang Muka
+                      {partyDepositBalance <= 0 && <span className="text-xs opacity-70">(saldo 0)</span>}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div className="px-6 py-4">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Catatan</h3>
                   {isEditing ? (
                     <div className="space-y-3">
-                      <div>
-                        <label className="text-xs text-gray-400">Jatuh Tempo</label>
-                        <input
-                          type="date"
-                          value={editDueDate}
-                          onChange={(e) => setEditDueDate(e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400">Termin</label>
-                        <input
-                          type="text"
-                          value={editTerms}
-                          onChange={(e) => setEditTerms(e.target.value)}
-                          placeholder="Net 30"
-                          className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none"
-                        />
+                      <Textarea
+                        aria-label="Catatan invoice"
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        rows={3}
+                        placeholder="Catatan invoice..."
+                        className="resize-none"
+                      />
+                      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                        <Button variant="ghost" className={footBtn} onClick={() => setIsEditing(false)} disabled={editMutation.isPending}>
+                          Batal
+                        </Button>
+                        <Button className={footBtn} onClick={saveEdit} loading={editMutation.isPending}>
+                          {!editMutation.isPending && <Save aria-hidden />}
+                          {editMutation.isPending ? 'Menyimpan…' : 'Simpan'}
+                        </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-gray-400">Tanggal</p>
-                        <p className="text-xs font-medium text-gray-800">{formatDate(invoice.date)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">Jatuh Tempo</p>
-                        <p className={cn('text-xs font-medium', isOverdue ? 'text-red-500' : 'text-gray-800')}>
-                          {invoice.dueDate ? formatDate(invoice.dueDate) : '—'}
-                        </p>
-                      </div>
-                      {invoice.terms && (
-                        <div>
-                          <p className="text-xs text-gray-400">Termin</p>
-                          <p className="text-xs font-medium text-gray-800">{invoice.terms}</p>
-                        </div>
-                      )}
-                      {invoice.customerRefNo && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-400">No. Ref. PO / Penawaran</p>
-                          <p className="text-xs font-mono font-medium text-gray-800">{invoice.customerRefNo}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-xs text-gray-400">Dibuat oleh</p>
-                        <p className="text-xs font-medium text-gray-800">{invoice.user?.fullName ?? '—'}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Items Table */}
-              <div className="px-6 py-4 border-b border-gray-100">
-                {isSales && (() => {
-                  const linkedDOs = Array.from(
-                    new Map(
-                      items
-                        .map((it: any) => it.deliveryOrderItem?.deliveryOrder)
-                        .filter((d: any) => d)
-                        .map((d: any) => [d.id, d]),
-                    ).values(),
-                  );
-                  if (linkedDOs.length > 0) {
-                    return (
-                      <div className="mb-3 p-2.5 bg-blue-50/60 border border-blue-100 rounded-lg flex items-start gap-2 text-xs">
-                        <Truck size={13} className="text-blue-600 mt-0.5 shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-blue-700 font-semibold mb-0.5">
-                            Ditagihkan dari {linkedDOs.length === 1 ? 'Surat Jalan' : `${linkedDOs.length} Surat Jalan`}
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {linkedDOs.map((d: any) => (
-                              <span key={d.id} className="font-mono text-[11px] px-1.5 py-0.5 bg-white border border-blue-200 rounded text-blue-700">
-                                {d.doNumber}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  // No DO yet. Offer to create one retroactively if invoice is
-                  // active and has at least one inventory line.
-                  const hasInventoryLine = items.some((it: any) => it.inventoryItemId);
-                  const canCreate = invoice && invoice.status !== 'Cancelled' && hasInventoryLine;
-                  if (!canCreate) return null;
-                  return (
-                    <div className="mb-3 p-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-2 text-xs">
-                      <Truck size={13} className="text-gray-400 shrink-0" />
-                      <span className="text-gray-500 flex-1">Invoice ini belum punya Surat Jalan.</span>
-                      <button
-                        onClick={() => setCreateDOOpen(true)}
-                        className="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1"
-                      >
-                        <Truck size={12} /> Buat Surat Jalan
-                      </button>
-                    </div>
-                  );
-                })()}
-                {/* Purchase side: tampilkan STT/BPB asal barang. */}
-                {!isSales && (() => {
-                  const linkedSTTs = Array.from(
-                    new Map(
-                      items
-                        .map((it: any) => it.goodsReceiptItem?.goodsReceipt)
-                        .filter((g: any) => g)
-                        .map((g: any) => [g.id, g]),
-                    ).values(),
-                  );
-                  if (linkedSTTs.length === 0) return null;
-                  return (
-                    <div className="mb-3 p-2.5 bg-emerald-50/60 border border-emerald-100 rounded-lg flex items-start gap-2 text-xs">
-                      <Truck size={13} className="text-emerald-600 mt-0.5 shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-emerald-700 font-semibold mb-0.5">
-                          Barang diterima dari {linkedSTTs.length === 1 ? 'STT/BPB' : `${linkedSTTs.length} STT/BPB`}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {linkedSTTs.map((g: any) => (
-                            <span key={g.id} className="font-mono text-[11px] px-1.5 py-0.5 bg-white border border-emerald-200 rounded text-emerald-700">
-                              {g.sttNumber}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <Package size={10} /> Daftar Barang / Jasa ({items.length} item)
-                </p>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        <th className="text-left px-4 py-2.5 w-8">#</th>
-                        <th className="text-left px-4 py-2.5">Nama</th>
-                        <th className="text-center px-3 py-2.5 w-16">Qty</th>
-                        <th className="text-center px-3 py-2.5 w-16">Satuan</th>
-                        <th className="text-right px-3 py-2.5 w-28">Harga</th>
-                        <th className="text-right px-3 py-2.5 w-16">Disk%</th>
-                        <th className="text-right px-3 py-2.5 w-16">PPN%</th>
-                        {hasPerItemPph && <th className="text-right px-3 py-2.5 w-16">PPh%</th>}
-                        <th className="text-right px-4 py-2.5 w-28">Jumlah</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item: any, idx: number) => (
-                        <tr key={item.id || idx} className={cn('border-b border-gray-50 last:border-0', idx % 2 === 1 && 'bg-gray-50/50')}>
-                          <td className="px-4 py-2.5 text-center text-xs text-gray-300">{idx + 1}</td>
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="text-sm font-medium text-gray-800">{item.itemName}</p>
-                              {item.itemType === 'service' && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-100 text-purple-700">Jasa</span>
-                              )}
-                              {item.deliveryOrderItem?.deliveryOrder?.doNumber && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-blue-100 text-blue-700">
-                                  <Truck size={8} /> {item.deliveryOrderItem.deliveryOrder.doNumber}
-                                </span>
-                              )}
-                              {/* STT/BPB asal (purchase side) — supaya dari PI tahu
-                                  barang ini diterima lewat STT nomor berapa. */}
-                              {item.goodsReceiptItem?.goodsReceipt?.sttNumber && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-emerald-100 text-emerald-700">
-                                  <Truck size={8} /> {item.goodsReceiptItem.goodsReceipt.sttNumber}
-                                </span>
-                              )}
-                            </div>
-                            {item.description && <p className="text-xs text-gray-400">{item.description}</p>}
-                            {!isSales && (item.kualitas || item.timbanganTruk || item.refaksi || item.nomorMobil) && (
-                              <div className="text-xs text-gray-400 space-x-2 mt-0.5">
-                                {item.nomorMobil && <span>Mobil: <span className="font-mono text-gray-600 uppercase">{item.nomorMobil}</span></span>}
-                                {item.kualitas && <span>Kualitas: <span className="text-gray-600">{item.kualitas}</span></span>}
-                                {Number(item.timbanganTruk) > 0 && <span>Truk: {Number(item.timbanganTruk).toLocaleString('id-ID')} kg</span>}
-                                {Number(item.refaksi) > 0 && <span className="text-amber-600">Refaksi: {Number(item.refaksi).toLocaleString('id-ID')} kg</span>}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-center font-mono text-xs text-gray-700">
-                            {Number(item.quantity).toLocaleString('id-ID')}
-                          </td>
-                          <td className="px-3 py-2.5 text-center text-xs text-gray-500">{item.unit}</td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">{formatRupiah(Number(item.rate))}</td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs">
-                            <span className={Number(item.discount) > 0 ? 'text-orange-500' : 'text-gray-300'}>
-                              {Number(item.discount) > 0 ? `${Number(item.discount)}%` : '—'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs">
-                            <span className={Number(item.taxPct) > 0 ? 'text-blue-600' : 'text-gray-300'}>
-                              {Number(item.taxPct) > 0 ? `${Number(item.taxPct)}%` : '—'}
-                            </span>
-                          </td>
-                          {hasPerItemPph && (
-                            <td className="px-3 py-2.5 text-right font-mono text-xs">
-                              <span className={Number(item.pphPct) > 0 ? 'text-orange-600' : 'text-gray-300'}>
-                                {Number(item.pphPct) > 0 ? `${Number(item.pphPct)}%` : '—'}
-                              </span>
-                            </td>
-                          )}
-                          <td className="px-4 py-2.5 text-right font-mono text-xs font-medium text-gray-900">
-                            {formatRupiah(Number(item.amount))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Three-way match (purchase only; additive `match` on GET /:id) */}
-              {!isSales && invoice?.match && (
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <ThreeWayMatchPanel match={invoice.match} />
-                </div>
-              )}
-
-              {/* Attachments (purchase invoice only) */}
-              {canHaveAttachments && (
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                      <Paperclip size={10} /> Dokumen Pendukung ({attachments.length})
+                    <p className="whitespace-pre-wrap text-sm text-foreground">
+                      {invoice.notes || <span className="italic text-muted-foreground">Tidak ada catatan</span>}
                     </p>
-                    {invoice.status !== 'Cancelled' && (
-                      <label className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
-                        + Tambah File
-                        <input
-                          type="file"
-                          multiple
-                          accept=".jpg,.jpeg,.png,.webp,.pdf"
-                          className="hidden"
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            if (files.length > 0) uploadAttachmentMutation.mutate(files);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  {attachments.length === 0 ? (
-                    <p className="text-xs text-gray-400 italic">Belum ada lampiran.</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {attachments.map((a) => (
-                        <div key={a.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs">
-                          {a.mimeType === 'application/pdf' ? (
-                            <FileText size={14} className="text-red-500 shrink-0" />
-                          ) : (
-                            <ImageIcon size={14} className="text-blue-500 shrink-0" />
-                          )}
-                          <a
-                            href={`/api/attachments/file/${a.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 truncate text-gray-700 hover:text-blue-600"
-                          >
-                            {a.fileName}
-                          </a>
-                          <span className="text-gray-400">{(a.fileSize / 1024).toFixed(0)} KB</span>
-                          {invoice.status !== 'Cancelled' && (
-                            <button
-                              onClick={() => deleteAttachmentMutation.mutate(a.id)}
-                              className="text-gray-400 hover:text-red-500"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Related: attachments from payments/deposit applications linked to this invoice */}
-                  {paymentAttachments.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                        <Paperclip size={10} /> Dari Pembayaran ({paymentAttachments.length})
-                      </p>
-                      <div className="space-y-1.5">
-                        {paymentAttachments.map((a) => (
-                          <div key={a.id} className="flex items-center gap-2 p-2 bg-blue-50/40 rounded-lg text-xs border border-blue-100/50">
-                            {a.mimeType === 'application/pdf' ? (
-                              <FileText size={14} className="text-red-500 shrink-0" />
-                            ) : (
-                              <ImageIcon size={14} className="text-blue-500 shrink-0" />
-                            )}
-                            <a
-                              href={`/api/attachments/file/${a.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 truncate text-gray-700 hover:text-blue-600"
-                              title={a.fileName}
-                            >
-                              {a.fileName}
-                            </a>
-                            {a.payment && (
-                              <span className="text-[10px] font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                {a.payment.paymentNumber}
-                              </span>
-                            )}
-                            <span className="text-gray-400 whitespace-nowrap">{(a.fileSize / 1024).toFixed(0)} KB</span>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-gray-400 italic mt-1.5">
-                        Lampiran ini milik pembayaran terkait. Kelola dari menu Bank &amp; Kas.
-                      </p>
-                    </div>
                   )}
                 </div>
-              )}
+              </>
+            )}
+          </SheetBody>
 
-              {/* Summary */}
-              <div className="px-6 py-4 border-b border-gray-100">
-                <div className="flex justify-end">
-                  <div className="w-72 space-y-2">
-                    {totalQtyLabel && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Total Qty</span>
-                        <span className="font-mono text-gray-800 tabular-nums">{totalQtyLabel}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span className="font-mono text-gray-800 tabular-nums">{formatRupiah(subtotal)}</span>
-                    </div>
-                    {taxAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">{hasPerItemTax ? 'PPN (per item)' : `PPN ${taxPct}%`}</span>
-                        <span className="font-mono text-gray-800 tabular-nums">{formatRupiah(taxAmount)}</span>
-                      </div>
-                    )}
-                    {pphAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-orange-500">PPh (per item)</span>
-                        <span className="font-mono text-orange-600 tabular-nums">− {formatRupiah(pphAmount)}</span>
-                      </div>
-                    )}
-                    {potongan > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-red-400">{invoice.labelPotongan || 'Potongan'}</span>
-                        <span className="font-mono text-red-500 tabular-nums">({formatRupiah(potongan)})</span>
-                      </div>
-                    )}
-                    {biayaLain > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">{invoice.labelBiaya || 'Biaya Lain'}</span>
-                        <span className="font-mono text-gray-800 tabular-nums">{formatRupiah(biayaLain)}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
-                      <span className="text-sm font-semibold text-gray-700">Grand Total</span>
-                      <span className={cn(
-                        'font-mono tabular-nums',
-                        deductions.total > 0
-                          ? 'text-sm text-gray-500 line-through'
-                          : 'text-lg font-bold text-blue-600'
-                      )}>
-                        {formatRupiah(grandTotal)}
-                      </span>
-                    </div>
-                    {deductions.total > 0 && (
-                      <>
-                        <div className="pt-1 space-y-0.5">
-                          {deductions.byAccount.map((d) => (
-                            <div key={d.accountNumber} className="flex justify-between text-xs">
-                              <span className="text-amber-600">
-                                {d.accountNumber} {d.label}
-                              </span>
-                              <span className="font-mono text-amber-700 tabular-nums">
-                                ({formatRupiah(d.total)})
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="border-t border-amber-200 pt-2 flex justify-between items-baseline bg-amber-50/40 -mx-2 px-2 py-1.5 rounded">
-                          <span className="text-sm font-semibold text-amber-900">Net Setelah Potongan</span>
-                          <span className="text-lg font-bold text-amber-700 font-mono tabular-nums">{formatRupiah(netAfterDeductions)}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Phase 6: margin analysis (sales only). Shows side-by-side
-                  material WAC vs loaded HPP margin when at least one line has
-                  unitCostLoaded captured from a Phase 5 batch pick. */}
-              {isSales && (() => {
-                const productLines = items.filter((i: any) => i.inventoryItemId);
-                if (productLines.length === 0) return null;
-                const lineWithLoaded = productLines.filter((i: any) => i.unitCostLoaded != null);
-                if (lineWithLoaded.length === 0) return null;
-                const totalRev = productLines.reduce((s: number, i: any) => s + Number(i.amount), 0);
-                const materialCost = productLines.reduce(
-                  (s: number, i: any) =>
-                    s + Number(i.quantity) * Number(i.inventoryItem?.averageCost ?? 0),
-                  0,
-                );
-                const loadedCost = productLines.reduce(
-                  (s: number, i: any) =>
-                    s + Number(i.quantity) * Number(i.unitCostLoaded ?? i.inventoryItem?.averageCost ?? 0),
-                  0,
-                );
-                const matMargin = totalRev - materialCost;
-                const loadMargin = totalRev - loadedCost;
-                const matPct = totalRev > 0 ? (matMargin / totalRev) * 100 : 0;
-                const loadPct = totalRev > 0 ? (loadMargin / totalRev) * 100 : 0;
-                return (
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-3 flex items-center gap-1">
-                      Margin Analysis ({lineWithLoaded.length}/{productLines.length} line tracked)
-                    </p>
-                    <div className="border border-emerald-200 rounded-lg overflow-hidden bg-emerald-50/30">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-emerald-50 border-b border-emerald-200 text-emerald-800">
-                            <th className="text-left px-3 py-1.5 font-semibold">Basis</th>
-                            <th className="text-right px-3 py-1.5 font-semibold">Revenue (Produk)</th>
-                            <th className="text-right px-3 py-1.5 font-semibold">COGS</th>
-                            <th className="text-right px-3 py-1.5 font-semibold">Margin</th>
-                            <th className="text-right px-3 py-1.5 font-semibold">%</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-emerald-100">
-                            <td className="px-3 py-1.5 text-gray-700">Material (WAC)</td>
-                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(totalRev)}</td>
-                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(materialCost)}</td>
-                            <td className={cn('px-3 py-1.5 text-right font-mono', matMargin >= 0 ? 'text-green-700' : 'text-red-600')}>
-                              {formatRupiah(matMargin)}
-                            </td>
-                            <td className="px-3 py-1.5 text-right font-mono">{matPct.toFixed(1)}%</td>
-                          </tr>
-                          <tr className="bg-emerald-50/50">
-                            <td className="px-3 py-1.5 text-emerald-900 font-medium">Loaded HPP</td>
-                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(totalRev)}</td>
-                            <td className="px-3 py-1.5 text-right font-mono">{formatRupiah(loadedCost)}</td>
-                            <td className={cn('px-3 py-1.5 text-right font-mono font-semibold',
-                              loadMargin >= 0 ? 'text-emerald-700' : 'text-red-600')}>
-                              {formatRupiah(loadMargin)}
-                            </td>
-                            <td className="px-3 py-1.5 text-right font-mono font-semibold">
-                              {loadPct.toFixed(1)}%
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1.5">
-                      Material basis = pakai WAC saat ini. Loaded basis = pakai HPP per batch
-                      (Phase 3: include biaya produksi & by-product NRV).
-                    </p>
-                  </div>
-                );
-              })()}
-
-              {/* Riwayat Pembayaran — linimasa gabungan Tunai/Bank + Uang Muka,
-                  terurut tanggal, termasuk yang dibatalkan (transparansi kronologi) */}
-              {paymentTimeline.length > 0 && (
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                    <CreditCard size={10} /> Riwayat Pembayaran ({paymentTimeline.length})
-                  </p>
-                  <div className="space-y-2">
-                    {paymentTimeline.map((entry) => {
-                      const isDeposit = entry.kind === 'deposit';
-                      const cancelled = entry.isCancelled;
-                      return (
-                        <div key={`${entry.kind}-${entry.id}`} className={cn(
-                          'flex items-center justify-between p-3 rounded-lg border',
-                          cancelled
-                            ? 'bg-gray-50 border-gray-200 opacity-60'
-                            : isDeposit
-                              ? (isSales ? 'bg-teal-50/50 border-teal-100' : 'bg-amber-50/50 border-amber-100')
-                              : 'bg-green-50/50 border-green-100'
-                        )}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('p-1.5 rounded', cancelled ? 'bg-gray-100' : isDeposit ? (isSales ? 'bg-teal-100' : 'bg-amber-100') : 'bg-green-100')}>
-                              {isDeposit
-                                ? <Wallet size={13} className={cancelled ? 'text-gray-400' : (isSales ? 'text-teal-600' : 'text-amber-600')} />
-                                : <CreditCard size={13} className={cancelled ? 'text-gray-400' : 'text-green-600'} />}
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5">
-                                {entry.label}
-                                <span className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded font-normal',
-                                  isDeposit ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-500',
-                                )}>
-                                  {isDeposit ? 'Uang Muka' : 'Tunai/Bank'}
-                                </span>
-                                {cancelled && <span className="text-[10px] text-red-400 font-normal">(Dibatalkan)</span>}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {formatDate(entry.date)}
-                                {cancelled && (entry as any).raw?.cancelledAt && (
-                                  <span className="text-red-300"> · dibatalkan {formatDate((entry as any).raw.cancelledAt)}</span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              'font-mono text-sm font-semibold',
-                              cancelled ? 'text-gray-400 line-through' : isDeposit ? (isSales ? 'text-teal-600' : 'text-amber-600') : 'text-green-600',
-                            )}>
-                              {formatRupiah(Number(entry.amount))}
-                            </span>
-                            {isDeposit && !cancelled && invoice.status !== 'Cancelled' && (
-                              <button
-                                onClick={() => setCancelDepositAppId(entry.id)}
-                                className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-                                title="Batalkan alokasi uang muka"
-                              >
-                                <XCircle size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-
-
-              {/* Apply Deposit Banner (has outstanding) */}
-              {outstanding > 0.01 && invoice.status !== 'Cancelled' && (
-                <div className="px-6 py-3 border-b border-gray-100 space-y-2">
-                  {partyDepositBalance > 0 && (
-                    <div className="flex items-center justify-between text-xs bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
-                      <span className="text-amber-700">Saldo Uang Muka {partyLabel}</span>
-                      <span className="font-mono font-semibold text-amber-800">{formatRupiah(partyDepositBalance)}</span>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => isSales ? setIsApplyCustomerDepositOpen(true) : setIsApplyDepositOpen(true)}
-                    disabled={partyDepositBalance <= 0}
-                    className={cn(
-                      'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                      isSales
-                        ? 'bg-teal-50 hover:bg-teal-100 text-teal-700 border-teal-200'
-                        : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
-                    )}
-                    title={partyDepositBalance <= 0 ? `${partyLabel} belum punya saldo uang muka` : undefined}
+          {invoice && (
+            <SheetFooter className="flex-wrap sm:justify-between">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                {canCancel && (
+                  <Button
+                    variant="ghost"
+                    className={cn('text-danger-text', footBtn)}
+                    onClick={() => setConfirmCancel(true)}
+                    title="Batalkan invoice"
                   >
-                    <Wallet size={14} /> Gunakan Uang Muka
-                    {partyDepositBalance <= 0 && <span className="text-xs opacity-70">(saldo 0)</span>}
-                  </button>
-                </div>
-              )}
-
-              {/* Notes */}
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Catatan</p>
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <textarea
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      rows={3}
-                      placeholder="Catatan invoice..."
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        disabled={editMutation.isPending}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        {editMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                        Simpan
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                    {invoice.notes || <span className="text-gray-300 italic">Tidak ada catatan</span>}
-                  </p>
+                    <Ban aria-hidden /> Batalkan Invoice
+                  </Button>
                 )}
               </div>
-            </>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap [&>*:only-child]:col-span-2">
+                {canEdit && !isEditing && (
+                  <Button variant="outline" className={footBtn} onClick={startEditing} title="Edit catatan & jatuh tempo">
+                    <Pencil aria-hidden /> Edit
+                  </Button>
+                )}
+                {!isSales && canEdit && onEditFull && Number(invoice?.outstanding ?? 0) === Number(invoice?.grandTotal ?? 0) && (
+                  <Button variant="outline" className={footBtn} onClick={() => onEditFull(invoice)} title="Batalkan dan buat ulang invoice ini">
+                    Edit Lengkap
+                  </Button>
+                )}
+                {!isSales && invoice.status !== 'Cancelled' && invoice.status !== 'Draft' && (
+                  <Button variant="outline" className={footBtn} onClick={openRevise} title="Revisi harga dari supplier (selisih diposting otomatis)">
+                    Revisi Harga
+                  </Button>
+                )}
+                {showMergedPdf ? (
+                  <Button
+                    variant="secondary"
+                    className={footBtn}
+                    onClick={downloadMergedPdf}
+                    loading={isMerging}
+                    title={`Unduh PDF invoice + ${mergedCount} lampiran (${attachments.length} invoice, ${paymentAttachments.length} pembayaran) dalam 1 file`}
+                  >
+                    {!isMerging && <Download aria-hidden />}
+                    Unduh PDF +{mergedCount}
+                  </Button>
+                ) : (
+                  <PDFDownloadLink
+                    document={buildInvoicePdf({
+                      type, invoice, party, items, company, outstanding,
+                      paidFromCash, paidFromDeposit, partyDepositBalance, paymentBreakdown,
+                    }) as React.ReactElement<any>}
+                    fileName={`${invoice.invoiceNumber}.pdf`}
+                    className={cn(buttonVariants({ variant: 'secondary', size: 'md' }), footBtn)}
+                  >
+                    {({ loading }) => (
+                      <>
+                        {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
+                        Unduh PDF
+                      </>
+                    )}
+                  </PDFDownloadLink>
+                )}
+              </div>
+            </SheetFooter>
           )}
-        </div>
-      </div>
+        </SheetContent>
+      </Sheet>
 
-      {/* Cancel Invoice Confirm */}
       <ConfirmDialog
         open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        tone="danger"
         title="Batalkan Invoice"
-        message="Yakin ingin membatalkan invoice ini? Semua jurnal GL, stok, dan saldo akan di-reverse. Invoice yang sudah ada pembayaran atau alokasi uang muka harus dibatalkan terlebih dahulu."
+        description="Yakin ingin membatalkan invoice ini? Semua jurnal GL, stok, dan saldo akan di-reverse. Invoice yang sudah ada pembayaran atau alokasi uang muka harus dibatalkan terlebih dahulu."
         confirmLabel="Batalkan Invoice"
-        variant="danger"
-        onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
-        onCancel={() => setConfirmCancel(false)}
+        loading={cancelMutation.isPending}
+        onConfirm={() => cancelMutation.mutateAsync()}
       />
 
-      {/* Revisi Harga Modal (Purchase only) */}
-      {!isSales && reviseOpen && invoice && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !reviseMutation.isPending && setReviseOpen(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Revisi Harga Invoice</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{invoice.invoiceNumber} — {invoice.supplier?.name}</p>
-              </div>
-              <button onClick={() => setReviseOpen(false)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-lg p-2.5">
-                Selisih harga diposting otomatis: porsi barang yang <strong>masih di stok</strong> menyesuaikan nilai Persediaan + harga rata-rata; porsi yang <strong>sudah keluar</strong> (produksi/jual) masuk akun <strong>5.11 Selisih Harga Pembelian</strong>. Hutang ke supplier ikut disesuaikan.
-              </p>
-              <div className="space-y-2">
-                {items.map((it: any) => {
-                  const oldRate = Number(it.rate);
-                  const qty = Number(it.quantity);
-                  const raw = reviseRates[it.id] ?? String(oldRate);
-                  const newRate = Number(raw);
-                  const delta = Number.isFinite(newRate) ? (newRate - oldRate) * qty : 0;
-                  return (
-                    <div key={it.id} className="border border-gray-100 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-medium text-gray-800">{it.itemName}</span>
-                        <span className="text-[11px] text-gray-400">{qty.toLocaleString('id-ID')} {it.unit}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-400">Lama: {oldRate.toLocaleString('id-ID')}</span>
-                        <span className="text-gray-300">→</span>
-                        <input
-                          type="number"
-                          value={raw}
-                          min={0}
-                          onChange={(e) => setReviseRates((p) => ({ ...p, [it.id]: e.target.value }))}
-                          className="w-32 border border-gray-200 rounded px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                          placeholder="harga baru"
-                        />
-                        {delta !== 0 && (
-                          <span className={`ml-auto tabular-nums font-medium ${delta > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {delta > 0 ? '+' : ''}{delta.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Alasan revisi (min 10 karakter) *</label>
-                <textarea
-                  value={reviseReason}
-                  onChange={(e) => setReviseReason(e.target.value)}
-                  rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  placeholder="contoh: Supplier koreksi harga gabah dari Rp 5.000 → 5.200 sesuai kesepakatan akhir"
-                />
-              </div>
-            </div>
-            <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 sticky bottom-0 bg-white">
-              <button onClick={() => setReviseOpen(false)} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-              <button
-                onClick={submitRevise}
-                disabled={reviseMutation.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
-              >
-                {reviseMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                Simpan Revisi
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Revisi Harga (purchase only) */}
+      {!isSales && invoice && (
+        <InvoiceRevisePriceDialog
+          open={reviseOpen}
+          onClose={() => setReviseOpen(false)}
+          invoice={invoice}
+          items={items}
+          rates={reviseRates}
+          onRateChange={(itemId, value) => setReviseRates((p) => ({ ...p, [itemId]: value }))}
+          reason={reviseReason}
+          onReasonChange={setReviseReason}
+          pending={reviseMutation.isPending}
+          onSubmit={submitRevise}
+        />
       )}
 
-      {/* Cancel Deposit Application Confirm */}
       <ConfirmDialog
         open={cancelDepositAppId !== null}
+        onOpenChange={(open) => !open && setCancelDepositAppId(null)}
+        tone="danger"
         title="Batalkan Alokasi Uang Muka"
-        message="Yakin ingin membatalkan alokasi uang muka ini? Saldo deposit akan dikembalikan dan outstanding invoice akan bertambah kembali."
+        description="Yakin ingin membatalkan alokasi uang muka ini? Saldo deposit akan dikembalikan dan outstanding invoice akan bertambah kembali."
         confirmLabel="Batalkan Alokasi"
-        variant="danger"
-        onConfirm={() => { if (cancelDepositAppId) cancelDepositAppMutation.mutate(cancelDepositAppId); setCancelDepositAppId(null); }}
-        onCancel={() => setCancelDepositAppId(null)}
+        loading={cancelDepositAppMutation.isPending}
+        onConfirm={() => (cancelDepositAppId ? cancelDepositAppMutation.mutateAsync(cancelDepositAppId) : undefined)}
       />
 
       {/* Apply Deposit Modal (Purchase). Conditional mount for fresh state. */}

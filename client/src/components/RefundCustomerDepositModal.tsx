@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import { formatRupiah } from '../lib/formatters';
-import Select from './Select';
+import { formatRupiah } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { DateInput, Field } from '@/components/shared';
+import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
+import { dialogShellClass } from './sales/dialog-classes-b';
 
 interface Deposit {
   id: string;
@@ -98,94 +105,91 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
     });
   };
 
-  if (!isOpen || !deposit) return null;
-
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="refund-customer-deposit-title" className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-3 border-b">
-          <div>
-            <h3 id="refund-customer-deposit-title" className="font-semibold text-gray-900">Refund / Offset Uang Muka</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{deposit.paymentNumber} — {deposit.party?.name}</p>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
-        </div>
+    <Dialog open={isOpen && !!deposit} onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent size="md" className={dialogShellClass}>
+        <form
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); if (totalValid && !mutation.isPending) handleSubmit(); }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <OverlayHeader>
+            <DialogTitle>Refund / Offset Uang Muka</DialogTitle>
+            <DialogDescription>{deposit?.paymentNumber} — {deposit?.party?.name}</DialogDescription>
+          </OverlayHeader>
 
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
-              <p className="text-xs font-semibold text-teal-700 uppercase">Sisa Uang Muka</p>
-              <p className="text-lg font-bold text-teal-700 font-mono tabular-nums">{formatRupiah(remaining)}</p>
+          <OverlayBody>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Sisa Uang Muka</p>
+                <p className="text-lg font-bold tabular-nums text-foreground">{formatRupiah(remaining)}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Piutang Pelanggan</p>
+                <p className="text-lg font-bold tabular-nums text-foreground">{formatRupiah(Number(partyOutstanding ?? 0))}</p>
+              </div>
             </div>
-            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-              <p className="text-xs font-semibold text-blue-700 uppercase">Piutang Pelanggan</p>
-              <p className="text-lg font-bold text-blue-700 font-mono tabular-nums">{formatRupiah(Number(partyOutstanding ?? 0))}</p>
+
+            <Field label="Tanggal">
+              <DateInput value={date} onChange={setDate} />
+            </Field>
+
+            <div className="grid gap-2">
+              <Field label="Offset ke Piutang (FIFO invoice terlama)">
+                <NumberInput min={0} value={offsetAmount || ''} onChange={(e) => setOffsetAmount(Number(e.target.value) || 0)}
+                  className="h-10 text-right tabular-nums md:h-9" placeholder="0" />
+              </Field>
+              <Button type="button" variant="link" size="sm" className="justify-self-end text-xs" onClick={setOffsetMax}>
+                Maks: {formatRupiah(maxOffset)}
+              </Button>
             </div>
-          </div>
 
-          <div>
-            <label className="text-xs font-medium text-gray-600">Tanggal</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-600">Offset ke Piutang (FIFO invoice terlama)</label>
-              <button type="button" onClick={setOffsetMax} className="text-xs text-teal-600 hover:underline">Maks: {formatRupiah(maxOffset)}</button>
+            <div className="grid gap-2">
+              <Field label="Refund Kas ke Bank">
+                <NumberInput min={0} value={cashAmount || ''} onChange={(e) => setCashAmount(Number(e.target.value) || 0)}
+                  className="h-10 text-right tabular-nums md:h-9" placeholder="0" />
+              </Field>
+              <Button type="button" variant="link" size="sm" className="justify-self-end text-xs" onClick={setCashRest}>
+                Sisa: {formatRupiah(Math.max(0, remaining - Number(offsetAmount || 0)))}
+              </Button>
+              {Number(cashAmount) > 0 && (
+                <Field label="Akun kas/bank" required>
+                  {(control) => (
+                    <Select value={cashAccountId} onValueChange={setCashAccountId}>
+                      <SelectTrigger {...control}><SelectValue placeholder="— Pilih akun kas/bank —" /></SelectTrigger>
+                      <SelectContent>
+                        {(cashAccounts || []).map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Field>
+              )}
             </div>
-            <input type="number" min={0} value={offsetAmount || ''} onChange={(e) => setOffsetAmount(Number(e.target.value) || 0)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              placeholder="0" />
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-600">Refund Kas ke Bank</label>
-              <button type="button" onClick={setCashRest} className="text-xs text-teal-600 hover:underline">Sisa: {formatRupiah(Math.max(0, remaining - Number(offsetAmount || 0)))}</button>
-            </div>
-            <input type="number" min={0} value={cashAmount || ''} onChange={(e) => setCashAmount(Number(e.target.value) || 0)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              placeholder="0" />
-            {Number(cashAmount) > 0 && (
-              <Select value={cashAccountId} onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full mt-2">
-                <option value="">— Pilih akun kas/bank —</option>
-                {(cashAccounts || []).map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
-                ))}
-              </Select>
-            )}
-          </div>
+            <Field label="Catatan (opsional)">
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </Field>
 
-          <div>
-            <label className="text-xs font-medium text-gray-600">Catatan (opsional)</label>
-            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-          </div>
+            <dl className="grid gap-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs" aria-live="polite">
+              <div className="flex justify-between"><dt className="text-muted-foreground">Total penyelesaian:</dt><dd className="font-semibold tabular-nums">{formatRupiah(total)}</dd></div>
+              <div className="flex justify-between text-muted-foreground"><dt>Sisa setelah ini:</dt><dd className="tabular-nums">{formatRupiah(Math.max(0, remaining - total))}</dd></div>
+            </dl>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs">
-            <div className="flex justify-between"><span className="text-gray-600">Total penyelesaian:</span><span className="font-mono font-semibold">{formatRupiah(total)}</span></div>
-            <div className="flex justify-between text-gray-500"><span>Sisa setelah ini:</span><span className="font-mono">{formatRupiah(Math.max(0, remaining - total))}</span></div>
-          </div>
+            <FormError message={error} />
+          </OverlayBody>
 
-          {error && (
-            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-gray-50">
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button onClick={handleSubmit} disabled={mutation.isPending || !totalValid}
-            className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-50">
-            {mutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-            Proses
-          </button>
-        </div>
-      </div>
-    </div>
+          <OverlayFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+            <Button type="submit" disabled={!totalValid} loading={mutation.isPending}>
+              {!mutation.isPending && <CheckCircle2 aria-hidden />}
+              {mutation.isPending ? 'Memproses…' : 'Proses'}
+            </Button>
+          </OverlayFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

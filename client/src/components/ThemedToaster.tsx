@@ -1,8 +1,9 @@
-import { Toaster } from 'sonner';
-import { useTheme } from '@/contexts/ThemeContext';
+import { Toaster } from '@/components/ui/sonner';
 
-/** Global toast host. Follows the app theme (light/dark/system), not the OS default. */
+/**
+ * Global toast host. The design-system Toaster follows the app theme
+ * (light/dark/system) and uses the semantic, contrast-checked toast colours.
+ */
 export function ThemedToaster() {
-  const { resolvedTheme } = useTheme();
-  return <Toaster position="top-right" richColors theme={resolvedTheme} />;
+  return <Toaster />;
 }

@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Plus, Trash2, Loader2, AlertCircle, PackageCheck } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import SearchableSelect, { type SelectOption } from './SearchableSelect';
-import Select from './Select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { NumberInput } from '@/components/ui/number-input';
+import { Field, DateInput } from '@/components/shared';
+import { FormDialog } from './purchase-cash/FormDialog';
+import { OptionPicker, type PickerOption as SelectOption } from './purchase-cash/OptionPicker';
+import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -236,195 +242,178 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     });
   };
 
+  const cellLabel = 'text-xs font-medium text-muted-foreground md:sr-only';
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-5xl bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <PackageCheck size={18} className="text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">Buat BPB / Surat Tanda Terima</h2>
-              <p className="text-xs text-gray-400">Penerimaan barang dari supplier — stok masuk + accrual hutang</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Tanggal *</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="input w-full" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Supplier *</label>
-              <SearchableSelect options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="— Pilih Supplier —" />
-            </div>
-          </div>
-
-          <label className="flex items-start gap-3 cursor-pointer group rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2.5">
-            <input
-              type="checkbox"
-              checked={isCustomerOwned}
-              onChange={(e) => { setIsCustomerOwned(e.target.checked); if (e.target.checked) setPurchaseOrderId(''); }}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-            />
-            <span>
-              <span className="text-sm font-medium text-teal-800 group-hover:text-teal-900">Barang Titipan Pelanggan (Jasa Repros)</span>
-              <span className="block text-xs text-teal-600 mt-0.5">
-                Barang milik pelanggan untuk diproses ulang — hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang,
-                dan tidak bisa dijadikan Invoice Pembelian. Tagih jasanya lewat Invoice Penjualan (baris jasa).
-              </span>
-            </span>
-          </label>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">PO (opsional)</label>
-              {isCustomerOwned ? (
-                <input type="text" value="— Tidak berlaku untuk barang titipan —" disabled className="input w-full text-gray-400" />
-              ) : (
-                <SearchableSelect options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">No. Mobil</label>
-              <input type="text" value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} placeholder="Mis. B 1234 ABC" className="input w-full font-mono uppercase" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Supir</label>
-              <input type="text" value={driverName} onChange={(e) => setDriverName(e.target.value)} className="input w-full" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Penerima (Internal) <span className="text-gray-400 font-normal">— otomatis dari akun login</span>
-              </label>
-              <input
-                type="text"
-                value={recipientName}
-                readOnly
-                className="input w-full bg-gray-50 text-gray-600 cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Catatan</label>
-              <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="input w-full" />
-            </div>
-          </div>
-
-          {/* Items — harga & subtotal tidak ditampilkan di STT. Harga
-              akan diisi nanti saat invoice pembelian dibuat dari STT ini. */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-widest">
-              Items diterima ({items.length})
-            </div>
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">
-                <tr>
-                  <th className="text-left px-2 py-2 w-8">#</th>
-                  <th className="text-left px-2 py-2">Item</th>
-                  <th className="text-left px-2 py-2 w-40">Gudang</th>
-                  <th className="text-right px-2 py-2 w-28">Qty</th>
-                  <th className="text-center px-2 py-2 w-20">Satuan</th>
-                  <th className="text-left px-2 py-2">Keterangan</th>
-                  <th className="px-2 py-2 w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((it, idx) => (
-                  <tr key={it.id} className="border-b border-gray-50 last:border-0">
-                    <td className="px-2 py-2 text-center text-xs text-gray-300">{idx + 1}</td>
-                    <td className="px-2 py-2">
-                      <SearchableSelect
-                        options={itemOptions}
-                        value={it.inventoryItemId}
-                        onChange={(v) => onItemPick(idx, v)}
-                        placeholder="Pilih item..."
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <SearchableSelect
-                        options={warehouseOptions}
-                        value={it.warehouseId}
-                        onChange={(v) => updateItem(idx, { warehouseId: v })}
-                        placeholder="Gudang..."
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={it.quantity || ''}
-                        onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                        className="input w-full text-right"
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Select
-                        value={it.unit}
-                        onChange={(e) => updateItem(idx, { unit: e.target.value })}
-                        className="w-full"
-                      >
-                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </Select>
-                    </td>
-                    <td className="px-2 py-2">
-                      <input
-                        type="text"
-                        value={it.description}
-                        onChange={(e) => updateItem(idx, { description: e.target.value })}
-                        placeholder="mis. mobil B 123 ABC, kualitas A, dll"
-                        className="input w-full text-xs"
-                      />
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <button
-                        onClick={() => removeItem(idx)}
-                        disabled={items.length === 1}
-                        className="text-gray-300 hover:text-red-500 disabled:opacity-30"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="px-4 py-2 border-t border-gray-100">
-              <button onClick={addItem} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                <Plus size={12} /> Tambah baris
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-start gap-2">
-              <AlertCircle size={14} className="mt-0.5 shrink-0" />
-              {error}
-            </div>
-          )}
-
-          <div className="p-3 bg-amber-50/60 border border-amber-100 rounded-lg text-xs text-amber-800">
-            <strong>Catatan:</strong> STT hanya mencatat qty barang yang diterima.
-            Harga aktual akan diinput saat invoice pembelian dibuat dari STT ini.
-            Sementara harga belum ada, sistem pakai averageCost item saat ini sebagai provisional cost.
-          </div>
-        </div>
-
-        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/40 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="btn-secondary" disabled={mutation.isPending}>Batal</button>
-          <button onClick={handleSubmit} disabled={mutation.isPending} className="btn-primary flex items-center gap-1.5">
-            {mutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <PackageCheck size={14} />}
-            {mutation.isPending ? 'Menyimpan...' : 'Simpan STT'}
-          </button>
-        </div>
+    <FormDialog
+      open
+      onClose={onClose}
+      title="Buat BPB / Surat Tanda Terima"
+      description="Penerimaan barang dari supplier — stok masuk + accrual hutang"
+      size="doc"
+      className="lg:max-w-5xl"
+      busy={mutation.isPending}
+      submitLabel="Simpan STT"
+      onSubmit={handleSubmit}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Field label="Tanggal" required>
+          <DateInput value={date} onChange={setDate} />
+        </Field>
+        <Field label="Supplier" required className="sm:col-span-2">
+          <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="— Pilih Supplier —" />
+        </Field>
       </div>
-    </div>
+
+      <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-info/30 bg-info-subtle px-3 py-2.5 sm:min-h-0">
+        <Checkbox
+          className="mt-0.5"
+          checked={isCustomerOwned}
+          onCheckedChange={(v) => {
+            const checked = v === true;
+            setIsCustomerOwned(checked);
+            if (checked) setPurchaseOrderId('');
+          }}
+        />
+        <span>
+          <span className="text-sm font-medium text-info-text">Barang Titipan Pelanggan (Jasa Repros)</span>
+          <span className="mt-0.5 block text-xs text-info-text">
+            Barang milik pelanggan untuk diproses ulang — hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang,
+            dan tidak bisa dijadikan Invoice Pembelian. Tagih jasanya lewat Invoice Penjualan (baris jasa).
+          </span>
+        </span>
+      </label>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Field label="PO (opsional)">
+          {isCustomerOwned ? (
+            <Input value="— Tidak berlaku untuk barang titipan —" disabled readOnly />
+          ) : (
+            <OptionPicker options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
+          )}
+        </Field>
+        <Field label="No. Mobil">
+          <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} placeholder="Mis. B 1234 ABC" className="font-mono uppercase" />
+        </Field>
+        <Field label="Supir">
+          <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Penerima (Internal)" hint="Otomatis dari akun login">
+          <Input value={recipientName} readOnly className="cursor-not-allowed bg-muted text-muted-foreground" />
+        </Field>
+        <Field label="Catatan">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </Field>
+      </div>
+
+      {/* Harga & subtotal tidak ditampilkan di STT; harga diisi saat invoice pembelian dibuat. */}
+      <section aria-labelledby="gr-items-title" className="overflow-hidden rounded-xl border border-border">
+        <h3 id="gr-items-title" className="bg-muted px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Items diterima ({items.length})
+        </h3>
+        <div className="space-y-2 p-2">
+          <div className="hidden grid-cols-12 gap-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid" aria-hidden>
+            <div className="col-span-3">Item</div>
+            <div className="col-span-2">Gudang</div>
+            <div className="col-span-2 text-right">Qty</div>
+            <div className="col-span-1">Satuan</div>
+            <div className="col-span-3">Keterangan</div>
+            <div className="col-span-1" />
+          </div>
+          {items.map((it, idx) => {
+            const n = idx + 1;
+            return (
+              <div
+                key={it.id}
+                role="group"
+                aria-label={`Item diterima ${n}`}
+                className="grid grid-cols-1 items-start gap-2 rounded-lg border border-border p-2 md:grid-cols-12 md:border-0 md:border-b md:rounded-none md:last:border-0"
+              >
+                <div className="flex flex-col gap-1 md:col-span-3">
+                  <label htmlFor={`gr-item-${it.id}`} className={cellLabel}>Item</label>
+                  <OptionPicker
+                    id={`gr-item-${it.id}`}
+                    options={itemOptions}
+                    value={it.inventoryItemId}
+                    onChange={(v) => onItemPick(idx, v)}
+                    placeholder="Pilih item..."
+                  />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-2">
+                  <label htmlFor={`gr-wh-${it.id}`} className={cellLabel}>Gudang</label>
+                  <OptionPicker
+                    id={`gr-wh-${it.id}`}
+                    options={warehouseOptions}
+                    value={it.warehouseId}
+                    onChange={(v) => updateItem(idx, { warehouseId: v })}
+                    placeholder="Gudang..."
+                  />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-2">
+                  <label htmlFor={`gr-qty-${it.id}`} className={cellLabel}>Qty</label>
+                  <NumberInput
+                    id={`gr-qty-${it.id}`}
+                    step="0.001"
+                    inputMode="decimal"
+                    value={it.quantity || ''}
+                    onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                    className="num h-10 text-right md:h-9"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-1">
+                  <label htmlFor={`gr-unit-${it.id}`} className={cellLabel}>Satuan</label>
+                  <OptionPicker
+                    id={`gr-unit-${it.id}`}
+                    options={UNITS.map((u) => ({ value: u, label: u }))}
+                    searchable={false}
+                    value={it.unit}
+                    onChange={(v) => updateItem(idx, { unit: v })}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-3">
+                  <label htmlFor={`gr-desc-${it.id}`} className={cellLabel}>Keterangan</label>
+                  <Input
+                    id={`gr-desc-${it.id}`}
+                    value={it.description}
+                    onChange={(e) => updateItem(idx, { description: e.target.value })}
+                    placeholder="mis. mobil B 123 ABC, kualitas A, dll"
+                  />
+                </div>
+                <div className="flex md:col-span-1 md:justify-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-touch"
+                    className="w-full text-muted-foreground hover:text-danger-text md:size-9 md:w-9"
+                    onClick={() => removeItem(idx)}
+                    disabled={items.length === 1}
+                    aria-label={`Hapus item ${n}`}
+                  >
+                    <Trash2 aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="border-t border-border px-3 py-2">
+          <Button type="button" variant="ghost" size="sm" className="h-11 sm:h-8" onClick={addItem}>
+            <Plus aria-hidden /> Tambah baris
+          </Button>
+        </div>
+      </section>
+
+      <ErrorAlert message={error} />
+
+      <Callout tone="warning" icon={<span className="sr-only">Catatan:</span>}>
+        <strong>Catatan:</strong> STT hanya mencatat qty barang yang diterima. Harga aktual akan diinput saat invoice
+        pembelian dibuat dari STT ini. Sementara harga belum ada, sistem pakai averageCost item saat ini sebagai
+        provisional cost.
+      </Callout>
+    </FormDialog>
   );
 };
 

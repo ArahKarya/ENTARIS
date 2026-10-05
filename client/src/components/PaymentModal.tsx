@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle, TrendingDown, TrendingUp, CheckCircle2, Paperclip, Plus, Trash2, RotateCcw } from 'lucide-react';
-import { formatRupiah, formatDate } from '../lib/formatters';
+import { TrendingDown, TrendingUp, CheckCircle2, Paperclip, Plus, Trash2, RotateCcw } from 'lucide-react';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { NumberInput } from '@/components/ui/number-input';
+import { Field, DateInput } from '@/components/shared';
+import { cn } from '@/lib/utils';
+import { FormDialog } from './purchase-cash/FormDialog';
+import { OptionPicker } from './purchase-cash/OptionPicker';
+import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
-import Select from './Select';
 
 type PaymentType = 'Receive' | 'Pay' | 'VendorRefund' | 'CustomerRefund';
 
@@ -281,8 +289,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     setSplits((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
   };
 
-  if (!isOpen) return null;
-
   const isReceive = paymentType === 'Receive';
   const isVendorRefund = paymentType === 'VendorRefund';
 
@@ -290,378 +296,304 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     ? (isVendorRefund ? 'Refund dari Vendor' : 'Refund ke Pelanggan')
     : (isReceive ? 'Terima Pembayaran' : 'Bayar Hutang');
 
+  const accountOptions = (list?: any[]) =>
+    (list ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} — ${a.name}` }));
+
+  const typeButtons: Array<{ t: PaymentType; label: string; icon: React.ReactNode }> = [
+    { t: 'Receive', label: 'Penerimaan', icon: <TrendingDown aria-hidden /> },
+    { t: 'Pay', label: 'Pengeluaran', icon: <TrendingUp aria-hidden /> },
+    { t: 'CustomerRefund', label: 'Refund ke Pelanggan', icon: <RotateCcw aria-hidden /> },
+    { t: 'VendorRefund', label: 'Refund dari Vendor', icon: <RotateCcw aria-hidden /> },
+  ];
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="payment-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}
+    <FormDialog
+      open={isOpen}
+      onClose={onClose}
+      title={typeLabel}
+      description="Draft • belum disimpan"
+      size="lg"
+      className="sm:max-w-xl"
+      busy={mutation.isPending}
+      submitLabel="Simpan"
+      onSubmit={handleSubmit}
+      submitDisabled={!canSubmit}
+      footer={
+        savedId ? (
+          <Button className="h-11 sm:h-9" onClick={onClose}>
+            Selesai
+          </Button>
+        ) : undefined
+      }
     >
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isRefund ? 'bg-purple-50' : isReceive ? 'bg-green-50' : 'bg-orange-50'}`}>
-              {isRefund
-                ? <RotateCcw size={16} className="text-purple-600" />
-                : isReceive
-                  ? <TrendingDown size={16} className="text-green-600" />
-                  : <TrendingUp size={16} className="text-orange-500" />}
-            </div>
-            <div>
-              <h2 id="payment-modal-title" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                {typeLabel}
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Draft • belum disimpan</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <X size={18} />
-          </button>
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-medium text-foreground">Tipe Transaksi</legend>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {typeButtons.map(({ t, label, icon }) => (
+            <Button
+              key={t}
+              type="button"
+              variant={paymentType === t ? 'primary' : 'outline'}
+              aria-pressed={paymentType === t}
+              className="h-11 sm:h-9"
+              onClick={() => {
+                setPaymentType(t);
+                setPartyId('');
+                setRefundSourcePaymentId('');
+                if (t === 'VendorRefund' || t === 'CustomerRefund') setSplitMode(false);
+              }}
+            >
+              {icon} {label}
+            </Button>
+          ))}
         </div>
+      </fieldset>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      {isRefund && partyId && (
+        <Field
+          label={`Pembayaran Asal ${isDepositRefund ? '(Uang Muka)' : '(opsional)'}`}
+          hint={
+            isDepositRefund ? (
+              <>
+                Refund uang muka — sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
+                Sisa uang muka: <span className="font-semibold">{formatRupiah(selectedSource?.remaining ?? 0)}</span>.
+                Saldo deposit otomatis turun, jurnal: DR Bank / CR Uang Muka.
+              </>
+            ) : (
+              <>
+                Pilih pembayaran {isVendorRefund ? 'Pay' : 'Receive'} yang sebagian dikembalikan, ATAU baris UANG MUKA untuk refund DP.
+                Sistem otomatis kurangi alokasi & restore outstanding faktur.
+              </>
+            )
+          }
+        >
+          <OptionPicker
+            value={refundSourcePaymentId}
+            onChange={setRefundSourcePaymentId}
+            placeholder="— Tanpa link (generic refund) —"
+            emptyLabel="— Tanpa link (generic refund) —"
+            searchable={false}
+            options={(sourcePayments ?? []).map((p: any) => ({
+              value: p.id,
+              label: `${p.kind === 'deposit' ? 'UANG MUKA · ' : ''}${p.paymentNumber} • ${formatDate(p.date)}${
+                p.kind === 'deposit' ? ` • sisa ${formatRupiah(p.remaining)}` : ` • ${formatRupiah(Number(p.amount))}`
+              }`,
+            }))}
+          />
+        </Field>
+      )}
 
-          {/* Payment Type Toggle */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tipe Transaksi</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {([
-                { t: 'Receive' as PaymentType, label: 'Penerimaan', icon: <TrendingDown size={14} />, activeCls: 'bg-green-600 text-white' },
-                { t: 'Pay' as PaymentType, label: 'Pengeluaran', icon: <TrendingUp size={14} />, activeCls: 'bg-orange-500 text-white' },
-                { t: 'CustomerRefund' as PaymentType, label: 'Refund ke Pelanggan', icon: <RotateCcw size={14} />, activeCls: 'bg-purple-600 text-white' },
-                { t: 'VendorRefund' as PaymentType, label: 'Refund dari Vendor', icon: <RotateCcw size={14} />, activeCls: 'bg-purple-600 text-white' },
-              ]).map(({ t, label, icon, activeCls }) => (
-                <button
-                  key={t}
-                  onClick={() => {
-                    setPaymentType(t);
-                    setPartyId('');
-                    setRefundSourcePaymentId('');
-                    if (t === 'VendorRefund' || t === 'CustomerRefund') setSplitMode(false);
-                  }}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium rounded-lg border transition-colors ${
-                    paymentType === t
-                      ? `${activeCls} border-transparent`
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {icon} {label}
-                </button>
-              ))}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Tanggal">
+          <DateInput value={date} onChange={setDate} />
+        </Field>
+        <Field label={isReceiveFlow ? 'Pelanggan' : 'Supplier'}>
+          <OptionPicker
+            value={partyId}
+            onChange={setPartyId}
+            placeholder="— Pilih —"
+            options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+          />
+        </Field>
+      </div>
 
-          {/* Refund Source Payment Picker */}
-          {isRefund && partyId && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                Pembayaran Asal {isDepositRefund ? '(Uang Muka)' : '(opsional)'}
-              </label>
-              <Select
-                value={refundSourcePaymentId}
-                onChange={e => setRefundSourcePaymentId(e.target.value)}
-                className="w-full"
-              >
-                <option value="">— Tanpa link (generic refund) —</option>
-                {(sourcePayments ?? []).map((p: any) => (
-                  <option key={p.id} value={p.id}>
-                    {p.kind === 'deposit' ? '💰 UANG MUKA · ' : ''}
-                    {p.paymentNumber} • {formatDate(p.date)}
-                    {p.kind === 'deposit'
-                      ? ` • sisa ${formatRupiah(p.remaining)}`
-                      : ` • ${formatRupiah(Number(p.amount))}`}
-                  </option>
-                ))}
-              </Select>
-              {isDepositRefund ? (
-                <p className="text-[11px] text-purple-600 mt-1">
-                  Refund uang muka — sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
-                  Sisa uang muka: <span className="font-semibold">{formatRupiah(selectedSource?.remaining ?? 0)}</span>.
-                  Saldo deposit otomatis turun, jurnal: DR Bank / CR Uang Muka.
-                </p>
-              ) : (
-                <p className="text-[11px] text-gray-500 mt-1">
-                  Pilih pembayaran {isVendorRefund ? 'Pay' : 'Receive'} yang sebagian dikembalikan, ATAU baris UANG MUKA untuk refund DP.
-                  Sistem otomatis kurangi alokasi & restore outstanding faktur.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Date & Party */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                {isReceive ? 'Pelanggan' : 'Supplier'}
-              </label>
-              <Select
-                value={partyId}
-                onChange={e => setPartyId(e.target.value)}
-                className="w-full"
-              >
-                <option value="">— Pilih —</option>
-                {parties?.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          {/* Outstanding info */}
-          {partyId && openInvoices && (
-            <div className="space-y-2">
-              {/* Open invoices */}
-              {openInvoices.length > 0 && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-                  <p className="text-xs font-medium text-blue-700 mb-2">
-                    {openInvoices.length} invoice terbuka — total {formatRupiah(totalInvoiceOutstanding)}
-                  </p>
-                  <div className="space-y-1 max-h-28 overflow-y-auto">
-                    {openInvoices.map((inv: any) => (
-                      <div key={inv.id} className="flex justify-between text-xs text-blue-600">
-                        <span>{inv.invoiceNumber} ({formatDate(inv.date)})</span>
-                        <span className="font-mono tabular-nums">{formatRupiah(Number(inv.outstanding))}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Non-invoice outstanding (e.g. opening balance) */}
-              {nonInvoiceOutstanding > 0 && (
-                <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
-                  <p className="text-xs font-medium text-amber-700">
-                    Saldo {isReceive ? 'piutang' : 'hutang'} tanpa invoice (saldo awal): {formatRupiah(nonInvoiceOutstanding)}
-                  </p>
-                </div>
-              )}
-
-              {/* Total outstanding with fill button */}
-              {partyOutstanding > 0 && (
-                <button
-                  onClick={() => setAmount(partyOutstanding)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium underline underline-offset-2"
-                >
-                  Isi jumlah lunaskan semua ({formatRupiah(partyOutstanding)})
-                </button>
-              )}
-
-              {/* No outstanding at all */}
-              {partyOutstanding <= 0 && openInvoices.length === 0 && (
-                <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-xs text-gray-500">
-                  Tidak ada {isReceive ? 'piutang' : 'hutang'} untuk {isReceive ? 'pelanggan' : 'supplier'} ini.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Amount */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jumlah Tagihan (Rp)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              min={0}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-          </div>
-
-          {/* Split toggle — disabled for refund */}
-          {!isRefund && (
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">Distribusi Akun</label>
-              <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={splitMode}
-                  onChange={(e) => setSplitMode(e.target.checked)}
-                  className="rounded"
-                />
-                Split ke beberapa akun (mis. dipotong komisi)
-              </label>
-            </div>
-          )}
-
-          {!splitMode ? (
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Akun Kas/Bank</label>
-              <Select
-                value={accountId}
-                onChange={e => setAccountId(e.target.value)}
-                className="w-full"
-              >
-                <option value="">— Pilih Akun —</option>
-                {cashAccounts?.map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
-                ))}
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2 border border-gray-200 rounded-lg p-3">
-              <p className="text-xs text-gray-500">
-                Total {numAmount > 0 ? formatRupiah(numAmount) : '0'} dibagi ke beberapa akun. Selisih harus 0.
+      {partyId && openInvoices && (
+        <div className="space-y-2">
+          {openInvoices.length > 0 && (
+            <Callout tone="info" icon={<span className="sr-only">Info:</span>}>
+              <p className="mb-2 font-medium">
+                {openInvoices.length} invoice terbuka — total <span className="num">{formatRupiah(totalInvoiceOutstanding)}</span>
               </p>
-              {splits.map((sp, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-start">
-                  <Select
+              <div
+                role="region"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+                aria-label="Daftar invoice terbuka"
+                className="max-h-28 space-y-1 overflow-y-auto text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {openInvoices.map((inv: any) => (
+                  <div key={inv.id} className="flex justify-between gap-2">
+                    <span>
+                      {inv.invoiceNumber} ({formatDate(inv.date)})
+                    </span>
+                    <span className="num shrink-0">{formatRupiah(Number(inv.outstanding))}</span>
+                  </div>
+                ))}
+              </div>
+            </Callout>
+          )}
+
+          {nonInvoiceOutstanding > 0 && (
+            <Callout tone="warning" icon={<span className="sr-only">Perhatian:</span>}>
+              Saldo {isReceive ? 'piutang' : 'hutang'} tanpa invoice (saldo awal): <span className="num">{formatRupiah(nonInvoiceOutstanding)}</span>
+            </Callout>
+          )}
+
+          {partyOutstanding > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="min-h-11 sm:min-h-0"
+              onClick={() => setAmount(partyOutstanding)}
+            >
+              Isi jumlah lunaskan semua ({formatRupiah(partyOutstanding)})
+            </Button>
+          )}
+
+          {partyOutstanding <= 0 && openInvoices.length === 0 && (
+            <Callout tone="neutral" icon={<span className="sr-only">Info:</span>}>
+              Tidak ada {isReceive ? 'piutang' : 'hutang'} untuk {isReceive ? 'pelanggan' : 'supplier'} ini.
+            </Callout>
+          )}
+        </div>
+      )}
+
+      <Field label="Jumlah Tagihan (Rp)">
+        <NumberInput
+          value={amount}
+          onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+          placeholder="0"
+          min={0}
+          inputMode="decimal"
+          className="h-10 text-right md:h-9"
+        />
+      </Field>
+
+      {!isRefund && (
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-foreground sm:min-h-0">
+          <Checkbox checked={splitMode} onCheckedChange={(v) => setSplitMode(v === true)} />
+          Split ke beberapa akun (mis. dipotong komisi)
+        </label>
+      )}
+
+      {!splitMode ? (
+        <Field label="Akun Kas/Bank">
+          <OptionPicker
+            value={accountId}
+            onChange={setAccountId}
+            placeholder="— Pilih Akun —"
+            options={accountOptions(cashAccounts)}
+          />
+        </Field>
+      ) : (
+        <section aria-label="Distribusi akun" className="space-y-3 rounded-lg border border-border p-3">
+          <p className="text-xs text-muted-foreground">
+            Total {numAmount > 0 ? formatRupiah(numAmount) : '0'} dibagi ke beberapa akun. Selisih harus 0.
+          </p>
+          {splits.map((sp, idx) => {
+            const n = idx + 1;
+            return (
+              <div
+                key={idx}
+                role="group"
+                aria-label={`Baris split ${n}`}
+                className="grid grid-cols-1 items-start gap-2 rounded-md border border-border p-2 sm:grid-cols-12 sm:border-0 sm:p-0"
+              >
+                <div className="sm:col-span-5">
+                  <OptionPicker
+                    aria-label={`Akun baris split ${n}`}
                     value={sp.accountId}
-                    onChange={(e) => updateSplit(idx, { accountId: e.target.value })}
-                    className="col-span-6"
-                  >
-                    <option value="">— Pilih Akun —</option>
-                    {allAccounts?.map((a: any) => (
-                      <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
-                    ))}
-                  </Select>
-                  <input
-                    type="number"
+                    onChange={(v) => updateSplit(idx, { accountId: v })}
+                    placeholder="— Pilih Akun —"
+                    options={accountOptions(allAccounts)}
+                  />
+                </div>
+                <div className="sm:col-span-3">
+                  <NumberInput
+                    aria-label={`Jumlah baris split ${n}`}
                     value={sp.amount}
                     onChange={(e) => updateSplit(idx, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
                     placeholder="0"
                     min={0}
-                    className="col-span-3 border border-gray-200 rounded-md py-1.5 px-2 text-xs text-gray-900 font-mono text-right focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    inputMode="decimal"
+                    className="num h-10 text-right md:h-9"
                   />
-                  <input
-                    type="text"
+                </div>
+                <div className="sm:col-span-3">
+                  <Input
+                    aria-label={`Catatan baris split ${n}`}
                     value={sp.notes}
                     onChange={(e) => updateSplit(idx, { notes: e.target.value })}
                     placeholder="catatan"
-                    className="col-span-2 border border-gray-200 rounded-md py-1.5 px-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <button
+                </div>
+                <div className="sm:col-span-1">
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-touch"
+                    className="w-full text-danger-text sm:size-9"
                     onClick={() => removeSplit(idx)}
                     disabled={splits.length === 1}
-                    className="col-span-1 p-1.5 text-red-500 hover:bg-red-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Hapus baris"
+                    aria-label={`Hapus baris split ${n}`}
                   >
-                    <Trash2 size={14} />
-                  </button>
+                    <Trash2 aria-hidden />
+                  </Button>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={addSplit}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-              >
-                <Plus size={12} /> Tambah baris
-              </button>
-              <div className="flex justify-between pt-2 border-t border-gray-100 text-xs">
-                <span className="text-gray-500">Total split:</span>
-                <span className="font-mono font-semibold">{formatRupiah(splitsTotal)}</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Selisih:</span>
-                <span
-                  className={`font-mono font-semibold ${Math.abs(splitsRemaining) < 0.01 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {formatRupiah(splitsRemaining)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Reference & Notes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi</label>
-              <input
-                type="text"
-                value={referenceNo}
-                onChange={e => setReferenceNo(e.target.value)}
-                placeholder="No. cek, transfer, dll."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Catatan</label>
-              <input
-                type="text"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Keterangan opsional..."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            );
+          })}
+          <Button type="button" variant="ghost" size="sm" className="h-11 sm:h-8" onClick={addSplit}>
+            <Plus aria-hidden /> Tambah baris
+          </Button>
+          <div className="flex justify-between border-t border-border pt-2 text-sm">
+            <span className="text-muted-foreground">Total split:</span>
+            <span className="num font-semibold">{formatRupiah(splitsTotal)}</span>
           </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Selisih:</span>
+            <span
+              className={cn('num font-semibold', Math.abs(splitsRemaining) < 0.01 ? 'text-success-text' : 'text-danger-text')}
+            >
+              {formatRupiah(splitsRemaining)}
+            </span>
+          </div>
+        </section>
+      )}
 
-          {/* Amount preview */}
-          {numAmount > 0 && (
-            <div className={`rounded-lg p-3 border ${isReceive ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'}`}>
-              <p className={`text-xs font-medium ${isReceive ? 'text-green-700' : 'text-orange-700'}`}>
-                {isReceive ? 'Menerima' : 'Membayar'}{' '}
-                <span className="text-base font-bold font-mono tabular-nums">{formatRupiah(numAmount)}</span>
-                {partyOutstanding > 0 && numAmount >= partyOutstanding && ' · Melunasi semua tagihan'}
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-
-          {/* Attachment section — shown after save. Skipped for deposit refunds
-              because the response is a JournalEntry, not a Payment row. */}
-          {savedId && !isDepositRefund && (
-            <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-green-500" />
-                <span className="text-xs font-semibold text-green-600">Tersimpan</span>
-                <span className="text-xs ml-auto flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
-                  <Paperclip size={10} /> Lampiran Bukti Transfer
-                </span>
-              </div>
-              <AttachmentPreview referenceType="payment" referenceId={savedId} />
-              <AttachmentUpload referenceType="payment" referenceId={savedId} />
-            </div>
-          )}
-          {savedId && isDepositRefund && (
-            <div className="pt-2 border-t flex items-center gap-2" style={{ borderColor: 'var(--color-border)' }}>
-              <CheckCircle2 size={14} className="text-green-500" />
-              <span className="text-xs font-semibold text-green-600">
-                Refund uang muka tersimpan. Saldo deposit vendor sudah berkurang.
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
-          {savedId ? (
-            <button onClick={onClose} className="btn-primary">Selesai</button>
-          ) : (
-            <>
-              <button onClick={onClose} className="btn-secondary">Batal</button>
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                className={`btn-primary disabled:opacity-40 disabled:cursor-not-allowed ${!isReceive ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-              >
-                {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Simpan'}
-              </button>
-            </>
-          )}
-        </div>
-
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="No. Referensi">
+          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="No. cek, transfer, dll." />
+        </Field>
+        <Field label="Catatan">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Keterangan opsional..." />
+        </Field>
       </div>
-    </div>
+
+      {numAmount > 0 && (
+        <Callout tone={isReceive ? 'success' : 'warning'} icon={<span className="sr-only">Ringkasan:</span>}>
+          {isReceive ? 'Menerima' : 'Membayar'}{' '}
+          <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
+          {partyOutstanding > 0 && numAmount >= partyOutstanding && ' · Melunasi semua tagihan'}
+        </Callout>
+      )}
+
+      <ErrorAlert message={error} />
+
+      {/* Attachment section is skipped for deposit refunds (response is a journal, not a Payment). */}
+      {savedId && !isDepositRefund && (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-success-text" aria-hidden />
+            <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+            <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+              <Paperclip className="size-3" aria-hidden /> Lampiran Bukti Transfer
+            </span>
+          </div>
+          <AttachmentPreview referenceType="payment" referenceId={savedId} />
+          <AttachmentUpload referenceType="payment" referenceId={savedId} />
+        </div>
+      )}
+      {savedId && isDepositRefund && (
+        <div className="flex items-center gap-2 border-t border-border pt-3" role="status">
+          <CheckCircle2 className="size-4 text-success-text" aria-hidden />
+          <span className="text-xs font-semibold text-success-text">
+            Refund uang muka tersimpan. Saldo deposit vendor sudah berkurang.
+          </span>
+        </div>
+      )}
+    </FormDialog>
   );
 };
 

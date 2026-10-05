@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import Select from './Select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateInput, Field } from '@/components/shared';
+import { PinnedBody, PinnedFooter, PinnedHeader, pinnedDialogClass } from '@/components/overlays/dialog-parts';
 
 interface JournalLine {
   accountId: string;
@@ -42,6 +48,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
   const [nextRunDate, setNextRunDate] = useState('');
   const [narration, setNarration] = useState('');
   const [lines, setLines] = useState<JournalLine[]>([defaultLine(), defaultLine()]);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Fetch accounts for journal type
   const { data: accountsData } = useQuery({
@@ -57,6 +64,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
 
   // Reset form when modal opens/closes
   useEffect(() => {
+    if (isOpen) setShowErrors(false);
     if (isOpen && editTemplate) {
       setName(editTemplate.name);
       setTemplateType(editTemplate.templateType);
@@ -92,6 +100,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowErrors(true);
 
     if (!name.trim()) { toast.error('Nama template wajib diisi.'); return; }
     if (!nextRunDate) { toast.error('Tanggal berikutnya wajib diisi.'); return; }
@@ -134,212 +143,176 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
   const addLine = () => setLines((prev) => [...prev, defaultLine()]);
   const removeLine = (index: number) => setLines((prev) => prev.filter((_, i) => i !== index));
 
-  if (!isOpen) return null;
+  const pending = createMutation.isPending;
+  const monthly = frequency === 'monthly' || frequency === 'quarterly';
+  const req = (ok: boolean) => (showErrors && !ok ? 'Wajib diisi.' : undefined);
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="recurring-template-modal-title" className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-12 overflow-y-auto" onClick={onClose}>
-      <div
-        className="w-full max-w-[calc(100vw-1rem)] sm:max-w-md lg:max-w-2xl rounded-xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            {editTemplate ? 'Edit Template Berulang' : 'Buat Template Berulang'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            <X size={16} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !pending && onClose()}>
+      <DialogContent size="lg" className={pinnedDialogClass}>
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <PinnedHeader>
+            <DialogTitle>{editTemplate ? 'Edit Template Berulang' : 'Buat Template Berulang'}</DialogTitle>
+            <DialogDescription>Transaksi yang dibuat otomatis sesuai jadwal.</DialogDescription>
+          </PinnedHeader>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Nama Template *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field"
-              placeholder="contoh: Beban Sewa Bulanan"
-            />
-          </div>
+          <PinnedBody className="space-y-4">
+            <Field label="Nama Template" required error={req(!!name.trim())}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="contoh: Beban Sewa Bulanan" />
+            </Field>
 
-          {/* Type + Frequency Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                Tipe Transaksi *
-              </label>
-              <Select
-                value={templateType}
-                onChange={(e) => setTemplateType(e.target.value)}
-                className="w-full"
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tipe Transaksi" required>
+                {(control) => (
+                  <Select value={templateType} onValueChange={setTemplateType}>
+                    <SelectTrigger {...control}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="journal">Jurnal Umum</SelectItem>
+                      <SelectItem value="sales_invoice">Invoice Penjualan</SelectItem>
+                      <SelectItem value="purchase_invoice">Invoice Pembelian</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </Field>
+              <Field label="Frekuensi" required>
+                {(control) => (
+                  <Select value={frequency} onValueChange={setFrequency}>
+                    <SelectTrigger {...control}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Harian</SelectItem>
+                      <SelectItem value="weekly">Mingguan</SelectItem>
+                      <SelectItem value="monthly">Bulanan</SelectItem>
+                      <SelectItem value="quarterly">Triwulan</SelectItem>
+                      <SelectItem value="yearly">Tahunan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {monthly && (
+                <Field label="Tanggal dalam Bulan">
+                  <NumberInput
+                    min={1}
+                    max={31}
+                    value={dayOfMonth}
+                    onChange={(e) => setDayOfMonth(e.target.value ? Number(e.target.value) : '')}
+                    placeholder="1-31"
+                    className="h-10"
+                  />
+                </Field>
+              )}
+              <Field
+                label="Jadwal Berikutnya"
+                required
+                error={req(!!nextRunDate)}
+                className={monthly ? undefined : 'sm:col-span-2'}
               >
-                <option value="journal">Jurnal Umum</option>
-                <option value="sales_invoice">Invoice Penjualan</option>
-                <option value="purchase_invoice">Invoice Pembelian</option>
-              </Select>
+                <DateInput value={nextRunDate} onChange={setNextRunDate} />
+              </Field>
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                Frekuensi *
-              </label>
-              <Select
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value)}
-                className="w-full"
-              >
-                <option value="daily">Harian</option>
-                <option value="weekly">Mingguan</option>
-                <option value="monthly">Bulanan</option>
-                <option value="quarterly">Triwulan</option>
-                <option value="yearly">Tahunan</option>
-              </Select>
-            </div>
-          </div>
 
-          {/* Day of Month + Next Run Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {(frequency === 'monthly' || frequency === 'quarterly') && (
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  Tanggal dalam Bulan
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={31}
-                  value={dayOfMonth}
-                  onChange={(e) => setDayOfMonth(e.target.value ? Number(e.target.value) : '')}
-                  className="input-field"
-                  placeholder="1-31"
-                />
-              </div>
-            )}
-            <div className={frequency !== 'monthly' && frequency !== 'quarterly' ? 'col-span-2' : ''}>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                Jadwal Berikutnya *
-              </label>
-              <input
-                type="date"
-                value={nextRunDate}
-                onChange={(e) => setNextRunDate(e.target.value)}
-                className="input-field"
-              />
-            </div>
-          </div>
+            {templateType === 'journal' && (
+              <section aria-labelledby="rt-journal" className="space-y-3 border-t border-border pt-4">
+                <h3 id="rt-journal" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Data Jurnal
+                </h3>
 
-          {/* Journal Template Data */}
-          {templateType === 'journal' && (
-            <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-                Data Jurnal
-              </h3>
+                <Field label="Keterangan" required error={req(!!narration.trim())}>
+                  <Input
+                    value={narration}
+                    onChange={(e) => setNarration(e.target.value)}
+                    placeholder="contoh: Beban sewa gedung bulan ..."
+                  />
+                </Field>
 
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  Keterangan *
-                </label>
-                <input
-                  type="text"
-                  value={narration}
-                  onChange={(e) => setNarration(e.target.value)}
-                  className="input-field"
-                  placeholder="contoh: Beban sewa gedung bulan ..."
-                />
-              </div>
-
-              {/* Line Items */}
-              <div className="space-y-2">
-                {lines.map((line, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <Select
-                      value={line.accountId}
-                      onChange={(e) => updateLine(idx, 'accountId', e.target.value)}
-                      className="flex-1"
+                <ul className="space-y-3">
+                  {lines.map((line, idx) => (
+                    <li
+                      key={idx}
+                      className="grid grid-cols-2 items-center gap-2 rounded-lg border border-border p-2 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_auto] sm:border-0 sm:p-0"
                     >
-                      <option value="">Pilih Akun...</option>
-                      {accounts.map((acc: any) => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.accountNumber} - {acc.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <input
-                      type="number"
-                      min={0}
-                      value={line.debit || ''}
-                      onChange={(e) => updateLine(idx, 'debit', parseFloat(e.target.value) || 0)}
-                      className="input-field w-28 text-xs"
-                      placeholder="Debit"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      value={line.credit || ''}
-                      onChange={(e) => updateLine(idx, 'credit', parseFloat(e.target.value) || 0)}
-                      className="input-field w-28 text-xs"
-                      placeholder="Kredit"
-                    />
-                    {lines.length > 2 && (
-                      <button
-                        type="button"
-                        onClick={() => removeLine(idx)}
-                        className="p-1 text-red-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addLine}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  <Plus size={12} /> Tambah Baris
-                </button>
-              </div>
-            </div>
-          )}
+                      <div className="col-span-2 sm:col-span-1">
+                        <Select
+                          value={line.accountId || '__none'}
+                          onValueChange={(v) => updateLine(idx, 'accountId', v === '__none' ? '' : v)}
+                        >
+                          <SelectTrigger aria-label={`Akun baris ${idx + 1}`}>
+                            <SelectValue placeholder="Pilih akun…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none">Pilih Akun…</SelectItem>
+                            {accounts.map((acc: any) => (
+                              <SelectItem key={acc.id} value={acc.id}>
+                                {acc.accountNumber} - {acc.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <NumberInput
+                        min={0}
+                        value={line.debit || ''}
+                        onChange={(e) => updateLine(idx, 'debit', parseFloat(e.target.value) || 0)}
+                        className="h-10 text-right tabular-nums md:h-9"
+                        placeholder="Debit"
+                        aria-label={`Debit baris ${idx + 1}`}
+                      />
+                      <NumberInput
+                        min={0}
+                        value={line.credit || ''}
+                        onChange={(e) => updateLine(idx, 'credit', parseFloat(e.target.value) || 0)}
+                        className="h-10 text-right tabular-nums md:h-9"
+                        placeholder="Kredit"
+                        aria-label={`Kredit baris ${idx + 1}`}
+                      />
+                      <div className="col-span-2 flex justify-end sm:col-span-1 sm:w-9">
+                        {lines.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-touch"
+                            className="text-danger-text md:size-9"
+                            onClick={() => removeLine(idx)}
+                            aria-label={`Hapus baris ${idx + 1}`}
+                          >
+                            <Trash2 aria-hidden />
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <Button type="button" variant="ghost" size="sm" onClick={addLine}>
+                  <Plus aria-hidden /> Tambah Baris
+                </Button>
+              </section>
+            )}
 
-          {/* Non-journal info */}
-          {templateType !== 'journal' && (
-            <div
-              className="rounded-lg p-3 text-xs"
-              style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-muted)' }}
-            >
-              Untuk tipe invoice penjualan/pembelian, eksekusi otomatis akan segera didukung.
-              Saat ini Anda dapat menggunakan tipe Jurnal Umum untuk transaksi berulang.
-            </div>
-          )}
+            {templateType !== 'journal' && (
+              <p role="note" className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                Untuk tipe invoice penjualan/pembelian, eksekusi otomatis akan segera didukung. Saat ini Anda dapat
+                menggunakan tipe Jurnal Umum untuk transaksi berulang.
+              </p>
+            )}
+          </PinnedBody>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-            <button type="button" onClick={onClose} className="btn-secondary">
+          <PinnedFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
               Batal
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="btn-primary"
-            >
-              {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-              {editTemplate ? 'Simpan Perubahan' : 'Buat Template'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" loading={pending}>
+              {pending ? 'Menyimpan…' : editTemplate ? 'Simpan Perubahan' : 'Buat Template'}
+            </Button>
+          </PinnedFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

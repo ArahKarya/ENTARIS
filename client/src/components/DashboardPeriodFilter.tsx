@@ -1,5 +1,9 @@
 import React from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Field } from '@/components/shared/field';
+import { DateInput } from '@/components/shared/date-input';
 
 export type PeriodPreset =
   | 'thisMonth'
@@ -97,61 +101,47 @@ const DashboardPeriodFilter: React.FC<Props> = ({ value, onChange }) => {
     : PRESET_LABELS[value.preset];
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card hover:bg-accent transition-colors text-xs font-medium text-foreground"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        aria-label={`Periode: ${label}`}
+        className="flex min-h-11 items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9"
       >
-        <Calendar size={14} className="text-muted-foreground" />
+        <Calendar size={14} className="text-muted-foreground" aria-hidden />
         <span>{label}</span>
-        <ChevronDown size={14} className="text-muted-foreground" />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-1 z-50 w-64 rounded-md border border-border bg-card shadow-md p-2">
-            <div className="space-y-0.5">
-              {(Object.keys(PRESET_LABELS) as PeriodPreset[]).filter(p => p !== 'custom').map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePreset(p)}
-                  className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                    value.preset === p ? 'bg-accent font-semibold text-foreground' : 'text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  {PRESET_LABELS[p]}
-                </button>
-              ))}
-            </div>
-            <div className="border-t border-border mt-2 pt-2">
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Kustom</div>
-              <div className="space-y-1.5">
-                <input
-                  type="date"
-                  value={customStart}
-                  onChange={e => setCustomStart(e.target.value)}
-                  className="w-full border border-border bg-background rounded px-2 py-1 text-xs text-foreground"
-                />
-                <input
-                  type="date"
-                  value={customEnd}
-                  onChange={e => setCustomEnd(e.target.value)}
-                  className="w-full border border-border bg-background rounded px-2 py-1 text-xs text-foreground"
-                />
-                <button
-                  onClick={applyCustom}
-                  className="w-full py-1.5 rounded text-xs font-medium text-white"
-                  style={{ backgroundColor: 'var(--primary)' }}
-                >
-                  Terapkan
-                </button>
-              </div>
-            </div>
+        <ChevronDown size={14} className="text-muted-foreground" aria-hidden />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 gap-0 p-2">
+        <div className="space-y-0.5">
+          {(Object.keys(PRESET_LABELS) as PeriodPreset[]).filter(p => p !== 'custom').map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => handlePreset(p)}
+              aria-pressed={value.preset === p}
+              className={`min-h-11 w-full rounded px-2 py-1.5 text-left text-xs transition-colors sm:min-h-8 ${
+                value.preset === p ? 'bg-accent font-semibold text-foreground' : 'text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {PRESET_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 border-t border-border pt-2">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Kustom</div>
+          <div className="space-y-2">
+            <Field label="Dari tanggal">
+              {(c) => <DateInput id={c.id} value={customStart} onChange={setCustomStart} />}
+            </Field>
+            <Field label="Sampai tanggal">
+              {(c) => <DateInput id={c.id} value={customEnd} onChange={setCustomEnd} />}
+            </Field>
+            <Button type="button" size="sm" onClick={applyCustom} className="w-full">
+              Terapkan
+            </Button>
           </div>
-        </>
-      )}
-    </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

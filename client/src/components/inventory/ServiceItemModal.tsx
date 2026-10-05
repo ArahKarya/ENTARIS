@@ -1,13 +1,18 @@
 /**
- * Add / edit a service item (layanan). Moved unchanged from InventoryPage;
- * restyling is Phase 4.
+ * Add / edit a service item (layanan). Dialog with a scrollable body and a
+ * pinned footer; mounted only while open (the parent owns visibility).
  */
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import Select from '@/components/Select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Field } from '@/components/shared';
+import { PinnedBody, PinnedFooter, PinnedHeader, pinnedDialogClass } from '@/components/overlays/dialog-parts';
 import { errorMessage, type ServiceItemRow } from './inventory-rows';
 
 interface ServiceItemModalProps {
@@ -23,6 +28,8 @@ interface RevenueAccount {
   rootType: string;
   isGroup: boolean;
 }
+
+const NO_ACCOUNT = '__none';
 
 const initialForm = (svc: ServiceItemRow | null) =>
   svc
@@ -40,6 +47,7 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
   const queryClient = useQueryClient();
   const [serviceForm, setServiceForm] = useState(() => initialForm(editService));
   const [serviceSaving, setServiceSaving] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   const { data: revenueAccounts } = useQuery({
     queryKey: ['revenue-accounts'],
@@ -52,6 +60,7 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
 
   const handleSaveService = async () => {
     if (!serviceForm.code || !serviceForm.name || !serviceForm.accountId) {
+      setShowErrors(true);
       toast.error('Kode, nama, dan akun pendapatan wajib diisi.');
       return;
     }
@@ -77,69 +86,84 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
     }
   };
 
-  const inputClass =
-    'w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void handleSaveService();
+  };
+  const required = (v: string) => (showErrors && !v ? 'Wajib diisi.' : undefined);
+  const set = (patch: Partial<typeof serviceForm>) => setServiceForm((f) => ({ ...f, ...patch }));
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" role="dialog" aria-modal="true" aria-labelledby="svc-modal-title">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 id="svc-modal-title" className="text-sm font-semibold text-gray-900">
-            {editService ? 'Edit Layanan' : 'Tambah Layanan'}
-          </h3>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400" aria-label="Tutup">
-            <XCircle size={16} />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="svc-code" className="block text-xs font-semibold text-gray-500 mb-1">Kode</label>
-              <input id="svc-code" type="text" value={serviceForm.code} onChange={(e) => setServiceForm({ ...serviceForm, code: e.target.value })}
-                className={inputClass} placeholder="JSG-001" />
+    <Dialog open onOpenChange={(open) => !open && !serviceSaving && onClose()}>
+      <DialogContent size="md" className={pinnedDialogClass}>
+        <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <PinnedHeader>
+            <DialogTitle>{editService ? 'Edit Layanan' : 'Tambah Layanan'}</DialogTitle>
+            <DialogDescription>Layanan jasa yang dapat ditagihkan pada faktur penjualan.</DialogDescription>
+          </PinnedHeader>
+          <PinnedBody className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Kode" required error={required(serviceForm.code)}>
+                <Input value={serviceForm.code} onChange={(e) => set({ code: e.target.value })} placeholder="JSG-001" />
+              </Field>
+              <Field label="Satuan">
+                <Input value={serviceForm.unit} onChange={(e) => set({ unit: e.target.value })} placeholder="Jasa" />
+              </Field>
             </div>
-            <div>
-              <label htmlFor="svc-unit" className="block text-xs font-semibold text-gray-500 mb-1">Satuan</label>
-              <input id="svc-unit" type="text" value={serviceForm.unit} onChange={(e) => setServiceForm({ ...serviceForm, unit: e.target.value })}
-                className={inputClass} placeholder="Jasa" />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="svc-name" className="block text-xs font-semibold text-gray-500 mb-1">Nama Layanan</label>
-            <input id="svc-name" type="text" value={serviceForm.name} onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
-              className={inputClass} placeholder="Jasa Maklon Produksi" />
-          </div>
-          <div>
-            <label htmlFor="svc-rate" className="block text-xs font-semibold text-gray-500 mb-1">Tarif Default (Rp)</label>
-            <input id="svc-rate" type="number" value={serviceForm.defaultRate} onChange={(e) => setServiceForm({ ...serviceForm, defaultRate: e.target.value })}
-              className={`${inputClass} font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} placeholder="500000" />
-          </div>
-          <div>
-            <label htmlFor="svc-account" className="block text-xs font-semibold text-gray-500 mb-1">Akun Pendapatan</label>
-            <Select id="svc-account" value={serviceForm.accountId} onChange={(e) => setServiceForm({ ...serviceForm, accountId: e.target.value })}
-              className="w-full">
-              <option value="">— Pilih Akun —</option>
-              {revenueAccounts?.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.accountNumber} — {acc.name}</option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label htmlFor="svc-desc" className="block text-xs font-semibold text-gray-500 mb-1">Deskripsi</label>
-            <input id="svc-desc" type="text" value={serviceForm.description} onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
-              className={inputClass} placeholder="Opsional" />
-          </div>
-        </div>
-        <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button onClick={handleSaveService} disabled={serviceSaving} className="btn-primary disabled:opacity-50">
-            {serviceSaving ? <Loader2 size={15} className="animate-spin" /> : editService ? 'Simpan Perubahan' : 'Tambah Layanan'}
-          </button>
-        </div>
-      </div>
-    </div>
+            <Field label="Nama Layanan" required error={required(serviceForm.name)}>
+              <Input
+                value={serviceForm.name}
+                onChange={(e) => set({ name: e.target.value })}
+                placeholder="Jasa Maklon Produksi"
+              />
+            </Field>
+            <Field label="Tarif Default (Rp)">
+              <NumberInput
+                value={serviceForm.defaultRate}
+                onChange={(e) => set({ defaultRate: e.target.value })}
+                placeholder="500000"
+                inputMode="decimal"
+                className="h-10 text-right tabular-nums"
+              />
+            </Field>
+            <Field label="Akun Pendapatan" required error={required(serviceForm.accountId)}>
+              {(control) => (
+                <Select
+                  value={serviceForm.accountId || NO_ACCOUNT}
+                  onValueChange={(v) => set({ accountId: v === NO_ACCOUNT ? '' : v })}
+                >
+                  <SelectTrigger {...control}>
+                    <SelectValue placeholder="Pilih akun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_ACCOUNT}>— Pilih Akun —</SelectItem>
+                    {revenueAccounts?.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.accountNumber} — {acc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
+            <Field label="Deskripsi">
+              <Input
+                value={serviceForm.description}
+                onChange={(e) => set({ description: e.target.value })}
+                placeholder="Opsional"
+              />
+            </Field>
+          </PinnedBody>
+          <PinnedFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={serviceSaving}>
+              Batal
+            </Button>
+            <Button type="submit" loading={serviceSaving}>
+              {serviceSaving ? 'Menyimpan…' : editService ? 'Simpan Perubahan' : 'Tambah Layanan'}
+            </Button>
+          </PinnedFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

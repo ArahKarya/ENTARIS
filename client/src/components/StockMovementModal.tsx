@@ -1,12 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import SearchableSelect from './SearchableSelect';
-import type { SelectOption } from './SearchableSelect';
-import WarehousePicker from './WarehousePicker';
-import Select from './Select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { NumberInput } from '@/components/ui/number-input';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateInput, Field, type ComboboxOption } from '@/components/shared';
+import {
+  FormError,
+  PinnedBody,
+  PinnedFooter,
+  PinnedHeader,
+  pinnedDialogClass,
+} from '@/components/overlays/dialog-parts';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
+import { WarehouseSelectField } from '@/components/overlays/WarehouseSelectField';
 
 interface StockMovementModalProps {
   isOpen: boolean;
@@ -32,6 +44,7 @@ const defaultForm = {
 export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovementModalProps) {
   const [form, setForm] = useState({ ...defaultForm, date: today() });
   const [error, setError] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
   const queryClient = useQueryClient();
   const isEdit = !!editMovement;
 
@@ -55,17 +68,9 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
         setForm({ ...defaultForm, date: today() });
       }
       setError('');
+      setShowErrors(false);
     }
   }, [isOpen, editMovement]);
-
-  // Escape key handler
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
 
   // Sertakan warehouseId supaya currentStock tiap item = stok di gudang yang
   // dipilih (bukan total). Tanpa gudang terpilih → tampil total seperti biasa.
@@ -88,12 +93,12 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
 
   const selectedItem = items.find((i: any) => i.id === form.itemId);
 
-  const itemOptions = useMemo((): SelectOption[] =>
+  const itemOptions = useMemo((): ComboboxOption[] =>
     items.map((i: any) => ({ value: i.id, label: `${i.code} — ${i.name} (${i.unit})` })),
     [items],
   );
 
-  const accountOptions = useMemo((): SelectOption[] =>
+  const accountOptions = useMemo((): ComboboxOption[] =>
     nonGroupAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
     [nonGroupAccounts],
   );
@@ -143,6 +148,11 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    // Same constraints the native `required` / `min` attributes enforced before.
+    if (!form.date || !(Number(form.quantity) >= 0.001)) {
+      setShowErrors(true);
+      return;
+    }
 
     const payload: any = {
       date: form.date,
@@ -163,275 +173,204 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
     mutation.mutate(payload);
   };
 
-  if (!isOpen) return null;
-
   const isProductionLinked = editMovement?.referenceType === 'ProductionRun';
+  const pending = mutation.isPending;
+  const stockItem = selectedItem || editMovement?.item;
+  const dateError = showErrors && !form.date ? 'Tanggal wajib diisi.' : undefined;
+  const qtyError = showErrors && !(Number(form.quantity) >= 0.001) ? 'Kuantitas minimal 0,001.' : undefined;
+  const offsetMissing = totalValue > 0 && !form.offsetAccountId;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="movement-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-    >
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 id="movement-modal-title" className="text-base font-semibold text-gray-900">
-            {isEdit ? 'Edit Gerakan Stok' : 'Catat Gerakan Stok'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-4">
-
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !pending && onClose()}>
+      <DialogContent size="md" className={pinnedDialogClass}>
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <PinnedHeader>
+            <DialogTitle>{isEdit ? 'Edit Gerakan Stok' : 'Catat Gerakan Stok'}</DialogTitle>
+            <DialogDescription>
+              Pergerakan stok masuk, keluar, atau penyesuaian beserta posting ke COA.
+            </DialogDescription>
+          </PinnedHeader>
+          <PinnedBody className="grid gap-4">
             {isProductionLinked && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700 text-sm">
-                <AlertCircle size={15} />
-                <span>Gerakan stok dari proses produksi tidak dapat diedit langsung.</span>
-              </div>
+              <p role="status" className="flex items-center gap-2 rounded-md bg-warning-subtle px-3 py-2 text-sm text-warning-text">
+                <AlertCircle className="size-4 shrink-0" aria-hidden />
+                Gerakan stok dari proses produksi tidak dapat diedit langsung.
+              </p>
             )}
 
-            {/* Tanggal */}
-            <div>
-              <label htmlFor="mov-date" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Tanggal <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="mov-date"
-                type="date"
-                required
+            <Field label="Tanggal" required error={dateError}>
+              <DateInput
                 value={form.date}
-                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                onChange={(v) => setForm(f => ({ ...f, date: v }))}
                 disabled={isProductionLinked}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
               />
-            </div>
+            </Field>
 
-            {/* Item — read-only during edit */}
-            <div>
-              <label htmlFor="mov-item" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Item <span className="text-red-500">*</span>
-              </label>
-              {isEdit ? (
-                <input
-                  type="text"
+            {isEdit ? (
+              <Field label="Item" required>
+                <Input
                   readOnly
                   value={editMovement?.item ? `${editMovement.item.code} — ${editMovement.item.name} (${editMovement.item.unit})` : ''}
-                  className="w-full border border-gray-100 rounded-lg py-2 px-3 text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
+                  className="bg-muted"
                 />
-              ) : (
-                <SearchableSelect
-                  options={itemOptions}
-                  value={form.itemId}
-                  onChange={(v) => setForm(f => ({ ...f, itemId: v }))}
-                  placeholder="— Pilih Item —"
-                />
-              )}
-            </div>
-
-            {/* Gudang — read-only saat edit (gudang tidak bisa dipindah lewat edit) */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Gudang
-              </label>
-              {isEdit ? (
-                <input
-                  type="text"
-                  readOnly
-                  value={editMovement?.warehouse?.name ?? '—'}
-                  className="w-full border border-gray-100 rounded-lg py-2 px-3 text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
-                />
-              ) : (
-                <WarehousePicker
-                  value={form.warehouseId}
-                  onChange={(v) => setForm(f => ({ ...f, warehouseId: v }))}
-                  autoDefault
-                />
-              )}
-            </div>
-
-            {/* Tipe Gerakan */}
-            <div>
-              <label htmlFor="mov-type" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Tipe Gerakan <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={form.movementType}
-                onChange={e => setForm(f => ({ ...f, movementType: e.target.value as typeof form.movementType }))}
-                disabled={isProductionLinked}
-                className="w-full"
-              >
-                <option value="In">Masuk (In)</option>
-                <option value="Out">Keluar (Out)</option>
-                <option value="AdjustmentIn">Penyesuaian Naik (AdjustmentIn)</option>
-                <option value="AdjustmentOut">Penyesuaian Turun (AdjustmentOut)</option>
-              </Select>
-            </div>
-
-            {/* Kuantitas */}
-            <div>
-              <label htmlFor="mov-qty" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Kuantitas <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="mov-qty"
-                type="number"
+              </Field>
+            ) : (
+              <ComboboxField
+                label="Item"
                 required
-                min={0.001}
-                step="any"
-                value={form.quantity}
-                onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                disabled={isProductionLinked}
-                placeholder="0"
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:bg-gray-50 disabled:text-gray-400"
+                options={itemOptions}
+                value={form.itemId}
+                onChange={(v) => setForm(f => ({ ...f, itemId: v }))}
+                placeholder="— Pilih Item —"
               />
-              {(selectedItem || editMovement?.item) && (
-                <p className="text-xs text-gray-400 mt-1">
-                  {!isEdit && form.warehouseId ? 'Stok di gudang ini' : 'Stok saat ini'}: {Number((selectedItem || editMovement?.item)?.currentStock ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {(selectedItem || editMovement?.item)?.unit}
-                </p>
+            )}
+
+            {isEdit ? (
+              <Field label="Gudang" hint="Gudang tidak dapat dipindah lewat edit.">
+                <Input readOnly value={editMovement?.warehouse?.name ?? '—'} className="bg-muted" />
+              </Field>
+            ) : (
+              <WarehouseSelectField
+                value={form.warehouseId}
+                onChange={(v) => setForm(f => ({ ...f, warehouseId: v }))}
+                autoDefault
+              />
+            )}
+
+            <Field label="Tipe Gerakan" required>
+              {(control) => (
+                <Select
+                  value={form.movementType}
+                  onValueChange={(v) => setForm(f => ({ ...f, movementType: v as typeof form.movementType }))}
+                  disabled={isProductionLinked}
+                >
+                  <SelectTrigger {...control}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="In">Masuk (In)</SelectItem>
+                    <SelectItem value="Out">Keluar (Out)</SelectItem>
+                    <SelectItem value="AdjustmentIn">Penyesuaian Naik (AdjustmentIn)</SelectItem>
+                    <SelectItem value="AdjustmentOut">Penyesuaian Turun (AdjustmentOut)</SelectItem>
+                  </SelectContent>
+                </Select>
               )}
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Kuantitas"
+                required
+                error={qtyError}
+                hint={
+                  stockItem
+                    ? `${!isEdit && form.warehouseId ? 'Stok di gudang ini' : 'Stok saat ini'}: ${Number(stockItem.currentStock ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${stockItem.unit ?? ''}`
+                    : undefined
+                }
+              >
+                <NumberInput
+                  min={0.001}
+                  step="any"
+                  value={form.quantity}
+                  onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+                  disabled={isProductionLinked}
+                  placeholder="0"
+                  className="h-10 text-right tabular-nums"
+                />
+              </Field>
+              <Field label="Harga Satuan">
+                <NumberInput
+                  min={0}
+                  step="any"
+                  value={form.unitCost}
+                  onChange={e => setForm(f => ({ ...f, unitCost: e.target.value }))}
+                  disabled={isProductionLinked}
+                  placeholder="0"
+                  className="h-10 text-right tabular-nums"
+                />
+              </Field>
             </div>
 
-            {/* Harga Satuan */}
-            <div>
-              <label htmlFor="mov-unit-cost" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Harga Satuan
-              </label>
-              <input
-                id="mov-unit-cost"
-                type="number"
-                min={0}
-                step="any"
-                value={form.unitCost}
-                onChange={e => setForm(f => ({ ...f, unitCost: e.target.value }))}
-                disabled={isProductionLinked}
-                placeholder="0"
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:bg-gray-50 disabled:text-gray-400"
-              />
-            </div>
-
-            {/* Total Nilai (read-only) */}
-            <div>
-              <label htmlFor="mov-total" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Total Nilai
-              </label>
-              <input
-                id="mov-total"
-                type="text"
+            <Field label="Total Nilai">
+              <Input
                 readOnly
                 value={totalValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-                className="w-full border border-gray-100 rounded-lg py-2 px-3 text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
+                className="bg-muted text-right tabular-nums"
               />
-            </div>
+            </Field>
 
-            {/* Akun Lawan */}
-            <div>
-              <label htmlFor="mov-offset-account" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Akun Lawan {totalValue > 0 && <span className="text-red-500">*</span>}
-                <span className="ml-1.5 text-xs font-normal text-blue-500">Untuk posting ke COA</span>
-              </label>
-              <SearchableSelect
-                options={accountOptions}
-                value={form.offsetAccountId}
-                onChange={(v) => setForm(f => ({ ...f, offsetAccountId: v }))}
-                placeholder="— Pilih Akun Lawan —"
-                disabled={isProductionLinked}
-              />
-              {totalValue > 0 && !form.offsetAccountId && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Pilih akun lawan agar nilai stok tercatat di COA.
-                </p>
+            <ComboboxField
+              label={totalValue > 0 ? 'Akun Lawan' : 'Akun Lawan (opsional)'}
+              required={totalValue > 0}
+              options={accountOptions}
+              value={form.offsetAccountId}
+              onChange={(v) => setForm(f => ({ ...f, offsetAccountId: v }))}
+              placeholder="— Pilih Akun Lawan —"
+              disabled={isProductionLinked}
+              hint={
+                offsetMissing
+                  ? 'Pilih akun lawan agar nilai stok tercatat di COA.'
+                  : 'Untuk posting ke COA.'
+              }
+            />
+
+            <Field label="Tipe Referensi">
+              {(control) => (
+                <Select
+                  value={form.referenceType || '__none'}
+                  onValueChange={(v) =>
+                    setForm(f => ({ ...f, referenceType: v === '__none' ? '' : v, referenceNumber: '' }))
+                  }
+                  disabled={isProductionLinked}
+                >
+                  <SelectTrigger {...control}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— Tidak Ada —</SelectItem>
+                    <SelectItem value="PurchaseInvoice">Invoice Pembelian</SelectItem>
+                    <SelectItem value="SalesInvoice">Invoice Penjualan</SelectItem>
+                  </SelectContent>
+                </Select>
               )}
-            </div>
+            </Field>
 
-            {/* Tipe Referensi */}
-            <div>
-              <label htmlFor="mov-ref-type" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Tipe Referensi
-              </label>
-              <Select
-                id="mov-ref-type"
-                value={form.referenceType}
-                onChange={e => setForm(f => ({ ...f, referenceType: e.target.value, referenceNumber: '' }))}
-                disabled={isProductionLinked}
-                className="w-full"
-              >
-                <option value="">— Tidak Ada —</option>
-                <option value="PurchaseInvoice">Invoice Pembelian</option>
-                <option value="SalesInvoice">Invoice Penjualan</option>
-              </Select>
-            </div>
-
-            {/* Nomor Referensi */}
             {form.referenceType && (
-              <div>
-                <label htmlFor="mov-ref-number" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Nomor Referensi
-                </label>
-                <input
-                  id="mov-ref-number"
-                  type="text"
+              <Field label="Nomor Referensi">
+                <Input
                   value={form.referenceNumber}
                   onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))}
                   disabled={isProductionLinked}
                   placeholder="Nomor dokumen referensi"
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
                 />
-              </div>
+              </Field>
             )}
 
-            {/* Catatan */}
-            <div>
-              <label htmlFor="mov-notes" className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Catatan
-              </label>
-              <textarea
-                id="mov-notes"
+            <Field label="Catatan">
+              <Textarea
                 rows={3}
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 disabled={isProductionLinked}
                 placeholder="Catatan opsional tentang gerakan stok ini"
-                className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-400"
+                className="resize-none"
               />
-            </div>
+            </Field>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-                <AlertCircle size={15} />
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="btn-secondary">
+            <FormError message={error} />
+          </PinnedBody>
+          <PinnedFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
               Batal
-            </button>
+            </Button>
             {!isProductionLinked && (
-              <button
-                type="submit"
-                disabled={mutation.isPending}
-                className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : isEdit ? 'Simpan Perubahan' : 'Simpan Gerakan'}
-              </button>
+              <Button type="submit" loading={pending}>
+                {pending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Gerakan'}
+              </Button>
             )}
-          </div>
+          </PinnedFooter>
         </form>
-
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

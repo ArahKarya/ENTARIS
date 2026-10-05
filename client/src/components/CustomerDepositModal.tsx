@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle, Wallet, CheckCircle2, Paperclip } from 'lucide-react';
-import { formatRupiah } from '../lib/formatters';
+import { Wallet, CheckCircle2, Paperclip } from 'lucide-react';
+import { formatRupiah } from '@/lib/format';
 import AttachmentUpload from './AttachmentUpload';
 import RupiahInput from './RupiahInput';
 import AttachmentPreview from './AttachmentPreview';
-import Select from './Select';
+import SearchableSelect from './SearchableSelect';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { DateInput, Field } from '@/components/shared';
+import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
+import { dialogShellClass, moneyInputClass } from './sales/dialog-classes-b';
 
 interface CustomerDepositModalProps {
   isOpen: boolean;
@@ -100,204 +109,153 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
     });
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
-    >
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-teal-50">
-              <Wallet size={16} className="text-teal-600" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                Uang Muka Pelanggan
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Deposit dari pelanggan sebelum penjualan</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent size="md" className={dialogShellClass}>
+        <form
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); if (!savedId && canSubmit) handleSubmit(); }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <OverlayHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="size-5 text-primary" aria-hidden />
+              Uang Muka Pelanggan
+            </DialogTitle>
+            <DialogDescription>Deposit dari pelanggan sebelum penjualan</DialogDescription>
+          </OverlayHeader>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Date & Customer */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <OverlayBody>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tanggal">
+                <DateInput value={date} onChange={setDate} disabled={!!savedId} />
+              </Field>
+              <div className="flex flex-col gap-1.5">
+                <Label required>Pelanggan</Label>
+                <SearchableSelect
+                  options={(customers ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+                  value={partyId}
+                  onChange={setPartyId}
+                  placeholder="— Pilih Pelanggan —"
+                  disabled={!!savedId}
+                  aria-label="Pelanggan"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Pelanggan</label>
-              <Select
-                value={partyId}
-                onChange={e => setPartyId(e.target.value)}
-                className="w-full"
-              >
-                <option value="">— Pilih Pelanggan —</option>
-                {customers?.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
 
-          {/* Existing deposit balance info */}
-          {partyId && depositBalance && depositBalance.totalBalance > 0 && (
-            <div className="bg-teal-50 border border-teal-100 rounded-lg p-3">
-              <p className="text-xs font-medium text-teal-700">
-                Saldo uang muka saat ini: <span className="font-bold font-mono">{formatRupiah(depositBalance.totalBalance)}</span>
-              </p>
-              <p className="text-xs text-teal-500 mt-0.5">
-                {depositBalance.data.length} deposit aktif
-              </p>
-            </div>
-          )}
-
-          {/* Opening balance toggle */}
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={isOpeningBalance}
-                onChange={e => setIsOpeningBalance(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-gray-200 rounded-full peer-checked:bg-teal-500 transition-colors" />
-              <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4" />
-            </div>
-            <div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Saldo Awal / Koreksi</span>
-              <p className="text-xs text-gray-400">Catat deposit tanpa mempengaruhi kas (offset ke Ekuitas Saldo Awal)</p>
-            </div>
-          </label>
-
-          {isOpeningBalance && (
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-              <p className="text-xs text-blue-700">
-                Jurnal: <span className="font-mono font-medium">DR Ekuitas Saldo Awal / CR Uang Muka Pelanggan</span>
-              </p>
-              <p className="text-xs text-blue-500 mt-0.5">Kas/Bank tidak terpengaruh. Gunakan untuk deposit yang uangnya sudah masuk sebelum sistem digunakan.</p>
-            </div>
-          )}
-
-          {/* Amount & Account */}
-          <div className={isOpeningBalance ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'}>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jumlah (Rp)</label>
-              <RupiahInput
-                value={typeof amount === 'number' ? amount : 0}
-                onChange={(v) => setAmount(v === 0 ? '' : v)}
-                placeholder="0"
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Jumlah uang muka"
-              />
-            </div>
-            {!isOpeningBalance && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Akun Kas/Bank</label>
-                <Select
-                  value={accountId}
-                  onChange={e => setAccountId(e.target.value)}
-                  className="w-full"
-                >
-                  <option value="">— Pilih Akun —</option>
-                  {cashAccounts?.map((a: any) => (
-                    <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
-                  ))}
-                </Select>
+            {partyId && depositBalance && depositBalance.totalBalance > 0 && (
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs font-medium text-foreground">
+                  Saldo uang muka saat ini: <span className="font-bold tabular-nums">{formatRupiah(depositBalance.totalBalance)}</span>
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{depositBalance.data.length} deposit aktif</p>
               </div>
             )}
-          </div>
 
-          {/* Reference & Notes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi</label>
-              <input
-                type="text"
-                value={referenceNo}
-                onChange={e => setReferenceNo(e.target.value)}
-                placeholder="No. cek, transfer, dll."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="customer-deposit-opening"
+                checked={isOpeningBalance}
+                onCheckedChange={(checked) => setIsOpeningBalance(checked === true)}
+                disabled={!!savedId}
+                className="mt-0.5"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Catatan</label>
-              <input
-                type="text"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Keterangan opsional..."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Amount preview */}
-          {numAmount > 0 && (
-            <div className="rounded-lg p-3 border bg-teal-50 border-teal-100">
-              <p className="text-xs font-medium text-teal-700">
-                Deposit <span className="text-base font-bold font-mono tabular-nums">{formatRupiah(numAmount)}</span> dari pelanggan
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-
-          {/* Attachment section — shown after save */}
-          {savedId && (
-            <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-green-500" />
-                <span className="text-xs font-semibold text-green-600">Tersimpan</span>
-                <span className="text-xs ml-auto flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
-                  <Paperclip size={10} /> Lampiran Bukti Transfer
-                </span>
+              <div className="grid gap-0.5">
+                <Label htmlFor="customer-deposit-opening" className="text-sm font-medium">Saldo Awal / Koreksi</Label>
+                <p className="text-xs text-muted-foreground">Catat deposit tanpa mempengaruhi kas (offset ke Ekuitas Saldo Awal)</p>
               </div>
-              <AttachmentPreview referenceType="payment" referenceId={savedId} />
-              <AttachmentUpload referenceType="payment" referenceId={savedId} />
             </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
-          {savedId ? (
-            <button onClick={onClose} className="btn-primary">Selesai</button>
-          ) : (
-            <>
-              <button onClick={onClose} className="btn-secondary">Batal</button>
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                className="btn-primary bg-teal-500 hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Simpan Deposit'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+            {isOpeningBalance && (
+              <div className="rounded-lg border border-border bg-info-subtle p-3 text-info-text">
+                <p className="text-xs">
+                  Jurnal: <span className="font-mono font-medium">DR Ekuitas Saldo Awal / CR Uang Muka Pelanggan</span>
+                </p>
+                <p className="mt-0.5 text-xs">Kas/Bank tidak terpengaruh. Gunakan untuk deposit yang uangnya sudah masuk sebelum sistem digunakan.</p>
+              </div>
+            )}
+
+            <div className={isOpeningBalance ? '' : 'grid gap-4 sm:grid-cols-2'}>
+              <Field label="Jumlah (Rp)" required>
+                {(control) => (
+                  <RupiahInput
+                    id={control.id}
+                    value={typeof amount === 'number' ? amount : 0}
+                    onChange={(v) => setAmount(v === 0 ? '' : v)}
+                    placeholder="0"
+                    className={moneyInputClass}
+                    disabled={!!savedId}
+                    aria-label="Jumlah uang muka"
+                  />
+                )}
+              </Field>
+              {!isOpeningBalance && (
+                <Field label="Akun Kas/Bank" required>
+                  {(control) => (
+                    <Select value={accountId} onValueChange={setAccountId} disabled={!!savedId}>
+                      <SelectTrigger {...control}><SelectValue placeholder="— Pilih Akun —" /></SelectTrigger>
+                      <SelectContent>
+                        {cashAccounts?.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Field>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="No. Referensi">
+                <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)}
+                  placeholder="No. cek, transfer, dll." disabled={!!savedId} />
+              </Field>
+              <Field label="Catatan">
+                <Input value={notes} onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Keterangan opsional..." disabled={!!savedId} />
+              </Field>
+            </div>
+
+            {numAmount > 0 && (
+              <div className="rounded-lg border border-border bg-muted/40 p-3" aria-live="polite">
+                <p className="text-xs font-medium text-foreground">
+                  Deposit <span className="text-base font-bold tabular-nums">{formatRupiah(numAmount)}</span> dari pelanggan
+                </p>
+              </div>
+            )}
+
+            <FormError message={error} />
+
+            {savedId && (
+              <div className="grid gap-3 border-t border-border pt-3">
+                <div className="flex items-center gap-2" role="status">
+                  <CheckCircle2 className="size-4 text-success-text" aria-hidden />
+                  <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+                  <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                    <Paperclip className="size-3" aria-hidden /> Lampiran Bukti Transfer
+                  </span>
+                </div>
+                <AttachmentPreview referenceType="payment" referenceId={savedId} />
+                <AttachmentUpload referenceType="payment" referenceId={savedId} />
+              </div>
+            )}
+          </OverlayBody>
+
+          <OverlayFooter>
+            {savedId ? (
+              <Button type="button" onClick={onClose}>Selesai</Button>
+            ) : (
+              <>
+                <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+                <Button type="submit" disabled={!canSubmit} loading={mutation.isPending}>
+                  {mutation.isPending ? 'Menyimpan…' : 'Simpan Deposit'}
+                </Button>
+              </>
+            )}
+          </OverlayFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

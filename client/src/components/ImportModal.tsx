@@ -1,9 +1,13 @@
 import { useState, useRef } from 'react';
-import { X, Upload, FileSpreadsheet, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { OverlayBody, OverlayFooter, OverlayHeader, ScrollRegion } from './sales/dialog-parts-b';
+import { dialogShellClass } from './sales/dialog-classes-b';
 
 interface ImportError {
   row: number;
@@ -159,232 +163,189 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
     onClose();
   };
 
-  if (!isOpen) return null;
+  const STEPS = ['upload', 'preview', 'result'] as const;
+  const busy = previewMutation.isPending || importMutation.isPending;
+  const stepLabel = { upload: 'Unggah file', preview: 'Pratinjau data', result: 'Hasil import' }[step];
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="import-modal-title" className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-12 overflow-y-auto" onClick={handleClose}>
-      <div
-        className="w-full max-w-[calc(100vw-1rem)] sm:max-w-md lg:max-w-3xl rounded-xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3">
-            <FileSpreadsheet size={18} className="text-blue-600" />
-            <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-              {config.title}
-            </h2>
-            {/* Step indicator */}
-            <div className="flex items-center gap-1 ml-2">
-              {['upload', 'preview', 'result'].map((s, i) => (
-                <div
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !busy && handleClose()}>
+      <DialogContent size="lg" className={cn(dialogShellClass, 'lg:max-w-3xl')}>
+        <OverlayHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="size-5 text-primary" aria-hidden />
+            {config.title}
+          </DialogTitle>
+          <DialogDescription className="flex items-center gap-2">
+            <span className="flex items-center gap-1" aria-hidden>
+              {STEPS.map((s, i) => (
+                <span
                   key={s}
                   className={cn(
-                    'w-2 h-2 rounded-full',
-                    step === s ? 'bg-blue-600' : i <= ['upload', 'preview', 'result'].indexOf(step) ? 'bg-blue-300' : 'bg-gray-200'
+                    'size-2 rounded-full',
+                    step === s ? 'bg-primary' : i <= STEPS.indexOf(step) ? 'bg-primary/40' : 'bg-border',
                   )}
                 />
               ))}
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            <X size={16} />
-          </button>
-        </div>
+            </span>
+            Langkah {STEPS.indexOf(step) + 1} dari {STEPS.length}: {stepLabel}
+          </DialogDescription>
+        </OverlayHeader>
 
-        <div className="p-6">
-          {/* Step 1: Upload */}
+        <OverlayBody>
           {step === 'upload' && (
-            <div className="space-y-4">
-              <div
+            <div className="grid gap-4">
+              <button
+                type="button"
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
+                disabled={previewMutation.isPending}
                 className={cn(
-                  'border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all',
-                  isDragging
-                    ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/10'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-gray-800/30'
+                  'rounded-xl border-2 border-dashed p-10 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isDragging ? 'border-primary bg-primary-subtle' : 'border-border hover:border-primary/50 hover:bg-accent',
                 )}
               >
                 {previewMutation.isPending ? (
-                  <>
-                    <Loader2 size={32} className="mx-auto mb-3 animate-spin text-blue-500" />
-                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                      Memproses file...
-                    </p>
-                  </>
+                  <span role="status" className="block">
+                    <Loader2 className="mx-auto mb-3 size-8 animate-spin text-primary" aria-hidden />
+                    <span className="block text-sm font-medium text-foreground">Memproses file...</span>
+                  </span>
                 ) : (
                   <>
-                    <Upload size={32} className="mx-auto mb-3" style={{ color: 'var(--color-text-muted)' }} />
-                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                      Seret file ke sini, atau klik untuk memilih
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                      Mendukung format CSV, XLSX, XLS (maks 5MB)
-                    </p>
+                    <Upload className="mx-auto mb-3 size-8 text-muted-foreground" aria-hidden />
+                    <span className="block text-sm font-medium text-foreground">Seret file ke sini, atau klik untuk memilih</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">Mendukung format CSV, XLSX, XLS (maks 5MB)</span>
                   </>
                 )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileSelect(file);
-                    e.target.value = '';
-                  }}
-                />
-              </div>
-
-              <button
-                onClick={downloadTemplate}
-                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
-              >
-                <Download size={13} />
-                Download Template Excel
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                aria-label="Pilih file import"
+                tabIndex={-1}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                  e.target.value = '';
+                }}
+              />
+              <Button type="button" variant="link" size="sm" className="justify-self-start" onClick={downloadTemplate}>
+                <Download aria-hidden /> Download Template Excel
+              </Button>
             </div>
           )}
 
-          {/* Step 2: Preview */}
           {step === 'preview' && preview && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                    {selectedFile?.name}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                    {preview.data.length} data valid, {preview.errors.length} error
-                  </p>
-                </div>
+            <div className="grid gap-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">{selectedFile?.name}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {preview.data.length} data valid, {preview.errors.length} error
+                </p>
               </div>
 
-              {/* Errors */}
               {preview.errors.length > 0 && (
-                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-3 max-h-32 overflow-y-auto">
-                  <p className="text-xs font-semibold text-red-700 dark:text-red-300 mb-1">
-                    Error ({preview.errors.length}):
-                  </p>
+                <div role="alert" className="max-h-32 overflow-y-auto rounded-lg bg-danger-subtle p-3 text-danger-text">
+                  <p className="mb-1 text-xs font-semibold">Error ({preview.errors.length}):</p>
                   {preview.errors.slice(0, 10).map((err, i) => (
-                    <p key={i} className="text-xs text-red-600 dark:text-red-400">
-                      Baris {err.row}: {err.message}
-                    </p>
+                    <p key={i} className="text-xs">Baris {err.row}: {err.message}</p>
                   ))}
                   {preview.errors.length > 10 && (
-                    <p className="text-xs text-red-500 mt-1">...dan {preview.errors.length - 10} error lainnya</p>
+                    <p className="mt-1 text-xs">...dan {preview.errors.length - 10} error lainnya</p>
                   )}
                 </div>
               )}
 
-              {/* Preview table */}
               {preview.data.length > 0 && (
-                <div className="border rounded-lg overflow-x-auto max-h-72" style={{ borderColor: 'var(--color-border)' }}>
+                <ScrollRegion label="Pratinjau data import" className="max-h-72 overflow-y-auto border border-border">
                   <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
-                        <th className="text-left px-3 py-2 font-medium" style={{ color: 'var(--color-text-muted)' }}>#</th>
+                    <thead className="sticky top-0 bg-muted">
+                      <tr className="border-b border-border">
+                        <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground">#</th>
                         {config.columns.map((col) => (
-                          <th key={col} className="text-left px-3 py-2 font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                            {col}
-                          </th>
+                          <th key={col} scope="col" className="whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground">{col}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {preview.data.slice(0, 20).map((row: any, i: number) => (
-                        <tr key={i} className="border-b" style={{ borderColor: 'var(--color-border-light)' }}>
-                          <td className="px-3 py-1.5" style={{ color: 'var(--color-text-muted)' }}>{i + 1}</td>
+                        <tr key={i} className="border-b border-border/60">
+                          <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
                           {config.columns.map((col) => (
-                            <td key={col} className="px-3 py-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                              {String(row[col] ?? '')}
-                            </td>
+                            <td key={col} className="px-3 py-1.5 text-foreground">{String(row[col] ?? '')}</td>
                           ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {preview.data.length > 20 && (
-                    <div className="px-3 py-2 text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+                    <div className="px-3 py-2 text-center text-xs text-muted-foreground">
                       ...menampilkan 20 dari {preview.data.length} data
                     </div>
                   )}
-                </div>
+                </ScrollRegion>
               )}
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => { setStep('upload'); setSelectedFile(null); setPreview(null); }} className="btn-secondary">
-                  Ganti File
-                </button>
-                <button
-                  onClick={handleConfirmImport}
-                  disabled={importMutation.isPending || preview.data.length === 0}
-                  className="btn-primary"
-                >
-                  {importMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                  Import {preview.data.length} Data
-                </button>
-              </div>
             </div>
           )}
 
-          {/* Step 3: Result */}
           {step === 'result' && result && (
-            <div className="space-y-4">
-              <div className="text-center py-4">
+            <div className="grid gap-4">
+              <div className="py-4 text-center" role="status">
                 {result.success > 0 ? (
-                  <CheckCircle size={40} className="mx-auto mb-3 text-green-500" />
+                  <CheckCircle className="mx-auto mb-3 size-10 text-success-text" aria-hidden />
                 ) : (
-                  <AlertCircle size={40} className="mx-auto mb-3 text-red-500" />
+                  <AlertCircle className="mx-auto mb-3 size-10 text-danger-text" aria-hidden />
                 )}
-                <p className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                  Import Selesai
-                </p>
-                <div className="flex items-center justify-center gap-4 mt-2">
+                <p className="text-lg font-semibold text-foreground">Import Selesai</p>
+                <div className="mt-2 flex items-center justify-center gap-4">
                   <div>
-                    <p className="text-2xl font-bold text-green-600">{result.success}</p>
-                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Berhasil</p>
+                    <p className="text-2xl font-bold tabular-nums text-success-text">{result.success}</p>
+                    <p className="text-xs text-muted-foreground">Berhasil</p>
                   </div>
                   {result.failed > 0 && (
                     <div>
-                      <p className="text-2xl font-bold text-red-500">{result.failed}</p>
-                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Gagal</p>
+                      <p className="text-2xl font-bold tabular-nums text-danger-text">{result.failed}</p>
+                      <p className="text-xs text-muted-foreground">Gagal</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {result.errors.length > 0 && (
-                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-3 max-h-32 overflow-y-auto">
-                  <p className="text-xs font-semibold text-red-700 dark:text-red-300 mb-1">
-                    Error Detail:
-                  </p>
+                <div className="max-h-32 overflow-y-auto rounded-lg bg-danger-subtle p-3 text-danger-text">
+                  <p className="mb-1 text-xs font-semibold">Error Detail:</p>
                   {result.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-red-600 dark:text-red-400">
-                      {err.row > 0 ? `Baris ${err.row}: ` : ''}{err.message}
-                    </p>
+                    <p key={i} className="text-xs">{err.row > 0 ? `Baris ${err.row}: ` : ''}{err.message}</p>
                   ))}
                 </div>
               )}
-
-              <div className="flex justify-end">
-                <button onClick={handleClose} className="btn-primary">
-                  Tutup
-                </button>
-              </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </OverlayBody>
+
+        <OverlayFooter>
+          {step === 'upload' && (
+            <Button type="button" variant="ghost" onClick={handleClose} disabled={previewMutation.isPending}>Batal</Button>
+          )}
+          {step === 'preview' && preview && (
+            <>
+              <Button type="button" variant="ghost" disabled={importMutation.isPending}
+                onClick={() => { setStep('upload'); setSelectedFile(null); setPreview(null); }}>
+                Ganti File
+              </Button>
+              <Button type="button" onClick={handleConfirmImport}
+                disabled={preview.data.length === 0} loading={importMutation.isPending}>
+                {importMutation.isPending ? 'Mengimport…' : `Import ${preview.data.length} Data`}
+              </Button>
+            </>
+          )}
+          {step === 'result' && <Button type="button" onClick={handleClose}>Tutup</Button>}
+        </OverlayFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

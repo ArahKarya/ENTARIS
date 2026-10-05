@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { X, Loader2, Edit3, Trash2, CheckCircle2, XCircle, FileSignature, Play, ExternalLink } from 'lucide-react';
+import { Edit3, Trash2, CheckCircle2, XCircle, FileSignature, Play, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import { formatRupiah, formatDate } from '../lib/formatters';
-import { ConfirmDialog } from './ConfirmDialog';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
-
-const STATUS_BADGE: Record<string, string> = {
-  Baru: 'badge-blue', Diproses: 'badge-yellow', Dikonversi: 'badge-green', Hilang: 'badge-red', Ditutup: 'badge-gray',
-};
+import { formatRupiah, formatDate } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ConfirmDialog, Field, LoadingState, StatusBadge } from '@/components/shared';
+import { OverlayBody, OverlayFooter, OverlayHeader, ScrollRegion } from './sales/dialog-parts-b';
+import { dialogShellClass } from './sales/dialog-classes-b';
 
 interface Props {
   inquiryId: string | null;
@@ -20,7 +21,6 @@ interface Props {
 
 const InquiryDetailDrawer: React.FC<Props> = ({ inquiryId, onClose, onEdit }) => {
   const isOpen = inquiryId !== null;
-  useBodyScrollLock(isOpen);
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -70,217 +70,208 @@ const InquiryDetailDrawer: React.FC<Props> = ({ inquiryId, onClose, onEdit }) =>
     onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal menyiapkan konversi.'),
   });
 
-  if (!isOpen) return null;
+  const busy = statusMut.isPending || deleteMut.isPending || convertMut.isPending;
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[600px] bg-card border-l border-border shadow-2xl flex flex-col"
-        style={{ animation: 'slide-in-right 0.2s ease-out' }}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-foreground">Detail Inquiry</h3>
-            {q && <p className="text-xs text-muted-foreground font-mono mt-0.5">{q.inquiryNumber}</p>}
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-accent rounded" aria-label="Tutup"><X size={18} /></button>
-        </div>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && !busy && onClose()}>
+        <SheetContent size="md">
+          <SheetHeader>
+            <SheetTitle>Detail Inquiry</SheetTitle>
+            <SheetDescription className={q ? 'font-mono text-xs' : 'sr-only'}>
+              {q ? q.inquiryNumber : 'Memuat detail inquiry'}
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {isLoading || !q ? (
-            <div className="py-16 text-center text-muted-foreground">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-            </div>
-          ) : (
-            <>
-              {/* Header info */}
-              <div className="bg-muted/40 rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase">Status</span>
-                  <span className={`badge ${STATUS_BADGE[q.status] ?? 'badge-gray'}`}>{q.status}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Tanggal</span>
-                  <span className="font-medium text-foreground">{formatDate(q.date)}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Channel</span>
-                  <span className="font-medium text-foreground">{q.channel}</span>
-                </div>
-                {q.followUpDate && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Tindak Lanjut</span>
-                    <span className="font-medium text-amber-600">{formatDate(q.followUpDate)}</span>
+          <SheetBody className="grid content-start gap-4">
+            {isLoading || !q ? (
+              <div role="status" aria-label="Memuat inquiry"><LoadingState /></div>
+            ) : (
+              <>
+                <dl className="grid gap-2 rounded-lg bg-muted/40 p-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <dt className="font-semibold uppercase text-muted-foreground">Status</dt>
+                    <dd><StatusBadge status={q.status} /></dd>
                   </div>
-                )}
-                {q.quotation && (
-                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
-                    <span className="text-muted-foreground">Penawaran</span>
-                    <button onClick={() => { navigate('/quotations'); onClose(); }}
-                      className="font-mono text-green-600 inline-flex items-center gap-1 hover:underline">
-                      {q.quotation.quotationNumber} <ExternalLink size={10} />
-                    </button>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted-foreground">Tanggal</dt>
+                    <dd className="font-medium text-foreground">{formatDate(q.date)}</dd>
                   </div>
-                )}
-                {q.lossReason && (
-                  <div className="text-xs pt-1 border-t border-border">
-                    <span className="text-muted-foreground">Alasan hilang: </span>
-                    <span className="text-red-600 italic">{q.lossReason}</span>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted-foreground">Channel</dt>
+                    <dd className="font-medium text-foreground">{q.channel}</dd>
                   </div>
-                )}
-              </div>
+                  {q.followUpDate && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Tindak Lanjut</dt>
+                      <dd className="font-medium text-warning-text">{formatDate(q.followUpDate)}</dd>
+                    </div>
+                  )}
+                  {q.quotation && (
+                    <div className="flex items-center justify-between border-t border-border pt-1">
+                      <dt className="text-muted-foreground">Penawaran</dt>
+                      <dd>
+                        <Button variant="link" size="sm" className="h-auto min-h-8 font-mono text-xs"
+                          onClick={() => { navigate('/quotations'); onClose(); }}>
+                          {q.quotation.quotationNumber} <ExternalLink className="size-3" aria-hidden />
+                        </Button>
+                      </dd>
+                    </div>
+                  )}
+                  {q.lossReason && (
+                    <div className="border-t border-border pt-1">
+                      <dt className="inline text-muted-foreground">Alasan hilang: </dt>
+                      <dd className="inline italic text-danger-text">{q.lossReason}</dd>
+                    </div>
+                  )}
+                </dl>
 
-              {/* Customer info */}
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-2">Prospek / Customer</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-foreground font-medium">{q.party?.name ?? q.prospectName}</span>
-                    {!q.partyId && <span className="text-[10px] uppercase tracking-wider text-amber-600 px-1.5 py-0.5 bg-amber-50 rounded">prospect</span>}
+                <section aria-labelledby="inq-party">
+                  <h4 id="inq-party" className="mb-2 text-sm font-semibold text-foreground">Prospek / Customer</h4>
+                  <div className="grid gap-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{q.party?.name ?? q.prospectName}</span>
+                      {!q.partyId && (
+                        <span className="rounded-sm bg-warning-subtle px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-warning-text">prospect</span>
+                      )}
+                    </div>
+                    {q.prospectPhone && <p className="text-xs text-muted-foreground"><span className="sr-only">Telepon: </span>{q.prospectPhone}</p>}
+                    {q.prospectEmail && <p className="text-xs text-muted-foreground"><span className="sr-only">Email: </span>{q.prospectEmail}</p>}
                   </div>
-                  {q.prospectPhone && <p className="text-xs text-muted-foreground">📞 {q.prospectPhone}</p>}
-                  {q.prospectEmail && <p className="text-xs text-muted-foreground">✉️ {q.prospectEmail}</p>}
-                </div>
-              </div>
+                </section>
 
-              {/* Items */}
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-2">Permintaan</h4>
-                {q.itemsMode === 'structured' && Array.isArray(q.items) && q.items.length > 0 ? (
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border text-muted-foreground">
-                        <th className="text-left py-1.5">Item</th>
-                        <th className="text-right py-1.5">Qty</th>
-                        <th className="text-right py-1.5">Est. Harga</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {q.items.map((it: any) => (
-                        <tr key={it.id} className="border-b border-border/50">
-                          <td className="py-1.5">
-                            <p className="text-foreground">{it.itemName}</p>
-                            {it.description && <p className="text-[11px] text-muted-foreground">{it.description}</p>}
-                          </td>
-                          <td className="text-right font-mono tabular-nums">
-                            {it.quantity != null ? `${Number(it.quantity)} ${it.unit ?? ''}` : '—'}
-                          </td>
-                          <td className="text-right font-mono tabular-nums">
-                            {it.estimatedPrice != null ? formatRupiah(Number(it.estimatedPrice)) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-sm text-foreground whitespace-pre-line bg-muted/40 rounded p-3">
-                    {q.itemsText || <span className="text-muted-foreground italic">Tidak ada permintaan terstruktur.</span>}
-                  </p>
+                <section aria-labelledby="inq-items">
+                  <h4 id="inq-items" className="mb-2 text-sm font-semibold text-foreground">Permintaan</h4>
+                  {q.itemsMode === 'structured' && Array.isArray(q.items) && q.items.length > 0 ? (
+                    <ScrollRegion label="Daftar item permintaan">
+                      <table className="w-full min-w-[320px] text-xs">
+                        <thead>
+                          <tr className="border-b border-border text-muted-foreground">
+                            <th scope="col" className="py-1.5 text-left">Item</th>
+                            <th scope="col" className="py-1.5 text-right">Qty</th>
+                            <th scope="col" className="py-1.5 text-right">Est. Harga</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {q.items.map((it: any) => (
+                            <tr key={it.id} className="border-b border-border/50">
+                              <td className="py-1.5">
+                                <p className="text-foreground">{it.itemName}</p>
+                                {it.description && <p className="text-[11px] text-muted-foreground">{it.description}</p>}
+                              </td>
+                              <td className="text-right tabular-nums">
+                                {it.quantity != null ? `${Number(it.quantity)} ${it.unit ?? ''}` : '—'}
+                              </td>
+                              <td className="text-right tabular-nums">
+                                {it.estimatedPrice != null ? formatRupiah(Number(it.estimatedPrice)) : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ScrollRegion>
+                  ) : (
+                    <p className="whitespace-pre-line rounded-md bg-muted/40 p-3 text-sm text-foreground">
+                      {q.itemsText || <span className="italic text-muted-foreground">Tidak ada permintaan terstruktur.</span>}
+                    </p>
+                  )}
+                </section>
+
+                {q.notes && (
+                  <section aria-labelledby="inq-notes">
+                    <h4 id="inq-notes" className="mb-1 text-sm font-semibold text-foreground">Catatan</h4>
+                    <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>
+                  </section>
                 )}
-              </div>
+              </>
+            )}
+          </SheetBody>
 
-              {q.notes && (
-                <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-1">Catatan</h4>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">{q.notes}</p>
-                </div>
+          {q && (
+            <SheetFooter className="flex-wrap sm:justify-start [&>button]:min-h-11 sm:[&>button]:min-h-0">
+              {q.status !== 'Dikonversi' && (
+                <Button variant="danger" size="sm" onClick={() => setConfirmAction('delete')} className="sm:order-last sm:ml-auto">
+                  <Trash2 aria-hidden /> Hapus
+                </Button>
               )}
-            </>
+              {q.status !== 'Dikonversi' && (
+                <Button variant="outline" size="sm" onClick={() => onEdit?.(q)}>
+                  <Edit3 aria-hidden /> Edit
+                </Button>
+              )}
+              {(q.status === 'Baru' || q.status === 'Diproses') && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setConfirmAction('close')} disabled={statusMut.isPending}>
+                    <CheckCircle2 aria-hidden /> Tutup
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setLossOpen(true)} disabled={statusMut.isPending}>
+                    <XCircle aria-hidden /> Tandai Hilang
+                  </Button>
+                </>
+              )}
+              {q.status === 'Baru' && (
+                <Button variant="outline" size="sm" onClick={() => setConfirmAction('process')} disabled={statusMut.isPending}>
+                  <Play aria-hidden /> Diproses
+                </Button>
+              )}
+              {(q.status === 'Baru' || q.status === 'Diproses') && (
+                <Button size="sm" onClick={() => convertMut.mutate()} loading={convertMut.isPending}>
+                  {!convertMut.isPending && <FileSignature aria-hidden />} Buat Penawaran
+                </Button>
+              )}
+            </SheetFooter>
           )}
-        </div>
-
-        {/* Action footer */}
-        {q && (
-          <div className="border-t border-border bg-muted/30 px-4 py-3 flex flex-wrap items-center gap-2">
-            {/* Convert to Penawaran — gating: Baru atau Diproses */}
-            {(q.status === 'Baru' || q.status === 'Diproses') && (
-              <button onClick={() => convertMut.mutate()} disabled={convertMut.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                {convertMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <FileSignature size={12} />}
-                Buat Penawaran
-              </button>
-            )}
-
-            {q.status === 'Baru' && (
-              <button onClick={() => setConfirmAction('process')} disabled={statusMut.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors">
-                <Play size={12} /> Diproses
-              </button>
-            )}
-
-            {(q.status === 'Baru' || q.status === 'Diproses') && (
-              <>
-                <button onClick={() => setLossOpen(true)} disabled={statusMut.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  <XCircle size={12} /> Tandai Hilang
-                </button>
-                <button onClick={() => setConfirmAction('close')} disabled={statusMut.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-muted hover:bg-accent rounded-lg transition-colors">
-                  <CheckCircle2 size={12} /> Tutup
-                </button>
-              </>
-            )}
-
-            {q.status !== 'Dikonversi' && (
-              <>
-                <button onClick={() => onEdit?.(q)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-card border border-border hover:bg-accent rounded-lg transition-colors">
-                  <Edit3 size={12} /> Edit
-                </button>
-                <button onClick={() => setConfirmAction('delete')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors ml-auto">
-                  <Trash2 size={12} /> Hapus
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={confirmAction === 'process'}
+        onOpenChange={(o) => !o && setConfirmAction(null)}
         title="Tandai Diproses"
-        message="Tandai inquiry ini sedang diproses?"
-        onCancel={() => setConfirmAction(null)}
-        onConfirm={() => { setConfirmAction(null); statusMut.mutate({ status: 'Diproses' }); }}
+        description="Tandai inquiry ini sedang diproses?"
+        onConfirm={() => { statusMut.mutate({ status: 'Diproses' }); }}
       />
       <ConfirmDialog
         open={confirmAction === 'close'}
+        onOpenChange={(o) => !o && setConfirmAction(null)}
         title="Tutup Inquiry"
-        message="Tutup inquiry ini? Tidak akan ditindaklanjuti lagi."
-        onCancel={() => setConfirmAction(null)}
-        onConfirm={() => { setConfirmAction(null); statusMut.mutate({ status: 'Ditutup' }); }}
+        description="Tutup inquiry ini? Tidak akan ditindaklanjuti lagi."
+        onConfirm={() => { statusMut.mutate({ status: 'Ditutup' }); }}
       />
       <ConfirmDialog
         open={confirmAction === 'delete'}
+        onOpenChange={(o) => !o && setConfirmAction(null)}
         title="Hapus Inquiry"
-        message="Hapus inquiry ini secara permanen?"
+        description="Hapus inquiry ini secara permanen?"
         confirmLabel="Ya, Hapus"
-        variant="danger"
-        onCancel={() => setConfirmAction(null)}
-        onConfirm={() => { setConfirmAction(null); deleteMut.mutate(); }}
+        tone="danger"
+        onConfirm={() => { deleteMut.mutate(); }}
       />
 
-      {lossOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-5"
-            style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-            <h2 className="text-base font-semibold text-foreground mb-2">Tandai Hilang</h2>
-            <p className="text-xs text-muted-foreground mb-3">Berikan alasan singkat (minimal 5 karakter).</p>
-            <textarea value={lossReason} onChange={(e) => setLossReason(e.target.value)} rows={3}
-              placeholder="Mis: Pelanggan beralih ke kompetitor, harga di luar budget..."
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-red-500 mb-3" />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => { setLossOpen(false); setLossReason(''); }}
-                className="px-3 py-1.5 text-xs font-medium text-foreground bg-muted hover:bg-accent rounded-lg">Batal</button>
-              <button onClick={() => statusMut.mutate({ status: 'Hilang', lossReason })}
-                disabled={lossReason.length < 5 || statusMut.isPending}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
-                {statusMut.isPending ? 'Memproses...' : 'Tandai Hilang'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={lossOpen} onOpenChange={(open) => { if (!open && !statusMut.isPending) { setLossOpen(false); setLossReason(''); } }}>
+        <DialogContent size="sm" className={dialogShellClass}>
+          <form noValidate className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(e) => { e.preventDefault(); if (lossReason.length >= 5 && !statusMut.isPending) statusMut.mutate({ status: 'Hilang', lossReason }); }}>
+            <OverlayHeader>
+              <DialogTitle>Tandai Hilang</DialogTitle>
+              <DialogDescription>Berikan alasan singkat (minimal 5 karakter).</DialogDescription>
+            </OverlayHeader>
+            <OverlayBody>
+              <Field label="Alasan hilang" required>
+                <Textarea value={lossReason} onChange={(e) => setLossReason(e.target.value)} rows={3}
+                  placeholder="Mis: Pelanggan beralih ke kompetitor, harga di luar budget..." />
+              </Field>
+            </OverlayBody>
+            <OverlayFooter>
+              <Button type="button" variant="ghost" disabled={statusMut.isPending}
+                onClick={() => { setLossOpen(false); setLossReason(''); }}>Batal</Button>
+              <Button type="submit" variant="danger" disabled={lossReason.length < 5} loading={statusMut.isPending}>
+                {statusMut.isPending ? 'Memproses…' : 'Tandai Hilang'}
+              </Button>
+            </OverlayFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

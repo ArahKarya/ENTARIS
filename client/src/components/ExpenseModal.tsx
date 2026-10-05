@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle, TrendingUp, CheckCircle2, Paperclip } from 'lucide-react';
-import { formatRupiah } from '../lib/formatters';
+import { CheckCircle2, Paperclip } from 'lucide-react';
+import { formatRupiah } from '@/lib/format';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { NumberInput } from '@/components/ui/number-input';
+import { Field, DateInput } from '@/components/shared';
+import { FormDialog } from './purchase-cash/FormDialog';
+import { OptionPicker } from './purchase-cash/OptionPicker';
+import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
-import SearchableSelect from './SearchableSelect';
-import type { SelectOption } from './SearchableSelect';
+import type { PickerOption as SelectOption } from './purchase-cash/OptionPicker';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -168,209 +174,121 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
     });
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="expense-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}
+    <FormDialog
+      open={isOpen}
+      onClose={onClose}
+      title="Catat Pengeluaran"
+      description="Semua jenis pengeluaran kas & bank"
+      busy={mutation.isPending}
+      submitLabel="Simpan Pengeluaran"
+      onSubmit={handleSubmit}
+      submitDisabled={!canSubmit}
+      footer={
+        savedId ? (
+          <Button className="h-11 sm:h-9" onClick={onClose}>
+            Selesai
+          </Button>
+        ) : undefined
+      }
     >
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+      <Field label="Tanggal">
+        <DateInput value={date} onChange={setDate} />
+      </Field>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-50">
-              <TrendingUp size={16} className="text-orange-500" />
-            </div>
-            <div>
-              <h2 id="expense-modal-title" className="text-base font-semibold text-gray-900">
-                Catat Pengeluaran
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Semua jenis pengeluaran kas & bank</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <X size={18} />
-          </button>
-        </div>
+      <Field label="Akun Pengeluaran (Debit)" hint="Contoh: Beban Listrik, Beban Gaji, Hutang Usaha, dll.">
+        <OptionPicker
+          options={debitOptions}
+          value={debitAccountId}
+          onChange={setDebitAccountId}
+          placeholder="— Pilih Akun Pengeluaran —"
+        />
+      </Field>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      <Field label="Dibayar Dari (Kredit)">
+        <OptionPicker
+          options={cashOptions}
+          value={creditAccountId}
+          onChange={setCreditAccountId}
+          placeholder="— Pilih Akun Kas/Bank —"
+        />
+      </Field>
 
-          {/* Date */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+      <Field label="Pihak Terkait (opsional)">
+        <OptionPicker
+          options={partyOptions}
+          value={partyId}
+          onChange={setPartyId}
+          placeholder="— Tanpa Pihak Terkait —"
+          emptyLabel="— Tanpa Pihak Terkait —"
+        />
+      </Field>
 
-          {/* Debit Account — what the money is for */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-              Akun Pengeluaran (Debit)
-            </label>
-            <SearchableSelect
-              options={debitOptions}
-              value={debitAccountId}
-              onChange={setDebitAccountId}
-              placeholder="— Pilih Akun Pengeluaran —"
-            />
-            <p className="text-xs text-gray-400 mt-1">Contoh: Beban Listrik, Beban Gaji, Hutang Usaha, dll.</p>
-          </div>
+      <Field label="Jumlah (Rp)">
+        <NumberInput
+          value={amount}
+          onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+          placeholder="0"
+          min={0}
+          inputMode="decimal"
+          className="h-10 text-right md:h-9"
+        />
+      </Field>
 
-          {/* Credit Account — where the money comes from */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-              Dibayar Dari (Kredit)
-            </label>
-            <SearchableSelect
-              options={cashOptions}
-              value={creditAccountId}
-              onChange={setCreditAccountId}
-              placeholder="— Pilih Akun Kas/Bank —"
-            />
-          </div>
+      <Field label="Keterangan">
+        <Input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Contoh: Bayar listrik bulan Maret..."
+        />
+      </Field>
 
-          {/* Party (optional) */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-              Pihak Terkait <span className="font-normal normal-case">(opsional)</span>
-            </label>
-            <SearchableSelect
-              options={partyOptions}
-              value={partyId}
-              onChange={setPartyId}
-              placeholder="— Tanpa Pihak Terkait —"
-            />
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jumlah (Rp)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              min={0}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Keterangan</label>
-            <input
-              type="text"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Contoh: Bayar listrik bulan Maret..."
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Reference & Notes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi</label>
-              <input
-                type="text"
-                value={referenceNo}
-                onChange={e => setReferenceNo(e.target.value)}
-                placeholder="No. kwitansi, bukti, dll."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Catatan</label>
-              <input
-                type="text"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Catatan opsional..."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Preview */}
-          {numAmount > 0 && debitAccount && creditAccount && (
-            <div className="rounded-lg p-3 border bg-orange-50 border-orange-100">
-              <p className="text-xs font-medium text-orange-700">
-                Pengeluaran{' '}
-                <span className="text-base font-bold font-mono tabular-nums">{formatRupiah(numAmount)}</span>
-              </p>
-              <p className="text-xs text-orange-600 mt-1">
-                <span className="font-medium">Dr</span> {debitAccount.accountNumber} {debitAccount.name}
-              </p>
-              <p className="text-xs text-orange-600">
-                <span className="font-medium">Cr</span> {creditAccount.accountNumber} {creditAccount.name}
-              </p>
-              {partyId && parties && (
-                <p className="text-xs text-orange-500 mt-1">
-                  Pihak: {parties.find((p: any) => p.id === partyId)?.name}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Same account warning */}
-          {debitAccountId && creditAccountId && debitAccountId === creditAccountId && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-700 text-sm">
-              <AlertCircle size={15} /> <span>Akun debit dan kredit tidak boleh sama.</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-
-          {/* Attachment section — shown after save */}
-          {savedId && (
-            <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-green-500" />
-                <span className="text-xs font-semibold text-green-600">Tersimpan</span>
-                <span className="text-xs ml-auto flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
-                  <Paperclip size={10} /> Lampiran Bukti
-                </span>
-              </div>
-              <AttachmentPreview referenceType="journal" referenceId={savedId} />
-              <AttachmentUpload referenceType="journal" referenceId={savedId} />
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          {savedId ? (
-            <button onClick={onClose} className="btn-primary">Selesai</button>
-          ) : (
-            <>
-              <button onClick={onClose} className="btn-secondary">Batal</button>
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Simpan Pengeluaran'}
-              </button>
-            </>
-          )}
-        </div>
-
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="No. Referensi">
+          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="No. kwitansi, bukti, dll." />
+        </Field>
+        <Field label="Catatan">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan opsional..." />
+        </Field>
       </div>
-    </div>
+
+      {numAmount > 0 && debitAccount && creditAccount && (
+        <Callout tone="warning" icon={<span className="sr-only">Ringkasan:</span>}>
+          <p>
+            Pengeluaran <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
+          </p>
+          <p className="mt-1 text-xs">
+            <span className="font-medium">Dr</span> {debitAccount.accountNumber} {debitAccount.name}
+          </p>
+          <p className="text-xs">
+            <span className="font-medium">Cr</span> {creditAccount.accountNumber} {creditAccount.name}
+          </p>
+          {partyId && parties && (
+            <p className="mt-1 text-xs">Pihak: {parties.find((p: any) => p.id === partyId)?.name}</p>
+          )}
+        </Callout>
+      )}
+
+      {debitAccountId && creditAccountId && debitAccountId === creditAccountId && (
+        <Callout tone="warning">Akun debit dan kredit tidak boleh sama.</Callout>
+      )}
+
+      <ErrorAlert message={error} />
+
+      {savedId && (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-success-text" aria-hidden />
+            <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+            <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+              <Paperclip className="size-3" aria-hidden /> Lampiran Bukti
+            </span>
+          </div>
+          <AttachmentPreview referenceType="journal" referenceId={savedId} />
+          <AttachmentUpload referenceType="journal" referenceId={savedId} />
+        </div>
+      )}
+    </FormDialog>
   );
 };
 

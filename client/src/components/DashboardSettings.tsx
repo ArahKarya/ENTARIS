@@ -1,5 +1,15 @@
 import React from 'react';
-import { X, BarChart3, Clock, Users, AlertTriangle, PieChart, PackageX, Package, ArrowLeftRight, Layers, Factory, TrendingUp, Wallet, Scale, Truck, Percent, Building2, CalendarClock, Trophy, Calculator } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { BarChart3, Clock, Users, AlertTriangle, PieChart, PackageX, Package, ArrowLeftRight, Layers, Factory, TrendingUp, Wallet, Scale, Truck, Percent, Building2, CalendarClock, Trophy, Calculator } from 'lucide-react';
 
 export interface WidgetConfig {
   id: string;
@@ -48,83 +58,41 @@ interface DashboardSettingsProps {
   onToggle: (id: string) => void;
 }
 
-const DashboardSettings: React.FC<DashboardSettingsProps> = ({ isOpen, onClose, widgets, onToggle }) => {
-  if (!isOpen) return null;
+const DashboardSettings: React.FC<DashboardSettingsProps> = ({ isOpen, onClose, widgets, onToggle }) => (
+  <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
+    <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+      <DialogHeader className="border-b border-border p-5">
+        <DialogTitle>Konfigurasi Dashboard</DialogTitle>
+        <DialogDescription>Pilih widget yang ingin ditampilkan</DialogDescription>
+      </DialogHeader>
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="rounded-xl border shadow-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-md"
-        style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-      >
-        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div>
-            <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-              Konfigurasi Dashboard
-            </h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-              Pilih widget yang ingin ditampilkan
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <X size={16} style={{ color: 'var(--color-text-muted)' }} />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-3 max-h-96 overflow-y-auto">
-          {widgets.map((w) => (
-            <div
-              key={w.id}
-              className="flex items-center gap-3 p-3 rounded-lg border transition-colors"
-              style={{ borderColor: 'var(--color-border)' }}
-            >
-              <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                <w.icon size={16} style={{ color: 'var(--color-text-muted)' }} />
+      <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
+        {widgets.map((w) => {
+          const labelId = `dash-widget-${w.id}`;
+          return (
+            <li key={w.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <w.icon size={16} className="text-muted-foreground" aria-hidden />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                  {w.name}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                  {w.description}
-                </p>
+              <div className="min-w-0 flex-1">
+                <p id={labelId} className="text-sm font-medium text-foreground">{w.name}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{w.description}</p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={w.enabled}
-                aria-label={`Toggle ${w.name}`}
-                onClick={() => onToggle(w.id)}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                  w.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white border border-gray-300 shadow-sm transition-transform ${
-                    w.enabled ? 'translate-x-4' : 'translate-x-0.5'
-                  }`}
-                  style={{ marginTop: '2px' }}
-                />
-              </button>
-            </div>
-          ))}
-        </div>
+              <Switch
+                checked={w.enabled}
+                onCheckedChange={() => onToggle(w.id)}
+                aria-labelledby={labelId}
+              />
+            </li>
+          );
+        })}
+      </ul>
 
-        <div className="p-5 border-t" style={{ borderColor: 'var(--color-border)' }}>
-          <button onClick={onClose} className="btn-primary w-full justify-center text-sm">
-            Selesai
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+      <DialogFooter className="border-t border-border p-5">
+        <Button onClick={onClose} className="w-full sm:w-auto">Selesai</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
 
 export default DashboardSettings;

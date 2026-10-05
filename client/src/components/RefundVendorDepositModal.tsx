@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import { formatRupiah } from '../lib/formatters';
-import Select from './Select';
+import { formatRupiah } from '@/lib/format';
+import { NumberInput } from '@/components/ui/number-input';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Field, DateInput } from '@/components/shared';
+import { FormDialog } from './purchase-cash/FormDialog';
+import { OptionPicker } from './purchase-cash/OptionPicker';
+import { ErrorAlert } from './purchase-cash/ErrorAlert';
 
 interface Deposit {
   id: string;
@@ -98,94 +103,104 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
     });
   };
 
-  if (!isOpen || !deposit) return null;
+  if (!deposit) return null;
+
+  const cashRest = Math.max(0, remaining - Number(offsetAmount || 0));
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="refund-vendor-deposit-title" className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-3 border-b">
-          <div>
-            <h3 id="refund-vendor-deposit-title" className="font-semibold text-gray-900">Refund / Offset Uang Muka Vendor</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{deposit.paymentNumber} — {deposit.party?.name}</p>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
+    <FormDialog
+      open={isOpen}
+      onClose={onClose}
+      title="Refund / Offset Uang Muka Vendor"
+      description={`${deposit.paymentNumber} — ${deposit.party?.name ?? ''}`}
+      busy={mutation.isPending}
+      submitLabel="Proses"
+      busyLabel="Memproses…"
+      onSubmit={handleSubmit}
+      submitDisabled={!totalValid}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2">
+          <p className="text-xs font-semibold uppercase text-warning-text">Sisa Uang Muka</p>
+          <p className="num text-lg font-bold text-warning-text">{formatRupiah(remaining)}</p>
         </div>
-
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
-              <p className="text-xs font-semibold text-orange-700 uppercase">Sisa Uang Muka</p>
-              <p className="text-lg font-bold text-orange-700 font-mono tabular-nums">{formatRupiah(remaining)}</p>
-            </div>
-            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-              <p className="text-xs font-semibold text-blue-700 uppercase">Hutang ke Vendor</p>
-              <p className="text-lg font-bold text-blue-700 font-mono tabular-nums">{formatRupiah(Number(partyOutstanding ?? 0))}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-600">Tanggal</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-600">Offset ke Hutang (FIFO invoice terlama)</label>
-              <button type="button" onClick={setOffsetMax} className="text-xs text-orange-600 hover:underline">Maks: {formatRupiah(maxOffset)}</button>
-            </div>
-            <input type="number" min={0} value={offsetAmount || ''} onChange={(e) => setOffsetAmount(Number(e.target.value) || 0)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="0" />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-600">Refund Kas dari Vendor (masuk ke Bank)</label>
-              <button type="button" onClick={setCashRest} className="text-xs text-orange-600 hover:underline">Sisa: {formatRupiah(Math.max(0, remaining - Number(offsetAmount || 0)))}</button>
-            </div>
-            <input type="number" min={0} value={cashAmount || ''} onChange={(e) => setCashAmount(Number(e.target.value) || 0)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="0" />
-            {Number(cashAmount) > 0 && (
-              <Select value={cashAccountId} onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full mt-2">
-                <option value="">— Pilih akun kas/bank —</option>
-                {(cashAccounts || []).map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>
-                ))}
-              </Select>
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-600">Catatan (opsional)</label>
-            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
-              className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs">
-            <div className="flex justify-between"><span className="text-gray-600">Total penyelesaian:</span><span className="font-mono font-semibold">{formatRupiah(total)}</span></div>
-            <div className="flex justify-between text-gray-500"><span>Sisa setelah ini:</span><span className="font-mono">{formatRupiah(Math.max(0, remaining - total))}</span></div>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-gray-50">
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button onClick={handleSubmit} disabled={mutation.isPending || !totalValid}
-            className="btn-primary bg-orange-600 hover:bg-orange-700 disabled:opacity-50">
-            {mutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-            Proses
-          </button>
+        <div className="rounded-lg border border-info/30 bg-info-subtle px-3 py-2">
+          <p className="text-xs font-semibold uppercase text-info-text">Hutang ke Vendor</p>
+          <p className="num text-lg font-bold text-info-text">{formatRupiah(Number(partyOutstanding ?? 0))}</p>
         </div>
       </div>
-    </div>
+
+      <Field label="Tanggal">
+        <DateInput value={date} onChange={setDate} />
+      </Field>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="refund-offset" className="text-sm font-medium text-foreground">
+            Offset ke Hutang (FIFO invoice terlama)
+          </label>
+          <Button type="button" variant="link" size="sm" className="min-h-11 sm:min-h-0" onClick={setOffsetMax}>
+            Maks: {formatRupiah(maxOffset)}
+          </Button>
+        </div>
+        <NumberInput
+          id="refund-offset"
+          min={0}
+          inputMode="decimal"
+          value={offsetAmount || ''}
+          onChange={(e) => setOffsetAmount(Number(e.target.value) || 0)}
+          className="h-10 text-right md:h-9"
+          placeholder="0"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="refund-cash" className="text-sm font-medium text-foreground">
+            Refund Kas dari Vendor (masuk ke Bank)
+          </label>
+          <Button type="button" variant="link" size="sm" className="min-h-11 sm:min-h-0" onClick={setCashRest}>
+            Sisa: {formatRupiah(cashRest)}
+          </Button>
+        </div>
+        <NumberInput
+          id="refund-cash"
+          min={0}
+          inputMode="decimal"
+          value={cashAmount || ''}
+          onChange={(e) => setCashAmount(Number(e.target.value) || 0)}
+          className="h-10 text-right md:h-9"
+          placeholder="0"
+        />
+        {Number(cashAmount) > 0 && (
+          <OptionPicker
+            aria-label="Akun kas/bank untuk refund"
+            value={cashAccountId}
+            onChange={setCashAccountId}
+            placeholder="— Pilih akun kas/bank —"
+            options={(cashAccounts || []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} — ${a.name}` }))}
+            className="mt-2"
+          />
+        )}
+      </div>
+
+      <Field label="Catatan (opsional)">
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
+
+      <div className="space-y-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm">
+        <div className="flex justify-between gap-2">
+          <span className="text-muted-foreground">Total penyelesaian:</span>
+          <span className="num font-semibold">{formatRupiah(total)}</span>
+        </div>
+        <div className="flex justify-between gap-2 text-muted-foreground">
+          <span>Sisa setelah ini:</span>
+          <span className="num">{formatRupiah(Math.max(0, remaining - total))}</span>
+        </div>
+      </div>
+
+      <ErrorAlert message={error} />
+    </FormDialog>
   );
 };
 

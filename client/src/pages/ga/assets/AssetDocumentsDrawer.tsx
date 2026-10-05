@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
 import {
-  X,
-  Loader2,
   Plus,
   Download,
   Trash2,
@@ -15,6 +13,10 @@ import { formatDate } from '../../../lib/formatters';
 import { can } from '../../../lib/permissions';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingState } from '@/components/shared/loading-state';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import UploadAssetDocumentModal from './UploadAssetDocumentModal';
 
 // Drawer daftar dokumen/lampiran milik satu aset EAM. Konsumsi endpoint
@@ -29,11 +31,11 @@ const STATUS_LABEL: Record<string, string> = {
   ARCHIVED: 'Diarsipkan',
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  ACTIVE: 'badge-green',
-  EXPIRED: 'badge-red',
-  REVOKED: 'badge-gray',
-  ARCHIVED: 'badge-gray',
+const STATUS_TONE: Record<string, 'success' | 'danger' | 'neutral'> = {
+  ACTIVE: 'success',
+  EXPIRED: 'danger',
+  REVOKED: 'neutral',
+  ARCHIVED: 'neutral',
 };
 
 interface DocVersion {
@@ -111,145 +113,120 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
   const assetLabel = `${assetCode} · ${assetName}`;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[110] flex justify-end bg-black/50"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-gray-50 w-full max-w-md h-full flex flex-col shadow-xl">
-        {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 bg-white border-b border-gray-100">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">Dokumen Aset</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+    <>
+      <Sheet open onOpenChange={(next) => !next && onClose()}>
+        <SheetContent size="md" aria-describedby="asset-docs-desc">
+          <SheetHeader>
+            <SheetTitle>Dokumen Aset</SheetTitle>
+            <SheetDescription id="asset-docs-desc">
               <span className="font-mono">{assetCode}</span> · {assetName}
-            </p>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-400">
-            <X size={18} />
-          </button>
-        </div>
+            </SheetDescription>
+          </SheetHeader>
 
-        {/* Action bar */}
-        {canEdit && (
-          <div className="px-5 py-3 bg-white border-b border-gray-100">
-            <button
-              onClick={() => setUploadOpen(true)}
-              className="btn-primary bg-teal-600 hover:bg-teal-700 text-sm"
-            >
-              <Plus size={15} /> Tambah Dokumen
-            </button>
-          </div>
-        )}
-
-        {/* List */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {isLoading ? (
-            <div className="py-16 text-center text-gray-400">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-300" />
-              Memuat dokumen...
+          {canEdit && (
+            <div className="shrink-0 border-b border-border px-6 py-3">
+              <Button onClick={() => setUploadOpen(true)}>
+                <Plus aria-hidden /> Tambah Dokumen
+              </Button>
             </div>
-          ) : documents.length === 0 ? (
-            <div className="py-16 text-center">
-              <FileText className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Belum ada dokumen untuk aset ini.</p>
-              {canEdit && (
-                <button
-                  onClick={() => setUploadOpen(true)}
-                  className="mt-3 text-xs text-teal-600 hover:text-teal-700 font-medium"
-                >
-                  + Tambah dokumen pertama
-                </button>
-              )}
-            </div>
-          ) : (
-            documents.map((d) => {
-              const isExpired = d.daysToExpiry !== null && d.daysToExpiry < 0;
-              const isExpiring =
-                d.daysToExpiry !== null && d.daysToExpiry >= 0 && d.daysToExpiry <= 30;
-              const latest = d.versions?.[0];
-              const versionCount = d.versions?.length ?? 0;
-              return (
-                <div
-                  key={d.id}
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 space-y-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-800 text-sm truncate">{d.title}</p>
-                      <p className="text-[11px] text-gray-400 font-mono">{d.code}</p>
-                    </div>
-                    <span className={cn('badge flex-shrink-0', STATUS_BADGE[d.status] ?? 'badge-gray')}>
-                      {STATUS_LABEL[d.status] ?? d.status}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                    {d.type?.name && <span className="badge badge-blue">{d.type.name}</span>}
-                    {d.issuedNumber && (
-                      <span className="text-gray-500">No. {d.issuedNumber}</span>
-                    )}
-                    {versionCount > 0 && (
-                      <span className="text-gray-400">{versionCount} versi</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[11px] text-gray-500 space-y-0.5">
-                      {d.effectiveDate && <div>Berlaku: {formatDate(d.effectiveDate)}</div>}
-                      {d.expiryDate ? (
-                        <div
-                          className={cn(
-                            'inline-flex items-center gap-1',
-                            isExpired
-                              ? 'text-red-600 font-semibold'
-                              : isExpiring
-                                ? 'text-amber-600 font-semibold'
-                                : 'text-gray-500',
-                          )}
-                        >
-                          {(isExpired || isExpiring) && <AlertTriangle size={11} />}
-                          Kadaluarsa: {formatDate(d.expiryDate)}
-                          {isExpired && (
-                            <span className="badge badge-red text-[10px]">Kadaluarsa</span>
-                          )}
-                          {!isExpired && isExpiring && (
-                            <span className="badge badge-yellow text-[10px]">Segera</span>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      {latest && (
-                        <button
-                          onClick={() => handleDownload(d.id, latest, d.code)}
-                          className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 transition-colors"
-                          title={`Unduh versi v${latest.versionNo}`}
-                        >
-                          <Download size={16} />
-                        </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          onClick={() => setDeleteTarget(d)}
-                          className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors"
-                          title="Hapus dokumen"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
           )}
-        </div>
-      </div>
+
+          <SheetBody className="space-y-3 bg-muted/40">
+            {isLoading ? (
+              <div role="status" aria-label="Memuat dokumen">
+                <LoadingState />
+              </div>
+            ) : documents.length === 0 ? (
+              <div className="py-16 text-center">
+                <FileText className="mx-auto mb-2 size-10 text-muted-foreground/60" aria-hidden />
+                <p className="text-sm text-muted-foreground">Belum ada dokumen untuk aset ini.</p>
+                {canEdit && (
+                  <Button variant="link" className="mt-2" onClick={() => setUploadOpen(true)}>
+                    + Tambah dokumen pertama
+                  </Button>
+                )}
+              </div>
+            ) : (
+              documents.map((d) => {
+                const isExpired = d.daysToExpiry !== null && d.daysToExpiry < 0;
+                const isExpiring =
+                  d.daysToExpiry !== null && d.daysToExpiry >= 0 && d.daysToExpiry <= 30;
+                const latest = d.versions?.[0];
+                const versionCount = d.versions?.length ?? 0;
+                return (
+                  <div key={d.id} className="space-y-2 rounded-lg border border-border bg-card px-4 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{d.title}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground">{d.code}</p>
+                      </div>
+                      <Badge variant={STATUS_TONE[d.status] ?? 'neutral'} className="shrink-0">
+                        {STATUS_LABEL[d.status] ?? d.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      {d.type?.name && <Badge variant="info">{d.type.name}</Badge>}
+                      {d.issuedNumber && <span className="text-muted-foreground">No. {d.issuedNumber}</span>}
+                      {versionCount > 0 && <span className="text-muted-foreground">{versionCount} versi</span>}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                        {d.effectiveDate && <div>Berlaku: {formatDate(d.effectiveDate)}</div>}
+                        {d.expiryDate ? (
+                          <div
+                            className={cn(
+                              'inline-flex flex-wrap items-center gap-1',
+                              isExpired
+                                ? 'font-semibold text-danger-text'
+                                : isExpiring
+                                  ? 'font-semibold text-warning-text'
+                                  : 'text-muted-foreground',
+                            )}
+                          >
+                            {(isExpired || isExpiring) && <AlertTriangle size={11} aria-hidden />}
+                            Kadaluarsa: {formatDate(d.expiryDate)}
+                            {isExpired && <Badge variant="danger" className="text-[10px]">Kadaluarsa</Badge>}
+                            {!isExpired && isExpiring && <Badge variant="warning" className="text-[10px]">Segera</Badge>}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        {latest && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-11 text-muted-foreground sm:size-9"
+                            onClick={() => handleDownload(d.id, latest, d.code)}
+                            aria-label={`Unduh ${d.title} versi v${latest.versionNo}`}
+                            title={`Unduh versi v${latest.versionNo}`}
+                          >
+                            <Download aria-hidden />
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-11 text-danger-text sm:size-9"
+                            onClick={() => setDeleteTarget(d)}
+                            aria-label={`Hapus dokumen ${d.title}`}
+                            title="Hapus dokumen"
+                          >
+                            <Trash2 aria-hidden />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
 
       {uploadOpen && (
         <UploadAssetDocumentModal
@@ -273,7 +250,7 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
         confirmLabel="Ya, Hapus"
         variant="danger"
       />
-    </div>
+    </>
   );
 };
 

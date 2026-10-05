@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  X, ClipboardList, User, Calendar, Package, Loader2, XCircle, AlertTriangle, PackageCheck,
+  User, Calendar, Package, XCircle, PackageCheck,
   Printer, Pencil, Copy, Ban, Send, Trash2, Warehouse, ShieldCheck,
 } from 'lucide-react';
 import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatDate, formatRupiah } from '../lib/formatters';
-import { ConfirmDialog } from './ConfirmDialog';
-import { ConfirmDialog as ReasonDialog, StatusBadge } from '@/components/shared';
+import { cn } from '@/lib/utils';
+import { formatDate, formatRupiah } from '@/lib/format';
+import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { DetailSheet } from './purchase-cash/DetailSheet';
+import { Callout } from './purchase-cash/ErrorAlert';
 import { can, cap } from '../lib/permissions';
 import { usePurchaseOrderPdf } from '../lib/pdf/usePurchaseOrderPdf';
 import { purchaseOrderActions, receiptProgress } from '../lib/purchaseOrderActions';
@@ -44,17 +46,17 @@ function LineProgress({ ordered, received, unit }: { ordered: number; received: 
         aria-valuemax={100}
         aria-valuenow={p.percent}
         aria-valuetext={`Diterima ${qtyFmt(received)} dari ${qtyFmt(ordered)} ${unit}`}
-        className="h-1.5 w-full max-w-56 overflow-hidden rounded-full bg-gray-200"
+        className="h-1.5 w-full max-w-56 overflow-hidden rounded-full bg-muted"
       >
         <div
-          className={cn('h-full rounded-full', p.done ? 'bg-green-600' : 'bg-amber-500')}
+          className={cn('h-full rounded-full', p.done ? 'bg-success' : 'bg-warning')}
           style={{ width: `${p.percent}%` }}
         />
       </div>
-      <p className="mt-1 text-xs text-gray-600">
-        Diterima <span className="font-mono">{qtyFmt(received)}</span> / <span className="font-mono">{qtyFmt(ordered)}</span> {unit}
+      <p className="mt-1 text-xs text-muted-foreground">
+        Diterima <span className="num">{qtyFmt(received)}</span> / <span className="num">{qtyFmt(ordered)}</span> {unit}
         {' · '}
-        {p.done ? <span className="text-green-700">lengkap</span> : <>sisa <span className="font-mono">{qtyFmt(p.remaining)}</span></>}
+        {p.done ? <span className="text-success-text">lengkap</span> : <>sisa <span className="num">{qtyFmt(p.remaining)}</span></>}
         {' '}({p.percent}%)
       </p>
     </div>
@@ -76,8 +78,8 @@ interface ApprovalHistoryRow {
 function TotalsBreakdown({ totals, otherCostsLabel }: { totals: Record<string, number>; otherCostsLabel?: string | null }) {
   const row = (label: string, value: number, cls = '') => (
     <div className={cn('flex justify-between gap-4', cls)}>
-      <dt className="text-gray-600">{label}</dt>
-      <dd className="font-mono">{formatRupiah(value)}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="num">{formatRupiah(value)}</dd>
     </div>
   );
   return (
@@ -86,7 +88,7 @@ function TotalsBreakdown({ totals, otherCostsLabel }: { totals: Record<string, n
       {totals.discountTotal > 0 && row('Diskon', -totals.discountTotal)}
       {totals.taxTotal > 0 && row('PPN', totals.taxTotal)}
       {totals.otherCosts > 0 && row(otherCostsLabel || 'Biaya lain', totals.otherCosts)}
-      {row('Grand Total', totals.grandTotal, 'border-t border-gray-200 pt-1.5 font-semibold text-gray-900')}
+      {row('Grand Total', totals.grandTotal, 'border-t border-border pt-1.5 font-semibold text-foreground')}
     </dl>
   );
 }
@@ -157,8 +159,6 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
       toast.error(err.response?.data?.error || 'Gagal menghapus draf PO.'),
   });
 
-  if (!poId) return null;
-
   const status: string = doc?.status ?? 'Submitted';
   const displayStatus: string = doc?.displayStatus ?? status;
   const approvals: ApprovalHistoryRow[] = doc?.approvals ?? [];
@@ -174,296 +174,296 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
       })
     : null;
 
+  const sectionTitle = 'mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+  const dt = 'text-xs text-muted-foreground';
+  const dd = 'text-xs font-medium text-foreground';
+  const th = 'px-3 py-2.5 text-xs font-semibold uppercase text-muted-foreground';
+  const actionBtn = 'h-11 sm:h-9';
+
   return (
     <>
-      <div className={cn('fixed inset-0 z-40 bg-black/30', !poId && 'pointer-events-none opacity-0')} onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] sm:max-w-2xl bg-white shadow-2xl flex flex-col animate-slide-in-right">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <ClipboardList size={18} className="text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">{isLoading ? 'Memuat...' : doc?.poNumber}</h2>
-              <p className="text-xs text-gray-400">Purchase Order</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {doc && <StatusBadge status={displayStatus} docType="purchase_order" />}
-            {status === 'Submitted' && doc?.receiptStatus && doc.receiptStatus !== 'Cancelled' && (
-              <StatusBadge status={doc.receiptStatus} docType="purchase_order" />
-            )}
-            {!doc?.partyId && doc && <span className="badge badge-purple text-xs">PO Umum</span>}
-            <button onClick={onClose} aria-label="Tutup detail" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-blue-500" /></div>
-          ) : !doc ? (
-            <div className="flex items-center justify-center h-64 text-gray-400 text-sm">PO tidak ditemukan.</div>
-          ) : (
+      <DetailSheet
+        open={!!poId}
+        onClose={onClose}
+        size="lg"
+        title={isLoading ? 'Memuat…' : doc?.poNumber ?? 'Purchase Order'}
+        description="Purchase Order"
+        badge={
+          doc && (
             <>
-              <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <User size={10} /> Supplier
-                  </p>
-                  {doc.supplier ? (
-                    <>
-                      <p className="text-sm font-semibold text-gray-900">{doc.supplier.name}</p>
-                      {doc.supplier.phone && <p className="text-xs text-gray-500 mt-0.5">{doc.supplier.phone}</p>}
-                    </>
-                  ) : (
-                    <p className="text-sm italic text-purple-600">PO Umum — boleh dipenuhi supplier apa saja</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <Calendar size={10} /> Tanggal
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-gray-400">Tgl PO</p>
-                      <p className="text-xs font-medium text-gray-800">{formatDate(doc.date)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Tgl Kirim Diharapkan</p>
-                      <p className="text-xs font-medium text-gray-800">
-                        {doc.expectedDeliveryDate ? formatDate(doc.expectedDeliveryDate) : '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Termin</p>
-                      <p className="text-xs font-medium text-gray-800">{paymentTermLabel(doc.paymentTermDays)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Jatuh Tempo</p>
-                      <p className="text-xs font-medium text-gray-800">{dueDate ? formatDate(dueDate) : '—'}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-400">Dibuat oleh</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.user?.fullName ?? '—'}</p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <Warehouse size={10} aria-hidden /> Gudang Tujuan
-                  </p>
-                  <p className="text-sm text-gray-800">{doc.warehouse ? `${doc.warehouse.code} — ${doc.warehouse.name}` : '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">No. Penawaran Pemasok</p>
-                  <p className="text-sm font-mono text-gray-800">{doc.supplierQuoteRef || '—'}</p>
-                </div>
-              </div>
-
-              {(displayStatus === 'PendingApproval' || doc.approvalStatus === 'Rejected' || approvals.length > 0) && (
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <ShieldCheck size={10} aria-hidden /> Persetujuan
-                  </p>
-                  {displayStatus === 'PendingApproval' && (
-                    <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                      Menunggu persetujuan — PO belum dikirim ke supplier dan belum bisa dipakai untuk STT.
-                    </p>
-                  )}
-                  {doc.approvalStatus === 'Rejected' && (
-                    <p className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-                      Pengajuan ditolak{doc.approvalNote ? <>: <b>{doc.approvalNote}</b></> : '.'} Perbaiki draf lalu ajukan ulang.
-                    </p>
-                  )}
-                  <ul className="space-y-1.5">
-                    {approvals.map((a) => {
-                      const decider = a.approver?.fullName ?? a.rejecter?.fullName;
-                      return (
-                        <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-700">
-                          <StatusBadge status={a.status} docType="approval" />
-                          <span>diajukan {a.requester?.fullName ?? '—'} · {formatDate(a.createdAt)}</span>
-                          {decider && a.decidedAt && <span>· diputus {decider} · {formatDate(a.decidedAt)}</span>}
-                          {a.notes && <span className="w-full text-gray-500">“{a.notes}”</span>}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+              <StatusBadge status={displayStatus} docType="purchase_order" />
+              {status === 'Submitted' && doc.receiptStatus && doc.receiptStatus !== 'Cancelled' && (
+                <StatusBadge status={doc.receiptStatus} docType="purchase_order" />
               )}
-
-              <div className="px-6 py-4 border-b border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <Package size={10} /> Items dipesan ({items.length})
-                </p>
-                <div className="border border-gray-200 rounded-xl overflow-x-auto">
-                  <table className="w-full min-w-[34rem] text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">
-                        <th className="text-left px-3 py-2.5 w-8">#</th>
-                        <th className="text-left px-3 py-2.5">Item</th>
-                        <th className="text-right px-3 py-2.5 w-20">Qty</th>
-                        <th className="text-right px-3 py-2.5 w-20">Sisa</th>
-                        <th className="text-right px-3 py-2.5 w-24">Harga</th>
-                        <th className="text-right px-3 py-2.5 w-14">Disk %</th>
-                        <th className="text-right px-3 py-2.5 w-14">PPN %</th>
-                        <th className="text-right px-3 py-2.5 w-28">Jumlah</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((it: any, idx: number) => {
-                        const received = Number(it.qtyReceived ?? 0);
-                        const ordered = Number(it.quantity);
-                        const isFulfilled = received >= ordered;
-                        return (
-                          <tr key={it.id ?? idx} className={cn('border-b border-gray-50 last:border-0', idx % 2 === 1 && 'bg-gray-50/50')}>
-                            <td className="px-3 py-2.5 text-center text-xs text-gray-300">{idx + 1}</td>
-                            <td className="px-3 py-2.5 min-w-48">
-                              <p className="text-sm font-medium text-gray-800">{it.itemName}</p>
-                              {it.description && <p className="text-xs text-gray-400">{it.description}</p>}
-                              {status === 'Submitted' && <LineProgress ordered={ordered} received={received} unit={it.unit} />}
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-gray-800 whitespace-nowrap">
-                              {ordered.toLocaleString('id-ID', { maximumFractionDigits: 3 })} <span className="font-sans text-gray-500">{it.unit}</span>
-                            </td>
-                            <td className={cn('px-3 py-2.5 text-right font-mono text-xs font-medium', isFulfilled ? 'text-green-700' : 'text-gray-800')}>
-                              {isFulfilled ? '0' : qtyFmt(ordered - received)}
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">
-                              {Number(it.estimatedRate) > 0 ? formatRupiah(Number(it.estimatedRate)) : '—'}
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">{Number(it.discount ?? 0) > 0 ? Number(it.discount) : '—'}</td>
-                            <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-700">{Number(it.taxPct ?? 0) > 0 ? Number(it.taxPct) : '—'}</td>
-                            <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-gray-800">
-                              {Number(it.estimatedAmount) > 0 ? formatRupiah(Number(it.estimatedAmount)) : '—'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {doc.totals && <TotalsBreakdown totals={doc.totals} otherCostsLabel={doc.otherCostsLabel} />}
-              </div>
-
-              {linkedSTTs.length > 0 && (
-                <div className="px-6 py-4 border-b border-gray-100 bg-blue-50/40">
-                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <PackageCheck size={10} /> STT/BPB terkait ({linkedSTTs.length})
-                  </p>
-                  <div className="space-y-1">
-                    {linkedSTTs.map((s: any) => (
-                      <div key={s.id} className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-blue-700">{s.sttNumber}</span>
-                        <span className="text-gray-500">{formatDate(s.date)}</span>
-                        <span className={cn('badge text-xs', s.invoiceId ? 'badge-green' : 'badge-blue')}>
-                          {s.invoiceId ? 'Sudah Diinvoice' : 'Diterima'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {!doc.partyId && <StatusBadge status="general" tone="primary" label="PO Umum" dot={false} />}
+            </>
+          )
+        }
+        footer={
+          doc && acts && (
+            <>
+              <Button variant="outline" className={actionBtn} onClick={() => downloadPdf(doc)} loading={pdfBusy}>
+                {!pdfBusy && <Printer aria-hidden />} Cetak / PDF
+              </Button>
+              {acts.duplicate && onDuplicate && (
+                <Button variant="outline" className={actionBtn} onClick={() => onDuplicate(doc)}>
+                  <Copy aria-hidden /> Duplikat
+                </Button>
               )}
-
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Catatan & Terms</p>
-                {doc.notes && <p className="text-sm text-gray-600 whitespace-pre-wrap mb-2"><strong>Catatan:</strong> {doc.notes}</p>}
-                {doc.terms && <p className="text-sm text-gray-600 whitespace-pre-wrap"><strong>Terms:</strong> {doc.terms}</p>}
-                {!doc.notes && !doc.terms && <p className="text-gray-300 italic text-sm">Tidak ada catatan</p>}
-              </div>
-
-              {doc.closedAt && status !== 'Cancelled' && (
-                <div className="mx-6 mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start gap-2 text-gray-700 text-xs">
-                  <Ban size={14} className="mt-0.5 shrink-0" />
-                  <span>
-                    PO ditutup pada {formatDate(doc.closedAt)} — sisa qty tidak lagi diharapkan.
-                    {doc.closeReason && <> Alasan: {doc.closeReason}</>}
-                  </span>
-                </div>
+              {acts.edit && onEdit && (
+                <Button variant="outline" className={actionBtn} onClick={() => onEdit(doc)}>
+                  <Pencil aria-hidden /> Edit
+                </Button>
               )}
-
-              {status === 'Cancelled' && (
-                <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 text-red-600 text-xs">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                  <span>PO ini sudah dibatalkan. STT yang sudah terbentuk tetap valid (barang sudah diterima).</span>
-                </div>
+              {acts.close && (
+                <Button variant="outline" className={actionBtn} onClick={() => setConfirmClose(true)}>
+                  <Ban aria-hidden /> Tutup PO
+                </Button>
+              )}
+              {acts.deleteDraft && (
+                <Button
+                  variant="outline"
+                  className={cn(actionBtn, 'border-danger/40 text-danger-text')}
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 aria-hidden /> Hapus Draf
+                </Button>
+              )}
+              {acts.cancel && (
+                <Button
+                  variant="outline"
+                  className={cn(actionBtn, 'border-danger/40 text-danger-text')}
+                  onClick={() => setConfirmCancel(true)}
+                >
+                  <XCircle aria-hidden /> Batalkan PO
+                </Button>
+              )}
+              {acts.submit && (
+                <Button className={actionBtn} onClick={() => submitMutation.mutate()} loading={submitMutation.isPending}>
+                  {!submitMutation.isPending && <Send aria-hidden />} Ajukan
+                </Button>
+              )}
+              {acts.receive && onCreateReceipt && (
+                <Button className={actionBtn} onClick={() => onCreateReceipt(doc)}>
+                  <PackageCheck aria-hidden /> Buat STT dari PO
+                </Button>
               )}
             </>
-          )}
-        </div>
+          )
+        }
+      >
+        {isLoading ? (
+          <LoadingState />
+        ) : !doc ? (
+          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">PO tidak ditemukan.</div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-6 border-b border-border pb-5 sm:grid-cols-2">
+              <section>
+                <h3 className={sectionTitle}>
+                  <User className="size-3" aria-hidden /> Supplier
+                </h3>
+                {doc.supplier ? (
+                  <>
+                    <p className="text-sm font-semibold text-foreground">{doc.supplier.name}</p>
+                    {doc.supplier.phone && <p className="mt-0.5 text-xs text-muted-foreground">{doc.supplier.phone}</p>}
+                  </>
+                ) : (
+                  <p className="text-sm italic text-primary">PO Umum — boleh dipenuhi supplier apa saja</p>
+                )}
+              </section>
+              <section>
+                <h3 className={sectionTitle}>
+                  <Calendar className="size-3" aria-hidden /> Tanggal
+                </h3>
+                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <dt className={dt}>Tgl PO</dt>
+                    <dd className={dd}>{formatDate(doc.date)}</dd>
+                  </div>
+                  <div>
+                    <dt className={dt}>Tgl Kirim Diharapkan</dt>
+                    <dd className={dd}>{doc.expectedDeliveryDate ? formatDate(doc.expectedDeliveryDate) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className={dt}>Termin</dt>
+                    <dd className={dd}>{paymentTermLabel(doc.paymentTermDays)}</dd>
+                  </div>
+                  <div>
+                    <dt className={dt}>Jatuh Tempo</dt>
+                    <dd className={dd}>{dueDate ? formatDate(dueDate) : '—'}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className={dt}>Dibuat oleh</dt>
+                    <dd className={dd}>{doc.user?.fullName ?? '—'}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section>
+                <h3 className={sectionTitle}>
+                  <Warehouse className="size-3" aria-hidden /> Gudang Tujuan
+                </h3>
+                <p className="text-sm text-foreground">{doc.warehouse ? `${doc.warehouse.code} — ${doc.warehouse.name}` : '—'}</p>
+              </section>
+              <section>
+                <h3 className={sectionTitle}>No. Penawaran Pemasok</h3>
+                <p className="font-mono text-sm text-foreground">{doc.supplierQuoteRef || '—'}</p>
+              </section>
+            </div>
 
-        {doc && acts && (
-          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/40 flex flex-wrap items-center justify-end gap-2">
-            <button onClick={() => downloadPdf(doc)} disabled={pdfBusy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-60">
-              {pdfBusy ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />} Cetak / PDF
-            </button>
-            {acts.duplicate && onDuplicate && (
-              <button onClick={() => onDuplicate(doc)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-100">
-                <Copy size={14} /> Duplikat
-              </button>
+            {(displayStatus === 'PendingApproval' || doc.approvalStatus === 'Rejected' || approvals.length > 0) && (
+              <section className="border-b border-border pb-4">
+                <h3 className={sectionTitle}>
+                  <ShieldCheck className="size-3" aria-hidden /> Persetujuan
+                </h3>
+                {displayStatus === 'PendingApproval' && (
+                  <Callout tone="warning" className="mb-2 py-2 text-xs">
+                    Menunggu persetujuan — PO belum dikirim ke supplier dan belum bisa dipakai untuk STT.
+                  </Callout>
+                )}
+                {doc.approvalStatus === 'Rejected' && (
+                  <Callout tone="danger" className="mb-2 py-2 text-xs">
+                    Pengajuan ditolak{doc.approvalNote ? <>: <b>{doc.approvalNote}</b></> : '.'} Perbaiki draf lalu ajukan ulang.
+                  </Callout>
+                )}
+                <ul className="space-y-1.5">
+                  {approvals.map((a) => {
+                    const decider = a.approver?.fullName ?? a.rejecter?.fullName;
+                    return (
+                      <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-foreground">
+                        <StatusBadge status={a.status} docType="approval" />
+                        <span>diajukan {a.requester?.fullName ?? '—'} · {formatDate(a.createdAt)}</span>
+                        {decider && a.decidedAt && <span>· diputus {decider} · {formatDate(a.decidedAt)}</span>}
+                        {a.notes && <span className="w-full text-muted-foreground">“{a.notes}”</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             )}
-            {acts.edit && onEdit && (
-              <button onClick={() => onEdit(doc)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-100">
-                <Pencil size={14} /> Edit
-              </button>
+
+            <section className="border-b border-border pb-4">
+              <h3 className={sectionTitle}>
+                <Package className="size-3" aria-hidden /> Items dipesan ({items.length})
+              </h3>
+              <div
+                role="region"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+                aria-label="Tabel item PO"
+                className="overflow-x-auto rounded-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <table className="w-full min-w-[34rem] text-sm">
+                  <thead className="border-b border-border bg-muted">
+                    <tr>
+                      <th scope="col" className={cn(th, 'w-8 text-left')}>#</th>
+                      <th scope="col" className={cn(th, 'text-left')}>Item</th>
+                      <th scope="col" className={cn(th, 'text-right')}>Qty</th>
+                      <th scope="col" className={cn(th, 'text-right')}>Sisa</th>
+                      <th scope="col" className={cn(th, 'text-right')}>Harga</th>
+                      <th scope="col" className={cn(th, 'text-right')}>Disk %</th>
+                      <th scope="col" className={cn(th, 'text-right')}>PPN %</th>
+                      <th scope="col" className={cn(th, 'text-right')}>Jumlah</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it: any, idx: number) => {
+                      const received = Number(it.qtyReceived ?? 0);
+                      const ordered = Number(it.quantity);
+                      const isFulfilled = received >= ordered;
+                      return (
+                        <tr key={it.id ?? idx} className="border-b border-border last:border-0">
+                          <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{idx + 1}</td>
+                          <td className="min-w-48 px-3 py-2.5">
+                            <p className="text-sm font-medium text-foreground">{it.itemName}</p>
+                            {it.description && <p className="text-xs text-muted-foreground">{it.description}</p>}
+                            {status === 'Submitted' && <LineProgress ordered={ordered} received={received} unit={it.unit} />}
+                          </td>
+                          <td className="num whitespace-nowrap px-3 py-2.5 text-right text-xs font-medium text-foreground">
+                            {qtyFmt(ordered)} <span className="font-sans text-muted-foreground">{it.unit}</span>
+                          </td>
+                          <td className={cn('num px-3 py-2.5 text-right text-xs font-medium', isFulfilled ? 'text-success-text' : 'text-foreground')}>
+                            {isFulfilled ? '0' : qtyFmt(ordered - received)}
+                          </td>
+                          <td className="num px-3 py-2.5 text-right text-xs text-foreground">
+                            {Number(it.estimatedRate) > 0 ? formatRupiah(Number(it.estimatedRate)) : '—'}
+                          </td>
+                          <td className="num px-3 py-2.5 text-right text-xs text-foreground">{Number(it.discount ?? 0) > 0 ? Number(it.discount) : '—'}</td>
+                          <td className="num px-3 py-2.5 text-right text-xs text-foreground">{Number(it.taxPct ?? 0) > 0 ? Number(it.taxPct) : '—'}</td>
+                          <td className="num px-3 py-2.5 text-right text-xs font-semibold text-foreground">
+                            {Number(it.estimatedAmount) > 0 ? formatRupiah(Number(it.estimatedAmount)) : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {doc.totals && <TotalsBreakdown totals={doc.totals} otherCostsLabel={doc.otherCostsLabel} />}
+            </section>
+
+            {linkedSTTs.length > 0 && (
+              <section className="rounded-lg bg-info-subtle p-3">
+                <h3 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-info-text">
+                  <PackageCheck className="size-3" aria-hidden /> STT/BPB terkait ({linkedSTTs.length})
+                </h3>
+                <ul className="space-y-1">
+                  {linkedSTTs.map((s: any) => (
+                    <li key={s.id} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-mono text-info-text">{s.sttNumber}</span>
+                      <span className="text-muted-foreground">{formatDate(s.date)}</span>
+                      <StatusBadge status={s.invoiceId ? 'invoiced' : 'submitted'} docType="goods_receipt" />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
-            {acts.close && (
-              <button onClick={() => setConfirmClose(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-100">
-                <Ban size={14} /> Tutup PO
-              </button>
+
+            <section>
+              <h3 className={sectionTitle}>Catatan & Terms</h3>
+              {doc.notes && <p className="mb-2 whitespace-pre-wrap text-sm text-foreground"><strong>Catatan:</strong> {doc.notes}</p>}
+              {doc.terms && <p className="whitespace-pre-wrap text-sm text-foreground"><strong>Terms:</strong> {doc.terms}</p>}
+              {!doc.notes && !doc.terms && <p className="text-sm italic text-muted-foreground">Tidak ada catatan</p>}
+            </section>
+
+            {doc.closedAt && status !== 'Cancelled' && (
+              <Callout tone="neutral" icon={<Ban className="mt-0.5 size-4 shrink-0" aria-hidden />}>
+                PO ditutup pada {formatDate(doc.closedAt)} — sisa qty tidak lagi diharapkan.
+                {doc.closeReason && <> Alasan: {doc.closeReason}</>}
+              </Callout>
             )}
-            {acts.deleteDraft && (
-              <button onClick={() => setConfirmDelete(true)} disabled={deleteMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-700 hover:bg-red-50">
-                <Trash2 size={14} aria-hidden /> Hapus Draf
-              </button>
-            )}
-            {acts.submit && (
-              <button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">
-                {submitMutation.isPending ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Send size={14} aria-hidden />} Ajukan
-              </button>
-            )}
-            {acts.cancel && (
-              <button onClick={() => setConfirmCancel(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50">
-                <XCircle size={14} /> Batalkan PO
-              </button>
-            )}
-            {acts.receive && onCreateReceipt && (
-              <button onClick={() => onCreateReceipt(doc)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">
-                <PackageCheck size={14} /> Buat STT dari PO
-              </button>
+
+            {status === 'Cancelled' && (
+              <Callout tone="danger">PO ini sudah dibatalkan. STT yang sudah terbentuk tetap valid (barang sudah diterima).</Callout>
             )}
           </div>
         )}
-      </div>
+      </DetailSheet>
 
       <ConfirmDialog
         open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        tone="danger"
         title="Batalkan PO"
-        message={`Batalkan PO ${doc?.poNumber ?? ''}? STT yang sudah terbentuk dari PO ini tetap valid. PO tidak dapat di-aktifkan lagi.`}
+        description={`Batalkan PO ${doc?.poNumber ?? ''}? STT yang sudah terbentuk dari PO ini tetap valid. PO tidak dapat di-aktifkan lagi.`}
         confirmLabel="Ya, Batalkan"
-        variant="danger"
-        onCancel={() => setConfirmCancel(false)}
-        onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
+        loading={cancelMutation.isPending}
+        onConfirm={() => cancelMutation.mutateAsync()}
       />
 
       <ConfirmDialog
         open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        tone="danger"
         title="Hapus Draf PO"
-        message={`Hapus draf ${doc?.poNumber ?? ''}? Draf dihapus permanen; nomor PO ini tidak dipakai ulang.`}
+        description={`Hapus draf ${doc?.poNumber ?? ''}? Draf dihapus permanen; nomor PO ini tidak dipakai ulang.`}
         confirmLabel="Ya, Hapus"
-        variant="danger"
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={() => { deleteMutation.mutate(); setConfirmDelete(false); }}
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutateAsync()}
       />
 
-      <ReasonDialog
+      <ConfirmDialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
         title={`Tutup ${doc?.poNumber ?? 'PO'}`}

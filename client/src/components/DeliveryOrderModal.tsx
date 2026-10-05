@@ -1,12 +1,28 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Truck } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../lib/api';
-import SearchableSelect, { type SelectOption } from './SearchableSelect';
-import WarehousePicker from './WarehousePicker';
-import Select from './Select';
-import { cap } from '../lib/permissions';
+import api from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Textarea } from '@/components/ui/textarea';
+import { DateInput, Field } from '@/components/shared';
+import {
+  FooterButton,
+  FormDialogBody,
+  FormDialogFooter,
+  FormDialogHeader,
+  FormError,
+  TableRegion,
+} from '@/components/sales-a/overlay-parts';
+import { formDialogClass, formShellClass, numberInputClass } from '@/components/sales-a/overlay-classes';
+import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
+import { OptionSelect } from '@/components/sales-a/OptionSelect';
+import { WarehouseSelect } from '@/components/sales-a/WarehouseSelect';
+import { cap } from '@/lib/permissions';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -139,12 +155,12 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
 
   const selectedParty = parties?.find((p: any) => p.id === partyId);
 
-  const partyOptions = useMemo<SelectOption[]>(
+  const partyOptions = useMemo<PickerOption[]>(
     () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
     [parties],
   );
 
-  const inventoryOptions = useMemo<SelectOption[]>(
+  const inventoryOptions = useMemo<PickerOption[]>(
     () =>
       (inventoryItems ?? []).map((inv: any) => ({
         value: inv.id,
@@ -184,7 +200,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   };
 
   // Opsi SO: kalau pelanggan sudah dipilih, batasi ke SO pelanggan itu.
-  const soOptions = useMemo<SelectOption[]>(
+  const soOptions = useMemo<PickerOption[]>(
     () => (openSOs ?? [])
       .filter((so: any) => !partyId || so.partyId === partyId)
       .map((so: any) => ({ value: so.id, label: `${so.soNumber} — ${so.customer?.name ?? ''}` })),
@@ -377,393 +393,318 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     });
   };
 
+  const sectionLabel = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+  const fmt3 = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 3 });
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="do-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}
-    >
-      <div
-        className="rounded-xl w-full max-w-[calc(100vw-1rem)] lg:max-w-4xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
-      >
-        {/* ── HEADER ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Truck size={18} className="text-blue-600" />
-            </div>
-            <div>
-              <h2 id="do-modal-title" className="text-base font-semibold text-gray-900">
-                {isEdit ? `Edit ${editDO!.doNumber}` : 'Buat Surat Jalan'}
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Dokumen pengiriman fisik • stok keluar saat disimpan</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" aria-label="Tutup">
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent className={`${formDialogClass} sm:max-w-4xl`}>
+        <form noValidate onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={formShellClass}>
+          <FormDialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="size-5 text-primary" aria-hidden />
+              {isEdit ? `Edit ${editDO!.doNumber}` : 'Buat Surat Jalan'}
+            </DialogTitle>
+            <DialogDescription>Dokumen pengiriman fisik • stok keluar saat disimpan</DialogDescription>
+          </FormDialogHeader>
 
-        {/* ── BODY ── */}
-        <div className="flex-1 overflow-y-auto">
-          {/* HEADER section */}
-          <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 border-b border-gray-100">
-            {/* LEFT — Customer */}
-            <div>
-              {!isEdit && (
-                <div className="mb-3">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tarik dari Pesanan Penjualan (opsional)</p>
-                  <SearchableSelect
-                    options={soOptions}
-                    value={salesOrderId}
-                    onChange={(v) => void handlePickSO(v)}
-                    placeholder="— Tanpa SO (kirim bebas) —"
-                  />
-                  {salesOrderId && (
-                    <p className="mt-1 text-[11px] text-teal-700">Baris diisi dari sisa SO. Surat Jalan akan mengurangi SO & memperbarui statusnya.</p>
-                  )}
-                </div>
-              )}
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Pelanggan</p>
-              <SearchableSelect
-                options={partyOptions}
-                value={partyId}
-                onChange={setPartyId}
-                placeholder="— Pilih Pelanggan —"
-                disabled={!!salesOrderId}
-              />
-              {selectedParty && (
-                <div className="text-xs text-gray-500 space-y-0.5 mt-2 pl-1">
-                  {selectedParty.phone && <p>{selectedParty.phone}</p>}
-                  {selectedParty.address && <p className="text-gray-400">{selectedParty.address}</p>}
-                </div>
-              )}
-            </div>
-
-            {/* RIGHT — DO meta */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Mobil</label>
-                <input
-                  type="text"
-                  value={nomorMobil}
-                  onChange={(e) => setNomorMobil(e.target.value)}
-                  placeholder="mis. B 1234 ABC"
-                  maxLength={30}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm uppercase text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Supir</label>
-                <input
-                  type="text"
-                  value={driverName}
-                  onChange={(e) => setDriverName(e.target.value)}
-                  placeholder="Nama supir"
-                  maxLength={100}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Penerima (opsional)</label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Nama penerima di lokasi tujuan"
-                  maxLength={100}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ── TAUTKAN SURAT JALAN SEMENTARA ── */}
-          {!isEdit && partyId && (linkableNotes?.length ?? 0) > 0 && (
-            <div className="mx-6 mt-4 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3">
-              <p className="text-xs font-semibold text-amber-800 uppercase tracking-widest mb-2">Tautkan Surat Jalan Sementara</p>
-              <p className="text-xs text-amber-700 mb-2">
-                Barang berikut sudah dikirim dengan surat jalan sementara. Pilih untuk menautkannya ke surat jalan resmi ini (qty boleh berbeda).
-              </p>
-              <div className="space-y-1.5">
-                {linkableNotes!.map((n: any) => (
-                  <label key={n.id} className="flex items-start gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox" className="mt-1"
-                      checked={tempNoteIds.includes(n.id)}
-                      onChange={(e) => setTempNoteIds((ids) => (e.target.checked ? [...ids, n.id] : ids.filter((x) => x !== n.id)))}
+          <FormDialogBody className="space-y-5">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="space-y-3">
+                {!isEdit && (
+                  <Field
+                    label="Tarik dari Pesanan Penjualan (opsional)"
+                    hint={salesOrderId ? 'Baris diisi dari sisa SO. Surat Jalan akan mengurangi SO & memperbarui statusnya.' : undefined}
+                  >
+                    {() => (
+                      <PickerSelect
+                        aria-label="Tarik dari Pesanan Penjualan"
+                        options={soOptions}
+                        value={salesOrderId}
+                        onChange={(v) => void handlePickSO(v)}
+                        placeholder="— Tanpa SO (kirim bebas) —"
+                      />
+                    )}
+                  </Field>
+                )}
+                <Field label="Pelanggan" required>
+                  {() => (
+                    <PickerSelect
+                      aria-label="Pelanggan"
+                      options={partyOptions}
+                      value={partyId}
+                      onChange={setPartyId}
+                      placeholder="— Pilih Pelanggan —"
+                      disabled={!!salesOrderId}
                     />
-                    <span>
-                      <span className="font-mono text-xs">{n.number}</span>
-                      <span className="text-gray-400 text-xs"> · {String(n.date).slice(0, 10)}{n.nomorMobil ? ` · ${String(n.nomorMobil).toUpperCase()}` : ''}</span>
-                      <span className="block text-xs text-gray-600">
-                        {(n.items ?? []).map((it: any) => `${it.itemName} ${Number(it.quantity).toLocaleString('id-ID')} ${it.unit}`).join(', ')}
-                      </span>
-                    </span>
-                  </label>
-                ))}
+                  )}
+                </Field>
+                {selectedParty && (
+                  <div className="space-y-0.5 pl-1 text-xs text-muted-foreground">
+                    {selectedParty.phone && <p>{selectedParty.phone}</p>}
+                    {selectedParty.address && <p>{selectedParty.address}</p>}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Tanggal" className="sm:col-span-2">
+                  {(c) => <DateInput id={c.id} value={date} onChange={setDate} />}
+                </Field>
+                <Field label="No. Mobil">
+                  <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)}
+                    placeholder="mis. B 1234 ABC" maxLength={30} className="uppercase" autoComplete="off" />
+                </Field>
+                <Field label="Supir">
+                  <Input value={driverName} onChange={(e) => setDriverName(e.target.value)}
+                    placeholder="Nama supir" maxLength={100} autoComplete="off" />
+                </Field>
+                <Field label="Penerima (opsional)" className="sm:col-span-2">
+                  <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="Nama penerima di lokasi tujuan" maxLength={100} autoComplete="off" />
+                </Field>
               </div>
             </div>
-          )}
 
-          {/* ── ITEMS ── */}
-          <div className="px-6 pt-5 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Daftar Barang</p>
-              <button onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700">
-                <Plus size={13} /> Tambah Baris
-              </button>
-            </div>
-
-            <div className="border border-gray-200 rounded-xl overflow-x-auto">
-              <table className="w-full text-sm" style={{ minWidth: 760 }}>
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    <th className="text-left px-4 py-3 w-8">#</th>
-                    <th className="text-left px-4 py-3 min-w-[260px]">Nama Barang</th>
-                    <th className="text-center px-3 py-3 w-24 min-w-[96px]">Qty</th>
-                    <th className="text-left px-3 py-3 w-24">Satuan</th>
-                    <th className="text-left px-3 py-3 min-w-[160px]">Keterangan</th>
-                    <th className="w-8"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={item.id} className="group border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 text-center text-xs text-gray-300 font-medium">{idx + 1}</td>
-                      <td className="px-4 py-3">
-                        <SearchableSelect
-                          options={inventoryOptions}
-                          value={item.inventoryItemId}
-                          onChange={(v) => selectInventoryItem(idx, v)}
-                          placeholder="— Pilih dari Stok Gudang —"
-                          className="mb-1"
-                        />
-                        {!item.inventoryItemId && (
-                          <input
-                            type="text"
-                            value={item.itemName}
-                            onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                            placeholder="Atau ketik nama barang manual..."
-                            className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400 mb-1"
-                          />
-                        )}
-                        {item.inventoryItemId && (
-                          <div className="mt-1">
-                            <WarehousePicker
-                              value={item.warehouseId}
-                              onChange={(v) => updateItem(idx, 'warehouseId', v)}
-                              size="sm"
-                              placeholder="Pilih gudang sumber..."
-                            />
-                            {item.warehouseId && (() => {
-                              const avail = lineStock(item.inventoryItemId, item.warehouseId);
-                              if (avail == null) return <p className="mt-1 text-[11px] text-gray-400">Memuat stok gudang…</p>;
-                              const short = avail < (Number(item.quantity) || 0);
-                              return (
-                                <p className={`mt-1 text-[11px] ${short ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                                  Stok di gudang ini: {avail.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {item.unit}
-                                </p>
-                              );
-                            })()}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
-                          min={0}
-                          className="w-full bg-transparent text-sm text-gray-800 text-center font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="relative">
-                          <Select
-                            value={item.unit}
-                            onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                            className="w-full"
-                          >
-                            {UNITS.map((u) => <option key={u}>{u}</option>)}
-                          </Select>
-                          <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                          placeholder="Catatan baris..."
-                          className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-300"
-                        />
-                      </td>
-                      <td className="pr-3 py-3 text-center">
-                        {items.length > 1 && (
-                          <button
-                            onClick={() => removeItem(idx)}
-                            className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            aria-label="Hapus baris"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* ── SUMMARY (qty per unit) + NOTES ── */}
-          <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Catatan</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Misal: dititipkan ke pos satpam..."
-                rows={3}
-                className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400"
-              />
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Ringkasan Qty</p>
-              {Object.keys(totalQtyByUnit).length === 0 ? (
-                <p className="text-xs text-gray-400 italic">Belum ada barang.</p>
-              ) : (
+            {!isEdit && partyId && (linkableNotes?.length ?? 0) > 0 && (
+              <fieldset className="rounded-lg border border-warning/30 bg-warning-subtle px-4 py-3">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-warning-text">Tautkan Surat Jalan Sementara</legend>
+                <p className="mb-2 text-xs text-warning-text">
+                  Barang berikut sudah dikirim dengan surat jalan sementara. Pilih untuk menautkannya ke surat jalan resmi ini (qty boleh berbeda).
+                </p>
                 <div className="space-y-1.5">
-                  {Object.entries(totalQtyByUnit).map(([u, q]) => (
-                    <div key={u} className="flex justify-between text-sm">
-                      <span className="text-gray-500">Total {u}</span>
-                      <span className="font-mono text-gray-800 tabular-nums">
-                        {q.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {u}
+                  {linkableNotes!.map((n: any) => (
+                    <label key={n.id} htmlFor={`tnote-${n.id}`} className="flex cursor-pointer items-start gap-2 text-sm max-sm:min-h-11">
+                      <Checkbox
+                        id={`tnote-${n.id}`}
+                        className="mt-1"
+                        checked={tempNoteIds.includes(n.id)}
+                        onCheckedChange={(checked) => setTempNoteIds((ids) => (checked === true ? [...ids, n.id] : ids.filter((x) => x !== n.id)))}
+                      />
+                      <span>
+                        <span className="font-mono text-xs">{n.number}</span>
+                        <span className="text-xs text-muted-foreground"> · {String(n.date).slice(0, 10)}{n.nomorMobil ? ` · ${String(n.nomorMobil).toUpperCase()}` : ''}</span>
+                        <span className="block text-xs text-foreground">
+                          {(n.items ?? []).map((it: any) => `${it.itemName} ${Number(it.quantity).toLocaleString('id-ID')} ${it.unit}`).join(', ')}
+                        </span>
                       </span>
-                    </div>
+                    </label>
                   ))}
                 </div>
-              )}
-              <p className="text-[11px] text-gray-400 italic mt-3">
-                Surat jalan tidak mencatat rupiah — invoice menyusul setelah pengiriman.
-              </p>
-            </div>
-          </div>
+              </fieldset>
+            )}
 
-          {hasShortage && (
-            <div className="mx-6 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
-              <div className="flex items-start gap-2 mb-2">
-                <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium">Stok tidak mencukupi untuk:</p>
-                  <ul className="mt-1 ml-1 list-disc list-inside text-xs space-y-0.5">
-                    {stockShortages.map((s) => (
-                      <li key={s.id}>
-                        <span className="font-medium">{s.name}</span> @ {s.warehouse}: tersedia {s.available.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}, dibutuhkan {s.needed.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {s.unit}
-                        <span className="text-amber-600"> (kurang {(s.needed - s.available).toLocaleString('id-ID', { maximumFractionDigits: 3 })})</span>
-                      </li>
+            <section aria-labelledby="do-items-title">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 id="do-items-title" className={sectionLabel}>Daftar Barang</h3>
+                <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={addItem}>
+                  <Plus aria-hidden /> Tambah Baris
+                </Button>
+              </div>
+
+              <TableRegion label="Daftar barang surat jalan">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th scope="col" className="w-8 px-4 py-3 text-left">#</th>
+                      <th scope="col" className="min-w-[260px] px-4 py-3 text-left">Nama Barang</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">Qty</th>
+                      <th scope="col" className="w-28 px-3 py-3 text-left">Satuan</th>
+                      <th scope="col" className="min-w-[160px] px-3 py-3 text-left">Keterangan</th>
+                      <th scope="col" className="w-12 px-2 py-3"><span className="sr-only">Aksi</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={item.id} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">{idx + 1}</td>
+                        <td className="space-y-1.5 px-4 py-3">
+                          <PickerSelect
+                            aria-label={`Barang baris ${idx + 1}`}
+                            options={inventoryOptions}
+                            value={item.inventoryItemId}
+                            onChange={(v) => selectInventoryItem(idx, v)}
+                            placeholder="— Pilih dari Stok Gudang —"
+                          />
+                          {!item.inventoryItemId && (
+                            <Input
+                              aria-label={`Nama barang manual baris ${idx + 1}`}
+                              value={item.itemName}
+                              onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
+                              placeholder="Atau ketik nama barang manual..."
+                              className="h-9 text-xs"
+                              autoComplete="off"
+                            />
+                          )}
+                          {item.inventoryItemId && (
+                            <div className="space-y-1">
+                              <WarehouseSelect
+                                value={item.warehouseId}
+                                onChange={(v) => updateItem(idx, 'warehouseId', v)}
+                                label={`Gudang sumber baris ${idx + 1}`}
+                              />
+                              {item.warehouseId && (() => {
+                                const avail = lineStock(item.inventoryItemId, item.warehouseId);
+                                if (avail == null) return <p className="text-[11px] text-muted-foreground">Memuat stok gudang…</p>;
+                                const short = avail < (Number(item.quantity) || 0);
+                                return (
+                                  <p className={`text-[11px] ${short ? 'font-medium text-danger-text' : 'text-muted-foreground'}`}>
+                                    Stok di gudang ini: {fmt3(avail)} {item.unit}
+                                  </p>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-3">
+                          <NumberInput
+                            aria-label={`Qty baris ${idx + 1}`}
+                            value={item.quantity}
+                            onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
+                            min={0}
+                            className={numberInputClass}
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <OptionSelect
+                            aria-label={`Satuan baris ${idx + 1}`}
+                            value={item.unit}
+                            onChange={(v) => updateItem(idx, 'unit', v)}
+                            options={UNITS.map((u) => ({ value: u, label: u }))}
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <Input
+                            aria-label={`Keterangan baris ${idx + 1}`}
+                            value={item.description}
+                            onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                            placeholder="Catatan baris..."
+                            className="h-9 text-xs"
+                            autoComplete="off"
+                          />
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          {items.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-danger-text max-sm:size-11"
+                              aria-label={`Hapus baris ${idx + 1}`}
+                              onClick={() => removeItem(idx)}
+                            >
+                              <Trash2 aria-hidden />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
                     ))}
-                  </ul>
+                  </tbody>
+                </table>
+              </TableRegion>
+            </section>
+
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+              <Field label="Catatan">
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Misal: dititipkan ke pos satpam..."
+                  rows={3}
+                  className="resize-none"
+                />
+              </Field>
+
+              <div className="rounded-xl border border-border bg-muted/40 p-4">
+                <p className={`${sectionLabel} mb-2`}>Ringkasan Qty</p>
+                {Object.keys(totalQtyByUnit).length === 0 ? (
+                  <p className="text-xs italic text-muted-foreground">Belum ada barang.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {Object.entries(totalQtyByUnit).map(([u, q]) => (
+                      <div key={u} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total {u}</span>
+                        <span className="tabular-nums text-foreground">{fmt3(q)} {u}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-3 text-[11px] italic text-muted-foreground">
+                  Surat jalan tidak mencatat rupiah — invoice menyusul setelah pengiriman.
+                </p>
+              </div>
+            </div>
+
+            {hasShortage && (
+              <div role="alert" className="rounded-lg border border-warning/30 bg-warning-subtle p-3 text-sm text-warning-text">
+                <div className="mb-2 flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <div>
+                    <p className="font-medium">Stok tidak mencukupi untuk:</p>
+                    <ul className="ml-1 mt-1 list-inside list-disc space-y-0.5 text-xs">
+                      {stockShortages.map((s) => (
+                        <li key={s.id}>
+                          <span className="font-medium">{s.name}</span> @ {s.warehouse}: tersedia {fmt3(s.available)} {s.unit}, dibutuhkan {fmt3(s.needed)} {s.unit}
+                          <span> (kurang {fmt3(s.needed - s.available)})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-2 space-y-2 pl-6">
+                  <label className="flex cursor-pointer items-start gap-2 text-xs max-sm:min-h-11">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={allowNegativeStock}
+                      onCheckedChange={(checked) => setAllowNegativeStock(checked === true)}
+                    />
+                    {isAdmin ? (
+                      <span>
+                        <strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan akan menyusul). Audit log akan dicatat.
+                      </span>
+                    ) : (
+                      <span>
+                        <strong>Ajukan persetujuan stok minus:</strong> tetap buat Surat Jalan (mis. barang dikirim sambil produksi berjalan). Surat Jalan akan dibuat setelah <strong>disetujui manajer</strong>.
+                      </span>
+                    )}
+                  </label>
+                  {allowNegativeStock && (
+                    <Field label={isAdmin ? 'Alasan bypass stok minus' : 'Alasan pengajuan stok minus'} required>
+                      <Textarea
+                        value={negativeStockReason}
+                        onChange={(e) => setNegativeStockReason(e.target.value)}
+                        placeholder={`${isAdmin ? 'Alasan bypass' : 'Alasan'} (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'`}
+                        className="text-xs"
+                        rows={2}
+                      />
+                    </Field>
+                  )}
                 </div>
               </div>
-              {!isAdmin && (
-                <div className="mt-2 pl-5 space-y-2">
-                  <label className="flex items-start gap-2 cursor-pointer text-xs">
-                    <input
-                      type="checkbox"
-                      checked={allowNegativeStock}
-                      onChange={(e) => setAllowNegativeStock(e.target.checked)}
-                      className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                    />
-                    <span className="text-amber-900">
-                      <strong>Ajukan persetujuan stok minus:</strong> tetap buat Surat Jalan (mis. barang dikirim sambil produksi berjalan). Surat Jalan akan dibuat setelah <strong>disetujui manajer</strong>.
-                    </span>
-                  </label>
-                  {allowNegativeStock && (
-                    <textarea
-                      value={negativeStockReason}
-                      onChange={(e) => setNegativeStockReason(e.target.value)}
-                      placeholder="Alasan (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'"
-                      className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      rows={2}
-                      required
-                    />
-                  )}
-                </div>
-              )}
-              {isAdmin && (
-                <div className="mt-2 pl-5 space-y-2">
-                  <label className="flex items-start gap-2 cursor-pointer text-xs">
-                    <input
-                      type="checkbox"
-                      checked={allowNegativeStock}
-                      onChange={(e) => setAllowNegativeStock(e.target.checked)}
-                      className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                    />
-                    <span className="text-amber-900">
-                      <strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan akan menyusul). Audit log akan dicatat.
-                    </span>
-                  </label>
-                  {allowNegativeStock && (
-                    <textarea
-                      value={negativeStockReason}
-                      onChange={(e) => setNegativeStockReason(e.target.value)}
-                      placeholder="Alasan bypass (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'"
-                      className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      rows={2}
-                      required
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+            )}
 
-          {error && (
-            <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-        </div>
+            <FormError>{error}</FormError>
+          </FormDialogBody>
 
-        {/* ── FOOTER ACTIONS ── */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-xs text-gray-400">
-            {canSubmit
-              ? 'Siap disimpan. Stok akan dikeluarkan dari gudang.'
-              : hasMissingWarehouse
-                ? 'Pilih gudang sumber untuk setiap baris barang dari stok.'
-                : !partyId
-                  ? 'Pilih pelanggan dan tambahkan minimal 1 item.'
-                  : 'Lengkapi minimal 1 item dengan qty > 0.'}
-          </p>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="btn-secondary">Batal</button>
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Simpan Surat Jalan'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+          <FormDialogFooter>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <p className="text-xs text-muted-foreground">
+                {canSubmit
+                  ? 'Siap disimpan. Stok akan dikeluarkan dari gudang.'
+                  : hasMissingWarehouse
+                    ? 'Pilih gudang sumber untuk setiap baris barang dari stok.'
+                    : !partyId
+                      ? 'Pilih pelanggan dan tambahkan minimal 1 item.'
+                      : 'Lengkapi minimal 1 item dengan qty > 0.'}
+              </p>
+              <FooterButton type="submit" loading={mutation.isPending} disabled={!canSubmit && !mutation.isPending}>
+                {mutation.isPending ? 'Menyimpan…' : 'Simpan Surat Jalan'}
+              </FooterButton>
+            </div>
+          </FormDialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
