@@ -30,6 +30,7 @@ export const TOOLSET_META: Record<Toolset, { title: string; blurb: string }> = {
   dashboard: { title: 'Dashboard', blurb: 'Ringkasan dan indikator dashboard.' },
   'master-data': { title: 'Master Data', blurb: 'Pelanggan & vendor (Party).' },
   sistem: { title: 'Sistem', blurb: 'Jejak audit, notifikasi, pencarian, profil perusahaan, kesehatan sistem.' },
+  obrolan: { title: 'Obrolan (memori percakapan)', blurb: 'Pencarian dan pembacaan riwayat percakapan panel chat milik pemanggil sendiri.' },
 };
 
 const GUIDES_DIR = 'docs/ai-tools/_guides';

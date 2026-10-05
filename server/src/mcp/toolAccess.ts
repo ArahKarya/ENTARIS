@@ -10,7 +10,7 @@ import { decideForTool, effectiveUserTier, type ToolDecision } from './policy';
 import type { AiraTier } from './constants';
 
 /** Modul registry yang tidak ada di taksonomi RBAC (terbuka bagi user login; handler yang menjaga). */
-const OPEN_MODULES = new Set(['notifications', 'attachments', 'payment_request']);
+const OPEN_MODULES = new Set(['notifications', 'attachments', 'payment_request', 'chat_history']);
 
 export interface ToolEntry {
   tool: EffectiveTool;
