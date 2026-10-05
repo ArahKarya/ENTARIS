@@ -168,8 +168,6 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
     }
     toast.success('Kata sandi diganti. Silakan masuk lagi dengan kata sandi baru.');
     localStorage.removeItem('user');
-    sessionStorage.removeItem('aira_chat_messages');
-    sessionStorage.removeItem('aira_chat_session_id');
     queryClient.clear();
     window.location.assign('/login');
     return false;

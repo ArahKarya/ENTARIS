@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { CodeLine } from './CopyButton';
 import { MCP_STATUS_KEY } from './keys';
+import { EngineStatusLine } from './EngineStatusLine';
 
 export interface McpStatus {
   enabled: boolean;
@@ -89,6 +90,8 @@ export function McpStatusCard() {
               aria-describedby="mcp-enabled-desc"
             />
           </div>
+
+          <EngineStatusLine />
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Token aktif" value={formatNumber(status.tokens.active)} hint={`dari ${formatNumber(status.tokens.total)} token`} />
