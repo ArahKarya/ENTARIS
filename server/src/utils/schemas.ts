@@ -513,6 +513,13 @@ export const UpdateMachineSchema = CreateMachineSchema.partial();
 // users (cek ke tabel roles), bukan enum hardcoded lagi.
 const UserRoleEnum = z.string().min(1, 'Role wajib diisi.');
 
+/** Registrasi AIRA (MCP) per user: akses, level (read/standard/direct), jabatan untuk persona agen. */
+const AiraUserFields = {
+  airaEnabled: z.boolean().optional(),
+  airaTier: z.enum(['read', 'standard', 'direct']).optional(),
+  airaJabatan: z.string().trim().max(100).nullable().optional(),
+};
+
 export const CreateUserSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter.'),
   email: z.string().email('Format email tidak valid.'),
@@ -525,6 +532,7 @@ export const CreateUserSchema = z.object({
   role: UserRoleEnum,
   /** Atasan langsung (approver tahap 1 Pengajuan Pembayaran). */
   supervisorId: z.string().min(1).nullable().optional(),
+  ...AiraUserFields,
 });
 
 export const UpdateUserSchema = z.object({
@@ -540,6 +548,7 @@ export const UpdateUserSchema = z.object({
   role: UserRoleEnum.optional(),
   isActive: z.boolean().optional(),
   supervisorId: z.string().min(1).nullable().optional(),
+  ...AiraUserFields,
 }).refine(data => Object.values(data).some(v => v !== undefined), {
   message: 'Minimal satu field harus diisi.',
 });

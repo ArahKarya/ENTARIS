@@ -99,7 +99,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/cash-position` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -133,7 +133,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/aging-summary` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -167,7 +167,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/cash-flow` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -209,7 +209,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/charts` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -249,7 +249,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/expense-breakdown` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -289,7 +289,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/financial-ratios` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -322,7 +322,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Roles & izin:** Admin (modul `ga_maintenance` / `view`)
 - **Catatan akses:** Tanpa guard mount: izin dicek per sumber di handler — ga_maintenance, ga_vehicle, ga_documents (view). Cukup salah satu; sumber tanpa izin tidak dimuat. 403 bila ketiganya tidak ada.
 - **Handler:** `GET /api/dashboard/maintenance` (src/routes/dashboardMaintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -358,7 +358,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/monthly-profit` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -399,7 +399,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `reports` / `view`)
 - **Catatan akses:** Cukup izin modul reports ATAU inventory (view).
 - **Handler:** `GET /api/dashboard/negative-stock` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -433,7 +433,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/overdue` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -467,7 +467,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/pending-do` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -500,7 +500,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `reports` / `view`)
 - **Catatan akses:** Cukup izin modul reports ATAU inventory (view) — dipakai kartu stok semua role gudang.
 - **Handler:** `GET /api/dashboard/stock-alerts` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -534,7 +534,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/top-customers` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -566,7 +566,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/top-vendors` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -598,7 +598,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/upcoming-due` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -632,7 +632,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/metrics` (src/routes/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -674,7 +674,7 @@ Toolset **dashboard** adalah ringkasan angka cepat yang sama dengan kartu dan gr
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/dashboard/fixed-assets` (src/routes/dashboard/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 

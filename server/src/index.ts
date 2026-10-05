@@ -32,7 +32,7 @@ import dashboardRoutes from './routes/dashboard';
 import dashboardMaintenanceRoutes from './routes/dashboardMaintenance';
 import reportRoutes from './routes/reports';
 import aiConfigRoutes from './routes/ai/config';
-import aiRouterRoutes from './routes/ai/router';
+import aiMcpAdminRoutes from './routes/ai/mcp';
 import aiChatRoutes from './routes/ai/chat';
 import mcpRouter from './mcp/router';
 import settingsRoutes from './routes/settings';
@@ -274,10 +274,11 @@ app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di i
 app.use('/api/payment-requests', paymentRequestRoutes);    // semua user login; izin keuangan/direktur dicek per endpoint
 
 // ─── AIRA — AI Tool Layer & Tool Router (Agentic System) ──────────────────────
-// config: kelola tool/setting/whitelist → gate requireWrite('settings') + cap
-//         rbac.manage di endpoint sensitif (di file). router: per-tool RBAC di file.
+// config: override tool + kill switch; mcp: token MCP, status, riwayat panggilan → gate
+//         requirePerm('settings') + cap rbac.manage di endpoint sensitif (di file).
+//         Eksekusi tool oleh agen TIDAK lewat /api/ai (lihat /mcp) — jalur /api/ai/router sudah dipensiunkan.
 app.use('/api/ai/config', requirePerm('settings'), aiConfigRoutes);
-app.use('/api/ai/router', aiRouterRoutes);
+app.use('/api/ai/mcp', requirePerm('settings'), aiMcpAdminRoutes);
 app.use('/api/ai/chat', aiChatRoutes);
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────

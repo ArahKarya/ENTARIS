@@ -55,7 +55,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - Modul RBAC `approvals` (view/edit) menjadi syarat semua endpoint di mount ini. Akibatnya Viewer tidak bisa memanggil endpoint apa pun di sini.
 - Menambah aksi finansial baru pada dokumen yang sudah ada harus melewati `needsApproval` dan tipe edit baru, bukan hanya `requireCap`.
 - Tipe edit tidak bisa "Minta Edit"/resubmit; hanya `PurchaseInvoice` dan `ProductionRun` yang bisa diajukan ulang.
-- Pengajuan test dari AI Router (`ai_tool:<nama>`) tidak bisa dieksekusi lewat approve ("Tipe dokumen tidak didukung").
+- Pengajuan dari agen (MCP) bertipe `ai_tool:<nama>`: payload `{tool,args,handler,confirm,actor,via:'mcp'}`. Saat disetujui, panggilan tersimpan dijalankan lewat handler aslinya sebagai **pengaju** (RBAC + gate normal + jejak audit `via=mcp`); bila handler menolak, pengajuan kembali Pending dengan `payload.lastError`. Ditolak = tidak ada efek.
 
 ### Jebakan umum
 
@@ -112,7 +112,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `approvals` / `edit`, capability `approval.decide`)
 - **Handler:** `POST /api/approvals/requests/:id/approve` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -146,7 +146,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 
 **Isi hasil:** { ok, status: "Approved", docNumber, documentType }.
 
-**Efek pembukuan/stok:** Tergantung documentType: PurchaseInvoice → faktur pembelian dibuat+posting (DR Hutang Belum Tagih 2.1.5 / selisih 5.11 / CR Hutang Usaha 2.1.1; atau DR Persediaan 1.4.0 / CR 2.1.1 bila standalone); ProductionRun → produksi diposting (stok bahan keluar, stok hasil masuk, WAC/HPP); SalesReturn → retur (stok masuk + pembalikan penjualan/HPP); DeliveryOrder → surat jalan (stok keluar + HPP); PurchaseOrder → status Draft→Submitted tanpa GL; ProductionRunEdit / PurchaseInvoiceRevisePrice → edit/revisi dieksekusi (koreksi stok/GL). Tipe ai_tool:* tidak didukung.
+**Efek pembukuan/stok:** Tergantung documentType: PurchaseInvoice → faktur pembelian dibuat+posting (DR Hutang Belum Tagih 2.1.5 / selisih 5.11 / CR Hutang Usaha 2.1.1; atau DR Persediaan 1.4.0 / CR 2.1.1 bila standalone); ProductionRun → produksi diposting (stok bahan keluar, stok hasil masuk, WAC/HPP); SalesReturn → retur (stok masuk + pembalikan penjualan/HPP); DeliveryOrder → surat jalan (stok keluar + HPP); PurchaseOrder → status Draft→Submitted tanpa GL; ProductionRunEdit / PurchaseInvoiceRevisePrice → edit/revisi dieksekusi (koreksi stok/GL). Tipe ai_tool:<nama> (permintaan agen via MCP) → panggilan tersimpan dijalankan sebagai PENGAJU lewat handler aslinya (efek = efek tool tersebut; bila handler menolak, pengajuan kembali Pending).
 
 **Teks konfirmasi:** SETUJUI pengajuan {id} dan jalankan dokumennya? (efek posting sesuai tipe dokumen)
 
@@ -169,7 +169,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `view`)
 - **Handler:** `GET /api/approvals/check` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -211,7 +211,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `view`)
 - **Handler:** `GET /api/approvals/pending` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -258,7 +258,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `approvals` / `edit`, capability `approval.decide`)
 - **Handler:** `POST /api/approvals/requests/:id/reject` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -310,7 +310,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `view`)
 - **Handler:** `GET /api/approvals/requests/:id/context` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -351,7 +351,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `edit`)
 - **Handler:** `POST /api/approvals/requests` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -406,7 +406,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `view`)
 - **Catatan akses:** Pengajuan orang lain hanya terlihat bila punya capability approval.view_all (selain itu 404).
 - **Handler:** `GET /api/approvals/requests/:id` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -451,7 +451,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `approvals` / `edit`, capability `approval.decide`)
 - **Handler:** `POST /api/approvals/requests/:id/request-revision` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -504,7 +504,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `view`)
 - **Catatan akses:** Tanpa capability approval.view_all hanya pengajuan milik sendiri; dengan capability (Admin) semua antrian.
 - **Handler:** `GET /api/approvals/requests` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -546,7 +546,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `approvals` / `edit`)
 - **Catatan akses:** Hanya pemilik pengajuan (atau pemegang approval.view_all).
 - **Handler:** `PUT /api/approvals/requests/:id/resubmit` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -601,7 +601,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `approvals` / `edit`, capability `approval.decide`)
 - **Handler:** `POST /api/approvals/rules` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -652,7 +652,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `approvals` / `edit`, capability `approval.decide`)
 - **Handler:** `DELETE /api/approvals/rules/:id` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -699,7 +699,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `approvals` / `edit`, capability `approval.decide`)
 - **Handler:** `PUT /api/approvals/rules/:id` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -752,7 +752,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `approvals` / `view`, capability `approval.decide`)
 - **Handler:** `GET /api/approvals/rules` (src/routes/approvals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 

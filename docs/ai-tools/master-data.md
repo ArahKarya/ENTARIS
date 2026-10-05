@@ -101,7 +101,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `parties` / `edit`)
 - **Handler:** `POST /api/parties` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -159,7 +159,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `parties` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/parties/dashboard` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -192,7 +192,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `parties` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/parties/:id` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -241,7 +241,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `parties` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/parties/:id` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -286,7 +286,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `parties` / `view`)
 - **Catatan akses:** GET master referensi terbuka untuk semua user login (requireWrite: hanya tulis butuh izin parties edit).
 - **Handler:** `GET /api/parties` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -338,7 +338,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `parties` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/parties/similar` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -380,7 +380,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `parties` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/parties/summary` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -427,7 +427,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `parties` / `edit`)
 - **Handler:** `PUT /api/parties/:id` (src/routes/parties.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -486,7 +486,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `sales_invoice` / `edit`)
 - **Handler:** `POST /api/service-items` (src/routes/serviceItems.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -542,7 +542,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `sales_invoice` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/service-items/:id` (src/routes/serviceItems.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -589,7 +589,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Roles & izin:** Admin, Accountant, Viewer (modul `sales_invoice` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login (data referensi); hanya tulis butuh izin edit modul sales_invoice.
 - **Handler:** `GET /api/service-items` (src/routes/serviceItems.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -633,7 +633,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `sales_invoice` / `edit`)
 - **Handler:** `PATCH /api/service-items/:id` (src/routes/serviceItems.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

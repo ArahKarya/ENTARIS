@@ -3,6 +3,7 @@ export const REDACTED = '[REDACTED]';
 // Keys whose values must never be persisted in audit logs (compared lowercase).
 const SECRET_KEYS = new Set([
   'servicetoken',
+  'signingsecret',
   'password',
   'passwordhash',
   'token',

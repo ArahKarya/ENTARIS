@@ -19,11 +19,6 @@
       "count": 1
     }
   },
-  "src/routes/ai/config.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
   "src/routes/approvals.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 21

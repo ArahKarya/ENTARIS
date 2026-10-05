@@ -152,7 +152,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya Keuangan: izin payment_request edit pada seluruh endpoint /payment-requests/eam.
 - **Handler:** `POST /api/payment-requests/eam/:kind/:id/cancel` (src/routes/paymentRequestEam.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -206,7 +206,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya Keuangan: izin payment_request edit pada seluruh endpoint /payment-requests/eam.
 - **Handler:** `GET /api/payment-requests/eam` (src/routes/paymentRequestEam.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -256,7 +256,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya Keuangan: izin payment_request edit pada seluruh endpoint /payment-requests/eam.
 - **Handler:** `POST /api/payment-requests/eam/:kind/:id/pay` (src/routes/paymentRequestEam.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -327,7 +327,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya Keuangan: izin payment_request edit pada seluruh endpoint /payment-requests/eam.
 - **Handler:** `GET /api/payment-requests/eam/summary` (src/routes/paymentRequestEam.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -373,7 +373,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `view`)
 - **Catatan akses:** Keuangan/penampil semua melihat seluruh karyawan; user lain hanya uang muka sendiri.
 - **Handler:** `GET /api/payment-requests/advances/summary` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -409,7 +409,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hak memutuskan bergantung tahap: SUBMITTED = atasan langsung pengaju; PENDING_FINANCE = user dengan izin payment_request edit (Keuangan); PENDING_DIRECTOR = role dari aturan approval PaymentRequest (atau super-admin). Tidak ada yang boleh memproses pengajuannya sendiri.
 - **Handler:** `POST /api/payment-requests/:id/approve` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -467,7 +467,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Pengaju, hanya saat pengajuan/pertanggungjawaban masih bisa diedit.
 - **Handler:** `DELETE /api/payment-requests/:id/attachments/:attId` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -517,7 +517,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya pengaju.
 - **Handler:** `POST /api/payment-requests/:id/cancel` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -571,7 +571,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Keuangan (payment_request edit).
 - **Handler:** `POST /api/payment-requests/:id/cancel-payment` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -627,7 +627,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Semua user login boleh (tanpa gate modul di mount); hanya pengaju yang bisa mengubah/membatalkan, pengaju dan pihak terkait yang bisa melihat. Catatan: modul payment_request dipakai sebagai acuan dokumentasi/batas AIRA, bukan syarat endpoint.
 - **Handler:** `POST /api/payment-requests` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -718,7 +718,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `view`)
 - **Catatan akses:** Semua user login boleh (tanpa gate modul di mount); hanya pengaju yang bisa mengubah/membatalkan, pengaju dan pihak terkait yang bisa melihat. Catatan: modul payment_request dipakai sebagai acuan dokumentasi/batas AIRA, bukan syarat endpoint.
 - **Handler:** `GET /api/payment-requests/:id` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -763,7 +763,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `view`)
 - **Catatan akses:** Semua user login boleh (tanpa gate modul di mount); hanya pengaju yang bisa mengubah/membatalkan, pengaju dan pihak terkait yang bisa melihat. Catatan: modul payment_request dipakai sebagai acuan dokumentasi/batas AIRA, bukan syarat endpoint.
 - **Handler:** `GET /api/payment-requests` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -818,7 +818,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `view`)
 - **Catatan akses:** Semua user login boleh (tanpa gate modul di mount); hanya pengaju yang bisa mengubah/membatalkan, pengaju dan pihak terkait yang bisa melihat. Catatan: modul payment_request dipakai sebagai acuan dokumentasi/batas AIRA, bukan syarat endpoint.
 - **Handler:** `GET /api/payment-requests/meta` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -854,7 +854,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Keuangan (payment_request edit); bukan pengaju.
 - **Handler:** `POST /api/payment-requests/:id/pay` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -921,7 +921,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hak memutuskan bergantung tahap: SUBMITTED = atasan langsung pengaju; PENDING_FINANCE = user dengan izin payment_request edit (Keuangan); PENDING_DIRECTOR = role dari aturan approval PaymentRequest (atau super-admin). Tidak ada yang boleh memproses pengajuannya sendiri.
 - **Handler:** `POST /api/payment-requests/:id/reject` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -976,7 +976,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hak memutuskan bergantung tahap: SUBMITTED = atasan langsung pengaju; PENDING_FINANCE = user dengan izin payment_request edit (Keuangan); PENDING_DIRECTOR = role dari aturan approval PaymentRequest (atau super-admin). Tidak ada yang boleh memproses pengajuannya sendiri.
 - **Handler:** `POST /api/payment-requests/:id/return` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1031,7 +1031,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Keuangan (payment_request edit), bukan pengaju.
 - **Handler:** `PUT /api/payment-requests/:id/accounts` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1094,7 +1094,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Tahap atasan: atasan langsung pengaju (snapshot settlementSupervisor). Tahap Keuangan memakai settlement/post.
 - **Handler:** `POST /api/payment-requests/:id/settlement/approve` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1151,7 +1151,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Keuangan.
 - **Handler:** `POST /api/payment-requests/:id/settlement/cancel-posting` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1205,7 +1205,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `edit`)
 - **Catatan akses:** Keuangan pada tahap PENDING_FINANCE; bukan pengaju.
 - **Handler:** `POST /api/payment-requests/:id/settlement/post` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1271,7 +1271,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant (modul `payment_request` / `view`)
 - **Catatan akses:** Keuangan pada tahap PENDING_FINANCE.
 - **Handler:** `POST /api/payment-requests/:id/settlement/preview` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1317,7 +1317,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Atasan (tahap SUBMITTED) atau Keuangan (tahap PENDING_FINANCE).
 - **Handler:** `POST /api/payment-requests/:id/settlement/return` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1367,7 +1367,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya pengaju uang muka, saat settlementStatus OPEN atau REVISION.
 - **Handler:** `PUT /api/payment-requests/:id/settlement` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1440,7 +1440,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya pengaju.
 - **Handler:** `POST /api/payment-requests/:id/settlement/submit` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1488,7 +1488,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya pengaju.
 - **Handler:** `POST /api/payment-requests/:id/submit` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1546,7 +1546,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `view`)
 - **Catatan akses:** Semua user login boleh (tanpa gate modul di mount); hanya pengaju yang bisa mengubah/membatalkan, pengaju dan pihak terkait yang bisa melihat. Catatan: modul payment_request dipakai sebagai acuan dokumentasi/batas AIRA, bukan syarat endpoint.
 - **Handler:** `GET /api/payment-requests/summary` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1588,7 +1588,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Hanya pengaju, dan hanya saat status DRAFT atau REVISION.
 - **Handler:** `PUT /api/payment-requests/:id` (src/routes/paymentRequests.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1674,7 +1674,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `POST /api/payment-request-types` (src/routes/paymentRequestTypes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1736,7 +1736,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `DELETE /api/payment-request-types/:id` (src/routes/paymentRequestTypes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1787,7 +1787,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `settings` / `view`)
 - **Catatan akses:** GET terbuka bagi semua user login (requireWrite settings); tulis butuh izin settings edit (Admin).
 - **Handler:** `GET /api/payment-request-types` (src/routes/paymentRequestTypes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1828,7 +1828,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `PUT /api/payment-request-types/:id` (src/routes/paymentRequestTypes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

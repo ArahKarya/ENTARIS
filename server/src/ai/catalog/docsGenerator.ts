@@ -120,7 +120,7 @@ function renderTool(t: ToolDef, fileOf: Map<string, string>, byName: Map<string,
   L.push(`- **Roles & izin:** ${roleLine(t)}`);
   if (t.accessNote) L.push(`- **Catatan akses:** ${t.accessNote}`);
   L.push(`- **Handler:** \`${t.handler}\`${fileOf.get(t.handler) ? ` (${fileOf.get(t.handler)})` : ''}`);
-  L.push(`- **Status default:** ${t.enabled ? 'aktif' : 'nonaktif (diaktifkan owner)'}`, '');
+  L.push(`- **Status default:** ${t.enabled ? 'aktif (dapat dinonaktifkan per tool di Settings → AIRA)' : 'nonaktif (diaktifkan owner)'}`, '');
   if (t.params?.length) {
     L.push('**Parameter**', '', '| Nama | Lokasi | Tipe | Wajib | Keterangan |', '|---|---|---|---|---|', ...paramRows(t.params), '');
   } else L.push('**Parameter:** tidak ada.', '');
@@ -197,7 +197,7 @@ export function generateDocs(input: GeneratorInput): Record<string, string> {
     '',
     '> Dibangkitkan otomatis — jangan edit manual (`npm run ai-tools:docs`).',
     '',
-    `Total **${tools.length}** tool (read ${rt.read ?? 0} · write ${rt.write ?? 0} · critical ${rt.critical ?? 0}); semuanya nonaktif secara default. Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).`,
+    `Total **${tools.length}** tool (read ${rt.read ?? 0} · write ${rt.write ?? 0} · critical ${rt.critical ?? 0}); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).`,
     '',
     '## Toolset',
     '',

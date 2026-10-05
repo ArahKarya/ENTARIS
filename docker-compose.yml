@@ -60,12 +60,14 @@ services:
       TZ: "${TZ:-Asia/Jakarta}"
       NODE_ENV: "production"
       UPLOADS_DIR: "/app/uploads"
-      # ── AIRA (agentic layer) — A3 HMAC shared secret. Sumber: .env (sinkron dgn aira-core). ──
-      AIRA_SERVICE_SECRET: "${AIRA_SERVICE_SECRET:?AIRA_SERVICE_SECRET wajib diisi di .env (sinkron dgn aira-core)}"
+      # ── AIRA MCP (/mcp) — kunci enkripsi signing secret token MCP (AES-256-GCM, HKDF). ──
+      # OPSIONAL: kosong = diturunkan dari JWT_SECRET (memutar JWT_SECRET lalu butuh rotate-secret
+      # semua token MCP). Disarankan diisi terpisah (>= 32 karakter acak).
+      MCP_SECRET_KEY: "${MCP_SECRET_KEY:-}"
       # ── AIRA panel chat (M4.5) — ERP proxy ke aira-core via network aira-net (DNS container). ──
       AIRA_CORE_BASE_URL: "${AIRA_CORE_BASE_URL:-http://aira-core:8080}"
-      # AIRA panel auth - Bearer token utk proxy ke aira-core (/v1/*). Sinkron dgn aira-core AIRA_API_TOKEN.
-      AIRA_API_TOKEN: "${AIRA_API_TOKEN:?AIRA_API_TOKEN wajib diisi di .env (sinkron dgn aira-core)}"
+      # AIRA panel auth - Bearer token utk proxy ke aira-core (/v1/*). OPSIONAL (panel chat; akan diarahkan ke Hermes pada tahap 3).
+      AIRA_API_TOKEN: "${AIRA_API_TOKEN:-}"
     volumes:
       - backups:/app/server/backups
       - uploads:/app/uploads

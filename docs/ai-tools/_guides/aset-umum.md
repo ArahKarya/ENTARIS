@@ -56,7 +56,7 @@ APPROVED/FULFILLED --(dibayar lewat Tagihan EAM, di luar toolset ini)--> PAID
 
 - Tidak memakai `ApprovalRequest`/`needsApproval`. Persetujuan MR (`gmr_approve`, `gmr_reject`) hanyalah transisi status oleh siapa pun yang punya izin `edit` pada modul `ga_material_request`; tidak ada capability khusus dan tidak ada larangan pemohon menyetujui MR miliknya sendiri. Perlakukan sebagai langkah `critical` yang wajib konfirmasi manusia.
 - Tidak ada capability `doc.cancel` pada tool bagian ini; `gmr_cancel` dan penghapusan cukup izin `edit` modulnya.
-- Pada tahap katalog, tier tool `critical` = wajib-approve/dinonaktifkan secara bawaan; tier `write` = draft/approve.
+- Pada tahap katalog, tier tool `critical` = wajib-approve; tier `write` = draft/approve.
 
 ### Jebakan umum
 

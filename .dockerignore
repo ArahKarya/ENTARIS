@@ -31,5 +31,6 @@ pgdata
 
 # Documentation & tooling
 docs/
+!docs/ai-tools/catalog.json
 .claude/
 README.md
