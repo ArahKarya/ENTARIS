@@ -1,4 +1,4 @@
-Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entaris: transaksi pembayaran (terima/bayar/uang muka/refund), buku Transaksi Kas & Bank, uang jaminan proyek, rekonsiliasi bank, dan template transaksi berulang. Tool baca aman otomatis; tool yang memposting jurnal (`pay_record`, `pg_create`, `pg_settle`, `rec_execute`) dan semua pembatalan bertingkat kritis, sehingga membutuhkan persetujuan eksplisit.
+Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entaris: transaksi pembayaran (terima/bayar/uang muka/refund), buku Transaksi Kas & Bank, uang jaminan proyek, rekonsiliasi bank, dan template transaksi berulang. Buku kas dari foto/nota ditangani lewat **Draft Buku Kas** (`kas_*`): engine mengusulkan baris, manusia meninjau dan memposting. Tool baca aman otomatis; tool yang memposting jurnal (`pay_record`, `pg_create`, `pg_settle`, `rec_execute`) dan semua pembatalan bertingkat kritis, sehingga membutuhkan persetujuan eksplisit.
 
 ### Alur bisnis
 
@@ -31,6 +31,24 @@ Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entar
 - Eksekusi otomatis dilakukan scheduler harian 02:00. `rec_execute` menjalankan **satu** template sekarang (bertanggal hari ini). Endpoint massal `POST /api/recurring/run-due` sengaja **tidak** menjadi tool (lihat DENYLIST).
 - `rec_delete` hanyalah soft delete (`isActive=false`); aktifkan lagi lewat `rec_update`.
 
+### Buku kas dari nota (Draft Buku Kas)
+
+Alur untuk engine AIRA bila pengguna mengirim **foto/scan nota atau halaman buku kas** dan meminta pencatatan. Engine hanya *mengusulkan*; Entaris menyimpan draft, memvalidasi, menentukan arah DR/CR, meminta tinjauan manusia, lalu memposting. **Engine tidak pernah memposting sendiri** (`kas_draft_posting` selalu masuk antrian persetujuan untuk aktor level Standar).
+
+1. **`kas_daftar_akun`** - panggil dulu. Hasilnya: katalog akun lawan (`id`, `code`, `name`, `type`, `isCash`, `role`), akun kas/bank untuk dipilih (`cashAccounts`), tabel aturan jenis transaksi, batas baris dan **pola terpelajari** (keterangan -> akun hasil koreksi manusia sebelumnya; pakai sebagai petunjuk).
+2. **Baca foto, ekstrak baris, klasifikasikan.** Satu baris = `{date?, description, masuk | keluar}` (atau `amount` + `direction`). `masuk` = kas masuk (kolom debit buku kas), `keluar` = kas keluar (kolom kredit). Salin keterangan apa adanya, jangan merangkum. Untuk tiap baris usulkan `txnType` (`pengeluaran`, `pemasukan`, `uang_muka`, `terima_kasbon`, `lainnya`), `accountCode` **hanya dari daftar `kas_daftar_akun`**, `confidence` 0..1 yang **jujur** (di bawah 0,7 baris otomatis ditandai "perlu ditinjau") dan `reason` singkat. Bila ragu pakai `lainnya` atau kosongkan `accountCode`; jangan mengarang kode akun. Catat juga saldo awal/akhir di halaman bila tertulis (`openingBalance`, `closingBalance`) agar server dapat memeriksa selisihnya.
+3. **`kas_buat_draft_dari_baris`** - satu panggilan untuk seluruh halaman (maksimal **300 baris**; pecah bila lebih). Tanggal halaman `entryDate` dipakai bila baris tak bertanggal. `cashAccountId` = salah satu `cashAccounts`. Sertakan `sourceNote` (mis. "halaman 3, tulisan tangan"). Server mencatat `createdVia=mcp`, aktor, dan `sourceRef` (diambil dari `ref` pada actor assertion bila tidak diisi). Hasil: nomor `DKB-YYYYMM-NNNN`, total masuk/keluar, jumlah baris perlu ditinjau, cek saldo, dan `reviewPath`. **Belum ada jurnal.**
+4. **Beritahu pengguna** untuk meninjau dan memposting di Entaris: **Kas & Bank -> Draft Buku Kas** (`/cash-book-drafts/<id>`). Sebutkan nomor draft, jumlah baris yang ragu, serta peringatan saldo/duplikat bila ada. Koreksi lewat chat boleh dengan `kas_draft_ubah_baris` / `kas_draft_tambah_baris` / `kas_draft_buang`; posting oleh pengguna di layar peninjauan, atau lewat `kas_draft_posting` (menunggu persetujuan manusia di Persetujuan).
+
+Yang dilakukan server (deterministik, bukan LLM):
+
+- **Arah ditentukan kolom masuk/keluar**, bukan `txnType`. Jenis yang bertentangan (mis. `pemasukan` pada kas keluar) dikoreksi ke jenis polos arah itu, keyakinan dibatasi 0,5 dan baris ditandai perlu ditinjau dengan alasannya.
+- `uang_muka` / `terima_kasbon` selalu memakai akun sistem Uang Muka Karyawan (role `EMPLOYEE_ADVANCE`); `accountCode` dari engine diabaikan.
+- Baris tanpa akun / akun tak dikenal / akun grup / nonaktif / sama dengan akun kas: **tidak membatalkan draft**; baris ditandai, akunnya dikosongkan atau diganti usulan default (Beban Diluar Usaha Lainnya `OTHER_EXPENSE` untuk kas keluar, Pendapatan Diluar Usaha Lainnya `OTHER_INCOME` untuk kas masuk).
+- **Pola terpelajari** dipakai bila engine tak memberi akun atau keyakinannya rendah; akun berkeyakinan tinggi dari engine tidak pernah ditimpa diam-diam (hanya dicatat di `reason`). Satu koreksi manusia = keyakinan 0,65 (tetap perlu ditinjau); dua kali 0,75; tiga kali atau lebih 0,85.
+- **Duplikat**: tanggal + nominal + arah + keterangan sama dengan baris di draft/posting lain pada akun kas yang sama (atau baris sebelumnya di draft yang sama) -> `kemungkinan duplikat` + perlu ditinjau.
+- Baris tak valid (nominal <= 0, masuk dan keluar sekaligus, tanggal salah, keterangan kosong, lebih dari 300 baris) membuat **seluruh panggilan ditolak** dengan `rowErrors` berindeks baris; perbaiki dan kirim ulang.
+
 ### Aturan posting
 
 | Transaksi | Jurnal |
@@ -45,6 +63,7 @@ Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entar
 | Settlement jaminan | DR Kas-Bank (dikembalikan) + DR Akun Beban (hangus; default Beban Lain-lain, harus EXPENSE non-grup) / CR Uang Jaminan (1.8) |
 | Eksekusi template `journal` | Jurnal Umum `Submitted` sesuai baris template; saldo akun diperbarui |
 | Rekonsiliasi | Tidak ada jurnal |
+| Draft Buku Kas diposting (`kas_draft_posting`) | **Satu jurnal seimbang per baris** pada tanggal baris, atas nama pemosting. `pengeluaran` / `lainnya` keluar = DR akun lawan / CR kas; `pemasukan` / `lainnya` masuk = DR kas / CR akun lawan; `uang_muka` = DR Uang Muka Karyawan (1.5.6) / CR kas; `terima_kasbon` = DR kas / CR Uang Muka Karyawan. Semua baris dalam satu transaksi (atau `partial=true`: baris valid saja, sisanya `PartiallyPosted` dengan error per baris) |
 
 Pembatalan memakai pola **soft-cancel**: jurnal berstatus `Cancelled`, ledger `isCancelled`, saldo akun dibalik (tidak membuat jurnal balikan `[BATAL]` baru, agar sinkronisasi ledger-vs-jurnal tetap sehat). Total debit selalu sama dengan total kredit.
 
@@ -53,6 +72,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 ### Persetujuan
 
 - Modul kas-bank **tidak** melewati antrian `needsApproval`: `pay_record`, `pg_create`, `pg_settle`, dan `rec_execute` langsung memposting bagi pemanggil yang punya izin edit modulnya. Kontrol keamanannya berada di tier AIRA (kritis = wajib persetujuan) dan RBAC.
+- Draft Buku Kas memakai izin modul `journal` (lihat = view, ubah/posting = edit, sama dengan jurnal manual); posting tidak lewat `needsApproval` tetapi aktor AIRA level Standar selalu lewat antrian persetujuan.
 - Pembatalan butuh capability `doc.cancel` (default hanya Admin): `pay_cancel`, `pg_cancel`, `pg_settlement_cancel`.
 - Izin modul: `payment`, `reconciliation`, `recurring`, `project_guarantee` (Accountant edit; Viewer hanya `payment` dan `project_guarantee` lihat; StaffProduksi tidak punya akses default kecuali yang dikonfigurasi).
 
@@ -66,6 +86,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - Uang jaminan: bagian hangus **harus** akun beban (EXPENSE); bagian dikembalikan **harus** akun kas/bank. Total return + hangus tidak boleh melebihi sisa jaminan.
 - `rec_create` template jurnal: eksekusi **tidak memvalidasi** debit = kredit dan tidak mengecek `isActive`; pastikan template seimbang sebelum eksekusi.
 - Rekonsiliasi `Completed` terkunci permanen; selesaikan hanya setelah semua item dicocokkan sesuai rekening koran.
+- **Draft Buku Kas**: jangan menebak kode akun, jangan mengisi `masuk` dan `keluar` sekaligus, jangan menganggap draft = sudah tercatat (belum ada jurnal sampai diposting), dan jangan menunggu `kas_draft_posting` langsung jalan (menunggu persetujuan). Jurnal dari draft yang salah dibatalkan lewat `je_cancel` (toolset akuntansi) pada nomor jurnal baris terkait.
 - Format tanggal `YYYY-MM-DD`; jumlah dalam Rupiah (angka, tanpa pemisah ribuan).
 
 ### Peta istilah
@@ -83,6 +104,8 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 | Saldo Awal | `isOpeningBalance`, akun Ekuitas Saldo Awal 3.1 |
 | Uang Jaminan Proyek | `ProjectGuarantee`, akun 1.8, nomor `UJ-...` |
 | Hangus | bagian jaminan yang dipotong/tidak kembali, dibebankan ke akun beban |
+| Buku Kas / Kas Harian / Petty Cash dari nota | `CashBookDraft` (`DKB-YYYYMM-NNNN`), baris `CashBookDraftRow`, pola `CashBookLearnedMap` |
+| Kasbon / Uang Muka Karyawan | `txnType` `uang_muka` / `terima_kasbon`, akun 1.5.6 (role `EMPLOYEE_ADVANCE`) |
 | Rekonsiliasi Bank | `BankReconciliation`, status `Draft/Completed` |
 | Rekening Koran / Statement | item statement (`statementAmount`) |
 | Transaksi Berulang | `RecurringTemplate` (hanya `journal` yang dieksekusi) |

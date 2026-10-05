@@ -2,7 +2,7 @@
 
 > Dibangkitkan otomatis — jangan edit manual (`npm run ai-tools:docs`).
 
-Total **462** tool (read 213 · write 145 · critical 104); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
+Total **472** tool (read 217 · write 150 · critical 105); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
 
 ## Toolset
 
@@ -13,7 +13,7 @@ Total **462** tool (read 213 · write 145 · critical 104); semuanya aktif secar
 | [Persediaan](persediaan.md) | 34 | 19 | 6 | 9 | Barang, gudang, mutasi stok, transfer, stok opname. |
 | [Produksi](produksi.md) | 28 | 13 | 9 | 6 | Draft & posting produksi, standar biaya, proses, mesin. |
 | [Akuntansi](akuntansi.md) | 33 | 14 | 8 | 11 | COA, jurnal, tahun buku, pajak, akun sistem, aset tetap. |
-| [Kas & Bank](kas-bank.md) | 27 | 11 | 8 | 8 | Pembayaran/penerimaan, rekonsiliasi bank, transaksi berulang, uang jaminan proyek. |
+| [Kas & Bank](kas-bank.md) | 37 | 15 | 13 | 9 | Pembayaran/penerimaan, rekonsiliasi bank, transaksi berulang, uang jaminan proyek. |
 | [Aset & Umum (EAM)](aset-umum.md) | 141 | 49 | 68 | 24 | Aset, kendaraan, gedung, equipment, maintenance, dokumen legal, inventaris umum, MR. |
 | [Pengajuan Pembayaran](pengajuan-pembayaran.md) | 31 | 9 | 10 | 12 | Pengajuan pembayaran, verifikasi, pembayaran, pertanggungjawaban, antrian Tagihan EAM. |
 | [Persetujuan](persetujuan.md) | 14 | 6 | 2 | 6 | Antrian approval, keputusan setuju/tolak/revisi, aturan approval. |
@@ -272,6 +272,16 @@ Total **462** tool (read 213 · write 145 · critical 104); semuanya aktif secar
 | [`je_create`](akuntansi.md#je_create) | akuntansi | critical | tidak | Admin, Accountant | `POST /api/journals` |
 | [`je_get`](akuntansi.md#je_get) | akuntansi | read | - | Admin, Accountant, Viewer | `GET /api/journals/:id` |
 | [`je_list`](akuntansi.md#je_list) | akuntansi | read | - | Admin, Accountant, Viewer | `GET /api/journals` |
+| [`kas_buat_draft_dari_baris`](kas-bank.md#kas_buat_draft_dari_baris) | kas-bank | write | ya | Admin, Accountant | `POST /api/cash-book-drafts` |
+| [`kas_daftar_akun`](kas-bank.md#kas_daftar_akun) | kas-bank | read | - | Admin, Accountant, Viewer | `GET /api/cash-book-drafts/accounts` |
+| [`kas_draft_buang`](kas-bank.md#kas_draft_buang) | kas-bank | write | ya | Admin, Accountant | `POST /api/cash-book-drafts/:id/discard` |
+| [`kas_draft_get`](kas-bank.md#kas_draft_get) | kas-bank | read | - | Admin, Accountant, Viewer | `GET /api/cash-book-drafts/:id` |
+| [`kas_draft_list`](kas-bank.md#kas_draft_list) | kas-bank | read | - | Admin, Accountant, Viewer | `GET /api/cash-book-drafts` |
+| [`kas_draft_posting`](kas-bank.md#kas_draft_posting) | kas-bank | critical | tidak | Admin, Accountant | `POST /api/cash-book-drafts/:id/post` |
+| [`kas_draft_tambah_baris`](kas-bank.md#kas_draft_tambah_baris) | kas-bank | write | ya | Admin, Accountant | `POST /api/cash-book-drafts/:id/rows` |
+| [`kas_draft_ubah_baris`](kas-bank.md#kas_draft_ubah_baris) | kas-bank | write | ya | Admin, Accountant | `PUT /api/cash-book-drafts/:id/rows` |
+| [`kas_draft_ubah_header`](kas-bank.md#kas_draft_ubah_header) | kas-bank | write | ya | Admin, Accountant | `PUT /api/cash-book-drafts/:id` |
+| [`kas_pola_terpelajari`](kas-bank.md#kas_pola_terpelajari) | kas-bank | read | - | Admin, Accountant, Viewer | `GET /api/cash-book-drafts/learned-maps` |
 | [`mach_create`](produksi.md#mach_create) | produksi | write | tidak | Admin, Accountant, StaffProduksi | `POST /api/inventory/machines` |
 | [`mach_delete`](produksi.md#mach_delete) | produksi | critical | tidak | Admin, Accountant, StaffProduksi | `DELETE /api/inventory/machines/:id` |
 | [`mach_get`](produksi.md#mach_get) | produksi | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/inventory/machines/:id` |
