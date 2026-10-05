@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### AIRA — pembersihan jalur lama (Tahap 4)
+**Dihapus**:
+- Tabel `ai_whitelist` dan `ai_executed_runs` serta kolom `service_token`, `active_channels`, `whitelist_modules` pada `ai_settings` (migrasi `2026101500000_aira_legacy_cleanup.sql`, idempoten). Data lama (whitelist kanal, catatan eksekusi A3, token layanan) tidak dipakai lagi; jejak panggilan kini ada di `mcp_call_logs`. Kanal dikelola engine AIRA.
+- Migrasi SQL lepas lama dijaga agar aman diulang setiap boot setelah kolom/tabel itu hilang.
+
 ### Panel chat AIRA tahap 3: sesi disimpan Entaris, agen lewat API kompatibel-OpenAI
 **Ditambah**:
 - Entaris menyimpan **sesi & pesan chat sendiri** per pengguna (`chat_sessions`, `chat_messages`, `chat_attachments`; migrasi loose idempoten `2026101400000_chat_sessions.sql` dengan FTS `simple` + trigram bila `pg_trgm` tersedia). Riwayat, pencarian, ganti nama, arsip/pulihkan, hapus (diaudit), ekspor Markdown/JSON, sesi terakhir dibuka lintas perangkat, lampiran gambar (dan PDF opsional).
