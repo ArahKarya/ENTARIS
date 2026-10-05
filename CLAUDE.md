@@ -28,8 +28,11 @@ entaris/
 │   │   ├── routes/       # 43 top-level route files (77 .ts total incl. subfolders)
 │   │   ├── middleware/    # auth, auditTrail, rateLimiter
 │   │   ├── utils/        # schemas (Zod), documentNumber, accountBalance
+│   │   ├── ai/           # registry tool AIRA (aira-tool-router.json = SUMBER TUNGGAL katalog tool), types, validasi
+│   │   │   └── catalog/  # inventori route statis, denylist, ekstraksi Zod, generator docs/ai-tools
 │   │   ├── constants/    # system account numbers
 │   │   └── lib/          # prisma client, logger (Pino)
+│   ├── scripts/ai-tools/ # CLI katalog: inventory-routes.ts, generate-docs.ts (output scratch di out/, gitignored)
 │   └── prisma/
 │       ├── schema.prisma   # 111 models
 │       ├── seed.ts
@@ -42,7 +45,7 @@ entaris/
 │       ├── hooks/        # useHotkeys
 │       └── lib/          # api (Axios), exportExcel, pdf
 ├── scripts/          # backup, restore, setup-backup
-└── docs/             # brand, audits, ERD, tool coverage
+└── docs/             # brand, audits, ERD, ai-tools (katalog tool AIRA/MCP — dibangkitkan)
 ```
 
 ## System Accounts (JANGAN DIHAPUS/DIUBAH)
@@ -117,6 +120,12 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 - **Input produksi = DRAFT dulu** (`production_run_drafts`, `services/productionRunDraft.ts`, `routes/inventory/productionRunDrafts.ts`): `POST /inventory/production-runs` selalu membuat draft (`DPR-YYYYMM-NNNN`, status `Draft`) tanpa efek stok/GL/WAC/COGS/laporan/OEE — draft tidak terhubung ke konsumen `ProductionRun`. Posting = `POST /production-runs/drafts/:id/post`: role bypass → `submitProductionRunInTx` langsung (201, draft `Posted` + `postedRunId`); non-bypass → `ApprovalRequest` `ProductionRun` (202, draft `PendingApproval`). Approve → run dibuat + draft `Posted` (`approvalDecision`); reject/minta-revisi → draft kembali `Draft` + `lastError`. Klaim draft atomik (`updateMany` where status `Draft`) → tak bisa dobel-posting. Cek stok terjadi saat posting; saat simpan hanya `warnings`. Antrian `ProductionRun` lama (tanpa draft) tetap bisa di-approve. Edit run yang sudah diposting tetap lewat `PUT /:id` (+ approval).
 - Menambah aksi finansial baru pada dokumen existing → lewatkan `needsApproval` + tipe edit baru, jangan hanya `requireCap`.
 
+## Katalog Tool AIRA/MCP (`docs/ai-tools/`)
+
+- Registry tunggal: `server/src/ai/aira-tool-router.json` (default semua `enabled:false`). Tiap route API baru **wajib** punya tool di registry **atau** entri di `server/src/ai/catalog/denylist.ts` (alasan wajib) — kalau tidak, test `aiToolsCatalog` / `npm run ai-tools:check` gagal.
+- Tool write/critical wajib `confirm_template` + `postingEffect` + `draftCapable`; `params` diturunkan dari Zod/query; `toolset` salah satu dari 13 toolset; tier: read=Auto, write=Draft/Approve, critical=Wajib-Approve.
+- Setelah mengubah registry/panduan (`docs/ai-tools/_guides/*.md`): `cd server && npm run ai-tools:docs` lalu commit. Jangan edit `docs/ai-tools/*.md` hasil generate secara manual. Rencana MCP: `docs/ai-tools/ARSITEKTUR-MCP.md`.
+
 ## Coding Conventions
 
 ### Backend
@@ -150,6 +159,9 @@ npm run lint:prune       # Drop stale baseline entries after fixing violations (
 npm run test             # Run Vitest
 npm run prisma:migrate   # Create new migration
 npm run seed             # Seed database
+npm run ai-tools:inventory  # Inventori STATIS semua route API (+guard) -> scripts/ai-tools/out/route-inventory.json
+npm run ai-tools:docs       # Bangkitkan docs/ai-tools/ dari registry (idempoten; commit hasilnya)
+npm run ai-tools:check      # Drift guard: docs mutakhir + test route<->registry (juga dijalankan CI setelah test)
 
 # Client (from client/)
 npm run dev              # Vite dev server :5173
@@ -161,7 +173,7 @@ npm test                 # Vitest
 
 # CI: .github/workflows/ci.yml (PR + push to main)
 #   client: npm ci, lint, tsc -b, test, build
-#   server: npm ci, prisma generate, lint, tsc --noEmit, vitest (unit only; integration needs Postgres)
+#   server: npm ci, prisma generate, lint, tsc --noEmit, vitest (unit only; integration needs Postgres), ai-tools:check
 # Lint baseline workflow: existing violations (mostly legacy `any`) live in
 # {client,server}/eslint-suppressions.json (server baseline is mostly legacy `any`). NEW violations and
 # ANY warning fail `npm run lint`. After fixing old ones run `npm run lint:prune` in that package and
