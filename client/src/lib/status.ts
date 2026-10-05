@@ -38,6 +38,7 @@ export type DocType =
   | 'inventory_item'
   | 'production_run'
   | 'production_draft'
+  | 'cash_book_draft'
   | 'ga_document'
   | 'payment_request'
   | 'payment_request_settlement';
@@ -175,6 +176,13 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
     draft: m('Draft', 'neutral'),
     pendingapproval: m('Menunggu persetujuan', 'warning'),
     posted: POSTED,
+  },
+  // Draft Buku Kas: tanpa efek GL sampai diposting; PartiallyPosted = sebagian baris sudah jadi jurnal.
+  cash_book_draft: {
+    draft: m('Draft', 'neutral'),
+    partiallyposted: m('Sebagian Diposting', 'warning'),
+    posted: POSTED,
+    discarded: m('Dibuang', 'neutral'),
   },
   // Dokumen & sertifikat GA: an expired document needs renewal (danger).
   ga_document: { expired: m('Kedaluwarsa', 'danger') },
