@@ -817,6 +817,7 @@ model User {
   paymentRequestSettlementsSupervised PaymentRequest[]     @relation("PaymentRequestSettlementSupervisor")
   paymentRequestsPaid         PaymentRequest[]             @relation("PaymentRequestPaidBy")
   paymentRequestHistory       PaymentRequestHistory[]      @relation("PaymentRequestHistoryActor")
+  chatSessions                ChatSession[]
   createdAt                   DateTime                     @default(now()) @map("created_at")
   updatedAt                   DateTime                     @updatedAt @map("updated_at")
 
@@ -3583,9 +3584,14 @@ model McpCallLog {
   idempotencyKey String?  @map("idempotency_key")
   /// hasil pertama (untuk replay idempotency); hanya diisi bila idempotencyKey ada
   resultJson     Json?    @map("result_json")
+  /// `ref` dari actor assertion (panel chat: `<sessionId>:<turnId>`), untuk korelasi panggilan per giliran
+  ref            String?
+  /// petunjuk kartu hasil (kind/title/href/summary) yang diturunkan dari hasil tool; bukan hasil mentah
+  card           Json?
   createdAt      DateTime @default(now()) @map("created_at")
 
   @@unique([tokenId, idempotencyKey])
+  @@index([ref])
   @@index([createdAt])
   @@index([tool])
   @@index([tokenId])
@@ -3603,4 +3609,78 @@ model McpNonce {
   @@id([tokenId, nonce])
   @@index([expiresAt])
   @@map("mcp_nonces")
+}
+
+/// Sesi panel chat AIRA milik satu user. Entaris adalah sumber kebenaran transkrip
+/// (engine AIRA tidak menyimpan state yang dibutuhkan untuk melanjutkan).
+model ChatSession {
+  id                    String        @id @default(uuid())
+  userId                String        @map("user_id")
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                 String?
+  /// auto | user
+  titleSource           String        @default("auto") @map("title_source")
+  /// active | archived
+  status                String        @default("active")
+  /// ringkasan bergulir untuk giliran lama (diperbarui bertahap)
+  summary               String?
+  /// pesan terakhir (seq) yang sudah tercakup ringkasan
+  summaryUpToMessageId  String?       @map("summary_up_to_message_id")
+  messageCount          Int           @default(0) @map("message_count")
+  lastMessageAt         DateTime      @default(now()) @map("last_message_at")
+  /// terakhir dibuka (lintas perangkat): panel membuka sesi ini lebih dulu
+  lastOpenedAt          DateTime?     @map("last_opened_at")
+  /// giliran yang sedang berjalan (satu per sesi) + waktu mulai (lease)
+  inflightTurnId        String?       @map("inflight_turn_id")
+  inflightSince         DateTime?     @map("inflight_since")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  messages              ChatMessage[]
+
+  @@index([userId, status, lastMessageAt(sort: Desc)])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String           @id @default(uuid())
+  /// urutan global monoton (urutan tampil & kursor paging)
+  seq           Int              @default(autoincrement())
+  sessionId     String           @map("session_id")
+  session       ChatSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  turnId        String           @map("turn_id")
+  /// user | assistant | system
+  role          String
+  content       String           @default("")
+  /// kartu hasil + progres tool + metadata lampiran (snapshot)
+  parts         Json?
+  /// ok | error | aborted | streaming
+  status        String           @default("ok")
+  error         String?
+  model         String?
+  durationMs    Int?             @map("duration_ms")
+  /// bukti otoritas yang berlaku pada giliran ini (uid, role, tier, jabatan, hash toolset, versi blok)
+  actorSnapshot Json?            @map("actor_snapshot")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  attachments   ChatAttachment[]
+
+  @@index([sessionId, createdAt])
+  @@index([sessionId, seq])
+  @@index([turnId])
+  /// indeks trigram (pg_trgm) untuk pencarian substring; dibuat oleh migrasi SQL lepas bila ekstensi tersedia
+  @@index([content(ops: raw("gin_trgm_ops"))], type: Gin, map: "chat_messages_content_trgm_idx")
+  @@map("chat_messages")
+}
+
+model ChatAttachment {
+  id        String      @id @default(uuid())
+  messageId String      @map("message_id")
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  fileName  String      @map("file_name")
+  mimeType  String      @map("mime_type")
+  size      Int
+  filePath  String      @map("file_path")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([messageId])
+  @@map("chat_attachments")
 }
