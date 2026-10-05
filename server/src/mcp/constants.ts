@@ -27,3 +27,7 @@ export const DEFAULT_RATE_LIMIT_PER_MIN = 120;
 
 export const TOKEN_PREFIX = 'entmcp_';
 export const SECRET_PREFIX = 'entsig_';
+
+/** documentType ApprovalRequest untuk panggilan tool agen yang menunggu persetujuan: `ai_tool:<nama>`. */
+export const AI_TOOL_DOC_PREFIX = 'ai_tool:';
+export const isAiToolDocumentType = (t: string): boolean => t.startsWith(AI_TOOL_DOC_PREFIX);

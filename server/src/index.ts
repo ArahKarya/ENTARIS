@@ -34,6 +34,7 @@ import reportRoutes from './routes/reports';
 import aiConfigRoutes from './routes/ai/config';
 import aiRouterRoutes from './routes/ai/router';
 import aiChatRoutes from './routes/ai/chat';
+import mcpRouter from './mcp/router';
 import settingsRoutes from './routes/settings';
 import fiscalYearRoutes from './routes/fiscalYears';
 import inventoryRoutes from './routes/inventory';
@@ -149,6 +150,11 @@ app.use(
     exposedHeaders: ['RateLimit-Reset', 'RateLimit-Limit', 'RateLimit-Remaining', 'Retry-After'],
   })
 );
+
+// ─── MCP (AIRA) ───────────────────────────────────────────────────────────────
+// Endpoint MCP stateless untuk mesin AI (Hermes). Auth sendiri (Bearer token MCP + actor
+// assertion), body-limit sendiri → dipasang SEBELUM body parser global & auth /api.
+app.use('/mcp', mcpRouter);
 
 // ─── Body Parsing ──────────────────────────────────────────────────────────────
 // 5mb agar upload logo (base64 ~4MB) bisa masuk sebelum sampai ke /api/settings
