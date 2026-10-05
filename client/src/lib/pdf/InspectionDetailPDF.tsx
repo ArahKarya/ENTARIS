@@ -29,7 +29,7 @@ const S = StyleSheet.create({
   summarySub: { fontSize: 6.5, color: C.faint, marginTop: 2 },
 
   idGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
-  idCell: { width: '25%', marginBottom: 6 },
+  idCell: { width: '25%', marginBottom: 6, paddingRight: 8 },
   idLabel: { fontSize: 6.5, color: C.faint, marginBottom: 1 },
   idValue: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.mid },
 

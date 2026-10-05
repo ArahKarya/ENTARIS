@@ -132,7 +132,7 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
         </PdfMetaRow>
 
         {processes && processes.length > 0 && (
-          <PdfMetaField tone="mono" label="Proses Dijalankan" value={processes.join('  →  ')} bold />
+          <PdfMetaField tone="mono" label="Proses Dijalankan" value={processes.join('  >  ')} bold />
         )}
 
         <Text style={S.sectionTitle} minPresenceAhead={60}>Bahan Input ({inputs.length})</Text>

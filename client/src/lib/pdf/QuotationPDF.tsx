@@ -113,8 +113,8 @@ const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
   const totalRows = [
     { label: 'Subtotal', value: formatRupiah(subtotal), show: true },
     { label: 'PPN', value: formatRupiah(taxAmount), show: taxAmount > 0 },
-    { label: 'PPh', value: `−${formatRupiah(pphAmount)}`, show: pphAmount > 0 },
-    { label: quotation.labelPotongan ?? 'Potongan', value: `−${formatRupiah(potongan)}`, show: potongan > 0 },
+    { label: 'PPh', value: `-${formatRupiah(pphAmount)}`, show: pphAmount > 0 },
+    { label: quotation.labelPotongan ?? 'Potongan', value: `-${formatRupiah(potongan)}`, show: potongan > 0 },
     { label: quotation.labelBiaya ?? 'Biaya Lain', value: formatRupiah(biayaLain), show: biayaLain !== 0 },
   ].filter((r) => r.show);
 

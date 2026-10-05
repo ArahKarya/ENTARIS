@@ -12,7 +12,7 @@ import WarehouseStockPDF from './WarehouseStockPDF';
 import StockOpnamePDF from './StockOpnamePDF';
 import ProductionRunPDF from './ProductionRunPDF';
 import { DailyReportPDF } from './DailyReportPDF';
-import { TrialBalancePDF, ProfitLossPDF, BalanceSheetPDF, AgingPDF } from './ReportPDF';
+import { TrialBalancePDF, ProfitLossPDF, BalanceSheetPDF, CashFlowPDF, AgingPDF } from './ReportPDF';
 import VehicleReportPDF from './VehicleReportPDF';
 import InspectionDetailPDF from './InspectionDetailPDF';
 import { pdfDate, pdfMoneyAuto, pdfNum, pdfRp, pdfRpAuto } from './pdfFormat';
@@ -69,6 +69,10 @@ const cases: Array<[string, () => ReactElement]> = [
   ['ProfitLossPDF', () => <ProfitLossPDF company={company} period="Okt 2026" revenue={[]} expense={[]} totalRevenue={0} totalExpense={0} netProfit={0} />],
   ['BalanceSheetPDF', () => (
     <BalanceSheetPDF company={company} asOf="2026-10-31" assets={[]} totalAssets={0} liabilities={[]} equity={[]} totalLiabilities={0} totalEquity={0} />
+  )],
+  ['CashFlowPDF', () => (
+    <CashFlowPDF company={company} period="2026-01-01 s/d 2026-10-31" operating={-500} investing={0} financing={1000} netChange={500}
+      operatingItems={[{ description: 'Beban Listrik', amount: -500 }]} financingItems={[{ description: 'Setoran Modal', amount: 1000 }]} />
   )],
   ['AgingPDF', () => <AgingPDF company={company} type="Customer" rows={[]} totals={{ current: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90plus: 0, total: 0 } as never} />],
   ['VehicleReportPDF', () => (

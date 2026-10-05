@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet, Svg, Line, Polygon } from '@react-pdf/renderer';
 import { PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfSignatureBlock } from './kit';
 import { NcrItemsTable, NcrNotes } from './ncrParts';
 import { CARBON, F, FOOTER_SPACE, NCR_PAGE } from './theme';
@@ -9,7 +9,7 @@ const S = StyleSheet.create({
   routeBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: CARBON.black, padding: 8, marginBottom: 12 },
   routeLabel: { fontSize: 8.5, fontFamily: F.bold, marginBottom: 2 },
   routeValue: { fontSize: 12, fontFamily: F.bold },
-  routeArrow: { fontSize: 16, fontFamily: F.bold },
+  routeArrow: { width: 44, height: 12, marginHorizontal: 10 },
 });
 
 export interface WarehouseTransferPDFItem {
@@ -41,14 +41,17 @@ const WarehouseTransferPDF: React.FC<WarehouseTransferPDFProps> = ({
       <PdfHeader company={company} title="SURAT JALAN ANTAR GUDANG" number={transferNumber} tone="mono" pageMeta />
 
       <View style={S.routeBox} wrap={false}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={S.routeLabel}>GUDANG ASAL</Text>
           <Text style={S.routeValue}>{fromWarehouseName}</Text>
         </View>
-        <Text style={S.routeArrow}>→</Text>
-        <View>
+        <Svg style={S.routeArrow} viewBox="0 0 44 12">
+          <Line x1="0" y1="6" x2="36" y2="6" stroke={CARBON.black} strokeWidth={1.5} />
+          <Polygon points="34,0 44,6 34,12" fill={CARBON.black} />
+        </Svg>
+        <View style={{ flex: 1, alignItems: 'flex-end' }}>
           <Text style={S.routeLabel}>GUDANG TUJUAN</Text>
-          <Text style={S.routeValue}>{toWarehouseName}</Text>
+          <Text style={[S.routeValue, { textAlign: 'right' }]}>{toWarehouseName}</Text>
         </View>
       </View>
 

@@ -39,7 +39,7 @@ const S = StyleSheet.create({
   docMeta: { fontSize: 8.5, textAlign: 'right', marginTop: 2 },
   status: { fontSize: 8, fontFamily: F.bold, textAlign: 'right', marginTop: 4, letterSpacing: 0.4 },
   label: { fontSize: 7.5, fontFamily: F.bold, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
-  partyName: { fontSize: 10, fontFamily: F.bold, marginBottom: 2 },
+  partyName: { fontSize: 10, fontFamily: F.bold, marginBottom: 2, lineHeight: 1.25 },
   partyLine: { fontSize: 9, marginBottom: 1.5, lineHeight: 1.3 },
   th: { flexDirection: 'row', paddingVertical: 4.5, paddingHorizontal: 4 },
   thText: { fontSize: 8, fontFamily: F.bold },
