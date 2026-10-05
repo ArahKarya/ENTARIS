@@ -1,11 +1,11 @@
 import type { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { recalculateAccountBalances } from '../utils/accountBalance';
 import { cancelJournalsByPrefix } from '../utils/journalCancel';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
 import { logger } from '../lib/logger';
 import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
+import { recomputeAverageCostFromReplay } from './averageCostRecompute';
 
 type Tx = Prisma.TransactionClient;
 
@@ -42,7 +42,7 @@ export async function cancelProductionRunInTx(
     include: { item: true },
   });
 
-  const outputItemIds = new Set<string>();
+  const affectedItemIds = new Set<string>();
 
   for (const mov of movements) {
     const isIn = mov.movementType === 'In' || mov.movementType === 'AdjustmentIn';
@@ -68,7 +68,7 @@ export async function cancelProductionRunInTx(
       );
     }
 
-    if (isIn) outputItemIds.add(mov.itemId);
+    affectedItemIds.add(mov.itemId);
 
     const reverseDelta = isOut ? qty : -qty;
     await tx.inventoryItem.update({
@@ -82,34 +82,10 @@ export async function cancelProductionRunInTx(
     });
   }
 
-  // Recalculate averageCost for output items from remaining active In movements.
-  // After cancelling some In movements, the remaining ones are the new basis.
-  for (const itemId of outputItemIds) {
-    const activeInMovements = await tx.stockMovement.findMany({
-      where: {
-        itemId,
-        movementType: { in: ['In', 'AdjustmentIn'] },
-        isCancelled: false,
-      },
-      select: { quantity: true, unitCost: true },
-    });
-
-    if (activeInMovements.length === 0) {
-      await tx.inventoryItem.update({ where: { id: itemId }, data: { averageCost: 0 } });
-    } else {
-      let totalQty = new Decimal(0);
-      let totalValue = new Decimal(0);
-      for (const m of activeInMovements) {
-        const q = new Decimal(Number(m.quantity));
-        const c = new Decimal(Number(m.unitCost));
-        totalQty = totalQty.plus(q);
-        totalValue = totalValue.plus(q.mul(c));
-      }
-      const newAvgCost = totalQty.gt(0)
-        ? totalValue.div(totalQty).toDecimalPlaces(2).toNumber()
-        : 0;
-      await tx.inventoryItem.update({ where: { id: itemId }, data: { averageCost: newAvgCost } });
-    }
+  // Recompute averageCost by REPLAYING the remaining active movements of every
+  // affected item (outputs and inputs), not by averaging all inbound.
+  for (const itemId of affectedItemIds) {
+    await recomputeAverageCostFromReplay(tx, itemId);
   }
 
   // Balik auto-settle COGS backfill yang dipicu PR ini (JV-YYYYMM-nnnn + antrean + averageCost)

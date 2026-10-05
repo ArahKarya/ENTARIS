@@ -1,9 +1,9 @@
 import type { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 import { BusinessError } from '../utils/errors';
 import { adjustWarehouseStock } from '../utils/warehouseStock';
 import { updateAccountBalance } from '../utils/accountBalance';
 import { logger } from '../lib/logger';
+import { recomputeAverageCostFromReplay } from './averageCostRecompute';
 
 type Tx = Prisma.TransactionClient;
 
@@ -149,25 +149,11 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // Recompute averageCost for each affected item from remaining active In
-  // movements (the cancelled receipt no longer contributes). Mirrors the
-  // production-cancel pattern — prevents WAC staying inflated after cancel.
-  // STT barang titipan: skip — submit-nya tidak menyentuh WAC, recompute di
-  // sini justru memasukkan movement 0-cost titipan lain ke rata-rata.
+  // Recompute averageCost for each affected item by REPLAYING its remaining
+  // active movements (the cancelled receipt no longer contributes).
+  // STT barang titipan: skip — submit-nya tidak menyentuh WAC.
   for (const itemId of stt.isCustomerOwned ? [] : affectedItemIds) {
-    const activeIns = await tx.stockMovement.findMany({
-      where: { itemId, movementType: { in: ['In', 'AdjustmentIn', 'TransferIn'] }, isCancelled: false },
-      select: { quantity: true, unitCost: true },
-    });
-    let totalQty = new Decimal(0);
-    let totalValue = new Decimal(0);
-    for (const m of activeIns) {
-      const q = new Decimal(m.quantity.toString());
-      totalQty = totalQty.plus(q);
-      totalValue = totalValue.plus(q.mul(new Decimal(m.unitCost.toString())));
-    }
-    const newAvg = totalQty.gt(0) ? totalValue.div(totalQty).toDecimalPlaces(2).toNumber() : 0;
-    await tx.inventoryItem.update({ where: { id: itemId }, data: { averageCost: newAvg } });
+    await recomputeAverageCostFromReplay(tx, itemId);
   }
 
   // Cancel JV: find original JV, post reverse JV, mark original Cancelled
