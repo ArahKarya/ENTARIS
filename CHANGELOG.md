@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Katalog tool AIRA/MCP lengkap & terdokumentasi (Stage 0)
+**Ditambah**:
+- Inventori route statis (`npm run ai-tools:inventory`): memetakan 539 endpoint beserta guard mount-nya tanpa menjalankan server/DB; denylist endpoint yang tidak boleh menjadi tool (`server/src/ai/catalog/denylist.ts`); ekstraksi parameter dari skema Zod.
+- Dokumentasi katalog dibangkitkan di `docs/ai-tools/` (README, INDEX, 13 file toolset dengan ALUR BISNIS, DENYLIST, GLOSARIUM, AUDIT, `catalog.json`, ARSITEKTUR-MCP) lewat `npm run ai-tools:docs`; panduan tulisan tangan di `docs/ai-tools/_guides/`.
+- Drift guard: test vitest `aiToolsCatalog` + `npm run ai-tools:check` (dijalankan CI): handler registry harus cocok route nyata, route non-denylist wajib punya tool, write/critical wajib `confirm_template`/`postingEffect`, docs harus mutakhir.
+- Field registry baru (opsional, kompatibel mundur): `toolset`, `draftCapable`, `postingEffect`, `safeNonGet`, `params`, `outputSummary`, `accessNote`, `prerequisites`, `errors`, `related`.
+
+**Diubah**:
+- Registry diperbarui: 386 -> 462 tool (136 ditambah untuk endpoint baru, 60 dihapus: 58 masuk denylist + 2 duplikat), 40 risk dikoreksi (aksi yang memposting GL/stok kini `critical`), deskripsi/parameter/roles diturunkan dari kode, semua tetap `enabled:false`. Nama `prod_run_create` -> `prod_draft_create`, `get_aging_receivable` -> `rpt_aging`.
+- `risk=read` kini boleh handler non-GET bila `safeNonGet=true` (preview/search murni baca).
+- Salinan `docs/erd-ai-layer/config/aira-tool-router.json` dihapus (sumber tunggal di server); validator dan skema JSON diperbarui.
+
 ### Fitur: input produksi disimpan sebagai draft dulu
 **Berubah**:
 - Input Data Produksi tidak lagi langsung diposting. `POST /api/inventory/production-runs` kini selalu menyimpan **draft** (`DPR-YYYYMM-NNNN`, tabel baru `production_run_drafts`) tanpa efek ke stok, jurnal, HPP/WAC, COGS, laporan, dasbor, maupun OEE; saat simpan hanya muncul peringatan stok (tidak memblokir).

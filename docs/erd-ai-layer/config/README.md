@@ -8,7 +8,7 @@ tanpa mengubah kode otak agent. **Menambah kemampuan = menambah 1 entri tool** (
 
 | File | Fungsi |
 |---|---|
-| `aira-tool-router.json` | **Config tool** (mapping function & control) — yang diedit saat nambah fitur. |
+| ~~`aira-tool-router.json`~~ | **Dihapus dari folder ini.** Sumber tunggal: `server/src/ai/aira-tool-router.json`. Dokumentasi per tool dibangkitkan ke `docs/ai-tools/` (`cd server && npm run ai-tools:docs`). |
 | `aira-tool-router.schema.json` | JSON Schema — guard struktur (selaras BRD §8.9). |
 | `validate-aira-config.mjs` | Validator: cek config vs schema + aturan AIRA. Jalankan tiap edit. |
 | `_archive-pre-aira/` | Format lama (pre-BRD AIRA) — arsip, jangan dipakai. |
@@ -35,7 +35,7 @@ tanpa mengubah kode otak agent. **Menambah kemampuan = menambah 1 entri tool** (
 
 ## Cara menambah tool/fitur baru
 
-1. Tambahkan objek ke array `tools` di `aira-tool-router.json`:
+1. Tambahkan objek ke array `tools` di `server/src/ai/aira-tool-router.json` (lalu `npm run ai-tools:docs`):
    ```json
    {
      "name": "submit_leave",
@@ -50,7 +50,7 @@ tanpa mengubah kode otak agent. **Menambah kemampuan = menambah 1 entri tool** (
      "enabled": false, "level": 2, "phase": 3
    }
    ```
-2. Validasi: `node validate-aira-config.mjs`
+2. Validasi: `node validate-aira-config.mjs` (membaca registry server) dan `cd server && npm run ai-tools:check`
 3. Perbaiki sampai `✅ Config valid`.
 
 ## Aturan guard (otomatis)
@@ -66,7 +66,7 @@ tanpa mengubah kode otak agent. **Menambah kemampuan = menambah 1 entri tool** (
 Agent Core (AIRA — otak reusable, 1 untuk semua app)
       │ baca config app ini saat load
       ▼
-aira-tool-router.json (config app erp-aks — file INI)
+server/src/ai/aira-tool-router.json (config app simple-erp — sumber tunggal)
       │ handler = endpoint resmi
       ▼
 Tool Layer (API ERP existing + validasi bisnis + cek izin)

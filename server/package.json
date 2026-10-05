@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "lint": "eslint . --max-warnings 0",
     "lint:prune": "eslint . --prune-suppressions",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "ai-tools:inventory": "tsx scripts/ai-tools/inventory-routes.ts",
+    "ai-tools:docs": "tsx scripts/ai-tools/generate-docs.ts",
+    "ai-tools:check": "tsx scripts/ai-tools/generate-docs.ts --check && vitest run src/ai/__tests__/aiToolsCatalog.test.ts"
   },
   "prisma": {
     "seed": "npm run seed"
