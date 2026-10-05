@@ -17,7 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { can, cap } from '@/lib/permissions';
+import { can, cap, getStoredUser } from '@/lib/permissions';
 import { LIST_PARAM } from '@/hooks/useListState';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,6 +36,7 @@ import ImportModal from '@/components/ImportModal';
 import { InventoryItemsTab } from '@/components/inventory/InventoryItemsTab';
 import { StockMovementsTab } from '@/components/inventory/StockMovementsTab';
 import { ProductionRunsTab } from '@/components/inventory/ProductionRunsTab';
+import { PRODUCTION_DRAFTS_ENDPOINT, ProductionDraftsTab } from '@/components/inventory/ProductionDraftsTab';
 import { ServiceItemsTab } from '@/components/inventory/ServiceItemsTab';
 import { ServiceItemModal } from '@/components/inventory/ServiceItemModal';
 import {
@@ -45,6 +46,8 @@ import {
   SERVICE_FILTER_KEYS,
   errorMessage,
   type InventoryItemRow,
+  type ProductionDraftList,
+  type ProductionDraftRow,
   type ProductionRunRow,
   type ServiceItemRow,
   type StockMovementRow,
@@ -53,7 +56,7 @@ import { PERIOD_PARAM } from '@/components/inventory/dashboard-model';
 import { ProductionApprovalView } from '@/components/inventory/ProductionApprovalView';
 
 type Tab = 'dashboard' | 'items' | 'movements' | 'production' | 'services';
-type ProdView = 'dashboard' | 'data' | 'approval' | 'costStandards' | 'processes' | 'machines';
+type ProdView = 'dashboard' | 'data' | 'draft' | 'approval' | 'costStandards' | 'processes' | 'machines';
 
 const TAB_PARAM = 'tab';
 const VIEW_PARAM = 'view';
@@ -61,6 +64,7 @@ const TABS: readonly Tab[] = ['dashboard', 'items', 'movements', 'production', '
 const PROD_VIEWS: ReadonlyArray<{ value: ProdView; label: string }> = [
   { value: 'dashboard', label: 'Dashboard' },
   { value: 'data', label: 'Data Produksi' },
+  { value: 'draft', label: 'Draft' },
   { value: 'approval', label: 'Approval & Pengajuan' },
   { value: 'costStandards', label: 'Standar Biaya' },
   { value: 'processes', label: 'Master Proses' },
@@ -118,9 +122,21 @@ export function InventoryPage() {
   const [editProdRun, setEditProdRun] = useState<ProductionRunRow | null>(null);
   const [prodPrefillPayload, setProdPrefillPayload] = useState<unknown>(null);
   const [prodResubmitId, setProdResubmitId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{ id: string; draftNumber: string; lastError?: string | null } | null>(null);
+  const [postDraftTarget, setPostDraftTarget] = useState<ProductionDraftRow | null>(null);
+  const [deleteDraftTarget, setDeleteDraftTarget] = useState<ProductionDraftRow | null>(null);
   const [cancelProdTarget, setCancelProdTarget] = useState<string | null>(null);
   const [selectedProdRunId, setSelectedProdRunId] = useState<string | null>(null);
   const [serviceModal, setServiceModal] = useState<{ edit: ServiceItemRow | null } | null>(null);
+
+  // Badge on the "Draft" view: drafts not yet posted (Draft + menunggu persetujuan).
+  const { data: draftCounts } = useQuery({
+    queryKey: ['production-runs', 'drafts', 'counts'],
+    queryFn: async () =>
+      (await api.get<ProductionDraftList>(PRODUCTION_DRAFTS_ENDPOINT, { params: { limit: 1 } })).data.counts ?? {},
+    enabled: tab === 'production' && canViewProduction,
+  });
+  const openDrafts = (draftCounts?.Draft ?? 0) + (draftCounts?.PendingApproval ?? 0);
 
   // Item list for the production dashboard filter and the production modal
   // (same legacy call the page always made: stock-descending, first 100).
@@ -189,7 +205,60 @@ export function InventoryPage() {
   };
   const openRunCreate = () => {
     setEditProdRun(null);
+    setEditDraft(null);
+    setProdPrefillPayload(null);
     setProductionModalOpen(true);
+  };
+  const openDraftEdit = useCallback(async (d: ProductionDraftRow) => {
+    try {
+      const { data } = await api.get(`${PRODUCTION_DRAFTS_ENDPOINT}/${d.id}`);
+      setEditProdRun(null);
+      setProdResubmitId(null);
+      setProdPrefillPayload(data.payload);
+      setEditDraft({ id: data.id, draftNumber: data.draftNumber, lastError: data.lastError });
+      setProductionModalOpen(true);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Gagal membuka draft produksi.'));
+    }
+  }, []);
+  const askPostDraft = useCallback((d: ProductionDraftRow) => setPostDraftTarget(d), []);
+  const askDeleteDraft = useCallback((d: ProductionDraftRow) => setDeleteDraftTarget(d), []);
+  const canManageDraft = useCallback(
+    (d: ProductionDraftRow) => cap('approval.bypass') || d.createdBy?.id === getStoredUser()?.id,
+    [],
+  );
+  const invalidateAfterPost = () => {
+    for (const key of ['production-runs', 'stock-movements', 'inventory-items', 'approval-requests', 'approval-pending']) {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  };
+  const handlePostDraft = async () => {
+    if (!postDraftTarget) return;
+    try {
+      const { data } = await api.post(`${PRODUCTION_DRAFTS_ENDPOINT}/${postDraftTarget.id}/post`);
+      toast.success(
+        data?.pendingApproval
+          ? `${postDraftTarget.draftNumber} dikirim untuk persetujuan. Stok dan jurnal terbentuk setelah disetujui.`
+          : `${postDraftTarget.draftNumber} diposting sebagai ${data?.runNumber ?? 'proses produksi'}.`,
+      );
+    } catch (err) {
+      toast.error(errorMessage(err, 'Gagal memposting draft produksi.'));
+    } finally {
+      invalidateAfterPost();
+      setPostDraftTarget(null);
+    }
+  };
+  const handleDeleteDraft = async () => {
+    if (!deleteDraftTarget) return;
+    try {
+      await api.delete(`${PRODUCTION_DRAFTS_ENDPOINT}/${deleteDraftTarget.id}`);
+      toast.success(`${deleteDraftTarget.draftNumber} dihapus.`);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Gagal menghapus draft produksi.'));
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['production-runs', 'drafts'] });
+      setDeleteDraftTarget(null);
+    }
   };
 
   const handleDeleteItem = async () => {
@@ -272,7 +341,7 @@ export function InventoryPage() {
     actions = (
       <Button onClick={openRunCreate}>
         <Plus aria-hidden />
-        Proses Produksi
+        Draft Produksi
       </Button>
     );
   } else if (tab === 'services' && canEditServices) {
@@ -331,6 +400,12 @@ export function InventoryPage() {
                 {PROD_VIEWS.map((v) => (
                   <TabsTrigger key={v.value} value={v.value}>
                     {v.label}
+                    {v.value === 'draft' && openDrafts > 0 && (
+                      <span className="num ml-1.5 rounded-full bg-primary-subtle px-1.5 text-xs font-medium text-primary-subtle-foreground">
+                        <span aria-hidden>{openDrafts}</span>
+                        <span className="sr-only">, {openDrafts} draft belum diposting</span>
+                      </span>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -346,6 +421,17 @@ export function InventoryPage() {
                 onOpen={setSelectedProdRunId}
                 onEdit={openRunEdit}
                 onCancel={askCancelRun}
+              />
+            </TabsContent>
+            <TabsContent value="draft" className="mt-0">
+              <ProductionDraftsTab
+                canEdit={canEditProduction}
+                canManage={canManageDraft}
+                onCreate={canEditProduction ? openRunCreate : undefined}
+                onEdit={openDraftEdit}
+                onPost={askPostDraft}
+                onDelete={askDeleteDraft}
+                onOpenRun={setSelectedProdRunId}
               />
             </TabsContent>
             <TabsContent value="approval" className="mt-0">
@@ -408,11 +494,13 @@ export function InventoryPage() {
           setEditProdRun(null);
           setProdPrefillPayload(null);
           setProdResubmitId(null);
+          setEditDraft(null);
         }}
         items={productionItems ?? []}
         editRun={editProdRun}
         prefillPayload={prodPrefillPayload}
         resubmitRequestId={prodResubmitId}
+        draft={editDraft}
       />
 
       <ProductionDetailDrawer
@@ -460,6 +548,31 @@ export function InventoryPage() {
         confirmLabel="Ya, Batalkan"
         cancelLabel="Tidak"
         onConfirm={handleCancelProduction}
+      />
+
+      <ConfirmDialog
+        open={postDraftTarget !== null}
+        onOpenChange={(open) => !open && setPostDraftTarget(null)}
+        title={`Posting ${postDraftTarget?.draftNumber ?? 'draft'}?`}
+        description={
+          cap('approval.bypass')
+            ? 'Stok, jurnal, dan HPP akan terbentuk sekarang sebagai proses produksi. Pastikan data sudah benar.'
+            : 'Draft dikirim untuk persetujuan manajer. Stok, jurnal, dan HPP baru terbentuk setelah disetujui.'
+        }
+        confirmLabel={cap('approval.bypass') ? 'Ya, Posting' : 'Ya, Kirim untuk Persetujuan'}
+        cancelLabel="Batal"
+        onConfirm={handlePostDraft}
+      />
+
+      <ConfirmDialog
+        open={deleteDraftTarget !== null}
+        onOpenChange={(open) => !open && setDeleteDraftTarget(null)}
+        tone="danger"
+        title={`Hapus ${deleteDraftTarget?.draftNumber ?? 'draft'}?`}
+        description="Draft dibuang dan tidak bisa dikembalikan. Tidak ada efek ke stok atau jurnal."
+        confirmLabel="Ya, Hapus"
+        cancelLabel="Batal"
+        onConfirm={handleDeleteDraft}
       />
 
       <ImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} importType="inventory" />
