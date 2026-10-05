@@ -14,6 +14,8 @@ import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import { mergeInvoicePdfWithAttachments } from '../lib/pdf/mergePdfWithAttachments';
 import type { AttachmentRef } from '../lib/pdf/mergePdfWithAttachments';
 import { computeDeductions } from '../lib/invoiceDeductions';
+import { usePendingApproval } from '@/hooks/usePendingApproval';
+import { PendingApprovalBadge, PendingApprovalNotice } from './approvals/PendingApprovalNotice';
 import ApplyDepositModal from './ApplyDepositModal';
 import ApplyCustomerDepositModal from './ApplyCustomerDepositModal';
 import DeliveryOrderFromInvoiceModal from './DeliveryOrderFromInvoiceModal';
@@ -61,6 +63,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const [reviseRates, setReviseRates] = useState<Record<string, string>>({});
   const [reviseReason, setReviseReason] = useState('');
   const endpoint = isSales ? '/sales/invoices' : '/purchase/invoices';
+  const pendingRevise = usePendingApproval('PurchaseInvoiceRevisePrice', isSales ? null : invoiceId);
   const canHaveAttachments = type === 'purchase' || type === 'sales';
 
   const { data: invoice, isLoading } = useQuery({
@@ -132,7 +135,17 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const reviseMutation = useMutation({
     mutationFn: (payload: { lines: { itemId: string; newRate: number }[]; reason: string }) =>
       api.post(`${endpoint}/${invoiceId}/revise-price`, payload),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res.data?.pendingApproval) {
+        // Belum diterapkan: hanya diantrekan → tanpa update optimistis.
+        queryClient.invalidateQueries({ queryKey: ['approval-pending', 'PurchaseInvoiceRevisePrice', invoiceId] });
+        queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+        toast.success('Perubahan dikirim untuk persetujuan');
+        setReviseOpen(false);
+        setReviseRates({});
+        setReviseReason('');
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ['purchase-invoice-detail', invoiceId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
@@ -407,9 +420,16 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                 {isSales ? <FileDown className="size-5 text-primary" aria-hidden /> : <Package className="size-5 text-primary" aria-hidden />}
                 {isLoading ? 'Memuat…' : invoice?.invoiceNumber ?? (isSales ? 'Invoice Penjualan' : 'Invoice Pembelian')}
               </SheetTitle>
+              {pendingRevise && <PendingApprovalBadge />}
             </div>
             <SheetDescription>{isSales ? 'Invoice Penjualan' : 'Invoice Pembelian'}</SheetDescription>
           </SheetHeader>
+
+          {pendingRevise && (
+            <div className="px-4 pt-3 sm:px-6">
+              <PendingApprovalNotice what="Revisi harga invoice" />
+            </div>
+          )}
 
           <SheetBody className="px-0 py-0">
             {isLoading ? (
@@ -577,7 +597,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                   </Button>
                 )}
                 {!isSales && invoice.status !== 'Cancelled' && invoice.status !== 'Draft' && (
-                  <Button variant="outline" className={footBtn} onClick={openRevise} title="Revisi harga dari supplier (selisih diposting otomatis)">
+                  <Button variant="outline" className={footBtn} onClick={openRevise} disabled={!!pendingRevise} title={pendingRevise ? 'Menunggu persetujuan' : 'Revisi harga dari supplier (selisih diposting otomatis)'}>
                     Revisi Harga
                   </Button>
                 )}

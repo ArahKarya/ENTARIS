@@ -399,7 +399,7 @@ export const PurchaseInvoices = () => {
 
       <TabsContent value="approval" className="mt-0">
         <ApprovalPanel
-          documentType="PurchaseInvoice"
+          documentType={['PurchaseInvoice', 'PurchaseInvoiceRevisePrice']}
           onResubmit={handleResubmit}
           onViewDocument={(req) => {
             if (req.documentId) setSelectedId(req.documentId);

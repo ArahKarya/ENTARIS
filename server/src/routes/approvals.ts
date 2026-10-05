@@ -5,6 +5,7 @@ import { hasCap } from '../services/permissionService';
 import { logger } from '../lib/logger';
 import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
 import { decideApproval } from '../services/approvalDecision';
+import { buildApprovalComparison, isEditDocumentType, findPendingForTarget } from '../services/approvalEditRequests';
 
 const router = Router();
 
@@ -107,7 +108,7 @@ router.get('/requests/:id', async (req: AuthRequest, res) => {
     if (!(await hasCap(req.user!.role, 'approval.view_all')) && request.requestedBy !== req.user!.userId) {
       return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
     }
-    res.json(request);
+    res.json({ ...request, comparison: buildApprovalComparison(request) });
   } catch (error) {
     logger.error(error, 'GET /approvals/requests/:id error');
     res.status(500).json({ error: 'Gagal mengambil pengajuan.' });
@@ -195,10 +196,26 @@ router.get('/requests/:id/context', async (req: AuthRequest, res) => {
         sameSupplier: r.purchaseInvoice?.partyId === payload.partyId,
       }));
     }));
-    res.json({ sttLines, stts, requestAttachments: requestAtt, supplier, priceHistory });
+    res.json({ sttLines, stts, requestAttachments: requestAtt, supplier, priceHistory, comparison: buildApprovalComparison(request) });
   } catch (error) {
     logger.error(error, 'GET /approvals/requests/:id/context error');
     res.status(500).json({ error: 'Gagal mengambil detail pendukung.' });
+  }
+});
+
+// GET /pending?documentType=&documentId= — apakah ada pengajuan Pending utk dokumen ini
+// (utk badge "Menunggu persetujuan" + disable tombol edit/revisi). Murah: 1 query terindeks.
+router.get('/pending', async (req, res) => {
+  try {
+    const { documentType, documentId } = req.query;
+    if (!isEditDocumentType(documentType) || typeof documentId !== 'string' || !documentId) {
+      return res.status(400).json({ error: 'documentType/documentId tidak valid.' });
+    }
+    const pending = await findPendingForTarget(prisma, documentType, documentId);
+    res.json({ pending: pending ? { id: pending.id, createdAt: pending.createdAt } : null });
+  } catch (error) {
+    logger.error(error, 'GET /approvals/pending error');
+    res.status(500).json({ error: 'Gagal memeriksa pengajuan.' });
   }
 });
 

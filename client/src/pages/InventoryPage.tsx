@@ -164,7 +164,15 @@ export function InventoryPage() {
     setEditMovement(m);
     setMovementModalOpen(true);
   }, []);
-  const openRunEdit = useCallback((run: ProductionRunRow) => {
+  const openRunEdit = useCallback(async (run: ProductionRunRow) => {
+    // Edit diajukan lewat approval utk non-Admin: jangan buka form bila sudah ada pengajuan Pending.
+    try {
+      const { data } = await api.get('/approvals/pending', { params: { documentType: 'ProductionRunEdit', documentId: run.id } });
+      if (data?.pending) {
+        toast.error('Menunggu persetujuan: sudah ada perubahan yang diajukan untuk proses produksi ini.');
+        return;
+      }
+    } catch { /* server tetap menolak duplikat (409) */ }
     setEditProdRun(run);
     setProductionModalOpen(true);
   }, []);
@@ -343,7 +351,7 @@ export function InventoryPage() {
             <TabsContent value="approval" className="mt-0">
               <ProductionApprovalView>
                 <ApprovalPanel
-                  documentType="ProductionRun"
+                  documentType={['ProductionRun', 'ProductionRunEdit']}
                   onResubmit={(req: ApprovalRequest) => {
                     setEditProdRun(null);
                     setProdPrefillPayload(req.payload);
@@ -411,6 +419,11 @@ export function InventoryPage() {
         runId={selectedProdRunId}
         onClose={() => setSelectedProdRunId(null)}
         canCancel={canCancelDocs}
+        canEdit={canEditProduction}
+        onEdit={(run) => {
+          setSelectedProdRunId(null);
+          openRunEdit(run);
+        }}
         onCancel={(id) => {
           setSelectedProdRunId(null);
           setCancelProdTarget(id);

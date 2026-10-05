@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Approval gate: edit produksi & revisi harga PI
+**Keamanan**: dua mutasi finansial yang sebelumnya lolos gate kini ikut antrian persetujuan untuk role tanpa capability `approval.bypass` — `PUT /api/inventory/production-runs/:id` (edit data produksi) dan `POST /api/purchase/invoices/:id/revise-price` (revisi harga invoice pembelian). Keduanya tidak dieksekusi; dibalas `202 {pendingApproval}` dan dokumen baru berubah setelah Admin menyetujui. Role ber-bypass (Admin) tetap langsung (respons tidak berubah).
+
+**Diubah**:
+- Tipe baru `ProductionRunEdit` ("Edit Data Produksi") dan `PurchaseInvoiceRevisePrice` ("Revisi Harga Invoice Pembelian"). Nomor dokumen target terisi sejak pengajuan; payload = body asli + snapshot kondisi saat ini (`_before`).
+- Ditolak 400/404 bila target tidak bisa diedit/direvisi (dibatalkan, Draft, baris asing); pengajuan kedua untuk target yang masih Pending ditolak 409. Saat approve, kondisi divalidasi ulang oleh service yang sama; bila gagal, pengajuan tetap Pending dengan pesan galat.
+- Layar persetujuan menampilkan tabel sebelum/sesudah (baris berubah diberi label "Berubah", bukan hanya warna); badge/notice "Menunggu persetujuan" dan tombol Edit/Revisi Harga nonaktif selama ada pengajuan Pending (`GET /api/approvals/pending`). "Minta Edit" disembunyikan untuk tipe ini.
+
 ### Pensiun ga_finance
 **Dihapus**: alias `/api/ga/finance` dan modul RBAC `ga_finance` (akses Tagihan EAM kini hanya lewat `payment_request` edit). Migrasi `2026101000000_remove_ga_finance_module.sql` (idempotent, penanda `data_fix_markers`) lebih dulu memberi `payment_request` edit ke role ber-`ga_finance` edit bila belum, lalu menghapus baris `ga_finance` dari `role_permissions`. Klien tetap mengalihkan `/ga/finance` ke Tagihan EAM.
 

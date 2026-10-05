@@ -548,12 +548,14 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       };
 
       let pendingApproval = false;
+      let editPending = false;
       let resubmitted = false;
       if (resubmitRequestId) {
         await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: fullPayload });
         resubmitted = true;
       } else if (editRun) {
-        await api.put(`/inventory/production-runs/${editRun.id}`, fullPayload);
+        const res = await api.put(`/inventory/production-runs/${editRun.id}`, fullPayload);
+        editPending = res.data?.pendingApproval === true;
       } else {
         const res = await api.post('/inventory/production-runs', fullPayload);
         pendingApproval = res.data?.pendingApproval === true;
@@ -563,7 +565,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
-      if (resubmitted) {
+      queryClient.invalidateQueries({ queryKey: ['approval-pending'] });
+      if (editPending) {
+        // Perubahan BELUM diterapkan — hanya diantrekan; tidak ada update optimistis.
+        toast.success('Perubahan dikirim untuk persetujuan');
+      } else if (resubmitted) {
         toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');
       } else if (pendingApproval) {
         toast.success('Data produksi dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');

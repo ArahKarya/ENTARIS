@@ -10,8 +10,11 @@ import { submitProductionRunInTx } from './productionRunSubmit';
 import { submitSalesReturnInTx } from './salesReturnSubmit';
 import { submitDeliveryOrderInTx } from './deliveryOrderSubmit';
 import { applyPurchaseOrderApprovalDecisionInTx } from './purchaseOrderSubmit';
-import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema, CreateDeliveryOrderSchema } from '../utils/schemas';
+import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesReturnSchema, CreateDeliveryOrderSchema, UpdateProductionRunSchema, RevisePurchaseInvoiceSchema } from '../utils/schemas';
 import { notifyUsers } from './notificationService';
+import { editProductionRunInTx } from './productionRunEdit';
+import { revisePurchaseInvoiceInTx } from './purchaseInvoiceRevise';
+import { isEditDocumentType, splitStoredPayload } from './approvalEditRequests';
 
 export type ApprovalAction = 'approve' | 'reject' | 'revise';
 
@@ -87,6 +90,24 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
             if (!doDoc) throw new Error('Gagal membuat surat jalan.');
             return { id: doDoc.id, number: doDoc.doNumber };
           }
+          if (request.documentType === 'ProductionRunEdit' || request.documentType === 'PurchaseInvoiceRevisePrice') {
+            // Mutasi dokumen existing: payload = body asli + snapshot `_before` (dibuang).
+            const targetId = request.documentId;
+            if (!targetId) throw new Error('Pengajuan tidak memiliki dokumen target.');
+            const { body } = splitStoredPayload(request.payload);
+            if (request.documentType === 'ProductionRunEdit') {
+              const parsed = UpdateProductionRunSchema.safeParse(body);
+              if (!parsed.success) throw new Error('Payload edit produksi tidak valid: ' + parsed.error.issues[0]?.message);
+              const run = await editProductionRunInTx(tx, targetId, parsed.data, creator);
+              if (!run) throw new Error('Gagal mengedit data produksi.');
+              return { id: run.id, number: run.runNumber };
+            }
+            const parsed = RevisePurchaseInvoiceSchema.safeParse(body);
+            if (!parsed.success) throw new Error('Payload revisi harga tidak valid: ' + parsed.error.issues[0]?.message);
+            const inv = await revisePurchaseInvoiceInTx(tx, { invoiceId: targetId, lines: parsed.data.lines, reason: parsed.data.reason }, creator);
+            if (!inv) throw new Error('Gagal merevisi harga invoice.');
+            return { id: inv.id, number: inv.invoiceNumber };
+          }
           throw new Error('Tipe dokumen tidak didukung untuk eksekusi: ' + request.documentType);
         }, { timeout: 30000 });
       }
@@ -119,7 +140,9 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
         userIds: [request.requestedBy],
         type: 'approval_approved',
         title: 'Pengajuan Anda disetujui',
-        message: createdDoc
+        message: createdDoc && isEditDocumentType(request.documentType)
+          ? `Pengajuan disetujui — perubahan pada ${createdDoc.number} telah diterapkan.`
+          : createdDoc
           ? `Pengajuan disetujui — dokumen ${createdDoc.number} telah dibuat.`
           : 'Pengajuan Anda telah disetujui.',
         metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType, documentId: createdDoc?.id },

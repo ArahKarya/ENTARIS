@@ -1,4 +1,7 @@
-import { Package, ArrowRight, XCircle, Calculator, Gauge, Clock } from 'lucide-react';
+import { Package, ArrowRight, XCircle, Calculator, Gauge, Clock, Pencil } from 'lucide-react';
+import type { ProductionRunRow } from './inventory/inventory-rows';
+import { usePendingApproval } from '@/hooks/usePendingApproval';
+import { PendingApprovalBadge, PendingApprovalNotice } from './approvals/PendingApprovalNotice';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
@@ -18,6 +21,9 @@ interface Props {
   onClose: () => void;
   onCancel?: (id: string) => void;
   canCancel?: boolean;
+  /** Edit lewat form (non-Admin: diajukan ke approval). */
+  canEdit?: boolean;
+  onEdit?: (run: ProductionRunRow) => void;
 }
 
 const fmtNum = (val: number | string, decimals = 3) =>
@@ -37,13 +43,14 @@ const fmtPct = (v: number | string | null | undefined): string =>
 
 const SHIFT_LABEL: Record<string, string> = { '1': 'Shift 1', '2': 'Shift 2', '3': 'Shift 3' };
 
-export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCancel }: Props) {
+export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCancel, canEdit, onEdit }: Props) {
   const { data: run, isLoading } = useQuery({
     queryKey: ['production-run-detail', runId],
     queryFn: () => api.get(`/inventory/production-runs/${runId}`).then(r => r.data),
     enabled: !!runId,
   });
   const company = useCompanyPDF();
+  const pendingEdit = usePendingApproval('ProductionRunEdit', runId);
 
   const inputLines = (run?.items ?? []).filter((i: any) => i.lineType === 'Input');
   const outputLines = (run?.items ?? []).filter((i: any) => i.lineType === 'Output');
@@ -99,11 +106,18 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 tone={isCancelled ? 'danger' : 'success'}
               />
             )}
+            {pendingEdit && <PendingApprovalBadge />}
           </div>
           <SheetDescription>
             {run ? `${formatDate(run.date)} · ${run.createdBy?.fullName ?? ''}` : 'Detail proses produksi'}
           </SheetDescription>
         </SheetHeader>
+
+        {pendingEdit && (
+          <div className="px-4 pt-3 sm:px-6">
+            <PendingApprovalNotice what="Perubahan data produksi" />
+          </div>
+        )}
 
         {/* Body */}
         {/* Focusable so the scrollable body works by keyboard. */}
@@ -711,6 +725,11 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
               fileName={`${run.runNumber}.pdf`}
               label="Unduh PDF"
             />
+            {!isCancelled && canEdit && onEdit && (
+              <Button variant="outline" onClick={() => onEdit(run)} disabled={!!pendingEdit} title={pendingEdit ? 'Menunggu persetujuan' : undefined}>
+                <Pencil aria-hidden /> Edit
+              </Button>
+            )}
             {!isCancelled && canCancel && onCancel && (
               <Button variant="outline" className="text-danger-text" onClick={() => onCancel(run.id)}>
                 <XCircle aria-hidden /> Batalkan
