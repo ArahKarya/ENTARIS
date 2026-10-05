@@ -54,6 +54,7 @@ interface PostResponse {
 }
 
 const rupiah = (n: number) => formatRupiah(n);
+const rupiahCompact = (n: number) => formatRupiah(n, { compact: true });
 
 export const CashBookDraftReview = () => {
   const { id } = useParams<{ id: string }>();
@@ -309,8 +310,8 @@ export const CashBookDraftReview = () => {
       </section>
 
       <section aria-label="Ringkasan draft" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total Masuk" icon={ArrowDownToLine} value={rupiah(totals.masuk)} hint="baris tidak dilewati" />
-        <StatCard label="Total Keluar" icon={ArrowUpFromLine} value={rupiah(totals.keluar)} hint="baris tidak dilewati" />
+        <StatCard label="Total Masuk" icon={ArrowDownToLine} value={rupiahCompact(totals.masuk)} valueTitle={rupiah(totals.masuk)} hint="baris tidak dilewati" />
+        <StatCard label="Total Keluar" icon={ArrowUpFromLine} value={rupiahCompact(totals.keluar)} valueTitle={rupiah(totals.keluar)} hint="baris tidak dilewati" />
         <StatCard label="Jumlah Baris" icon={ListChecks} value={formatNumber(totals.rowCount)} hint={`${formatNumber(totals.activeCount)} akan diposting`} />
         <StatCard label="Perlu Ditinjau" icon={AlertTriangle} value={formatNumber(reviewCount)} hint={duplicateCount > 0 ? `${formatNumber(duplicateCount)} duplikat?` : 'baris Ragu'} />
       </section>
@@ -366,19 +367,19 @@ export const CashBookDraftReview = () => {
 
       {editable && (
         <div className="sticky bottom-0 z-20 -mx-3 border-t border-border bg-card/95 px-3 py-3 shadow-[var(--shadow-2)] backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-sm text-muted-foreground" role="status">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <p className="w-full text-sm text-muted-foreground sm:mr-auto sm:w-auto" role="status">
               {dirty ? 'Ada perubahan yang belum disimpan.' : `${formatNumber(toPost.length)} baris siap diposting.`}
             </p>
-            <Button variant="danger" onClick={() => setDialog('discard')} disabled={draft.status !== 'Draft'}>
+            <Button variant="danger" className="px-3 sm:px-4" onClick={() => setDialog('discard')} disabled={draft.status !== 'Draft'}>
               <Trash2 aria-hidden />
-              Buang draft
+              Buang<span className="hidden sm:inline">&nbsp;draft</span>
             </Button>
-            <Button variant="outline" onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
+            <Button variant="outline" className="px-3 sm:px-4" onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
               <Save aria-hidden />
-              Simpan perubahan
+              Simpan<span className="hidden sm:inline">&nbsp;perubahan</span>
             </Button>
-            <Button onClick={() => setDialog('post')} disabled={dirty || toPost.length === 0} title={dirty ? 'Simpan perubahan dulu' : undefined}>
+            <Button className="px-3 sm:px-4" onClick={() => setDialog('post')} disabled={dirty || toPost.length === 0} title={dirty ? 'Simpan perubahan dulu' : undefined}>
               <SendHorizontal aria-hidden />
               Posting semua
             </Button>

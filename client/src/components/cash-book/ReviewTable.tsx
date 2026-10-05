@@ -52,7 +52,7 @@ const ReviewRow = memo(function ReviewRow({ row, editable, options, selected, ex
     row.direction !== side ? (
       <span className="text-muted-foreground" aria-label="kosong">-</span>
     ) : canEdit ? (
-      <MoneyInput aria-label={`Nominal ${side} baris ${n}`} className="min-w-28" value={row.amount} onChange={(v) => v !== null && v > 0 && onEdit(row.id, { amount: v })} />
+      <MoneyInput aria-label={`Nominal ${side} baris ${n}`} className="min-w-24" value={row.amount} onChange={(v) => v !== null && v > 0 && onEdit(row.id, { amount: v })} />
     ) : (
       <span className="num font-medium text-foreground">{formatNumber(row.amount, { maxDecimals: 2 })}</span>
     );
@@ -66,12 +66,12 @@ const ReviewRow = memo(function ReviewRow({ row, editable, options, selected, ex
         <th scope="row" className="num px-2 py-2 text-left font-normal text-muted-foreground">{n}</th>
         <td className="px-2 py-2">
           {canEdit ? (
-            <Input type="date" aria-label={`Tanggal baris ${n}`} className="w-36" value={row.rowDate} onChange={(e) => e.target.value && onEdit(row.id, { date: e.target.value })} />
+            <Input type="date" aria-label={`Tanggal baris ${n}`} className="w-36 px-2" value={row.rowDate} onChange={(e) => e.target.value && onEdit(row.id, { date: e.target.value })} />
           ) : (
             <span className="num whitespace-nowrap">{row.rowDate}</span>
           )}
         </td>
-        <td className="min-w-56 px-2 py-2">
+        <td className="min-w-48 px-2 py-2">
           {canEdit ? (
             <Input aria-label={`Keterangan baris ${n}`} value={row.description} maxLength={500} onChange={(e) => onEdit(row.id, { description: e.target.value })} />
           ) : (
@@ -97,7 +97,7 @@ const ReviewRow = memo(function ReviewRow({ row, editable, options, selected, ex
         <td className="px-2 py-2">
           {canEdit ? (
             <Select value={row.txnType} onValueChange={(v) => onEdit(row.id, { txnType: v as TxnType })}>
-              <SelectTrigger className="w-44" aria-label={`Jenis transaksi baris ${n}`}>
+              <SelectTrigger className="w-40" aria-label={`Jenis transaksi baris ${n}`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -110,7 +110,7 @@ const ReviewRow = memo(function ReviewRow({ row, editable, options, selected, ex
             <span className="whitespace-nowrap">{TXN_LABEL[row.txnType]}</span>
           )}
         </td>
-        <td className="min-w-56 px-2 py-2">
+        <td className="min-w-52 px-2 py-2">
           {canEdit && !advance ? (
             <ComboboxFilter
               label={`Akun lawan baris ${n}`}
@@ -179,8 +179,8 @@ export function ReviewTable({ rows, editable, options, selected, allSelected, on
 
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard reachable
-    <div role="region" tabIndex={0} aria-label="Tabel baris draft buku kas (geser untuk melihat semua kolom)" className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="w-full min-w-[72rem] text-sm">
+    <div role="region" tabIndex={0} aria-label="Tabel baris draft buku kas (geser untuk melihat semua kolom)" className="relative overflow-x-auto rounded-lg border border-border bg-card">
+      <table className="w-full min-w-[66rem] text-sm">
         <caption className="sr-only">Baris draft buku kas: tanggal, keterangan, masuk, keluar, jenis transaksi, akun lawan, keyakinan, dan lewati</caption>
         <thead>
           <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">

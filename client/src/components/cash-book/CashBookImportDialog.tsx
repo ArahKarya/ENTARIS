@@ -108,8 +108,8 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
             Kolom: tanggal, keterangan, masuk, keluar (maksimal {CB_ROW_LIMIT} baris). Draft belum menjadi jurnal; Anda meninjau akun tiap baris di langkah berikutnya.
           </DialogDescription>
         </OverlayHeader>
-        <OverlayBody>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <OverlayBody className="grid-cols-[minmax(0,1fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
             <ComboField
               label="Akun kas / bank"
               required
@@ -126,7 +126,7 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
             <Field label="Judul (opsional)">
               <Input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Buku kas Oktober minggu 1" />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
               <Field label="Saldo awal">{(c) => <MoneyInput id={c.id} value={opening} onChange={setOpening} />}</Field>
               <Field label="Saldo akhir">{(c) => <MoneyInput id={c.id} value={closing} onChange={setClosing} />}</Field>
             </div>
@@ -141,7 +141,7 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
               onChange={(e) => setText(e.target.value)}
               rows={7}
               spellCheck={false}
-              className="font-mono text-xs"
+              className="field-sizing-fixed font-mono text-xs"
               placeholder={'Tanggal\tKeterangan\tMasuk\tKeluar\n05/10/2026\tBeli ATK\t\t125.000'}
             />
           </Field>

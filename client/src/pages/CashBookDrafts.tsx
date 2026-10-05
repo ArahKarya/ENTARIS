@@ -15,7 +15,7 @@ import { can } from '@/lib/permissions';
 import { useListState } from '@/hooks/useListState';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DataTable,
   DocumentLink,
@@ -162,7 +162,7 @@ export const CashBookDrafts = () => {
   );
 
   return (
-    <div className="space-y-5 pb-8">
+    <Tabs value={tab} onValueChange={(v) => list.setFilter('status', v === ALL_TAB ? '' : v)} activationMode="manual" className="space-y-5 pb-8">
       <PageHeader
         title="Draft Buku Kas"
         description="Halaman buku kas dari foto nota (AIRA) atau tempel/CSV menunggu ditinjau sebelum menjadi jurnal. Draft belum berefek ke buku besar."
@@ -175,8 +175,7 @@ export const CashBookDrafts = () => {
           ) : undefined
         }
       >
-        <Tabs value={tab} onValueChange={(v) => list.setFilter('status', v === ALL_TAB ? '' : v)} activationMode="manual">
-          <TabsList variant="underline" aria-label="Status draft" className="max-w-full">
+        <TabsList variant="underline" aria-label="Status draft" className="max-w-full">
             {TABS.map((t) => (
               <TabsTrigger key={t.value} value={t.value}>
                 <span className="inline-flex items-center gap-1.5">
@@ -189,9 +188,10 @@ export const CashBookDrafts = () => {
                 </span>
               </TabsTrigger>
             ))}
-          </TabsList>
-        </Tabs>
+        </TabsList>
       </PageHeader>
+
+      <TabsContent value={tab} className="mt-0 space-y-5">
 
       <section aria-label="Ringkasan draft buku kas" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Menunggu Ditinjau" icon={FilePenLine} loading={!query.data} value={formatNumber(counts.Draft ?? 0)} hint="berstatus Draft" />
@@ -235,7 +235,9 @@ export const CashBookDrafts = () => {
         />
       </div>
 
+      </TabsContent>
+
       <CashBookImportDialog open={importing} onOpenChange={setImporting} onCreated={(id) => open(id)} />
-    </div>
+    </Tabs>
   );
 };
