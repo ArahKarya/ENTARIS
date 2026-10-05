@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { StatusBadge } from '@/components/shared';
 import { pinnedDialogClass, PinnedBody, PinnedFooter, PinnedHeader } from '../overlays/dialog-parts';
 import type { ApprovalRequest } from '../ApprovalPanel';
-import { docTypeLabel, fmtDate, fmtNum, piLineTotal, piTotals, prodHppEstimate } from './approval-utils';
+import { docTypeLabel, fmtDate, fmtNum, isEditApprovalType, piLineTotal, piTotals, prodHppEstimate } from './approval-utils';
+import { EditComparisonView } from './EditComparisonView';
 
 export interface ApprovalDetailDialogProps {
   request: ApprovalRequest | null;
@@ -66,6 +67,7 @@ function DetailContent({
   const isProd = detailReq.documentType === 'ProductionRun';
   const isDO = detailReq.documentType === 'DeliveryOrder';
   const isPO = detailReq.documentType === 'PurchaseOrder';
+  const isEdit = isEditApprovalType(detailReq.documentType);
   const piItems: any[] = p.items ?? [];
   const inputs: any[] = p.inputs ?? [];
   const outputs: any[] = p.outputs ?? [];
@@ -75,7 +77,7 @@ function DetailContent({
   const processIds: string[] = p.processIds ?? [];
   const basisLabel: Record<string, string> = { InputQty: 'per kg input', OutputQty: 'per kg output', Fixed: 'tetap' };
   const fmtT = (v: any) => (v ? new Date(v).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-  const pi = isProd || isDO ? null : piTotals(p);
+  const pi = isProd || isDO || isEdit ? null : piTotals(p);
   const hppEst = isProd ? prodHppEstimate(p) : null;
   const docLabel = docTypeLabel[detailReq.documentType] ?? '';
 
@@ -96,7 +98,7 @@ function DetailContent({
           </div>
         )}
         {/* Info umum */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+        {!isEdit && <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
           {p.date && (
             <div>
               <span className="text-muted-foreground">Tanggal:</span> <span className="text-foreground">{p.date}</span>
@@ -163,9 +165,16 @@ function DetailContent({
               <span className="text-muted-foreground">Catatan:</span> <span className="text-foreground">{p.notes}</span>
             </div>
           )}
-        </div>
+        </div>}
 
-        {isPO ? (
+        {isEdit ? (
+          <EditComparisonView
+            comparison={detailCtx?.comparison}
+            loading={detailCtxLoading}
+            amountText={detailReq.documentType === 'ProductionRunEdit' ? `${fmtNum(Number(detailReq.amount ?? 0))} kg` : formatRupiah(Number(detailReq.amount ?? 0))}
+            onViewTarget={onViewDocument ? () => onViewDocument(detailReq) : undefined}
+          />
+        ) : isPO ? (
           detailReq.documentId ? (
             <PurchaseOrderApprovalSummary poId={detailReq.documentId} />
           ) : null
@@ -565,9 +574,11 @@ function DetailContent({
             <Button size="sm" variant="outline" className="text-danger-text hover:bg-danger-subtle" onClick={() => onReject(detailReq.id)}>
               Tolak
             </Button>
-            <Button size="sm" variant="outline" onClick={() => onRevision(detailReq.id)}>
-              Minta Edit
-            </Button>
+            {!isEdit && (
+              <Button size="sm" variant="outline" onClick={() => onRevision(detailReq.id)}>
+                Minta Edit
+              </Button>
+            )}
             <Button
               size="sm"
               onClick={() => {
@@ -590,7 +601,7 @@ function DetailContent({
             <Pencil aria-hidden /> Edit &amp; Ajukan Ulang
           </Button>
         )}
-        {detailReq.status === 'Approved' && detailReq.documentId && onViewDocument && (
+        {detailReq.status === 'Approved' && !isEdit && detailReq.documentId && onViewDocument && (
           <Button
             size="sm"
             onClick={() => {

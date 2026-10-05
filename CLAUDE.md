@@ -110,6 +110,12 @@ Cancel cascade:
 Historical PI (sebelum refactor) di-backfill jadi virtual STT (`isLegacyBackfill=true`).
 JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 
+## Approval Gate
+
+- `needsApproval(role)` (role tanpa capability `approval.bypass`, default hanya Admin) → dokumen tidak dibuat saat submit; payload disimpan di `ApprovalRequest` dan dieksekusi saat approve (`services/approvalDecision.ts`, aktor = pengaju). Dibuat-baru: `PurchaseInvoice`, `ProductionRun`, `SalesReturn`, `DeliveryOrder`.
+- Mutasi dokumen existing juga di-gate (`services/approvalEditRequests.ts`): `ProductionRunEdit` (PUT production-runs/:id → `editProductionRunInTx`) dan `PurchaseInvoiceRevisePrice` (POST invoices/:id/revise-price → `revisePurchaseInvoiceInTx`). `documentId`/`documentNumber` terisi saat request; payload = body asli + `_before` (snapshot untuk perbandingan, dibuang sebelum validasi Zod). Satu pengajuan Pending per target (409). `GET /approvals/requests/:id[/context]` mengembalikan `comparison`; `GET /approvals/pending` untuk badge/disable tombol. Tipe baru tidak bisa "Minta Edit"/resubmit.
+- Menambah aksi finansial baru pada dokumen existing → lewatkan `needsApproval` + tipe edit baru, jangan hanya `requireCap`.
+
 ## Coding Conventions
 
 ### Backend

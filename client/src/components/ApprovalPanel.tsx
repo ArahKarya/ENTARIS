@@ -6,7 +6,7 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
 import { ApprovalDetailDialog } from './approvals/ApprovalDetailDialog';
-import { fmtDate, fmtNum, docTypeLabel } from './approvals/approval-utils';
+import { fmtDate, fmtNum, docTypeLabel, isEditApprovalType } from './approvals/approval-utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, StatusBadge } from '@/components/shared';
 
@@ -37,7 +37,7 @@ type StatusKey = typeof STATUS_TABS[number]['key'];
 const labelOf = (s: string) => STATUS_TABS.find((t) => t.key === s)?.label ?? s;
 
 interface Props {
-  documentType?: 'PurchaseInvoice' | 'ProductionRun'; // undefined = semua tipe
+  documentType?: string | string[]; // undefined = semua tipe
   onResubmit?: (req: ApprovalRequest) => void;
   onViewDocument?: (req: ApprovalRequest) => void;
   // Deep-link dari notifikasi: id pengajuan yg langsung dibuka detailnya.
@@ -65,7 +65,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const { data: detailCtx, isLoading: detailCtxLoading } = useQuery<any>({
     queryKey: ['approval-request-context', detailReq?.id],
     queryFn: async () => (await api.get(`/approvals/requests/${detailReq!.id}/context`)).data,
-    enabled: !!detailReq && detailReq.documentType === 'PurchaseInvoice',
+    enabled: !!detailReq && (detailReq.documentType === 'PurchaseInvoice' || isEditApprovalType(detailReq.documentType)),
     staleTime: 30 * 1000,
   });
 
@@ -87,11 +87,12 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   }, [focusReq, focusRequestId, onFocusHandled]);
 
   const { data: requests = [], isLoading } = useQuery<ApprovalRequest[]>({
-    queryKey: ['approval-requests', documentType ?? 'all', status],
+    queryKey: ['approval-requests', Array.isArray(documentType) ? documentType.join('+') : documentType ?? 'all', status],
     queryFn: async () => {
       const all: ApprovalRequest[] = (await api.get('/approvals/requests', { params: { status } })).data;
       const arr = Array.isArray(all) ? all : [];
-      return documentType ? arr.filter((r) => r.documentType === documentType) : arr;
+      const types = documentType ? ([] as string[]).concat(documentType) : null;
+      return types ? arr.filter((r) => types.includes(r.documentType)) : arr;
     },
     refetchInterval: 30000,
   });
@@ -240,13 +241,13 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-medium text-foreground">{docLabel}</span>
                     <StatusBadge status={req.status} docType="approval" />
-                    {req.documentNumber && req.status === 'Approved' && (
+                    {req.documentNumber && (req.status === 'Approved' || isEditApprovalType(req.documentType)) && (
                       <span className="num text-xs text-muted-foreground">{req.documentNumber}</span>
                     )}
                   </div>
                   <p className="text-sm">
                     <span className="num font-semibold text-foreground">
-                      {req.documentType === 'ProductionRun'
+                      {req.documentType === 'ProductionRun' || req.documentType === 'ProductionRunEdit'
                         ? `${fmtNum(Number(req.amount ?? 0))} kg input`
                         : `Rp ${fmtNum(Number(req.amount ?? 0))}`}
                     </span>
@@ -275,9 +276,11 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                       <Button size="sm" onClick={() => approveMut.mutate(req.id)} disabled={busy} loading={approveMut.isPending && approveMut.variables === req.id}>
                         {!(approveMut.isPending && approveMut.variables === req.id) && <Check aria-hidden />} Setuju
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setReasonModal({ mode: 'revision', id: req.id })} disabled={busy}>
-                        <Pencil aria-hidden /> Minta Edit
-                      </Button>
+                      {!isEditApprovalType(req.documentType) && (
+                        <Button size="sm" variant="outline" onClick={() => setReasonModal({ mode: 'revision', id: req.id })} disabled={busy}>
+                          <Pencil aria-hidden /> Minta Edit
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"

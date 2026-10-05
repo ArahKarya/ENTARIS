@@ -194,8 +194,8 @@ export default function ApprovalsPage() {
           onFocusHandled={clearFocus}
           onViewDocument={(req: ApprovalRequest) => {
             if (!req.documentId) return;
-            if (req.documentType === 'PurchaseInvoice') setViewInvoiceId(req.documentId);
-            else if (req.documentType === 'ProductionRun') setViewRunId(req.documentId);
+            if (req.documentType === 'PurchaseInvoice' || req.documentType === 'PurchaseInvoiceRevisePrice') setViewInvoiceId(req.documentId);
+            else if (req.documentType === 'ProductionRun' || req.documentType === 'ProductionRunEdit') setViewRunId(req.documentId);
             else if (req.documentType === 'PurchaseOrder') setViewPoId(req.documentId);
           }}
         />

@@ -11,6 +11,7 @@ import { submitProductionRunInTx } from '../../services/productionRunSubmit';
 import { editProductionRunInTx } from '../../services/productionRunEdit';
 import { needsApproval, queueApproval, approvalsLink } from '../../services/approvalGate';
 import { notifyAdmins } from '../../services/notificationService';
+import { queueEditApproval } from '../../services/approvalEditRequests';
 import { logger } from '../../lib/logger';
 import { parseListPaging, parseSort } from '../../utils/listQuery';
 import {
@@ -257,6 +258,11 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 
   try {
+    // Approval gate: edit mengubah stok/GL/WAC → non-bypass hanya mengantrekan.
+    if (await needsApproval(req.user!.role)) {
+      const q = await queueEditApproval(prisma, { documentType: 'ProductionRunEdit', targetId: id, body, rawBody: req.body, userId: req.user!.userId });
+      return q.ok ? res.status(q.status).json(q.body) : res.status(q.status).json({ error: q.error });
+    }
     const result = await prisma.$transaction(
       (tx) => editProductionRunInTx(tx, id, body, req.user!.userId),
       { timeout: 30000 },

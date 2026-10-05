@@ -10,7 +10,12 @@ export const docTypeLabel: Record<string, string> = {
   SalesReturn: 'Retur Penjualan',
   DeliveryOrder: 'Surat Jalan',
   PurchaseOrder: 'Purchase Order',
+  ProductionRunEdit: 'Edit Data Produksi',
+  PurchaseInvoiceRevisePrice: 'Revisi Harga Invoice Pembelian',
 };
+
+/** Pengajuan yang MENGUBAH dokumen existing (bukan membuat baru) → tampil sebagai perbandingan. */
+export const isEditApprovalType = (t: string) => t === 'ProductionRunEdit' || t === 'PurchaseInvoiceRevisePrice';
 
 // Total harga akhir satu baris PI dari payload pengajuan.
 // hargaAkhir = qty×rate×(1−disc%) + PPN − PPh − potonganItem.

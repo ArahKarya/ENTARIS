@@ -6,14 +6,19 @@
 //     Maka dokumen TIDAK dibuat saat submit — payload disimpan di
 //     ApprovalRequest, lalu dieksekusi via submit asli saat approve.
 //
-// Document type yang di-gate: 'PurchaseInvoice', 'ProductionRun'.
+// Document type yang di-gate: 'PurchaseInvoice', 'ProductionRun', 'SalesReturn',
+// 'DeliveryOrder' (pembuatan) + 'ProductionRunEdit', 'PurchaseInvoiceRevisePrice' (mutasi).
 
 import type { Prisma } from '@prisma/client';
 import { hasCap } from './permissionService';
 
 type Tx = Prisma.TransactionClient;
 
-export const GATED_DOCUMENT_TYPES = ['PurchaseInvoice', 'ProductionRun', 'SalesReturn', 'DeliveryOrder'] as const;
+export const GATED_DOCUMENT_TYPES = [
+  'PurchaseInvoice', 'ProductionRun', 'SalesReturn', 'DeliveryOrder',
+  // Mutasi dokumen yang sudah ada (lihat approvalEditRequests.ts).
+  'ProductionRunEdit', 'PurchaseInvoiceRevisePrice',
+] as const;
 export type GatedDocumentType = (typeof GATED_DOCUMENT_TYPES)[number];
 
 const GATED_LABELS: Record<GatedDocumentType, string> = {
@@ -21,6 +26,8 @@ const GATED_LABELS: Record<GatedDocumentType, string> = {
   ProductionRun: 'Data Produksi',
   SalesReturn: 'Retur Penjualan',
   DeliveryOrder: 'Surat Jalan',
+  ProductionRunEdit: 'Edit Data Produksi',
+  PurchaseInvoiceRevisePrice: 'Revisi Harga Invoice Pembelian',
 };
 
 /**
