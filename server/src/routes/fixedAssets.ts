@@ -143,7 +143,7 @@ router.get('/categories', async (_req, res) => {
       orderBy: { category: 'asc' },
     });
     res.json(cats.map((c) => c.category));
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Gagal mengambil kategori.' });
   }
 });
@@ -163,7 +163,7 @@ router.get('/:id', async (req, res) => {
     });
     if (!asset) return res.status(404).json({ error: 'Aset tidak ditemukan.' });
     res.json(asset);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Gagal mengambil data aset.' });
   }
 });
@@ -672,7 +672,7 @@ router.get('/summary/by-category', async (_req, res) => {
       total_accumulated: Number(s.total_accumulated),
       total_book_value: Number(s.total_book_value),
     })));
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Gagal mengambil ringkasan aset.' });
   }
 });

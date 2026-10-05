@@ -152,6 +152,7 @@ export const RolePermissionsTab: React.FC = () => {
             onSubmit={(e) => { e.preventDefault(); submitCreate(); }}
           >
             <Field label="Nama peran baru" required error={newNameError}>
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens */}
               <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="mis. Kasir" />
             </Field>
             <div className="flex justify-end gap-2">
@@ -165,6 +166,7 @@ export const RolePermissionsTab: React.FC = () => {
             const isActive = selectedId === r.id;
             return (
               <li key={r.id}>
+                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- accessible name comes from the button's text children */}
                 <button
                   type="button"
                   onClick={() => loadDraft(r)}

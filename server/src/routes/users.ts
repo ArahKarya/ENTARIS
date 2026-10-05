@@ -8,7 +8,6 @@ import { CreateUserSchema, UpdateUserSchema, ChangePasswordSchema } from '../uti
 import { handleRouteError } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import { getBotUsername, sendTestToChat } from '../services/telegramService';
-import { logger } from '../lib/logger';
 import { parseListPaging } from '../utils/listQuery';
 import { buildUserOrderBy, buildUserWhere, summarizeUsers } from '../services/userList';
 

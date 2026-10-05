@@ -3,8 +3,7 @@
 // FINANCE ONLY: every endpoint needs 'payment_request' edit.
 //
 // Posting/cancel reuse services/gaFinance.ts through services/gaBillQueue.ts —
-// the same functions the deprecated /api/ga/finance alias calls, so there is a
-// single source of GL truth and no double posting.
+// the single source of GL truth (the old /api/ga/finance alias is retired).
 //
 //   GET  /               paged list  { data, total, page, limit }
 //   GET  /summary        { pendingCount, pendingAmount, matchedCount, matchedAmount }

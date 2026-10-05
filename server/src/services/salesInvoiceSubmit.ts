@@ -441,9 +441,6 @@ export async function submitSalesInvoiceInTx(
     });
 
     await updateAccountBalance(tx, cogsAccount.id, totalCogsNum, 0);
-    for (const [, data] of cogsByAccount) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    }
     for (const [acctId, data] of cogsByAccount) {
       await updateAccountBalance(tx, acctId, 0, data.amount);
     }

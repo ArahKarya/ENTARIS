@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Pensiun ga_finance
+**Dihapus**: alias `/api/ga/finance` dan modul RBAC `ga_finance` (akses Tagihan EAM kini hanya lewat `payment_request` edit). Migrasi `2026101000000_remove_ga_finance_module.sql` (idempotent, penanda `data_fix_markers`) lebih dulu memberi `payment_request` edit ke role ber-`ga_finance` edit bila belum, lalu menghapus baris `ga_finance` dari `role_permissions`. Klien tetap mengalihkan `/ga/finance` ke Tagihan EAM.
+
 ### Dasbor: area kosong terisi + pemeliharaan
 **Ditambah**:
 - **Pemeliharaan** di Dasbor: tile KPI (terlambat + jatuh tempo minggu ini), baris di "Perlu perhatian" dengan tautan, dan widget "Pemeliharaan Mendatang" (8 item). Sumber: jadwal preventif, work order melewati target, pajak/KIR/asuransi kendaraan, dan dokumen kedaluwarsa (jendela 30 hari) — memakai definisi yang sama dengan halaman GA. Endpoint `GET /api/dashboard/maintenance`, diperiksa per sumber (`ga_maintenance`, `ga_vehicle`, `ga_documents`).

@@ -100,9 +100,6 @@
   "src/components/InquiryModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 6
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/InquiryQRModal.tsx": {
@@ -195,9 +192,6 @@
   "src/components/QuotationModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 15
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/ReconciliationModal.tsx": {
@@ -261,9 +255,6 @@
   },
   "src/components/SystemAccountsTab.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    },
-    "react-hooks/preserve-manual-memoization": {
       "count": 1
     }
   },

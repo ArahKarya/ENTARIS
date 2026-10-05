@@ -25,7 +25,6 @@ import { dueBoundaries } from '../../services/projectGuaranteeList';
 import { parseListPaging } from '../../utils/listQuery';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError, BusinessError } from '../../utils/errors';
-import { logger } from '../../lib/logger';
 
 const router = Router();
 

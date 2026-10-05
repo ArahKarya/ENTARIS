@@ -29,7 +29,6 @@ beforeAll(async () => {
   pool = new Pool({ connectionString: process.env.DATABASE_URL });
   // Cast: @prisma/adapter-pg bundles its own @types/pg version. The runtime
   // pool is interchangeable; only the type identity differs.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adapter = new PrismaPg(pool as any);
   prisma = new PrismaClient({ adapter });
 

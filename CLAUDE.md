@@ -76,7 +76,7 @@ Every transaction MUST produce balanced debit/credit GL entries:
 - **Payment receive**: DR Kas/Bank (1.1.x) / CR Piutang (1.2.1)
 - **Payment pay**: DR Hutang (2.1.1) / CR Kas/Bank (1.1.x)
 - **Journal Entry**: Manual balanced entries
-- **Tagihan EAM diposting** (Pengajuan Pembayaran > tab Tagihan EAM, finance `payment_request` edit; pajak kendaraan / servis EAM / MR sparepart): JOURNAL = DR akun beban / CR Kas/Bank (lunas); PURCHASE_INVOICE = DR akun beban / CR Hutang Usaha (2.1.1), dilunasi lewat modul Pembayaran; batal posting = void jurnal/faktur. Service log `source='IMPORT'` TIDAK masuk antrian (sudah di GL). Satu-satunya jalur posting: `services/gaFinance.ts` via `services/gaBillQueue.ts`; `/api/ga/finance` hanya alias deprecated (modul RBAC `ga_finance` lama)
+- **Tagihan EAM diposting** (Pengajuan Pembayaran > tab Tagihan EAM, finance `payment_request` edit; pajak kendaraan / servis EAM / MR sparepart): JOURNAL = DR akun beban / CR Kas/Bank (lunas); PURCHASE_INVOICE = DR akun beban / CR Hutang Usaha (2.1.1), dilunasi lewat modul Pembayaran; batal posting = void jurnal/faktur. Service log `source='IMPORT'` TIDAK masuk antrian (sudah di GL). Satu-satunya jalur posting: `services/gaFinance.ts` via `services/gaBillQueue.ts`; alias `/api/ga/finance` dan modul RBAC `ga_finance` sudah dihapus (klien hanya mengalihkan bookmark `/ga/finance`)
 - **Pengajuan Pembayaran dibayar**: DR akun beban per baris (atau DR Uang Muka Karyawan 1.5.6 utk CASH_ADVANCE/TRAVEL) / CR Kas/Bank (1.1.x); batal bayar = void jurnal
 - **Pertanggungjawaban uang muka diposting** (realisasi R vs uang muka A): DR akun beban per baris (R) / CR Uang Muka Karyawan 1.5.6 (min(R,A)); R<A: + DR Kas/Bank (A−R) / CR 1.5.6 (A−R) (pengaju mengembalikan sisa); R>A: + CR Kas/Bank (R−A) (kurang bayar dibayar perusahaan); R=A tanpa baris kas. Satu jurnal seimbang; batal posting = void jurnal. Posting uang muka mengikuti `kind` jenis, tetapi wajib-tidaknya pertanggungjawaban hanya mengikuti `type.requiresSettlement`.
 
@@ -138,6 +138,8 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 # Server (from server/)
 npm run dev              # Dev server with hot reload
 npm run build            # Compile TypeScript
+npm run lint             # ESLint gate (--max-warnings 0): fails on any NEW violation not baselined in eslint-suppressions.json
+npm run lint:prune       # Drop stale baseline entries after fixing violations (commit the JSON)
 npm run test             # Run Vitest
 npm run prisma:migrate   # Create new migration
 npm run seed             # Seed database
@@ -145,18 +147,19 @@ npm run seed             # Seed database
 # Client (from client/)
 npm run dev              # Vite dev server :5173
 npm run build            # Production build
-npm run lint             # ESLint gate: fails on any error NOT baselined in eslint-suppressions.json
+npm run lint             # ESLint gate (--max-warnings 0): fails on any NEW violation or warning not baselined in eslint-suppressions.json
 npm run lint:prune       # Drop stale baseline entries after fixing violations (commit the JSON)
 npx tsc -b               # Type-check
 npm test                 # Vitest
 
 # CI: .github/workflows/ci.yml (PR + push to main)
 #   client: npm ci, lint, tsc -b, test, build
-#   server: npm ci, prisma generate, tsc --noEmit, vitest (unit only; integration needs Postgres)
+#   server: npm ci, prisma generate, lint, tsc --noEmit, vitest (unit only; integration needs Postgres)
 # Lint baseline workflow: existing violations (mostly legacy `any`) live in
-# client/eslint-suppressions.json. NEW violations fail `npm run lint`. After fixing old ones run
-# `npm run lint:prune` and commit. Never re-run `--suppress-all` to silence new code.
-# Server has no ESLint config yet (type safety via tsc only).
+# {client,server}/eslint-suppressions.json (server baseline is mostly legacy `any`). NEW violations and
+# ANY warning fail `npm run lint`. After fixing old ones run `npm run lint:prune` in that package and
+# commit the JSON. Never re-run `--suppress-all` to silence new code; use a targeted
+# `eslint-disable-next-line <rule> -- <reason>` only for justified false positives.
 
 # Docker (from root)
 docker compose up -d --build    # Full stack

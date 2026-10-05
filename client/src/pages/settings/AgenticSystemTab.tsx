@@ -414,6 +414,7 @@ export const AgenticSystemTab: React.FC = () => {
             </Button>
           </form>
         )}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable) */}
         <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel whitelist akses" tabIndex={0}>
           <table className="w-full min-w-[520px] text-sm">
             <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
@@ -474,6 +475,7 @@ export const AgenticSystemTab: React.FC = () => {
         ) : filtered.length === 0 ? (
           <EmptyState compact kind="no-results" title="Tidak ada tool yang cocok" className="pb-5" />
         ) : (
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
           <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel daftar tool" tabIndex={0}>
             <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
@@ -545,6 +547,7 @@ export const AgenticSystemTab: React.FC = () => {
                 <X aria-hidden />
               </Button>
             </div>
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable) */}
             <pre className="max-h-64 overflow-auto text-xs text-emerald-300" tabIndex={0}>{testResult.out}</pre>
           </div>
         )}

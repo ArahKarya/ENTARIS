@@ -44,9 +44,6 @@ export const MODULES: ModuleDef[] = [
   { key: 'journal', label: 'Buku Besar / Jurnal', group: 'Akuntansi' },
   { key: 'fixed_assets', label: 'Aset Tetap', group: 'Akuntansi' },
   { key: 'approvals', label: 'Approval (pengajuan)', group: 'Akuntansi' },
-  // DEPRECATED: antrian EAM pindah ke Pengajuan Pembayaran > Tagihan EAM (izin payment_request edit).
-  // Tetap terdaftar agar grant lama tidak terhapus sanitizePermissions; hanya melindungi alias /api/ga/finance.
-  { key: 'ga_finance', label: 'Tagihan Aset & Umum (lama — kini lewat Pengajuan Pembayaran)', group: 'Akuntansi' },
   // GENERAL AFFAIRS (modul GA)
   { key: 'ga_assets', label: 'Aset', group: 'EAM — Manajemen Aset' },
   { key: 'ga_vehicle', label: 'Kendaraan', group: 'EAM — Manajemen Aset' },
@@ -113,7 +110,7 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
     purchase_order: 'edit', goods_receipt: 'edit', purchase_invoice: 'edit', vendor_deposit: 'edit',
     inventory: 'edit', stock_transfer: 'edit', stock_opname: 'edit', production: 'edit', warehouse: 'edit',
     payment: 'edit', reconciliation: 'edit', recurring: 'edit', project_guarantee: 'edit', payment_request: 'edit',
-    coa: 'view', journal: 'edit', fixed_assets: 'edit', approvals: 'edit', ga_finance: 'edit',
+    coa: 'view', journal: 'edit', fixed_assets: 'edit', approvals: 'edit',
     reports: 'view', parties: 'edit',
   },
   StaffProduksi: {
@@ -136,7 +133,7 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
  * — one-shot per key (hanya bila belum ada satupun RolePermission utk modul
  * tsb), supaya izin yang sengaja dicabut Admin tidak dihidupkan kembali tiap boot.
  */
-export const BACKFILL_MODULES: string[] = ['project_guarantee', 'ga_finance', 'payment_request'];
+export const BACKFILL_MODULES: string[] = ['project_guarantee', 'payment_request'];
 
 /** Capabilities default per role bawaan non-super (kosong = sama seperti sekarang). */
 export const DEFAULT_CAPS: Record<string, string[]> = {

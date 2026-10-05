@@ -8,26 +8,23 @@ vi.mock('../../middleware/auth', () => ({
   requirePerm: () => (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
-import { MODULES, MODULE_KEYS, DEFAULT_MATRIX, BACKFILL_MODULES } from '../../constants/modules';
+import { MODULE_KEYS, DEFAULT_MATRIX, BACKFILL_MODULES } from '../../constants/modules';
 import { sanitizePermissions } from '../roles';
 
-describe('ga_finance RBAC module', () => {
-  it('is a registered module in the Akuntansi group', () => {
-    expect(MODULE_KEYS).toContain('ga_finance');
-    expect(MODULES.find((m) => m.key === 'ga_finance')).toMatchObject({
-      label: expect.stringContaining('Tagihan Aset & Umum (lama'),
-      group: 'Akuntansi',
-    });
+describe('retired ga_finance RBAC module', () => {
+  it('is no longer registered, granted or backfilled', () => {
+    expect(MODULE_KEYS).not.toContain('ga_finance');
+    expect(DEFAULT_MATRIX.Accountant).not.toHaveProperty('ga_finance');
+    expect(BACKFILL_MODULES).not.toContain('ga_finance');
   });
 
-  it('is granted to Accountant by default and backfilled once for existing DBs', () => {
-    expect(DEFAULT_MATRIX.Accountant.ga_finance).toBe('edit');
-    expect(DEFAULT_MATRIX.Viewer.ga_finance).toBeUndefined();
-    expect(BACKFILL_MODULES).toContain('ga_finance');
+  it('keeps Accountant on payment_request edit (EAM queue gate)', () => {
+    expect(DEFAULT_MATRIX.Accountant.payment_request).toBe('edit');
+    expect(DEFAULT_MATRIX.Viewer.payment_request).toBeUndefined();
   });
 
-  it('survives role permission sanitising', () => {
-    expect(sanitizePermissions([{ module: 'ga_finance', canEdit: true }, { module: 'bogus', canView: true }]))
-      .toEqual([{ module: 'ga_finance', canView: true, canEdit: true }]);
+  it('silently drops a stale ga_finance grant when a role is saved', () => {
+    expect(sanitizePermissions([{ module: 'ga_finance', canEdit: true }, { module: 'journal', canView: true }]))
+      .toEqual([{ module: 'journal', canView: true, canEdit: false }]);
   });
 });

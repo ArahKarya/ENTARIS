@@ -44,7 +44,7 @@ const AccountTreeRow: React.FC<{
   const hasChildren = (account.children?.length ?? 0) > 0;
   const isClickable = !account.isGroup && onAccountClick;
 
-  const handleBalanceClick = (e: React.MouseEvent) => {
+  const handleBalanceClick = (e: React.SyntheticEvent) => {
     if (isClickable) {
       e.stopPropagation();
       onAccountClick!(account.id, account.name);
@@ -59,7 +59,20 @@ const AccountTreeRow: React.FC<{
           highlightGroups && account.isGroup ? 'bg-muted/60' : ''
         )}
         style={{ paddingLeft: `${depth * indentPx + 16}px` }}
-        onClick={() => setIsOpen(!isOpen)}
+        {...(hasChildren
+          ? {
+              role: 'button',
+              tabIndex: 0,
+              'aria-expanded': isOpen,
+              onClick: () => setIsOpen(!isOpen),
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  setIsOpen(!isOpen);
+                }
+              },
+            }
+          : {})}
       >
         <div className="flex items-center flex-1 min-w-0 gap-2">
           {hasChildren ? (
@@ -90,7 +103,19 @@ const AccountTreeRow: React.FC<{
             account.balance < 0 ? 'text-danger-text' : 'text-foreground',
             isClickable ? 'cursor-pointer hover:underline text-primary ' : ''
           )}
-          onClick={handleBalanceClick}
+          {...(isClickable
+            ? {
+                role: 'button',
+                tabIndex: 0,
+                onClick: handleBalanceClick,
+                onKeyDown: (e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleBalanceClick(e);
+                  }
+                },
+              }
+            : {})}
         >
           {fmt(Math.abs(account.balance))}
         </div>

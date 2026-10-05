@@ -2,7 +2,6 @@ import { Router } from 'express';
 import ExcelJS from 'exceljs';
 import { prisma } from '../lib/prisma';
 import { Prisma } from '@prisma/client';
-import { computeImpact } from '../utils/accountBalance';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import { compareAccountNumber } from '../utils/accountSort';
@@ -641,7 +640,7 @@ router.post('/export', async (req, res) => {
     const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    const safeName = (filename || 'report').replace(/[^\w\-\.]/g, '_').slice(0, 100);
+    const safeName = (filename || 'report').replace(/[^\w\-.]/g, '_').slice(0, 100);
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}.xlsx"`);
     return res.send(Buffer.from(buffer));
   } catch (error) {

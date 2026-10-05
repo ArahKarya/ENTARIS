@@ -31,7 +31,7 @@ async function main() {
   console.log('Seeding Entaris...');
 
   // 1. Seed Fiscal Year
-  const fiscalYear = await prisma.fiscalYear.upsert({
+  await prisma.fiscalYear.upsert({
     where: { name: '2026' },
     update: {},
     create: {

@@ -46,6 +46,7 @@ export function TypedConfirmDialog({
           onSubmit={(e) => { e.preventDefault(); if (matches && !loading) onConfirm(); }}
         >
           <Field label={<>Ketik <strong>{keyword}</strong> untuk mengonfirmasi</>}>
+            {/* eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens */}
             <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={`Ketik ${keyword}`} autoComplete="off" autoFocus disabled={loading} />
           </Field>
         </form>

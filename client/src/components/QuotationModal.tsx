@@ -153,6 +153,8 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
       setItems([defaultItem()]);
     }
     setError('');
+    // Reset only on open or when a different record is edited; other editTarget fields are a snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editTarget?.id]);
 
   const inventoryOptions = useMemo<PickerOption[]>(

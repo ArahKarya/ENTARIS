@@ -383,6 +383,7 @@ function DetailContent({
               {piItems.length === 0 ? (
                 <p className="text-xs text-muted-foreground">—</p>
               ) : (
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
                 <div className="border border-border rounded-lg overflow-x-auto" role="region" aria-label="Rincian item pengajuan" tabIndex={0}>
                   <table className="w-full text-xs">
                     <thead className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wide">

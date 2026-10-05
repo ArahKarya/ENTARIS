@@ -82,7 +82,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
       }).then(r => r.data.data ?? r.data),
     enabled: isOpen,
   });
-  const items: any[] = itemsRaw ?? [];
+  const items: any[] = useMemo(() => itemsRaw ?? [], [itemsRaw]);
 
   const { data: coaData } = useQuery({
     queryKey: ['coa-flat'],

@@ -8,6 +8,7 @@ import { validateBody } from '../utils/validate';
 import { UpdateCompanySettingsSchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
 import dummyDataRouter from './settings/dummyData';
+import fs from 'fs';
 
 const router = Router();
 
@@ -158,7 +159,7 @@ router.get('/check-update', requirePerm('settings'), async (_req, res) => {
   try {
     const currentVersion = (() => {
       try {
-        const versionFile = require('fs').readFileSync(
+        const versionFile = fs.readFileSync(
           path.resolve(__dirname, '../../../client/src/lib/version.ts'), 'utf-8'
         );
         const match = versionFile.match(/APP_VERSION\s*=\s*'([^']+)'/);

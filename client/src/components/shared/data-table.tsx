@@ -183,6 +183,7 @@ export function DataTable<TData, TValue = unknown>({
 
   const sorting: SortingState = server ? (sort ? [{ id: sort.id, desc: sort.desc }] : []) : clientSorting;
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table is knowingly not memoizable by React Compiler; the component is skipped, behaviour unchanged
   const table = useReactTable({
     data: rows,
     columns,

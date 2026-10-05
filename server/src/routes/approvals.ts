@@ -57,7 +57,7 @@ router.delete('/rules/:id', requireCap('approval.decide'), async (req, res) => {
   try {
     await prisma.approvalRule.delete({ where: { id: req.params.id as string } });
     res.json({ success: true });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Gagal menghapus aturan.' });
   }
 });
@@ -349,7 +349,7 @@ router.get('/check', async (req, res) => {
     });
 
     res.json({ required: !!rule, rule });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Gagal cek approval.' });
   }
 });

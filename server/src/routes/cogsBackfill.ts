@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { handleRouteError } from '../utils/errors';
-import { logger } from '../lib/logger';
 
 const router = Router();
 

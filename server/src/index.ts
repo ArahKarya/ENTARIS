@@ -22,7 +22,6 @@ import gaMaterialRequestRoutes from './routes/ga/materialRequest';
 import gaVehicleRoutes from './routes/ga/vehicle';
 import gaBuildingRoutes from './routes/ga/building';
 import gaEquipmentRoutes from './routes/ga/equipment';
-import gaFinanceRoutes from './routes/ga/finance';
 import coaRoutes from './routes/coa';
 import journalRoutes from './routes/journals';
 import salesRoutes from './routes/sales';
@@ -227,7 +226,6 @@ app.use('/api/ga/material-requests', requirePerm('ga_material_request'), gaMater
 app.use('/api/ga/vehicle', requirePerm('ga_vehicle'), gaVehicleRoutes);
 app.use('/api/ga/building', requirePerm('ga_building'), gaBuildingRoutes);
 app.use('/api/ga/equipment', requirePerm('ga_equipment'), gaEquipmentRoutes);
-app.use('/api/ga/finance', requirePerm('ga_finance'), gaFinanceRoutes); // DEPRECATED alias (1 rilis): kini di /api/payment-requests/eam, gate payment_request edit
 app.use('/api/customer-deposits', requirePerm('customer_deposit'), customerDepositRoutes);
 app.use('/api/stock-opname', requirePerm('stock_opname'), stockOpnameRoutes);
 app.use('/api/fixed-assets', requirePerm('fixed_assets'), fixedAssetRoutes);

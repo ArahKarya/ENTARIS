@@ -99,6 +99,7 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
           <fieldset className="space-y-2">
             <legend className="mb-2 text-sm font-medium text-foreground">Pilih Deposit</legend>
             {availableDeposits.map((dep: any) => (
+              // eslint-disable-next-line jsx-a11y/control-has-associated-label -- accessible name comes from the button's text children
               <button
                 key={dep.id}
                 type="button"

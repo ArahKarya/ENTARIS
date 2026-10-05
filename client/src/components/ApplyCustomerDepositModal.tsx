@@ -113,6 +113,7 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
                     Pilih Deposit
                   </span>
                   {availableDeposits.map((dep: any) => (
+                    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- accessible name comes from the button's text children
                     <button
                       key={dep.id}
                       type="button"

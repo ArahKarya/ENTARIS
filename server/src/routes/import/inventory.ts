@@ -109,7 +109,7 @@ router.post(
             // If openingPrice / qty yields a reasonable unit cost (< openingPrice itself),
             // and the raw total (qty * price) exceeds 18 digits, treat price as total value.
             const rawTotal = openingQty * openingPrice;
-            const isLikelyTotalValue = rawTotal > 9_999_999_999_999_999;
+            const isLikelyTotalValue = rawTotal > 1e16;
             const unitCost = isLikelyTotalValue ? (openingPrice / openingQty) : openingPrice;
             const totalValue = isLikelyTotalValue ? openingPrice : rawTotal;
 

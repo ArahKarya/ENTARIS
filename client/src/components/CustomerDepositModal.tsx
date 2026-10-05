@@ -39,7 +39,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
 
   useEffect(() => {
     if (isOpen) {
-      setDate(today);
+      setDate(new Date().toISOString().split('T')[0]);
       setPartyId('');
       setAmount('');
       setAccountId('');

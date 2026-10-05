@@ -240,7 +240,7 @@ export const SystemAccountsTab: React.FC = () => {
     return ROLE_GROUPS.map((group) => ({
       ...group,
       roles: group.roles.filter((roleKey) => {
-        const meta = getRoleMeta(roleKey);
+        const meta = data?.roles.find((r) => r.key === roleKey);
         if (!meta) return false;
         return (
           meta.label.toLowerCase().includes(q) ||

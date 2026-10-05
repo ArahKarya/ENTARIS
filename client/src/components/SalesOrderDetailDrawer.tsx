@@ -177,6 +177,8 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
       });
       setGenItems(init);
     }
+  // Reinitialise only when a different SO is shown, not on every refetch of the same SO.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [so?.id]);
 
   const submitMut = useMutation({
@@ -345,34 +347,29 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     </tbody>
                     <tfoot className="border-t border-border bg-muted/30">
                       <tr>
-                        <td colSpan={4}></td>
-                        <td className="px-3 py-2 text-right text-sm text-muted-foreground">Subtotal</td>
+                        <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">Subtotal</td>
                         <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(so.subtotal))}</td>
                       </tr>
                       {Number(so.potongan) > 0 && (
                         <tr>
-                          <td colSpan={4}></td>
-                          <td className="px-3 py-2 text-right text-sm text-muted-foreground">Potongan</td>
+                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">Potongan</td>
                           <td className="px-3 py-2 text-right tabular-nums">-{formatRupiah(Number(so.potongan))}</td>
                         </tr>
                       )}
                       {Number(so.taxPct) > 0 && (
                         <tr>
-                          <td colSpan={4}></td>
-                          <td className="px-3 py-2 text-right text-sm text-muted-foreground">PPN {so.taxPct}%</td>
+                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">PPN {so.taxPct}%</td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatRupiah((Number(so.subtotal) - Number(so.potongan)) * Number(so.taxPct) / 100)}</td>
                         </tr>
                       )}
                       {Number(so.biayaLain) > 0 && (
                         <tr>
-                          <td colSpan={4}></td>
-                          <td className="px-3 py-2 text-right text-sm text-muted-foreground">Biaya Lain</td>
+                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">Biaya Lain</td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(so.biayaLain))}</td>
                         </tr>
                       )}
                       <tr className="border-t border-border">
-                        <td colSpan={4}></td>
-                        <td className="px-3 py-2 text-right font-semibold">Grand Total</td>
+                        <td colSpan={5} className="px-3 py-2 text-right font-semibold">Grand Total</td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-primary">{formatRupiah(Number(so.grandTotal))}</td>
                       </tr>
                     </tfoot>

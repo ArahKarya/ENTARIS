@@ -100,10 +100,9 @@ function spawnPipeline(
     const outStream = fs.createWriteStream(outputPath);
 
     let dumpStderr = '';
-    let compressStderr = '';
 
     dumper.stderr.on('data', (chunk: Buffer) => { dumpStderr += chunk.toString(); });
-    compressor.stderr.on('data', (chunk: Buffer) => { compressStderr += chunk.toString(); });
+    compressor.stderr.on('data', () => { /* drain stderr so the child never blocks on a full pipe */ });
 
     dumper.stdout.pipe(compressor.stdin);
     compressor.stdout.pipe(outStream);
@@ -119,7 +118,8 @@ function spawnPipeline(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      err ? reject(err) : resolve();
+      if (err) reject(err);
+      else resolve();
     };
 
     dumper.on('error', (err) => finish(new Error(`${dumpCmd} spawn error: ${err.message}`)));
@@ -162,7 +162,8 @@ function spawnRestorePipeline(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      err ? reject(err) : resolve();
+      if (err) reject(err);
+      else resolve();
     };
 
     decompressor.on('error', (err) => finish(new Error(`${decompressCmd} error: ${err.message}`)));
