@@ -47,7 +47,9 @@
     "notifications",
     "health",
     "import",
-    "attachments"
+    "attachments",
+    "payment_request",
+    "ga_material_request"
   ],
   "roles": [
     "Admin",

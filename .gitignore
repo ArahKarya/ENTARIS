@@ -47,3 +47,6 @@ backups/
 
 # User uploads (runtime data, never commit)
 server/uploads/
+
+# AI tool catalog scratch output (route inventory etc.)
+server/scripts/ai-tools/out/

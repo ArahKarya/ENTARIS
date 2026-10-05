@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { logger } from '../lib/logger';
 import { CAPABILITY_KEYS } from '../constants/modules';
+import { TOOLSETS } from './types';
 import type {
   ToolDef,
   ToolRegistry,
@@ -41,7 +42,8 @@ export function riskToTier(risk: ToolRisk): ToolTier {
  *  - name snake_case & unik
  *  - risk ∈ read/write/critical; module/role/capability terdaftar
  *  - handler "METHOD /path"
- *  - read → handler GET; write/critical → wajib confirm_template
+ *  - read → handler GET (kecuali safeNonGet); write/critical → wajib confirm_template
+ *  - toolset (opsional) ∈ TOOLSETS
  *  - level 1..3
  */
 export function validateTool(
@@ -86,8 +88,14 @@ export function validateTool(
   if (t.handler && !HANDLER_RE.test(t.handler)) {
     errors.push(`${at}: handler harus 'METHOD /path'`);
   }
-  if (t.risk === 'read' && t.handler && !t.handler.startsWith('GET ')) {
-    errors.push(`${at}: risk=read WAJIB handler GET`);
+  if (t.risk === 'read' && t.handler && !t.handler.startsWith('GET ') && !t.safeNonGet) {
+    errors.push(`${at}: risk=read WAJIB handler GET (kecuali safeNonGet=true utk preview/search murni baca)`);
+  }
+  if (t.safeNonGet && t.risk !== 'read') {
+    errors.push(`${at}: safeNonGet hanya valid untuk risk=read`);
+  }
+  if (t.toolset !== undefined && !(TOOLSETS as readonly string[]).includes(t.toolset)) {
+    errors.push(`${at}: toolset '${t.toolset}' TIDAK terdaftar`);
   }
   if ((t.risk === 'write' || t.risk === 'critical') && !t.confirm_template) {
     errors.push(`${at}: risk=${t.risk} WAJIB confirm_template (human-in-the-loop)`);
