@@ -1165,6 +1165,40 @@ model StockMovement {
   @@map("stock_movements")
 }
 
+// Draft Data Produksi: input produksi disimpan dulu sebagai draft (tanpa efek
+// stok/GL/HPP/OEE). Posting = aksi eksplisit terpisah yang menjalankan
+// submitProductionRunInTx (langsung utk role bypass, via approval utk lainnya).
+// Tidak ada relasi FK ke ProductionRun/User: draft tak boleh memengaruhi
+// konsumen ProductionRun (laporan, OEE, dashboard).
+model ProductionRunDraft {
+  id                String    @id @default(uuid())
+  draftNumber       String    @unique @map("draft_number")
+  date              DateTime
+  notes             String?
+  warehouseId       String?   @map("warehouse_id")
+  // Ringkasan terdenormalisasi utk tampilan daftar.
+  summary           Json?
+  // Body CreateProductionRunSchema apa adanya (seluruh isian modal).
+  payload           Json
+  // Draft | PendingApproval | Posted | Discarded
+  status            String    @default("Draft")
+  createdById       String    @map("created_by_id")
+  updatedById       String?   @map("updated_by_id")
+  postedRunId       String?   @map("posted_run_id")
+  postedRunNumber   String?   @map("posted_run_number")
+  postedAt          DateTime? @map("posted_at")
+  postedById        String?   @map("posted_by_id")
+  approvalRequestId String?   @map("approval_request_id")
+  lastError         String?   @map("last_error")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, date])
+  @@index([createdById])
+  @@index([approvalRequestId])
+  @@map("production_run_drafts")
+}
+
 model ProductionRun {
   id                  String                 @id @default(uuid())
   runNumber           String                 @unique @map("run_number")

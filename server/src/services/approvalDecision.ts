@@ -14,6 +14,7 @@ import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema, CreateSalesRetu
 import { notifyUsers } from './notificationService';
 import { editProductionRunInTx } from './productionRunEdit';
 import { revisePurchaseInvoiceInTx } from './purchaseInvoiceRevise';
+import { markDraftPostedByApproval, returnDraftToEditable } from './productionRunDraft';
 import { isEditDocumentType, splitStoredPayload } from './approvalEditRequests';
 
 export type ApprovalAction = 'approve' | 'reject' | 'revise';
@@ -73,6 +74,8 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
             if (!parsed.success) throw new Error('Payload produksi tidak valid: ' + parsed.error.issues[0]?.message);
             const run = await submitProductionRunInTx(tx, parsed.data as any, creator);
             if (!run) throw new Error('Gagal membuat data produksi.');
+            // Draft tertaut (bila ada) → Posted; antrian lama tanpa draft = no-op.
+            await markDraftPostedByApproval(tx, request.id, { id: run.id, number: run.runNumber }, actorUserId);
             return { id: run.id, number: run.runNumber };
           }
           if (request.documentType === 'SalesReturn') {
@@ -156,7 +159,17 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
       await applyPurchaseOrderApprovalDecisionInTx(prisma, request.documentId, action, note);
     }
 
-    if (action === 'reject') {
+    // Data Produksi dari draft: reject / revisi mengembalikan draft ke Draft
+    // (dengan catatan) supaya bisa diperbaiki & diposting ulang.
+    let draftReturned = false;
+    if (request.documentType === 'ProductionRun' && (action === 'reject' || action === 'revise')) {
+      if (action === 'revise' && !note) return { ok: false, error: 'Alasan revisi wajib diisi.' };
+      draftReturned = await returnDraftToEditable(
+        prisma, request.id, note, action === 'reject' ? 'Ditolak' : 'Perlu revisi',
+      );
+    }
+
+    if (action === 'reject' || (action === 'revise' && draftReturned)) {
       await prisma.approvalRequest.update({
         where: { id: request.id },
         data: {
@@ -170,7 +183,9 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
         userIds: [request.requestedBy],
         type: 'approval_rejected',
         title: 'Pengajuan ditolak',
-        message: `Pengajuan ditolak: ${note || '-'}`,
+        message: draftReturned
+          ? `Pengajuan ${action === 'revise' ? 'perlu revisi' : 'ditolak'}: ${note || '-'}. Draft dikembalikan — perbaiki lalu posting ulang.`
+          : `Pengajuan ditolak: ${note || '-'}`,
         metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType },
       });
       logger.info({ requestId: request.id, by: actorUserId }, 'Approval rejected');
