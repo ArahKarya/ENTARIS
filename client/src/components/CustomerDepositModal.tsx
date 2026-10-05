@@ -4,9 +4,9 @@ import api from '../lib/api';
 import { Wallet, CheckCircle2, Paperclip } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import AttachmentUpload from './AttachmentUpload';
-import RupiahInput from './RupiahInput';
+import { RupiahField } from './purchase-cash/RupiahField';
 import AttachmentPreview from './AttachmentPreview';
-import SearchableSelect from './SearchableSelect';
+import { ComboboxField } from './overlays/ComboboxField';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -130,17 +130,15 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
               <Field label="Tanggal">
                 <DateInput value={date} onChange={setDate} disabled={!!savedId} />
               </Field>
-              <div className="flex flex-col gap-1.5">
-                <Label required>Pelanggan</Label>
-                <SearchableSelect
+              <ComboboxField
+                  label="Pelanggan"
+                  required
                   options={(customers ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
                   value={partyId}
                   onChange={setPartyId}
                   placeholder="— Pilih Pelanggan —"
                   disabled={!!savedId}
-                  aria-label="Pelanggan"
                 />
-              </div>
             </div>
 
             {partyId && depositBalance && depositBalance.totalBalance > 0 && (
@@ -178,7 +176,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
             <div className={isOpeningBalance ? '' : 'grid gap-4 sm:grid-cols-2'}>
               <Field label="Jumlah (Rp)" required>
                 {(control) => (
-                  <RupiahInput
+                  <RupiahField
                     id={control.id}
                     value={typeof amount === 'number' ? amount : 0}
                     onChange={(v) => setAmount(v === 0 ? '' : v)}

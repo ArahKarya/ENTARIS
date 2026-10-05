@@ -58,7 +58,7 @@ interface Props {
 const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreated }) => {
   const isEdit = Boolean(editTarget?.id);
   const today = new Date().toISOString().split('T')[0];
-  const defaultValidUntil = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+  const defaultValidUntil = new Date(new Date().getTime() + 30 * 86400000).toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
   const [validUntil, setValidUntil] = useState(defaultValidUntil);

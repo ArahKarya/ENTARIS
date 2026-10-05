@@ -10,7 +10,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatRupiah } from '@/lib/format';
-import SearchableSelect from '@/components/SearchableSelect';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
@@ -99,43 +100,44 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
           WO ini terhubung ke jadwal preventif. Saat WO selesai, jadwal otomatis bergulir ke jatuh tempo berikutnya.
         </p>
       )}
-      <Field label="Aset" required error={submitted ? errors.assetId : undefined}>
-        {() => (
-          <SearchableSelect
-            options={assetOptions(assets)}
-            value={form.assetId}
-            onChange={(v) => set({ assetId: v })}
-            placeholder={isLoading ? 'Memuat…' : '— Pilih aset —'}
-            disabled={!!prefill?.assetId}
-            allowClear={false}
-            searchable
-            aria-label="Aset"
-          />
-        )}
-      </Field>
+      <ComboboxField label="Aset" required error={submitted ? errors.assetId : undefined}
+  options={assetOptions(assets)}
+  value={form.assetId}
+  onChange={(v) => set({ assetId: v })}
+  placeholder={isLoading ? 'Memuat…' : '— Pilih aset —'}
+  disabled={!!prefill?.assetId}
+/>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Tipe">
-          {() => (
-            <SearchableSelect
-              options={TYPE_OPTIONS}
-              value={form.type}
-              onChange={(v) => set({ type: v as WoType })}
-              allowClear={false}
-              searchable={false}
-              aria-label="Tipe"
-            />
+          {(control) => (
+            <Select value={form.type} onValueChange={(v) => set({ type: v as WoType })}>
+              <SelectTrigger {...control}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </Field>
         <Field label="Prioritas">
-          {() => (
-            <SearchableSelect
-              options={PRIORITY_OPTIONS}
-              value={form.priority}
-              onChange={(v) => set({ priority: v as WoPriority })}
-              allowClear={false}
-              searchable={false}
-              aria-label="Prioritas"
-            />
+          {(control) => (
+            <Select value={form.priority} onValueChange={(v) => set({ priority: v as WoPriority })}>
+              <SelectTrigger {...control}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITY_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </Field>
       </div>
@@ -218,19 +220,12 @@ export function AssignModal({
       submitLabel="Tugaskan"
       submitting={mutation.isPending}
     >
-      <Field label="Teknisi" required error={submitted && !assignedToId ? 'Teknisi wajib dipilih.' : undefined}>
-        {() => (
-          <SearchableSelect
-            options={(users ?? []).map((u) => ({ value: u.id, label: `${u.fullName} (${u.username})` }))}
-            value={assignedToId}
-            onChange={setAssignedToId}
-            placeholder={isLoading ? 'Memuat…' : '— Pilih teknisi —'}
-            allowClear={false}
-            searchable
-            aria-label="Teknisi"
-          />
-        )}
-      </Field>
+      <ComboboxField label="Teknisi" required error={submitted && !assignedToId ? 'Teknisi wajib dipilih.' : undefined}
+  options={(users ?? []).map((u) => ({ value: u.id, label: `${u.fullName} (${u.username})` }))}
+  value={assignedToId}
+  onChange={setAssignedToId}
+  placeholder={isLoading ? 'Memuat…' : '— Pilih teknisi —'}
+/>
     </FormModal>
   );
 }
@@ -392,31 +387,18 @@ export function AddPartModal({ id, onClose, onDone }: { id: string; onClose: () 
       submitLabel="Tambah"
       submitting={mutation.isPending}
     >
-      <Field label="Item inventaris" required error={submitted ? errors.item : undefined}>
-        {() => (
-          <SearchableSelect
-            options={(items ?? []).map((it) => ({ value: it.id, label: `${it.sku} — ${it.name}` }))}
-            value={form.inventoryItemId}
-            onChange={(v) => set({ inventoryItemId: v })}
-            placeholder={loadingItems ? 'Memuat…' : '— Pilih item —'}
-            allowClear={false}
-            searchable
-            aria-label="Item inventaris"
-          />
-        )}
-      </Field>
-      <Field label="Lokasi asal" hint="Isi untuk mengurangi stok dari lokasi ini.">
-        {() => (
-          <SearchableSelect
-            options={(locations ?? []).map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
-            value={form.fromLocationId}
-            onChange={(v) => set({ fromLocationId: v })}
-            placeholder="— Tanpa pengurangan stok —"
-            allowClear
-            aria-label="Lokasi asal"
-          />
-        )}
-      </Field>
+      <ComboboxField label="Item inventaris" required error={submitted ? errors.item : undefined}
+  options={(items ?? []).map((it) => ({ value: it.id, label: `${it.sku} — ${it.name}` }))}
+  value={form.inventoryItemId}
+  onChange={(v) => set({ inventoryItemId: v })}
+  placeholder={loadingItems ? 'Memuat…' : '— Pilih item —'}
+/>
+      <ComboboxField label="Lokasi asal" hint="Isi untuk mengurangi stok dari lokasi ini."
+  options={(locations ?? []).map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
+  value={form.fromLocationId}
+  onChange={(v) => set({ fromLocationId: v })}
+  placeholder="— Tanpa pengurangan stok —"
+/>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Qty" required error={submitted ? errors.qty : undefined}>
           <NumberInput min={0} step="any" value={form.quantity} onChange={(e) => set({ quantity: e.target.value })} />

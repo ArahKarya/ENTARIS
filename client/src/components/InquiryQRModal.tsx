@@ -113,8 +113,8 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </Field>
 
           {/* QR codes need a light, high-contrast surface to scan reliably in dark mode too. */}
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-white py-4">
-            <div ref={canvasRef} className="rounded bg-white p-3">
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-[#fff] py-4">
+            <div ref={canvasRef} className="rounded bg-[#fff] p-3">
               <QRCodeCanvas
                 value={url}
                 size={240}
@@ -127,7 +127,7 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 style={{ maxWidth: '100%', height: 'auto' }}
               />
             </div>
-            <p className="break-all px-4 text-center font-mono text-[11px] text-neutral-600">{url}</p>
+            <p className="break-all px-4 text-center font-mono text-[11px] text-[#525252]">{url}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">

@@ -51,7 +51,7 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
           unit: editItem.unit ?? '',
           category: editItem.category ?? '',
           description: editItem.description ?? '',
-          minimumStock: Number(editItem.minimumStock) ?? 0,
+          minimumStock: Number(editItem.minimumStock),
           accountId: editItem.accountId ?? '',
         });
       } else {

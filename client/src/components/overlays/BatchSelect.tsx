@@ -8,7 +8,19 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, Package } from 'lucide-react';
 import api from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Batch } from '@/components/BatchPicker';
+
+export interface Batch {
+  id: string;
+  movementNumber: string;
+  date: string;
+  qtyInbound: number;
+  unitCost: number;
+  qtyConsumed: number;
+  qtyAvailable: number;
+  sourceType: string;
+  sourceRef: string | null;
+  sourceRefId: string | null;
+}
 
 interface BatchSelectProps {
   itemId: string;

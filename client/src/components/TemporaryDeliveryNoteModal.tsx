@@ -3,15 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import { ComboboxField } from './overlays/ComboboxField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { DateInput, Field } from '@/components/shared';
+import { DateInput, Field, type ComboboxOption } from '@/components/shared';
 import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
 import { dialogShellClass } from './sales/dialog-classes-b';
 
@@ -66,11 +65,11 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
     },
   });
 
-  const partyOptions = useMemo<SelectOption[]>(
+  const partyOptions = useMemo<ComboboxOption[]>(
     () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
     [parties],
   );
-  const inventoryOptions = useMemo<SelectOption[]>(
+  const inventoryOptions = useMemo<ComboboxOption[]>(
     () => (inventoryItems ?? []).map((i: any) => ({ value: i.id, label: `${i.code} — ${i.name}` })),
     [inventoryItems],
   );
@@ -135,12 +134,8 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
               <Field label="Tanggal">
                 <DateInput value={date} onChange={setDate} />
               </Field>
-              <div className="flex flex-col gap-1.5">
-                <Label required>Pelanggan</Label>
-                <SearchableSelect options={partyOptions} value={partyId} onChange={setPartyId}
-                  placeholder="Pilih pelanggan" aria-label="Pelanggan" />
-                {partyError && <p role="alert" className="text-xs font-medium text-danger-text">{partyError}</p>}
-              </div>
+              <ComboboxField label="Pelanggan" required options={partyOptions} value={partyId} onChange={setPartyId}
+                placeholder="Pilih pelanggan" error={partyError || undefined} />
               <Field label="No. Mobil">
                 <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} />
               </Field>
@@ -162,9 +157,9 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
               <div className="grid gap-3">
                 {rows.map((r, idx) => (
                   <div key={r.id} className="grid grid-cols-12 items-end gap-2 rounded-lg border border-border p-2">
-                    <div className="col-span-12 flex flex-col gap-1.5 sm:col-span-6">
-                      <Label>Barang {idx + 1}</Label>
-                      <SearchableSelect
+                    <div className="col-span-12 sm:col-span-6">
+                      <ComboboxField
+                        label={`Barang ${idx + 1}`}
                         options={inventoryOptions}
                         value={r.inventoryItemId}
                         onChange={(v) => {
@@ -172,7 +167,6 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
                           setRow(r.id, { inventoryItemId: v, unit: inv?.unit || r.unit });
                         }}
                         placeholder="Pilih barang (master item)"
-                        aria-label={`Barang baris ${idx + 1}`}
                       />
                     </div>
                     <Field label="Qty" className="col-span-5 sm:col-span-2">

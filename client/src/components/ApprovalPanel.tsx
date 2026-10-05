@@ -28,10 +28,10 @@ export interface ApprovalRequest {
 }
 
 const STATUS_TABS = [
-  { key: 'Pending', label: 'Menunggu', badge: 'badge-yellow' },
-  { key: 'Approved', label: 'Disetujui', badge: 'badge-green' },
-  { key: 'Rejected', label: 'Ditolak', badge: 'badge-red' },
-  { key: 'NeedsRevision', label: 'Perlu Revisi', badge: 'badge-amber' },
+  { key: 'Pending', label: 'Menunggu' },
+  { key: 'Approved', label: 'Disetujui' },
+  { key: 'Rejected', label: 'Ditolak' },
+  { key: 'NeedsRevision', label: 'Perlu Revisi' },
 ] as const;
 type StatusKey = typeof STATUS_TABS[number]['key'];
 const labelOf = (s: string) => STATUS_TABS.find((t) => t.key === s)?.label ?? s;

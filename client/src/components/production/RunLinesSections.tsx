@@ -7,7 +7,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Field, type ComboboxOption } from '@/components/shared';
 import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { BatchSelect } from '@/components/overlays/BatchSelect';
-import type { Batch } from '@/components/BatchPicker';
+import type { Batch } from '@/components/overlays/BatchSelect';
 import { cn } from '@/lib/utils';
 import type { LineItem, OutputLineItem } from './run-form-utils';
 

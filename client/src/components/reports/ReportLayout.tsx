@@ -8,7 +8,7 @@ import { useCompanySettings } from '../../contexts/CompanySettingsContext';
 /* ─── Date Filters ─────────────────────────────────────────────────────────── */
 
 const dateInputClass =
-  'text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500';
+  'text-sm border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring';
 
 type DateFilter =
   | {
@@ -82,16 +82,16 @@ const PrintHeader: React.FC<{ title: string; periodLabel: string }> = ({ title, 
 
   return (
     <div className="print-only hidden mb-6">
-      <div className="flex justify-between items-start border-b-2 border-gray-800 pb-3 mb-2">
+      <div className="flex justify-between items-start border-b-2 border-foreground pb-3 mb-2">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">{companyName}</h2>
-          {address && <p className="text-xs text-gray-600">{address}</p>}
-          {taxId && <p className="text-xs text-gray-600">NPWP: {taxId}</p>}
+          <h2 className="text-lg font-bold text-foreground">{companyName}</h2>
+          {address && <p className="text-xs text-foreground-secondary">{address}</p>}
+          {taxId && <p className="text-xs text-foreground-secondary">NPWP: {taxId}</p>}
         </div>
         <div className="text-right">
-          <h1 className="text-xl font-bold text-gray-900">{title.toUpperCase()}</h1>
-          <p className="text-sm text-gray-600 mt-0.5">{periodLabel}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Dicetak: {printDate}</p>
+          <h1 className="text-xl font-bold text-foreground">{title.toUpperCase()}</h1>
+          <p className="text-sm text-foreground-secondary mt-0.5">{periodLabel}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Dicetak: {printDate}</p>
         </div>
       </div>
     </div>
@@ -126,7 +126,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       {/* Back link — hidden when printing */}
       <Link
         to={backTo}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors -mb-2 no-print"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mb-2 no-print"
         data-no-print
       >
         <ArrowLeft size={14} /> Kembali ke Laporan
@@ -135,13 +135,13 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       {/* Header — screen only */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print" data-no-print>
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onPrint || (() => window.print())}
-            className="btn-secondary text-xs py-1.5 px-3"
+            className="inline-flex min-h-9 items-center gap-2 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Printer size={14} /> Cetak
           </button>
@@ -154,7 +154,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
             />
           )}
           {onExportExcel && (
-            <button onClick={onExportExcel} className="btn-primary text-xs py-1.5 px-3">
+            <button onClick={onExportExcel} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               <Download size={14} /> Export Excel
             </button>
           )}
@@ -164,7 +164,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       {/* Date Filter — hidden when printing */}
       {dateFilter && dateFilter.mode === 'range' && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 no-print" data-no-print>
-          <span className="text-xs text-gray-500 font-medium">Periode:</span>
+          <span className="text-xs text-muted-foreground font-medium">Periode:</span>
           <input
             type="date"
             value={dateFilter.startDate}
@@ -172,7 +172,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
             onChange={(e) => dateFilter.onStartDateChange(e.target.value)}
             className={dateInputClass}
           />
-          <span className="text-gray-300">—</span>
+          <span className="text-muted-foreground">—</span>
           <input
             type="date"
             value={dateFilter.endDate}
@@ -184,7 +184,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       )}
       {dateFilter && dateFilter.mode === 'single' && (
         <div className="flex items-center gap-3 no-print" data-no-print>
-          <span className="text-xs text-gray-500 font-medium">{dateFilter.label || 'Per tanggal:'}</span>
+          <span className="text-xs text-muted-foreground font-medium">{dateFilter.label || 'Per tanggal:'}</span>
           <input
             type="date"
             value={dateFilter.date}
@@ -207,10 +207,10 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
 
       {/* Content — always visible */}
       {isError ? (
-        <div className="bg-white border border-red-200 rounded-xl p-8 text-center">
-          <p className="text-sm text-red-600 mb-3">Gagal memuat laporan.</p>
+        <div className="bg-card border border-danger/30 rounded-xl p-8 text-center">
+          <p className="text-sm text-danger-text mb-3">Gagal memuat laporan.</p>
           {onRetry && (
-            <button onClick={onRetry} className="btn-primary text-xs">
+            <button onClick={onRetry} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               Coba Lagi
             </button>
           )}

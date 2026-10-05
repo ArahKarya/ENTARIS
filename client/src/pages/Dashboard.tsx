@@ -32,9 +32,11 @@ import CashPositionWidget from '../components/widgets/CashPositionWidget';
 import TopVendors from '../components/widgets/TopVendors';
 import CogsBackfillWidget from '../components/widgets/CogsBackfillWidget';
 import { WidgetSkeleton } from '../components/dashboard-kit';
-import DashboardSettings, { DEFAULT_WIDGETS, type WidgetConfig } from '../components/DashboardSettings';
+import DashboardSettings from '../components/DashboardSettings';
+import { DEFAULT_WIDGETS, type WidgetConfig } from '../components/dashboardWidgets';
 import DashboardSectionNav, { type SectionDef } from '../components/DashboardSectionNav';
-import DashboardPeriodFilter, { type PeriodRange, computePresetRange } from '../components/DashboardPeriodFilter';
+import DashboardPeriodFilter, { type PeriodRange } from '../components/DashboardPeriodFilter';
+import { computePresetRange } from '../components/dashboardPeriod';
 import { SetupChecklistCard } from '../components/onboarding/SetupChecklistCard';
 
 const RevenueChart = lazy(() => import('../components/widgets/RevenueChart'));

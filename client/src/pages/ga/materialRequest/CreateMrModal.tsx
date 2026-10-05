@@ -3,7 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import SearchableSelect from '@/components/SearchableSelect';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
@@ -128,19 +128,12 @@ export function CreateMrModal({
       submitting={mutation.isPending}
     >
       {!woContext && (
-        <Field label="Aset tujuan" hint="Opsional">
-          {() => (
-            <SearchableSelect
-              options={assets.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))}
-              value={assetId}
-              onChange={setAssetId}
-              placeholder={loadingAssets ? 'Memuat…' : '— Tanpa aset spesifik —'}
-              allowClear
-              searchable
-              aria-label="Aset tujuan"
-            />
-          )}
-        </Field>
+        <ComboboxField label="Aset tujuan" hint="Opsional"
+  options={assets.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))}
+  value={assetId}
+  onChange={setAssetId}
+  placeholder={loadingAssets ? 'Memuat…' : '— Tanpa aset spesifik —'}
+/>
       )}
       <Field label="Mesin / target" hint="Opsional">
         <Input value={machineTarget} onChange={(e) => setMachineTarget(e.target.value)} placeholder="Contoh: Dryer Timur, Genset 2" />
@@ -177,18 +170,12 @@ export function CreateMrModal({
                     </Button>
                   )}
                 </div>
-                <Field label="Item inventaris GA" hint="Opsional; kosongkan untuk barang baru.">
-                  {() => (
-                    <SearchableSelect
-                      options={invOptions}
-                      value={it.inventoryItemId ?? ''}
-                      onChange={(v) => pickInventoryItem(idx, v)}
-                      placeholder="— Barang baru / teks bebas —"
-                      allowClear
-                      aria-label={`Item inventaris barang #${idx + 1}`}
-                    />
-                  )}
-                </Field>
+                <ComboboxField label="Item inventaris GA" hint="Opsional; kosongkan untuk barang baru."
+  options={invOptions}
+  value={it.inventoryItemId ?? ''}
+  onChange={(v) => pickInventoryItem(idx, v)}
+  placeholder="— Barang baru / teks bebas —"
+/>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Nama barang" required className="col-span-2">
                     <Input value={it.itemName} onChange={(e) => updateItem(idx, { itemName: e.target.value })} placeholder="Contoh: V-belt B-52" />

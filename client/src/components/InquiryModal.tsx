@@ -2,16 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Plus, Trash2 } from 'lucide-react';
-import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import { ComboboxField } from './overlays/ComboboxField';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { DateInput, Field } from '@/components/shared';
+import { DateInput, Field, type ComboboxOption } from '@/components/shared';
 import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
 import { dialogShellClass } from './sales/dialog-classes-b';
 
@@ -114,7 +113,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     setError('');
   }, [isOpen, editTarget?.id]);
 
-  const partyOptions = useMemo<SelectOption[]>(
+  const partyOptions = useMemo<ComboboxOption[]>(
     () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
     [parties],
   );
@@ -229,13 +228,12 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
 
             <div className="grid gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Pilih dari Pelanggan Existing (opsional)</Label>
-                <SearchableSelect
+                <ComboboxField
+                  label="Pilih dari Pelanggan Existing (opsional)"
                   options={partyOptions}
                   value={partyId}
                   onChange={onPickParty}
                   placeholder="Cari pelanggan terdaftar..."
-                  aria-label="Pilih dari pelanggan existing"
                 />
                 {!partyId && (
                   <p className="text-xs text-warning-text">

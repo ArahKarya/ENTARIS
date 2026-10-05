@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import SearchableSelect from '@/components/SearchableSelect';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
 import { DateInput, Field } from '@/components/shared';
@@ -85,19 +85,12 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
       submitting={mutation.isPending}
     >
       {!editing && (
-        <Field label="Aset" required error={submitted ? errors.assetId : undefined}>
-          {() => (
-            <SearchableSelect
-              options={assetOptions(assets)}
-              value={form.assetId}
-              onChange={(v) => set({ assetId: v })}
-              placeholder={isLoading ? 'Memuat…' : '— Pilih aset —'}
-              allowClear={false}
-              searchable
-              aria-label="Aset"
-            />
-          )}
-        </Field>
+        <ComboboxField label="Aset" required error={submitted ? errors.assetId : undefined}
+  options={assetOptions(assets)}
+  value={form.assetId}
+  onChange={(v) => set({ assetId: v })}
+  placeholder={isLoading ? 'Memuat…' : '— Pilih aset —'}
+/>
       )}
       <fieldset className="flex flex-col gap-1.5" aria-describedby="schedule-interval-hint">
         <legend className="mb-0.5 text-sm font-medium text-foreground">

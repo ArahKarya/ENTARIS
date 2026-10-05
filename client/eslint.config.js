@@ -28,15 +28,41 @@ export default defineConfig([
     plugins: {
       'jsx-a11y': jsxA11y,
     },
-    rules: jsxA11yWarnRules,
+    rules: {
+      ...jsxA11yWarnRules,
+      // Underscore prefix marks intentionally unused bindings.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
     },
   },
   {
+    // Node-side files: Playwright e2e, build configs.
     files: ['e2e/**/*.ts', '*.config.ts'],
     languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    // Test files and e2e specs: fixtures/mocks legitimately use loose types
+    // and are not Fast Refresh modules.
+    files: ['**/*.{test,spec}.{ts,tsx}', 'e2e/**/*.ts', 'src/test/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    // Standalone Node scripts (plain ESM).
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
       globals: globals.node,
     },
   },

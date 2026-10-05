@@ -3,7 +3,7 @@
 // terurut tanggal tertua + qtyAvailable akurat, termasuk absorpsi konsumsi
 // legacy). Murni prefill form di client — validasi & posting tetap di server.
 import api from './api';
-import type { Batch } from '../components/BatchPicker';
+import type { Batch } from '../components/overlays/BatchSelect';
 
 export interface FifoAllocation {
   batch: Batch;

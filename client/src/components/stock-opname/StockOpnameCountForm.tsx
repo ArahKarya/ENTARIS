@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { Field, LoadingState, PageHeader, StatCard } from '@/components/shared';
-import WarehousePicker from '@/components/WarehousePicker';
+import { WarehouseSelectField } from '@/components/overlays/WarehouseSelectField';
 
 interface OpnameItem {
   id: string;
@@ -167,9 +167,9 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
         <Field label="Tanggal" required>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Gudang" required>
-          {() => (
-            <WarehousePicker
+        <WarehouseSelectField
+          label="Gudang"
+          required
               value={warehouseId}
               onChange={(id) => {
                 // Reset entered values when switching warehouse — "Stok Sistem"
@@ -177,12 +177,9 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
                 setWarehouseId(id);
                 setActualStocks({});
               }}
-              size="md"
-              autoDefault={true}
-              placeholder="Pilih gudang opname..."
-            />
-          )}
-        </Field>
+          autoDefault
+          placeholder="Pilih gudang opname..."
+        />
         <Field label="Catatan">
           <Input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional..." />
         </Field>

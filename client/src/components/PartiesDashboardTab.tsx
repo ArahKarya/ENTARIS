@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, TrendingUp, TrendingDown, Wallet, Users, Store, CreditCard, Clock, AlertTriangle } from 'lucide-react';
-import { cn } from '../lib/utils';
-import api from '../lib/api';
-import { formatRupiah, formatDate } from '../lib/formatters';
+import { TrendingUp, TrendingDown, Wallet, Users, Store, CreditCard, Clock, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import api from '@/lib/api';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { LoadingState } from '@/components/shared';
 
 interface AgingBucket {
   current: number;
@@ -57,7 +60,9 @@ interface DashboardData {
 }
 
 const AGING_LABELS = ['Belum Jatuh Tempo', '1-30 hari', '31-60 hari', '61-90 hari', '> 90 hari'];
-const AGING_COLORS = ['bg-green-500', 'bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-red-600'];
+const AGING_COLORS = ['bg-success', 'bg-warning', 'bg-warning/60', 'bg-danger/60', 'bg-danger'];
+
+const PANEL = 'rounded-lg border border-border bg-card text-card-foreground shadow-[var(--shadow-1)]';
 
 function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
   const buckets = [data.current, data.d30, data.d60, data.d90, data.over90];
@@ -65,13 +70,13 @@ function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</h4>
-        <span className="text-sm font-semibold text-gray-700">{formatRupiah(total)}</span>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</h4>
+        <span className="num text-sm font-semibold text-foreground">{formatRupiah(total)}</span>
       </div>
       {total > 0 ? (
         <>
-          <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
+          <div className="flex h-3 overflow-hidden rounded-full bg-muted">
             {buckets.map((val, i) => {
               const pct = (val / total) * 100;
               if (pct < 0.5) return null;
@@ -85,18 +90,18 @@ function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
               );
             })}
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
             {buckets.map((val, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className={cn('w-2 h-2 rounded-full', AGING_COLORS[i])} />
+              <li key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className={cn('size-2 rounded-full', AGING_COLORS[i])} aria-hidden />
                 <span>{AGING_LABELS[i]}</span>
-                <span className="font-mono font-medium text-gray-600">{formatRupiah(val)}</span>
-              </div>
+                <span className="num font-medium text-foreground">{formatRupiah(val)}</span>
+              </li>
             ))}
-          </div>
+          </ul>
         </>
       ) : (
-        <p className="text-xs text-gray-400 italic">Tidak ada data</p>
+        <p className="text-xs italic text-muted-foreground">Tidak ada data</p>
       )}
     </div>
   );
@@ -108,13 +113,7 @@ export default function PartiesDashboardTab() {
     queryFn: () => api.get('/parties/dashboard').then(r => r.data),
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingState />;
 
   if (!data) return null;
 
@@ -123,243 +122,190 @@ export default function PartiesDashboardTab() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KPICard
-          icon={<Users size={16} />}
-          label="Pelanggan Aktif"
-          value={summary.totalCustomers.toString()}
-          color="blue"
-        />
-        <KPICard
-          icon={<Store size={16} />}
-          label="Vendor Aktif"
-          value={summary.totalSuppliers.toString()}
-          color="orange"
-        />
-        <KPICard
-          icon={<TrendingUp size={16} />}
-          label="Total Piutang"
-          value={formatRupiah(summary.totalPiutang)}
-          color="red"
-        />
-        <KPICard
-          icon={<TrendingDown size={16} />}
-          label="Total Hutang"
-          value={formatRupiah(summary.totalHutang)}
-          color="purple"
-        />
-        <KPICard
-          icon={<Wallet size={16} />}
-          label="UM Pelanggan"
-          value={formatRupiah(summary.totalCustomerDeposit)}
-          color="teal"
-        />
-        <KPICard
-          icon={<CreditCard size={16} />}
-          label="UM Vendor"
-          value={formatRupiah(summary.totalVendorDeposit)}
-          color="amber"
-        />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <KPICard icon={<Users size={16} />} label="Pelanggan Aktif" value={summary.totalCustomers.toString()} tone="primary" />
+        <KPICard icon={<Store size={16} />} label="Vendor Aktif" value={summary.totalSuppliers.toString()} tone="info" />
+        <KPICard icon={<TrendingUp size={16} />} label="Total Piutang" value={formatRupiah(summary.totalPiutang)} tone="danger" />
+        <KPICard icon={<TrendingDown size={16} />} label="Total Hutang" value={formatRupiah(summary.totalHutang)} tone="warning" />
+        <KPICard icon={<Wallet size={16} />} label="UM Pelanggan" value={formatRupiah(summary.totalCustomerDeposit)} tone="success" />
+        <KPICard icon={<CreditCard size={16} />} label="UM Vendor" value={formatRupiah(summary.totalVendorDeposit)} tone="neutral" />
       </div>
 
       {/* Aging Piutang & Hutang */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className={cn(PANEL, 'p-5')}>
           <AgingBar data={data.agingPiutang} label="Aging Piutang" />
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <div className={cn(PANEL, 'p-5')}>
           <AgingBar data={data.agingHutang} label="Aging Hutang" />
         </div>
       </div>
 
       {/* Top Customers & Vendors */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TopList
           title="Top 10 Piutang Pelanggan"
-          icon={<TrendingUp size={14} className="text-red-500" />}
+          icon={<TrendingUp size={14} className="text-danger-text" aria-hidden />}
           items={data.topCustomers}
-          color="red"
+          barColor="bg-danger/60"
         />
         <TopList
           title="Top 10 Hutang Vendor"
-          icon={<TrendingDown size={14} className="text-purple-500" />}
+          icon={<TrendingDown size={14} className="text-warning-text" aria-hidden />}
           items={data.topVendors}
-          color="purple"
+          barColor="bg-warning/70"
         />
       </div>
 
       {/* Aging Invoices (Overdue) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <OverdueTable
-          title="Invoice Piutang Jatuh Tempo"
-          invoices={data.agingPiutangInvoices}
-          nameField="customerName"
-        />
-        <OverdueTable
-          title="Invoice Hutang Jatuh Tempo"
-          invoices={data.agingHutangInvoices}
-          nameField="supplierName"
-        />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <OverdueTable title="Invoice Piutang Jatuh Tempo" invoices={data.agingPiutangInvoices} nameField="customerName" />
+        <OverdueTable title="Invoice Hutang Jatuh Tempo" invoices={data.agingHutangInvoices} nameField="supplierName" />
       </div>
 
       {/* Recent Payments */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Clock size={14} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-700">Pembayaran Terakhir</h3>
+      <section className={cn(PANEL, 'overflow-hidden')} aria-labelledby="parties-recent-payments">
+        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+          <Clock size={14} className="text-muted-foreground" aria-hidden />
+          <h3 id="parties-recent-payments" className="text-sm font-semibold text-foreground">Pembayaran Terakhir</h3>
         </div>
         {data.recentPayments.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-400">Belum ada pembayaran.</div>
+          <div className="p-6 text-center text-sm text-muted-foreground">Belum ada pembayaran.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs">
-                  <th className="text-left px-4 py-2.5 font-medium">No. Pembayaran</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Tanggal</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Mitra</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Tipe</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Akun</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentPayments.map((p) => (
-                  <tr key={p.id} className="border-t border-gray-100 hover:bg-gray-50/50">
-                    <td className="px-4 py-2.5 font-mono text-xs text-gray-700">{p.paymentNumber}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{formatDate(p.date)}</td>
-                    <td className="px-4 py-2.5 font-medium text-gray-800">{p.partyName}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={cn(
-                        'text-xs font-semibold uppercase px-1.5 py-0.5 rounded',
-                        p.paymentType === 'Receive' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
-                      )}>
-                        {p.paymentType === 'Receive' ? 'Terima' : 'Bayar'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-600 text-xs">{p.accountName}</td>
-                    <td className="px-4 py-2.5 text-right font-mono font-medium text-gray-800 tabular-nums">
-                      {formatRupiah(p.amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No. Pembayaran</TableHead>
+                <TableHead>Tanggal</TableHead>
+                <TableHead>Mitra</TableHead>
+                <TableHead>Tipe</TableHead>
+                <TableHead>Akun</TableHead>
+                <TableHead className="text-right">Jumlah</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.recentPayments.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="num text-xs">{p.paymentNumber}</TableCell>
+                  <TableCell>{formatDate(p.date)}</TableCell>
+                  <TableCell className="font-medium">{p.partyName}</TableCell>
+                  <TableCell>
+                    <Badge variant={p.paymentType === 'Receive' ? 'success' : 'info'} className="uppercase">
+                      {p.paymentType === 'Receive' ? 'Terima' : 'Bayar'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{p.accountName}</TableCell>
+                  <TableCell className="num text-right font-medium">{formatRupiah(p.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
 /* ---------- Sub-components ---------- */
 
-const COLOR_MAP: Record<string, { bg: string; text: string; icon: string }> = {
-  blue: { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' },
-  orange: { bg: 'bg-orange-50', text: 'text-orange-700', icon: 'text-orange-500' },
-  red: { bg: 'bg-red-50', text: 'text-red-700', icon: 'text-red-500' },
-  purple: { bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
-  teal: { bg: 'bg-teal-50', text: 'text-teal-700', icon: 'text-teal-500' },
-  amber: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'text-amber-500' },
+type Tone = 'primary' | 'info' | 'danger' | 'warning' | 'success' | 'neutral';
+
+const TONE_MAP: Record<Tone, { bg: string; text: string }> = {
+  primary: { bg: 'bg-primary-subtle', text: 'text-primary-subtle-foreground' },
+  info: { bg: 'bg-info-subtle', text: 'text-info-text' },
+  danger: { bg: 'bg-danger-subtle', text: 'text-danger-text' },
+  warning: { bg: 'bg-warning-subtle', text: 'text-warning-text' },
+  success: { bg: 'bg-success-subtle', text: 'text-success-text' },
+  neutral: { bg: 'bg-neutral-subtle', text: 'text-neutral-text' },
 };
 
-function KPICard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
-  const c = COLOR_MAP[color] ?? COLOR_MAP.blue;
+function KPICard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: Tone }) {
+  const c = TONE_MAP[tone];
   return (
-    <div className={cn('rounded-xl p-4 border', c.bg, 'border-transparent')}>
-      <div className={cn('mb-2', c.icon)}>{icon}</div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className={cn('text-lg font-bold font-mono tabular-nums mt-0.5 truncate', c.text)}>{value}</p>
+    <div className={cn('rounded-lg p-4', c.bg)}>
+      <div className={cn('mb-2', c.text)} aria-hidden>{icon}</div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn('num mt-0.5 truncate text-lg font-bold', c.text)} title={value}>{value}</p>
     </div>
   );
 }
 
-function TopList({ title, icon, items, color }: { title: string; icon: React.ReactNode; items: TopParty[]; color: string }) {
-  const barColor = color === 'red' ? 'bg-red-400' : 'bg-purple-400';
+function TopList({ title, icon, items, barColor }: { title: string; icon: React.ReactNode; items: TopParty[]; barColor: string }) {
   const maxVal = items.length > 0 ? items[0].outstanding : 1;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center gap-2 mb-4">
+    <div className={cn(PANEL, 'p-5')}>
+      <div className="mb-4 flex items-center gap-2">
         {icon}
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs text-gray-400 italic">Tidak ada data</p>
+        <p className="text-xs italic text-muted-foreground">Tidak ada data</p>
       ) : (
-        <div className="space-y-2.5">
+        <ol className="space-y-2.5">
           {items.map((item, i) => {
             const pct = Math.max(5, (item.outstanding / maxVal) * 100);
             return (
-              <div key={item.id}>
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs text-gray-700 font-medium truncate mr-2">
-                    <span className="text-gray-400 mr-1">{i + 1}.</span>
+              <li key={item.id}>
+                <div className="mb-0.5 flex items-center justify-between">
+                  <span className="mr-2 truncate text-xs font-medium text-foreground">
+                    <span className="mr-1 text-muted-foreground">{i + 1}.</span>
                     {item.name}
                   </span>
-                  <span className="text-xs font-mono font-semibold text-gray-600 tabular-nums shrink-0">
+                  <span className="num shrink-0 text-xs font-semibold text-foreground">
                     {formatRupiah(item.outstanding)}
                   </span>
                 </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className={cn(barColor, 'h-full rounded-full')} style={{ width: `${pct}%` }} />
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
     </div>
   );
 }
 
-function OverdueTable({ title, invoices, nameField }: { title: string; invoices: AgingInvoice[]; nameField: string }) {
+function OverdueTable({ title, invoices, nameField }: { title: string; invoices: AgingInvoice[]; nameField: 'customerName' | 'supplierName' }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-        <AlertTriangle size={14} className="text-amber-500" />
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+    <section className={cn(PANEL, 'overflow-hidden')} aria-label={title}>
+      <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+        <AlertTriangle size={14} className="text-warning-text" aria-hidden />
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       {invoices.length === 0 ? (
-        <div className="p-6 text-center text-sm text-gray-400">Tidak ada invoice jatuh tempo.</div>
+        <div className="p-6 text-center text-sm text-muted-foreground">Tidak ada invoice jatuh tempo.</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500">
-                <th className="text-left px-4 py-2 font-medium">Invoice</th>
-                <th className="text-left px-4 py-2 font-medium">Mitra</th>
-                <th className="text-right px-4 py-2 font-medium">Outstanding</th>
-                <th className="text-right px-4 py-2 font-medium">Hari</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-t border-gray-100 hover:bg-gray-50/50">
-                  <td className="px-4 py-2 font-mono text-gray-700">{inv.invoiceNumber}</td>
-                  <td className="px-4 py-2 text-gray-700 font-medium truncate max-w-[120px]">
-                    {(inv as any)[nameField]}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono font-semibold text-gray-800 tabular-nums">
-                    {formatRupiah(inv.outstanding)}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <span className={cn(
-                      'font-semibold tabular-nums px-1.5 py-0.5 rounded',
-                      inv.daysOverdue > 90 ? 'text-red-700 bg-red-50' :
-                      inv.daysOverdue > 60 ? 'text-orange-700 bg-orange-50' :
-                      inv.daysOverdue > 30 ? 'text-yellow-700 bg-yellow-50' :
-                      'text-green-700 bg-green-50'
-                    )}>
-                      {inv.daysOverdue}d
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Invoice</TableHead>
+              <TableHead>Mitra</TableHead>
+              <TableHead className="text-right">Outstanding</TableHead>
+              <TableHead className="text-right">Hari</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {invoices.map((inv) => (
+              <TableRow key={inv.id}>
+                <TableCell className="num">{inv.invoiceNumber}</TableCell>
+                <TableCell className="max-w-[120px] truncate font-medium">{inv[nameField]}</TableCell>
+                <TableCell className="num text-right font-semibold">{formatRupiah(inv.outstanding)}</TableCell>
+                <TableCell className="text-right">
+                  <Badge
+                    variant={inv.daysOverdue > 60 ? 'danger' : inv.daysOverdue > 30 ? 'warning' : 'success'}
+                    className="num font-semibold"
+                  >
+                    {inv.daysOverdue}d
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
-    </div>
+    </section>
   );
 }

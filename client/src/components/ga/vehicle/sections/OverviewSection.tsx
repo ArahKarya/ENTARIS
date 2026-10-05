@@ -8,7 +8,7 @@ import { formatNumber, formatRupiah } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Panel } from '@/components/inventory/dashboard-kit';
 import { AssetPhotoSection } from '@/components/AssetPhotoSection';
-import SearchableSelect from '@/components/SearchableSelect';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { FUEL_TYPES, FUEL_TYPE_LABELS, type VehicleSection } from '../constants';
 import { SelectField, TextAreaField, TextField } from '../modals/form-kit';
 import type { AssetDetail, VehicleContext, VehicleData } from '../types';
@@ -70,12 +70,12 @@ function DriverCard({ assetId, canEdit, pic }: { assetId: string; canEdit: boole
       {editing ? (
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
-            <SearchableSelect
+            <ComboboxField
+              label="Driver"
               value={picked}
-              onChange={(v: string) => setPicked(v)}
+              onChange={setPicked}
               options={(users.data ?? []).map((u) => ({ value: u.id, label: u.fullName }))}
               placeholder="Pilih driver…"
-              aria-label="Driver"
             />
           </div>
           <Button size="sm" loading={assign.isPending} onClick={() => assign.mutate(picked || null)}>
