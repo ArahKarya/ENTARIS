@@ -14,6 +14,12 @@ import { REDACTED } from '../../utils/redact';
 const ID = '3f2b8c1e-1234-4abc-9def-0123456789ab';
 
 describe('matchSnapshotTarget (default registry)', () => {
+  it('matches Tagihan EAM pay/cancel by kind and ignores unknown kinds', () => {
+    expect(matchSnapshotTarget('POST', `/api/payment-requests/eam/VEHICLE_TAX/${ID}/pay`)?.entry.prefix).toBe('payment-requests/eam/VEHICLE_TAX');
+    expect(matchSnapshotTarget('POST', `/api/payment-requests/eam/MATERIAL_REQUEST/${ID}/cancel`)?.id).toBe(ID);
+    expect(matchSnapshotTarget('POST', `/api/payment-requests/eam/BOGUS/${ID}/pay`)).toBeNull();
+  });
+
   it('matches PUT/PATCH/DELETE on <prefix>/<id>', () => {
     expect(matchSnapshotTarget('PUT', `/api/parties/${ID}`)?.entry.prefix).toBe('parties');
     expect(matchSnapshotTarget('DELETE', `/api/coa/${ID}`)?.id).toBe(ID);
