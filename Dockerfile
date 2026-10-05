@@ -27,6 +27,8 @@ WORKDIR /app
 # Copy source code
 COPY client/ ./client/
 COPY server/ ./server/
+# Katalog tool AIRA (dokumen_tool di MCP) — disalin ke dist/ai oleh `npm run build`.
+COPY docs/ai-tools/catalog.json ./docs/ai-tools/catalog.json
 
 # Build client (React + Vite → client/dist/)
 RUN cd client && npm run build

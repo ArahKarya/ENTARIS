@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc && node -e \"const fs=require('fs');fs.copyFileSync('src/ai/aira-tool-router.json','dist/ai/aira-tool-router.json');fs.chmodSync('dist/ai/aira-tool-router.json',0o644)\"",
+    "build": "tsc && node -e \"const fs=require('fs');fs.copyFileSync('src/ai/aira-tool-router.json','dist/ai/aira-tool-router.json');fs.chmodSync('dist/ai/aira-tool-router.json',0o644);if(fs.existsSync('../docs/ai-tools/catalog.json'))fs.copyFileSync('../docs/ai-tools/catalog.json','dist/ai/catalog.json')\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "ts-node prisma/seed.ts",
@@ -28,6 +28,7 @@
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@types/node-cron": "^3.0.11",

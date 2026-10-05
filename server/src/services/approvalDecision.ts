@@ -16,6 +16,7 @@ import { editProductionRunInTx } from './productionRunEdit';
 import { revisePurchaseInvoiceInTx } from './purchaseInvoiceRevise';
 import { markDraftPostedByApproval, returnDraftToEditable } from './productionRunDraft';
 import { isEditDocumentType, splitStoredPayload } from './approvalEditRequests';
+import { isAiToolDocumentType } from '../mcp/constants';
 
 export type ApprovalAction = 'approve' | 'reject' | 'revise';
 
@@ -49,6 +50,12 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
     const request = await prisma.approvalRequest.findUnique({ where: { id: requestId } });
     if (!request) return { ok: false, error: 'Pengajuan tidak ditemukan.' };
     if (request.status !== 'Pending') return { ok: false, error: 'Pengajuan sudah diproses.' };
+
+    if (action === 'approve' && isAiToolDocumentType(request.documentType)) {
+      // Permintaan agen (MCP): jalankan panggilan tersimpan sebagai aktor asli lewat handler internal.
+      const { approveQueuedToolCall } = await import('../mcp/approve');
+      return approveQueuedToolCall(request, actorUserId, note);
+    }
 
     if (action === 'approve') {
       let createdDoc: { id: string; number: string } | null = null;

@@ -15,6 +15,12 @@ const JWT_SECRET = process.env.JWT_SECRET;
 export interface TokenPayload {
   userId: string;
   role: string;
+  /** Penanda panggilan internal dari layer MCP (hanya ada di JWT berumur pendek buatan server). */
+  via?: 'mcp';
+  mcpToken?: string;
+  mcpChannel?: string;
+  mcpTool?: string;
+  mcpApprovalId?: string;
 }
 
 export const generateToken = (payload: TokenPayload): string => {
@@ -27,4 +33,9 @@ export const verifyToken = (token: string): TokenPayload | null => {
   } catch {
     return null;
   }
+};
+
+/** JWT berumur pendek (detik) untuk satu panggilan handler internal (MCP) atas nama user. */
+export const generateShortLivedToken = (payload: TokenPayload, ttlSeconds: number): string => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: ttlSeconds });
 };

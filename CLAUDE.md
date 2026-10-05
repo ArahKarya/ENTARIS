@@ -122,9 +122,18 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 
 ## Katalog Tool AIRA/MCP (`docs/ai-tools/`)
 
-- Registry tunggal: `server/src/ai/aira-tool-router.json` (default semua `enabled:false`). Tiap route API baru **wajib** punya tool di registry **atau** entri di `server/src/ai/catalog/denylist.ts` (alasan wajib) — kalau tidak, test `aiToolsCatalog` / `npm run ai-tools:check` gagal.
+- Registry tunggal: `server/src/ai/aira-tool-router.json` (default semua `enabled:true`; override per tool via `AiToolConfig` / `PATCH /api/ai/config/tools/:name`). Tiap route API baru **wajib** punya tool di registry **atau** entri di `server/src/ai/catalog/denylist.ts` (alasan wajib) — kalau tidak, test `aiToolsCatalog` / `npm run ai-tools:check` gagal.
 - Tool write/critical wajib `confirm_template` + `postingEffect` + `draftCapable`; `params` diturunkan dari Zod/query; `toolset` salah satu dari 13 toolset; tier: read=Auto, write=Draft/Approve, critical=Wajib-Approve.
-- Setelah mengubah registry/panduan (`docs/ai-tools/_guides/*.md`): `cd server && npm run ai-tools:docs` lalu commit. Jangan edit `docs/ai-tools/*.md` hasil generate secara manual. Rencana MCP: `docs/ai-tools/ARSITEKTUR-MCP.md`.
+- Setelah mengubah registry/panduan (`docs/ai-tools/_guides/*.md`): `cd server && npm run ai-tools:docs` lalu commit. Jangan edit `docs/ai-tools/*.md` hasil generate secara manual. Arsitektur MCP: `docs/ai-tools/ARSITEKTUR-MCP.md`; pemasangan Hermes: `docs/ai-tools/HERMES-SETUP.md`.
+
+## AIRA sebagai MCP Server (`/mcp`)
+
+- **Satu endpoint** `POST /mcp` (Streamable HTTP stateless; `server/src/mcp/`), dipasang SEBELUM auth `/api` di `index.ts`. Semua tool registry non-denylist + meta-tool `cari_tool`/`dokumen_tool`/`whoami` (+ `panggil_tool` mode ringkas `X-Entaris-Tools: compact`). Tidak ada endpoint per-toolset.
+- **Identitas**: `Authorization: Bearer entmcp_…` (token per profil Hermes; hanya sha256 disimpan; signing secret AES-256-GCM, kunci dari env `MCP_SECRET_KEY` / fallback `JWT_SECRET`) + **actor assertion** bertanda tangan per panggilan (`X-Entaris-Actor` base64url JSON `{v,uid,ch,gf,ts,nonce,ref}` + `X-Entaris-Actor-Sig` HMAC-SHA256 hex; TTL 120 dtk; nonce sekali pakai di tabel `mcp_nonces`; boleh juga di `params.arguments._entaris_actor[_sig]`). Tanpa assertion = aktor default token atau 401. User wajib `airaEnabled`; level `airaTier` (`read`/`standard`/`direct`), `airaJabatan` untuk persona.
+- **Eksekusi** = handler Express asli lewat loopback dengan JWT 120 dtk atas nama aktor (`via:'mcp'` → `audit_trail.via/via_meta`). Jangan membuat jalur eksekusi tool lain; RBAC/validasi/`needsApproval` harus tetap lewat handler normal.
+- **Tier**: read langsung; write langsung hanya bila `draftCapable`; write non-draft + semua critical → `ApprovalRequest` `ai_tool:<nama>` (payload `{tool,args,handler,confirm,actor,via}`), dieksekusi sebagai PENGAJU asli saat disetujui (`mcp/approve.ts` dipanggil `services/approvalDecision.ts`). Level `direct` = langsung (tetap RBAC); `gf=true` menurunkan `direct`→`standard`.
+- Kill switch `AiSetting.agenticEnabled` (503 tiap panggilan), rate limit per token (in-memory), body 256 KB, riwayat `mcp_call_logs` (hash argumen), `idempotencyKey` untuk tool tulis. Admin REST: `/api/ai/mcp/*` (`rbac.manage`); UI: Pengaturan → AIRA (MCP) + Manajemen Pengguna (Akses AIRA).
+- Jalur lama dipensiunkan: `/api/ai/router`, A3 HMAC, `x-aira-service-token`, whitelist/channel config. Panel chat `/api/ai/chat/*` masih ke aira-core (tahap 3 → Hermes).
 
 ## Coding Conventions
 

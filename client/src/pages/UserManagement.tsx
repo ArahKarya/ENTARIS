@@ -57,6 +57,7 @@ import {
   type Paginated,
 } from '@/components/shared';
 import UserFormModal from '@/components/UserFormModal';
+import { TIER_LABEL } from '@/lib/mcpEndpoint';
 
 interface UserRow {
   id: string;
@@ -69,6 +70,9 @@ interface UserRow {
   createdAt: string;
   telegramLinked?: boolean;
   supervisor?: { id: string; fullName: string } | null;
+  airaEnabled?: boolean;
+  airaTier?: 'read' | 'standard' | 'direct';
+  airaJabatan?: string | null;
 }
 
 interface UserSummary {
@@ -306,6 +310,21 @@ export const UserManagement = () => {
             tone={row.original.telegramLinked ? 'success' : 'neutral'}
           />
         ),
+      },
+      {
+        id: 'aira',
+        header: 'AIRA',
+        meta: { hideBelow: 'lg' },
+        cell: ({ row }) =>
+          row.original.airaEnabled ? (
+            <StatusBadge
+              label={TIER_LABEL[row.original.airaTier ?? 'standard']}
+              tone={row.original.airaTier === 'direct' ? 'warning' : row.original.airaTier === 'read' ? 'info' : 'success'}
+              className="whitespace-nowrap"
+            />
+          ) : (
+            <span className="text-muted-foreground">Nonaktif</span>
+          ),
       },
       {
         id: 'actions',

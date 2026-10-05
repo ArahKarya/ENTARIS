@@ -2,9 +2,9 @@
 
 > File ini dibangkitkan dari `docs/ai-tools/_guides/_README.md` oleh `npm run ai-tools:docs` — edit sumbernya, bukan hasilnya.
 
-Katalog ini mendokumentasikan **semua fungsi Entaris** yang dapat dipanggil agen (AIRA / Hermes) sebagai *tool*. Saat ini: **462** tool dalam **13** toolset (read 213, write 145, critical 104); 539 route API terinventaris. Seluruh tool **nonaktif** secara default; pengaktifan adalah keputusan owner.
+Katalog ini mendokumentasikan **semua fungsi Entaris** yang dapat dipanggil agen (AIRA / Hermes) sebagai *tool*. Saat ini: **462** tool dalam **13** toolset (read 213, write 145, critical 104); 543 route API terinventaris. Seluruh tool **aktif** secara default dan disajikan lewat satu endpoint MCP `/mcp` (lihat ARSITEKTUR-MCP.md); tier read/write/critical menentukan apakah panggilan langsung dieksekusi atau menunggu persetujuan manusia, dan owner dapat menonaktifkan/menetapkan tier per tool.
 
-Arsitektur target (MCP, identitas per-user, tier, tahapan): [ARSITEKTUR-MCP.md](ARSITEKTUR-MCP.md).
+Arsitektur MCP (identitas per-user, tier, antrian persetujuan, spesifikasi token + actor assertion): [ARSITEKTUR-MCP.md](ARSITEKTUR-MCP.md). Pemasangan Hermes + implementasi referensi penanda tangan: [HERMES-SETUP.md](HERMES-SETUP.md).
 
 ## Cara membaca
 

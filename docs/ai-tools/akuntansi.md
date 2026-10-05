@@ -45,7 +45,7 @@ Toolset ini tidak memakai antrian `ApprovalRequest`. Pengamanannya berlapis:
 - Izin modul: `coa`, `journal`, `fixed_assets`, `settings` (edit). Default hanya Admin untuk `coa` dan `settings`; Accountant bisa `journal` dan `fixed_assets`.
 - Capability `doc.cancel` (default hanya Admin) untuk `coa_delete`, `fy_close`, `fy_reopen`, `tax_delete_config`.
 - `sysacct_update` memeriksa role Admin secara eksplisit.
-Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manusia dan nonaktif secara default.
+Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manusia (antrian approval) bila dipanggil agen.
 
 ### Jebakan umum
 
@@ -126,7 +126,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `coa` / `edit`)
 - **Handler:** `POST /api/coa` (src/routes/coa.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -191,7 +191,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `coa` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/coa/:id` (src/routes/coa.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -247,7 +247,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `coa` / `view`)
 - **Catatan akses:** GET data referensi terbuka bagi semua user login (requireWrite).
 - **Handler:** `GET /api/coa/flat` (src/routes/coa.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -282,7 +282,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `coa` / `view`)
 - **Catatan akses:** GET data referensi terbuka bagi semua user login (requireWrite).
 - **Handler:** `GET /api/coa` (src/routes/coa.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -317,7 +317,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `coa` / `edit`)
 - **Handler:** `PATCH /api/coa/:id/balance` (src/routes/coa.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -377,7 +377,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `coa` / `edit`)
 - **Handler:** `PUT /api/coa/:id` (src/routes/coa.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -442,7 +442,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
 - **Handler:** `GET /api/cogs-backfill` (src/routes/cogsBackfill.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -485,7 +485,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
 - **Handler:** `GET /api/cogs-backfill/summary` (src/routes/cogsBackfill.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -519,7 +519,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `fixed_assets` / `view`)
 - **Handler:** `GET /api/fixed-assets/categories` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -554,7 +554,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)
 - **Handler:** `POST /api/fixed-assets` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -622,7 +622,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)
 - **Handler:** `POST /api/fixed-assets/:id/depreciate` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -676,7 +676,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)
 - **Handler:** `POST /api/fixed-assets/depreciate-bulk` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -725,7 +725,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)
 - **Handler:** `POST /api/fixed-assets/:id/dispose` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -779,7 +779,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `fixed_assets` / `view`)
 - **Handler:** `GET /api/fixed-assets/:id` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -820,7 +820,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)
 - **Handler:** `POST /api/fixed-assets/import` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -889,7 +889,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `fixed_assets` / `view`)
 - **Handler:** `GET /api/fixed-assets` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -931,7 +931,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `fixed_assets` / `view`)
 - **Handler:** `GET /api/fixed-assets/summary/by-category` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -966,7 +966,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)
 - **Handler:** `PUT /api/fixed-assets/:id` (src/routes/fixedAssets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1020,7 +1020,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/fiscal-years/:id/close` (src/routes/fiscalYears.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1077,7 +1077,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `POST /api/fiscal-years` (src/routes/fiscalYears.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1134,7 +1134,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `settings` / `view`)
 - **Catatan akses:** GET terbuka bagi semua user login (requireWrite settings).
 - **Handler:** `GET /api/fiscal-years` (src/routes/fiscalYears.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -1169,7 +1169,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/fiscal-years/:id/reopen` (src/routes/fiscalYears.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1225,7 +1225,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
 - **Handler:** `PATCH /api/journals/:id/cancel` (src/routes/journals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1282,7 +1282,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
 - **Handler:** `POST /api/journals` (src/routes/journals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1354,7 +1354,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
 - **Handler:** `GET /api/journals/:id` (src/routes/journals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1394,7 +1394,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
 - **Handler:** `GET /api/journals` (src/routes/journals.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -1429,7 +1429,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `settings` / `view`)
 - **Catatan akses:** GET terbuka bagi semua user login (requireWrite settings).
 - **Handler:** `GET /api/system-accounts` (src/routes/systemAccounts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -1464,7 +1464,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `PUT /api/system-accounts` (src/routes/systemAccounts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1531,7 +1531,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `POST /api/tax/config` (src/routes/tax.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1583,7 +1583,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/tax/config/:id` (src/routes/tax.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1630,7 +1630,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `settings` / `view`)
 - **Catatan akses:** GET terbuka bagi semua user login (requireWrite settings).
 - **Handler:** `GET /api/tax/config` (src/routes/tax.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -1665,7 +1665,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `reports` / `view`)
 - **Catatan akses:** Endpoint hanya memakai requireWrite(settings) sehingga GET terbuka bagi semua user login; modul reports dipilih sebagai batas semantik di sisi AIRA.
 - **Handler:** `GET /api/tax/report` (src/routes/tax.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1712,7 +1712,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `PUT /api/tax/config/:id` (src/routes/tax.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

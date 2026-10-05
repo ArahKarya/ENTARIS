@@ -37,6 +37,9 @@ router.get('/', requirePerm('users'), async (req, res) => {
           telegramChatId: true,
           supervisorId: true,
           supervisor: { select: { id: true, fullName: true } },
+          airaEnabled: true,
+          airaTier: true,
+          airaJabatan: true,
         },
         orderBy: buildUserOrderBy(req.query.sort),
         skip,
@@ -113,6 +116,9 @@ router.post('/', requirePerm('users'), async (req, res) => {
         passwordHash,
         role: body.role as any,
         supervisorId: body.supervisorId ?? null,
+        ...(body.airaEnabled !== undefined && { airaEnabled: body.airaEnabled }),
+        ...(body.airaTier !== undefined && { airaTier: body.airaTier }),
+        ...(body.airaJabatan !== undefined && { airaJabatan: body.airaJabatan || null }),
       },
       select: {
         id: true,
@@ -122,6 +128,9 @@ router.post('/', requirePerm('users'), async (req, res) => {
         role: true,
         isActive: true,
         createdAt: true,
+        airaEnabled: true,
+        airaTier: true,
+        airaJabatan: true,
       },
     });
 
@@ -222,6 +231,9 @@ router.put('/:id', requirePerm('users'), async (req, res) => {
     if (body.role !== undefined) updateData.role = body.role;
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
     if (body.supervisorId !== undefined) updateData.supervisorId = body.supervisorId;
+    if (body.airaEnabled !== undefined) updateData.airaEnabled = body.airaEnabled;
+    if (body.airaTier !== undefined) updateData.airaTier = body.airaTier;
+    if (body.airaJabatan !== undefined) updateData.airaJabatan = body.airaJabatan || null;
     if (body.password) {
       updateData.passwordHash = await bcrypt.hash(body.password, 10);
     }
@@ -238,6 +250,9 @@ router.put('/:id', requirePerm('users'), async (req, res) => {
         isActive: true,
         lastLoginAt: true,
         createdAt: true,
+        airaEnabled: true,
+        airaTier: true,
+        airaJabatan: true,
       },
     });
 

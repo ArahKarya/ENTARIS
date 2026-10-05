@@ -152,7 +152,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `POST /api/inventory/machines` (src/routes/inventory/machines.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -209,7 +209,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `DELETE /api/inventory/machines/:id` (src/routes/inventory/machines.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -259,7 +259,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `production` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/inventory/machines/:id` (src/routes/inventory/machines.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -302,7 +302,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `production` / `view`)
 - **Catatan akses:** GET data referensi terbuka untuk semua user login.
 - **Handler:** `GET /api/inventory/machines` (src/routes/inventory/machines.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -343,7 +343,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `PUT /api/inventory/machines/:id` (src/routes/inventory/machines.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -398,7 +398,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `POST /api/inventory/production-cost-standards` (src/routes/inventory/productionCostStandards.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -455,7 +455,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `production` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/inventory/production-cost-standards/:id` (src/routes/inventory/productionCostStandards.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -509,7 +509,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `production` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/inventory/production-cost-standards` (src/routes/inventory/productionCostStandards.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -554,7 +554,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `PUT /api/inventory/production-cost-standards/:id` (src/routes/inventory/productionCostStandards.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -612,7 +612,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** Guard sebenarnya modul 'inventory' (bukan 'production').
 - **Handler:** `GET /api/inventory/dashboard/oee` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -655,7 +655,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** Guard sebenarnya modul 'inventory' (bukan 'production').
 - **Handler:** `GET /api/inventory/dashboard/production` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -699,7 +699,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** Guard sebenarnya modul 'inventory' (bukan 'production'): role dengan izin lihat stok dapat membacanya.
 - **Handler:** `GET /api/inventory/dashboard/production-stats` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -734,7 +734,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** Guard sebenarnya modul 'inventory' (bukan 'production').
 - **Handler:** `GET /api/inventory/dashboard/yield-trend` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -767,7 +767,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `POST /api/inventory/production-runs` (src/routes/inventory/productionRuns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -884,7 +884,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Catatan akses:** Pembuat draft atau pemegang approval.bypass.
 - **Handler:** `DELETE /api/inventory/production-runs/drafts/:id` (src/routes/inventory/productionRunDrafts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -936,7 +936,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `view`)
 - **Handler:** `GET /api/inventory/production-runs/drafts/:id` (src/routes/inventory/productionRunDrafts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -980,7 +980,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `view`)
 - **Handler:** `GET /api/inventory/production-runs/drafts` (src/routes/inventory/productionRunDrafts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1032,7 +1032,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Catatan akses:** Pembuat draft atau pemegang approval.bypass. Klaim draft atomik sehingga tidak bisa dobel-posting.
 - **Handler:** `POST /api/inventory/production-runs/drafts/:id/post` (src/routes/inventory/productionRunDrafts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1092,7 +1092,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Catatan akses:** Pembuat draft atau pemegang approval.bypass.
 - **Handler:** `PUT /api/inventory/production-runs/drafts/:id` (src/routes/inventory/productionRunDrafts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1210,7 +1210,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `POST /api/inventory/production-processes` (src/routes/inventory/productionProcesses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1257,7 +1257,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `production` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/inventory/production-processes/:id` (src/routes/inventory/productionProcesses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1307,7 +1307,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `production` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/inventory/production-processes` (src/routes/inventory/productionProcesses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1346,7 +1346,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Handler:** `PUT /api/inventory/production-processes/:id` (src/routes/inventory/productionProcesses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1399,7 +1399,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `production` / `edit`, capability `doc.cancel`)
 - **Handler:** `PUT /api/inventory/production-runs/:id/cancel` (src/routes/inventory/productionRuns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1460,7 +1460,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `view`)
 - **Handler:** `GET /api/inventory/production-runs/:id` (src/routes/inventory/productionRuns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1504,7 +1504,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `view`)
 - **Handler:** `GET /api/inventory/production-runs` (src/routes/inventory/productionRuns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1552,7 +1552,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `view`)
 - **Handler:** `GET /api/inventory/production-runs/summary` (src/routes/inventory/productionRuns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1599,7 +1599,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `production` / `edit`)
 - **Catatan akses:** Role tanpa capability approval.bypass hanya mengantrekan permintaan edit; satu pengajuan Pending per run (409 bila sudah ada).
 - **Handler:** `PUT /api/inventory/production-runs/:id` (src/routes/inventory/productionRuns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

@@ -35,7 +35,7 @@ Toolset ini tidak memakai antrian `ApprovalRequest`. Pengamanannya berlapis:
 - Izin modul: `coa`, `journal`, `fixed_assets`, `settings` (edit). Default hanya Admin untuk `coa` dan `settings`; Accountant bisa `journal` dan `fixed_assets`.
 - Capability `doc.cancel` (default hanya Admin) untuk `coa_delete`, `fy_close`, `fy_reopen`, `tax_delete_config`.
 - `sysacct_update` memeriksa role Admin secara eksplisit.
-Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manusia dan nonaktif secara default.
+Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manusia (antrian approval) bila dipanggil agen.
 
 ### Jebakan umum
 

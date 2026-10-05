@@ -141,7 +141,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Roles & izin:** Admin (modul `payment` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/payments/:id/cancel` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -193,7 +193,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `payment` / `view`)
 - **Handler:** `GET /api/payments/cash-journals` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -227,7 +227,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `payment` / `view`)
 - **Handler:** `GET /api/payments/:id` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -271,7 +271,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `payment` / `view`)
 - **Handler:** `GET /api/payments/ledger` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -326,7 +326,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `payment` / `view`)
 - **Handler:** `GET /api/payments/ledger/summary` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -374,7 +374,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `payment` / `view`)
 - **Handler:** `GET /api/payments` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -417,7 +417,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `payment` / `edit`)
 - **Handler:** `POST /api/payments` (src/routes/payments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -499,7 +499,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Roles & izin:** Admin (modul `project_guarantee` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `PATCH /api/project-guarantees/:id/cancel` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -551,7 +551,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `project_guarantee` / `edit`)
 - **Handler:** `POST /api/project-guarantees` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -621,7 +621,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `project_guarantee` / `view`)
 - **Handler:** `GET /api/project-guarantees/:id` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -665,7 +665,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `project_guarantee` / `view`)
 - **Handler:** `GET /api/project-guarantees` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -716,7 +716,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `project_guarantee` / `edit`)
 - **Handler:** `POST /api/project-guarantees/:id/settle` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -778,7 +778,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Roles & izin:** Admin (modul `project_guarantee` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/project-guarantees/settlements/:id/cancel` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -829,7 +829,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `project_guarantee` / `view`)
 - **Handler:** `GET /api/project-guarantees/summary` (src/routes/projectGuarantees.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -877,7 +877,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `recurring` / `edit`)
 - **Handler:** `POST /api/recurring` (src/routes/recurring.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -944,7 +944,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `recurring` / `edit`)
 - **Handler:** `DELETE /api/recurring/:id` (src/routes/recurring.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -991,7 +991,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `recurring` / `edit`)
 - **Handler:** `POST /api/recurring/:id/execute` (src/routes/recurring.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1047,7 +1047,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `recurring` / `view`)
 - **Handler:** `GET /api/recurring` (src/routes/recurring.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -1082,7 +1082,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `recurring` / `edit`)
 - **Handler:** `PUT /api/recurring/:id` (src/routes/recurring.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1147,7 +1147,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `edit`)
 - **Handler:** `POST /api/reconciliation/:id/items` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1208,7 +1208,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `edit`)
 - **Handler:** `POST /api/reconciliation/:id/complete` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1260,7 +1260,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `edit`)
 - **Handler:** `POST /api/reconciliation` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1317,7 +1317,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `edit`)
 - **Handler:** `DELETE /api/reconciliation/:id` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1367,7 +1367,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `view`)
 - **Handler:** `GET /api/reconciliation/:id` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1411,7 +1411,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `view`)
 - **Handler:** `GET /api/reconciliation` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1460,7 +1460,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `edit`)
 - **Handler:** `PATCH /api/reconciliation/:id/match` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1517,7 +1517,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `reconciliation` / `edit`)
 - **Handler:** `PATCH /api/reconciliation/:id/unmatch` (src/routes/reconciliation.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

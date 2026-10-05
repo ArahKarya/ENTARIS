@@ -113,7 +113,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/payable-schedule` (src/routes/reports/operational.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -147,7 +147,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/receivable-schedule` (src/routes/reports/operational.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -181,7 +181,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/trial-balance` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -231,7 +231,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/aging` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -271,7 +271,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/balance-sheet` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -315,7 +315,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/cash-flow` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -361,7 +361,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/daily` (src/routes/reports/operational.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -403,7 +403,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/hpp` (src/routes/reports/operational.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -445,7 +445,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/ledger-book` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -487,7 +487,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/ledger-detail` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -534,7 +534,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/po-outstanding` (src/routes/reports/purchasing.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -583,7 +583,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/production-cost-summary` (src/routes/reports/operational.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -626,7 +626,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/profit-loss` (src/routes/reports.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -672,7 +672,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/profitability-per-sku` (src/routes/reports/operational.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -714,7 +714,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)
 - **Handler:** `GET /api/reports/supplier-performance` (src/routes/reports/purchasing.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

@@ -116,7 +116,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `attachments` / `view`)
 - **Catatan akses:** Tanpa guard modul/dokumen: semua user login dapat membaca metadata lampiran (tidak ada cek izin per jenis dokumen). Isi berkas tidak diekspos sebagai tool.
 - **Handler:** `POST /api/attachments/counts` (src/routes/attachments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -159,7 +159,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `attachments` / `view`)
 - **Catatan akses:** Tanpa guard modul/dokumen: semua user login dapat membaca metadata lampiran (tidak ada cek izin per jenis dokumen). Isi berkas tidak diekspos sebagai tool.
 - **Handler:** `GET /api/attachments/invoice/:type/:id/related` (src/routes/attachments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -206,7 +206,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `attachments` / `view`)
 - **Catatan akses:** Tanpa guard modul/dokumen: semua user login dapat membaca metadata lampiran (tidak ada cek izin per jenis dokumen). Isi berkas tidak diekspos sebagai tool.
 - **Handler:** `GET /api/attachments/:referenceType/:referenceId` (src/routes/attachments.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -248,7 +248,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `audit` / `view`)
 - **Handler:** `GET /api/audit-logs/facets` (src/routes/audit.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -282,7 +282,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `audit` / `view`)
 - **Handler:** `GET /api/audit-logs/:id` (src/routes/audit.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -327,7 +327,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin (modul `audit` / `view`)
 - **Catatan akses:** Izin modul audit (view) — default hanya Admin.
 - **Handler:** `GET /api/audit-logs` (src/routes/audit.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -380,7 +380,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `audit` / `view`)
 - **Handler:** `GET /api/audit-logs/summary` (src/routes/audit.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -430,7 +430,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `audit` / `view`)
 - **Handler:** `GET /api/health-check/preview/:check` (src/routes/healthCheck.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -475,7 +475,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin (modul `audit` / `view`)
 - **Catatan akses:** Izin modul audit (view) — default hanya Admin.
 - **Handler:** `GET /api/health-check` (src/routes/healthCheck.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -510,7 +510,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `notifications` / `view`)
 - **Catatan akses:** Semua user login; hanya notifikasi MILIK pemanggil. Modul "notifications" bukan modul RBAC (tanpa matriks izin).
 - **Handler:** `GET /api/notifications` (src/routes/notifications.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -561,7 +561,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `notifications` / `edit`)
 - **Catatan akses:** Semua user login; hanya notifikasi MILIK pemanggil. Modul "notifications" bukan modul RBAC (tanpa matriks izin).
 - **Handler:** `PATCH /api/notifications/:id/read` (src/routes/notifications.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -611,7 +611,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `notifications` / `edit`)
 - **Catatan akses:** Semua user login; hanya notifikasi MILIK pemanggil. Modul "notifications" bukan modul RBAC (tanpa matriks izin).
 - **Handler:** `PATCH /api/notifications/read-all` (src/routes/notifications.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -650,7 +650,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `notifications` / `view`)
 - **Catatan akses:** Semua user login; hanya notifikasi MILIK pemanggil. Modul "notifications" bukan modul RBAC (tanpa matriks izin).
 - **Handler:** `GET /api/notifications/types` (src/routes/notifications.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -685,7 +685,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `notifications` / `view`)
 - **Catatan akses:** Semua user login; hanya notifikasi MILIK pemanggil. Modul "notifications" bukan modul RBAC (tanpa matriks izin).
 - **Handler:** `GET /api/notifications/unread-count` (src/routes/notifications.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -718,7 +718,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `parties` / `view`)
 - **Catatan akses:** Semua user login. Mitra & akun COA selalu dicari; faktur/pembayaran/jurnal difilter izin sales_invoice/purchase_invoice/payment/journal (view) per jenis (gagal-tertutup).
 - **Handler:** `GET /api/search` (src/routes/search.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -760,7 +760,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `settings` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login (dipakai header/cetak); hanya perubahan butuh izin settings edit.
 - **Handler:** `GET /api/settings/company` (src/routes/settings.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -793,7 +793,7 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `settings` / `edit`)
 - **Handler:** `PUT /api/settings/company` (src/routes/settings.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

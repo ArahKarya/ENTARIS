@@ -155,7 +155,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Roles & izin:** Admin (modul `goods_receipt` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/goods-receipts/:id/cancel` (src/routes/goodsReceipts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -217,7 +217,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `goods_receipt` / `edit`)
 - **Handler:** `POST /api/goods-receipts` (src/routes/goodsReceipts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -301,7 +301,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `goods_receipt` / `view`)
 - **Handler:** `GET /api/goods-receipts/:id` (src/routes/goodsReceipts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -345,7 +345,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `goods_receipt` / `view`)
 - **Handler:** `GET /api/goods-receipts` (src/routes/goodsReceipts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -398,7 +398,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `goods_receipt` / `view`)
 - **Handler:** `GET /api/goods-receipts/pending` (src/routes/goodsReceipts.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -444,7 +444,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Roles & izin:** Admin (modul `purchase_invoice` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/purchase/invoices/:id/cancel` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -498,7 +498,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)
 - **Handler:** `POST /api/purchase/invoices` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -592,7 +592,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `view`)
 - **Handler:** `GET /api/purchase/invoices/:id` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -636,7 +636,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `view`)
 - **Handler:** `GET /api/purchase/invoices` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -688,7 +688,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto (POST murni baca)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `view`)
 - **Handler:** `POST /api/purchase/invoices/match-preview` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -741,7 +741,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)
 - **Handler:** `POST /api/purchase/invoices/:id/revise-price` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -808,7 +808,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `view`)
 - **Handler:** `GET /api/purchase/invoices/summary` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -854,7 +854,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)
 - **Handler:** `PUT /api/purchase/invoices/:id` (src/routes/purchase.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -909,7 +909,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Roles & izin:** Admin (modul `purchase_order` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/purchase-orders/:id/cancel` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -962,7 +962,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Roles & izin:** Admin (modul `purchase_order` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/purchase-orders/:id/close` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1020,7 +1020,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_order` / `edit`)
 - **Handler:** `POST /api/purchase-orders` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1103,7 +1103,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_order` / `edit`)
 - **Handler:** `DELETE /api/purchase-orders/:id` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1154,7 +1154,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `purchase_order` / `view`)
 - **Handler:** `GET /api/purchase-orders/:id` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1198,7 +1198,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `purchase_order` / `view`)
 - **Handler:** `GET /api/purchase-orders` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1254,7 +1254,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_order` / `edit`)
 - **Handler:** `POST /api/purchase-orders/:id/submit` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1310,7 +1310,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_order` / `edit`)
 - **Handler:** `PUT /api/purchase-orders/:id` (src/routes/purchaseOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1395,7 +1395,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `vendor_deposit` / `edit`)
 - **Handler:** `POST /api/vendor-deposits/apply` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1454,7 +1454,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Roles & izin:** Admin (modul `vendor_deposit` / `edit`, capability `doc.cancel`)
 - **Catatan akses:** Butuh capability doc.cancel (default hanya Admin).
 - **Handler:** `POST /api/vendor-deposits/apply/:id/cancel` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1505,7 +1505,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `vendor_deposit` / `view`)
 - **Handler:** `GET /api/vendor-deposits/balance/:partyId` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1547,7 +1547,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Roles & izin:** Admin, Accountant (modul `vendor_deposit` / `edit`)
 - **Catatan akses:** Hanya butuh izin edit modul vendor_deposit (tidak ada requireCap doc.cancel di endpoint ini, berbeda dengan pembatalan aplikasi uang muka).
 - **Handler:** `PATCH /api/vendor-deposits/:id/cancel` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1599,7 +1599,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `vendor_deposit` / `view`)
 - **Handler:** `GET /api/vendor-deposits` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1648,7 +1648,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `vendor_deposit` / `edit`)
 - **Handler:** `POST /api/vendor-deposits/:id/refund` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1707,7 +1707,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `vendor_deposit` / `view`)
 - **Handler:** `GET /api/vendor-deposits/summary` (src/routes/vendorDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

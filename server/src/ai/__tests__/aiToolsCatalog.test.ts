@@ -27,10 +27,10 @@ describe('katalog tool — registry valid', () => {
     expect(result.skipped).toEqual([]);
   });
 
-  it('nama & handler unik; semua tool nonaktif secara default', () => {
+  it('nama & handler unik; semua tool aktif secara default (override per tool lewat AiToolConfig)', () => {
     expect(new Set(tools.map((t) => t.name)).size).toBe(tools.length);
     expect(new Set(tools.map((t) => handlerKey(t.handler))).size).toBe(tools.length);
-    expect(tools.filter((t) => t.enabled).map((t) => t.name)).toEqual([]);
+    expect(tools.filter((t) => !t.enabled).map((t) => t.name)).toEqual([]);
   });
 });
 

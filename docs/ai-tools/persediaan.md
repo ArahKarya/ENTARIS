@@ -148,7 +148,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/dashboard/by-category` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -182,7 +182,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/dashboard/metrics` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -220,7 +220,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/dashboard/movement-trend` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -252,7 +252,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/dashboard/recent-movements` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -286,7 +286,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/dashboard/stock-value` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -330,7 +330,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/dashboard/top-items` (src/routes/inventory/dashboard.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -365,7 +365,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/inventory/items/:id/batches` (src/routes/inventory/items.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -415,7 +415,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `inventory` / `edit`)
 - **Handler:** `POST /api/inventory/items` (src/routes/inventory/items.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -474,7 +474,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `inventory` / `edit`)
 - **Handler:** `DELETE /api/inventory/items/:id` (src/routes/inventory/items.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -527,7 +527,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `inventory` / `edit`)
 - **Handler:** `PUT /api/inventory/items/:id` (src/routes/inventory/items.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -586,7 +586,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** GET data referensi terbuka untuk semua user login (requireWrite); hanya tulis butuh izin edit modul inventory.
 - **Handler:** `GET /api/inventory/items` (src/routes/inventory/items.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -635,7 +635,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/inventory/items/summary` (src/routes/inventory/items.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -681,7 +681,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `inventory` / `edit`, capability `doc.cancel`)
 - **Handler:** `PUT /api/inventory/movements/:id/cancel` (src/routes/inventory/movements.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -740,7 +740,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `inventory` / `edit`)
 - **Handler:** `POST /api/inventory/movements` (src/routes/inventory/movements.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -811,7 +811,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/movements/:id` (src/routes/inventory/movements.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -855,7 +855,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/movements` (src/routes/inventory/movements.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -909,7 +909,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `inventory` / `view`)
 - **Handler:** `GET /api/inventory/movements/summary` (src/routes/inventory/movements.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -957,7 +957,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `inventory` / `edit`)
 - **Handler:** `PUT /api/inventory/movements/:id` (src/routes/inventory/movements.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1027,7 +1027,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `stock_opname` / `edit`, capability `doc.cancel`)
 - **Handler:** `PUT /api/stock-opname/:id/cancel` (src/routes/stockOpname.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1085,7 +1085,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `stock_opname` / `edit`)
 - **Handler:** `POST /api/stock-opname` (src/routes/stockOpname.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1156,7 +1156,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `stock_opname` / `view`)
 - **Handler:** `GET /api/stock-opname/:id` (src/routes/stockOpname.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1200,7 +1200,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `stock_opname` / `view`)
 - **Handler:** `GET /api/stock-opname` (src/routes/stockOpname.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1250,7 +1250,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `stock_transfer` / `edit`)
 - **Catatan akses:** Tidak butuh capability doc.cancel - cukup izin edit modul stock_transfer.
 - **Handler:** `PATCH /api/stock-transfers/:id/cancel` (src/routes/stockTransfers.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1302,7 +1302,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `stock_transfer` / `edit`)
 - **Handler:** `POST /api/stock-transfers` (src/routes/stockTransfers.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1378,7 +1378,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `stock_transfer` / `view`)
 - **Handler:** `GET /api/stock-transfers/:id` (src/routes/stockTransfers.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1422,7 +1422,7 @@ Aturan wajib:
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `stock_transfer` / `view`)
 - **Handler:** `GET /api/stock-transfers` (src/routes/stockTransfers.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1471,7 +1471,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `stock_transfer` / `edit`)
 - **Handler:** `POST /api/stock-transfers/:id/mark-printed` (src/routes/stockTransfers.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1516,7 +1516,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `stock_transfer` / `edit`)
 - **Handler:** `PATCH /api/stock-transfers/:id` (src/routes/stockTransfers.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1574,7 +1574,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `warehouse` / `edit`)
 - **Handler:** `POST /api/warehouses` (src/routes/warehouses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1632,7 +1632,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `warehouse` / `edit`, capability `doc.cancel`)
 - **Handler:** `DELETE /api/warehouses/:id` (src/routes/warehouses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1689,7 +1689,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `warehouse` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/warehouses/:id` (src/routes/warehouses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1732,7 +1732,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `warehouse` / `view`)
 - **Catatan akses:** GET data referensi terbuka untuk semua user login.
 - **Handler:** `GET /api/warehouses` (src/routes/warehouses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1773,7 +1773,7 @@ Aturan wajib:
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `warehouse` / `view`)
 - **Catatan akses:** GET terbuka untuk semua user login.
 - **Handler:** `GET /api/warehouses/stock-snapshot` (src/routes/warehouses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1820,7 +1820,7 @@ Aturan wajib:
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `warehouse` / `edit`)
 - **Handler:** `PUT /api/warehouses/:id` (src/routes/warehouses.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

@@ -2,7 +2,7 @@
 
 > Dibangkitkan otomatis — jangan edit manual (`npm run ai-tools:docs`).
 
-Total **462** tool (read 213 · write 145 · critical 104); semuanya nonaktif secara default. Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
+Total **462** tool (read 213 · write 145 · critical 104); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
 
 ## Toolset
 

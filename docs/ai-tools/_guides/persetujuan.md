@@ -45,7 +45,7 @@ Untuk produksi yang berasal dari draf (`production_run_drafts`): approve membuat
 - Modul RBAC `approvals` (view/edit) menjadi syarat semua endpoint di mount ini. Akibatnya Viewer tidak bisa memanggil endpoint apa pun di sini.
 - Menambah aksi finansial baru pada dokumen yang sudah ada harus melewati `needsApproval` dan tipe edit baru, bukan hanya `requireCap`.
 - Tipe edit tidak bisa "Minta Edit"/resubmit; hanya `PurchaseInvoice` dan `ProductionRun` yang bisa diajukan ulang.
-- Pengajuan test dari AI Router (`ai_tool:<nama>`) tidak bisa dieksekusi lewat approve ("Tipe dokumen tidak didukung").
+- Pengajuan dari agen (MCP) bertipe `ai_tool:<nama>`: payload `{tool,args,handler,confirm,actor,via:'mcp'}`. Saat disetujui, panggilan tersimpan dijalankan lewat handler aslinya sebagai **pengaju** (RBAC + gate normal + jejak audit `via=mcp`); bila handler menolak, pengajuan kembali Pending dengan `payload.lastError`. Ditolak = tidak ada efek.
 
 ### Jebakan umum
 

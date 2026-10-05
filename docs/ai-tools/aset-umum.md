@@ -66,7 +66,7 @@ APPROVED/FULFILLED --(dibayar lewat Tagihan EAM, di luar toolset ini)--> PAID
 
 - Tidak memakai `ApprovalRequest`/`needsApproval`. Persetujuan MR (`gmr_approve`, `gmr_reject`) hanyalah transisi status oleh siapa pun yang punya izin `edit` pada modul `ga_material_request`; tidak ada capability khusus dan tidak ada larangan pemohon menyetujui MR miliknya sendiri. Perlakukan sebagai langkah `critical` yang wajib konfirmasi manusia.
 - Tidak ada capability `doc.cancel` pada tool bagian ini; `gmr_cancel` dan penghapusan cukup izin `edit` modulnya.
-- Pada tahap katalog, tier tool `critical` = wajib-approve/dinonaktifkan secara bawaan; tier `write` = draft/approve.
+- Pada tahap katalog, tier tool `critical` = wajib-approve; tier `write` = draft/approve.
 
 ### Jebakan umum
 
@@ -376,7 +376,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_assets` / `edit`)
 - **Handler:** `POST /api/ga/assets/bulk/delete` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -426,7 +426,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_assets` / `edit`)
 - **Handler:** `PATCH /api/ga/assets/bulk/update` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -479,7 +479,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_assets` / `edit`)
 - **Handler:** `POST /api/ga/assets` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -550,7 +550,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_assets` / `edit`)
 - **Handler:** `DELETE /api/ga/assets/:id/photos/:photoId` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -596,7 +596,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_assets` / `view`)
 - **Handler:** `GET /api/ga/assets/:id` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -640,7 +640,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_assets` / `view`)
 - **Handler:** `GET /api/ga/assets` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -699,7 +699,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_assets` / `view`)
 - **Handler:** `GET /api/ga/assets/_next-code` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -747,7 +747,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_assets` / `edit`)
 - **Handler:** `PATCH /api/ga/assets/:id/condition` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -800,7 +800,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_assets` / `edit`)
 - **Handler:** `PUT /api/ga/assets/:id` (src/routes/ga/assets.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -865,7 +865,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_building` / `edit`)
 - **Handler:** `POST /api/ga/building/assets/:id/rentals` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -925,7 +925,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_building` / `edit`)
 - **Handler:** `DELETE /api/ga/building/assets/:id/rentals/:rid` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -974,7 +974,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_building` / `edit`)
 - **Handler:** `PATCH /api/ga/building/assets/:id/rentals/:rid/end` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1020,7 +1020,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_building` / `view`)
 - **Handler:** `GET /api/ga/building/assets/:id` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1058,7 +1058,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_building` / `view`)
 - **Handler:** `GET /api/ga/building/assets/:id/rentals` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1097,7 +1097,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_building` / `edit`)
 - **Handler:** `PUT /api/ga/building/assets/:id` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1161,7 +1161,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_building` / `edit`)
 - **Handler:** `PATCH /api/ga/building/assets/:id/rentals/:rid` (src/routes/ga/building.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1217,7 +1217,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_equipment` / `edit`)
 - **Handler:** `POST /api/ga/equipment/assets/:id/calibration-logs` (src/routes/ga/equipment.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1277,7 +1277,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_equipment` / `view`)
 - **Handler:** `GET /api/ga/equipment/assets/:id/calibration-logs` (src/routes/ga/equipment.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1316,7 +1316,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_equipment` / `edit`)
 - **Handler:** `DELETE /api/ga/equipment/assets/:id/calibration-logs/:lid` (src/routes/ga/equipment.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1362,7 +1362,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_equipment` / `view`)
 - **Handler:** `GET /api/ga/equipment/assets/:id` (src/routes/ga/equipment.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1401,7 +1401,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_equipment` / `edit`)
 - **Handler:** `PUT /api/ga/equipment/assets/:id` (src/routes/ga/equipment.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1454,7 +1454,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/fuel-logs` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1510,7 +1510,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/incidents` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1567,7 +1567,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/inspections` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1627,7 +1627,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/insurances` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1686,7 +1686,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/oil-logs` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1742,7 +1742,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/services` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1806,7 +1806,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/taxes` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1864,7 +1864,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/tires` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1927,7 +1927,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Catatan akses:** Siapa pun dengan izin edit modul ga_vehicle (tidak ada capability approval khusus, tidak ada cek atasan).
 - **Handler:** `PATCH /api/ga/vehicle/service-requests/:id/approve` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1979,7 +1979,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Catatan akses:** Siapa pun dengan izin edit modul ga_vehicle; pembayaran/posting tetap butuh izin payment_request edit (fork D).
 - **Handler:** `PATCH /api/ga/vehicle/tax-requests/:id/approve` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2028,7 +2028,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/assets/:id/driver` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2074,7 +2074,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/services/:sid/journal` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2124,7 +2124,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Catatan akses:** Hanya pengaju pengajuan tersebut (403 untuk user lain).
 - **Handler:** `PATCH /api/ga/vehicle/service-requests/:id/cancel` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2175,7 +2175,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Catatan akses:** Hanya pengaju pengajuan tersebut (403 untuk user lain).
 - **Handler:** `PATCH /api/ga/vehicle/tax-requests/:id/cancel` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2225,7 +2225,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/service-requests` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2278,7 +2278,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/tax-requests` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2334,7 +2334,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/fuel-logs/:fid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2381,7 +2381,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/incidents/:iid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2428,7 +2428,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/inspections/:iid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2475,7 +2475,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/inspections/:iid/photos/:pid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2524,7 +2524,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/insurances/:iid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2571,7 +2571,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/oil-logs/:oid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2618,7 +2618,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/services/:sid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2669,7 +2669,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/taxes/:tid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2720,7 +2720,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `DELETE /api/ga/vehicle/assets/:id/tires/:tid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2766,7 +2766,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/fleet` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2821,7 +2821,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/fleet-report` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2865,7 +2865,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/fleet-summary` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2911,7 +2911,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/fuel-logs` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2949,7 +2949,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2987,7 +2987,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/incidents` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3025,7 +3025,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/inspection-categories` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -3057,7 +3057,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/inspection-checkpoints` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -3089,7 +3089,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/inspections` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3127,7 +3127,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/insurances` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3165,7 +3165,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/oil-logs` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3204,7 +3204,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `POST /api/ga/vehicle/assets/:id/services/:sid/journal` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3261,7 +3261,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/service-requests/:id/reject` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3312,7 +3312,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/tax-requests/:id/reject` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3362,7 +3362,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/report` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3408,7 +3408,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/service-requests/:id` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3450,7 +3450,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/service-requests` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3494,7 +3494,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/services` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3534,7 +3534,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/tax-requests/:id` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3576,7 +3576,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/tax-requests` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3620,7 +3620,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/taxes` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3658,7 +3658,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_vehicle` / `view`)
 - **Handler:** `GET /api/ga/vehicle/assets/:id/tires` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3697,7 +3697,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PUT /api/ga/vehicle/assets/:id` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3760,7 +3760,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/assets/:id/incidents/:iid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3816,7 +3816,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/assets/:id/insurances/:iid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3873,7 +3873,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/assets/:id/services/:sid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3930,7 +3930,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/assets/:id/taxes/:tid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3989,7 +3989,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_vehicle` / `edit`)
 - **Handler:** `PATCH /api/ga/vehicle/assets/:id/tires/:tid` (src/routes/ga/vehicle.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4049,7 +4049,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `POST /api/ga/master/asset-categories` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4106,7 +4106,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `DELETE /api/ga/master/asset-categories/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4157,7 +4157,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `PUT /api/ga/master/asset-categories/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4212,7 +4212,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_master` / `view`)
 - **Handler:** `GET /api/ga/master/asset-categories` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -4247,7 +4247,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `POST /api/ga/master/branches` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4303,7 +4303,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `DELETE /api/ga/master/branches/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4354,7 +4354,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `PUT /api/ga/master/branches/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4408,7 +4408,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_master` / `view`)
 - **Handler:** `GET /api/ga/master/branches` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -4443,7 +4443,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `DELETE /api/ga/master/cost-centers/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4494,7 +4494,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `PUT /api/ga/master/cost-centers/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4549,7 +4549,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `POST /api/ga/master/cost-centers` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4605,7 +4605,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_master` / `view`)
 - **Handler:** `GET /api/ga/master/cost-centers` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -4640,7 +4640,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `POST /api/ga/master/document-types` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4697,7 +4697,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `DELETE /api/ga/master/document-types/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4748,7 +4748,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `PUT /api/ga/master/document-types/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4803,7 +4803,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_master` / `view`)
 - **Handler:** `GET /api/ga/master/document-types` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -4838,7 +4838,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `POST /api/ga/master/inventory-categories` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4894,7 +4894,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `DELETE /api/ga/master/inventory-categories/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4945,7 +4945,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `PUT /api/ga/master/inventory-categories/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -4998,7 +4998,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_master` / `view`)
 - **Handler:** `GET /api/ga/master/inventory-categories` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -5033,7 +5033,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `POST /api/ga/master/locations` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5089,7 +5089,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `DELETE /api/ga/master/locations/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5140,7 +5140,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_master` / `edit`)
 - **Handler:** `PUT /api/ga/master/locations/:id` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5193,7 +5193,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_master` / `view`)
 - **Handler:** `GET /api/ga/master/locations` (src/routes/ga/master.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -5228,7 +5228,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_documents` / `edit`)
 - **Handler:** `POST /api/ga/documents` (src/routes/ga/documents.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5294,7 +5294,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_documents` / `edit`)
 - **Handler:** `DELETE /api/ga/documents/:id` (src/routes/ga/documents.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5342,7 +5342,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_documents` / `view`)
 - **Handler:** `GET /api/ga/documents/:id` (src/routes/ga/documents.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5386,7 +5386,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_documents` / `view`)
 - **Handler:** `GET /api/ga/documents` (src/routes/ga/documents.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5441,7 +5441,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_documents` / `view`)
 - **Handler:** `GET /api/ga/documents/summary` (src/routes/ga/documents.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5486,7 +5486,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_documents` / `edit`)
 - **Handler:** `PUT /api/ga/documents/:id` (src/routes/ga/documents.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5546,7 +5546,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/dashboard` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -5580,7 +5580,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/export` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5621,7 +5621,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_inventory` / `edit`)
 - **Handler:** `POST /api/ga/inventory/items` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5679,7 +5679,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/items/:id` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5724,7 +5724,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_inventory` / `edit`)
 - **Handler:** `DELETE /api/ga/inventory/items/:id/image` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5773,7 +5773,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_inventory` / `edit`)
 - **Handler:** `PUT /api/ga/inventory/items/:id` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5827,7 +5827,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/items` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5881,7 +5881,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/items/summary` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -5926,7 +5926,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/low-stock` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter:** tidak ada.
 
@@ -5961,7 +5961,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_inventory` / `edit`)
 - **Handler:** `POST /api/ga/inventory/movements` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6024,7 +6024,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_inventory` / `view`)
 - **Handler:** `GET /api/ga/inventory/movements` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6078,7 +6078,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_inventory` / `edit`)
 - **Handler:** `POST /api/ga/inventory/stock-set` (src/routes/ga/inventory.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6130,7 +6130,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `POST /api/ga/maintenance/schedules` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6188,7 +6188,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `PUT /api/ga/maintenance/schedules/:id` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6240,7 +6240,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_maintenance` / `view`)
 - **Handler:** `GET /api/ga/maintenance/schedules` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6285,7 +6285,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `POST /api/ga/maintenance/work-orders/:id/parts` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6344,7 +6344,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `PATCH /api/ga/maintenance/work-orders/:id/assign` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6398,7 +6398,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `PATCH /api/ga/maintenance/work-orders/:id/cancel` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6449,7 +6449,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `PATCH /api/ga/maintenance/work-orders/:id/close` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6501,7 +6501,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Catatan akses:** Hanya teknisi yang ditugaskan pada WO tersebut.
 - **Handler:** `PATCH /api/ga/maintenance/work-orders/:id/complete` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6565,7 +6565,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Handler:** `POST /api/ga/maintenance/work-orders` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6623,7 +6623,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_maintenance` / `view`)
 - **Handler:** `GET /api/ga/maintenance/work-orders/:id` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6665,7 +6665,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_maintenance` / `view`)
 - **Handler:** `GET /api/ga/maintenance/work-orders` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6727,7 +6727,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_maintenance` / `edit`)
 - **Catatan akses:** Hanya teknisi yang ditugaskan pada WO tersebut (403 untuk user lain, termasuk Admin).
 - **Handler:** `PATCH /api/ga/maintenance/work-orders/:id/start` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6778,7 +6778,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_maintenance` / `view`)
 - **Handler:** `GET /api/ga/maintenance/work-orders/summary` (src/routes/ga/maintenance.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6833,7 +6833,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Catatan akses:** Siapa pun dengan izin edit modul ga_material_request dapat menyetujui, termasuk pemohon sendiri (tidak ada pemisahan tugas di kode).
 - **Handler:** `PATCH /api/ga/material-requests/:id/approve` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6884,7 +6884,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `PATCH /api/ga/material-requests/:id/cancel` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -6933,7 +6933,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `POST /api/ga/material-requests` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7001,7 +7001,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `POST /api/ga/material-requests/from-work-order/:workOrderId` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7067,7 +7067,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_material_request` / `view`)
 - **Handler:** `GET /api/ga/material-requests/:id` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7111,7 +7111,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_material_request` / `view`)
 - **Handler:** `GET /api/ga/material-requests` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7166,7 +7166,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `PATCH /api/ga/material-requests/:id/items/:itemId/procurement` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7224,7 +7224,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `PATCH /api/ga/material-requests/:id/items/:itemId/receive` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7293,7 +7293,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `PATCH /api/ga/material-requests/:id/reject` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7346,7 +7346,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `PATCH /api/ga/material-requests/:id/submit` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7396,7 +7396,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin (modul `ga_material_request` / `view`)
 - **Handler:** `GET /api/ga/material-requests/summary` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -7443,7 +7443,7 @@ Modul `ga_equipment`: alat ukur/timbangan (kapasitas, satuan KG/GRAM/TON/LBS, ak
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin (modul `ga_material_request` / `edit`)
 - **Handler:** `PUT /api/ga/material-requests/:id` (src/routes/ga/materialRequest.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 

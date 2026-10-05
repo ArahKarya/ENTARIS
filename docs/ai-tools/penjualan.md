@@ -173,7 +173,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant (modul `customer_deposit` / `edit`)
 - **Catatan akses:** Risiko direklasifikasi dari write: memposting jurnal.
 - **Handler:** `POST /api/customer-deposits/apply` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -236,7 +236,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `customer_deposit` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/customer-deposits/apply/:id/cancel` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -285,7 +285,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `customer_deposit` / `view`)
 - **Handler:** `GET /api/customer-deposits/balance/:partyId` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -326,7 +326,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `customer_deposit` / `edit`)
 - **Handler:** `PATCH /api/customer-deposits/:id/cancel` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -376,7 +376,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `customer_deposit` / `view`)
 - **Handler:** `GET /api/customer-deposits` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -425,7 +425,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `customer_deposit` / `edit`)
 - **Handler:** `POST /api/customer-deposits/:id/refund` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -488,7 +488,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant (modul `customer_deposit` / `view`)
 - **Handler:** `GET /api/customer-deposits/summary` (src/routes/customerDeposits.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -534,7 +534,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `delivery_order` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/delivery-orders/:id/cancel` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -585,7 +585,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Catatan akses:** Risiko direklasifikasi dari write (menggerakkan stok).
 - **Handler:** `POST /api/delivery-orders` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -667,7 +667,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Handler:** `POST /api/delivery-orders/from-invoice/:invoiceId` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -728,7 +728,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/delivery-orders/:id` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -770,7 +770,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/delivery-orders` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -819,7 +819,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Handler:** `PATCH /api/delivery-orders/:id` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -874,7 +874,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/delivery-orders/pending` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -920,7 +920,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Catatan akses:** Risiko direklasifikasi dari write (membalik dan menerapkan ulang pergerakan stok).
 - **Handler:** `PUT /api/delivery-orders/:id` (src/routes/deliveryOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -999,7 +999,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Catatan akses:** Risiko direklasifikasi dari read (GET yang bermutasi).
 - **Handler:** `GET /api/inquiries/:id/convert-payload` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1051,7 +1051,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `POST /api/inquiries` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1122,7 +1122,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `DELETE /api/inquiries/:id` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1171,7 +1171,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/inquiries/:id` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1216,7 +1216,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `POST /api/inquiries/:id/link` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1274,7 +1274,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/inquiries` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1324,7 +1324,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `PATCH /api/inquiries/:id/status` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1377,7 +1377,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/inquiries/stats` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1419,7 +1419,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/inquiries/summary` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1466,7 +1466,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `PUT /api/inquiries/:id` (src/routes/inquiries.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1536,7 +1536,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `PATCH /api/quotations/:id/accept` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1588,7 +1588,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `quotation` / `edit`, capability `doc.cancel`)
 - **Handler:** `PATCH /api/quotations/:id/cancel` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1637,7 +1637,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/quotations/:id/convert-payload` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1683,7 +1683,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `POST /api/quotations` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1773,7 +1773,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `DELETE /api/quotations/:id` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1824,7 +1824,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/quotations/:id` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1867,7 +1867,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `POST /api/quotations/:id/link` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1924,7 +1924,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/quotations` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -1973,7 +1973,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `PATCH /api/quotations/:id/reject` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2024,7 +2024,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `PATCH /api/quotations/:id/send` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2074,7 +2074,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/quotations/stats` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2116,7 +2116,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `quotation` / `view`)
 - **Handler:** `GET /api/quotations/summary` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2162,7 +2162,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant (modul `quotation` / `edit`)
 - **Handler:** `PUT /api/quotations/:id` (src/routes/quotations.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2249,7 +2249,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `sales_invoice` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/sales/invoices/:id/cancel` (src/routes/sales.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2301,7 +2301,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant (modul `sales_invoice` / `edit`)
 - **Catatan akses:** Risiko direklasifikasi dari write: endpoint ini memposting GL, stok, dan HPP sekaligus.
 - **Handler:** `POST /api/sales/invoices` (src/routes/sales.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2394,7 +2394,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `sales_invoice` / `view`)
 - **Handler:** `GET /api/sales/invoices/:id` (src/routes/sales.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2436,7 +2436,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `sales_invoice` / `view`)
 - **Handler:** `GET /api/sales/invoices` (src/routes/sales.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2484,7 +2484,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `sales_invoice` / `view`)
 - **Handler:** `GET /api/sales/invoices/summary` (src/routes/sales.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2530,7 +2530,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant (modul `sales_invoice` / `edit`)
 - **Handler:** `PUT /api/sales/invoices/:id` (src/routes/sales.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2583,7 +2583,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_order` / `edit`)
 - **Handler:** `POST /api/sales-orders/:id/cancel` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2635,7 +2635,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_order` / `edit`)
 - **Handler:** `POST /api/sales-orders` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2719,7 +2719,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_order` / `edit`)
 - **Catatan akses:** Risiko direklasifikasi dari write (menggerakkan stok).
 - **Handler:** `POST /api/sales-orders/:id/generate-do` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2796,7 +2796,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `sales_order` / `view`)
 - **Handler:** `GET /api/sales-orders/:id` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2838,7 +2838,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `sales_order` / `view`)
 - **Handler:** `GET /api/sales-orders` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2887,7 +2887,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_order` / `edit`)
 - **Handler:** `POST /api/sales-orders/:id/submit` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2937,7 +2937,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `sales_order` / `view`)
 - **Handler:** `GET /api/sales-orders/summary` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -2983,7 +2983,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_order` / `edit`)
 - **Handler:** `PUT /api/sales-orders/:id` (src/routes/salesOrders.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3061,7 +3061,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `sales_return` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/sales-returns/:id/cancel` (src/routes/salesReturns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3112,7 +3112,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_return` / `edit`)
 - **Catatan akses:** Role tanpa approval.bypass hanya mengantrikan approval; keputusan oleh Admin/pemegang approval.decide.
 - **Handler:** `POST /api/sales-returns` (src/routes/salesReturns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3185,7 +3185,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_return` / `view`)
 - **Handler:** `GET /api/sales-returns/eligible/:invoiceId` (src/routes/salesReturns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3229,7 +3229,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_return` / `view`)
 - **Handler:** `GET /api/sales-returns/:id` (src/routes/salesReturns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3271,7 +3271,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `sales_return` / `view`)
 - **Handler:** `GET /api/sales-returns` (src/routes/salesReturns.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3321,7 +3321,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin (modul `delivery_order` / `edit`, capability `doc.cancel`)
 - **Handler:** `POST /api/temporary-delivery-notes/:id/cancel` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3371,7 +3371,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Handler:** `POST /api/temporary-delivery-notes` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3441,7 +3441,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/temporary-delivery-notes/:id` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3484,7 +3484,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** tidak (efek langsung)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Handler:** `POST /api/temporary-delivery-notes/:id/link` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3538,7 +3538,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/temporary-delivery-notes/linkable` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3578,7 +3578,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/temporary-delivery-notes` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3626,7 +3626,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `delivery_order` / `view`)
 - **Handler:** `GET /api/temporary-delivery-notes/summary` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
@@ -3667,7 +3667,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi (modul `delivery_order` / `edit`)
 - **Handler:** `PUT /api/temporary-delivery-notes/:id` (src/routes/temporaryDeliveryNotes.ts)
-- **Status default:** nonaktif (diaktifkan owner)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
 
 **Parameter**
 
