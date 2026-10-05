@@ -6,6 +6,7 @@ import { runDueRecurringTemplates } from '../services/recurringRunner';
 import { runNotificationChecks } from '../services/notificationService';
 import { runSettlementReminders } from '../services/paymentRequestNotify';
 import { pollTelegramUpdates } from '../services/telegramService';
+import { purgeExpiredNonces } from '../mcp/tokenService';
 
 /**
  * Postgres advisory lock helper. Returns true if THIS connection acquired the
@@ -67,6 +68,7 @@ export function startScheduler(): void {
   tasks.push(
     cron.schedule('0 * * * *', () => {
       void purgeExpiredTokens();
+      void purgeExpiredNonces().catch((err) => logger.error({ err }, 'MCP nonce purge failed'));
     }),
   );
 

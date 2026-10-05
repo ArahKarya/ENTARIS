@@ -28,6 +28,7 @@
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@types/node-cron": "^3.0.11",
