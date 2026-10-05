@@ -15,9 +15,10 @@ describe('calcWeightedAverage', () => {
     expect(result).toBe(5333.33);
   });
 
-  it('returns 0 when total quantity is zero', () => {
+  it('anchors to the incoming unit cost when current stock is zero (no meaningful prior average)', () => {
+    // Implementation guard: cQty <= 0 falls back to inUnitCost (see weightedAverage.ts).
     const result = calcWeightedAverage(0, 0, 0, 5000);
-    expect(result).toBe(0);
+    expect(result).toBe(5000);
   });
 
   it('handles large production values (rice mill scale)', () => {

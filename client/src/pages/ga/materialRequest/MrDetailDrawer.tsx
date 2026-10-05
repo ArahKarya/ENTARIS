@@ -2,8 +2,8 @@
  * Material request detail (side sheet, deep-linked as ?mr=<id> by the page):
  * header fields, lifecycle actions (submit / approve / reject with reason /
  * cancel), payment info once PAID, and per-item procurement editing plus
- * "Terima barang" (stock in). The receive form uses SearchableSelect and opens
- * as a plain overlay, so the sheet steps aside while it is open.
+ * "Terima barang" (stock in). The receive form opens as a dialog, so the
+ * sheet steps aside while it is open.
  */
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { Ban, Check, Link2, PackageCheck, Send, ThumbsDown, ThumbsUp } from 'luc
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
-import SearchableSelect from '@/components/SearchableSelect';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
@@ -489,18 +489,12 @@ function ReceiveModal({
         <Field label={`Qty diterima (${item.uom})`} required error={err('qty')}>
           <NumberInput min={0} step="any" value={receivedQty} onChange={(e) => setReceivedQty(e.target.value)} />
         </Field>
-        <Field label="Lokasi gudang tujuan" required error={err('location')}>
-          {() => (
-            <SearchableSelect
-              options={locations.map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
-              value={locationId}
-              onChange={setLocationId}
-              placeholder="— Pilih lokasi —"
-              allowClear={false}
-              aria-label="Lokasi gudang tujuan"
-            />
-          )}
-        </Field>
+        <ComboboxField label="Lokasi gudang tujuan" required error={err('location')}
+  options={locations.map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
+  value={locationId}
+  onChange={setLocationId}
+  placeholder="— Pilih lokasi —"
+/>
       </div>
 
       {needsLink && (
@@ -519,35 +513,23 @@ function ReceiveModal({
             </Button>
           </div>
           {mode === 'existing' ? (
-            <Field label="Item inventaris" required error={err('existing')}>
-              {() => (
-                <SearchableSelect
-                  options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
-                  value={existingItemId}
-                  onChange={setExistingItemId}
-                  placeholder="— Pilih item —"
-                  allowClear
-                  aria-label="Item inventaris"
-                />
-              )}
-            </Field>
+            <ComboboxField label="Item inventaris" required error={err('existing')}
+  options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
+  value={existingItemId}
+  onChange={setExistingItemId}
+  placeholder="— Pilih item —"
+/>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="SKU baru" required error={err('sku')}>
                 <Input value={newSku} onChange={(e) => setNewSku(e.target.value)} />
               </Field>
-              <Field label="Kategori" required error={err('category')}>
-                {() => (
-                  <SearchableSelect
-                    options={categories.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }))}
-                    value={categoryId}
-                    onChange={setCategoryId}
-                    placeholder="— Pilih kategori —"
-                    allowClear={false}
-                    aria-label="Kategori"
-                  />
-                )}
-              </Field>
+              <ComboboxField label="Kategori" required error={err('category')}
+  options={categories.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }))}
+  value={categoryId}
+  onChange={setCategoryId}
+  placeholder="— Pilih kategori —"
+/>
             </div>
           )}
         </fieldset>

@@ -12,7 +12,7 @@ import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { DateInput, PartyFilter } from '@/components/shared';
-import WarehousePicker from '@/components/WarehousePicker';
+import { WarehouseFilter } from '@/components/overlays/WarehouseFilter';
 import {
   ExportMenu,
   ReportDataTable,
@@ -164,7 +164,7 @@ export default function PoOutstanding() {
           )}
           <PartyFilter partyType="Supplier" value={partyId} onChange={setPartyId} />
           <div className="w-full sm:w-56">
-            <WarehousePicker value={warehouseId} onChange={setWarehouseId} autoDefault={false} placeholder="Semua gudang" />
+            <WarehouseFilter value={warehouseId} onChange={setWarehouseId} />
           </div>
           <label htmlFor={overdueId} className="inline-flex min-h-11 items-center gap-2 text-sm text-foreground">
             <input

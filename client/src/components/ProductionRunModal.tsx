@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
-import type { Batch } from './BatchPicker';
+import type { Batch } from './overlays/BatchSelect';
 import { cap } from '../lib/permissions';
 import { fetchBatches, allocateFifo } from '../lib/fifoAllocate';
 import { Button } from '@/components/ui/button';

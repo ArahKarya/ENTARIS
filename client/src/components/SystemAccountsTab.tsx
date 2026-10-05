@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { Save, Loader2, AlertTriangle, Plus, X, ChevronDown, ChevronRight, CheckCircle2, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
-import Select from './Select';
+import { ComboboxFilter } from '@/components/shared';
 
 interface RoleMeta {
   key: string;
@@ -255,7 +255,7 @@ export const SystemAccountsTab: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="animate-spin text-gray-400" size={24} />
+        <Loader2 className="animate-spin text-muted-foreground" size={24} />
       </div>
     );
   }
@@ -265,8 +265,8 @@ export const SystemAccountsTab: React.FC = () => {
       {/* Header with stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Akun Sistem</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-base font-semibold text-foreground">Akun Sistem</h2>
+          <p className="text-sm text-muted-foreground">
             Konfigurasi akun COA yang digunakan sistem untuk auto GL posting.
           </p>
         </div>
@@ -274,7 +274,7 @@ export const SystemAccountsTab: React.FC = () => {
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover disabled:opacity-50"
           >
             {saveMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
             Simpan Perubahan
@@ -284,35 +284,35 @@ export const SystemAccountsTab: React.FC = () => {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-gray-200 rounded-lg p-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Role</p>
-          <p className="text-xl font-bold text-gray-900 mt-0.5">{stats.total}</p>
+        <div className="bg-card border border-border rounded-lg p-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Role</p>
+          <p className="text-xl font-bold text-foreground mt-0.5">{stats.total}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Terkonfigurasi</p>
-          <p className="text-xl font-bold text-green-600 mt-0.5">{stats.configured}</p>
+        <div className="bg-card border border-border rounded-lg p-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Terkonfigurasi</p>
+          <p className="text-xl font-bold text-success-text mt-0.5">{stats.configured}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Wajib</p>
-          <p className="text-xl font-bold text-blue-600 mt-0.5">{stats.requiredConfigured}/{stats.required}</p>
+        <div className="bg-card border border-border rounded-lg p-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wajib</p>
+          <p className="text-xl font-bold text-primary mt-0.5">{stats.requiredConfigured}/{stats.required}</p>
         </div>
         <div className={cn(
           'border rounded-lg p-3',
           stats.requiredConfigured === stats.required
-            ? 'bg-green-50 border-green-200'
-            : 'bg-amber-50 border-amber-200'
+            ? 'bg-success-subtle border-success/30'
+            : 'bg-warning-subtle border-warning/30'
         )}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             {stats.requiredConfigured === stats.required ? (
               <>
-                <CheckCircle2 size={16} className="text-green-600" />
-                <span className="text-sm font-semibold text-green-700">Lengkap</span>
+                <CheckCircle2 size={16} className="text-success-text" />
+                <span className="text-sm font-semibold text-success-text">Lengkap</span>
               </>
             ) : (
               <>
-                <AlertTriangle size={16} className="text-amber-600" />
-                <span className="text-sm font-semibold text-amber-700">Belum Lengkap</span>
+                <AlertTriangle size={16} className="text-warning-text" />
+                <span className="text-sm font-semibold text-warning-text">Belum Lengkap</span>
               </>
             )}
           </div>
@@ -321,13 +321,13 @@ export const SystemAccountsTab: React.FC = () => {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           placeholder="Cari role akun..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
@@ -337,31 +337,31 @@ export const SystemAccountsTab: React.FC = () => {
         const groupStatus = getGroupStatus(group.roles);
 
         return (
-          <div key={group.title} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div key={group.title} className="bg-card rounded-xl border border-border overflow-hidden">
             {/* Group header */}
             <button
               onClick={() => toggleGroup(group.title)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 bg-muted border-b border-border hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 {isCollapsed ? (
-                  <ChevronRight size={16} className="text-gray-400" />
+                  <ChevronRight size={16} className="text-muted-foreground" />
                 ) : (
-                  <ChevronDown size={16} className="text-gray-400" />
+                  <ChevronDown size={16} className="text-muted-foreground" />
                 )}
                 <div className="text-left">
-                  <h3 className="text-sm font-semibold text-gray-700">{group.title}</h3>
-                  <p className="text-xs text-gray-400">{group.description}</p>
+                  <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>
+                  <p className="text-xs text-muted-foreground">{group.description}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn(
                   'text-xs font-medium px-2 py-0.5 rounded-full',
                   groupStatus.configured === groupStatus.total
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-success-subtle text-success-text'
                     : groupStatus.configured > 0
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-gray-100 text-gray-500',
+                      ? 'bg-warning-subtle text-warning-text'
+                      : 'bg-muted text-muted-foreground',
                 )}>
                   {groupStatus.configured}/{groupStatus.total}
                 </span>
@@ -370,7 +370,7 @@ export const SystemAccountsTab: React.FC = () => {
 
             {/* Role items */}
             {!isCollapsed && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-border">
                 {group.roles.map((roleKey) => {
                   const meta = getRoleMeta(roleKey);
                   if (!meta) return null;
@@ -380,33 +380,33 @@ export const SystemAccountsTab: React.FC = () => {
                   const filteredAccounts = getFilteredAccounts(meta.expectedRootType);
 
                   return (
-                    <div key={roleKey} className={cn('px-4 py-3', isMissing && 'bg-amber-50/30')}>
+                    <div key={roleKey} className={cn('px-4 py-3', isMissing && 'bg-warning-subtle/30')}>
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             {isConfigured ? (
-                              <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
+                              <CheckCircle2 size={14} className="text-success-text flex-shrink-0" />
                             ) : isMissing ? (
-                              <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+                              <AlertTriangle size={14} className="text-warning-text flex-shrink-0" />
                             ) : (
-                              <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 flex-shrink-0" />
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-border flex-shrink-0" />
                             )}
-                            <span className="text-sm font-medium text-gray-900">{meta.label}</span>
+                            <span className="text-sm font-medium text-foreground">{meta.label}</span>
                             {meta.required && (
-                              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-medium text-primary bg-primary-subtle px-1.5 py-0.5 rounded">
                                 Wajib
                               </span>
                             )}
                             {meta.multiAccount && (
-                              <span className="text-xs font-medium text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-medium text-primary-subtle-foreground bg-primary-subtle px-1.5 py-0.5 rounded">
                                 Multi
                               </span>
                             )}
-                            <span className="text-[9px] font-mono text-gray-300 uppercase">
+                            <span className="text-[9px] font-mono text-muted-foreground uppercase">
                               {meta.expectedRootType}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-0.5 ml-5.5">{meta.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 ml-5.5">{meta.description}</p>
                         </div>
 
                         <div className="flex-shrink-0 w-72">
@@ -417,35 +417,28 @@ export const SystemAccountsTab: React.FC = () => {
                                 const acc = accounts?.find((a) => a.id === accId);
                                 return (
                                   <div key={`${accId}-${idx}`} className="flex items-center gap-1">
-                                    <Select
+                                    <ComboboxFilter
+                                      className="flex-1"
+                                      label={`Akun untuk ${meta.label} ${idx + 1}`}
                                       value={accId}
-                                      onChange={(e) => {
+                                      allLabel="-- Pilih Akun --"
+                                      options={[
+                                        { value: accId, label: acc ? `${acc.accountNumber} - ${acc.name}` : accId },
+                                        ...filteredAccounts
+                                          .filter((a) => a.id !== accId && !selectedIds.includes(a.id))
+                                          .map((a) => ({ value: a.id, label: `${a.accountNumber} - ${a.name}` })),
+                                      ]}
+                                      onChange={(v) => {
+                                        // The combobox "x" removes this account row.
+                                        if (!v) {
+                                          updateRole(roleKey, selectedIds.filter((_, i) => i !== idx));
+                                          return;
+                                        }
                                         const newIds = [...selectedIds];
-                                        newIds[idx] = e.target.value;
+                                        newIds[idx] = v;
                                         updateRole(roleKey, newIds);
                                       }}
-                                      className="flex-1"
-                                    >
-                                      <option value={accId}>
-                                        {acc ? `${acc.accountNumber} - ${acc.name}` : accId}
-                                      </option>
-                                      {filteredAccounts
-                                        .filter((a) => a.id !== accId && !selectedIds.includes(a.id))
-                                        .map((a) => (
-                                          <option key={a.id} value={a.id}>
-                                            {a.accountNumber} - {a.name}
-                                          </option>
-                                        ))}
-                                    </Select>
-                                    <button
-                                      onClick={() => {
-                                        updateRole(roleKey, selectedIds.filter((_, i) => i !== idx));
-                                      }}
-                                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                      title="Hapus"
-                                    >
-                                      <X size={14} />
-                                    </button>
+                                    />
                                   </div>
                                 );
                               })}
@@ -460,7 +453,7 @@ export const SystemAccountsTab: React.FC = () => {
                                     toast.error('Tidak ada akun tersedia untuk ditambahkan.');
                                   }
                                 }}
-                                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                                className="flex items-center gap-1 text-xs text-primary hover:underline transition-colors"
                               >
                                 <Plus size={12} />
                                 Tambah Akun
@@ -469,33 +462,21 @@ export const SystemAccountsTab: React.FC = () => {
                           ) : (
                             // Single account selector
                             <div className="space-y-1">
-                              <div className="relative">
-                                <Select
-                                  value={selectedIds[0] ?? ''}
-                                  onChange={(e) => {
-                                    updateRole(roleKey, e.target.value ? [e.target.value] : []);
-                                  }}
-                                  className={cn(
-                                    'w-full text-xs border rounded-md px-2 py-1.5 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none',
-                                    isMissing ? 'border-amber-300 bg-amber-50' : 'border-gray-300',
-                                  )}
-                                >
-                                  <option value="">-- Pilih Akun --</option>
-                                  {filteredAccounts.map((acc) => (
-                                    <option key={acc.id} value={acc.id}>
-                                      {acc.accountNumber} - {acc.name}
-                                    </option>
-                                  ))}
-                                </Select>
-                                <ChevronDown
-                                  size={14}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                                />
-                              </div>
+                              <ComboboxFilter
+                                className={cn(isMissing && '[&_button]:border-warning-border [&_button]:bg-warning-subtle')}
+                                label={`Akun untuk ${meta.label}`}
+                                value={selectedIds[0] ?? ''}
+                                allLabel="-- Pilih Akun --"
+                                options={filteredAccounts.map((acc) => ({
+                                  value: acc.id,
+                                  label: `${acc.accountNumber} - ${acc.name}`,
+                                }))}
+                                onChange={(v) => updateRole(roleKey, v ? [v] : [])}
+                              />
                               {isConfigured && !meta.required && (
                                 <button
                                   onClick={() => updateRole(roleKey, [])}
-                                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-danger-text transition-colors"
                                   title="Lepas akun dari role ini"
                                 >
                                   <X size={12} />
@@ -521,7 +502,7 @@ export const SystemAccountsTab: React.FC = () => {
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+            className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-xl shadow-lg hover:bg-primary-hover disabled:opacity-50 transition-all"
           >
             {saveMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             Simpan Perubahan

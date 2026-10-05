@@ -120,8 +120,8 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
         ) : (
           <div className="flex flex-col gap-4">
             {/* The QR keeps a literal white card + dark modules in both themes: scanners need the contrast. */}
-            <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-white py-4">
-              <div ref={canvasRef} className="rounded bg-white p-3">
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-[#fff] py-4">
+              <div ref={canvasRef} className="rounded bg-[#fff] p-3">
                 <QRCodeCanvas
                   value={url}
                   size={240}
@@ -133,7 +133,7 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
                   aria-label={`Kode QR aset ${asset.code}`}
                 />
               </div>
-              <p className="break-all px-4 text-center font-mono text-[11px] text-slate-600">{url}</p>
+              <p className="break-all px-4 text-center font-mono text-[11px] text-[#525252]">{url}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">

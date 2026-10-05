@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
-import RupiahInput from './RupiahInput';
+import { RupiahField } from './purchase-cash/RupiahField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -164,7 +164,7 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <RupiahInput
+                        <RupiahField
                           value={item.debit}
                           onChange={(v) => updateItem(index, 'debit', v)}
                           className={moneyInput}
@@ -172,7 +172,7 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <RupiahInput
+                        <RupiahField
                           value={item.credit}
                           onChange={(v) => updateItem(index, 'credit', v)}
                           className={moneyInput}

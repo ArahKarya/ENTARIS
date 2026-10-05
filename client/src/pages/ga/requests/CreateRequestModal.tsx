@@ -1,15 +1,18 @@
-import { useEffect, useId, useState } from 'react';
-import { Wrench, ReceiptText, X } from 'lucide-react';
+import { useState } from 'react';
+import { Wrench, ReceiptText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
-import SearchableSelect from '@/components/SearchableSelect';
-import RupiahInput from '@/components/RupiahInput';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
+import { RupiahField } from '@/components/purchase-cash/RupiahField';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { OverlayBody, OverlayFooter, OverlayHeader } from '@/components/sales/dialog-parts-b';
+import { dialogShellClass } from '@/components/sales/dialog-classes-b';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { closeButtonClass, controlBase } from '@/components/ui/styles';
 import { DateInput, Field } from '@/components/shared';
 import {
   VEHICLE_SERVICE_TYPES,
@@ -26,7 +29,6 @@ import {
 
 type Mode = 'SERVICE' | 'TAX';
 
-const rupiahInputClass = cn(controlBase, 'flex h-10 px-3 py-1 md:h-9');
 
 /**
  * Modal pengajuan terpusat. User pilih kendaraan lewat dropdown (Opsi A),
@@ -101,67 +103,48 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
   };
 
   const TitleIcon = isService ? Wrench : ReceiptText;
-  const titleId = useId();
   const pending = mutation.isPending;
 
-  // Plain overlay instead of the Radix Dialog: SearchableSelect portals its menu
-  // to <body>, which a Radix modal would make unclickable (focus/pointer trap).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !pending) onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, pending]);
-
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-overlay p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-[560px] flex-col gap-4 overflow-y-auto rounded-xl border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-3)]"
-      >
-        <button type="button" onClick={onClose} disabled={pending} className={closeButtonClass}>
-          <X className="size-4" aria-hidden />
-          <span className="sr-only">Tutup</span>
-        </button>
-        <div className="flex flex-col gap-1.5 pr-8">
-          <h2 id={titleId} className="flex items-center gap-2 font-heading text-lg font-semibold leading-7 text-foreground">
-            <TitleIcon className={cn('size-5', isService ? 'text-primary' : 'text-info-text')} aria-hidden />
-            {isService ? 'Pengajuan Servis Kendaraan' : 'Pengajuan Pajak / STNK / KIR'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Pilih kendaraan lalu lengkapi data pengajuan. Status bisa dipantau di tab Pengajuan.
-          </p>
-        </div>
-
-        <form onSubmit={submit} className="flex flex-col gap-4">
-          <Field label="Kendaraan" required>
-            {() => (
-              <SearchableSelect
+    <Dialog open onOpenChange={(open) => !open && !pending && onClose()}>
+      <DialogContent size="md" className={dialogShellClass}>
+        <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <OverlayHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TitleIcon className={cn('size-5', isService ? 'text-primary' : 'text-info-text')} aria-hidden />
+              {isService ? 'Pengajuan Servis Kendaraan' : 'Pengajuan Pajak / STNK / KIR'}
+            </DialogTitle>
+            <DialogDescription>
+              Pilih kendaraan lalu lengkapi data pengajuan. Status bisa dipantau di tab Pengajuan.
+            </DialogDescription>
+          </OverlayHeader>
+          <OverlayBody>
+          <ComboboxField
+            label="Kendaraan"
+            required
                 options={assetOptions}
                 value={assetId}
                 onChange={setAssetId}
                 placeholder={loadingAssets ? 'Memuat…' : '— Pilih kendaraan —'}
-                searchable
-                aria-label="Kendaraan"
-              />
-            )}
-          </Field>
+          />
 
           {isService ? (
             <>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Jenis Servis" required>
-                  {() => (
-                    <SearchableSelect
-                      options={VEHICLE_SERVICE_TYPES.map((t) => ({ value: t, label: SERVICE_TYPE_LABELS[t] }))}
-                      value={jenisService}
-                      onChange={(v) => setJenisService(v as ServiceType)}
-                      allowClear={false}
-                      aria-label="Jenis servis"
-                    />
+                  {(control) => (
+                    <Select value={jenisService} onValueChange={(v) => setJenisService(v as ServiceType)}>
+                      <SelectTrigger {...control}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_SERVICE_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {SERVICE_TYPE_LABELS[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </Field>
                 <Field label="Odometer (km)">
@@ -187,14 +170,19 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
             <>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Jenis" required>
-                  {() => (
-                    <SearchableSelect
-                      options={VEHICLE_TAX_TYPES.map((t) => ({ value: t, label: TAX_TYPE_LABELS[t] }))}
-                      value={taxType}
-                      onChange={(v) => setTaxType(v as TaxType)}
-                      allowClear={false}
-                      aria-label="Jenis pajak"
-                    />
+                  {(control) => (
+                    <Select value={taxType} onValueChange={(v) => setTaxType(v as TaxType)}>
+                      <SelectTrigger {...control}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_TAX_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {TAX_TYPE_LABELS[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </Field>
                 <Field label="Tahun Periode" required>
@@ -213,11 +201,10 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
                 </Field>
                 <Field label="Estimasi Biaya">
                   {(control) => (
-                    <RupiahInput
+                    <RupiahField
                       id={control.id}
                       value={estimatedAmount}
                       onChange={setEstimatedAmount}
-                      className={rupiahInputClass}
                     />
                   )}
                 </Field>
@@ -250,17 +237,17 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
               ))}
             </div>
           </fieldset>
-
-          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={onClose} disabled={pending}>
+          </OverlayBody>
+          <OverlayFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
               Batal
             </Button>
             <Button type="submit" disabled={!valid} loading={pending}>
               Kirim Pengajuan
             </Button>
-          </div>
+          </OverlayFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -19,10 +19,10 @@ import { can, cap } from '../lib/permissions';
 
 interface Props { noteId: string | null; onClose: () => void }
 
-export const SJS_STATUS: Record<string, { label: string; badge: string }> = {
-  Open: { label: 'Terbuka', badge: 'badge badge-amber' },
-  Linked: { label: 'Tertaut', badge: 'badge badge-green' },
-  Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
+const SJS_STATUS: Record<string, { label: string }> = {
+  Open: { label: 'Terbuka' },
+  Linked: { label: 'Tertaut' },
+  Cancelled: { label: 'Dibatalkan' },
 };
 
 const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {

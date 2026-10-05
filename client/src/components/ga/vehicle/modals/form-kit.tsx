@@ -1,19 +1,16 @@
 /**
- * Form building blocks for the fleet modals: an accessible modal shell and
- * labelled native controls styled with the design tokens.
- *
- * The shell is a plain fixed overlay (not Radix Dialog) on purpose: the
- * legacy SearchableSelect used by the driver/inspector pickers portals its
- * list to <body>, which a Radix modal would make unclickable.
+ * Form building blocks for the fleet modals: a Radix dialog shell (Phase 4
+ * anatomy: pinned header, scrolling body, pinned footer) and labelled native
+ * controls styled with the design tokens.
  */
-import { useEffect, useId, useRef, type FormEvent, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { Save, X, type LucideIcon } from 'lucide-react';
+import { useId, type FormEvent, type ReactNode } from 'react';
+import { Save, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { controlBase } from '@/components/ui/styles';
+import { OverlayHeader } from '@/components/sales/dialog-parts-b';
+import { dialogShellClass } from '@/components/sales/dialog-classes-b';
 import { cn } from '@/lib/utils';
-
-const FOCUSABLE = 'input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled]),[href],[tabindex]:not([tabindex="-1"])';
 
 interface ModalShellProps {
   title: string;
@@ -25,98 +22,21 @@ interface ModalShellProps {
   wide?: boolean;
 }
 
-/** Centered modal with title bar, Escape/overlay close, focus trap and focus restore. */
+/** Centered modal (mounted by the parent while open); Escape / overlay / close button call onClose. */
 export function ModalShell({ title, description, icon: Icon, onClose, children, wide }: ModalShellProps) {
-  const titleId = useId();
-  const descId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef(onClose);
-  useEffect(() => {
-    closeRef.current = onClose;
-  });
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const panel = panelRef.current;
-    const first = panel?.querySelector<HTMLElement>(`form ${FOCUSABLE}`) ?? panel;
-    first?.focus();
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
-
-    const onKey = (e: KeyboardEvent) => {
-      // An open SearchableSelect list handles its own Escape.
-      if (e.key === 'Escape' && !document.querySelector('[role="listbox"]')) {
-        e.stopPropagation();
-        closeRef.current();
-        return;
-      }
-      if (e.key !== 'Tab' || !panel) return;
-      const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
-      if (items.length === 0) return;
-      const firstEl = items[0]!;
-      const lastEl = items[items.length - 1]!;
-      if (e.shiftKey && document.activeElement === firstEl) {
-        e.preventDefault();
-        lastEl.focus();
-      } else if (!e.shiftKey && document.activeElement === lastEl) {
-        e.preventDefault();
-        firstEl.focus();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = overflow;
-      previous?.focus?.();
-    };
-  }, []);
-
-  return createPortal(
-    <div
-      role="presentation"
-      className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-overlay p-0 sm:items-center sm:p-4"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={description ? descId : undefined}
-        tabIndex={-1}
-        className={cn(
-          'flex max-h-[92dvh] w-full flex-col rounded-t-xl border border-border bg-card text-card-foreground shadow-[var(--shadow-3)] focus:outline-none sm:max-h-[calc(100dvh-2rem)] sm:rounded-xl',
-          wide ? 'sm:max-w-[800px]' : 'sm:max-w-[560px]',
-        )}
-      >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
-          <div className="flex min-w-0 items-start gap-3">
-            {Icon && (
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground">
-                <Icon className="size-4" strokeWidth={1.75} aria-hidden />
-              </span>
-            )}
-            <div className="min-w-0">
-              <h2 id={titleId} className="font-heading text-base font-semibold leading-6 text-foreground">
-                {title}
-              </h2>
-              {description && (
-                <p id={descId} className="text-sm text-muted-foreground">
-                  {description}
-                </p>
-              )}
-            </div>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Tutup" className="-mr-1 text-muted-foreground">
-            <X aria-hidden />
-          </Button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent size={wide ? 'lg' : 'md'} className={dialogShellClass}>
+        <OverlayHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {Icon && <Icon className="size-5 text-primary" strokeWidth={1.75} aria-hidden />}
+            {title}
+          </DialogTitle>
+          <DialogDescription className={description ? undefined : 'sr-only'}>{description ?? title}</DialogDescription>
+        </OverlayHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -147,9 +67,9 @@ export function ModalForm({
     onSubmit();
   };
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col">
-      <div className="space-y-3 px-5 py-4">{children}</div>
-      <div className="flex flex-col-reverse gap-2 border-t border-border px-5 py-3 sm:flex-row sm:justify-end">
+    <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-4">{children}</div>
+      <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-card px-6 py-3 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>
           Batal
         </Button>
@@ -299,7 +219,7 @@ export function TextAreaField({ label, value, onChange, rows = 2, disabled, requ
   );
 }
 
-/** Wrapper for a custom control (e.g. SearchableSelect) with a visible label. */
+/** Wrapper for a custom control with a visible label. */
 export function CustomField({ label, required, hint, className, children }: Omit<FieldShellProps, 'children'> & { children: ReactNode }) {
   return (
     <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>

@@ -228,7 +228,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Loss / Susut</span>
-                      <span className="text-rose-700 font-medium">{fmtNum(lossQty)} kg</span>
+                      <span className="text-danger-text font-medium">{fmtNum(lossQty)} kg</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Yield (Quality)</span>
@@ -294,11 +294,11 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                       </h4>
                       <div className="space-y-1.5">
                         {downtimeList.map((d: any) => (
-                          <div key={d.id} className="bg-rose-50/50 border border-rose-100 rounded-lg px-3 py-2 flex items-center justify-between">
+                          <div key={d.id} className="bg-danger-subtle border border-danger/20 rounded-lg px-3 py-2 flex items-center justify-between">
                             <div className="min-w-0">
-                              <span className="text-xs font-medium text-rose-800">{d.category}</span>
+                              <span className="text-xs font-medium text-danger-text">{d.category}</span>
                               {d.machine && (
-                                <span className="text-[10px] font-medium text-rose-500 ml-2">
+                                <span className="text-[10px] font-medium text-danger-text ml-2">
                                   [{d.machine.code}]
                                 </span>
                               )}
@@ -306,7 +306,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                                 <span className="text-[11px] text-muted-foreground ml-2">{d.reason}</span>
                               )}
                             </div>
-                            <span className="text-xs font-semibold text-rose-700 tabular-nums whitespace-nowrap ml-2">
+                            <span className="text-xs font-semibold text-danger-text tabular-nums whitespace-nowrap ml-2">
                               {fmtNum(Number(d.durationMin), 2)} mnt
                             </span>
                           </div>
@@ -667,7 +667,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
                     Jurnal: {journal.entryNumber}
                     {journal.status === 'Cancelled' && (
-                      <span className="badge badge-red text-[9px]">Dibatalkan</span>
+                      <span className="inline-flex items-center rounded-sm bg-danger-subtle px-2 py-0.5 text-[9px] font-medium text-danger-text">Dibatalkan</span>
                     )}
                   </h3>
                   {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width */}

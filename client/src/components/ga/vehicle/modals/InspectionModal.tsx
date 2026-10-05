@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { CalendarClock, Camera, ChevronDown, ChevronRight, ClipboardCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import SearchableSelect from '@/components/SearchableSelect';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -19,7 +19,7 @@ import {
 import { useInspectionCategories, useUserOptions } from '../vehicle-queries';
 import { apiError, numOrNull } from '../vehicle-model';
 import { ToneBadge } from '../vehicle-ui';
-import { CustomField, FieldRow, ModalForm, ModalShell, SelectField, TextAreaField, TextField } from './form-kit';
+import { FieldRow, ModalForm, ModalShell, SelectField, TextAreaField, TextField } from './form-kit';
 
 interface Props {
   assetId: string;
@@ -158,8 +158,8 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
           <TextField label="Interval (hari)" type="number" value={intervalDays} onChange={setIntervalDays} inputMode="numeric" />
         </FieldRow>
         <FieldRow>
-          <CustomField label="Inspektor">
-            <SearchableSelect
+          <ComboboxField
+              label="Inspektor"
               value={inspectorUserId}
               onChange={(v: string) => {
                 setInspectorUserId(v);
@@ -167,9 +167,7 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
               }}
               options={users.map((u) => ({ value: u.id, label: u.fullName }))}
               placeholder="Pilih inspektor…"
-              aria-label="Inspektor"
             />
-          </CustomField>
           <TextField label="Nama inspektor (bila di luar daftar user)" value={inspectorName} onChange={setInspectorName} />
         </FieldRow>
 

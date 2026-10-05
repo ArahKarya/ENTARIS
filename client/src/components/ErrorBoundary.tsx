@@ -7,13 +7,13 @@ interface State {
 
 function ErrorFallback({ onReset }: { onReset: () => void }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-muted">
       <div className="text-center p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Terjadi kesalahan tak terduga</h2>
-        <p className="text-gray-500 mb-4">Silakan muat ulang halaman atau coba lagi.</p>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Terjadi kesalahan tak terduga</h2>
+        <p className="text-muted-foreground mb-4">Silakan muat ulang halaman atau coba lagi.</p>
         <button
           onClick={onReset}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover text-sm font-medium"
         >
           Coba lagi
         </button>

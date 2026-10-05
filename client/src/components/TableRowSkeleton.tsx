@@ -6,7 +6,7 @@ interface Props {
 }
 
 /**
- * Skeleton placeholder rows for `<table className="data-table">` style lists.
+ * Skeleton placeholder rows for plain table lists.
  * Render inside `<tbody>` while a useQuery is loading — replaces the empty
  * `<tbody>` + spinner-in-center pattern with a more polished perceived load.
  */

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Tampilan (UI/UX) — Fase 6: pembersihan akhir
+**Diubah**:
+- **Code-splitting:** semua halaman dimuat saat dibutuhkan; chunk utama 4,88 MB → 239 KB. Pada jaringan Fast 3G dengan CPU 4×, `/login` memuat 8,98 s → 2,51 s dan `/` 8,97 s → 3,02 s. Library berat (PDF, grafik) dipisah menjadi chunk vendor. Ada layar pemulihan "Muat ulang" bila chunk gagal dimuat (mis. setelah pembaruan versi), dan pramuat saat kursor/fokus di menu.
+- **Picker lama dihapus** (`SearchableSelect`, `Select`, `WarehousePicker`, `BatchPicker`, `RupiahInput`) — diganti ComboboxFilter/Select/RupiahField di 21 berkas; tiga modal Aset Umum kini memakai Dialog; area unggah lampiran kini tombol sungguhan yang bisa dipakai dengan keyboard; tab dasbor Pelanggan dibangun ulang dengan token.
+- **CSS lama dihapus:** `index.css` 927 → 464 baris, `App.css` dihapus; tidak ada lagi kelas warna mentah (`bg-white`, `text-gray-*`, …) di `.tsx`.
+- **Gerbang lint:** pelanggaran lama dicatat di `client/eslint-suppressions.json`; pelanggaran baru membuat `npm run lint` gagal (`npm run lint:prune` untuk merapikan). **CI GitHub Actions** (`.github/workflows/ci.yml`) menjalankan lint, tsc, tes, dan build untuk client serta tsc + vitest untuk server pada setiap PR.
+- Tes `weightedAverage` diperbaiki: tesnya yang salah (fungsi sesuai dokumentasi mengembalikan biaya satuan masuk saat stok 0); tidak ada perubahan kode keuangan.
+
 ### Tampilan (UI/UX) — Fase 5: laporan, dasbor, PDF
 **Diubah**:
 - **Kit laporan** (`components/report-kit/`): kerangka seragam (filter periode dengan preset + rentang kustom di URL, kartu ringkasan, tabel laporan keuangan dengan subtotal, angka negatif dalam kurung, status loading/kosong/error, menu ekspor). Dipakai 17 laporan: Neraca Saldo, Laba Rugi, Neraca, Arus Kas, Buku Besar, Pajak, Aging, Jadwal Hutang/Piutang, Harian, OEE, HPP, Biaya Produksi, Profitabilitas per SKU, PO Outstanding, Kinerja Pemasok. Grafik punya alternatif teks (tabel data). Angka tidak berubah (dibandingkan dengan API).

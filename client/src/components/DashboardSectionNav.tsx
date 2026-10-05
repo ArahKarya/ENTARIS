@@ -1,19 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { LayoutDashboard, DollarSign, TrendingUp, Package, Factory } from 'lucide-react';
 
 export interface SectionDef {
   id: string;
   label: string;
   icon: React.ElementType;
 }
-
-export const DEFAULT_SECTIONS: SectionDef[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'keuangan', label: 'Keuangan', icon: DollarSign },
-  { id: 'sales', label: 'Sales', icon: TrendingUp },
-  { id: 'stok', label: 'Stok', icon: Package },
-  { id: 'produksi', label: 'Produksi', icon: Factory },
-];
 
 interface DashboardSectionNavProps {
   sections: SectionDef[];

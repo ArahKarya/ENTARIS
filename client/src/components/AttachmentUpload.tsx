@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Loader2, AlertCircle, X } from 'lucide-react';
 import api from '../lib/api';
+import { cn } from '@/lib/utils';
 
 interface AttachmentUploadProps {
   referenceType: 'payment' | 'journal' | 'purchase_invoice' | 'sales_invoice' | 'sales_order' | 'delivery_order' | 'goods_receipt';
@@ -84,50 +85,58 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
 
   return (
     <div className="space-y-2">
-      <div
+      <button
+        type="button"
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`
-          border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
-          ${dragOver
-            ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-          }
-        `}
+        disabled={mutation.isPending}
+        className={cn(
+          'block min-h-11 w-full cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait',
+          dragOver
+            ? 'border-primary bg-primary-subtle'
+            : 'border-border hover:border-primary hover:bg-accent',
+        )}
       >
         {mutation.isPending ? (
-          <div className="flex items-center justify-center gap-2 py-1">
-            <Loader2 size={16} className="animate-spin text-blue-500" />
-            <span className="text-xs text-blue-600">Mengupload...</span>
-          </div>
+          <span role="status" className="flex items-center justify-center gap-2 py-1">
+            <Loader2 size={16} className="animate-spin text-primary" aria-hidden />
+            <span className="text-xs text-primary">Mengupload...</span>
+          </span>
         ) : (
-          <div className="flex items-center justify-center gap-2 py-1">
-            <Upload size={16} style={{ color: 'var(--color-text-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <span className="flex items-center justify-center gap-2 py-1">
+            <Upload size={16} className="text-muted-foreground" aria-hidden />
+            <span className="text-xs text-muted-foreground">
               Seret file atau klik untuk upload bukti transfer
             </span>
-          </div>
+          </span>
         )}
-        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+        <span className="mt-1 block text-xs text-muted-foreground">
           JPG, PNG, PDF — maks 5MB, maks 5 file
-        </p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPT}
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
+        </span>
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPT}
+        multiple
+        className="hidden"
+        aria-label="Pilih file lampiran"
+        onChange={handleFileChange}
+      />
       {error && (
-        <div className="flex items-center gap-1.5 text-xs text-red-600">
-          <AlertCircle size={12} />
+        <div role="alert" className="flex items-center gap-1.5 text-xs text-danger-text">
+          <AlertCircle size={12} aria-hidden />
           <span>{error}</span>
-          <button onClick={() => setError('')} className="ml-auto">
-            <X size={12} />
+          <button
+            type="button"
+            onClick={() => setError('')}
+            className="ml-auto inline-flex size-6 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Tutup pesan"
+          >
+            <X size={12} aria-hidden />
           </button>
         </div>
       )}

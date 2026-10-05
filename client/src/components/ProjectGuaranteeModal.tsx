@@ -3,11 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { ShieldCheck } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
-import RupiahInput from './RupiahInput';
-import SearchableSelect from './SearchableSelect';
+import { RupiahField } from './purchase-cash/RupiahField';
+import { ComboboxField } from './overlays/ComboboxField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { DateInput, Field } from '@/components/shared';
@@ -135,16 +134,14 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
               </Field>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label required>Pemberi Proyek</Label>
-              <SearchableSelect
-                options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
-                value={partyId}
-                onChange={setPartyId}
-                placeholder="— Pilih Pihak —"
-                aria-label="Pemberi proyek"
-              />
-            </div>
+            <ComboboxField
+              label="Pemberi Proyek"
+              required
+              options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+              value={partyId}
+              onChange={setPartyId}
+              placeholder="— Pilih Pihak —"
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nama Proyek" required>
@@ -160,7 +157,7 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Jumlah (Rp)" required>
                 {(control) => (
-                  <RupiahInput
+                  <RupiahField
                     id={control.id}
                     value={typeof amount === 'number' ? amount : 0}
                     onChange={(v) => setAmount(v === 0 ? '' : v)}

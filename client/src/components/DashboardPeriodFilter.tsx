@@ -5,14 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Field } from '@/components/shared/field';
 import { DateInput } from '@/components/shared/date-input';
 
-export type PeriodPreset =
-  | 'thisMonth'
-  | 'lastMonth'
-  | 'thisQuarter'
-  | 'ytd'
-  | 'last12Months'
-  | 'all'
-  | 'custom';
+import { computePresetRange, type PeriodPreset } from './dashboardPeriod';
+export type { PeriodPreset };
 
 export interface PeriodRange {
   preset: PeriodPreset;
@@ -29,42 +23,6 @@ const PRESET_LABELS: Record<PeriodPreset, string> = {
   all: 'Seluruh Periode',
   custom: 'Kustom',
 };
-
-function toISO(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-export function computePresetRange(preset: PeriodPreset): { startDate: string; endDate: string } {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  switch (preset) {
-    case 'thisMonth': {
-      return { startDate: toISO(new Date(y, m, 1)), endDate: toISO(new Date(y, m + 1, 0)) };
-    }
-    case 'lastMonth': {
-      return { startDate: toISO(new Date(y, m - 1, 1)), endDate: toISO(new Date(y, m, 0)) };
-    }
-    case 'thisQuarter': {
-      const qStart = Math.floor(m / 3) * 3;
-      return { startDate: toISO(new Date(y, qStart, 1)), endDate: toISO(new Date(y, qStart + 3, 0)) };
-    }
-    case 'ytd': {
-      return { startDate: toISO(new Date(y, 0, 1)), endDate: toISO(now) };
-    }
-    case 'last12Months': {
-      return { startDate: toISO(new Date(y, m - 11, 1)), endDate: toISO(new Date(y, m + 1, 0)) };
-    }
-    case 'all': {
-      return { startDate: '2020-01-01', endDate: toISO(new Date(y + 1, 11, 31)) };
-    }
-    default:
-      return { startDate: toISO(new Date(y, m, 1)), endDate: toISO(now) };
-  }
-}
 
 interface Props {
   value: PeriodRange;

@@ -55,29 +55,29 @@ const AccountTreeRow: React.FC<{
     <>
       <div
         className={cn(
-          'flex items-center py-2.5 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer',
-          highlightGroups && account.isGroup ? 'bg-gray-50/60' : ''
+          'flex items-center py-2.5 border-b border-border hover:bg-accent transition-colors cursor-pointer',
+          highlightGroups && account.isGroup ? 'bg-muted/60' : ''
         )}
         style={{ paddingLeft: `${depth * indentPx + 16}px` }}
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center flex-1 min-w-0 gap-2">
           {hasChildren ? (
-            <span className="text-gray-400">
+            <span className="text-muted-foreground">
               {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </span>
           ) : (
             <span className="w-3.5 inline-block" />
           )}
           {showAccountNumber && (
-            <span className="text-xs font-mono text-gray-400 w-16 shrink-0">
+            <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">
               {account.accountNumber}
             </span>
           )}
           <span
             className={cn(
               'text-sm truncate',
-              account.isGroup ? 'font-semibold text-gray-800' : 'text-gray-600'
+              account.isGroup ? 'font-semibold text-foreground' : 'text-foreground-secondary'
             )}
           >
             {account.name}
@@ -87,8 +87,8 @@ const AccountTreeRow: React.FC<{
           className={cn(
             'text-sm tabular-nums font-medium text-right px-4 shrink-0 whitespace-nowrap',
             valueColWidth,
-            account.balance < 0 ? 'text-red-600' : 'text-gray-900',
-            isClickable ? 'cursor-pointer hover:underline text-blue-600 dark:text-blue-400' : ''
+            account.balance < 0 ? 'text-danger-text' : 'text-foreground',
+            isClickable ? 'cursor-pointer hover:underline text-primary ' : ''
           )}
           onClick={handleBalanceClick}
         >

@@ -56,7 +56,6 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       setBiayaLain(prefill.biayaLain ?? 0);
       if (prefill.items && prefill.items.length > 0) setItems(prefill.items);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, prefill]);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);

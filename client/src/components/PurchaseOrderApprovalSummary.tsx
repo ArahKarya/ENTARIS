@@ -32,18 +32,18 @@ export default function PurchaseOrderApprovalSummary({ poId }: { poId: string })
   return (
     <div className="space-y-3 text-xs">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <div><span className="text-gray-500">Nomor:</span> <span className="font-mono text-gray-800">{po.poNumber}</span></div>
-        <div><span className="text-gray-500">Tanggal:</span> <span className="text-gray-800">{po.date.slice(0, 10)}</span></div>
-        <div><span className="text-gray-500">Supplier:</span> <span className="text-gray-800">{po.supplier?.name ?? 'PO Umum'}</span></div>
-        <div><span className="text-gray-500">Gudang:</span> <span className="text-gray-800">{po.warehouse ? `${po.warehouse.code} — ${po.warehouse.name}` : '—'}</span></div>
-        <div><span className="text-gray-500">Termin:</span> <span className="text-gray-800">{paymentTermLabel(po.paymentTermDays)}</span></div>
-        <div><span className="text-gray-500">No. Penawaran:</span> <span className="text-gray-800">{po.supplierQuoteRef || '—'}</span></div>
-        {po.terms && <div className="col-span-2"><span className="text-gray-500">Syarat:</span> <span className="text-gray-800">{po.terms}</span></div>}
-        {po.notes && <div className="col-span-2"><span className="text-gray-500">Catatan:</span> <span className="text-gray-800">{po.notes}</span></div>}
+        <div><span className="text-muted-foreground">Nomor:</span> <span className="font-mono text-foreground">{po.poNumber}</span></div>
+        <div><span className="text-muted-foreground">Tanggal:</span> <span className="text-foreground">{po.date.slice(0, 10)}</span></div>
+        <div><span className="text-muted-foreground">Supplier:</span> <span className="text-foreground">{po.supplier?.name ?? 'PO Umum'}</span></div>
+        <div><span className="text-muted-foreground">Gudang:</span> <span className="text-foreground">{po.warehouse ? `${po.warehouse.code} — ${po.warehouse.name}` : '—'}</span></div>
+        <div><span className="text-muted-foreground">Termin:</span> <span className="text-foreground">{paymentTermLabel(po.paymentTermDays)}</span></div>
+        <div><span className="text-muted-foreground">No. Penawaran:</span> <span className="text-foreground">{po.supplierQuoteRef || '—'}</span></div>
+        {po.terms && <div className="col-span-2"><span className="text-muted-foreground">Syarat:</span> <span className="text-foreground">{po.terms}</span></div>}
+        {po.notes && <div className="col-span-2"><span className="text-muted-foreground">Catatan:</span> <span className="text-foreground">{po.notes}</span></div>}
       </div>
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[32rem]">
-          <thead className="bg-gray-50 text-gray-500">
+          <thead className="bg-muted text-muted-foreground">
             <tr>
               <th className="px-2 py-1.5 text-left">Item</th>
               <th className="px-2 py-1.5 text-right">Qty</th>
@@ -55,7 +55,7 @@ export default function PurchaseOrderApprovalSummary({ poId }: { poId: string })
           </thead>
           <tbody>
             {po.items.map((it) => (
-              <tr key={it.id} className="border-t border-gray-100">
+              <tr key={it.id} className="border-t border-border">
                 <td className="px-2 py-1.5">{it.itemName}</td>
                 <td className="px-2 py-1.5 text-right font-mono">{Number(it.quantity).toLocaleString('id-ID')} {it.unit}</td>
                 <td className="px-2 py-1.5 text-right font-mono">{formatRupiah(Number(it.estimatedRate))}</td>
@@ -69,11 +69,11 @@ export default function PurchaseOrderApprovalSummary({ poId }: { poId: string })
       </div>
       {t && (
         <dl className="ml-auto w-full sm:w-72 space-y-1">
-          <div className="flex justify-between"><dt className="text-gray-500">Subtotal</dt><dd className="font-mono">{formatRupiah(t.subtotal)}</dd></div>
-          {t.discountTotal > 0 && <div className="flex justify-between"><dt className="text-gray-500">Diskon</dt><dd className="font-mono">− {formatRupiah(t.discountTotal)}</dd></div>}
-          {t.taxTotal > 0 && <div className="flex justify-between"><dt className="text-gray-500">PPN</dt><dd className="font-mono">{formatRupiah(t.taxTotal)}</dd></div>}
-          {t.otherCosts > 0 && <div className="flex justify-between"><dt className="text-gray-500">{po.otherCostsLabel || 'Biaya lain'}</dt><dd className="font-mono">{formatRupiah(t.otherCosts)}</dd></div>}
-          <div className="flex justify-between border-t border-gray-200 pt-1 font-semibold"><dt>Grand Total</dt><dd className="font-mono">{formatRupiah(t.grandTotal)}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd className="font-mono">{formatRupiah(t.subtotal)}</dd></div>
+          {t.discountTotal > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">Diskon</dt><dd className="font-mono">− {formatRupiah(t.discountTotal)}</dd></div>}
+          {t.taxTotal > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">PPN</dt><dd className="font-mono">{formatRupiah(t.taxTotal)}</dd></div>}
+          {t.otherCosts > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">{po.otherCostsLabel || 'Biaya lain'}</dt><dd className="font-mono">{formatRupiah(t.otherCosts)}</dd></div>}
+          <div className="flex justify-between border-t border-border pt-1 font-semibold"><dt>Grand Total</dt><dd className="font-mono">{formatRupiah(t.grandTotal)}</dd></div>
         </dl>
       )}
     </div>

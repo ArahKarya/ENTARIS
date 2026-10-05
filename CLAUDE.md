@@ -145,7 +145,18 @@ npm run seed             # Seed database
 # Client (from client/)
 npm run dev              # Vite dev server :5173
 npm run build            # Production build
-npm run lint             # ESLint
+npm run lint             # ESLint gate: fails on any error NOT baselined in eslint-suppressions.json
+npm run lint:prune       # Drop stale baseline entries after fixing violations (commit the JSON)
+npx tsc -b               # Type-check
+npm test                 # Vitest
+
+# CI: .github/workflows/ci.yml (PR + push to main)
+#   client: npm ci, lint, tsc -b, test, build
+#   server: npm ci, prisma generate, tsc --noEmit, vitest (unit only; integration needs Postgres)
+# Lint baseline workflow: existing violations (mostly legacy `any`) live in
+# client/eslint-suppressions.json. NEW violations fail `npm run lint`. After fixing old ones run
+# `npm run lint:prune` and commit. Never re-run `--suppress-all` to silence new code.
+# Server has no ESLint config yet (type safety via tsc only).
 
 # Docker (from root)
 docker compose up -d --build    # Full stack
