@@ -7,7 +7,7 @@ import { CreateRecurringSchema, UpdateRecurringSchema } from '../utils/schemas';
 import { updateBalancesForItems } from '../utils/accountBalance';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
-import { handleRouteError, BusinessError } from '../utils/errors';
+import { handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
 
 const router = Router();

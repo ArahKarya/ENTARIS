@@ -51,6 +51,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - run: npm ci
       - run: npx prisma generate
+      - run: npm run lint
       - run: npx tsc --noEmit
       # Unit tests only; integration tests (npm run test:integration) need Postgres and are not part of CI yet.
       - run: npm test

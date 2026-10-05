@@ -384,6 +384,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
             {/* "Dari STT/BPB": load items from submitted, not-yet-invoiced STTs; user fills prices. */}
             {partyId && (
               <div className="rounded-lg border border-info/30 bg-info-subtle p-3">
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
                 <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm font-medium text-info-text sm:min-h-0">
                   <Checkbox
                     className="mt-0.5"

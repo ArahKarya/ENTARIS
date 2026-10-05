@@ -20,7 +20,6 @@ router.use((_req, res, next) => {
   next();
 });
 
-const TIERS: ToolTier[] = ['auto', 'draft', 'must_approve'];
 
 // ─── TOOLS ───────────────────────────────────────────────────────────────────
 

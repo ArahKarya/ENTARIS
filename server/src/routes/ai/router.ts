@@ -130,7 +130,7 @@ router.post('/', async (req: AuthRequest, res) => {
       // TAK pernah diteruskan → endpoint balas data default (bug pengiriman).
       const readArgs: Record<string, unknown> = (body.args && typeof body.args === 'object') ? body.args : {};
       const usedAsPath = new Set<string>();
-      let path = rawPath.replace(/:([A-Za-z0-9_]+)/g, (_m, key: string) => {
+      const path = rawPath.replace(/:([A-Za-z0-9_]+)/g, (_m, key: string) => {
         if (readArgs[key] !== undefined && readArgs[key] !== null) {
           usedAsPath.add(key);
           return encodeURIComponent(String(readArgs[key]));

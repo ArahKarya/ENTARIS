@@ -60,6 +60,7 @@ export function PermissionMatrix({ groups, draft, onChange, disabled, caption }:
     <div
       role="region"
       aria-label={`Matriks hak akses ${caption}`}
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
       tabIndex={0}
       className="relative max-h-[65vh] overflow-auto rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >

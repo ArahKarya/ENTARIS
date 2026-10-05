@@ -9,7 +9,7 @@ import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { validateBody } from '../utils/validate';
 import { CreateJournalSchema } from '../utils/schemas';
-import { BusinessError, handleRouteError } from '../utils/errors';
+import { handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {

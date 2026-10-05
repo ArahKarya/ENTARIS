@@ -5,7 +5,6 @@ import { prisma } from '../../lib/prisma';
 import { requirePerm } from '../../middleware/auth';
 import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
-import { generateDocumentNumber } from '../../utils/documentNumber';
 import { recalcPartyOutstanding } from '../../utils/accountBalance';
 import { adjustWarehouseStock, resolveWarehouseId } from '../../utils/warehouseStock';
 
@@ -51,7 +50,6 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       const { getOpenFiscalYear } = await import('../../utils/fiscalYear');
 
       // --- Initial Capital Injection: Kas + Bank ---
-      const today = new Date();
       // Use fiscal year start date or Jan 1 of current year (whichever is within an open FY)
       const initDate = new Date(fiscalYear.startDate);
       const initFy = fiscalYear;

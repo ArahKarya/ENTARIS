@@ -42,7 +42,7 @@ export function useRunFormLookups(isOpen: boolean, warehouseId: string) {
     enabled: isOpen,
     staleTime: 60_000,
   });
-  const machines: MachineOption[] = machinesData?.data ?? [];
+  const machines: MachineOption[] = useMemo(() => machinesData?.data ?? [], [machinesData]);
   const machineById = useMemo(
     () => new Map(machines.map(m => [m.id, m])),
     [machines],

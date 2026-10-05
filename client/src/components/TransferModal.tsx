@@ -34,7 +34,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setDate(today);
+      setDate(new Date().toISOString().split('T')[0]);
       setSourceAccountId('');
       setDestAccountId('');
       setAmount('');

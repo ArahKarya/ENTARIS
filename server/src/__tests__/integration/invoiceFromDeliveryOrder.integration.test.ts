@@ -29,7 +29,6 @@ let warehouseId: string;
 beforeAll(async () => {
   if (!hasDb) return;
   pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adapter = new PrismaPg(pool as any);
   prisma = new PrismaClient({ adapter });
   const user = await prisma.user.findFirst({ where: { role: 'Admin', isActive: true } });

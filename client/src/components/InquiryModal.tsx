@@ -111,6 +111,8 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
       setFollowUpDate('');
     }
     setError('');
+    // Reset only on open or when a different record is edited; other editTarget fields are a snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editTarget?.id]);
 
   const partyOptions = useMemo<ComboboxOption[]>(

@@ -194,6 +194,7 @@ export const FiscalYearsTab: React.FC = () => {
             onSubmit={(e) => { e.preventDefault(); handleCreate(); }}
           >
             <Field label="Nama tahun" required error={errors.name} hint="Contoh: 2027">
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens */}
               <Input value={form.name} onChange={setField('name')} placeholder="2027" autoFocus />
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

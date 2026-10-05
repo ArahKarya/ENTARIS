@@ -21,7 +21,6 @@ import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
-import { logger } from '../../lib/logger';
 import { parseListPaging, parseSort } from '../../utils/listQuery';
 import {
   buildGaDocumentWhere,

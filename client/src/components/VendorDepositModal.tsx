@@ -36,7 +36,7 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
 
   useEffect(() => {
     if (isOpen) {
-      setDate(today);
+      setDate(new Date().toISOString().split('T')[0]);
       setPartyId('');
       setAmount('');
       setAccountId('');
@@ -150,6 +150,7 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
         </Callout>
       )}
 
+      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
       <label className="flex min-h-11 cursor-pointer items-start gap-3 sm:min-h-0">
         <Checkbox
           className="mt-0.5"

@@ -72,9 +72,9 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
 
   useEffect(() => {
     if (isOpen) {
-      setDate(today);
+      setDate(new Date().toISOString().split('T')[0]);
       setCashAccountId('');
-      setBatchNote(makeBatchNote(today));
+      setBatchNote(makeBatchNote(new Date().toISOString().split('T')[0]));
       setRows([makeEmptyRow()]);
       setIsSubmitting(false);
       setHasSubmitted(false);

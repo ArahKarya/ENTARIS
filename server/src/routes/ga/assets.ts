@@ -25,7 +25,6 @@ import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
 import { parseSort } from '../../utils/listQuery';
-import { logger } from '../../lib/logger';
 
 const router = Router();
 

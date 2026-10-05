@@ -172,6 +172,7 @@ export const BackupTab: React.FC = () => {
         ) : !backups || backups.length === 0 ? (
           <EmptyState compact icon={HardDrive} title="Belum ada file cadangan" className="pb-5" />
         ) : (
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
           <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel file cadangan" tabIndex={0}>
             <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground">

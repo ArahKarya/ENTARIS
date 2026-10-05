@@ -506,6 +506,7 @@ export function AiraChat() {
                   {editingId === s.session_id ? (
                     <div className="flex items-center gap-1 p-1.5">
                       <Input
+                        // eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens
                         autoFocus
                         aria-label="Nama sesi"
                         value={editTitle}
@@ -606,6 +607,7 @@ export function AiraChat() {
           aria-relevant="additions"
           aria-busy={busy || loadingSession}
           aria-label="Percakapan dengan AIRA"
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- chat log is a scrollable region and must be keyboard focusable
           tabIndex={0}
           className="flex-1 space-y-4 overflow-y-auto rounded-md px-1 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >

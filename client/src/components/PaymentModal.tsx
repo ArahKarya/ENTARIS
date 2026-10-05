@@ -47,7 +47,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
   useEffect(() => {
     if (isOpen) {
       setPaymentType(defaultType);
-      setDate(today);
+      setDate(new Date().toISOString().split('T')[0]);
       setPartyId('');
       setAmount('');
       setAccountId('');
@@ -461,6 +461,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       </Field>
 
       {!isRefund && (
+        // eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role)
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-foreground sm:min-h-0">
           <Checkbox checked={splitMode} onCheckedChange={(v) => setSplitMode(v === true)} />
           Split ke beberapa akun (mis. dipotong komisi)

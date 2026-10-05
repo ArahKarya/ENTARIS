@@ -47,7 +47,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
   // Reset form on open
   useEffect(() => {
     if (isOpen) {
-      setDate(today);
+      setDate(new Date().toISOString().split('T')[0]);
       setDebitAccountId('');
       setCreditAccountId('');
       setPartyId('');

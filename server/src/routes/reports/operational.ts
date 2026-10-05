@@ -4,7 +4,6 @@
 // is mounted standalone in reports.ts.
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { Prisma } from '@prisma/client';
 import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
 import { buildStockSnapshot } from '../../services/stockSnapshot';

@@ -35,8 +35,9 @@ export const CompanySettingsProvider: React.FC<{ children: React.ReactNode }> = 
   // ── Favicon ──────────────────────────────────────────────────────────────
   // The tab title is owned by MainLayout (route registry + companyName), so it
   // is not set here: setting it twice made the label flicker or get overwritten.
+  const hasCompanyData = Boolean(data);
   useEffect(() => {
-    if (!data) return;
+    if (!hasCompanyData) return;
 
     // Favicon always uses the static app icon (not company logo)
     const link: HTMLLinkElement =
@@ -50,7 +51,7 @@ export const CompanySettingsProvider: React.FC<{ children: React.ReactNode }> = 
 
     link.href = DEFAULT_FAVICON;
     link.type = 'image/png';
-  }, [data?.companyName]);
+  }, [hasCompanyData]);
 
   return (
     <CompanySettingsContext.Provider value={data ?? null}>

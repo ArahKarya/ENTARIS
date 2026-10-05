@@ -100,7 +100,6 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
   const [driverName, setDriverName] = useState('');
   // Read-only — derived dari user login. setRecipientName tidak dipakai
   // tapi tetap di-keep untuk konsistensi useState pattern.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [recipientName, _setRecipientName] = useState(() => getCurrentUserName());
   const [notes, setNotes] = useState('');
   const [isCustomerOwned, setIsCustomerOwned] = useState(false);
@@ -265,6 +264,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         </Field>
       </div>
 
+      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
       <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-info/30 bg-info-subtle px-3 py-2.5 sm:min-h-0">
         <Checkbox
           className="mt-0.5"

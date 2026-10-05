@@ -147,6 +147,7 @@ export const TaxConfigTab: React.FC = () => {
         ) : !configs || configs.length === 0 ? (
           <EmptyState compact icon={Receipt} title="Belum ada konfigurasi pajak" className="pb-5" />
         ) : (
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
           <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel konfigurasi pajak" tabIndex={0}>
             <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -218,6 +219,7 @@ export const TaxConfigTab: React.FC = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder='Contoh: "PPN 11%", "PPh 23"'
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens
                 autoFocus
               />
             </Field>

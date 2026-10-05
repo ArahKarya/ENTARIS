@@ -79,7 +79,6 @@ router.post(
       }
 
       // Auto-detect isGroup: any account that is a parent of another should be a group
-      const allNumbers = new Set(validRows.map((r) => r.accountNumber));
       for (const row of validRows) {
         const parts = row.accountNumber.split('.');
         // Mark all ancestor numbers as groups

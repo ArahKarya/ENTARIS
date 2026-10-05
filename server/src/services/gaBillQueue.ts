@@ -2,8 +2,8 @@
 //
 // One loader merges the three EAM sources into a common bill shape; the
 // posting / cancel dispatchers wrap the proven gaFinance service functions so
-// the new /api/payment-requests/eam routes and the deprecated /api/ga/finance
-// alias share a single source of posting truth (no duplicated GL logic).
+// the /api/payment-requests/eam routes keep a single source of posting truth
+// (no duplicated GL logic).
 //
 // Sources: VEHICLE_TAX (approved tax, IN_PROCESS), SERVICE_LOG (source='EAM'
 // only — source='IMPORT' is already in the GL and would double post),
