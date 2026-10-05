@@ -126,7 +126,7 @@ Pipeline penuh dari pertanyaan calon customer hingga pelunasan invoice — semua
 - **Rekonsiliasi Bank** — upload mutasi bank (CSV/Excel) lalu cocokkan dengan transaksi di buku; tandai *matched* / *outstanding* / *bank-only*; hitung *reconciled balance* otomatis.
 - **Transfer antar Kas/Bank** dengan posting double-entry otomatis.
 - **Transaksi Bank/Kas** menggabungkan pembayaran dan jurnal manual (biaya adm bank, bunga, pindah-buku); setiap baris dapat dibuka ke **detail jurnal**.
-- **Tagihan GA** — antrian tagihan dari modul EAM (pajak/STNK/KIR, riwayat servis, permintaan barang) yang diposting akuntan sebagai **jurnal langsung** (DR beban / CR kas) atau **faktur pembelian** (hutang). Satu tagihan satu jurnal, pembatalan dapat dibalik. Akun default pajak kendaraan: **6.41 Beban Pajak & Perizinan Kendaraan**.
+- **Tagihan EAM** (tab di **Pengajuan Pembayaran**, dulu *Tagihan Aset & Umum*) — antrian tagihan dari modul EAM (pajak/STNK/KIR, riwayat servis, permintaan barang) yang diposting Keuangan sebagai **jurnal langsung** (DR beban / CR kas) atau **faktur pembelian** (hutang). Satu tagihan satu jurnal, pembatalan dapat dibalik. Akun default pajak kendaraan: **6.41 Beban Pajak & Perizinan Kendaraan**.
 
 ### 5. Stok & Produksi
 
@@ -512,7 +512,7 @@ npm run lint             # ESLint
 - [x] RBAC dinamis (role custom + matriks izin per modul)
 - [x] Surat Jalan Sementara, tautan ke DO resmi, invoice Rp 0 otomatis Paid
 - [x] Reversal otomatis penyelesaian HPP saat dokumen pemicu dibatalkan/diedit
-- [x] EAM terintegrasi di aplikasi utama (kendaraan, WO, MR, inventaris GA) + Tagihan GA ke keuangan
+- [x] EAM terintegrasi di aplikasi utama (kendaraan, WO, MR, inventaris GA) + Tagihan EAM ke keuangan (Pengajuan Pembayaran)
 - [x] Audit trail, backup/restore via UI, PWA, dark mode
 - [x] Self-hosted Docker Compose, auto-migrate & auto-seed
 - [ ] Multi-currency penuh (FX gain/loss tersedia, UI multi-currency menyusul)
