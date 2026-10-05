@@ -1,12 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import { X, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
-import { formatRupiah } from '../lib/formatters';
-import SearchableSelect from './SearchableSelect';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import api from '@/lib/api';
+import { Plus, Trash2 } from 'lucide-react';
+import { formatRupiah } from '@/lib/format';
+import { PickerSelect } from '@/components/sales-a/PickerSelect';
+import { OptionSelect } from '@/components/sales-a/OptionSelect';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { DateInput, Field } from '@/components/shared';
+import {
+  FooterButton,
+  FormDialogBody,
+  FormDialogFooter,
+  FormDialogHeader,
+  FormError,
+  TableRegion,
+} from '@/components/sales-a/overlay-parts';
+import { formDialogClass, formShellClass, numberInputClass } from '@/components/sales-a/overlay-classes';
 import { toast } from 'sonner';
-import Select from './Select';
 
 interface SOItem {
   id: string;
@@ -53,7 +66,6 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
   const [items, setItems] = useState<SOItem[]>([defaultItem()]);
   const [error, setError] = useState('');
 
-  useBodyScrollLock(isOpen);
   const queryClient = useQueryClient();
 
   const { data: parties } = useQuery({
@@ -202,179 +214,179 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     mutation.mutate();
   };
 
-  if (!isOpen) return null;
+  const num = (setter: (n: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => setter(Number(e.target.value));
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-5xl my-8 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-3 border-b border-border">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">{isEdit ? 'Edit Sales Order' : 'Buat Sales Order'}</h2>
-            <p className="text-xs text-muted-foreground">Komitmen jual ke pelanggan (Draft → Submitted)</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent" aria-label="Tutup">
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent className={`${formDialogClass} sm:max-w-5xl`}>
+        <form
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+          className={formShellClass}
+        >
+          <FormDialogHeader>
+            <DialogTitle>{isEdit ? 'Edit Sales Order' : 'Buat Sales Order'}</DialogTitle>
+            <DialogDescription>Komitmen jual ke pelanggan (Draft → Submitted)</DialogDescription>
+          </FormDialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Tanggal</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input w-full mt-1" />
+          <FormDialogBody>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <Field label="Tanggal">
+                {(c) => <DateInput id={c.id} value={date} onChange={setDate} />}
+              </Field>
+              <Field label="Target Pengiriman">
+                {(c) => <DateInput id={c.id} value={expectedDelivery} onChange={setExpectedDelivery} />}
+              </Field>
+              <Field label="Pelanggan" required className="md:col-span-2">
+                {() => (
+                  <PickerSelect
+                    aria-label="Pelanggan"
+                    value={partyId}
+                    onChange={setPartyId}
+                    options={partyOptions}
+                    placeholder="Pilih pelanggan..."
+                  />
+                )}
+              </Field>
+              <Field label="No. Referensi PO Pelanggan" className="md:col-span-2">
+                <Input value={customerRefNo} onChange={(e) => setCustomerRefNo(e.target.value)} placeholder="Opsional" autoComplete="off" />
+              </Field>
+              <Field label="Catatan" className="md:col-span-2">
+                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" autoComplete="off" />
+              </Field>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Target Pengiriman</label>
-              <input type="date" value={expectedDelivery} onChange={(e) => setExpectedDelivery(e.target.value)} className="input w-full mt-1" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground">Pelanggan *</label>
-              <SearchableSelect
-                value={partyId}
-                onChange={setPartyId}
-                options={partyOptions}
-                placeholder="Pilih pelanggan..."
-                className="mt-1"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground">No. Referensi PO Pelanggan</label>
-              <input type="text" value={customerRefNo} onChange={(e) => setCustomerRefNo(e.target.value)} className="input w-full mt-1" placeholder="Opsional" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground">Catatan</label>
-              <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="input w-full mt-1" placeholder="Opsional" />
-            </div>
-          </div>
 
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-3 py-2 font-medium text-xs">Item</th>
-                    <th className="text-right px-3 py-2 font-medium text-xs w-24">Qty</th>
-                    <th className="text-left px-3 py-2 font-medium text-xs w-20">Unit</th>
-                    <th className="text-right px-3 py-2 font-medium text-xs w-32">Harga/Unit</th>
-                    <th className="text-right px-3 py-2 font-medium text-xs w-20">Disc %</th>
-                    <th className="text-right px-3 py-2 font-medium text-xs w-32">Subtotal</th>
-                    <th className="w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it) => (
-                    <tr key={it.id} className="border-t border-border">
-                      <td className="px-3 py-2">
-                        <SearchableSelect
-                          value={it.inventoryItemId}
-                          onChange={(v) => onPickInventory(it.id, v)}
-                          options={itemOptions}
-                          placeholder="Pilih item..."
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={it.quantity}
-                          onChange={(e) => updateItem(it.id, { quantity: Number(e.target.value) })}
-                          className="input w-full text-right"
-                          min={0}
-                          step="0.001"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <Select value={it.unit} onChange={(e) => updateItem(it.id, { unit: e.target.value })} className="w-full">
-                          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                        </Select>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={it.rate}
-                          onChange={(e) => updateItem(it.id, { rate: Number(e.target.value) })}
-                          className="input w-full text-right"
-                          min={0}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={it.discount}
-                          onChange={(e) => updateItem(it.id, { discount: Number(e.target.value) })}
-                          className="input w-full text-right"
-                          min={0}
-                          max={100}
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono tabular-nums">
-                        {formatRupiah(computeAmount(it.quantity, it.rate, it.discount))}
-                      </td>
-                      <td className="px-1 text-center">
-                        {items.length > 1 && (
-                          <button onClick={() => setItems((arr) => arr.filter((x) => x.id !== it.id))} className="p-1 text-red-500 hover:bg-red-50 rounded" title="Hapus baris">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </td>
+            <div className="overflow-hidden rounded-lg border border-border">
+              <TableRegion label="Daftar item sales order" className="rounded-none border-0">
+                <table className="min-w-[760px] w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 text-left text-xs font-medium">Item</th>
+                      <th scope="col" className="w-24 px-3 py-2 text-right text-xs font-medium">Qty</th>
+                      <th scope="col" className="w-24 px-3 py-2 text-left text-xs font-medium">Unit</th>
+                      <th scope="col" className="w-32 px-3 py-2 text-right text-xs font-medium">Harga/Unit</th>
+                      <th scope="col" className="w-20 px-3 py-2 text-right text-xs font-medium">Disc %</th>
+                      <th scope="col" className="w-32 px-3 py-2 text-right text-xs font-medium">Subtotal</th>
+                      <th scope="col" className="w-12 px-1 py-2"><span className="sr-only">Aksi</span></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((it, idx) => (
+                      <tr key={it.id} className="border-t border-border">
+                        <td className="px-3 py-2">
+                          <PickerSelect
+                            aria-label={`Item baris ${idx + 1}`}
+                            value={it.inventoryItemId}
+                            onChange={(v) => onPickInventory(it.id, v)}
+                            options={itemOptions}
+                            placeholder="Pilih item..."
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <NumberInput
+                            aria-label={`Qty baris ${idx + 1}`}
+                            value={it.quantity}
+                            onChange={(e) => updateItem(it.id, { quantity: Number(e.target.value) })}
+                            className={numberInputClass}
+                            min={0}
+                            step="0.001"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <OptionSelect
+                            aria-label={`Unit baris ${idx + 1}`}
+                            value={it.unit}
+                            onChange={(v) => updateItem(it.id, { unit: v })}
+                            options={UNITS.map((u) => ({ value: u, label: u }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <NumberInput
+                            aria-label={`Harga per unit baris ${idx + 1}`}
+                            value={it.rate}
+                            onChange={(e) => updateItem(it.id, { rate: Number(e.target.value) })}
+                            className={numberInputClass}
+                            min={0}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <NumberInput
+                            aria-label={`Diskon persen baris ${idx + 1}`}
+                            value={it.discount}
+                            onChange={(e) => updateItem(it.id, { discount: Number(e.target.value) })}
+                            className={numberInputClass}
+                            min={0}
+                            max={100}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {formatRupiah(computeAmount(it.quantity, it.rate, it.discount))}
+                        </td>
+                        <td className="px-1 text-center">
+                          {items.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-danger-text max-sm:size-11"
+                              aria-label={`Hapus baris ${idx + 1}`}
+                              onClick={() => setItems((arr) => arr.filter((x) => x.id !== it.id))}
+                            >
+                              <Trash2 aria-hidden />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableRegion>
+              <div className="border-t border-border bg-muted/30 px-3 py-2">
+                <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={() => setItems((arr) => [...arr, defaultItem()])}>
+                  <Plus aria-hidden /> Tambah baris
+                </Button>
+              </div>
             </div>
-            <div className="border-t border-border bg-muted/30 px-3 py-2">
-              <button onClick={() => setItems((arr) => [...arr, defaultItem()])} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                <Plus size={12} /> Tambah baris
-              </button>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground w-24">Potongan</label>
-                <input type="number" value={potongan} onChange={(e) => setPotongan(Number(e.target.value))} className="input flex-1 text-right" min={0} />
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
+                <Field label="Potongan">
+                  <NumberInput value={potongan} onChange={num(setPotongan)} className={numberInputClass} min={0} />
+                </Field>
+                <Field label="PPN %">
+                  <NumberInput value={taxPct} onChange={num(setTaxPct)} className={numberInputClass} min={0} max={100} />
+                </Field>
+                <Field label="Biaya Lain">
+                  <NumberInput value={biayaLain} onChange={num(setBiayaLain)} className={numberInputClass} />
+                </Field>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground w-24">PPN %</label>
-                <input type="number" value={taxPct} onChange={(e) => setTaxPct(Number(e.target.value))} className="input flex-1 text-right" min={0} max={100} />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground w-24">Biaya Lain</label>
-                <input type="number" value={biayaLain} onChange={(e) => setBiayaLain(Number(e.target.value))} className="input flex-1 text-right" />
-              </div>
-            </div>
-            <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-1.5">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-mono tabular-nums">{formatRupiah(totals.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">PPN ({taxPct}%)</span>
-                <span className="font-mono tabular-nums">{formatRupiah(totals.tax)}</span>
-              </div>
-              <div className="flex justify-between text-base font-semibold pt-1.5 border-t border-border">
-                <span>Grand Total</span>
-                <span className="font-mono tabular-nums text-blue-600">{formatRupiah(totals.grandTotal)}</span>
+              <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="tabular-nums">{formatRupiah(totals.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">PPN ({taxPct}%)</span>
+                  <span className="tabular-nums">{formatRupiah(totals.tax)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold">
+                  <span>Grand Total</span>
+                  <span className="tabular-nums text-primary">{formatRupiah(totals.grandTotal)}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-        </div>
+            <FormError>{error}</FormError>
+          </FormDialogBody>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-3 border-t border-border bg-muted/30">
-          <button onClick={onClose} disabled={mutation.isPending} className="btn-secondary">Batal</button>
-          <button onClick={handleSubmit} disabled={mutation.isPending} className="btn-primary">
-            {mutation.isPending && <Loader2 size={14} className="animate-spin" />}
-            {isEdit ? 'Simpan Perubahan' : 'Simpan sebagai Draft'}
-          </button>
-        </div>
-      </div>
-    </div>
+          <FormDialogFooter>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <FooterButton type="submit" loading={mutation.isPending}>
+              {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan sebagai Draft'}
+            </FooterButton>
+          </FormDialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

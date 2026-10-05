@@ -4,29 +4,28 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import {
-  X, Truck, User, Calendar, Package, Loader2, XCircle, FileDown, FileText, ExternalLink, AlertTriangle, Pencil,
+  Truck, User, Calendar, Package, Loader2, XCircle, FileDown, FileText, ExternalLink, AlertTriangle, Pencil,
 } from 'lucide-react';
-import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatDate } from '../lib/formatters';
-import { ConfirmDialog } from './ConfirmDialog';
+import api from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/format';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ConfirmDialog, StatusBadge } from '@/components/shared';
+import {
+  TableRegion,
+} from '@/components/sales-a/overlay-parts';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
 import DeliveryOrderPDF from '../lib/pdf/DeliveryOrderPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import DeliveryOrderModal from './DeliveryOrderModal';
-import { can, cap } from '../lib/permissions';
+import { can, cap } from '@/lib/permissions';
 
 interface Props {
   doId: string | null;
   onClose: () => void;
 }
-
-const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
-  Submitted: { label: 'Diserahkan', badge: 'badge badge-blue' },
-  Invoiced: { label: 'Sudah Diinvoice', badge: 'badge badge-green' },
-  Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
-};
 
 const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
   const company = useCompanyPDF();
@@ -67,7 +66,6 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
   const invoiceRef = doc?.salesInvoice ?? doc?.invoice ?? null;
   // "Invoiced" is derived — enum stays Submitted with invoiceId set.
   const status: string = rawStatus === 'Submitted' && invoiceRef ? 'Invoiced' : rawStatus;
-  const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.Submitted;
 
   const pdfDoc = doc ? (
     <DeliveryOrderPDF
@@ -121,243 +119,217 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
     onClose();
   };
 
+  const sectionTitle = 'mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+  const footBtn = 'max-sm:h-11';
+
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/30 transition-opacity" onClick={onClose} />
-
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] sm:max-w-2xl bg-white shadow-2xl flex flex-col animate-slide-in-right">
-        {/* ── HEADER ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Truck size={18} className="text-blue-600" />
+      <Sheet open onOpenChange={(open) => !open && onClose()}>
+        <SheetContent size="md" className="sm:max-w-2xl">
+          <SheetHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <SheetTitle className="flex items-center gap-2">
+                <Truck className="size-5 text-primary" aria-hidden />
+                {isLoading ? 'Memuat…' : doc?.doNumber ?? 'Surat Jalan'}
+              </SheetTitle>
+              {doc && <StatusBadge status={status} docType="delivery_order" />}
             </div>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">
-                {isLoading ? 'Memuat...' : doc?.doNumber}
-              </h2>
-              <p className="text-xs text-gray-400">Surat Jalan</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {doc && (
-              <span className={cn(sc.badge, 'inline-flex items-center gap-1')}>{sc.label}</span>
-            )}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" aria-label="Tutup">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
+            <SheetDescription>Surat Jalan</SheetDescription>
+          </SheetHeader>
 
-        {/* ── BODY ── */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-            </div>
-          ) : !doc ? (
-            <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-              Surat jalan tidak ditemukan.
-            </div>
-          ) : (
-            <>
-              {/* Info Grid */}
-              <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
-                {/* Customer */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <User size={10} /> Pelanggan
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900">{customer?.name ?? '—'}</p>
-                  {customer?.phone && <p className="text-xs text-gray-500 mt-0.5">{customer.phone}</p>}
-                  {customer?.address && <p className="text-xs text-gray-400 mt-0.5">{customer.address}</p>}
-                </div>
-
-                {/* Meta */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <Calendar size={10} /> Informasi Pengiriman
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-gray-400">Tanggal</p>
-                      <p className="text-xs font-medium text-gray-800">{formatDate(doc.date)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">No. Mobil</p>
-                      <p className="text-xs font-medium text-gray-800 font-mono uppercase">{doc.nomorMobil || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Supir</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.driverName || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Penerima</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.recipientName || '—'}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-400">Dibuat oleh</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.user?.fullName ?? doc.createdBy ?? '—'}</p>
-                    </div>
-                  </div>
-                </div>
+          <SheetBody className="px-0 py-0">
+            {isLoading ? (
+              <div role="status" className="flex h-64 items-center justify-center">
+                <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
+                <span className="sr-only">Memuat surat jalan…</span>
               </div>
-
-              {/* Invoice ref (if Invoiced) */}
-              {status === 'Invoiced' && invoiceRef && (
-                <div className="px-6 py-3 border-b border-gray-100 bg-green-50/40">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText size={14} className="text-green-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">Sudah ditagihkan via invoice</p>
-                        <p className="text-sm font-mono font-medium text-green-700">{invoiceRef.invoiceNumber}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleLihatInvoice}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
-                    >
-                      Lihat Invoice <ExternalLink size={11} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Items */}
-              <div className="px-6 py-4 border-b border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <Package size={10} /> Daftar Barang ({items.length} item)
-                </p>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        <th className="text-left px-3 py-2.5 w-8">#</th>
-                        <th className="text-left px-3 py-2.5 w-20">Kode</th>
-                        <th className="text-left px-3 py-2.5">Nama</th>
-                        <th className="text-left px-3 py-2.5">Gudang</th>
-                        <th className="text-right px-3 py-2.5 w-20">Qty</th>
-                        <th className="text-center px-3 py-2.5 w-16">Satuan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((it: any, idx: number) => (
-                        <tr key={it.id ?? idx} className={cn('border-b border-gray-50 last:border-0', idx % 2 === 1 && 'bg-gray-50/50')}>
-                          <td className="px-3 py-2.5 text-center text-xs text-gray-300">{idx + 1}</td>
-                          <td className="px-3 py-2.5 font-mono text-xs text-gray-500">{it.inventoryItem?.code ?? '—'}</td>
-                          <td className="px-3 py-2.5">
-                            <p className="text-sm font-medium text-gray-800">{it.itemName}</p>
-                            {it.description && <p className="text-xs text-gray-400">{it.description}</p>}
-                          </td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">{it.warehouse?.name ?? '—'}</td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-gray-800">
-                            {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                          </td>
-                          <td className="px-3 py-2.5 text-center text-xs text-gray-500">{it.unit}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            ) : !doc ? (
+              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+                Surat jalan tidak ditemukan.
               </div>
-
-              {/* Notes */}
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Catatan</p>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                  {doc.notes || <span className="text-gray-300 italic">Tidak ada catatan</span>}
-                </p>
-              </div>
-
-              {/* Attachments — bukti jembatan timbang / foto kendaraan / dll */}
-              <div className="px-6 py-4 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                  Lampiran (Bukti Timbang / Foto)
-                </p>
-                <AttachmentPreview referenceType="delivery_order" referenceId={doc.id} />
-                {status !== 'Cancelled' && (
-                  <div className="mt-2">
-                    <AttachmentUpload referenceType="delivery_order" referenceId={doc.id} />
-                  </div>
-                )}
-              </div>
-
-              {status === 'Cancelled' && (
-                <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 text-red-600 text-xs">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                  <span>Surat jalan ini sudah dibatalkan. Stok telah dikembalikan ke gudang. Dokumen disimpan untuk jejak audit.</span>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── FOOTER ACTIONS ── */}
-        {doc && (
-          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/40 flex items-center justify-end gap-2 flex-wrap">
-            {pdfDoc && (
-              <PDFDownloadLink document={pdfDoc} fileName={pdfFileName}>
-                {({ loading }) => (
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors disabled:opacity-50"
-                    disabled={loading}
-                  >
-                    {loading ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-                    {loading ? 'Membuat...' : 'Cetak PDF'}
-                  </button>
-                )}
-              </PDFDownloadLink>
-            )}
-
-            {status === 'Submitted' && (
+            ) : (
               <>
-                {canEdit && (
-                  <button
-                    onClick={() => setEditOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
-                    title="Edit surat jalan (nomor & tanggal dipertahankan)"
-                  >
-                    <Pencil size={14} /> Edit
-                  </button>
+                <div className="grid grid-cols-1 gap-6 border-b border-border px-6 py-5 sm:grid-cols-2">
+                  <div>
+                    <h3 className={sectionTitle}><User size={10} aria-hidden /> Pelanggan</h3>
+                    <p className="text-sm font-semibold text-foreground">{customer?.name ?? '—'}</p>
+                    {customer?.phone && <p className="mt-0.5 text-xs text-muted-foreground">{customer.phone}</p>}
+                    {customer?.address && <p className="mt-0.5 text-xs text-muted-foreground">{customer.address}</p>}
+                  </div>
+
+                  <div>
+                    <h3 className={sectionTitle}><Calendar size={10} aria-hidden /> Informasi Pengiriman</h3>
+                    <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Tanggal</dt>
+                        <dd className="text-xs font-medium text-foreground">{formatDate(doc.date)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">No. Mobil</dt>
+                        <dd className="font-mono text-xs font-medium uppercase text-foreground">{doc.nomorMobil || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Supir</dt>
+                        <dd className="text-xs font-medium text-foreground">{doc.driverName || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Penerima</dt>
+                        <dd className="text-xs font-medium text-foreground">{doc.recipientName || '—'}</dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs text-muted-foreground">Dibuat oleh</dt>
+                        <dd className="text-xs font-medium text-foreground">{doc.user?.fullName ?? doc.createdBy ?? '—'}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+
+                {status === 'Invoiced' && invoiceRef && (
+                  <div className="border-b border-border bg-success-subtle/40 px-6 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <FileText size={14} className="text-success-text" aria-hidden />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Sudah ditagihkan via invoice</p>
+                          <p className="font-mono text-sm font-medium text-success-text">{invoiceRef.invoiceNumber}</p>
+                        </div>
+                      </div>
+                      <Button variant="link" size="sm" className="max-sm:h-11" onClick={handleLihatInvoice}>
+                        Lihat Invoice <ExternalLink aria-hidden />
+                      </Button>
+                    </div>
+                  </div>
                 )}
-                {isAdmin && (
-                  <button
-                    onClick={() => setConfirmCancel(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                    title="Hanya Admin yang bisa membatalkan surat jalan"
-                  >
-                    <XCircle size={14} /> Batalkan
-                  </button>
+
+                <div className="border-b border-border px-6 py-4">
+                  <h3 className={sectionTitle}><Package size={10} aria-hidden /> Daftar Barang ({items.length} item)</h3>
+                  <TableRegion label="Daftar barang surat jalan">
+                    <table className="w-full min-w-[480px] text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          <th scope="col" className="w-8 px-3 py-2.5 text-left">#</th>
+                          <th scope="col" className="w-20 px-3 py-2.5 text-left">Kode</th>
+                          <th scope="col" className="px-3 py-2.5 text-left">Nama</th>
+                          <th scope="col" className="px-3 py-2.5 text-left">Gudang</th>
+                          <th scope="col" className="w-20 px-3 py-2.5 text-right">Qty</th>
+                          <th scope="col" className="w-16 px-3 py-2.5 text-center">Satuan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((it: any, idx: number) => (
+                          <tr key={it.id ?? idx} className={cn('border-b border-border last:border-0', idx % 2 === 1 && 'bg-muted/30')}>
+                            <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{idx + 1}</td>
+                            <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{it.inventoryItem?.code ?? '—'}</td>
+                            <td className="px-3 py-2.5">
+                              <p className="text-sm font-medium text-foreground">{it.itemName}</p>
+                              {it.description && <p className="text-xs text-muted-foreground">{it.description}</p>}
+                            </td>
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground">{it.warehouse?.name ?? '—'}</td>
+                            <td className="px-3 py-2.5 text-right text-xs font-medium tabular-nums text-foreground">
+                              {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+                            </td>
+                            <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{it.unit}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableRegion>
+                </div>
+
+                <div className="px-6 py-4">
+                  <h3 className={sectionTitle}>Catatan</h3>
+                  <p className="whitespace-pre-wrap text-sm text-foreground">
+                    {doc.notes || <span className="italic text-muted-foreground">Tidak ada catatan</span>}
+                  </p>
+                </div>
+
+                {/* Attachments — bukti jembatan timbang / foto kendaraan / dll */}
+                <div className="border-t border-border px-6 py-4">
+                  <h3 className={sectionTitle}>Lampiran (Bukti Timbang / Foto)</h3>
+                  <AttachmentPreview referenceType="delivery_order" referenceId={doc.id} />
+                  {status !== 'Cancelled' && (
+                    <div className="mt-2">
+                      <AttachmentUpload referenceType="delivery_order" referenceId={doc.id} />
+                    </div>
+                  )}
+                </div>
+
+                {status === 'Cancelled' && (
+                  <div role="status" className="mx-6 mb-4 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-subtle p-3 text-xs text-danger-text">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>Surat jalan ini sudah dibatalkan. Stok telah dikembalikan ke gudang. Dokumen disimpan untuk jejak audit.</span>
+                  </div>
                 )}
-                <button
-                  onClick={handleBuatInvoice}
-                  className="btn-primary"
-                >
-                  Buat Invoice
-                </button>
               </>
             )}
+          </SheetBody>
 
-            {status === 'Invoiced' && (
-              <button onClick={handleLihatInvoice} className="btn-primary">
-                <ExternalLink size={14} /> Lihat Invoice
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+          {doc && (
+            <SheetFooter className="flex-wrap sm:justify-between">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                {status === 'Submitted' && isAdmin && (
+                  <Button
+                    variant="ghost"
+                    className={cn('text-danger-text', footBtn)}
+                    onClick={() => setConfirmCancel(true)}
+                    title="Hanya Admin yang bisa membatalkan surat jalan"
+                  >
+                    <XCircle aria-hidden /> Batalkan
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap [&>*:only-child]:col-span-2">
+                {pdfDoc && (
+                  <PDFDownloadLink
+                    document={pdfDoc}
+                    fileName={pdfFileName}
+                    className={cn(buttonVariants({ variant: 'outline', size: 'md' }), footBtn)}
+                  >
+                    {({ loading }) => (
+                      <>
+                        {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
+                        {loading ? 'Membuat…' : 'Cetak PDF'}
+                      </>
+                    )}
+                  </PDFDownloadLink>
+                )}
+
+                {status === 'Submitted' && (
+                  <>
+                    {canEdit && (
+                      <Button
+                        variant="outline"
+                        className={footBtn}
+                        onClick={() => setEditOpen(true)}
+                        title="Edit surat jalan (nomor & tanggal dipertahankan)"
+                      >
+                        <Pencil aria-hidden /> Edit
+                      </Button>
+                    )}
+                    <Button className={footBtn} onClick={handleBuatInvoice}>Buat Invoice</Button>
+                  </>
+                )}
+
+                {status === 'Invoiced' && (
+                  <Button className={footBtn} onClick={handleLihatInvoice}>
+                    <ExternalLink aria-hidden /> Lihat Invoice
+                  </Button>
+                )}
+              </div>
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        tone="danger"
         title="Batalkan Surat Jalan"
-        message={`Batalkan surat jalan ${doc?.doNumber ?? ''}? Stok akan dikembalikan ke gudang asal. Tindakan ini tercatat di audit trail.`}
+        description={`Batalkan surat jalan ${doc?.doNumber ?? ''}? Stok akan dikembalikan ke gudang asal. Tindakan ini tercatat di audit trail.`}
         confirmLabel="Ya, Batalkan"
-        variant="danger"
-        onCancel={() => setConfirmCancel(false)}
-        onConfirm={() => { cancelMutation.mutate(); setConfirmCancel(false); }}
+        loading={cancelMutation.isPending}
+        onConfirm={() => cancelMutation.mutateAsync()}
       />
 
       {editOpen && doc && (

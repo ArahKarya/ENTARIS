@@ -3,13 +3,25 @@
  * (create + submit in one step; FIFO batch split; SJG delivery fields).
  */
 import { useState, useMemo } from 'react';
-import { Plus, Loader2, Trash2, X, AlertCircle, Layers } from 'lucide-react';
+import { Plus, Trash2, Layers } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import SearchableSelect, { type SelectOption } from '@/components/SearchableSelect';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
-import BatchPicker from '@/components/BatchPicker';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { NumberInput } from '@/components/ui/number-input';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { DateInput, Field, type ComboboxOption } from '@/components/shared';
+import {
+  FormError,
+  PinnedBody,
+  PinnedFooter,
+  PinnedHeader,
+  pinnedDialogClass,
+} from '@/components/overlays/dialog-parts';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
+import { BatchSelect } from '@/components/overlays/BatchSelect';
 import { fetchBatches, allocateFifo } from '@/lib/fifoAllocate';
 
 interface TransferItemRow {
@@ -43,7 +55,6 @@ interface ModalProps {
 }
 
 export function StockTransferModal({ isOpen, onClose }: ModalProps) {
-  useBodyScrollLock(isOpen);
   const today = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
@@ -118,12 +129,12 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
     enabled: isOpen,
   });
 
-  const whOptions = useMemo<SelectOption[]>(
+  const whOptions = useMemo<ComboboxOption[]>(
     () => (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` })),
     [warehouses],
   );
 
-  const itemOptions = useMemo<SelectOption[]>(
+  const itemOptions = useMemo<ComboboxOption[]>(
     () => (invItems ?? []).map((i) => ({ value: i.id, label: `${i.code} — ${i.name}` })),
     [invItems],
   );
@@ -165,186 +176,195 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
     });
   };
 
-  if (!isOpen) return null;
+  const pending = mutation.isPending;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}>
-      <div className="rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <div>
-            <h3 className="font-semibold text-foreground">Buat Transfer Stok</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Stok pindah antar gudang + cetak SJG untuk supir</p>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-accent rounded" aria-label="Tutup"><X size={18} /></button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !pending && onClose()}>
+      <DialogContent size="lg" className={pinnedDialogClass}>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <PinnedHeader>
+            <DialogTitle>Buat Transfer Stok</DialogTitle>
+            <DialogDescription>Stok pindah antar gudang + cetak SJG untuk supir.</DialogDescription>
+          </PinnedHeader>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Tanggal</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <PinnedBody className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Tanggal">
+                <DateInput value={date} onChange={setDate} />
+              </Field>
+              <ComboboxField
+                label="Dari Gudang"
+                required
+                options={whOptions}
+                value={fromWarehouseId}
+                onChange={setFromWarehouseId}
+                placeholder="Pilih gudang asal…"
+              />
+              <ComboboxField
+                label="Ke Gudang"
+                required
+                options={whOptions.filter((o) => o.value !== fromWarehouseId)}
+                value={toWarehouseId}
+                onChange={setToWarehouseId}
+                placeholder="Pilih gudang tujuan…"
+              />
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Dari Gudang *</label>
-              <SearchableSelect options={whOptions} value={fromWarehouseId}
-                onChange={setFromWarehouseId} placeholder="Pilih gudang asal..." />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Ke Gudang *</label>
-              <SearchableSelect options={whOptions.filter((o) => o.value !== fromWarehouseId)} value={toWarehouseId}
-                onChange={setToWarehouseId} placeholder="Pilih gudang tujuan..." />
-            </div>
-          </div>
 
-          {/* SJG fields — physical delivery metadata untuk cetakan */}
-          <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-lg space-y-3">
-            <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest">Info Pengiriman (untuk SJG)</p>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">No. Mobil</label>
-                <input
-                  type="text"
-                  value={nomorMobil}
-                  onChange={(e) => setNomorMobil(e.target.value)}
-                  placeholder="B 1234 ABC"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            {/* SJG fields: physical delivery metadata printed on the SJG */}
+            <fieldset className="space-y-3 rounded-lg border border-border bg-info-subtle/40 p-3">
+              <legend className="px-1 text-xs font-semibold uppercase tracking-widest text-info-text">
+                Info Pengiriman (untuk SJG)
+              </legend>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="No. Mobil">
+                  <Input
+                    value={nomorMobil}
+                    onChange={(e) => setNomorMobil(e.target.value)}
+                    placeholder="B 1234 ABC"
+                    className="font-mono uppercase"
+                  />
+                </Field>
+                <Field label="Supir">
+                  <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder="Nama supir" />
+                </Field>
+                <Field label="Penerima (Gudang Tujuan)">
+                  <Input
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="Nama PIC penerima"
+                  />
+                </Field>
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Supir</label>
-                <input
-                  type="text"
-                  value={driverName}
-                  onChange={(e) => setDriverName(e.target.value)}
-                  placeholder="Nama supir"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Penerima (Gudang Tujuan)</label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Nama PIC penerima"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <p className="text-[11px] text-blue-700">
-              Field-field ini optional, tetapi muncul di cetakan SJG untuk verifikasi waktu serah-terima.
-            </p>
-          </div>
+              <p className="text-xs text-muted-foreground">
+                Field-field ini opsional, tetapi muncul di cetakan SJG untuk verifikasi waktu serah-terima.
+              </p>
+            </fieldset>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Item</label>
-              <button type="button"
-                onClick={() => setItems([...items, { id: crypto.randomUUID(), itemId: '', quantity: 0 }])}
-                className="text-xs text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-                <Plus size={12} /> Tambah baris
-              </button>
-            </div>
-            <div className="space-y-2">
-              {items.map((it, idx) => (
-                <div key={it.id} className="grid grid-cols-12 gap-2 items-start p-2 border border-border rounded-lg bg-card/50">
-                  <div className="col-span-12 md:col-span-7">
-                    <label className="text-[11px] text-muted-foreground">Item</label>
-                    <SearchableSelect options={itemOptions} value={it.itemId}
-                      onChange={(v) => {
-                        const next = [...items];
-                        next[idx] = { ...next[idx], itemId: v, sourceMovementId: '' };
-                        const itemMeta = invItems?.find((i) => i.id === v);
-                        if (itemMeta) next[idx].unit = itemMeta.unit;
-                        setItems(next);
-                      }}
-                      placeholder="Pilih item..." />
-                    {/* Phase 5: batch picker (optional, locks unitCost to a specific inbound batch) */}
-                    {it.itemId && fromWarehouseId && (
-                      <div className="mt-1">
-                        <label className="text-[10px] text-muted-foreground block mb-0.5">
-                          Batch sumber (opsional)
-                        </label>
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1 min-w-0">
-                            <BatchPicker
-                              itemId={it.itemId}
-                              warehouseId={fromWarehouseId}
-                              value={it.sourceMovementId ?? ''}
-                              excludeIds={items
-                                .filter((r, i) => i !== idx && r.itemId === it.itemId && r.sourceMovementId)
-                                .map((r) => r.sourceMovementId as string)}
-                              onChange={(id) => {
-                                const next = [...items];
-                                next[idx] = { ...next[idx], sourceMovementId: id };
-                                setItems(next);
-                              }}
-                            />
+            <section aria-labelledby="transfer-items-heading">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 id="transfer-items-heading" className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                  Item
+                </h3>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setItems([...items, { id: crypto.randomUUID(), itemId: '', quantity: 0 }])}
+                >
+                  <Plus aria-hidden /> Tambah baris
+                </Button>
+              </div>
+              <ul className="space-y-2">
+                {items.map((it, idx) => (
+                  <li
+                    key={it.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-lg border border-border bg-card p-2 md:grid-cols-[minmax(0,1fr)_9rem_auto]"
+                  >
+                    <div className="col-span-2 min-w-0 space-y-2 md:col-span-1">
+                      <ComboboxField
+                        label={`Item baris ${idx + 1}`}
+                        options={itemOptions}
+                        value={it.itemId}
+                        onChange={(v) => {
+                          const next = [...items];
+                          next[idx] = { ...next[idx], itemId: v, sourceMovementId: '' };
+                          const itemMeta = invItems?.find((i) => i.id === v);
+                          if (itemMeta) next[idx].unit = itemMeta.unit;
+                          setItems(next);
+                        }}
+                        placeholder="Pilih item…"
+                      />
+                      {/* Optional batch picker: locks unitCost to a specific inbound batch */}
+                      {it.itemId && fromWarehouseId && (
+                        <div>
+                          <span className="mb-0.5 block text-xs text-muted-foreground">Batch sumber (opsional)</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <BatchSelect
+                                label={`Batch sumber baris ${idx + 1}`}
+                                itemId={it.itemId}
+                                warehouseId={fromWarehouseId}
+                                value={it.sourceMovementId ?? ''}
+                                excludeIds={items
+                                  .filter((r, i) => i !== idx && r.itemId === it.itemId && r.sourceMovementId)
+                                  .map((r) => r.sourceMovementId as string)}
+                                onChange={(id) => {
+                                  const next = [...items];
+                                  next[idx] = { ...next[idx], sourceMovementId: id };
+                                  setItems(next);
+                                }}
+                              />
+                            </div>
+                            {!it.sourceMovementId && (Number(it.quantity) || 0) > 0 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void splitTransferRow(idx)}
+                                title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
+                              >
+                                <Layers aria-hidden /> Bagi Batch
+                              </Button>
+                            )}
                           </div>
-                          {!it.sourceMovementId && (Number(it.quantity) || 0) > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => void splitTransferRow(idx)}
-                              className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-lg px-2 py-1.5 transition-colors"
-                              title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
-                            >
-                              <Layers size={12} /> Bagi Batch
-                            </button>
-                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-span-8 md:col-span-3">
-                    <label className="text-[11px] text-muted-foreground">Qty {it.unit ? `(${it.unit})` : ''}</label>
-                    <input type="number" min={0} value={it.quantity || ''}
-                      onChange={(e) => {
-                        const next = [...items];
-                        next[idx] = { ...next[idx], quantity: Number(e.target.value) || 0 };
-                        setItems(next);
-                      }}
-                      className="w-full mt-1 px-2 py-1.5 text-xs border border-border rounded bg-card" />
-                  </div>
-                  <div className="col-span-4 md:col-span-2 flex justify-end">
-                    {items.length > 1 && (
-                      <button type="button"
-                        onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded" aria-label="Hapus baris">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                      )}
+                    </div>
+                    <Field label={`Qty${it.unit ? ` (${it.unit})` : ''}`} id={`transfer-qty-${it.id}`}>
+                      <NumberInput
+                        min={0}
+                        value={it.quantity || ''}
+                        onChange={(e) => {
+                          const next = [...items];
+                          next[idx] = { ...next[idx], quantity: Number(e.target.value) || 0 };
+                          setItems(next);
+                        }}
+                        className="h-10 text-right tabular-nums"
+                      />
+                    </Field>
+                    <div className="flex h-full items-end justify-end">
+                      {items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-touch"
+                          className="text-danger-text md:size-9"
+                          onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                          aria-label={`Hapus baris ${idx + 1}`}
+                        >
+                          <Trash2 aria-hidden />
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Catatan</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-              placeholder="Alasan transfer..."
-              className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+            <Field label="Catatan">
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Alasan transfer…" />
+            </Field>
 
-          {error && (
-            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> <span>{error}</span>
-            </div>
-          )}
-        </div>
+            <FormError message={error} />
+          </PinnedBody>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-muted/30">
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button onClick={handleSubmit} disabled={mutation.isPending}
-            className="btn-primary disabled:opacity-40">
-            {mutation.isPending && <Loader2 size={14} className="animate-spin" />}
-            Submit Transfer
-          </button>
-        </div>
-      </div>
-    </div>
+          <PinnedFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
+              Batal
+            </Button>
+            <Button type="submit" loading={pending}>
+              {pending ? 'Menyimpan…' : 'Submit Transfer'}
+            </Button>
+          </PinnedFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

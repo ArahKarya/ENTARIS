@@ -3,12 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import {
-  X, PackageCheck, User, Calendar, Package, Loader2, XCircle, FileDown, FileText, AlertTriangle, Truck,
+  User, Calendar, Package, Loader2, XCircle, FileDown, FileText, Truck,
 } from 'lucide-react';
 import api from '../lib/api';
-import { cn } from '../lib/utils';
-import { formatDate } from '../lib/formatters';
-import { ConfirmDialog } from './ConfirmDialog';
+import { cn } from '@/lib/utils';
+import { formatDate, formatNumber } from '@/lib/format';
+import { buttonVariants, Button } from '@/components/ui/button';
+import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
+import { DetailSheet } from './purchase-cash/DetailSheet';
+import { Callout } from './purchase-cash/ErrorAlert';
 import GoodsReceiptPDF from '../lib/pdf/GoodsReceiptPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import AttachmentUpload from './AttachmentUpload';
@@ -20,16 +23,12 @@ interface Props {
   onClose: () => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
-  Submitted: { label: 'Diterima', badge: 'badge badge-blue' },
-  Invoiced: { label: 'Sudah Diinvoice', badge: 'badge badge-green' },
-  Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
-};
-
 const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
   const company = useCompanyPDF();
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
+  // Set when the cancel failed for insufficient stock: admin may force it with a reason.
+  const [overrideMessage, setOverrideMessage] = useState<string | null>(null);
 
   const isAdmin = cap('doc.cancel');
 
@@ -57,28 +56,18 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
       // Jika gagal karena stok tidak cukup (barang sudah keluar), Admin boleh
       // override dengan alasan. Tawarkan retry override.
       if (/tidak mencukupi|stok/i.test(msg) && /tidak dapat membatalkan/i.test(msg)) {
-        const reason = window.prompt(
-          `${msg}\n\nUntuk MEMAKSA pembatalan (stok bisa jadi minus), isi alasan (min 10 karakter):`,
-        );
-        if (reason && reason.trim().length >= 10) {
-          cancelMutation.mutate({ allowNegativeStock: true, negativeStockReason: reason.trim() });
-          return;
-        }
-        if (reason !== null) toast.error('Alasan minimal 10 karakter — pembatalan dibatalkan.');
+        setOverrideMessage(msg);
         return;
       }
       toast.error(msg);
     },
   });
 
-  if (!sttId) return null;
-
   const rawStatus: string = doc?.status ?? 'Submitted';
   const supplier = doc?.supplier ?? null;
   const items: any[] = doc?.items ?? [];
   const invoiceRef = doc?.invoice ?? null;
   const status: string = rawStatus === 'Submitted' && invoiceRef ? 'Invoiced' : rawStatus;
-  const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.Submitted;
 
   const pdfDoc = doc ? (
     <GoodsReceiptPDF
@@ -114,219 +103,217 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
 
   const pdfFileName = doc ? `${doc.sttNumber}.pdf` : 'stt.pdf';
 
+  const dt = 'text-xs text-muted-foreground';
+  const dd = 'text-xs font-medium text-foreground';
+  const sectionTitle = 'mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+  const th = 'px-3 py-2.5 text-xs font-semibold uppercase text-muted-foreground';
+
   return (
     <>
-      <div className={cn('fixed inset-0 z-40 bg-black/30 transition-opacity', !sttId && 'pointer-events-none opacity-0')} onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] sm:max-w-2xl bg-white shadow-2xl flex flex-col animate-slide-in-right">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <PackageCheck size={18} className="text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">
-                {isLoading ? 'Memuat...' : doc?.sttNumber}
-                {doc?.isCustomerOwned && (
-                  <span className="badge badge-teal text-[10px] ml-2 align-middle" title="Barang titipan pelanggan (jasa repros) — tanpa nilai GL, tidak di-invoice">Titipan</span>
-                )}
-              </h2>
-              <p className="text-xs text-gray-400">Bukti Penerimaan Barang</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {doc && (
-              <span className={cn(sc.badge, 'inline-flex items-center gap-1')}>{sc.label}</span>
-            )}
-            {doc?.isLegacyBackfill && (
-              <span className="badge badge-amber inline-flex items-center gap-1 text-xs" title="Backfill otomatis dari PI legacy">
-                Legacy
-              </span>
-            )}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400" aria-label="Tutup">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-            </div>
-          ) : !doc ? (
-            <div className="flex items-center justify-center h-64 text-gray-400 text-sm">STT tidak ditemukan.</div>
-          ) : (
+      <DetailSheet
+        open={!!sttId}
+        onClose={onClose}
+        size="lg"
+        title={isLoading ? 'Memuat…' : doc?.sttNumber ?? 'STT'}
+        description="Bukti Penerimaan Barang"
+        badge={
+          doc && (
             <>
-              <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <User size={10} /> Supplier
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900">{supplier?.name ?? '—'}</p>
-                  {supplier?.phone && <p className="text-xs text-gray-500 mt-0.5">{supplier.phone}</p>}
-                  {supplier?.address && <p className="text-xs text-gray-400 mt-0.5">{supplier.address}</p>}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <Calendar size={10} /> Penerimaan
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-gray-400">Tanggal</p>
-                      <p className="text-xs font-medium text-gray-800">{formatDate(doc.date)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">No. Mobil</p>
-                      <p className="text-xs font-medium text-gray-800 font-mono uppercase">{doc.nomorMobil || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Supir</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.driverName || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Diterima oleh</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.recipientName || '—'}</p>
-                    </div>
-                    {doc.purchaseOrder && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-400">PO Ref</p>
-                        <p className="text-xs font-mono font-medium text-purple-700">{doc.purchaseOrder.poNumber}</p>
-                      </div>
-                    )}
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-400">Dibuat oleh</p>
-                      <p className="text-xs font-medium text-gray-800">{doc.user?.fullName ?? '—'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {status === 'Invoiced' && invoiceRef && (
-                <div className="px-6 py-3 border-b border-gray-100 bg-green-50/40">
-                  <div className="flex items-center gap-2">
-                    <FileText size={14} className="text-green-600" />
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500">Sudah ditagihkan via</p>
-                      <p className="text-sm font-mono font-medium text-green-700">{invoiceRef.invoiceNumber}</p>
-                    </div>
-                  </div>
-                </div>
+              <StatusBadge status={status} docType="goods_receipt" />
+              {doc.isCustomerOwned && (
+                <StatusBadge status="customerOwned" docType="goods_receipt" label="Titipan" />
               )}
-
-              <div className="px-6 py-4 border-b border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <Package size={10} /> Daftar Barang ({items.length} item)
-                </p>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">
-                        <th className="text-left px-3 py-2.5 w-8">#</th>
-                        <th className="text-left px-3 py-2.5 w-20">Kode</th>
-                        <th className="text-left px-3 py-2.5">Nama</th>
-                        <th className="text-left px-3 py-2.5">Gudang</th>
-                        <th className="text-right px-3 py-2.5 w-24">Qty</th>
-                        <th className="text-center px-3 py-2.5 w-16">Sat</th>
-                        <th className="text-left px-3 py-2.5">Keterangan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((it: any, idx: number) => (
-                        <tr key={it.id ?? idx} className={cn('border-b border-gray-50 last:border-0', idx % 2 === 1 && 'bg-gray-50/50')}>
-                          <td className="px-3 py-2.5 text-center text-xs text-gray-300">{idx + 1}</td>
-                          <td className="px-3 py-2.5 font-mono text-xs text-gray-500">{it.inventoryItem?.code ?? '—'}</td>
-                          <td className="px-3 py-2.5"><p className="text-sm font-medium text-gray-800">{it.itemName}</p></td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">{it.warehouse?.name ?? '—'}</td>
-                          <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-gray-800">
-                            {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                          </td>
-                          <td className="px-3 py-2.5 text-center text-xs text-gray-500">{it.unit}</td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">
-                            {it.description || <span className="text-gray-300">—</span>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Catatan</p>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                  {doc.notes || <span className="text-gray-300 italic">Tidak ada catatan</span>}
-                </p>
-              </div>
-
-              {/* Attachments — bukti jembatan timbang STT */}
-              <div className="px-6 py-4 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                  Lampiran (Bukti Jembatan Timbang / Foto)
-                </p>
-                <AttachmentPreview referenceType="goods_receipt" referenceId={doc.id} />
-                {status !== 'Cancelled' && (
-                  <div className="mt-2">
-                    <AttachmentUpload referenceType="goods_receipt" referenceId={doc.id} />
-                  </div>
-                )}
-              </div>
-
-              {status === 'Cancelled' && (
-                <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 text-red-600 text-xs">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                  <span>STT ini sudah dibatalkan. Stok telah dikembalikan + JV di-reverse.</span>
-                </div>
+              {doc.isLegacyBackfill && <StatusBadge status="legacy" tone="warning" label="Legacy" dot={false} />}
+            </>
+          )
+        }
+        footer={
+          doc && (
+            <>
+              {pdfDoc && (
+                <PDFDownloadLink
+                  document={pdfDoc}
+                  fileName={pdfFileName}
+                  className={cn(buttonVariants({ variant: 'outline' }), 'h-11 sm:h-9')}
+                >
+                  {({ loading }) => (
+                    <>
+                      {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
+                      {loading ? 'Membuat…' : 'Cetak PDF'}
+                    </>
+                  )}
+                </PDFDownloadLink>
               )}
-
-              {doc.isLegacyBackfill && (
-                <div className="mx-6 mb-4 p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-2 text-amber-700 text-xs">
-                  <Truck size={14} className="mt-0.5 shrink-0" />
-                  <span>
-                    STT ini adalah <strong>backfill otomatis dari PI {invoiceRef?.invoiceNumber}</strong>.
-                    Stok asli tercatat via PI di flow lama. Untuk batalkan, batalkan PI-nya.
-                  </span>
-                </div>
+              {status === 'Submitted' && isAdmin && !doc.isLegacyBackfill && (
+                <Button
+                  variant="outline"
+                  className="h-11 border-danger/40 text-danger-text sm:h-9"
+                  onClick={() => setConfirmCancel(true)}
+                >
+                  <XCircle aria-hidden /> Batalkan
+                </Button>
               )}
             </>
-          )}
-        </div>
+          )
+        }
+      >
+        {isLoading ? (
+          <LoadingState />
+        ) : !doc ? (
+          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">STT tidak ditemukan.</div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-6 border-b border-border pb-5 sm:grid-cols-2">
+              <section>
+                <h3 className={sectionTitle}>
+                  <User className="size-3" aria-hidden /> Supplier
+                </h3>
+                <p className="text-sm font-semibold text-foreground">{supplier?.name ?? '—'}</p>
+                {supplier?.phone && <p className="mt-0.5 text-xs text-muted-foreground">{supplier.phone}</p>}
+                {supplier?.address && <p className="mt-0.5 text-xs text-muted-foreground">{supplier.address}</p>}
+              </section>
+              <section>
+                <h3 className={sectionTitle}>
+                  <Calendar className="size-3" aria-hidden /> Penerimaan
+                </h3>
+                <dl className="grid grid-cols-2 gap-3">
+                  <div>
+                    <dt className={dt}>Tanggal</dt>
+                    <dd className={dd}>{formatDate(doc.date)}</dd>
+                  </div>
+                  <div>
+                    <dt className={dt}>No. Mobil</dt>
+                    <dd className={cn(dd, 'font-mono uppercase')}>{doc.nomorMobil || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className={dt}>Supir</dt>
+                    <dd className={dd}>{doc.driverName || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className={dt}>Diterima oleh</dt>
+                    <dd className={dd}>{doc.recipientName || '—'}</dd>
+                  </div>
+                  {doc.purchaseOrder && (
+                    <div className="col-span-2">
+                      <dt className={dt}>PO Ref</dt>
+                      <dd className="font-mono text-xs font-medium text-primary">{doc.purchaseOrder.poNumber}</dd>
+                    </div>
+                  )}
+                  <div className="col-span-2">
+                    <dt className={dt}>Dibuat oleh</dt>
+                    <dd className={dd}>{doc.user?.fullName ?? '—'}</dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
 
-        {doc && (
-          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/40 flex items-center justify-end gap-2 flex-wrap">
-            {pdfDoc && (
-              <PDFDownloadLink document={pdfDoc} fileName={pdfFileName}>
-                {({ loading }) => (
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors disabled:opacity-50"
-                    disabled={loading}
-                  >
-                    {loading ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-                    {loading ? 'Membuat...' : 'Cetak PDF'}
-                  </button>
-                )}
-              </PDFDownloadLink>
+            {status === 'Invoiced' && invoiceRef && (
+              <div className="flex items-center gap-2 rounded-lg bg-success-subtle px-3 py-2.5">
+                <FileText className="size-4 text-success-text" aria-hidden />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Sudah ditagihkan via</p>
+                  <p className="font-mono text-sm font-medium text-success-text">{invoiceRef.invoiceNumber}</p>
+                </div>
+              </div>
             )}
-            {status === 'Submitted' && isAdmin && !doc.isLegacyBackfill && (
-              <button
-                onClick={() => setConfirmCancel(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50"
-                title="Cancel STT (Admin only)"
+
+            <section>
+              <h3 className={sectionTitle}>
+                <Package className="size-3" aria-hidden /> Daftar Barang ({items.length} item)
+              </h3>
+              <div
+                role="region"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+                aria-label="Tabel daftar barang"
+                className="overflow-x-auto rounded-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <XCircle size={14} /> Batalkan
-              </button>
+                <table className="w-full min-w-[34rem] text-sm">
+                  <thead className="border-b border-border bg-muted">
+                    <tr>
+                      <th scope="col" className={cn(th, 'w-8 text-left')}>#</th>
+                      <th scope="col" className={cn(th, 'text-left')}>Kode</th>
+                      <th scope="col" className={cn(th, 'text-left')}>Nama</th>
+                      <th scope="col" className={cn(th, 'text-left')}>Gudang</th>
+                      <th scope="col" className={cn(th, 'text-right')}>Qty</th>
+                      <th scope="col" className={cn(th, 'text-center')}>Sat</th>
+                      <th scope="col" className={cn(th, 'text-left')}>Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it: any, idx: number) => (
+                      <tr key={it.id ?? idx} className="border-b border-border last:border-0">
+                        <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{idx + 1}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{it.inventoryItem?.code ?? '—'}</td>
+                        <td className="px-3 py-2.5 text-sm font-medium text-foreground">{it.itemName}</td>
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground">{it.warehouse?.name ?? '—'}</td>
+                        <td className="num px-3 py-2.5 text-right text-xs font-medium text-foreground">
+                          {formatNumber(Number(it.quantity), { maxDecimals: 3 })}
+                        </td>
+                        <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{it.unit}</td>
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground">{it.description || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section>
+              <h3 className={sectionTitle}>Catatan</h3>
+              <p className="whitespace-pre-wrap text-sm text-foreground">
+                {doc.notes || <span className="italic text-muted-foreground">Tidak ada catatan</span>}
+              </p>
+            </section>
+
+            {/* Attachments — bukti jembatan timbang STT */}
+            <section className="border-t border-border pt-4">
+              <h3 className={sectionTitle}>Lampiran (Bukti Jembatan Timbang / Foto)</h3>
+              <AttachmentPreview referenceType="goods_receipt" referenceId={doc.id} />
+              {status !== 'Cancelled' && (
+                <div className="mt-2">
+                  <AttachmentUpload referenceType="goods_receipt" referenceId={doc.id} />
+                </div>
+              )}
+            </section>
+
+            {status === 'Cancelled' && (
+              <Callout tone="danger">STT ini sudah dibatalkan. Stok telah dikembalikan + JV di-reverse.</Callout>
+            )}
+
+            {doc.isLegacyBackfill && (
+              <Callout tone="warning" icon={<Truck className="mt-0.5 size-4 shrink-0" aria-hidden />}>
+                STT ini adalah <strong>backfill otomatis dari PI {invoiceRef?.invoiceNumber}</strong>.
+                Stok asli tercatat via PI di flow lama. Untuk batalkan, batalkan PI-nya.
+              </Callout>
             )}
           </div>
         )}
-      </div>
+      </DetailSheet>
 
       <ConfirmDialog
         open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        tone="danger"
         title="Batalkan STT"
-        message={`Batalkan STT ${doc?.sttNumber ?? ''}? Stok akan dikembalikan + JV di-reverse. Tindakan tercatat di audit trail.`}
+        description={`Batalkan STT ${doc?.sttNumber ?? ''}? Stok akan dikembalikan + JV di-reverse. Tindakan tercatat di audit trail.`}
         confirmLabel="Ya, Batalkan"
-        variant="danger"
-        onCancel={() => setConfirmCancel(false)}
-        onConfirm={() => { cancelMutation.mutate(undefined); setConfirmCancel(false); }}
+        onConfirm={() => {
+          cancelMutation.mutate(undefined);
+        }}
+      />
+
+      <ConfirmDialog
+        open={overrideMessage !== null}
+        onOpenChange={(o) => !o && setOverrideMessage(null)}
+        tone="danger"
+        title="Paksa pembatalan STT?"
+        description={`${overrideMessage ?? ''} Untuk MEMAKSA pembatalan (stok bisa jadi minus), isi alasan (min 10 karakter).`}
+        confirmLabel="Paksa Batalkan"
+        requireReason={{ label: 'Alasan pembatalan paksa', minLength: 10, placeholder: 'Tuliskan alasan (min 10 karakter)…' }}
+        onConfirm={(reason) => {
+          cancelMutation.mutate({ allowNegativeStock: true, negativeStockReason: (reason ?? '').trim() });
+        }}
       />
     </>
   );

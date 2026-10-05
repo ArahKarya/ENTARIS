@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Tampilan (UI/UX) — Fase 4: formulir & modal
+**Diubah**:
+- ±55 modal dan drawer lama (Faktur, Pesanan, Penawaran, Surat Jalan, Retur, Inquiry, Garansi Proyek, uang muka, PO, STT, Faktur Pembelian, Pembayaran, Transfer, Rekonsiliasi, Biaya, Run Produksi, Persetujuan, Gerakan/Transfer Stok, Barang, Jurnal, Transaksi Berulang, Pelanggan/Vendor, Impor, dan dialog dasbor/GA) dipindah ke komponen bersama: Dialog untuk formulir, Sheet untuk detail, Field berlabel, dan ConfirmDialog menggantikan `window.confirm`. Fokus terjaga, Esc menutup, muat di layar 390px, tema terang/gelap. Logika bisnis, payload, dan perhitungan tidak berubah.
+- Berkas besar dipecah: SalesInvoiceModal 1052→733, InvoiceDetailDrawer 1392→699, PurchaseInvoiceModal 893→604, ProductionRunModal 1775→(dipecah ke `components/production/`).
+- Label status pada drawer Penjualan mengikuti registri: Pesanan "Dikonfirmasi", Surat Jalan "Diposting", Faktur "Belum Lunas".
+- Kontras warna toast (sonner) diperbaiki agar lolos axe di tema terang dan gelap.
+- Komponen ConfirmDialog lama kini adaptor tipis atas ConfirmDialog bersama.
+
 ### Pengajuan Pembayaran (baru)
 **Ditambah**:
 - **Pengajuan Pembayaran** (`/payment-requests`) menggantikan file Excel pribadi + email: reimbursement, pembayaran vendor, uang muka, perjalanan dinas, jamuan, dan jenis lain (master data di Pengaturan → Jenis Pengajuan). Alur: pemohon → atasan langsung → Keuangan → Direktur (bila nominal mencapai aturan persetujuan "Pengajuan Pembayaran (tahap Direktur)") → bayar. Semua pengguna bisa mengajukan dan hanya melihat pengajuannya sendiri; tidak ada yang bisa menyetujui pengajuannya sendiri. Lampiran nota, timeline riwayat, notifikasi per tahap.

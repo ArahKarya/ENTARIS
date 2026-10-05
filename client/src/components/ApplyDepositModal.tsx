@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Loader2, AlertCircle, Wallet } from 'lucide-react';
-import { formatRupiah, formatDate } from '../lib/formatters';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { NumberInput } from '@/components/ui/number-input';
+import { Field, LoadingState } from '@/components/shared';
+import { cn } from '@/lib/utils';
+import { FormDialog } from './purchase-cash/FormDialog';
+import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 
 interface ApplyDepositModalProps {
   isOpen: boolean;
@@ -68,121 +72,78 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
     });
   };
 
-  if (!isOpen) return null;
-
   const availableDeposits = deposits?.data ?? [];
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+    <FormDialog
+      open={isOpen}
+      onClose={onClose}
+      title="Gunakan Uang Muka"
+      description="Aplikasikan deposit ke invoice ini"
+      busy={mutation.isPending}
+      submitLabel="Aplikasikan"
+      busyLabel="Memproses…"
+      onSubmit={handleSubmit}
+      submitDisabled={!canSubmit}
     >
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50">
-              <Wallet size={16} className="text-amber-600" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                Gunakan Uang Muka
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Aplikasikan deposit ke invoice ini</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <X size={18} />
-          </button>
-        </div>
+      <Callout tone="info">
+        Sisa tagihan invoice: <span className="num font-bold">{formatRupiah(invoiceOutstanding)}</span>
+      </Callout>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Invoice outstanding info */}
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-            <p className="text-xs font-medium text-blue-700">
-              Sisa tagihan invoice: <span className="font-bold font-mono">{formatRupiah(invoiceOutstanding)}</span>
-            </p>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-            </div>
-          ) : availableDeposits.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
-              Tidak ada deposit aktif untuk supplier ini.
-            </div>
-          ) : (
-            <>
-              {/* Deposit selection */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Pilih Deposit</label>
-                <div className="space-y-2">
-                  {availableDeposits.map((dep: any) => (
-                    <button
-                      key={dep.id}
-                      onClick={() => setSelectedDepositId(dep.id)}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        selectedDepositId === dep.id
-                          ? 'border-amber-400 bg-amber-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{dep.paymentNumber}</p>
-                          <p className="text-xs text-gray-400">{formatDate(dep.date)} · {dep.account?.name}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold font-mono text-amber-600">{formatRupiah(dep.remaining)}</p>
-                          <p className="text-xs text-gray-400">dari {formatRupiah(dep.amount)}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+      {isLoading ? (
+        <LoadingState />
+      ) : availableDeposits.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada deposit aktif untuk supplier ini.</p>
+      ) : (
+        <>
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm font-medium text-foreground">Pilih Deposit</legend>
+            {availableDeposits.map((dep: any) => (
+              <button
+                key={dep.id}
+                type="button"
+                aria-pressed={selectedDepositId === dep.id}
+                onClick={() => setSelectedDepositId(dep.id)}
+                className={cn(
+                  'min-h-11 w-full rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  selectedDepositId === dep.id
+                    ? 'border-primary bg-primary-subtle'
+                    : 'border-border hover:border-border-strong hover:bg-accent',
+                )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{dep.paymentNumber}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(dep.date)} · {dep.account?.name}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="num text-sm font-bold text-foreground">{formatRupiah(dep.remaining)}</p>
+                    <p className="text-xs text-muted-foreground">dari {formatRupiah(dep.amount)}</p>
+                  </div>
                 </div>
-              </div>
+              </button>
+            ))}
+          </fieldset>
 
-              {/* Amount */}
-              {selectedDepositId && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jumlah yang diaplikasikan (Rp)</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="0"
-                    min={0}
-                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-              )}
-            </>
+          {selectedDepositId && (
+            <Field label="Jumlah yang diaplikasikan (Rp)">
+              <NumberInput
+                value={amount}
+                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
+                min={0}
+                inputMode="decimal"
+                className="h-10 text-right md:h-9"
+              />
+            </Field>
           )}
+        </>
+      )}
 
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="btn-primary bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Aplikasikan'}
-          </button>
-        </div>
-      </div>
-    </div>
+      <ErrorAlert message={error} />
+    </FormDialog>
   );
 };
 

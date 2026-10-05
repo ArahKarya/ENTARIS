@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import { X, Pencil, Send, Ban, Truck, Loader2, AlertCircle, CheckCircle2, Download } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { formatRupiah, formatDate } from '../lib/formatters';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import api from '@/lib/api';
+import { Pencil, Send, Ban, Truck, Loader2, CheckCircle2, Download } from 'lucide-react';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ConfirmDialog, DateInput, Field, StatusBadge } from '@/components/shared';
+import {
+  FormError,
+  TableRegion,
+} from '@/components/sales-a/overlay-parts';
+import { numberInputClass } from '@/components/sales-a/overlay-classes';
 import { toast } from 'sonner';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
-import Select from './Select';
-import { cap } from '../lib/permissions';
+import { OptionSelect } from '@/components/sales-a/OptionSelect';
+import { cap } from '@/lib/permissions';
 import { pdf } from '@react-pdf/renderer';
 import SalesOrderPDF from '../lib/pdf/SalesOrderPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
@@ -21,22 +31,6 @@ interface Props {
   onClose: () => void;
   onEdit: (so: any) => void;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  Draft: 'Draft',
-  Submitted: 'Disubmit',
-  PartiallyDelivered: 'Sebagian Terkirim',
-  FullyDelivered: 'Selesai',
-  Cancelled: 'Dibatalkan',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  Draft: 'bg-gray-100 text-gray-700',
-  Submitted: 'bg-blue-100 text-blue-700',
-  PartiallyDelivered: 'bg-amber-100 text-amber-700',
-  FullyDelivered: 'bg-green-100 text-green-700',
-  Cancelled: 'bg-red-100 text-red-700',
-};
 
 const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const queryClient = useQueryClient();
@@ -61,7 +55,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const [dpNotes, setDpNotes] = useState('');
   const [dpError, setDpError] = useState('');
 
-  useBodyScrollLock(Boolean(soId));
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const { data: so, isLoading } = useQuery({
     queryKey: ['sales-order', soId],
@@ -252,365 +246,388 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
   if (!soId) return null;
 
+  const canGenerateDO = so && (so.status === 'Submitted' || so.status === 'PartiallyDelivered');
+  const canCancel = so && (so.status === 'Draft' || so.status === 'Submitted');
+  const showFooter = so && (so.status === 'Draft' || canGenerateDO || canCancel);
+  const metaLabel = 'text-muted-foreground';
+
   return (
-    <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-end" onClick={onClose}>
-      <div className="bg-card border-l border-border w-full sm:max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-card border-b border-border px-6 py-3 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Detail Sales Order</h2>
-            {so && <p className="text-xs text-muted-foreground font-mono">{so.soNumber}</p>}
-          </div>
-          <div className="flex items-center gap-2">
-            {so && so.status !== 'Cancelled' && (
-              <button
-                onClick={handleDownloadPDF}
-                disabled={isDownloading}
-                title={attachments.length > 0 ? `Unduh PDF SO + ${attachments.length} lampiran dalam 1 file` : 'Unduh PDF SO'}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-60"
-              >
-                {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                {isDownloading ? 'Menyiapkan…' : (attachments.length > 0 ? `Download PDF +${attachments.length}` : 'Download PDF')}
-              </button>
-            )}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent" aria-label="Tutup">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="p-6 text-center text-muted-foreground"><Loader2 size={20} className="animate-spin inline" /></div>
-        ) : !so ? (
-          <div className="p-6 text-center text-muted-foreground">SO tidak ditemukan.</div>
-        ) : (
-          <div className="p-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-sm"><span className="text-muted-foreground">Tanggal:</span> {formatDate(so.date)}</p>
-                {so.expectedDelivery && <p className="text-sm"><span className="text-muted-foreground">Target Kirim:</span> {formatDate(so.expectedDelivery)}</p>}
-                <p className="text-sm"><span className="text-muted-foreground">Pelanggan:</span> <span className="font-medium">{so.customer?.name}</span></p>
-                {so.customerRefNo && <p className="text-sm"><span className="text-muted-foreground">Ref PO:</span> {so.customerRefNo}</p>}
-                {so.notes && <p className="text-sm text-muted-foreground">Catatan: {so.notes}</p>}
+    <>
+      <Sheet open onOpenChange={(open) => !open && onClose()}>
+        <SheetContent size="lg">
+          <SheetHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <SheetTitle>Detail Sales Order</SheetTitle>
+                <SheetDescription className="font-mono">{so ? so.soNumber : 'Memuat…'}</SheetDescription>
               </div>
-              <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium', STATUS_COLOR[so.status])}>{STATUS_LABEL[so.status]}</span>
-            </div>
-
-            <div className="border border-border rounded-lg overflow-hidden">
-              <table className="min-w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-3 py-2 text-xs">Item</th>
-                    <th className="text-right px-3 py-2 text-xs">Qty</th>
-                    <th className="text-right px-3 py-2 text-xs">Terkirim</th>
-                    <th className="text-right px-3 py-2 text-xs">Sisa</th>
-                    <th className="text-right px-3 py-2 text-xs">Harga</th>
-                    <th className="text-right px-3 py-2 text-xs">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {so.items?.map((it: any) => {
-                    const remaining = Number(it.quantity) - Number(it.deliveredQty);
-                    const over = remaining < -0.0001;
-                    const fully = Math.abs(remaining) <= 0.0001;
-                    return (
-                      <tr key={it.id} className="border-t border-border">
-                        <td className="px-3 py-2">
-                          <p className="font-medium">{it.itemName}</p>
-                          {it.inventoryItem && <p className="text-xs text-muted-foreground font-mono">{it.inventoryItem.code}</p>}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">{Number(it.quantity).toLocaleString('id-ID')} {it.unit}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{Number(it.deliveredQty).toLocaleString('id-ID')}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {over ? (
-                            <span className="text-blue-600 font-medium" title="Terkirim melebihi pesanan SO">
-                              +{Math.abs(remaining).toLocaleString('id-ID')} lebih
-                            </span>
-                          ) : fully ? (
-                            <span className="text-green-600"><CheckCircle2 size={12} className="inline" /></span>
-                          ) : (
-                            <span className="text-amber-600 font-medium">{remaining.toLocaleString('id-ID')}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(it.rate))}</td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums">{formatRupiah(Number(it.amount))}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="bg-muted/30 border-t border-border">
-                  <tr>
-                    <td colSpan={4}></td>
-                    <td className="px-3 py-2 text-right text-sm text-muted-foreground">Subtotal</td>
-                    <td className="px-3 py-2 text-right font-mono">{formatRupiah(Number(so.subtotal))}</td>
-                  </tr>
-                  {Number(so.potongan) > 0 && (
-                    <tr>
-                      <td colSpan={4}></td>
-                      <td className="px-3 py-2 text-right text-sm text-muted-foreground">Potongan</td>
-                      <td className="px-3 py-2 text-right font-mono">-{formatRupiah(Number(so.potongan))}</td>
-                    </tr>
-                  )}
-                  {Number(so.taxPct) > 0 && (
-                    <tr>
-                      <td colSpan={4}></td>
-                      <td className="px-3 py-2 text-right text-sm text-muted-foreground">PPN {so.taxPct}%</td>
-                      <td className="px-3 py-2 text-right font-mono">{formatRupiah((Number(so.subtotal) - Number(so.potongan)) * Number(so.taxPct) / 100)}</td>
-                    </tr>
-                  )}
-                  {Number(so.biayaLain) > 0 && (
-                    <tr>
-                      <td colSpan={4}></td>
-                      <td className="px-3 py-2 text-right text-sm text-muted-foreground">Biaya Lain</td>
-                      <td className="px-3 py-2 text-right font-mono">{formatRupiah(Number(so.biayaLain))}</td>
-                    </tr>
-                  )}
-                  <tr className="border-t border-border">
-                    <td colSpan={4}></td>
-                    <td className="px-3 py-2 text-right font-semibold">Grand Total</td>
-                    <td className="px-3 py-2 text-right font-mono font-semibold text-blue-600">{formatRupiah(Number(so.grandTotal))}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            {/* Panel Uang Muka (DP) */}
-            {so.depositSummary && so.status !== 'Cancelled' && (
-              <div className="border border-emerald-200 bg-emerald-50/40 rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-emerald-800">Uang Muka (DP)</h3>
-                  {so.depositSummary.pct > 0 && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
-                      {so.depositSummary.pct}% dari total
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">DP Diterima</p>
-                    <p className="font-mono font-semibold text-emerald-700">{formatRupiah(so.depositSummary.received)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">DP Terpakai</p>
-                    <p className="font-mono">{formatRupiah(so.depositSummary.applied ?? 0)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Sisa Uang Muka</p>
-                    <p className="font-mono font-semibold text-emerald-700">{formatRupiah(so.depositSummary.depositRemaining ?? so.depositSummary.received)}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm border-t border-emerald-100 pt-2">
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Grand Total</p>
-                    <p className="font-mono">{formatRupiah(so.depositSummary.grandTotal)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Sisa Tagihan</p>
-                    <p className="font-mono font-semibold">{formatRupiah(so.depositSummary.remaining)}</p>
-                  </div>
-                </div>
-                {so.depositPayments?.length > 0 && (
-                  <ul className="text-xs space-y-0.5 border-t border-emerald-100 pt-1.5">
-                    {so.depositPayments.map((p: any) => (
-                      <li key={p.id} className="flex items-center justify-between">
-                        <span className="font-mono text-muted-foreground">{p.paymentNumber} • {formatDate(p.date)}</span>
-                        <span className="font-mono">{formatRupiah(Number(p.amount) - Number(p.refundedAmount))}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {so.status !== 'Draft' && !dpOpen && (
-                  <button onClick={() => { setDpOpen(true); setDpError(''); }} className="btn-secondary text-xs">
-                    + Terima Uang Muka
-                  </button>
-                )}
-                {dpOpen && (
-                  <div className="border-t border-emerald-100 pt-2 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[11px] text-muted-foreground">Tanggal</label>
-                        <input type="date" value={dpDate} onChange={(e) => setDpDate(e.target.value)} className="input w-full mt-0.5" />
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-muted-foreground">Jumlah</label>
-                        <input type="number" value={dpAmount} onChange={(e) => setDpAmount(Number(e.target.value))} className="input w-full mt-0.5 text-right" min={0} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-muted-foreground">Terima ke Kas/Bank</label>
-                      <Select value={dpAccountId} onChange={(e) => setDpAccountId(e.target.value)} className="w-full mt-0.5">
-                        <option value="">— Pilih akun —</option>
-                        {cashAccounts?.map((a: any) => <option key={a.id} value={a.id}>{a.accountNumber} — {a.name}</option>)}
-                      </Select>
-                    </div>
-                    {dpError && (
-                      <div className="bg-red-50 border border-red-200 rounded px-2 py-1.5 flex items-center gap-2 text-red-700 text-xs">
-                        <AlertCircle size={13} /> {dpError}
-                      </div>
-                    )}
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => { setDpOpen(false); setDpError(''); }} className="btn-secondary text-xs">Batal</button>
-                      <button onClick={() => depositMut.mutate()} disabled={depositMut.isPending} className="btn-primary text-xs">
-                        {depositMut.isPending && <Loader2 size={13} className="animate-spin" />}
-                        Simpan DP
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {so.deliveryOrders?.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Surat Jalan Terkait</h3>
-                <ul className="space-y-1 text-sm">
-                  {so.deliveryOrders.map((d: any) => (
-                    <li key={d.id} className="flex items-center justify-between border border-border rounded px-2 py-1.5">
-                      <span className="font-mono text-xs">{d.doNumber}</span>
-                      <span className="text-muted-foreground text-xs">{formatDate(d.date)} • {d.status}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Lampiran — PO pelanggan, kontrak, bukti, dll */}
-            <div className="border-t border-border pt-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                Lampiran (PO Pelanggan / Dokumen)
-              </p>
-              <AttachmentPreview referenceType="sales_order" referenceId={so.id} />
-              {so.status !== 'Cancelled' && (
-                <div className="mt-2">
-                  <AttachmentUpload referenceType="sales_order" referenceId={so.id} />
-                </div>
+              {so && so.status !== 'Cancelled' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="max-sm:h-11"
+                  onClick={handleDownloadPDF}
+                  loading={isDownloading}
+                  title={attachments.length > 0 ? `Unduh PDF SO + ${attachments.length} lampiran dalam 1 file` : 'Unduh PDF SO'}
+                >
+                  {!isDownloading && <Download aria-hidden />}
+                  {isDownloading ? 'Menyiapkan…' : (attachments.length > 0 ? `Download PDF +${attachments.length}` : 'Download PDF')}
+                </Button>
               )}
             </div>
+          </SheetHeader>
 
-            {/* Generate DO inline panel */}
-            {genDOOpen && (so.status === 'Submitted' || so.status === 'PartiallyDelivered') && (
-              <div className="border-2 border-blue-200 bg-blue-50/40 rounded-lg p-4 space-y-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Truck size={14} /> Buat Surat Jalan
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Tanggal</label>
-                    <input type="date" value={genDate} onChange={(e) => setGenDate(e.target.value)} className="input w-full mt-1" />
+          <SheetBody>
+            {isLoading ? (
+              <div role="status" className="p-6 text-center text-muted-foreground">
+                <Loader2 size={20} className="inline animate-spin" aria-hidden />
+                <span className="sr-only">Memuat sales order…</span>
+              </div>
+            ) : !so ? (
+              <div className="p-6 text-center text-muted-foreground">SO tidak ditemukan.</div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm"><span className={metaLabel}>Tanggal:</span> {formatDate(so.date)}</p>
+                    {so.expectedDelivery && <p className="text-sm"><span className={metaLabel}>Target Kirim:</span> {formatDate(so.expectedDelivery)}</p>}
+                    <p className="text-sm"><span className={metaLabel}>Pelanggan:</span> <span className="font-medium">{so.customer?.name}</span></p>
+                    {so.customerRefNo && <p className="text-sm"><span className={metaLabel}>Ref PO:</span> {so.customerRefNo}</p>}
+                    {so.notes && <p className="text-sm text-muted-foreground">Catatan: {so.notes}</p>}
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Gudang Sumber *</label>
-                    <Select value={genWarehouseId} onChange={(e) => setGenWarehouseId(e.target.value)} className="w-full mt-1">
-                      <option value="">— Pilih gudang —</option>
-                      {warehouses?.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">No. Mobil</label>
-                    <input type="text" value={genNomorMobil} onChange={(e) => setGenNomorMobil(e.target.value)} className="input w-full mt-1" />
-                  </div>
+                  <StatusBadge status={so.status} docType="sales_order" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Sopir</label>
-                  <input type="text" value={genDriver} onChange={(e) => setGenDriver(e.target.value)} className="input w-full mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Penerima</label>
-                  <input type="text" value={genRecipient} onChange={(e) => setGenRecipient(e.target.value)} className="input w-full mt-1" placeholder="Nama penerima barang" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Catatan</label>
-                  <input type="text" value={genNotes} onChange={(e) => setGenNotes(e.target.value)} className="input w-full mt-1" placeholder="Opsional" />
-                </div>
-                <div className="border border-border rounded">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-muted/40">
+
+                <TableRegion label="Item sales order">
+                  <table className="min-w-[640px] w-full text-sm">
+                    <thead className="bg-muted/50">
                       <tr>
-                        <th className="text-left px-2 py-1 text-xs">Item</th>
-                        <th className="text-right px-2 py-1 text-xs">Sisa</th>
-                        <th className="text-right px-2 py-1 text-xs w-32">Qty Kirim</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs">Item</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">Qty</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">Terkirim</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">Sisa</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">Harga</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
                       {so.items?.map((it: any) => {
                         const remaining = Number(it.quantity) - Number(it.deliveredQty);
-                        if (remaining <= 0) return null;
+                        const over = remaining < -0.0001;
+                        const fully = Math.abs(remaining) <= 0.0001;
                         return (
                           <tr key={it.id} className="border-t border-border">
-                            <td className="px-2 py-1.5">{it.itemName}</td>
-                            <td className="px-2 py-1.5 text-right tabular-nums">{remaining.toLocaleString('id-ID')} {it.unit}</td>
-                            <td className="px-2 py-1.5">
-                              <input
-                                type="number"
-                                value={genItems[it.id] ? String(genItems[it.id]) : ''}
-                                onChange={(e) => setGenItems((prev) => ({ ...prev, [it.id]: Number(e.target.value) }))}
-                                className="input w-full text-right"
-                                min={0}
-                                max={remaining}
-                                step="0.001"
-                                placeholder={`maks ${remaining}`}
-                              />
+                            <td className="px-3 py-2">
+                              <p className="font-medium">{it.itemName}</p>
+                              {it.inventoryItem && <p className="font-mono text-xs text-muted-foreground">{it.inventoryItem.code}</p>}
                             </td>
+                            <td className="px-3 py-2 text-right tabular-nums">{Number(it.quantity).toLocaleString('id-ID')} {it.unit}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{Number(it.deliveredQty).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {over ? (
+                                <span className="font-medium text-info-text" title="Terkirim melebihi pesanan SO">
+                                  +{Math.abs(remaining).toLocaleString('id-ID')} lebih
+                                </span>
+                              ) : fully ? (
+                                <span className="text-success-text">
+                                  <CheckCircle2 size={12} className="inline" aria-hidden />
+                                  <span className="sr-only">Terkirim penuh</span>
+                                </span>
+                              ) : (
+                                <span className="font-medium text-warning-text">{remaining.toLocaleString('id-ID')}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(it.rate))}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(it.amount))}</td>
                           </tr>
                         );
                       })}
                     </tbody>
+                    <tfoot className="border-t border-border bg-muted/30">
+                      <tr>
+                        <td colSpan={4}></td>
+                        <td className="px-3 py-2 text-right text-sm text-muted-foreground">Subtotal</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(so.subtotal))}</td>
+                      </tr>
+                      {Number(so.potongan) > 0 && (
+                        <tr>
+                          <td colSpan={4}></td>
+                          <td className="px-3 py-2 text-right text-sm text-muted-foreground">Potongan</td>
+                          <td className="px-3 py-2 text-right tabular-nums">-{formatRupiah(Number(so.potongan))}</td>
+                        </tr>
+                      )}
+                      {Number(so.taxPct) > 0 && (
+                        <tr>
+                          <td colSpan={4}></td>
+                          <td className="px-3 py-2 text-right text-sm text-muted-foreground">PPN {so.taxPct}%</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatRupiah((Number(so.subtotal) - Number(so.potongan)) * Number(so.taxPct) / 100)}</td>
+                        </tr>
+                      )}
+                      {Number(so.biayaLain) > 0 && (
+                        <tr>
+                          <td colSpan={4}></td>
+                          <td className="px-3 py-2 text-right text-sm text-muted-foreground">Biaya Lain</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(so.biayaLain))}</td>
+                        </tr>
+                      )}
+                      <tr className="border-t border-border">
+                        <td colSpan={4}></td>
+                        <td className="px-3 py-2 text-right font-semibold">Grand Total</td>
+                        <td className="px-3 py-2 text-right font-semibold tabular-nums text-primary">{formatRupiah(Number(so.grandTotal))}</td>
+                      </tr>
+                    </tfoot>
                   </table>
-                </div>
-                {canBypassNegativeStock && (
-                  <div className="border border-amber-200 bg-amber-50/40 rounded p-2 space-y-1.5">
-                    <label className="flex items-start gap-2 cursor-pointer text-xs text-amber-900">
-                      <input type="checkbox" checked={genAllowNeg} onChange={(e) => setGenAllowNeg(e.target.checked)} className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
-                      <span><strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan menyusul). Audit dicatat.</span>
-                    </label>
-                    {genAllowNeg && (
-                      <textarea value={genNegReason} onChange={(e) => setGenNegReason(e.target.value)} placeholder="Alasan bypass (min 10 karakter)" className="w-full text-xs border border-amber-300 rounded p-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500" rows={2} />
+                </TableRegion>
+
+                {/* Panel Uang Muka (DP) */}
+                {so.depositSummary && so.status !== 'Cancelled' && (
+                  <section aria-label="Uang muka" className="space-y-2 rounded-lg border border-success/30 bg-success-subtle/40 p-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-success-text">Uang Muka (DP)</h3>
+                      {so.depositSummary.pct > 0 && (
+                        <span className="rounded bg-success-subtle px-2 py-0.5 text-xs font-medium text-success-text">
+                          {so.depositSummary.pct}% dari total
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">DP Diterima</p>
+                        <p className="font-semibold tabular-nums text-success-text">{formatRupiah(so.depositSummary.received)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">DP Terpakai</p>
+                        <p className="tabular-nums">{formatRupiah(so.depositSummary.applied ?? 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Sisa Uang Muka</p>
+                        <p className="font-semibold tabular-nums text-success-text">{formatRupiah(so.depositSummary.depositRemaining ?? so.depositSummary.received)}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 border-t border-success/20 pt-2 text-sm">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Grand Total</p>
+                        <p className="tabular-nums">{formatRupiah(so.depositSummary.grandTotal)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Sisa Tagihan</p>
+                        <p className="font-semibold tabular-nums">{formatRupiah(so.depositSummary.remaining)}</p>
+                      </div>
+                    </div>
+                    {so.depositPayments?.length > 0 && (
+                      <ul className="space-y-0.5 border-t border-success/20 pt-1.5 text-xs">
+                        {so.depositPayments.map((p: any) => (
+                          <li key={p.id} className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-muted-foreground">{p.paymentNumber} • {formatDate(p.date)}</span>
+                            <span className="tabular-nums">{formatRupiah(Number(p.amount) - Number(p.refundedAmount))}</span>
+                          </li>
+                        ))}
+                      </ul>
                     )}
+                    {so.status !== 'Draft' && !dpOpen && (
+                      <Button variant="secondary" size="sm" className="max-sm:h-11" onClick={() => { setDpOpen(true); setDpError(''); }}>
+                        + Terima Uang Muka
+                      </Button>
+                    )}
+                    {dpOpen && (
+                      <div className="space-y-2 border-t border-success/20 pt-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <Field label="Tanggal">
+                            {(c) => <DateInput id={c.id} value={dpDate} onChange={setDpDate} />}
+                          </Field>
+                          <Field label="Jumlah">
+                            <NumberInput value={dpAmount} onChange={(e) => setDpAmount(Number(e.target.value))} className={numberInputClass} min={0} />
+                          </Field>
+                        </div>
+                        <Field label="Terima ke Kas/Bank">
+                          {() => (
+                            <OptionSelect
+                              aria-label="Terima ke Kas/Bank"
+                              value={dpAccountId}
+                              onChange={setDpAccountId}
+                              emptyLabel="— Pilih akun —"
+                              options={(cashAccounts ?? []).map((a: any) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` }))}
+                            />
+                          )}
+                        </Field>
+                        <FormError>{dpError}</FormError>
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                          <Button variant="ghost" className="max-sm:h-11" onClick={() => { setDpOpen(false); setDpError(''); }} disabled={depositMut.isPending}>Batal</Button>
+                          <Button className="max-sm:h-11" onClick={() => depositMut.mutate()} loading={depositMut.isPending}>
+                            {depositMut.isPending ? 'Menyimpan…' : 'Simpan DP'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {so.deliveryOrders?.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold">Surat Jalan Terkait</h3>
+                    <ul className="space-y-1 text-sm">
+                      {so.deliveryOrders.map((d: any) => (
+                        <li key={d.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
+                          <span className="font-mono text-xs">{d.doNumber}</span>
+                          <span className="text-xs text-muted-foreground">{formatDate(d.date)} • <StatusBadge status={d.status} docType="delivery_order" dot={false} /></span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
-                {genError && (
-                  <div className="bg-red-50 border border-red-200 rounded px-2 py-1.5 flex items-center gap-2 text-red-700 text-sm">
-                    <AlertCircle size={14} /> {genError}
-                  </div>
-                )}
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => { setGenDOOpen(false); setGenError(''); }} className="btn-secondary">Batal</button>
-                  <button onClick={() => genDOMut.mutate()} disabled={genDOMut.isPending} className="btn-primary">
-                    {genDOMut.isPending && <Loader2 size={14} className="animate-spin" />}
-                    Buat Surat Jalan
-                  </button>
+
+                {/* Lampiran — PO pelanggan, kontrak, bukti, dll */}
+                <div className="border-t border-border pt-3">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Lampiran (PO Pelanggan / Dokumen)
+                  </h3>
+                  <AttachmentPreview referenceType="sales_order" referenceId={so.id} />
+                  {so.status !== 'Cancelled' && (
+                    <div className="mt-2">
+                      <AttachmentUpload referenceType="sales_order" referenceId={so.id} />
+                    </div>
+                  )}
                 </div>
+
+                {/* Generate DO inline panel */}
+                {genDOOpen && canGenerateDO && (
+                  <section aria-label="Buat Surat Jalan" className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary-subtle/40 p-4">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold">
+                      <Truck size={14} aria-hidden /> Buat Surat Jalan
+                    </h3>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <Field label="Tanggal">
+                        {(c) => <DateInput id={c.id} value={genDate} onChange={setGenDate} />}
+                      </Field>
+                      <Field label="Gudang Sumber" required>
+                        {() => (
+                          <OptionSelect
+                            aria-label="Gudang Sumber"
+                            value={genWarehouseId}
+                            onChange={setGenWarehouseId}
+                            emptyLabel="— Pilih gudang —"
+                            options={(warehouses ?? []).map((w: any) => ({ value: w.id, label: w.name }))}
+                          />
+                        )}
+                      </Field>
+                      <Field label="No. Mobil">
+                        <Input value={genNomorMobil} onChange={(e) => setGenNomorMobil(e.target.value)} autoComplete="off" />
+                      </Field>
+                    </div>
+                    <Field label="Sopir">
+                      <Input value={genDriver} onChange={(e) => setGenDriver(e.target.value)} autoComplete="off" />
+                    </Field>
+                    <Field label="Penerima">
+                      <Input value={genRecipient} onChange={(e) => setGenRecipient(e.target.value)} placeholder="Nama penerima barang" autoComplete="off" />
+                    </Field>
+                    <Field label="Catatan">
+                      <Input value={genNotes} onChange={(e) => setGenNotes(e.target.value)} placeholder="Opsional" autoComplete="off" />
+                    </Field>
+                    <TableRegion label="Qty kirim per item" className="bg-card">
+                      <table className="min-w-[420px] w-full text-sm">
+                        <thead className="bg-muted/40">
+                          <tr>
+                            <th scope="col" className="px-2 py-1 text-left text-xs">Item</th>
+                            <th scope="col" className="px-2 py-1 text-right text-xs">Sisa</th>
+                            <th scope="col" className="w-36 px-2 py-1 text-right text-xs">Qty Kirim</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {so.items?.map((it: any) => {
+                            const remaining = Number(it.quantity) - Number(it.deliveredQty);
+                            if (remaining <= 0) return null;
+                            return (
+                              <tr key={it.id} className="border-t border-border">
+                                <td className="px-2 py-1.5">{it.itemName}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">{remaining.toLocaleString('id-ID')} {it.unit}</td>
+                                <td className="px-2 py-1.5">
+                                  <NumberInput
+                                    aria-label={`Qty kirim ${it.itemName}`}
+                                    value={genItems[it.id] ? String(genItems[it.id]) : ''}
+                                    onChange={(e) => setGenItems((prev) => ({ ...prev, [it.id]: Number(e.target.value) }))}
+                                    className={numberInputClass}
+                                    min={0}
+                                    max={remaining}
+                                    step="0.001"
+                                    placeholder={`maks ${remaining}`}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </TableRegion>
+                    {canBypassNegativeStock && (
+                      <div className="space-y-1.5 rounded border border-warning/30 bg-warning-subtle p-2">
+                        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
+                        <label className="flex cursor-pointer items-start gap-2 text-xs text-warning-text max-sm:min-h-11">
+                          <Checkbox className="mt-0.5" checked={genAllowNeg} onCheckedChange={(checked) => setGenAllowNeg(checked === true)} />
+                          <span><strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan menyusul). Audit dicatat.</span>
+                        </label>
+                        {genAllowNeg && (
+                          <Field label="Alasan bypass stok minus" required>
+                            <Textarea value={genNegReason} onChange={(e) => setGenNegReason(e.target.value)} placeholder="Alasan bypass (min 10 karakter)" className="text-xs" rows={2} />
+                          </Field>
+                        )}
+                      </div>
+                    )}
+                    <FormError>{genError}</FormError>
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                      <Button variant="ghost" className="max-sm:h-11" onClick={() => { setGenDOOpen(false); setGenError(''); }} disabled={genDOMut.isPending}>Batal</Button>
+                      <Button className="max-sm:h-11" onClick={() => genDOMut.mutate()} loading={genDOMut.isPending}>
+                        {genDOMut.isPending ? 'Membuat…' : 'Buat Surat Jalan'}
+                      </Button>
+                    </div>
+                  </section>
+                )}
               </div>
             )}
-          </div>
-        )}
+          </SheetBody>
 
-        {so && (
-          <div className="sticky bottom-0 bg-card border-t border-border px-6 py-3 flex items-center justify-end gap-2">
-            {so.status === 'Draft' && (
-              <>
-                <button onClick={() => onEdit(so)} className="btn-secondary text-sm">
-                  <Pencil size={14} /> Edit
-                </button>
-                <button onClick={() => submitMut.mutate()} disabled={submitMut.isPending} className="btn-primary text-sm">
-                  {submitMut.isPending && <Loader2 size={14} className="animate-spin" />}
-                  <Send size={14} /> Submit
-                </button>
-              </>
-            )}
-            {(so.status === 'Submitted' || so.status === 'PartiallyDelivered') && !genDOOpen && (
-              <button onClick={() => setGenDOOpen(true)} className="btn-primary text-sm">
-                <Truck size={14} /> Buat Surat Jalan
-              </button>
-            )}
-            {so.status === 'Draft' || so.status === 'Submitted' ? (
-              <button onClick={() => { if (confirm('Yakin batalkan SO ini?')) cancelMut.mutate(); }} disabled={cancelMut.isPending} className="btn-secondary text-sm text-red-600">
-                <Ban size={14} /> Cancel
-              </button>
-            ) : null}
-          </div>
-        )}
-      </div>
-    </div>
+          {showFooter && (
+            <SheetFooter className="sm:justify-between">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                {canCancel && (
+                  <Button variant="ghost" className="text-danger-text max-sm:h-11" onClick={() => setCancelOpen(true)} disabled={cancelMut.isPending}>
+                    <Ban aria-hidden /> Batalkan SO
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap [&>*:only-child]:col-span-2">
+                {so.status === 'Draft' && (
+                  <>
+                    <Button variant="outline" className="max-sm:h-11" onClick={() => onEdit(so)}>
+                      <Pencil aria-hidden /> Edit
+                    </Button>
+                    <Button className="max-sm:h-11" onClick={() => submitMut.mutate()} loading={submitMut.isPending}>
+                      {!submitMut.isPending && <Send aria-hidden />} Submit
+                    </Button>
+                  </>
+                )}
+                {canGenerateDO && !genDOOpen && (
+                  <Button className="max-sm:h-11" onClick={() => setGenDOOpen(true)}>
+                    <Truck aria-hidden /> Buat Surat Jalan
+                  </Button>
+                )}
+              </div>
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        tone="danger"
+        title="Batalkan Sales Order ini?"
+        description={so ? `${so.soNumber} akan dibatalkan dan tidak dapat diproses lebih lanjut.` : undefined}
+        confirmLabel="Batalkan SO"
+        cancelLabel="Kembali"
+        loading={cancelMut.isPending}
+        onConfirm={() => cancelMut.mutateAsync()}
+      />
+    </>
   );
 };
 

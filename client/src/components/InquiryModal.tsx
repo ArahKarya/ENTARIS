@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
-import Select from './Select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { DateInput, Field } from '@/components/shared';
+import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
+import { dialogShellClass } from './sales/dialog-classes-b';
 
 interface InquiryItem {
   id: string;
@@ -54,7 +62,6 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
   const [followUpDate, setFollowUpDate] = useState('');
   const [error, setError] = useState('');
 
-  useBodyScrollLock(isOpen);
   const queryClient = useQueryClient();
 
   const { data: parties } = useQuery({
@@ -143,7 +150,6 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     onError: (err: any) => setError(err.response?.data?.error ?? 'Gagal menyimpan inquiry.'),
   });
 
-  const canSubmit = prospectName.trim().length > 0 && !mutation.isPending;
 
   const handleSubmit = () => {
     setError('');
@@ -179,172 +185,162 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     });
   };
 
-  if (!isOpen) return null;
+  const nameError = error.startsWith('Nama prospek') ? error : undefined;
+  const formError = nameError ? '' : error;
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="inquiry-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Escape' && onClose()}>
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] lg:max-w-3xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 id="inquiry-modal-title" className="font-semibold text-foreground">
-            {isEdit ? `Edit Inquiry ${editTarget?.inquiryNumber ?? ''}` : 'Catat Inquiry Baru'}
-          </h3>
-          <button onClick={onClose} className="p-1 hover:bg-accent rounded" aria-label="Tutup"><X size={18} /></button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent size="lg" className={dialogShellClass}>
+        <form
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <OverlayHeader>
+            <DialogTitle>
+              {isEdit ? `Edit Inquiry ${editTarget?.inquiryNumber ?? ''}` : 'Catat Inquiry Baru'}
+            </DialogTitle>
+            <DialogDescription>
+              Catat permintaan awal dari calon pelanggan sebelum dibuatkan Penawaran.
+            </DialogDescription>
+          </OverlayHeader>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Tanggal & Channel */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Tanggal</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <OverlayBody className="gap-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Tanggal">
+                <DateInput value={date} onChange={setDate} />
+              </Field>
+              <Field label="Channel">
+                {(control) => (
+                  <Select value={channel} onValueChange={setChannel}>
+                    <SelectTrigger {...control}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CHANNELS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </Field>
+              <Field label="Tindak Lanjut (opsional)">
+                <DateInput value={followUpDate} onChange={setFollowUpDate} />
+              </Field>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Channel</label>
-              <Select value={channel} onChange={(e) => setChannel(e.target.value)}
-                className="w-full mt-1">
-                {CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Tindak Lanjut (opsional)</label>
-              <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)}
-                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
 
-          {/* Customer / Prospect */}
-          <div className="space-y-3 border border-dashed border-border rounded-lg p-3 bg-muted/30">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Pilih dari Pelanggan Existing (opsional)</label>
-              <SearchableSelect
-                options={partyOptions}
-                value={partyId}
-                onChange={onPickParty}
-                placeholder="Cari pelanggan terdaftar..."
-              />
-              {!partyId && (
-                <p className="text-[11px] text-amber-600 mt-1">
-                  Belum dipilih → akan dicatat sebagai prospect baru. Saat konversi ke Penawaran, pelanggan otomatis dibuat.
-                </p>
+            <div className="grid gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+              <div className="flex flex-col gap-1.5">
+                <Label>Pilih dari Pelanggan Existing (opsional)</Label>
+                <SearchableSelect
+                  options={partyOptions}
+                  value={partyId}
+                  onChange={onPickParty}
+                  placeholder="Cari pelanggan terdaftar..."
+                  aria-label="Pilih dari pelanggan existing"
+                />
+                {!partyId && (
+                  <p className="text-xs text-warning-text">
+                    Belum dipilih → akan dicatat sebagai prospect baru. Saat konversi ke Penawaran, pelanggan otomatis dibuat.
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="Nama Prospek/Customer" required error={nameError}>
+                  <Input value={prospectName} onChange={(e) => setProspectName(e.target.value)} maxLength={200}
+                    placeholder="Mis: Pak Budi / PT Sukses Makmur" />
+                </Field>
+                <Field label="Telepon">
+                  <Input type="tel" value={prospectPhone} onChange={(e) => setProspectPhone(e.target.value)}
+                    placeholder="08xx-xxxx-xxxx" />
+                </Field>
+                <Field label="Email">
+                  <Input type="email" value={prospectEmail} onChange={(e) => setProspectEmail(e.target.value)}
+                    placeholder="email@domain.com" />
+                </Field>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Permintaan / Item</span>
+                <div role="group" aria-label="Mode input permintaan" className="inline-flex gap-1">
+                  <Button type="button" size="sm" variant={itemsMode === 'freetext' ? 'primary' : 'outline'}
+                    aria-pressed={itemsMode === 'freetext'} onClick={() => setItemsMode('freetext')}>
+                    Free-text
+                  </Button>
+                  <Button type="button" size="sm" variant={itemsMode === 'structured' ? 'primary' : 'outline'}
+                    aria-pressed={itemsMode === 'structured'} onClick={() => setItemsMode('structured')}>
+                    Terstruktur
+                  </Button>
+                </div>
+              </div>
+              {itemsMode === 'freetext' ? (
+                <Field label="Permintaan (free-text)" hideLabel>
+                  <Textarea value={itemsText} onChange={(e) => setItemsText(e.target.value)} rows={4}
+                    placeholder="Mis: Produk A 25 kg 100 sak, Produk B 2 ton, butuh delivery pekan depan..." />
+                </Field>
+              ) : (
+                <div className="grid gap-2">
+                  {items.map((it, idx) => (
+                    <div key={it.id} className="grid grid-cols-12 items-end gap-2 rounded-lg border border-border bg-muted/20 p-2">
+                      <Field label="Item" className="col-span-12 md:col-span-4">
+                        <Input value={it.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
+                          placeholder="Nama produk/jasa" />
+                      </Field>
+                      <Field label="Qty" className="col-span-4 md:col-span-2">
+                        <NumberInput value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
+                          className="h-10 text-right tabular-nums md:h-9" />
+                      </Field>
+                      <Field label="Unit" className="col-span-4 md:col-span-2">
+                        {(control) => (
+                          <Select value={it.unit} onValueChange={(v) => updateItem(idx, 'unit', v)}>
+                            <SelectTrigger {...control}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </Field>
+                      <Field label="Est. Harga" className="col-span-4 md:col-span-3">
+                        <NumberInput value={it.estimatedPrice} onChange={(e) => updateItem(idx, 'estimatedPrice', e.target.value)}
+                          placeholder="0" className="h-10 text-right tabular-nums md:h-9" />
+                      </Field>
+                      <div className="col-span-12 flex justify-end md:col-span-1">
+                        {items.length > 1 && (
+                          <Button type="button" variant="ghost" size="icon-touch"
+                            className="text-danger-text md:size-9"
+                            onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                            aria-label={`Hapus baris item ${idx + 1}`}>
+                            <Trash2 aria-hidden />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" className="justify-self-start"
+                    onClick={() => setItems([...items, newRow()])}>
+                    <Plus aria-hidden /> Tambah baris
+                  </Button>
+                </div>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Nama Prospek/Customer *</label>
-                <input type="text" value={prospectName} onChange={(e) => setProspectName(e.target.value)} maxLength={200}
-                  placeholder="Mis: Pak Budi / PT Sukses Makmur"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Telepon</label>
-                <input type="text" value={prospectPhone} onChange={(e) => setProspectPhone(e.target.value)}
-                  placeholder="08xx-xxxx-xxxx"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Email</label>
-                <input type="email" value={prospectEmail} onChange={(e) => setProspectEmail(e.target.value)}
-                  placeholder="email@domain.com"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-          </div>
 
-          {/* Items: hybrid toggle */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Permintaan / Item</label>
-              <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs">
-                <button type="button" onClick={() => setItemsMode('freetext')}
-                  className={`px-3 py-1 ${itemsMode === 'freetext' ? 'bg-blue-600 text-white' : 'bg-card text-muted-foreground hover:bg-accent'}`}>
-                  Free-text
-                </button>
-                <button type="button" onClick={() => setItemsMode('structured')}
-                  className={`px-3 py-1 ${itemsMode === 'structured' ? 'bg-blue-600 text-white' : 'bg-card text-muted-foreground hover:bg-accent'}`}>
-                  Terstruktur
-                </button>
-              </div>
-            </div>
-            {itemsMode === 'freetext' ? (
-              <textarea value={itemsText} onChange={(e) => setItemsText(e.target.value)} rows={4}
-                placeholder="Mis: Produk A 25 kg 100 sak, Produk B 2 ton, butuh delivery pekan depan..."
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            ) : (
-              <div className="space-y-2">
-                {items.map((it, idx) => (
-                  <div key={it.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-lg p-2 bg-card/50">
-                    <div className="col-span-12 md:col-span-4">
-                      <label className="text-[11px] text-muted-foreground">Item</label>
-                      <input type="text" value={it.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                        placeholder="Nama produk/jasa" className="w-full mt-1 px-2 py-1.5 text-xs border border-border rounded bg-card" />
-                    </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <label className="text-[11px] text-muted-foreground">Qty</label>
-                      <input type="number" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                        className="w-full mt-1 px-2 py-1.5 text-xs border border-border rounded bg-card" />
-                    </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <label className="text-[11px] text-muted-foreground">Unit</label>
-                      <Select value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                        className="w-full mt-1">
-                        {UNITS.map((u) => <option key={u}>{u}</option>)}
-                      </Select>
-                    </div>
-                    <div className="col-span-4 md:col-span-3">
-                      <label className="text-[11px] text-muted-foreground">Est. Harga</label>
-                      <input type="number" value={it.estimatedPrice} onChange={(e) => updateItem(idx, 'estimatedPrice', e.target.value)}
-                        placeholder="0" className="w-full mt-1 px-2 py-1.5 text-xs border border-border rounded bg-card" />
-                    </div>
-                    <div className="col-span-12 md:col-span-1 flex justify-end">
-                      {items.length > 1 && (
-                        <button type="button" onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded" aria-label="Hapus baris">
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <button type="button" onClick={() => setItems([...items, newRow()])}
-                  className="text-xs text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-                  <Plus size={12} /> Tambah baris
-                </button>
-              </div>
-            )}
-          </div>
+            <Field label="Catatan Internal">
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+                placeholder="Sumber referral, batas budget, dll..." />
+            </Field>
 
-          {/* Notes */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Catatan Internal</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-              placeholder="Sumber referral, batas budget, dll..."
-              className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+            <FormError message={formError} />
+          </OverlayBody>
 
-          {error && (
-            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
-          <button type="button" onClick={onClose} className="btn-secondary">Batal</button>
-          <button type="button" onClick={handleSubmit} disabled={!canSubmit}
-            className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed">
-            {mutation.isPending && <Loader2 size={14} className="animate-spin" />}
-            {isEdit ? 'Simpan Perubahan' : 'Simpan Inquiry'}
-          </button>
-        </div>
-      </div>
-    </div>
+          <OverlayFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+            <Button type="submit" disabled={!prospectName.trim()} loading={mutation.isPending}>
+              {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Inquiry'}
+            </Button>
+          </OverlayFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

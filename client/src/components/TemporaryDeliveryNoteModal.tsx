@@ -1,9 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Plus, Trash2, Loader2, AlertCircle, Truck } from 'lucide-react';
+import { Plus, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { DateInput, Field } from '@/components/shared';
+import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
+import { dialogShellClass } from './sales/dialog-classes-b';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -103,113 +113,110 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
     mutation.mutate();
   };
 
+  const partyError = error === 'Pelanggan wajib dipilih.' ? error : undefined;
+  const formError = partyError ? '' : error;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <Truck size={18} className="text-amber-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
+    <Dialog open onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent size="lg" className={dialogShellClass}>
+        <form noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex min-h-0 flex-1 flex-col">
+          <OverlayHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="size-5 text-warning-text" aria-hidden />
               {isEdit ? `Ubah ${editNote.number}` : 'Buat Surat Jalan Sementara'}
-            </h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-gray-100" aria-label="Tutup"><X size={18} /></button>
-        </div>
+            </DialogTitle>
+            <DialogDescription>
+              Dokumen sementara: <b>tidak memotong stok, tidak ada jurnal, tidak bisa diinvoice</b>. Tautkan ke surat jalan resmi setelah produksi diinput.
+            </DialogDescription>
+          </OverlayHeader>
 
-        <div className="p-5 space-y-4">
-          <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
-            Dokumen sementara: <b>tidak memotong stok, tidak ada jurnal, tidak bisa diinvoice</b>. Tautkan ke surat jalan resmi setelah produksi diinput.
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="text-sm">
-              <span className="block text-gray-600 mb-1">Tanggal</span>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            </label>
-            <div className="text-sm">
-              <span className="block text-gray-600 mb-1">Pelanggan</span>
-              <SearchableSelect options={partyOptions} value={partyId} onChange={setPartyId} placeholder="Pilih pelanggan" />
+          <OverlayBody>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Tanggal">
+                <DateInput value={date} onChange={setDate} />
+              </Field>
+              <div className="flex flex-col gap-1.5">
+                <Label required>Pelanggan</Label>
+                <SearchableSelect options={partyOptions} value={partyId} onChange={setPartyId}
+                  placeholder="Pilih pelanggan" aria-label="Pelanggan" />
+                {partyError && <p role="alert" className="text-xs font-medium text-danger-text">{partyError}</p>}
+              </div>
+              <Field label="No. Mobil">
+                <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} />
+              </Field>
+              <Field label="Supir">
+                <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} />
+              </Field>
+              <Field label="Penerima" className="sm:col-span-2">
+                <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
+              </Field>
             </div>
-            <label className="text-sm">
-              <span className="block text-gray-600 mb-1">No. Mobil</span>
-              <input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            </label>
-            <label className="text-sm">
-              <span className="block text-gray-600 mb-1">Supir</span>
-              <input value={driverName} onChange={(e) => setDriverName(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            </label>
-            <label className="text-sm sm:col-span-2">
-              <span className="block text-gray-600 mb-1">Penerima</span>
-              <input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            </label>
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Barang</span>
-              <button type="button" className="btn-secondary text-xs" onClick={() => setRows((r) => [...r, newRow()])}>
-                <Plus size={13} /> Tambah baris
-              </button>
-            </div>
-            <div className="space-y-2">
-              {rows.map((r) => (
-                <div key={r.id} className="grid grid-cols-12 gap-2 items-start">
-                  <div className="col-span-12 sm:col-span-6">
-                    <SearchableSelect
-                      options={inventoryOptions}
-                      value={r.inventoryItemId}
-                      onChange={(v) => {
-                        const inv = (inventoryItems ?? []).find((i: any) => i.id === v);
-                        setRow(r.id, { inventoryItemId: v, unit: inv?.unit || r.unit });
-                      }}
-                      placeholder="Pilih barang (master item)"
-                    />
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Barang</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => setRows((r) => [...r, newRow()])}>
+                  <Plus aria-hidden /> Tambah baris
+                </Button>
+              </div>
+              <div className="grid gap-3">
+                {rows.map((r, idx) => (
+                  <div key={r.id} className="grid grid-cols-12 items-end gap-2 rounded-lg border border-border p-2">
+                    <div className="col-span-12 flex flex-col gap-1.5 sm:col-span-6">
+                      <Label>Barang {idx + 1}</Label>
+                      <SearchableSelect
+                        options={inventoryOptions}
+                        value={r.inventoryItemId}
+                        onChange={(v) => {
+                          const inv = (inventoryItems ?? []).find((i: any) => i.id === v);
+                          setRow(r.id, { inventoryItemId: v, unit: inv?.unit || r.unit });
+                        }}
+                        placeholder="Pilih barang (master item)"
+                        aria-label={`Barang baris ${idx + 1}`}
+                      />
+                    </div>
+                    <Field label="Qty" className="col-span-5 sm:col-span-2">
+                      <NumberInput min="0" step="any" value={r.quantity}
+                        onChange={(e) => setRow(r.id, { quantity: Number(e.target.value) })}
+                        className="h-10 text-right tabular-nums md:h-9" />
+                    </Field>
+                    <Field label="Satuan" className="col-span-5 sm:col-span-2">
+                      {(control) => (
+                        <Select value={r.unit} onValueChange={(v) => setRow(r.id, { unit: v })}>
+                          <SelectTrigger {...control}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[...new Set([r.unit, ...UNITS])].map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </Field>
+                    <div className="col-span-2 flex justify-end">
+                      <Button type="button" variant="ghost" size="icon-touch" className="text-danger-text md:size-9"
+                        disabled={rows.length === 1}
+                        onClick={() => setRows((rs) => rs.filter((x) => x.id !== r.id))}
+                        aria-label={`Hapus baris barang ${idx + 1}`}>
+                        <Trash2 aria-hidden />
+                      </Button>
+                    </div>
                   </div>
-                  <input
-                    type="number" min="0" step="any" value={r.quantity}
-                    onChange={(e) => setRow(r.id, { quantity: Number(e.target.value) })}
-                    className="col-span-5 sm:col-span-2 border border-gray-200 rounded-lg px-2 py-2 text-sm"
-                    aria-label="Qty"
-                  />
-                  <select
-                    value={r.unit} onChange={(e) => setRow(r.id, { unit: e.target.value })}
-                    className="col-span-5 sm:col-span-2 border border-gray-200 rounded-lg px-2 py-2 text-sm"
-                  >
-                    {[...new Set([r.unit, ...UNITS])].map((u) => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                  <button
-                    type="button" disabled={rows.length === 1}
-                    onClick={() => setRows((rs) => rs.filter((x) => x.id !== r.id))}
-                    className="col-span-2 sm:col-span-2 p-2 text-red-500 hover:bg-red-50 rounded disabled:opacity-30"
-                    aria-label="Hapus baris"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
-          <label className="text-sm block">
-            <span className="block text-gray-600 mb-1">Catatan</span>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-          </label>
+            <Field label="Catatan">
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+            </Field>
 
-          {error && (
-            <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              <AlertCircle size={15} className="mt-0.5 shrink-0" /> {error}
-            </div>
-          )}
-        </div>
+            <FormError message={formError} />
+          </OverlayBody>
 
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-100">
-          <button className="btn-secondary" onClick={onClose}>Batal</button>
-          <button className="btn-primary" onClick={submit} disabled={mutation.isPending}>
-            {mutation.isPending && <Loader2 size={14} className="animate-spin" />} Simpan
-          </button>
-        </div>
-      </div>
-    </div>
+          <OverlayFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+            <Button type="submit" loading={mutation.isPending}>{mutation.isPending ? 'Menyimpan…' : 'Simpan'}</Button>
+          </OverlayFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

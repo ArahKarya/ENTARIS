@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { X, Plus, Trash2, Loader2, AlertCircle, Save } from 'lucide-react';
-import { formatRupiah } from '../lib/formatters';
+import { Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { formatRupiah } from '@/lib/format';
 import RupiahInput from './RupiahInput';
-import Select from './Select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateInput, Field } from '@/components/shared';
+import { FormError, PinnedBody, PinnedFooter, PinnedHeader, pinnedDialogClass } from '@/components/overlays/dialog-parts';
 
 interface Account {
   id: string;
@@ -79,116 +84,112 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     setItems(newItems);
   };
 
-  if (!isOpen) return null;
+  const pending = mutation.isPending;
+  const canPost = isBalanced && !!narration;
+  const th = 'px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+  const moneyInput =
+    'h-9 w-full rounded-md border border-input bg-card px-2 text-right font-mono text-base tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm';
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="journal-modal-title" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30" onKeyDown={(e: React.KeyboardEvent) => e.key === "Escape" && onClose()}>
-      <div className="rounded-xl border w-full max-w-[calc(100vw-1rem)] lg:max-w-5xl shadow-xl flex flex-col max-h-[90vh]" style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-        {/* Header */}
-        <div className="px-5 py-4 border-b flex justify-between items-center" style={{ borderColor: 'var(--color-border)' }}>
-          <div>
-            <h3 id="journal-modal-title" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Buat Jurnal Baru</h3>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Catat transaksi keuangan secara manual</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !pending && onClose()}>
+      <DialogContent size="doc" className={pinnedDialogClass}>
+        <PinnedHeader>
+          <DialogTitle>Buat Jurnal Baru</DialogTitle>
+          <DialogDescription>Catat transaksi keuangan secara manual.</DialogDescription>
+        </PinnedHeader>
 
-        {/* Body */}
-        <div className="p-5 flex-1 overflow-y-auto space-y-5">
-          {/* Date & Narration */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tanggal</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Keterangan / Narasi</label>
-              <input
-                type="text"
+        <PinnedBody className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field label="Tanggal">
+              <DateInput value={date} onChange={setDate} />
+            </Field>
+            <Field label="Keterangan / Narasi" required className="md:col-span-2">
+              <Input
                 placeholder="Misal: Pembayaran Listrik Bulan Maret 2024"
                 value={narration}
                 onChange={(e) => setNarration(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </Field>
           </div>
 
-          {/* Items Table */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Rincian Akun</h4>
-              <button onClick={addItem} className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
-                <Plus size={13} /> Tambah Baris
-              </button>
+          <section aria-labelledby="journal-lines-heading">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 id="journal-lines-heading" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Rincian Akun
+              </h3>
+              <Button type="button" variant="ghost" size="sm" onClick={addItem}>
+                <Plus aria-hidden /> Tambah Baris
+              </Button>
             </div>
 
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width */}
+            <div className="overflow-x-auto rounded-lg border border-border" role="region" aria-label="Rincian akun jurnal" tabIndex={0}>
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 py-2.5 min-w-[200px]">Akun</th>
-                    <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 py-2.5 min-w-[140px]">Keterangan</th>
-                    <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 py-2.5 w-28">Debit</th>
-                    <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 py-2.5 w-28">Kredit</th>
-                    <th className="w-10"></th>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th scope="col" className={`${th} min-w-[220px] text-left`}>Akun</th>
+                    <th scope="col" className={`${th} min-w-[140px] text-left`}>Keterangan</th>
+                    <th scope="col" className={`${th} w-36 text-right`}>Debit</th>
+                    <th scope="col" className={`${th} w-36 text-right`}>Kredit</th>
+                    <th scope="col" className="w-12"><span className="sr-only">Aksi</span></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-border">
                   {items.map((item, index) => (
-                    <tr key={item.id} className="group hover:bg-gray-50 transition-colors">
+                    <tr key={item.id}>
                       <td className="px-3 py-2">
                         <Select
-                          value={item.accountId}
-                          onChange={(e) => updateItem(index, 'accountId', e.target.value)}
-                          className="w-full"
+                          value={item.accountId || '__none'}
+                          onValueChange={(v) => updateItem(index, 'accountId', v === '__none' ? '' : v)}
                         >
-                          <option value="" className="text-gray-400">Pilih Akun...</option>
-                          {accounts?.map((acc: Account) => (
-                            <option key={acc.id} value={acc.id}>
-                              {acc.accountNumber} - {acc.name}
-                            </option>
-                          ))}
+                          <SelectTrigger aria-label={`Akun baris ${index + 1}`}>
+                            <SelectValue placeholder="Pilih akun…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none">Pilih Akun…</SelectItem>
+                            {accounts?.map((acc: Account) => (
+                              <SelectItem key={acc.id} value={acc.id}>
+                                {acc.accountNumber} - {acc.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="text"
+                        <Input
                           value={item.description}
                           onChange={(e) => updateItem(index, 'description', e.target.value)}
-                          placeholder={narration || 'Keterangan...'}
-                          className="w-full border-none bg-transparent text-sm text-gray-800 focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400"
+                          placeholder={narration || 'Keterangan…'}
+                          aria-label={`Keterangan baris ${index + 1}`}
                         />
                       </td>
                       <td className="px-3 py-2">
                         <RupiahInput
                           value={item.debit}
                           onChange={(v) => updateItem(index, 'debit', v)}
-                          className="w-full border-none bg-transparent text-sm text-gray-800 font-mono text-right focus:ring-0 focus:outline-none p-0"
-                          aria-label="Debit"
+                          className={moneyInput}
+                          aria-label={`Debit baris ${index + 1}`}
                         />
                       </td>
                       <td className="px-3 py-2">
                         <RupiahInput
                           value={item.credit}
                           onChange={(v) => updateItem(index, 'credit', v)}
-                          className="w-full border-none bg-transparent text-sm text-gray-800 font-mono text-right focus:ring-0 focus:outline-none p-0"
-                          aria-label="Kredit"
+                          className={moneyInput}
+                          aria-label={`Kredit baris ${index + 1}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <button
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-touch"
+                          className="text-muted-foreground hover:text-danger-text md:size-9"
                           onClick={() => removeItem(index)}
-                          className="p-1 hover:bg-red-50 rounded text-gray-300 hover:text-red-500 transition-colors"
+                          aria-label={`Hapus baris ${index + 1}`}
                         >
-                          <Trash2 size={13} />
-                        </button>
+                          <Trash2 aria-hidden />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -196,54 +197,50 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
               </table>
             </div>
 
-            {/* Balance Summary */}
-            <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-xs text-gray-400 font-medium mb-0.5">Status</p>
+            <div className="mt-3 flex flex-col justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3 sm:flex-row sm:items-center">
+              <div role="status">
+                <p className="mb-0.5 text-xs font-medium text-muted-foreground">Status</p>
                 {isBalanced ? (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
-                    <Save size={13} /> Jurnal Seimbang
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-success-text">
+                    <CheckCircle2 className="size-4" aria-hidden /> Jurnal Seimbang
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                    <AlertCircle size={13} /> Selisih: {formatRupiah(Math.abs(totalDebit - totalCredit))}
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-danger-text">
+                    <AlertCircle className="size-4" aria-hidden /> Selisih: {formatRupiah(Math.abs(totalDebit - totalCredit))}
                   </span>
                 )}
               </div>
               <div className="flex gap-6">
                 <div className="text-right">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider font-medium">Total Debit</p>
-                  <p className="text-sm font-semibold text-gray-900 font-mono tabular-nums">{formatRupiah(totalDebit)}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Debit</p>
+                  <p className="font-mono text-sm font-semibold tabular-nums text-foreground">{formatRupiah(totalDebit)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider font-medium">Total Kredit</p>
-                  <p className="text-sm font-semibold text-gray-900 font-mono tabular-nums">{formatRupiah(totalCredit)}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Kredit</p>
+                  <p className="font-mono text-sm font-semibold tabular-nums text-foreground">{formatRupiah(totalCredit)}</p>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
+          <FormError message={error} />
+        </PinnedBody>
 
-        {/* Footer */}
-        <div className="px-5 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
-          <button onClick={onClose} className="btn-secondary">Batal</button>
-          <button
+        <PinnedFooter>
+          <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
+            Batal
+          </Button>
+          <Button
+            type="button"
             onClick={() => mutation.mutate({ date, narration, items })}
-            disabled={mutation.isPending || !isBalanced || !narration}
-            className="btn-primary"
+            disabled={!canPost}
+            loading={pending}
           >
-            {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Posting ke Buku Besar'}
-          </button>
-        </div>
-      </div>
-    </div>
+            {pending ? 'Memposting…' : 'Posting ke Buku Besar'}
+          </Button>
+        </PinnedFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,8 +1,20 @@
 import { useState } from 'react';
-import { X, Loader2, AlertCircle, Upload } from 'lucide-react';
+import { AlertCircle, Upload } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/api';
-import SearchableSelect from '../../../components/SearchableSelect';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Field } from '@/components/shared/field';
+import { DateInput } from '@/components/shared/date-input';
 import { toast } from 'sonner';
 
 // Modal buat dokumen baru untuk sebuah aset lalu unggah file versi pertama.
@@ -25,13 +37,10 @@ interface Props {
   onClose: () => void;
 }
 
-const fieldClass =
-  'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500';
-const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
-
 export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props) => {
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; typeId?: string; file?: string }>({});
 
   const [title, setTitle] = useState('');
   const [typeId, setTypeId] = useState('');
@@ -45,8 +54,6 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
     queryKey: ['ga-document-types'],
     queryFn: async () => (await api.get('/ga/master/document-types')).data,
   });
-
-  const typeOptions = docTypes.map((t) => ({ value: t.id, label: t.name }));
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -105,138 +112,89 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!title.trim()) return setError('Judul dokumen wajib diisi.');
-    if (!typeId) return setError('Tipe dokumen wajib dipilih.');
-    if (!file) return setError('File dokumen (PDF) wajib diunggah.');
+    const next = {
+      title: title.trim() ? undefined : 'Judul dokumen wajib diisi.',
+      typeId: typeId ? undefined : 'Tipe dokumen wajib dipilih.',
+      file: file ? undefined : 'File dokumen (PDF) wajib diunggah.',
+    };
+    setFieldErrors(next);
+    if (next.title || next.typeId || next.file) return;
     mutation.mutate();
   };
 
+  const busy = mutation.isPending;
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">Tambah Dokumen Aset</h2>
-            <p className="text-[11px] text-gray-400 mt-0.5">{assetLabel}</p>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-400">
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(next) => !next && !busy && onClose()}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg" hideClose={busy}>
+        <DialogHeader className="border-b border-border px-6 py-4">
+          <DialogTitle>Tambah Dokumen Aset</DialogTitle>
+          <DialogDescription>{assetLabel}</DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-5 space-y-4">
-          {error && (
-            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-              <AlertCircle size={15} /> {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            {error && (
+              <div role="alert" className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger-subtle px-3 py-2 text-sm text-danger-text">
+                <AlertCircle size={15} aria-hidden /> {error}
+              </div>
+            )}
 
-          <div>
-            <label className={labelClass}>
-              Judul <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="mis. Sertifikat, Manual, BPKB, Faktur"
-              className={fieldClass}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>
-              Tipe Dokumen <span className="text-red-500">*</span>
-            </label>
-            <SearchableSelect
-              options={typeOptions}
-              value={typeId}
-              onChange={setTypeId}
-              placeholder="— Pilih tipe dokumen —"
-              allowClear={false}
-              aria-label="Tipe dokumen"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>No. Dokumen</label>
-              <input
-                type="text"
-                value={issuedNumber}
-                onChange={(e) => setIssuedNumber(e.target.value)}
-                className={fieldClass}
+            <Field label="Judul" required error={fieldErrors.title}>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="mis. Sertifikat, Manual, BPKB, Faktur"
               />
+            </Field>
+
+            <Field label="Tipe Dokumen" required error={fieldErrors.typeId}>
+              {(control) => (
+                <Select value={typeId} onValueChange={setTypeId}>
+                  <SelectTrigger {...control}>
+                    <SelectValue placeholder="Pilih tipe dokumen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {docTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="No. Dokumen">
+                <Input value={issuedNumber} onChange={(e) => setIssuedNumber(e.target.value)} />
+              </Field>
+              <Field label="Diterbitkan oleh">
+                <Input value={issuedBy} onChange={(e) => setIssuedBy(e.target.value)} />
+              </Field>
+              <Field label="Tgl Berlaku">
+                {(c) => <DateInput id={c.id} value={effectiveDate} onChange={setEffectiveDate} />}
+              </Field>
+              <Field label="Tgl Kadaluarsa">
+                {(c) => <DateInput id={c.id} value={expiryDate} onChange={setExpiryDate} />}
+              </Field>
             </div>
-            <div>
-              <label className={labelClass}>Diterbitkan oleh</label>
-              <input
-                type="text"
-                value={issuedBy}
-                onChange={(e) => setIssuedBy(e.target.value)}
-                className={fieldClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Tgl Berlaku</label>
-              <input
-                type="date"
-                value={effectiveDate}
-                onChange={(e) => setEffectiveDate(e.target.value)}
-                className={fieldClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Tgl Kadaluarsa</label>
-              <input
-                type="date"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                className={fieldClass}
-              />
-            </div>
+
+            <Field label="File (PDF)" required hint="Format PDF, maksimal 20 MB." error={fieldErrors.file}>
+              <Input type="file" accept="application/pdf" onChange={handleFile} />
+            </Field>
           </div>
 
-          <div>
-            <label className={labelClass}>
-              File (PDF) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFile}
-              className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-            />
-            <p className="text-[11px] text-gray-400 mt-1">Format PDF, maksimal 20 MB.</p>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
+          <DialogFooter className="border-t border-border px-6 py-3">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
               Batal
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="btn-primary bg-teal-600 hover:bg-teal-700 disabled:opacity-60"
-            >
-              {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-              Unggah
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" loading={busy}>
+              {!busy && <Upload aria-hidden />}
+              {busy ? 'Mengunggah…' : 'Unggah'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

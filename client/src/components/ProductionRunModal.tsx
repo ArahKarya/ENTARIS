@@ -1,115 +1,37 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Plus, Trash2, Calculator, ChevronDown, ChevronRight, Gauge, Layers } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
-import SearchableSelect from './SearchableSelect';
-import type { SelectOption } from './SearchableSelect';
-import WarehousePicker from './WarehousePicker';
-import BatchPicker from './BatchPicker';
 import type { Batch } from './BatchPicker';
-import Select from './Select';
 import { cap } from '../lib/permissions';
 import { fetchBatches, allocateFifo } from '../lib/fifoAllocate';
-
-interface LineItem {
-  itemId: string;
-  quantity: string;
-  // Phase 2 batch tracking: when sourceMovementId is set, server locks the
-  // cost to batchUnitCost. Empty string = WAC fallback (legacy).
-  sourceMovementId: string;
-  batchUnitCost: string;
-}
-
-// Phase 3: cost component row in the modal.
-interface CostLine {
-  standardId: string;        // '' = freetext
-  description: string;
-  costSide: 'InputSide' | 'OutputSide';
-  basis: 'InputQty' | 'OutputQty' | 'Fixed';
-  rate: string;              // user-editable; defaults from master standard
-  costAccountId: string;     // optional tag
-}
-
-interface CostStandard {
-  id: string;
-  name: string;
-  description: string | null;
-  costSide: 'InputSide' | 'OutputSide';
-  basis: 'InputQty' | 'OutputQty' | 'Fixed';
-  defaultRate: string | number;
-  costAccountId: string | null;
-  itemId: string | null;
-}
-
-const fmtRupiah = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 4 });
-
-interface OutputLineItem {
-  itemId: string;
-  quantity: string;
-  unitPrice: string;
-  isByProduct: boolean;
-}
-
-// OEE: downtime row in the modal (B2: optional per-machine attribution).
-interface DowntimeLine {
-  machineId: string;       // '' = run-level (tidak dialokasi ke mesin)
-  category: string;
-  durationMin: string;
-  reason: string;
-}
-
-// B2: one machine running in the run (parallel; own start/stop).
-interface MachineLine {
-  machineId: string;
-  startAt: string;         // datetime-local
-  endAt: string;           // datetime-local
-}
-
-interface MachineOption {
-  id: string;
-  code: string;
-  name: string;
-  unit: string;
-  idealRatePerHour: string | number | null;
-  isActive: boolean;
-}
-
-const DOWNTIME_CATEGORIES = ['Breakdown', 'Setup', 'Material', 'Lain'] as const;
-
-const clamp01Num = (x: number) => Math.max(0, Math.min(1, x));
-
-// Convert a stored ISO/date string to a value usable by <input type="datetime-local">.
-const toLocalInput = (iso: string | null | undefined): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-// Build a datetime-local string for a given YYYY-MM-DD date at HH:MM.
-const dateAtTime = (ymd: string, hour: number, minute: number): string => {
-  if (!ymd) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${ymd}T${pad(hour)}:${pad(minute)}`;
-};
-
-// Minutes between two datetime-local strings (0 if invalid / non-positive).
-const minutesBetweenLocal = (a: string, b: string): number => {
-  if (!a || !b) return 0;
-  const ms = new Date(b).getTime() - new Date(a).getTime();
-  return Number.isFinite(ms) && ms > 0 ? ms / 60000 : 0;
-};
-
-// Overlap minutes of [aStart,aEnd] ∩ [bStart,bEnd] (0 if any window missing).
-const overlapMinutesLocal = (aStart: string, aEnd: string, bStart: string, bEnd: string): number => {
-  if (!aStart || !aEnd || !bStart || !bEnd) return 0;
-  const start = Math.max(new Date(aStart).getTime(), new Date(bStart).getTime());
-  const end = Math.min(new Date(aEnd).getTime(), new Date(bEnd).getTime());
-  const ms = end - start;
-  return Number.isFinite(ms) && ms > 0 ? ms / 60000 : 0;
-};
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { DateInput, Field, type ComboboxOption } from '@/components/shared';
+import { PinnedBody, PinnedFooter, PinnedHeader, pinnedDialogClass } from '@/components/overlays/dialog-parts';
+import { WarehouseSelectField } from '@/components/overlays/WarehouseSelectField';
+import { RunInputsSection, RunOutputsSection } from './production/RunLinesSections';
+import { useRunFormLookups } from './production/useRunFormLookups';
+import { RunOeeSection } from './production/RunOeeSection';
+import {
+  RunCostSection,
+  RunHppSummary,
+  RunNegativeStockOverride,
+  RunProcessPicker,
+  RunYieldSummary,
+} from './production/RunCostSections';
+import {
+  computeOeePreview,
+  dateAtTime,
+  toLocalInput,
+  type CostLine,
+  type DowntimeLine,
+  type LineItem,
+  type MachineLine,
+  type OutputLineItem,
+} from './production/run-form-utils';
 
 interface Props {
   isOpen: boolean;
@@ -153,6 +75,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const isAdmin = cap('inventory.negative_stock');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const errorsRef = useRef<HTMLDivElement>(null);
+  // Bring validation errors into view and announce them (the body scrolls).
+  useEffect(() => {
+    if (errors.length > 0) errorsRef.current?.focus();
+  }, [errors]);
 
   // Reset form when opened (prefill if editing)
   useEffect(() => {
@@ -328,66 +255,13 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     }
   }, [isOpen, editRun, prefillPayload]);
 
-  // Phase 3: load master cost standards for the picker.
-  // Phase 3b: scope by warehouseId — staff hanya lihat standar yg match dengan
-  // gudang produksi terpilih atau yg berlaku semua (warehouseId null). Saat
-  // warehouse belum dipilih, list disembunyikan untuk menghindari false picks.
-  const { data: standardsData } = useQuery({
-    queryKey: ['production-cost-standards', 'active', warehouseId],
-    queryFn: () => api
-      .get('/inventory/production-cost-standards', {
-        params: { active: true, ...(warehouseId ? { warehouseId } : {}) },
-      })
-      .then(r => r.data),
-    enabled: isOpen && !!warehouseId,
-    staleTime: 60_000,
-  });
-  const standards: CostStandard[] = standardsData?.data ?? [];
-
-  // Master proses produksi (multiselect untuk traceability)
-  const { data: processesData } = useQuery({
-    queryKey: ['production-processes-active'],
-    queryFn: () => api
-      .get('/inventory/production-processes', { params: { active: true } })
-      .then(r => r.data),
-    enabled: isOpen,
-    staleTime: 60_000,
-  });
-  const allProcesses: { id: string; name: string; description: string | null; sortOrder: number }[] =
-    processesData?.data ?? [];
-
-  // OEE: master mesin aktif untuk dropdown.
-  const { data: machinesData } = useQuery({
-    queryKey: ['machines-active'],
-    queryFn: () => api
-      .get('/inventory/machines', { params: { active: true } })
-      .then(r => r.data),
-    enabled: isOpen,
-    staleTime: 60_000,
-  });
-  const machines: MachineOption[] = machinesData?.data ?? [];
-  const machineById = useMemo(
-    () => new Map(machines.map(m => [m.id, m])),
-    [machines],
-  );
+  const { standards, allProcesses, machines, machineById } = useRunFormLookups(isOpen, warehouseId);
 
   const toggleProcess = (id: string) => {
     setProcessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  // Escape key handler
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !isSubmitting) onClose();
-  }, [isSubmitting, onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, handleKeyDown]);
-
-  const itemOptions = useMemo((): SelectOption[] =>
+  const itemOptions = useMemo((): ComboboxOption[] =>
     items.filter((i: any) => i.isActive !== false).map((i: any) => ({
       value: i.id,
       label: `${i.code} — ${i.name}`,
@@ -395,115 +269,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     [items],
   );
 
-  // OEE live preview (B2 multi-machine) — mirrors server logic in
-  // services/oee.ts. Server re-computes authoritatively on submit; this is
-  // purely cosmetic. NOTE: must stay ABOVE the early `if (!isOpen) return null`
-  // — hooks may not be called conditionally (React error #310).
-  const oeePreview = useMemo(() => {
-    // Planned production time = (plannedEnd − plannedStart) − break.
-    const breakMin = breakStart && breakEnd ? minutesBetweenLocal(breakStart, breakEnd) : 0;
-    const plannedMin = Math.max(minutesBetweenLocal(plannedStart, plannedEnd) - breakMin, 0);
-
-    // Output is DERIVED from the run's Input/Output line state (no manual
-    // good/reject). produk = main output, samping = by-product, loss reduces Q.
-    const inputQty = inputs.reduce((s, r) => s + (parseFloat(r.quantity) || 0), 0);
-    const produkQty = outputs
-      .filter(o => !o.isByProduct)
-      .reduce((s, o) => s + (parseFloat(o.quantity) || 0), 0);
-    const sampingQty = outputs
-      .filter(o => o.isByProduct)
-      .reduce((s, o) => s + (parseFloat(o.quantity) || 0), 0);
-    const totalOutput = produkQty + sampingQty;
-
-    // Per machine: effective run time.
-    const perMachine = runMachines.map(m => {
-      const onMin = minutesBetweenLocal(m.startAt, m.endAt);
-      const breakOverlap = breakStart && breakEnd
-        ? overlapMinutesLocal(m.startAt, m.endAt, breakStart, breakEnd)
-        : 0;
-      const machineDowntime = downtimes
-        .filter(d => d.machineId && d.machineId === m.machineId)
-        .reduce((s, d) => s + (parseFloat(d.durationMin) || 0), 0);
-      const runMin = Math.max(onMin - breakOverlap - machineDowntime, 0);
-      const ideal = machineById.get(m.machineId)?.idealRatePerHour;
-      const idealRate = ideal != null ? Number(ideal) : 0;
-      return { machineId: m.machineId, runMin, idealRate };
-    });
-    const totalRunMin = perMachine.reduce((s, m) => s + m.runMin, 0);
-
-    const machineRows = perMachine.map(m => {
-      const allocFraction = totalRunMin > 0 ? m.runMin / totalRunMin : 0;
-      // allocatedQty = total output allocated (display); allocatedProduk = main
-      // product only (drives Performance).
-      const allocatedQty = totalRunMin > 0 ? totalOutput * allocFraction : 0;
-      const allocatedProduk = totalRunMin > 0 ? produkQty * allocFraction : 0;
-
-      let availabilityPct: number | null = null;
-      if (plannedMin > 0) availabilityPct = clamp01Num(m.runMin / plannedMin) * 100;
-
-      let performancePct: number | null = null;
-      if (m.idealRate > 0 && m.runMin > 0 && allocatedProduk > 0) {
-        const idealQty = (m.idealRate / 60) * m.runMin;
-        if (idealQty > 0) performancePct = clamp01Num(allocatedProduk / idealQty) * 100;
-      }
-
-      // Quality = (produk + samping) / input — run-level, same per machine.
-      let qualityPct: number | null = null;
-      if (inputQty > 0) qualityPct = clamp01Num(totalOutput / inputQty) * 100;
-
-      let oeePct: number | null = null;
-      if (availabilityPct != null && performancePct != null && qualityPct != null) {
-        oeePct = (availabilityPct / 100) * (performancePct / 100) * (qualityPct / 100) * 100;
-      }
-
-      const machine = machineById.get(m.machineId);
-      return {
-        machineId: m.machineId,
-        label: machine ? `${machine.code} — ${machine.name}` : '(mesin?)',
-        runMin: m.runMin,
-        allocatedQty,
-        availabilityPct,
-        performancePct,
-        qualityPct,
-        oeePct,
-      };
-    });
-
-    // Run-level (line) aggregate.
-    const n = runMachines.length;
-    let availabilityPct: number | null = null;
-    if (n > 0 && plannedMin > 0) availabilityPct = clamp01Num(totalRunMin / (plannedMin * n)) * 100;
-
-    const perfDenom = perMachine.reduce(
-      (s, m) => (m.idealRate > 0 ? s + (m.idealRate / 60) * m.runMin : s),
-      0,
-    );
-    // Performance basis = MAIN product only.
-    let performancePct: number | null = null;
-    if (perfDenom > 0 && produkQty > 0) performancePct = clamp01Num(produkQty / perfDenom) * 100;
-
-    // Quality = (produk + samping) / input — only loss reduces it.
-    let qualityPct: number | null = null;
-    if (inputQty > 0) qualityPct = clamp01Num(totalOutput / inputQty) * 100;
-
-    let oeePct: number | null = null;
-    if (availabilityPct != null && performancePct != null && qualityPct != null) {
-      oeePct = (availabilityPct / 100) * (performancePct / 100) * (qualityPct / 100) * 100;
-    }
-
-    // Derived production summary feeding OEE (read-only display).
-    const lossQty = Math.max(inputQty - produkQty - sampingQty, 0);
-    const yieldPct = inputQty > 0 ? clamp01Num(totalOutput / inputQty) * 100 : null;
-    const summary = { inputQty, produkQty, sampingQty, lossQty, yieldPct };
-
-    return {
-      machines: machineRows,
-      line: { availabilityPct, performancePct, qualityPct, oeePct },
-      summary,
-    };
-  }, [plannedStart, plannedEnd, breakStart, breakEnd, runMachines, downtimes, inputs, outputs, machineById]);
-
-  if (!isOpen) return null;
+  // OEE live preview (B2 multi-machine); cosmetic, the server re-computes on submit.
+  const oeePreview = useMemo(
+    () => computeOeePreview({ plannedStart, plannedEnd, breakStart, breakEnd, runMachines, downtimes, inputs, outputs, machineById }),
+    [plannedStart, plannedEnd, breakStart, breakEnd, runMachines, downtimes, inputs, outputs, machineById],
+  );
 
   // Helpers
   const getItemById = (id: string) => items.find(i => i.id === id);
@@ -808,684 +578,136 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     }
   };
 
+  const unit = getItemById(inputs[0]?.itemId)?.unit ?? 'Kg';
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget && !isSubmitting) onClose(); }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="production-modal-title"
-        className="bg-white rounded-2xl shadow-xl w-full max-w-[calc(100vw-1rem)] sm:max-w-md lg:max-w-2xl max-h-[90vh] flex flex-col"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 id="production-modal-title" className="text-base font-semibold text-gray-900">
-            {editRun ? `Edit ${editRun.runNumber}` : 'Proses Produksi'}
-          </h2>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Tutup"
-          >
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
+      <DialogContent size="lg" className={pinnedDialogClass}>
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <PinnedHeader>
+            <DialogTitle>{editRun ? `Edit ${editRun.runNumber}` : 'Proses Produksi'}</DialogTitle>
+            <DialogDescription>
+              Catat bahan input, hasil output, biaya, dan data OEE untuk satu proses produksi.
+            </DialogDescription>
+          </PinnedHeader>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="px-6 py-4 space-y-5">
+          <PinnedBody className="space-y-5">
             {errors.length > 0 && (
-              <ul className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 space-y-1">
-                {errors.map((e, i) => <li key={i}>{'\u2022'} {e}</li>)}
-              </ul>
-            )}
-
-            {/* Basic info */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Tanggal <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  required
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Gudang <span className="text-red-500">*</span>
-                </label>
-                <WarehousePicker
-                  value={warehouseId}
-                  onChange={setWarehouseId}
-                  size="md"
-                  autoDefault={true}
-                  placeholder="Pilih gudang produksi..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Referensi (No. PI / Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={referenceNumber}
-                  onChange={e => setReferenceNumber(e.target.value)}
-                  placeholder="Misal: PI-202603-0001"
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Catatan</label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={2}
-                placeholder="Keterangan tambahan..."
-                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
-
-            {/* Inputs */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Bahan Input</h3>
-                <button
-                  type="button"
-                  onClick={addInput}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  <Plus size={13} /> Tambah Input
-                </button>
-              </div>
-              <div className="space-y-2">
-                {inputs.map((row, idx) => {
-                  const item = getItemById(row.itemId);
-                  return (
-                    <div key={idx} className="border border-gray-100 rounded-lg p-2.5 bg-gray-50/50 space-y-1.5">
-                      <div className="flex gap-2 items-start">
-                        <div className="flex-1">
-                          <SearchableSelect
-                            options={itemOptions}
-                            value={row.itemId}
-                            onChange={(v) => updateInput(idx, 'itemId', v)}
-                            placeholder="— Pilih Item —"
-                          />
-                          {item && (
-                            <p className="text-xs text-gray-400 mt-0.5 ml-1">
-                              Stok gudang: {Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {item.unit}
-                            </p>
-                          )}
-                        </div>
-                        <div className="w-36 flex gap-1 items-center">
-                          <input
-                            type="number"
-                            value={row.quantity}
-                            onChange={e => updateInput(idx, 'quantity', e.target.value)}
-                            placeholder="Qty"
-                            min="0.001"
-                            step="0.001"
-                            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          {item && <span className="text-xs text-gray-400 whitespace-nowrap">{item.unit}</span>}
-                        </div>
-                        {inputs.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeInput(idx)}
-                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-                      {row.itemId && (
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">Batch sumber</label>
-                          <div className="flex gap-2 items-center">
-                            <div className="flex-1 min-w-0">
-                              <BatchPicker
-                                itemId={row.itemId}
-                                warehouseId={warehouseId}
-                                value={row.sourceMovementId}
-                                excludeIds={inputs
-                                  .filter((r, i) => i !== idx && r.itemId === row.itemId && r.sourceMovementId)
-                                  .map((r) => r.sourceMovementId)}
-                                onChange={(id, batch) => onPickBatch(idx, id, batch)}
-                              />
-                            </div>
-                            {!row.sourceMovementId && (parseFloat(row.quantity) || 0) > 0 && warehouseId && (
-                              <button
-                                type="button"
-                                onClick={() => void splitInputRow(idx)}
-                                className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-lg px-2 py-1.5 transition-colors"
-                                title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
-                              >
-                                <Layers size={12} /> Bagi Batch
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Outputs */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Hasil Output</h3>
-                <button
-                  type="button"
-                  onClick={addOutput}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  <Plus size={13} /> Tambah Output
-                </button>
-              </div>
-              <div className="space-y-3">
-                {outputs.map((row, idx) => {
-                  const item = getItemById(row.itemId);
-                  const qty = parseFloat(row.quantity) || 0;
-                  const price = parseFloat(row.unitPrice) || 0;
-                  const rPct = totalInputQty > 0 && qty > 0 && !row.isByProduct
-                    ? ((qty / totalInputQty) * 100).toFixed(1)
-                    : null;
-                  return (
-                    <div key={idx} className={`border rounded-lg p-2.5 space-y-2 ${row.isByProduct ? 'border-amber-200 bg-amber-50/50' : 'border-gray-100 bg-gray-50/50'}`}>
-                      <div className="flex gap-2 items-start">
-                        <div className="flex-1">
-                          <SearchableSelect
-                            options={itemOptions}
-                            value={row.itemId}
-                            onChange={(v) => updateOutput(idx, 'itemId', v)}
-                            placeholder="— Pilih Item —"
-                          />
-                        </div>
-                        <div className="w-28 flex gap-1 items-center">
-                          <input
-                            type="number"
-                            value={row.quantity}
-                            onChange={e => updateOutput(idx, 'quantity', e.target.value)}
-                            placeholder="Qty"
-                            min="0.001"
-                            step="0.001"
-                            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          {item && <span className="text-xs text-gray-400 whitespace-nowrap">{item.unit}</span>}
-                        </div>
-                        {rPct !== null && (
-                          <div className="flex items-center px-2 py-2 bg-green-50 rounded-lg min-w-[46px] text-center">
-                            <span className="text-xs font-semibold text-green-700">{rPct}%</span>
-                          </div>
-                        )}
-                        {row.isByProduct && (
-                          <div className="flex items-center px-2 py-2 bg-amber-100 rounded-lg">
-                            <span className="text-xs font-semibold text-amber-700">Samping</span>
-                          </div>
-                        )}
-                        {outputs.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeOutput(idx)}
-                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-                      {/* HPP / Unit Price row + By-product toggle */}
-                      <div className="flex items-center gap-2 pl-0.5">
-                        <label className="text-xs text-gray-400 font-medium whitespace-nowrap">
-                          {row.isByProduct ? 'NRV/kg (Rp)' : 'HPP/kg (Rp)'}
-                        </label>
-                        <input
-                          type="number"
-                          value={row.unitPrice}
-                          onChange={e => updateOutput(idx, 'unitPrice', e.target.value)}
-                          placeholder={
-                            row.isByProduct
-                              ? 'Nilai NRV per kg'
-                              : (autoHpp > 0
-                                  ? `auto: Rp ${autoHpp.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`
-                                  : 'kosongkan = ikut HPP loaded')
-                          }
-                          min="0"
-                          className="w-44 border border-gray-200 rounded-lg py-1.5 px-2.5 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-emerald-500/70 placeholder:text-[10.5px]"
-                        />
-                        {price > 0 && qty > 0 ? (
-                          <span className="text-xs text-gray-400 font-mono">
-                            = Rp {(price * qty).toLocaleString('id-ID')}
-                          </span>
-                        ) : !row.isByProduct && qty > 0 && autoHpp > 0 ? (
-                          <span className="text-[10.5px] text-emerald-600 font-mono whitespace-nowrap">
-                            = Rp {Math.round(autoHpp * qty).toLocaleString('id-ID')} (auto)
-                          </span>
-                        ) : null}
-                        <label className="ml-auto flex items-center gap-1.5 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={row.isByProduct}
-                            onChange={e => updateOutput(idx, 'isByProduct', e.target.checked)}
-                            className="rounded border-gray-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5"
-                          />
-                          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Produk Samping</span>
-                        </label>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* OEE: Data Produksi & OEE (collapsible, all optional) */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setOeeOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-sky-50/60 hover:bg-sky-50 transition-colors"
+              <div
+                ref={errorsRef}
+                tabIndex={-1}
+                role="alert"
+                className="rounded-lg border border-danger/30 bg-danger-subtle px-4 py-3 text-sm text-danger-text focus-visible:outline-none"
               >
-                <span className="flex items-center gap-2 text-xs font-bold text-sky-800 uppercase tracking-wide">
-                  <Gauge size={14} /> Data Produksi & OEE
-                  <span className="text-[10px] font-normal text-sky-500 normal-case">(opsional)</span>
-                </span>
-                {oeeOpen ? <ChevronDown size={16} className="text-sky-600" /> : <ChevronRight size={16} className="text-sky-600" />}
-              </button>
-              {oeeOpen && (
-                <div className="p-4 space-y-4">
-                  {/* Shift window + break */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Jam Shift Mulai</label>
-                      <input
-                        type="datetime-local"
-                        value={plannedStart}
-                        onChange={e => setPlannedStart(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Jam Shift Selesai</label>
-                      <input
-                        type="datetime-local"
-                        value={plannedEnd}
-                        onChange={e => setPlannedEnd(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Istirahat Mulai</label>
-                      <input
-                        type="datetime-local"
-                        value={breakStart}
-                        onChange={e => setBreakStart(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Istirahat Selesai</label>
-                      <input
-                        type="datetime-local"
-                        value={breakEnd}
-                        onChange={e => setBreakEnd(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Shift</label>
-                      <Select
-                        value={shift}
-                        onChange={e => setShift(e.target.value)}
-                        className="w-full"
-                      >
-                        <option value="">— Pilih shift —</option>
-                        <option value="1">Shift 1</option>
-                        <option value="2">Shift 2</option>
-                        <option value="3">Shift 3</option>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Kepala Shift</label>
-                      <input
-                        type="text"
-                        value={shiftLead}
-                        onChange={e => setShiftLead(e.target.value)}
-                        placeholder="Nama kepala shift"
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Jumlah MP (orang)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={manpowerCount}
-                        onChange={e => setManpowerCount(e.target.value)}
-                        placeholder="Misal: 4"
-                        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Mesin list (B2 multi-machine, parallel) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Mesin (paralel)</h4>
-                      <button
-                        type="button"
-                        onClick={addMachine}
-                        className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800 font-medium"
-                      >
-                        <Plus size={13} /> Tambah Mesin
-                      </button>
-                    </div>
-                    {runMachines.length === 0 ? (
-                      <p className="text-[11px] text-gray-400">
-                        Belum ada mesin. Tambah mesin untuk menghitung OEE per mesin + agregat line.
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {runMachines.map((m, idx) => {
-                          const machine = machineById.get(m.machineId);
-                          return (
-                            <div key={idx} className="border border-gray-100 rounded-lg p-2.5 bg-gray-50/50 space-y-2">
-                              <div className="flex gap-2 items-center">
-                                <Select
-                                  value={m.machineId}
-                                  onChange={e => updateMachine(idx, { machineId: e.target.value })}
-                                  className="flex-1 min-w-0"
-                                >
-                                  <option value="">— Pilih mesin —</option>
-                                  {machines.map(opt => (
-                                    <option key={opt.id} value={opt.id}>
-                                      {opt.code} — {opt.name}
-                                      {opt.idealRatePerHour != null ? ` (${Number(opt.idealRatePerHour).toLocaleString('id-ID')} ${opt.unit}/jam)` : ''}
-                                    </option>
-                                  ))}
-                                </Select>
-                                <button
-                                  type="button"
-                                  onClick={() => removeMachine(idx)}
-                                  className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div>
-                                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Mulai Mesin</label>
-                                  <input
-                                    type="datetime-local"
-                                    value={m.startAt}
-                                    onChange={e => updateMachine(idx, { startAt: e.target.value })}
-                                    className="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Selesai Mesin</label>
-                                  <input
-                                    type="datetime-local"
-                                    value={m.endAt}
-                                    onChange={e => updateMachine(idx, { endAt: e.target.value })}
-                                    className="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                                  />
-                                </div>
-                              </div>
-                              {m.machineId && machine && machine.idealRatePerHour == null && (
-                                <p className="text-[10px] text-amber-600">
-                                  Mesin ini belum punya kapasitas ideal — Performance OEE tidak terhitung.
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Output derived from Input/Output lines (read-only). Quality
-                      = (produk + samping) / input; only loss reduces it. */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2.5">
-                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Output (otomatis dari baris Input/Output)
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
-                      <OeeQtyChip label="Input" value={oeePreview?.summary.inputQty ?? 0} />
-                      <OeeQtyChip label="Produk" value={oeePreview?.summary.produkQty ?? 0} />
-                      <OeeQtyChip label="Samping" value={oeePreview?.summary.sampingQty ?? 0} />
-                      <OeeQtyChip label="Loss" value={oeePreview?.summary.lossQty ?? 0} tone="rose" />
-                      <OeeQtyChip
-                        label="Yield"
-                        text={oeePreview?.summary.yieldPct != null ? `${oeePreview.summary.yieldPct.toFixed(1)}%` : '—'}
-                        tone="emerald"
-                      />
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1.5">
-                      Quality OEE = (Produk + Samping) / Input. Hanya selisih hilang (loss) yang menurunkan Quality.
-                    </p>
-                  </div>
-
-                  {/* Downtime list (with optional per-machine attribution) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Downtime</h4>
-                      <button
-                        type="button"
-                        onClick={addDowntime}
-                        className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800 font-medium"
-                      >
-                        <Plus size={13} /> Tambah Downtime
-                      </button>
-                    </div>
-                    {downtimes.length === 0 ? (
-                      <p className="text-[11px] text-gray-400">
-                        Belum ada downtime. Downtime per mesin mengurangi waktu jalan mesin tsb (Availability).
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {downtimes.map((d, idx) => (
-                          <div key={idx} className="border border-gray-100 rounded-lg p-2 bg-gray-50/50 flex flex-wrap gap-2 items-center">
-                            <Select
-                              value={d.machineId}
-                              onChange={e => updateDowntime(idx, { machineId: e.target.value })}
-                              className="max-w-[160px]"
-                            >
-                              <option value="">— Semua / line —</option>
-                              {runMachines.filter(m => m.machineId).map(m => {
-                                const opt = machineById.get(m.machineId);
-                                return (
-                                  <option key={m.machineId} value={m.machineId}>
-                                    {opt ? `${opt.code} — ${opt.name}` : m.machineId}
-                                  </option>
-                                );
-                              })}
-                            </Select>
-                            <Select
-                              value={d.category}
-                              onChange={e => updateDowntime(idx, { category: e.target.value })}
-                              className="w-full"
-                            >
-                              {DOWNTIME_CATEGORIES.map(c => (
-                                <option key={c} value={c}>{c}</option>
-                              ))}
-                            </Select>
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={d.durationMin}
-                                onChange={e => updateDowntime(idx, { durationMin: e.target.value })}
-                                placeholder="Durasi"
-                                className="w-24 text-xs py-1.5 px-2 border border-gray-200 rounded font-mono bg-white"
-                              />
-                              <span className="text-[10px] text-gray-400">menit</span>
-                            </div>
-                            <input
-                              type="text"
-                              value={d.reason}
-                              onChange={e => updateDowntime(idx, { reason: e.target.value })}
-                              placeholder="Alasan (opsional)"
-                              className="flex-1 min-w-[120px] text-xs py-1.5 px-2 border border-gray-200 rounded bg-white"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeDowntime(idx)}
-                              className="p-1 text-gray-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* OEE preview: per-machine table + line aggregate. Shown
-                      only when there's at least one machine or a computable
-                      line metric (the derived qty summary above always shows). */}
-                  {oeePreview && (
-                    oeePreview.machines.length > 0 ||
-                    oeePreview.line.availabilityPct != null ||
-                    oeePreview.line.performancePct != null ||
-                    oeePreview.line.qualityPct != null
-                  ) && (
-                    <div className="bg-sky-50 border border-sky-200 rounded-lg px-4 py-3 space-y-3">
-                      <div className="flex items-center gap-1.5">
-                        <Gauge size={13} className="text-sky-700" />
-                        <span className="text-xs font-bold text-sky-800 uppercase tracking-wide">
-                          Estimasi OEE
-                        </span>
-                      </div>
-                      {oeePreview.machines.length > 0 && (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-[11px]">
-                            <thead>
-                              <tr className="text-sky-700 text-left">
-                                <th className="font-semibold py-1 pr-2">Mesin</th>
-                                <th className="font-semibold py-1 px-1 text-right">Jam jalan</th>
-                                <th className="font-semibold py-1 px-1 text-right">Alokasi</th>
-                                <th className="font-semibold py-1 px-1 text-right">A</th>
-                                <th className="font-semibold py-1 px-1 text-right">P</th>
-                                <th className="font-semibold py-1 px-1 text-right">Q</th>
-                                <th className="font-semibold py-1 pl-1 text-right">OEE</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {oeePreview.machines.map((m, i) => (
-                                <tr key={i} className="border-t border-sky-100 text-sky-900">
-                                  <td className="py-1 pr-2 truncate max-w-[120px]">{m.label}</td>
-                                  <td className="py-1 px-1 text-right font-mono">{m.runMin.toLocaleString('id-ID', { maximumFractionDigits: 1 })} m</td>
-                                  <td className="py-1 px-1 text-right font-mono">{m.allocatedQty.toLocaleString('id-ID', { maximumFractionDigits: 1 })}</td>
-                                  <td className="py-1 px-1 text-right font-mono">{m.availabilityPct != null ? `${m.availabilityPct.toFixed(1)}%` : '—'}</td>
-                                  <td className="py-1 px-1 text-right font-mono">{m.performancePct != null ? `${m.performancePct.toFixed(1)}%` : '—'}</td>
-                                  <td className="py-1 px-1 text-right font-mono">{m.qualityPct != null ? `${m.qualityPct.toFixed(1)}%` : '—'}</td>
-                                  <td className="py-1 pl-1 text-right font-mono font-bold">{m.oeePct != null ? `${m.oeePct.toFixed(1)}%` : '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-[10px] font-semibold text-sky-700 uppercase tracking-wide mb-1">Line (agregat)</p>
-                        <div className="grid grid-cols-4 gap-2 text-center">
-                          <OeePreviewMetric label="Availability" pct={oeePreview.line.availabilityPct} />
-                          <OeePreviewMetric label="Performance" pct={oeePreview.line.performancePct} />
-                          <OeePreviewMetric label="Quality" pct={oeePreview.line.qualityPct} />
-                          <OeePreviewMetric label="OEE" pct={oeePreview.line.oeePct} highlight />
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-sky-700">
-                        Estimasi — server menghitung ulang saat disimpan.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Traceability: proses produksi yg dijalankan (multiselect, optional) */}
-            {allProcesses.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                    Proses Yang Dijalankan
-                  </h3>
-                  <span className="text-[10px] text-gray-400">
-                    {processIds.length > 0
-                      ? `${processIds.length} dipilih`
-                      : 'opsional · traceability saja'}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {allProcesses.map(p => {
-                    const active = processIds.includes(p.id);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => toggleProcess(p.id)}
-                        title={p.description || undefined}
-                        className={
-                          active
-                            ? 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-purple-500 bg-purple-100 text-purple-800 transition-colors'
-                            : 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50 transition-colors'
-                        }
-                      >
-                        <span className={active ? 'inline-block w-1.5 h-1.5 rounded-full bg-purple-600' : 'inline-block w-1.5 h-1.5 rounded-full bg-gray-300'} />
-                        {p.name}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1.5">
-                  Klik untuk pilih/batal. Hanya untuk catatan traceability — tidak posting GL, tidak
-                  pengaruhi HPP. Master diatur di tab <span className="font-semibold">Master Proses</span>.
-                </p>
+                <ul className="space-y-1">
+                  {errors.map((e, i) => (
+                    <li key={i}>{'\u2022'} {e}</li>
+                  ))}
+                </ul>
               </div>
             )}
 
-            {/* Phase 3: Cost components — Input side.
-                usedStandardIds: standar yg sudah dipakai di baris lain SISI ini
-                tidak muncul lagi di dropdown (cegah double-entry). */}
-            <CostSectionUI
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Tanggal" required>
+                <DateInput value={date} onChange={setDate} />
+              </Field>
+              <WarehouseSelectField
+                label="Gudang"
+                required
+                value={warehouseId}
+                onChange={setWarehouseId}
+                autoDefault
+                placeholder="Pilih gudang produksi…"
+              />
+              <Field label="Referensi (No. PI / Opsional)">
+                <Input
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Misal: PI-202603-0001"
+                />
+              </Field>
+            </div>
+
+            <Field label="Catatan">
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Keterangan tambahan…" className="resize-none" />
+            </Field>
+
+            <RunInputsSection
+              inputs={inputs}
+              itemOptions={itemOptions}
+              warehouseId={warehouseId}
+              getItemById={getItemById}
+              onUpdate={updateInput}
+              onPickBatch={onPickBatch}
+              onSplit={(idx) => void splitInputRow(idx)}
+              onAdd={addInput}
+              onRemove={removeInput}
+            />
+
+            <RunOutputsSection
+              outputs={outputs}
+              itemOptions={itemOptions}
+              getItemById={getItemById}
+              totalInputQty={totalInputQty}
+              autoHpp={autoHpp}
+              onUpdate={updateOutput}
+              onAdd={addOutput}
+              onRemove={removeOutput}
+            />
+
+            <RunOeeSection
+              open={oeeOpen}
+              onToggle={() => setOeeOpen((o) => !o)}
+              plannedStart={plannedStart}
+              plannedEnd={plannedEnd}
+              breakStart={breakStart}
+              breakEnd={breakEnd}
+              shift={shift}
+              shiftLead={shiftLead}
+              manpowerCount={manpowerCount}
+              onPlannedStart={setPlannedStart}
+              onPlannedEnd={setPlannedEnd}
+              onBreakStart={setBreakStart}
+              onBreakEnd={setBreakEnd}
+              onShift={setShift}
+              onShiftLead={setShiftLead}
+              onManpowerCount={setManpowerCount}
+              runMachines={runMachines}
+              machines={machines}
+              machineById={machineById}
+              onAddMachine={addMachine}
+              onRemoveMachine={removeMachine}
+              onUpdateMachine={updateMachine}
+              downtimes={downtimes}
+              onAddDowntime={addDowntime}
+              onRemoveDowntime={removeDowntime}
+              onUpdateDowntime={updateDowntime}
+              preview={oeePreview}
+            />
+
+            {allProcesses.length > 0 && (
+              <RunProcessPicker processes={allProcesses} selectedIds={processIds} onToggle={toggleProcess} />
+            )}
+
+            {/* Cost components. usedStandardIds: standards already used on another row of this side are hidden (prevents double entry). */}
+            <RunCostSection
               title="Biaya Produksi (Sisi Input)"
               hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Tidak posting GL — informational saja."
               rows={inputCostRows}
-              standards={standards.filter(s => s.costSide === 'InputSide')}
-              usedStandardIds={new Set(inputCostRows.map(r => r.c.standardId).filter(Boolean))}
+              standards={standards.filter((s) => s.costSide === 'InputSide')}
+              usedStandardIds={new Set(inputCostRows.map((r) => r.c.standardId).filter(Boolean))}
               onAdd={() => addCost('InputSide')}
               onRemove={removeCost}
               onUpdate={updateCost}
               onPickStandard={applyStandardToCost}
               computeTotal={computeCostTotal}
             />
-
-            {/* Phase 3: Cost components — Output side */}
-            <CostSectionUI
+            <RunCostSection
               title="Biaya Produksi (Sisi Output)"
               hint="Contoh: Biaya kirim hasil ke gudang per Kg beras."
               rows={outputCostRows}
-              standards={standards.filter(s => s.costSide === 'OutputSide')}
-              usedStandardIds={new Set(outputCostRows.map(r => r.c.standardId).filter(Boolean))}
+              standards={standards.filter((s) => s.costSide === 'OutputSide')}
+              usedStandardIds={new Set(outputCostRows.map((r) => r.c.standardId).filter(Boolean))}
               onAdd={() => addCost('OutputSide')}
               onRemove={removeCost}
               onUpdate={updateCost}
@@ -1493,283 +715,51 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
               computeTotal={computeCostTotal}
             />
 
-            {/* Phase 3: HPP summary */}
             {(totalMainOutputQty > 0 || costs.length > 0) && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 space-y-1.5">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Calculator size={14} className="text-emerald-700" />
-                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
-                    HPP Loaded (auto-calculated)
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 text-xs">
-                  <span className="text-gray-600">Biaya Material</span>
-                  <span className="text-right font-mono text-gray-900">
-                    Rp {fmtRupiah(totalMaterialCostPreview)}
-                  </span>
-                  <span className="text-gray-600">+ Biaya Sisi Input</span>
-                  <span className="text-right font-mono text-gray-900">
-                    Rp {fmtRupiah(totalCostInputSidePreview)}
-                  </span>
-                  <span className="text-gray-600">+ Biaya Sisi Output</span>
-                  <span className="text-right font-mono text-gray-900">
-                    Rp {fmtRupiah(totalCostOutputSidePreview)}
-                  </span>
-                  <span className="text-gray-600">− Nilai Produk Samping (NRV)</span>
-                  <span className="text-right font-mono text-gray-900">
-                    Rp {fmtRupiah(totalByproductValuePreview)}
-                  </span>
-                </div>
-                <div className="border-t border-emerald-200 pt-1.5 flex items-baseline justify-between">
-                  <span className="text-xs text-emerald-800">
-                    HPP per Kg main output ({totalMainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })} Kg):
-                  </span>
-                  <span className="text-base font-bold text-emerald-900 font-mono">
-                    Rp {fmtRupiah(previewHpp)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasOverride}
-                      onChange={(e) => setHppOverride(e.target.checked ? String(autoHpp.toFixed(4)) : '')}
-                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
-                    />
-                    <span className="text-[11px] text-gray-600">Override manual HPP</span>
-                  </label>
-                  {hasOverride && (
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={hppOverride}
-                      onChange={(e) => setHppOverride(e.target.value)}
-                      placeholder="Override Rp/Kg"
-                      className="text-xs px-2 py-1 border border-gray-200 rounded font-mono w-32 bg-white"
-                    />
-                  )}
-                </div>
-              </div>
+              <RunHppSummary
+                materialCost={totalMaterialCostPreview}
+                costInputSide={totalCostInputSidePreview}
+                costOutputSide={totalCostOutputSidePreview}
+                byproductValue={totalByproductValuePreview}
+                mainOutputQty={totalMainOutputQty}
+                previewHpp={previewHpp}
+                hasOverride={hasOverride}
+                autoHpp={autoHpp}
+                hppOverride={hppOverride}
+                onHppOverride={setHppOverride}
+              />
             )}
 
-            {/* Yield summary */}
             {yieldPct !== null && (
-              <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-800">
-                <span className="font-semibold">Yield: </span>
-                {yieldPct}%
-                <span className="text-blue-600 ml-1">
-                  ({totalMainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                  {' / '}
-                  {totalInputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
-                  {' '}
-                  {getItemById(inputs[0]?.itemId)?.unit ?? 'Kg'})
-                </span>
-                {outputs.some(o => o.isByProduct && parseFloat(o.quantity) > 0) && (
-                  <span className="text-amber-700 ml-2 text-xs">
-                    (produk samping tidak dihitung)
-                  </span>
-                )}
-              </div>
+              <RunYieldSummary
+                yieldPct={yieldPct}
+                mainOutputQty={totalMainOutputQty}
+                inputQty={totalInputQty}
+                unit={unit}
+                hasByproduct={outputs.some((o) => o.isByProduct && parseFloat(o.quantity) > 0)}
+              />
             )}
-          </div>
 
-          {/* Admin override: izinkan stok minus */}
-          {isAdmin && (
-            <div className="mx-6 mt-2 mb-0 p-3 border border-amber-200 bg-amber-50/40 rounded-lg space-y-2">
-              <label className="flex items-start gap-2 cursor-pointer text-xs text-amber-900">
-                <input
-                  type="checkbox"
-                  checked={allowNegativeStock}
-                  onChange={(e) => setAllowNegativeStock(e.target.checked)}
-                  className="mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                />
-                <span>
-                  <strong>Admin override:</strong> izinkan stok bahan baku minus
-                  <span className="block text-[11px] text-amber-700 mt-0.5">
-                    Pakai saat produksi backdate / barang fisik sudah keluar tapi system belum tahu. Audit log dicatat.
-                  </span>
-                </span>
-              </label>
-              {allowNegativeStock && (
-                <textarea
-                  value={negativeStockReason}
-                  onChange={(e) => setNegativeStockReason(e.target.value)}
-                  placeholder="Alasan bypass (min 10 karakter): contoh 'Output 50 ton sudah dikirim ke 2 pelanggan, input produksi menyusul'"
-                  className="w-full text-xs border border-amber-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  rows={2}
-                  required
-                />
-              )}
-            </div>
-          )}
+            {isAdmin && (
+              <RunNegativeStockOverride
+                allow={allowNegativeStock}
+                reason={negativeStockReason}
+                onAllow={setAllowNegativeStock}
+                onReason={setNegativeStockReason}
+              />
+            )}
+          </PinnedBody>
 
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
-            <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="btn-secondary"
-            >
+          <PinnedFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
               Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-primary min-w-[120px]"
-            >
-              {isSubmitting ? 'Menyimpan...' : editRun ? 'Simpan Perubahan' : 'Simpan Produksi'}
-            </button>
-            </div>
-          </div>
+            </Button>
+            <Button type="submit" loading={isSubmitting} className="min-w-[120px]">
+              {isSubmitting ? 'Menyimpan…' : editRun ? 'Simpan Perubahan' : 'Simpan Produksi'}
+            </Button>
+          </PinnedFooter>
         </form>
-      </div>
-    </div>
-  );
-}
-
-// ─── Sub-component: derived qty chip (read-only OEE output summary) ──────────
-function OeeQtyChip({
-  label, value, text, tone,
-}: { label: string; value?: number; text?: string; tone?: 'rose' | 'emerald' }) {
-  const labelCls =
-    tone === 'rose' ? 'text-rose-500' : tone === 'emerald' ? 'text-emerald-600' : 'text-gray-400';
-  const valueCls =
-    tone === 'rose' ? 'text-rose-700' : tone === 'emerald' ? 'text-emerald-700' : 'text-gray-800';
-  const display =
-    text != null ? text : (value ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 });
-  return (
-    <div className="rounded-md bg-white border border-gray-100 px-1.5 py-1.5">
-      <p className={`text-[9px] font-semibold uppercase tracking-wide truncate ${labelCls}`}>{label}</p>
-      <p className={`text-sm font-semibold font-mono ${valueCls}`}>{display}</p>
-    </div>
-  );
-}
-
-// ─── Sub-component: OEE preview metric ───────────────────────────────────────
-function OeePreviewMetric({ label, pct, highlight }: { label: string; pct: number | null; highlight?: boolean }) {
-  return (
-    <div className={highlight ? 'rounded-lg bg-sky-100 px-1.5 py-2' : 'px-1.5 py-2'}>
-      <p className="text-[9px] font-semibold text-sky-600 uppercase tracking-wide truncate">{label}</p>
-      <p className={highlight ? 'text-base font-bold text-sky-900 font-mono' : 'text-sm font-semibold text-sky-800 font-mono'}>
-        {pct != null ? `${pct.toFixed(1)}%` : '—'}
-      </p>
-    </div>
-  );
-}
-
-// ─── Sub-component: Cost section (input-side or output-side) ─────────────────
-interface CostSectionProps {
-  title: string;
-  hint: string;
-  rows: { c: CostLine; idx: number }[];
-  standards: CostStandard[];
-  usedStandardIds: Set<string>;
-  onAdd: () => void;
-  onRemove: (idx: number) => void;
-  onUpdate: (idx: number, patch: Partial<CostLine>) => void;
-  onPickStandard: (idx: number, standardId: string) => void;
-  computeTotal: (c: CostLine) => number;
-}
-
-function CostSectionUI({
-  title, hint, rows, standards, usedStandardIds, onAdd, onRemove, onUpdate, onPickStandard, computeTotal,
-}: CostSectionProps) {
-  const sectionTotal = rows.reduce((s, { c }) => s + computeTotal(c), 0);
-  // Tombol "Tambah Biaya" tetap aktif walau semua standar terpakai — staff
-  // masih bisa input manual (standardId = '').
-  const hasMoreStandards = standards.length > usedStandardIds.size;
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">{title}</h3>
-          <p className="text-[10px] text-gray-400 mt-0.5">{hint}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-        >
-          <Plus size={13} /> Tambah Biaya
-        </button>
-      </div>
-      {rows.length > 0 && (
-        <div className="space-y-2">
-          {rows.map(({ c, idx }) => {
-            // Standar yg sudah dipakai di baris lain disembunyikan; baris ini
-            // tetap bisa lihat pilihannya sendiri.
-            const availableStandards = standards.filter(
-              s => !usedStandardIds.has(s.id) || s.id === c.standardId,
-            );
-            return (
-            <div key={idx} className="border border-gray-100 rounded-lg p-2 bg-gray-50/50 space-y-1.5">
-              <div className="flex gap-2 items-center">
-                <Select
-                  value={c.standardId}
-                  onChange={(e) => onPickStandard(idx, e.target.value)}
-                  className="flex-1 min-w-0"
-                >
-                  <option value="">— Manual (free input) —</option>
-                  {availableStandards.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} (default Rp {Number(s.defaultRate)})
-                    </option>
-                  ))}
-                </Select>
-                {/* Lebar tetap — w-full di flex row menjepit picker standar
-                    (flex-1 min-w-0) sampai 0px sejak sweep dropdown custom. */}
-                <Select
-                  value={c.basis}
-                  onChange={(e) => onUpdate(idx, { basis: e.target.value as CostLine['basis'] })}
-                  className="w-32 shrink-0"
-                >
-                  <option value="InputQty">× qty input</option>
-                  <option value="OutputQty">× qty output</option>
-                  <option value="Fixed">Flat (run)</option>
-                </Select>
-                <button
-                  type="button"
-                  onClick={() => onRemove(idx)}
-                  className="p-1 text-gray-300 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={c.description}
-                  onChange={(e) => onUpdate(idx, { description: e.target.value, standardId: '' })}
-                  placeholder="Keterangan..."
-                  className="flex-1 text-xs py-1 px-2 border border-gray-200 rounded bg-white"
-                />
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={c.rate}
-                  onChange={(e) => onUpdate(idx, { rate: e.target.value, standardId: '' })}
-                  placeholder="Rate"
-                  className="w-24 text-xs py-1 px-2 border border-gray-200 rounded font-mono bg-white"
-                />
-                <span className="text-[10px] text-gray-400 whitespace-nowrap font-mono">
-                  = Rp {fmtRupiah(computeTotal(c))}
-                </span>
-              </div>
-            </div>
-            );
-          })}
-          <div className="text-right text-xs text-gray-500 font-mono pr-1">
-            Subtotal: <span className="font-semibold text-gray-700">Rp {fmtRupiah(sectionTotal)}</span>
-          </div>
-        </div>
-      )}
-      {!hasMoreStandards && standards.length > 0 && rows.length > 0 && (
-        <p className="text-[10px] text-gray-400 mt-1.5">
-          Semua master standar di sisi ini sudah dipakai. Tambah baris berikutnya hanya bisa pakai mode manual (free input).
-        </p>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

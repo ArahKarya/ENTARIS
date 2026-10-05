@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { X, Truck, User, Loader2, XCircle, FileDown, Pencil, Link2 } from 'lucide-react';
+import { Truck, User, XCircle, FileDown, Pencil, Link2 } from 'lucide-react';
 import api from '../lib/api';
-import { formatDate } from '../lib/formatters';
-import { ConfirmDialog } from './ConfirmDialog';
+import { formatDate, formatNumber } from '@/lib/format';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ConfirmDialog, Field, LoadingState, StatusBadge } from '@/components/shared';
+import { OverlayBody, OverlayFooter, OverlayHeader, ScrollRegion } from './sales/dialog-parts-b';
+import { dialogShellClass } from './sales/dialog-classes-b';
 import DeliveryOrderPDF from '../lib/pdf/DeliveryOrderPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import TemporaryDeliveryNoteModal from './TemporaryDeliveryNoteModal';
@@ -69,9 +75,10 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal menautkan.'),
   });
 
-  if (!noteId) return null;
   const sc = SJS_STATUS[note?.status] ?? SJS_STATUS.Open;
+  const scTone = note?.status === 'Linked' ? 'success' : note?.status === 'Cancelled' ? 'danger' : 'warning';
   const isOpen = note?.status === 'Open';
+  const open = !!noteId;
 
   const pdfDoc = note ? (
     <DeliveryOrderPDF
@@ -92,135 +99,158 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} />
-      <aside className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col">
-        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <Truck size={16} className="text-amber-600" />
-              <h2 className="text-base font-semibold text-gray-900">{note?.number ?? 'Surat Jalan Sementara'}</h2>
-              {note && <span className={sc.badge}>{sc.label}</span>}
-            </div>
-            <p className="text-xs text-gray-400 mt-0.5">Dokumen sementara — tanpa stok, tanpa jurnal</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-gray-100" aria-label="Tutup"><X size={18} /></button>
-        </div>
+      <Sheet open={open} onOpenChange={(o) => !o && !cancelMutation.isPending && onClose()}>
+        <SheetContent size="md">
+          <SheetHeader>
+            <SheetTitle className="flex flex-wrap items-center gap-2">
+              <Truck className="size-4 text-warning-text" aria-hidden />
+              {note?.number ?? 'Surat Jalan Sementara'}
+              {note && <StatusBadge status={note.status} label={sc.label} tone={scTone} />}
+            </SheetTitle>
+            <SheetDescription className="text-xs">Dokumen sementara — tanpa stok, tanpa jurnal</SheetDescription>
+          </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-blue-500" /></div>
-          ) : !note ? (
-            <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Surat jalan sementara tidak ditemukan.</div>
-          ) : (
-            <>
-              <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1"><User size={10} /> Pelanggan</p>
-                  <p className="text-sm font-semibold text-gray-900">{note.customerName}</p>
+          <SheetBody className="p-0">
+            {isLoading ? (
+              <div role="status" aria-label="Memuat surat jalan sementara"><LoadingState /></div>
+            ) : !note ? (
+              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Surat jalan sementara tidak ditemukan.</div>
+            ) : (
+              <>
+                <div className="grid gap-6 border-b border-border px-6 py-5 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground"><User className="size-3" aria-hidden /> Pelanggan</p>
+                    <p className="text-sm font-semibold text-foreground">{note.customerName}</p>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-3">
+                    <div><dt className="text-xs text-muted-foreground">Tanggal</dt><dd className="text-xs font-medium text-foreground">{formatDate(note.date)}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">No. Mobil</dt><dd className="font-mono text-xs font-medium uppercase text-foreground">{note.nomorMobil || '—'}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Supir</dt><dd className="text-xs font-medium text-foreground">{note.driverName || '—'}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Penerima</dt><dd className="text-xs font-medium text-foreground">{note.recipientName || '—'}</dd></div>
+                  </dl>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><p className="text-xs text-gray-400">Tanggal</p><p className="text-xs font-medium text-gray-800">{formatDate(note.date)}</p></div>
-                  <div><p className="text-xs text-gray-400">No. Mobil</p><p className="text-xs font-medium font-mono uppercase text-gray-800">{note.nomorMobil || '—'}</p></div>
-                  <div><p className="text-xs text-gray-400">Supir</p><p className="text-xs font-medium text-gray-800">{note.driverName || '—'}</p></div>
-                  <div><p className="text-xs text-gray-400">Penerima</p><p className="text-xs font-medium text-gray-800">{note.recipientName || '—'}</p></div>
-                </div>
-              </div>
 
-              {note.status === 'Linked' && (
-                <div className="px-6 py-3 border-b border-gray-100 bg-green-50/40 flex items-center gap-2 text-xs text-gray-700">
-                  <Link2 size={14} className="text-green-600" />
-                  Sudah ditautkan ke surat jalan resmi <b className="font-mono">{note.doNumber}</b>
-                  {note.linkedAt && <span className="text-gray-400"> · {formatDate(note.linkedAt)}</span>}
-                </div>
-              )}
-              {isOpen && (
-                <div className="px-6 py-3 border-b border-gray-100 bg-amber-50/60 text-xs text-amber-800">
-                  Belum ditautkan. Setelah produksi diinput, buat surat jalan resmi dan pilih surat jalan sementara ini di bagian <b>Tautkan Surat Jalan Sementara</b>.
-                </div>
-              )}
-
-              <div className="px-6 py-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Barang</p>
-                <table className="w-full text-sm">
-                  <thead><tr className="text-xs text-gray-400 border-b"><th className="text-left py-1.5">Nama</th><th className="text-right">Qty</th><th className="text-left pl-2">Sat</th></tr></thead>
-                  <tbody>
-                    {note.items.map((it: any) => (
-                      <tr key={it.id} className="border-b border-gray-50">
-                        <td className="py-1.5">{it.itemName}{it.description ? <span className="block text-xs text-gray-400">{it.description}</span> : null}</td>
-                        <td className="text-right font-medium">{Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })}</td>
-                        <td className="pl-2 text-gray-500">{it.unit}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {note.notes && <p className="text-xs text-gray-500 mt-3"><b>Catatan:</b> {note.notes}</p>}
-              </div>
-            </>
-          )}
-        </div>
-
-        {note && (
-          <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-t border-gray-100">
-            {pdfDoc && (
-              <PDFDownloadLink document={pdfDoc} fileName={`${note.number}.pdf`}>
-                {({ loading }: { loading: boolean }) => (
-                  <span className="btn-secondary cursor-pointer inline-flex items-center gap-1.5">
-                    <FileDown size={14} /> {loading ? 'Membuat...' : 'Cetak PDF'}
-                  </span>
+                {note.status === 'Linked' && (
+                  <div className="flex items-center gap-2 border-b border-border bg-success-subtle px-6 py-3 text-xs text-success-text">
+                    <Link2 className="size-3.5" aria-hidden />
+                    <span>
+                      Sudah ditautkan ke surat jalan resmi <b className="font-mono">{note.doNumber}</b>
+                      {note.linkedAt && <span> · {formatDate(note.linkedAt)}</span>}
+                    </span>
+                  </div>
                 )}
-              </PDFDownloadLink>
-            )}
-            {isOpen && canEdit && (
-              <button className="btn-secondary inline-flex items-center gap-1.5" onClick={() => setLinkOpen(true)}><Link2 size={14} /> Tautkan ke DO</button>
-            )}
-            {isOpen && canEdit && (
-              <button className="btn-secondary inline-flex items-center gap-1.5" onClick={() => setEditOpen(true)}><Pencil size={14} /> Ubah</button>
-            )}
-            {isOpen && canCancel && (
-              <button className="btn-secondary text-red-600 inline-flex items-center gap-1.5" onClick={() => setConfirmCancel(true)}><XCircle size={14} /> Batalkan</button>
-            )}
-          </div>
-        )}
-      </aside>
+                {isOpen && (
+                  <div className="border-b border-border bg-warning-subtle px-6 py-3 text-xs text-warning-text">
+                    Belum ditautkan. Setelah produksi diinput, buat surat jalan resmi dan pilih surat jalan sementara ini di bagian <b>Tautkan Surat Jalan Sementara</b>.
+                  </div>
+                )}
 
-      {linkOpen && note && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5 space-y-3">
-            <h3 className="text-base font-semibold text-gray-900">Tautkan {note.number} ke surat jalan resmi</h3>
-            <p className="text-xs text-gray-500">
-              Pilih surat jalan resmi milik <b>{note.customerName}</b> yang sudah dibuat. Hanya mengubah status SJS, tidak menyentuh stok atau jurnal.
-            </p>
-            <select
-              value={linkDoId} onChange={(e) => setLinkDoId(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="">— pilih surat jalan resmi —</option>
-              {(doCandidates ?? []).map((d: any) => (
-                <option key={d.id} value={d.id}>
-                  {d.doNumber} · {formatDate(d.date)}{d.nomorMobil ? ` · ${String(d.nomorMobil).toUpperCase()}` : ''}
-                </option>
-              ))}
-            </select>
-            {doCandidates && doCandidates.length === 0 && (
-              <p className="text-xs text-amber-700">Belum ada surat jalan resmi aktif untuk pelanggan ini.</p>
+                <div className="px-6 py-5">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Barang</p>
+                  <ScrollRegion label="Daftar barang surat jalan sementara">
+                    <table className="w-full min-w-[300px] text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-xs text-muted-foreground">
+                          <th scope="col" className="py-1.5 text-left">Nama</th>
+                          <th scope="col" className="text-right">Qty</th>
+                          <th scope="col" className="pl-2 text-left">Sat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {note.items.map((it: any) => (
+                          <tr key={it.id} className="border-b border-border/50">
+                            <td className="py-1.5">{it.itemName}{it.description ? <span className="block text-xs text-muted-foreground">{it.description}</span> : null}</td>
+                            <td className="text-right font-medium tabular-nums">{formatNumber(Number(it.quantity), { maxDecimals: 3 })}</td>
+                            <td className="pl-2 text-muted-foreground">{it.unit}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </ScrollRegion>
+                  {note.notes && <p className="mt-3 text-xs text-muted-foreground"><b>Catatan:</b> {note.notes}</p>}
+                </div>
+              </>
             )}
-            <div className="flex justify-end gap-2 pt-1">
-              <button className="btn-secondary" onClick={() => { setLinkOpen(false); setLinkDoId(''); }}>Batal</button>
-              <button className="btn-primary" disabled={!linkDoId || linkMutation.isPending} onClick={() => linkMutation.mutate()}>
-                {linkMutation.isPending && <Loader2 size={14} className="animate-spin" />} Tautkan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </SheetBody>
+
+          {note && (
+            <SheetFooter className="flex-wrap sm:justify-start [&>*]:min-h-11 sm:[&>*]:min-h-0">
+              {isOpen && canCancel && (
+                <Button variant="outline" size="sm" className="text-danger-text sm:order-last sm:ml-auto" onClick={() => setConfirmCancel(true)}>
+                  <XCircle aria-hidden /> Batalkan
+                </Button>
+              )}
+              {isOpen && canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil aria-hidden /> Ubah</Button>
+              )}
+              {isOpen && canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setLinkOpen(true)}><Link2 aria-hidden /> Tautkan ke DO</Button>
+              )}
+              {pdfDoc && (
+                <PDFDownloadLink document={pdfDoc} fileName={`${note.number}.pdf`}
+                  className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                  {({ loading }: { loading: boolean }) => (
+                    <>
+                      <FileDown aria-hidden /> {loading ? 'Membuat...' : 'Cetak PDF'}
+                    </>
+                  )}
+                </PDFDownloadLink>
+              )}
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={linkOpen && !!note} onOpenChange={(o) => { if (!o && !linkMutation.isPending) { setLinkOpen(false); setLinkDoId(''); } }}>
+        <DialogContent size="md" className={dialogShellClass}>
+          <form noValidate className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(e) => { e.preventDefault(); if (linkDoId && !linkMutation.isPending) linkMutation.mutate(); }}>
+            <OverlayHeader>
+              <DialogTitle>Tautkan {note?.number} ke surat jalan resmi</DialogTitle>
+              <DialogDescription>
+                Pilih surat jalan resmi milik <b>{note?.customerName}</b> yang sudah dibuat. Hanya mengubah status SJS, tidak menyentuh stok atau jurnal.
+              </DialogDescription>
+            </OverlayHeader>
+            <OverlayBody>
+              <Field label="Surat jalan resmi" required>
+                {(control) => (
+                  <Select value={linkDoId} onValueChange={setLinkDoId}>
+                    <SelectTrigger {...control}><SelectValue placeholder="— pilih surat jalan resmi —" /></SelectTrigger>
+                    <SelectContent>
+                      {(doCandidates ?? []).map((d: any) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.doNumber} · {formatDate(d.date)}{d.nomorMobil ? ` · ${String(d.nomorMobil).toUpperCase()}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </Field>
+              {doCandidates && doCandidates.length === 0 && (
+                <p className="text-xs text-warning-text">Belum ada surat jalan resmi aktif untuk pelanggan ini.</p>
+              )}
+            </OverlayBody>
+            <OverlayFooter>
+              <Button type="button" variant="ghost" disabled={linkMutation.isPending}
+                onClick={() => { setLinkOpen(false); setLinkDoId(''); }}>Batal</Button>
+              <Button type="submit" disabled={!linkDoId} loading={linkMutation.isPending}>
+                {linkMutation.isPending ? 'Menautkan…' : 'Tautkan'}
+              </Button>
+            </OverlayFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {editOpen && note && <TemporaryDeliveryNoteModal editNote={note} onClose={() => { setEditOpen(false); queryClient.invalidateQueries({ queryKey: ['temporary-delivery-note-detail', noteId] }); }} />}
       <ConfirmDialog
         open={confirmCancel}
+        onOpenChange={(o) => !o && !cancelMutation.isPending && setConfirmCancel(false)}
         title="Batalkan surat jalan sementara?"
-        message="Dokumen akan ditandai Dibatalkan. Tidak ada stok atau jurnal yang terpengaruh."
+        description="Dokumen akan ditandai Dibatalkan. Tidak ada stok atau jurnal yang terpengaruh."
         confirmLabel="Batalkan"
-        onConfirm={() => cancelMutation.mutate()}
-        onCancel={() => setConfirmCancel(false)}
+        tone="danger"
+        loading={cancelMutation.isPending}
+        onConfirm={() => { cancelMutation.mutate(); }}
       />
     </>
   );

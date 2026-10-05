@@ -1,64 +1,32 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
-import { X, Plus, Trash2, Loader2, AlertCircle, ChevronDown, Paperclip, FileText, Image as ImageIcon, Truck, ChevronRight } from 'lucide-react';
-import { formatRupiah } from '../lib/formatters';
-import SearchableSelect, { type SelectOption } from './SearchableSelect';
-import WarehousePicker from './WarehousePicker';
-import Select from './Select';
-import BatchPicker from './BatchPicker';
+import api from '@/lib/api';
+import { AlertCircle, FileText, Image as ImageIcon, Paperclip, Plus, Truck, X } from 'lucide-react';
+import { formatRupiah } from '@/lib/format';
+import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
+import { OptionSelect } from '@/components/sales-a/OptionSelect';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
+import { Textarea } from '@/components/ui/textarea';
+import { DateInput, Field } from '@/components/shared';
+import {
+  FooterButton,
+  FormDialogBody,
+  FormDialogFooter,
+  FormDialogHeader,
+  FormError,
+  TableRegion,
+} from '@/components/sales-a/overlay-parts';
+import { formDialogClass, formShellClass, numberInputClass } from '@/components/sales-a/overlay-classes';
+import { InvoiceLineRow, type InvoiceItem } from '@/components/sales-a/InvoiceLineRow';
+import { InvoiceDOPicker, type PendingDO } from '@/components/sales-a/InvoiceDOPicker';
 
-
-interface InvoiceItem {
-  id: string;
-  itemName: string;
-  itemType: 'product' | 'service';
-  inventoryItemId: string;
-  warehouseId: string;       // sumber gudang stock-out (product only)
-  serviceItemId: string;
-  accountId: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  rate: number;
-  discount: number; // percent
-  taxPct: number;   // PPN % per item
-  pphPct: number;   // PPh % per item
-  deliveryOrderItemId?: string | null;
-  deliveryOrderNumber?: string;
-  // Phase 5: optional batch picker. When set, the server locks COGS to the
-  // batch's unit cost (specific identification) instead of WAC.
-  sourceMovementId?: string;
-}
-
-interface PendingDOItem {
-  id: string;
-  deliveryOrderId: string;
-  inventoryItemId: string;
-  warehouseId: string;
-  itemName: string;
-  quantity: number;
-  unit: string;
-  description: string | null;
-  inventoryItem?: { id: string; name: string; code: string; unit: string } | null;
-  // Harga jual & diskon dari baris SO (DO digenerate dari SO).
-  salesOrderItem?: { rate: number | string; discount: number | string } | null;
-}
-
-interface PendingDO {
-  id: string;
-  doNumber: string;
-  date: string;
-  items: PendingDOItem[];
-  // No. PO pelanggan / No. SO utk auto-isi referensi invoice.
-  salesOrder?: { soNumber: string; customerRefNo: string | null } | null;
-}
 
 const MAX_ATTACHMENTS = 5;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-
-const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter', 'Jasa'];
 
 const defaultItem = (): InvoiceItem => ({
   id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0, deliveryOrderItemId: null, deliveryOrderNumber: undefined, sourceMovementId: '',
@@ -154,7 +122,7 @@ const SalesInvoiceModal: React.FC<{
     }
   }, [isOpen, prefillFromDO]);
 
-  const inventoryOptions = useMemo<SelectOption[]>(
+  const inventoryOptions = useMemo<PickerOption[]>(
     () =>
       (inventoryItems ?? []).map((inv: any) => ({
         value: inv.id,
@@ -163,7 +131,7 @@ const SalesInvoiceModal: React.FC<{
     [inventoryItems],
   );
 
-  const serviceOptions = useMemo<SelectOption[]>(
+  const serviceOptions = useMemo<PickerOption[]>(
     () =>
       (serviceItems ?? []).map((svc: any) => ({
         value: svc.id,
@@ -407,645 +375,358 @@ const SalesInvoiceModal: React.FC<{
   const canSubmit = partyId && items.some(i => i.itemName) && grandTotal >= 0 && !mutation.isPending
     && !hasOrphanInventory;
 
-  if (!isOpen) return null;
+  const handleSave = () =>
+    mutation.mutate({
+      date: invoiceDate, dueDate, partyId, notes, terms,
+      customerRefNo: customerRefNo || null,
+      potongan, biayaLain, labelPotongan, labelBiaya,
+      allowNegativeStock,
+      items: items.map(i => ({
+        ...i,
+        itemType: i.itemType,
+        inventoryItemId: i.inventoryItemId || null,
+        warehouseId: i.itemType === 'product' ? (i.warehouseId || null) : null,
+        serviceItemId: i.serviceItemId || null,
+        accountId: i.accountId || null,
+        taxPct: i.taxPct,
+        pphPct: i.pphPct,
+        deliveryOrderItemId: i.deliveryOrderItemId ?? null,
+        sourceMovementId: i.sourceMovementId || null,
+      })),
+    });
+
+  const sectionLabel = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="sales-modal-title" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onKeyDown={(e: React.KeyboardEvent) => e.key === "Escape" && onClose()}>
-      <div className="rounded-xl w-full max-w-[calc(100vw-1rem)] lg:max-w-5xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
+      <DialogContent className={`${formDialogClass} sm:max-w-5xl`}>
+        <form
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); if (canSubmit) handleSave(); }}
+          className={formShellClass}
+        >
+          <FormDialogHeader>
+            <DialogTitle>Invoice Penjualan Baru</DialogTitle>
+            <DialogDescription>Draft • belum disimpan</DialogDescription>
+          </FormDialogHeader>
 
-        {/* ── HEADER BAR ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 id="sales-modal-title" className="text-base font-semibold text-gray-900">Invoice Penjualan Baru</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Draft • belum disimpan</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* ── BODY ── */}
-        <div className="flex-1 overflow-y-auto">
-
-          {/* Top meta section */}
-          <div className="p-6 grid grid-cols-2 gap-8 border-b border-gray-100">
-
-            {/* LEFT — Bill To */}
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tagihkan Kepada</p>
-              <div className="mb-2">
-                <SearchableSelect
-                  options={(parties ?? []).map((p: any) => ({
-                    value: p.id,
-                    label: p.phone ? `${p.name} · ${p.phone}` : p.name,
-                  }))}
-                  value={partyId}
-                  onChange={(v) => {
-                    setPartyId(v);
-                    // Switching customer → reset any DO selections (DOs are scoped to a party).
-                    if (selectedDOIds.length > 0 || items.some((i) => i.deliveryOrderItemId)) {
-                      setSelectedDOIds([]);
-                      setExpandedDOIds([]);
-                      setItems([defaultItem()]);
-                    }
-                  }}
-                  placeholder="— Pilih / cari pelanggan —"
-                  aria-label="Pilih pelanggan"
-                />
-              </div>
-              {selectedParty && (
-                <div className="text-xs text-gray-500 space-y-0.5 mt-1 pl-1">
-                  {selectedParty.email && <p>{selectedParty.email}</p>}
-                  {selectedParty.phone && <p>{selectedParty.phone}</p>}
-                  {selectedParty.address && <p className="text-gray-400">{selectedParty.address}</p>}
-                </div>
-              )}
-              {isWapu && (
-                <div className="mt-2 p-2 bg-amber-50/70 border border-amber-100 rounded-lg flex items-start gap-2">
-                  <span className="text-amber-700 font-semibold text-xs">⚠ WAPU</span>
-                  <p className="text-xs text-amber-700 leading-snug">
-                    Customer ini Wajib Pungut — PPN dipungut sendiri oleh customer ke kas negara.
-                    Semua baris item akan otomatis PPN 0%.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* RIGHT — Invoice details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal Invoice</label>
-                <input type="date" value={invoiceDate} onChange={e => { setInvoiceDate(e.target.value); setDueDate(calcDueDate(e.target.value, terms)); }}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Jatuh Tempo</label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Termin Pembayaran</label>
-                <Select value={terms} onChange={e => { setTerms(e.target.value); setDueDate(calcDueDate(invoiceDate, e.target.value)); }}
-                  className="w-full">
-                  {['Cash', 'Net 7', 'Net 14', 'Net 30', 'Net 60'].map(t => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">No. Referensi PO / Penawaran (opsional)</label>
-                <input
-                  type="text"
-                  value={customerRefNo}
-                  onChange={(e) => setCustomerRefNo(e.target.value)}
-                  placeholder="mis. PO-2026-001 atau QO-202604-0012"
-                  maxLength={100}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-[11px] text-gray-400 mt-1">Akan dicetak di invoice sebagai referensi pembeli. PPN & PPh diatur per baris item.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── FROM-DO TOGGLE + PICKER ── */}
-          {partyId && (
-            <div className="px-6 pt-5 pb-2 border-b border-gray-100">
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={fromDOMode}
-                  onChange={(e) => {
-                    setFromDOMode(e.target.checked);
-                    setItems([defaultItem()]);
-                    setSelectedDOIds([]);
-                    setExpandedDOIds([]);
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <Truck size={14} className="text-blue-600" />
-                <span className="font-medium">Dari Surat Jalan</span>
-                <span className="text-xs text-gray-400">(Surat Jalan sudah dikirim sebelumnya)</span>
-              </label>
-
-              {fromDOMode && (
-                <div className="mt-3 space-y-2">
-                  {(pendingDOs?.length ?? 0) === 0 ? (
-                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 italic">
-                      Tidak ada surat jalan terbuka untuk pelanggan ini.
-                    </div>
-                  ) : (
-                    pendingDOs!.map((doc) => {
-                      const isSelected = selectedDOIds.includes(doc.id);
-                      const isExpanded = expandedDOIds.includes(doc.id);
-                      return (
-                        <div
-                          key={doc.id}
-                          className={`border rounded-lg transition-colors ${
-                            isSelected ? 'border-blue-300 bg-blue-50/40' : 'border-gray-200 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 px-3 py-2.5">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleDOSelection(doc.id)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <Truck size={14} className="text-blue-600 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-mono font-medium text-gray-900">{doc.doNumber}</span>
-                                <span className="text-xs text-gray-400">
-                                  {new Date(doc.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                </span>
-                                <span className="text-xs text-gray-500">• {doc.items.length} item</span>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleDOExpanded(doc.id)}
-                              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-0.5 shrink-0"
-                            >
-                              <ChevronRight
-                                size={12}
-                                className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                              />
-                              {isExpanded ? 'Tutup' : 'Lihat detail'}
-                            </button>
-                          </div>
-                          {isExpanded && (
-                            <div className="border-t border-gray-100 px-3 py-2 bg-gray-50/50">
-                              <ul className="space-y-1 text-xs text-gray-600">
-                                {doc.items.map((it) => (
-                                  <li key={it.id} className="flex items-baseline gap-2">
-                                    <span className="text-gray-400">•</span>
-                                    <span className="flex-1">
-                                      {it.itemName}
-                                      {it.inventoryItem?.code && (
-                                        <span className="text-gray-400"> · {it.inventoryItem.code}</span>
-                                      )}
-                                    </span>
-                                    <span className="font-mono tabular-nums text-gray-700">
-                                      {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {it.unit}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
+          <FormDialogBody className="space-y-0 p-0">
+            {/* Top meta section */}
+            <div className="grid grid-cols-1 gap-6 border-b border-border p-6 md:grid-cols-2 md:gap-8">
+              <div className="space-y-2">
+                <Field label="Tagihkan Kepada" required>
+                  {() => (
+                    <PickerSelect
+                      options={(parties ?? []).map((p: any) => ({
+                        value: p.id,
+                        label: p.phone ? `${p.name} · ${p.phone}` : p.name,
+                      }))}
+                      value={partyId}
+                      onChange={(v) => {
+                        setPartyId(v);
+                        // Switching customer → reset any DO selections (DOs are scoped to a party).
+                        if (selectedDOIds.length > 0 || items.some((i) => i.deliveryOrderItemId)) {
+                          setSelectedDOIds([]);
+                          setExpandedDOIds([]);
+                          setItems([defaultItem()]);
+                        }
+                      }}
+                      placeholder="— Pilih / cari pelanggan —"
+                      aria-label="Pilih pelanggan"
+                    />
                   )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── ITEMS TABLE ── */}
-          <div className="px-6 pt-5 pb-4">
-            {fromDOMode && items.some((i) => i.deliveryOrderItemId) && (
-              <div className="mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 flex items-start gap-2">
-                <Truck size={13} className="mt-0.5 shrink-0" />
-                <span>
-                  Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim — COGS pakai biaya per unit yang dikunci di Surat Jalan.
-                </span>
+                </Field>
+                {selectedParty && (
+                  <div className="space-y-0.5 pl-1 text-xs text-muted-foreground">
+                    {selectedParty.email && <p>{selectedParty.email}</p>}
+                    {selectedParty.phone && <p>{selectedParty.phone}</p>}
+                    {selectedParty.address && <p>{selectedParty.address}</p>}
+                  </div>
+                )}
+                {isWapu && (
+                  <div role="status" className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-subtle p-2">
+                    <span className="text-xs font-semibold text-warning-text">⚠ WAPU</span>
+                    <p className="text-xs leading-snug text-warning-text">
+                      Customer ini Wajib Pungut — PPN dipungut sendiri oleh customer ke kas negara.
+                      Semua baris item akan otomatis PPN 0%.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Daftar Barang / Jasa</p>
-              <button onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700">
-                <Plus size={13} /> Tambah Baris
-              </button>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Tanggal Invoice">
+                  {(c) => (
+                    <DateInput
+                      id={c.id}
+                      value={invoiceDate}
+                      onChange={(v) => { setInvoiceDate(v); setDueDate(calcDueDate(v, terms)); }}
+                    />
+                  )}
+                </Field>
+                <Field label="Jatuh Tempo">
+                  {(c) => <DateInput id={c.id} value={dueDate} onChange={setDueDate} />}
+                </Field>
+                <Field label="Termin Pembayaran" className="sm:col-span-2">
+                  {() => (
+                    <OptionSelect
+                      aria-label="Termin Pembayaran"
+                      value={terms}
+                      onChange={(v) => { setTerms(v); setDueDate(calcDueDate(invoiceDate, v)); }}
+                      options={['Cash', 'Net 7', 'Net 14', 'Net 30', 'Net 60'].map((t) => ({ value: t, label: t }))}
+                    />
+                  )}
+                </Field>
+                <Field
+                  label="No. Referensi PO / Penawaran (opsional)"
+                  hint="Akan dicetak di invoice sebagai referensi pembeli. PPN & PPh diatur per baris item."
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    value={customerRefNo}
+                    onChange={(e) => setCustomerRefNo(e.target.value)}
+                    placeholder="mis. PO-2026-001 atau QO-202604-0012"
+                    maxLength={100}
+                    autoComplete="off"
+                  />
+                </Field>
+              </div>
             </div>
 
-            <div className="border border-gray-200 rounded-xl overflow-x-auto">
-              <table className="w-full text-sm" style={{ minWidth: 960 }}>
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    <th className="text-left px-4 py-3 w-8">#</th>
-                    <th className="text-left px-4 py-3 min-w-[220px] max-w-[280px]">Nama Barang / Jasa</th>
-                    <th className="text-center px-3 py-3 w-28 min-w-[112px]">Qty</th>
-                    <th className="text-left px-3 py-3 w-24">Satuan</th>
-                    <th className="text-right px-3 py-3 w-36 min-w-[130px]">Harga Satuan</th>
-                    <th className="text-right px-3 py-3 w-20">Diskon %</th>
-                    <th className="text-right px-3 py-3 w-20">PPN %</th>
-                    <th className="text-right px-3 py-3 w-20">PPh %</th>
-                    <th className="text-right px-4 py-3 w-36 min-w-[130px]">Jumlah</th>
-                    <th className="w-8"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={item.id} className={`group border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors ${item.deliveryOrderItemId ? 'bg-blue-50/30' : ''}`}>
-                      <td className="px-4 py-3 text-center text-xs text-gray-300 font-medium">{idx + 1}</td>
-                      <td className="px-4 py-3">
-                        {item.deliveryOrderItemId ? (
-                          <>
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-blue-100 text-blue-700">
-                                <Truck size={11} /> {item.deliveryOrderNumber || 'DO'}
-                              </span>
-                            </div>
-                            <div className="text-sm font-medium text-gray-800">{item.itemName}</div>
-                            <input
-                              type="text"
-                              value={item.description}
-                              onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                              placeholder="Keterangan baris (opsional)..."
-                              className="w-full mt-1 bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400"
-                            />
-                          </>
-                        ) : (
-                        <>
-                        {/* Item type toggle */}
-                        <div className="flex items-center gap-1 mb-1.5">
-                          <button
-                            type="button"
-                            onClick={() => item.itemType !== 'product' && toggleItemType(idx, 'product')}
-                            className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
-                              item.itemType === 'product'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-gray-100 text-gray-400 hover:text-gray-600'
-                            }`}
-                          >
-                            Barang
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => item.itemType !== 'service' && toggleItemType(idx, 'service')}
-                            className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
-                              item.itemType === 'service'
-                                ? 'bg-purple-100 text-purple-700'
-                                : 'bg-gray-100 text-gray-400 hover:text-gray-600'
-                            }`}
-                          >
-                            Jasa
-                          </button>
-                        </div>
-
-                        {item.itemType === 'product' ? (
-                          <>
-                            <SearchableSelect
-                              options={inventoryOptions}
-                              value={item.inventoryItemId}
-                              onChange={(v) => selectInventoryItem(idx, v)}
-                              placeholder="— Pilih dari Stok Gudang —"
-                              className="mb-1"
-                            />
-                            {!item.inventoryItemId && (
-                              <input
-                                type="text"
-                                value={item.itemName}
-                                onChange={e => updateItem(idx, 'itemName', e.target.value)}
-                                placeholder="Atau ketik nama barang manual..."
-                                className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400 mb-1"
-                              />
-                            )}
-                            <div className="mt-1">
-                              <WarehousePicker
-                                value={item.warehouseId}
-                                onChange={(v) => updateItem(idx, 'warehouseId', v)}
-                                size="sm"
-                                placeholder="Pilih gudang sumber..."
-                              />
-                            </div>
-                            {/* Phase 5: batch picker (optional, hybrid FIFO/specific-id) */}
-                            {item.inventoryItemId && item.warehouseId && !item.deliveryOrderItemId && (
-                              <div className="mt-1">
-                                <label className="text-[10px] text-gray-400 block mb-0.5">
-                                  Batch (opsional — default WAC)
-                                </label>
-                                <BatchPicker
-                                  itemId={item.inventoryItemId}
-                                  warehouseId={item.warehouseId}
-                                  value={item.sourceMovementId ?? ''}
-                                  excludeIds={items
-                                    .filter((r, i) => i !== idx && r.inventoryItemId === item.inventoryItemId && r.warehouseId === item.warehouseId && r.sourceMovementId)
-                                    .map((r) => r.sourceMovementId as string)}
-                                  onChange={(id) => updateItem(idx, 'sourceMovementId', id as any)}
-                                />
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <SearchableSelect
-                              options={serviceOptions}
-                              value={item.serviceItemId}
-                              onChange={(v) => selectServiceItem(idx, v)}
-                              placeholder="— Pilih Layanan —"
-                              className="mb-1"
-                            />
-                            {!item.serviceItemId && (
-                              <input
-                                type="text"
-                                value={item.itemName}
-                                onChange={e => updateItem(idx, 'itemName', e.target.value)}
-                                placeholder="Atau ketik nama jasa manual..."
-                                className="w-full bg-transparent text-xs text-gray-500 border-none focus:ring-0 focus:outline-none p-0 placeholder:text-gray-400"
-                              />
-                            )}
-                          </>
-                        )}
-                        </>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
-                          min={1}
-                          readOnly={!!item.deliveryOrderItemId}
-                          className={`w-full bg-transparent text-sm text-center font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                            item.deliveryOrderItemId ? 'text-gray-500 cursor-not-allowed' : 'text-gray-800'
-                          }`}
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        {item.deliveryOrderItemId ? (
-                          <span className="text-sm text-gray-500">{item.unit}</span>
-                        ) : (
-                          <div className="relative">
-                            <select
-                              value={item.unit}
-                              onChange={e => updateItem(idx, 'unit', e.target.value)}
-                              className="w-full bg-transparent text-sm text-gray-600 border-none focus:ring-0 focus:outline-none p-0 appearance-none cursor-pointer pr-4"
-                            >
-                              {UNITS.map(u => <option key={u}>{u}</option>)}
-                            </select>
-                            <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <input
-                          type="number"
-                          value={item.rate || ''}
-                          onChange={e => updateItem(idx, 'rate', Number(e.target.value))}
-                          placeholder="0"
-                          className="w-full bg-transparent text-sm text-gray-800 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <input
-                          type="number"
-                          value={item.discount || ''}
-                          onChange={e => updateItem(idx, 'discount', Math.min(100, Number(e.target.value)))}
-                          placeholder="0"
-                          min={0} max={100}
-                          className="w-full bg-transparent text-sm text-gray-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <input
-                          type="number"
-                          value={item.taxPct || ''}
-                          onChange={e => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))}
-                          placeholder="0"
-                          min={0} max={100}
-                          className="w-full bg-transparent text-sm text-blue-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <input
-                          type="number"
-                          value={item.pphPct || ''}
-                          onChange={e => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value))))}
-                          placeholder="0"
-                          min={0} max={100}
-                          className="w-full bg-transparent text-sm text-orange-600 text-right font-mono border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="font-mono text-sm font-medium text-gray-900 tabular-nums">
-                          {formatRupiah(lineTotal(item))}
-                        </span>
-                      </td>
-                      <td className="pr-3 py-3 text-center">
-                        {items.length > 1 && (
-                          <button onClick={() => removeItemAt(idx)}
-                            className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* ── SUMMARY + NOTES ── */}
-          <div className="px-6 pb-6 grid grid-cols-2 gap-8 items-start">
-
-            {/* Notes / Terms */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Catatan untuk Pelanggan</label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Misal: Terima kasih atas kepercayaan Anda. Pembayaran via transfer ke rekening BCA..."
-                rows={4}
-                className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400"
+            {partyId && (
+              <InvoiceDOPicker
+                fromDOMode={fromDOMode}
+                onToggleMode={(checked) => {
+                  setFromDOMode(checked);
+                  setItems([defaultItem()]);
+                  setSelectedDOIds([]);
+                  setExpandedDOIds([]);
+                }}
+                pendingDOs={pendingDOs}
+                selectedDOIds={selectedDOIds}
+                expandedDOIds={expandedDOIds}
+                onToggleSelect={toggleDOSelection}
+                onToggleExpand={toggleDOExpanded}
               />
-            </div>
+            )}
 
-            {/* Totals */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <div className="space-y-2.5">
-                {/* Total Qty (per unit) */}
+            {/* Items table */}
+            <section aria-labelledby="inv-items-title" className="px-6 pb-4 pt-5">
+              {fromDOMode && items.some((i) => i.deliveryOrderItemId) && (
+                <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary-subtle p-2.5 text-xs text-primary-subtle-foreground">
+                  <Truck size={13} className="mt-0.5 shrink-0" aria-hidden />
+                  <span>
+                    Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim — COGS pakai biaya per unit yang dikunci di Surat Jalan.
+                  </span>
+                </p>
+              )}
+              <div className="mb-3 flex items-center justify-between">
+                <h3 id="inv-items-title" className={sectionLabel}>Daftar Barang / Jasa</h3>
+                <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={addItem}>
+                  <Plus aria-hidden /> Tambah Baris
+                </Button>
+              </div>
+
+              <TableRegion label="Daftar barang dan jasa invoice">
+                <table className="w-full min-w-[1040px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th scope="col" className="w-8 px-4 py-3 text-left">#</th>
+                      <th scope="col" className="min-w-[240px] px-4 py-3 text-left">Nama Barang / Jasa</th>
+                      <th scope="col" className="w-28 min-w-[112px] px-3 py-3 text-right">Qty</th>
+                      <th scope="col" className="w-32 min-w-[112px] px-3 py-3 text-left">Satuan</th>
+                      <th scope="col" className="w-36 min-w-[130px] px-3 py-3 text-right">Harga Satuan</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">Diskon %</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">PPN %</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">PPh %</th>
+                      <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right">Jumlah</th>
+                      <th scope="col" className="w-12 px-2 py-3"><span className="sr-only">Aksi</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <InvoiceLineRow
+                        key={item.id}
+                        item={item}
+                        idx={idx}
+                        items={items}
+                        canRemove={items.length > 1}
+                        lineAmount={lineTotal(item)}
+                        inventoryOptions={inventoryOptions}
+                        serviceOptions={serviceOptions}
+                        updateItem={updateItem}
+                        toggleItemType={toggleItemType}
+                        selectInventoryItem={selectInventoryItem}
+                        selectServiceItem={selectServiceItem}
+                        removeItemAt={removeItemAt}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </TableRegion>
+            </section>
+
+            {/* Summary + notes */}
+            <div className="grid grid-cols-1 items-start gap-6 px-6 pb-6 md:grid-cols-2 md:gap-8">
+              <Field label="Catatan untuk Pelanggan">
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Misal: Terima kasih atas kepercayaan Anda. Pembayaran via transfer ke rekening BCA..."
+                  rows={4}
+                  className="resize-none"
+                />
+              </Field>
+
+              <div className="space-y-2.5 rounded-xl border border-border bg-muted/40 p-4">
                 {Object.keys(totalQtyByUnit).length > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Total Qty</span>
-                    <span className="font-mono text-gray-800 tabular-nums">
+                    <span className="text-muted-foreground">Total Qty</span>
+                    <span className="tabular-nums text-foreground">
                       {Object.entries(totalQtyByUnit)
                         .map(([u, q]) => `${q.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${u}`)
                         .join(' · ')}
                     </span>
                   </div>
                 )}
-
-                {/* Subtotal */}
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span className="font-mono text-gray-800 tabular-nums">{formatRupiah(subtotal)}</span>
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="tabular-nums text-foreground">{formatRupiah(subtotal)}</span>
                 </div>
-
-                {/* PPN (total per-item) */}
                 {taxAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">PPN (per item)</span>
-                    <span className="font-mono text-gray-800 tabular-nums">+ {formatRupiah(taxAmount)}</span>
+                    <span className="text-muted-foreground">PPN (per item)</span>
+                    <span className="tabular-nums text-foreground">+ {formatRupiah(taxAmount)}</span>
                   </div>
                 )}
-
-                {/* PPh (total per-item) */}
                 {pphAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">PPh (per item)</span>
-                    <span className="font-mono text-orange-600 tabular-nums">− {formatRupiah(pphAmount)}</span>
+                    <span className="text-muted-foreground">PPh (per item)</span>
+                    <span className="tabular-nums text-warning-text">− {formatRupiah(pphAmount)}</span>
                   </div>
                 )}
-
-                {/* Potongan */}
                 <div className="flex items-center gap-2 text-sm">
-                  <input
-                    type="text"
+                  <Input
+                    aria-label="Label potongan"
                     value={labelPotongan}
-                    onChange={e => setLabelPotongan(e.target.value)}
-                    className="flex-1 bg-transparent border-none text-gray-500 text-sm focus:ring-0 focus:outline-none p-0 min-w-0"
+                    onChange={(e) => setLabelPotongan(e.target.value)}
+                    className="min-w-0 flex-1"
                     placeholder="Label potongan..."
                   />
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-gray-400 text-xs">−</span>
-                    <input
-                      type="number"
-                      value={potongan || ''}
-                      onChange={e => setPotongan(Math.max(0, Number(e.target.value)))}
-                      placeholder="0"
-                      className="w-28 text-right font-mono text-red-500 bg-transparent border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums"
-                    />
-                  </div>
+                  <NumberInput
+                    aria-label="Nilai potongan"
+                    value={potongan || ''}
+                    onChange={(e) => setPotongan(Math.max(0, Number(e.target.value)))}
+                    placeholder="0"
+                    className={`${numberInputClass} w-32 shrink-0`}
+                  />
                 </div>
-
-                {/* Biaya Lain */}
                 <div className="flex items-center gap-2 text-sm">
-                  <input
-                    type="text"
+                  <Input
+                    aria-label="Label biaya lain"
                     value={labelBiaya}
-                    onChange={e => setLabelBiaya(e.target.value)}
-                    className="flex-1 bg-transparent border-none text-gray-500 text-sm focus:ring-0 focus:outline-none p-0 min-w-0"
+                    onChange={(e) => setLabelBiaya(e.target.value)}
+                    className="min-w-0 flex-1"
                     placeholder="Label biaya lain..."
                   />
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-gray-400 text-xs">+</span>
-                    <input
-                      type="number"
-                      value={biayaLain || ''}
-                      onChange={e => setBiayaLain(Math.max(0, Number(e.target.value)))}
-                      placeholder="0"
-                      className="w-28 text-right font-mono text-gray-700 bg-transparent border-none focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums"
-                    />
-                  </div>
+                  <NumberInput
+                    aria-label="Nilai biaya lain"
+                    value={biayaLain || ''}
+                    onChange={(e) => setBiayaLain(Math.max(0, Number(e.target.value)))}
+                    placeholder="0"
+                    className={`${numberInputClass} w-32 shrink-0`}
+                  />
                 </div>
-
-                {/* Grand Total */}
-                <div className="border-t border-gray-200 pt-2.5 flex justify-between items-baseline">
-                  <span className="text-sm font-semibold text-gray-700">Total</span>
-                  <span className="text-2xl font-bold text-blue-600 font-mono tabular-nums">{formatRupiah(grandTotal)}</span>
+                <div className="flex items-baseline justify-between border-t border-border pt-2.5">
+                  <span className="text-sm font-semibold text-foreground">Total</span>
+                  <span className="text-2xl font-bold tabular-nums text-primary">{formatRupiah(grandTotal)}</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Policy 2026-05: barang keluar HANYA via Surat Jalan */}
-          {hasOrphanInventory && (
-            <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-              <div className="flex items-start gap-2 mb-1.5">
-                <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium">Item inventori harus via Surat Jalan</p>
-                  <p className="text-xs text-red-700 mt-0.5">
-                    Sejak 20 Mei 2026, stok keluar wajib lewat Surat Jalan (DO). Invoice = tagihan saja.
-                    Berikut item yg masih direct-sale di invoice ini:
-                  </p>
-                  <ul className="mt-1.5 ml-1 list-disc list-inside text-xs space-y-0.5">
-                    {orphanInventoryLines.map((l) => (
-                      <li key={l.id}>
-                        <span className="font-medium">{l.itemName}</span>
-                        <span className="text-red-600"> — belum link ke Surat Jalan</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-xs mt-2">
-                    <strong>Solusi:</strong> buat <span className="font-semibold">Surat Jalan</span> dulu di menu Penjualan → Surat Jalan,
-                    lalu kembali ke sini dan pilih dari daftar <span className="font-semibold">Pending Surat Jalan</span> di atas.
-                    Atau hapus baris item inventory di sini dan ganti dengan service / akun bebas.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ATTACHMENTS */}
-          <div className="px-6 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                <Paperclip size={12} /> Dokumen Pendukung
-              </p>
-              <label className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
-                <Plus size={13} /> Tambah File
-                <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={handleFileSelect} className="hidden" />
-              </label>
-            </div>
-            {stagedFiles.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">Belum ada file. Max {MAX_ATTACHMENTS} file, 5 MB/file (JPG/PNG/PDF).</p>
-            ) : (
-              <div className="space-y-1.5">
-                {stagedFiles.map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs">
-                    {f.type === 'application/pdf' ? <FileText size={14} className="text-red-500" /> : <ImageIcon size={14} className="text-blue-500" />}
-                    <span className="flex-1 truncate">{f.name}</span>
-                    <span className="text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
-                    <button onClick={() => removeStagedFile(i)} className="text-gray-400 hover:text-red-500">
-                      <X size={12} />
-                    </button>
+            {/* Policy 2026-05: barang keluar HANYA via Surat Jalan */}
+            {hasOrphanInventory && (
+              <div role="alert" className="mx-6 mb-4 rounded-lg border border-danger/30 bg-danger-subtle p-3 text-sm text-danger-text">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden />
+                  <div>
+                    <p className="font-medium">Item inventori harus via Surat Jalan</p>
+                    <p className="mt-0.5 text-xs">
+                      Sejak 20 Mei 2026, stok keluar wajib lewat Surat Jalan (DO). Invoice = tagihan saja.
+                      Berikut item yg masih direct-sale di invoice ini:
+                    </p>
+                    <ul className="ml-1 mt-1.5 list-inside list-disc space-y-0.5 text-xs">
+                      {orphanInventoryLines.map((l) => (
+                        <li key={l.id}>
+                          <span className="font-medium">{l.itemName}</span>
+                          <span> — belum link ke Surat Jalan</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs">
+                      <strong>Solusi:</strong> buat <span className="font-semibold">Surat Jalan</span> dulu di menu Penjualan → Surat Jalan,
+                      lalu kembali ke sini dan pilih dari daftar <span className="font-semibold">Pending Surat Jalan</span> di atas.
+                      Atau hapus baris item inventory di sini dan ganti dengan service / akun bebas.
+                    </p>
                   </div>
-                ))}
+                </div>
               </div>
             )}
-          </div>
 
-          {error && (
-            <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle size={15} /> <span>{error}</span>
+            {/* Attachments */}
+            <section aria-labelledby="inv-attach-title" className="px-6 pb-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 id="inv-attach-title" className={`${sectionLabel} flex items-center gap-1`}>
+                  <Paperclip size={12} aria-hidden /> Dokumen Pendukung
+                </h3>
+                <label className="relative flex cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-accent focus-within:ring-2 focus-within:ring-ring max-sm:min-h-11">
+                  <Plus size={13} aria-hidden /> Tambah File
+                  <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={handleFileSelect} className="sr-only" />
+                </label>
+              </div>
+              {stagedFiles.length === 0 ? (
+                <p className="text-xs italic text-muted-foreground">Belum ada file. Max {MAX_ATTACHMENTS} file, 5 MB/file (JPG/PNG/PDF).</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {stagedFiles.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2 text-xs">
+                      {f.type === 'application/pdf' ? <FileText size={14} className="text-danger-text" aria-hidden /> : <ImageIcon size={14} className="text-info-text" aria-hidden />}
+                      <span className="flex-1 truncate">{f.name}</span>
+                      <span className="text-muted-foreground">{(f.size / 1024).toFixed(0)} KB</span>
+                      <Button variant="ghost" size="icon-sm" className="max-sm:size-11" aria-label={`Hapus file ${f.name}`} onClick={() => removeStagedFile(i)}>
+                        <X aria-hidden />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {error && (
+              <div className="px-6 pb-4">
+                <FormError>{error}</FormError>
+              </div>
+            )}
+          </FormDialogBody>
+
+          <FormDialogFooter>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <p className="text-xs text-muted-foreground">
+                {canSubmit
+                  ? `Total: ${formatRupiah(grandTotal)}`
+                  : hasOrphanInventory
+                    ? 'Item inventori harus via Surat Jalan — lihat peringatan di atas.'
+                    : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
+              </p>
+              <FooterButton type="submit" loading={mutation.isPending} disabled={!canSubmit && !mutation.isPending}>
+                {mutation.isPending ? 'Menyimpan…' : 'Simpan Invoice'}
+              </FooterButton>
             </div>
-          )}
-        </div>
-
-        {/* ── FOOTER ACTIONS ── */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-xs text-gray-400">
-            {canSubmit
-              ? `Total: ${formatRupiah(grandTotal)}`
-              : hasOrphanInventory
-                ? 'Item inventori harus via Surat Jalan — lihat peringatan di atas.'
-                : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
-          </p>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="btn-secondary">Batal</button>
-            <button
-              onClick={() => mutation.mutate({
-                date: invoiceDate, dueDate, partyId, notes, terms,
-                customerRefNo: customerRefNo || null,
-                potongan, biayaLain, labelPotongan, labelBiaya,
-                allowNegativeStock,
-                items: items.map(i => ({
-                  ...i,
-                  itemType: i.itemType,
-                  inventoryItemId: i.inventoryItemId || null,
-                  warehouseId: i.itemType === 'product' ? (i.warehouseId || null) : null,
-                  serviceItemId: i.serviceItemId || null,
-                  accountId: i.accountId || null,
-                  taxPct: i.taxPct,
-                  pphPct: i.pphPct,
-                  deliveryOrderItemId: i.deliveryOrderItemId ?? null,
-                  sourceMovementId: i.sourceMovementId || null,
-                })),
-              })}
-              disabled={!canSubmit}
-              className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {mutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Simpan Invoice'}
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
+          </FormDialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

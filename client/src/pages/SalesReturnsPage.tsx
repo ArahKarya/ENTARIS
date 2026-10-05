@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import {
   DataTable,
   DocumentLink,
+  ConfirmDialog,
   FilterBar,
   PageHeader,
   PartyFilter,
@@ -76,6 +77,7 @@ export default function SalesReturnsPage() {
   const [density, setDensity] = useTableDensity();
   const [modalOpen, setModalOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; returnNumber: string } | null>(null);
 
   const canCreate = can('sales_return', 'edit');
   // Unchanged rule: only approvers may cancel a return (server also needs doc.cancel).
@@ -98,7 +100,7 @@ export default function SalesReturnsPage() {
     onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan retur.')),
   });
 
-  const { mutate: cancelReturn, isPending: cancelling } = cancelMutation;
+  const { isPending: cancelling } = cancelMutation;
 
   const columns = useMemo<ColumnDef<SalesReturnRow>[]>(() => {
     const invoiceRef = (r: SalesReturnRow, className?: string) => {
@@ -207,12 +209,7 @@ export default function SalesReturnsPage() {
                   tone: 'danger',
                   hidden: !canCancel || r.status !== 'Submitted',
                   disabled: cancelling,
-                  onSelect: () => {
-                    // Existing confirmation flow (restyled in Phase 4).
-                    if (confirm(`Batalkan retur ${r.returnNumber}? Stok & jurnal akan dibalik.`)) {
-                      cancelReturn(r.id);
-                    }
-                  },
+                  onSelect: () => setCancelTarget({ id: r.id, returnNumber: r.returnNumber }),
                 },
               ]}
             />
@@ -220,7 +217,7 @@ export default function SalesReturnsPage() {
         },
       },
     ];
-  }, [canCancel, canOpenInvoice, cancelReturn, cancelling]);
+  }, [canCancel, canOpenInvoice, cancelling]);
 
   return (
     <div className="space-y-5 pb-8">
@@ -279,6 +276,17 @@ export default function SalesReturnsPage() {
       </div>
 
       <SalesReturnModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        tone="danger"
+        title={`Batalkan retur ${cancelTarget?.returnNumber ?? ''}?`}
+        description="Stok dan jurnal akan dibalik. Tindakan ini tidak dapat diurungkan."
+        confirmLabel="Batalkan Retur"
+        cancelLabel="Kembali"
+        loading={cancelling}
+        onConfirm={() => (cancelTarget ? cancelMutation.mutateAsync(cancelTarget.id) : undefined)}
+      />
       <InvoiceDetailDrawer type="sales" invoiceId={invoiceId} onClose={() => setInvoiceId(null)} />
     </div>
   );

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, Download, Trash2, Loader2, X, Eye } from 'lucide-react';
+import { FileText, Download, Trash2, Loader2, Eye } from 'lucide-react';
 import api from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
 interface AttachmentPreviewProps {
   referenceType: 'payment' | 'journal' | 'purchase_invoice' | 'sales_invoice' | 'sales_order' | 'delivery_order' | 'goods_receipt' | 'approval_request';
@@ -48,8 +49,8 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-2">
-        <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} />
-        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Memuat lampiran...</span>
+        <Loader2 size={14} className="animate-spin text-muted-foreground" aria-hidden />
+        <span className="text-xs text-muted-foreground" role="status">Memuat lampiran...</span>
       </div>
     );
   }
@@ -68,64 +69,72 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
           return (
             <div
               key={att.id}
-              className="group relative border rounded-lg overflow-hidden"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary, var(--color-bg-primary))' }}
+              className="group relative overflow-hidden rounded-lg border border-border bg-muted"
             >
               {isImage ? (
-                <img
-                  src={fileUrl}
-                  alt={att.fileName}
-                  className="w-full h-24 object-cover cursor-pointer"
+                <button
+                  type="button"
+                  className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setLightboxUrl(fileUrl)}
-                  loading="lazy"
-                />
-              ) : (
-                <div
-                  className="w-full h-24 flex flex-col items-center justify-center gap-1 cursor-pointer"
-                  onClick={() => window.open(fileUrl, '_blank')}
+                  aria-label={`Preview ${att.fileName}`}
                 >
-                  <FileText size={24} className="text-red-500" />
-                  <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>PDF</span>
-                </div>
+                  <img src={fileUrl} alt="" className="w-full h-24 object-cover cursor-pointer" loading="lazy" />
+                </button>
+              ) : (
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Buka ${att.fileName}`}
+                  className="w-full h-24 flex flex-col items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <FileText size={24} className="text-danger-text" aria-hidden />
+                  <span className="text-xs font-medium text-muted-foreground">PDF</span>
+                </a>
               )}
 
               {/* Overlay actions */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-x-0 top-0 flex h-24 items-center justify-center gap-2 bg-black/0 opacity-0 transition-colors group-focus-within:bg-black/40 group-focus-within:opacity-100 group-hover:bg-black/40 group-hover:opacity-100 [&>*]:pointer-events-auto">
                 {isImage && (
                   <button
+                    type="button"
                     onClick={() => setLightboxUrl(fileUrl)}
-                    className="p-1.5 bg-white rounded-full shadow-sm hover:bg-gray-100"
+                    className="inline-flex size-9 items-center justify-center rounded-full bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Preview"
+                    aria-label={`Preview ${att.fileName}`}
                   >
-                    <Eye size={13} className="text-gray-700" />
+                    <Eye size={14} aria-hidden />
                   </button>
                 )}
                 <a
                   href={fileUrl}
                   download={att.fileName}
-                  className="p-1.5 bg-white rounded-full shadow-sm hover:bg-gray-100"
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   title="Download"
+                  aria-label={`Download ${att.fileName}`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Download size={13} className="text-gray-700" />
+                  <Download size={14} aria-hidden />
                 </a>
                 {canDelete && (
                   <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); setDeleteId(att.id); }}
-                    className="p-1.5 bg-white rounded-full shadow-sm hover:bg-red-50"
+                    className="inline-flex size-9 items-center justify-center rounded-full bg-card text-danger-text shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Hapus"
+                    aria-label={`Hapus ${att.fileName}`}
                   >
-                    <Trash2 size={13} className="text-red-500" />
+                    <Trash2 size={14} aria-hidden />
                   </button>
                 )}
               </div>
 
               {/* File info */}
               <div className="px-2 py-1.5">
-                <p className="text-xs truncate font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                <p className="text-xs truncate font-medium text-foreground">
                   {att.fileName}
                 </p>
-                <p className="text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
+                <p className="text-[10px] text-muted-foreground">
                   {formatFileSize(att.fileSize)}
                 </p>
               </div>
@@ -135,25 +144,19 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
       </div>
 
       {/* Lightbox */}
-      {lightboxUrl && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxUrl(null)}
-        >
-          <button
-            className="absolute top-4 right-4 p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
-            onClick={() => setLightboxUrl(null)}
-          >
-            <X size={20} className="text-white" />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt="Preview"
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <Dialog open={!!lightboxUrl} onOpenChange={(next) => !next && setLightboxUrl(null)}>
+        <DialogContent size="doc" className="flex items-center justify-center p-3">
+          <DialogTitle className="sr-only">Pratinjau lampiran</DialogTitle>
+          <DialogDescription className="sr-only">Gambar lampiran ukuran penuh. Tekan Esc untuk menutup.</DialogDescription>
+          {lightboxUrl && (
+            <img
+              src={lightboxUrl}
+              alt="Pratinjau lampiran"
+              className="max-h-[85dvh] max-w-full rounded-lg object-contain shadow-2xl"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation */}
       <ConfirmDialog

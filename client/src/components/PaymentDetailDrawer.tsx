@@ -2,31 +2,28 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  X, CreditCard, User, Calendar, Clock,
-  Loader2, Paperclip, FileText, Image as ImageIcon, Trash2, Download,
+  CreditCard, User, Calendar, Clock,
+  Paperclip, FileText, Image as ImageIcon, Trash2, Download,
   TrendingDown, TrendingUp, ArrowRightLeft, Upload,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '@/lib/utils';
 import api from '../lib/api';
-import { formatRupiah, formatDate } from '../lib/formatters';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
+import { DetailSheet } from './purchase-cash/DetailSheet';
 
 interface Props {
   paymentId: string | null;
   onClose: () => void;
 }
 
-const statusConfig: Record<string, { label: string; badge: string }> = {
-  Draft: { label: 'Draft', badge: 'badge badge-gray' },
-  Submitted: { label: 'Aktif', badge: 'badge badge-blue' },
-  Cancelled: { label: 'Dibatalkan', badge: 'badge badge-red' },
-};
-
 const typeConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  Receive: { label: 'Terima Pembayaran', icon: <TrendingDown size={16} />, color: 'text-green-600' },
-  Pay: { label: 'Bayar Hutang', icon: <TrendingUp size={16} />, color: 'text-red-600' },
-  VendorDeposit: { label: 'Uang Muka Vendor', icon: <CreditCard size={16} />, color: 'text-amber-600' },
-  Expense: { label: 'Pengeluaran', icon: <FileText size={16} />, color: 'text-orange-600' },
-  Transfer: { label: 'Pemindahbukuan', icon: <ArrowRightLeft size={16} />, color: 'text-blue-600' },
+  Receive: { label: 'Terima Pembayaran', icon: <TrendingDown className="size-4" aria-hidden />, color: 'text-success-text' },
+  Pay: { label: 'Bayar Hutang', icon: <TrendingUp className="size-4" aria-hidden />, color: 'text-danger-text' },
+  VendorDeposit: { label: 'Uang Muka Vendor', icon: <CreditCard className="size-4" aria-hidden />, color: 'text-warning-text' },
+  Expense: { label: 'Pengeluaran', icon: <FileText className="size-4" aria-hidden />, color: 'text-warning-text' },
+  Transfer: { label: 'Pemindahbukuan', icon: <ArrowRightLeft className="size-4" aria-hidden />, color: 'text-info-text' },
 };
 
 const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
@@ -78,6 +75,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
   });
 
   const [dragOver, setDragOver] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -90,105 +88,66 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
     }
   };
 
-  if (!paymentId) return null;
-
-  const sc = payment ? statusConfig[payment.status] ?? statusConfig.Draft : statusConfig.Draft;
   const tc = payment ? typeConfig[payment.paymentType] ?? typeConfig.Receive : typeConfig.Receive;
+  const sectionTitle = 'mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+  const tableRegion =
+    'overflow-x-auto rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const th = 'px-3 py-2 text-xs font-medium text-muted-foreground';
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40"
-        style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div
-        className="fixed right-0 top-0 h-full w-full max-w-lg z-50 border-l overflow-y-auto shadow-2xl"
-        style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+      <DetailSheet
+        open={!!paymentId}
+        onClose={onClose}
+        title={payment?.paymentNumber ?? 'Memuat…'}
+        badge={payment && <StatusBadge status={payment.status} docType="payment" />}
+        description={payment ? 'Detail pembayaran' : 'Memuat detail pembayaran'}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 border-b px-5 py-4 flex items-center justify-between"
-          style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3">
-            <CreditCard size={20} className="text-blue-600" />
-            <div>
-              <h2 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                {payment?.paymentNumber ?? 'Memuat...'}
-              </h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                {payment && <span className={sc.badge}>{sc.label}</span>}
-              </div>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-            <X size={18} style={{ color: 'var(--color-text-muted)' }} />
-          </button>
-        </div>
-
         {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="animate-spin text-blue-500" size={28} />
-          </div>
+          <LoadingState />
         ) : !payment ? (
-          <div className="text-center py-20" style={{ color: 'var(--color-text-muted)' }}>
-            Pembayaran tidak ditemukan.
-          </div>
+          <div className="py-20 text-center text-muted-foreground">Pembayaran tidak ditemukan.</div>
         ) : (
-          <div className="px-5 py-4 space-y-5">
-
-            {/* Type & Amount */}
-            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center gap-2 mb-3">
+          <div className="space-y-5">
+            <div className="rounded-xl border border-border p-4">
+              <div className="mb-3 flex items-center gap-2">
                 <span className={tc.color}>{tc.icon}</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{tc.label}</span>
+                <span className="text-sm font-medium text-foreground">{tc.label}</span>
               </div>
-              <p className={cn('text-2xl font-bold tabular-nums', tc.color)}>
-                {formatRupiah(Number(payment.amount))}
-              </p>
+              <p className={cn('num text-2xl font-bold', tc.color)}>{formatRupiah(Number(payment.amount))}</p>
               {Number(payment.refundedAmount) > 0 && (
-                <p className="text-xs mt-1 text-amber-600">
-                  Refund: {formatRupiah(Number(payment.refundedAmount))}
-                </p>
+                <p className="mt-1 text-xs text-warning-text">Refund: {formatRupiah(Number(payment.refundedAmount))}</p>
               )}
             </div>
 
-            {/* Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InfoItem icon={<Calendar size={14} />} label="Tanggal" value={formatDate(payment.date)} />
-              <InfoItem icon={<User size={14} />} label="Pihak Terkait" value={payment.party?.name ?? '—'} />
-              <InfoItem icon={<CreditCard size={14} />} label="Akun Kas/Bank" value={payment.account?.name ?? '—'} />
-              <InfoItem icon={<Clock size={14} />} label="Referensi" value={payment.referenceNo || '—'} />
-            </div>
+            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <InfoItem icon={<Calendar className="size-3.5" aria-hidden />} label="Tanggal" value={formatDate(payment.date)} />
+              <InfoItem icon={<User className="size-3.5" aria-hidden />} label="Pihak Terkait" value={payment.party?.name ?? '—'} />
+              <InfoItem icon={<CreditCard className="size-3.5" aria-hidden />} label="Akun Kas/Bank" value={payment.account?.name ?? '—'} />
+              <InfoItem icon={<Clock className="size-3.5" aria-hidden />} label="Referensi" value={payment.referenceNo || '—'} />
+            </dl>
 
-            {/* Payment Splits */}
             {payment.splits && payment.splits.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                  Detail Akun
-                </h3>
-                <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+              <section>
+                <h3 className={sectionTitle}>Detail Akun</h3>
+                <div role="region"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0} aria-label="Tabel detail akun" className={tableRegion}>
                   <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-                        <th className="text-left px-3 py-2 text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Akun</th>
-                        <th className="text-right px-3 py-2 text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Jumlah</th>
+                    <thead className="bg-muted">
+                      <tr>
+                        <th scope="col" className={cn(th, 'text-left')}>Akun</th>
+                        <th scope="col" className={cn(th, 'text-right')}>Jumlah</th>
                       </tr>
                     </thead>
                     <tbody>
                       {payment.splits.map((s: any) => (
-                        <tr key={s.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-                          <td className="px-3 py-2">
-                            <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
-                              {s.account?.accountNumber}
-                            </span>{' '}
-                            <span className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
-                              {s.account?.name}
-                            </span>
+                        <tr key={s.id} className="border-t border-border">
+                          <td className="px-3 py-2 text-xs">
+                            <span className="font-mono text-muted-foreground">{s.account?.accountNumber}</span>{' '}
+                            <span className="text-foreground">{s.account?.name}</span>
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                          <td className="num px-3 py-2 text-right text-xs font-medium text-foreground">
                             {formatRupiah(Number(s.amount))}
                           </td>
                         </tr>
@@ -196,61 +155,52 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* Invoice Allocations */}
             {payment.allocations && payment.allocations.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                  Alokasi ke Faktur
-                </h3>
-                <div className="space-y-2">
+              <section>
+                <h3 className={sectionTitle}>Alokasi ke Faktur</h3>
+                <ul className="space-y-2">
                   {payment.allocations.map((a: any) => (
-                    <div key={a.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+                    <li key={a.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted p-3">
                       <div>
-                        <p className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                        <p className="text-xs font-medium text-foreground">
                           {a.invoiceType === 'SalesInvoice' ? 'Faktur Penjualan' : 'Faktur Pembelian'}
                         </p>
-                        <p className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
-                          {a.invoiceId.slice(0, 8)}...
-                        </p>
+                        <p className="font-mono text-xs text-muted-foreground">{a.invoiceId.slice(0, 8)}...</p>
                       </div>
-                      <span className="text-xs font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
-                        {formatRupiah(Number(a.allocatedAmount))}
-                      </span>
-                    </div>
+                      <span className="num text-xs font-bold text-foreground">{formatRupiah(Number(a.allocatedAmount))}</span>
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              </section>
             )}
 
-            {/* Journal Entry */}
             {payment.journalEntry && (
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                  Jurnal ({payment.journalEntry.entryNumber})
-                </h3>
-                <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+              <section>
+                <h3 className={sectionTitle}>Jurnal ({payment.journalEntry.entryNumber})</h3>
+                <div role="region"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0} aria-label="Tabel jurnal" className={tableRegion}>
                   <table className="w-full text-xs">
-                    <thead>
-                      <tr style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-                        <th className="text-left px-3 py-1.5 font-medium" style={{ color: 'var(--color-text-muted)' }}>Akun</th>
-                        <th className="text-right px-3 py-1.5 font-medium" style={{ color: 'var(--color-text-muted)' }}>Debit</th>
-                        <th className="text-right px-3 py-1.5 font-medium" style={{ color: 'var(--color-text-muted)' }}>Kredit</th>
+                    <thead className="bg-muted">
+                      <tr>
+                        <th scope="col" className={cn(th, 'text-left')}>Akun</th>
+                        <th scope="col" className={cn(th, 'text-right')}>Debit</th>
+                        <th scope="col" className={cn(th, 'text-right')}>Kredit</th>
                       </tr>
                     </thead>
                     <tbody>
                       {payment.journalEntry.items.map((ji: any) => (
-                        <tr key={ji.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-                          <td className="px-3 py-1.5" style={{ color: 'var(--color-text-primary)' }}>
-                            <span className="font-mono" style={{ color: 'var(--color-text-muted)' }}>{ji.account?.accountNumber}</span>{' '}
-                            {ji.account?.name}
+                        <tr key={ji.id} className="border-t border-border">
+                          <td className="px-3 py-1.5 text-foreground">
+                            <span className="font-mono text-muted-foreground">{ji.account?.accountNumber}</span> {ji.account?.name}
                           </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums" style={{ color: Number(ji.debit) > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                          <td className={cn('num px-3 py-1.5 text-right', Number(ji.debit) > 0 ? 'text-foreground' : 'text-muted-foreground')}>
                             {Number(ji.debit) > 0 ? formatRupiah(Number(ji.debit)) : '—'}
                           </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums" style={{ color: Number(ji.credit) > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                          <td className={cn('num px-3 py-1.5 text-right', Number(ji.credit) > 0 ? 'text-foreground' : 'text-muted-foreground')}>
                             {Number(ji.credit) > 0 ? formatRupiah(Number(ji.credit)) : '—'}
                           </td>
                         </tr>
@@ -258,106 +208,123 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* Notes */}
             {payment.notes && (
-              <div className="rounded-lg border p-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Catatan</p>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{payment.notes}</p>
+              <div className="rounded-lg border border-border bg-muted p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Catatan</p>
+                <p className="text-xs leading-relaxed text-foreground">{payment.notes}</p>
               </div>
             )}
 
-            {/* Attachments */}
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
-                <Paperclip size={12} /> Lampiran ({attachments.length})
+            <section>
+              <h3 className={sectionTitle}>
+                <Paperclip className="size-3" aria-hidden /> Lampiran ({attachments.length})
               </h3>
 
-              {/* Upload area */}
               {payment.status !== 'Cancelled' && (
                 <div
                   className={cn(
-                    'border-2 border-dashed rounded-lg p-4 text-center mb-3 transition-colors cursor-pointer',
-                    dragOver ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/20' : 'border-gray-200 dark:border-gray-700'
+                    'mb-3 rounded-lg border-2 border-dashed p-4 text-center transition-colors',
+                    dragOver ? 'border-primary bg-primary-subtle' : 'border-border',
                   )}
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={18} className="mx-auto mb-1" style={{ color: 'var(--color-text-muted)' }} />
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {uploadMutation.isPending ? 'Mengunggah...' : 'Klik atau seret file ke sini'}
-                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 sm:h-9"
+                    onClick={() => fileInputRef.current?.click()}
+                    loading={uploadMutation.isPending}
+                  >
+                    <Upload aria-hidden />
+                    {uploadMutation.isPending ? 'Mengunggah…' : 'Pilih file'}
+                  </Button>
+                  <p className="mt-2 text-xs text-muted-foreground">atau seret file ke sini (maks 10MB)</p>
                   <input
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
                     multiple
+                    tabIndex={-1}
+                    aria-label="Berkas lampiran"
                     accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
                     onChange={(e) => handleFiles(e.target.files)}
                   />
                 </div>
               )}
 
-              {/* File list */}
               {attachments.length === 0 ? (
-                <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Belum ada lampiran.</p>
+                <p className="text-xs italic text-muted-foreground">Belum ada lampiran.</p>
               ) : (
-                <div className="space-y-2">
+                <ul className="space-y-2">
                   {attachments.map((a: any) => {
                     const isImage = a.mimeType?.startsWith('image/');
                     const Icon = isImage ? ImageIcon : FileText;
                     return (
-                      <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg border" style={{ borderColor: 'var(--color-border)' }}>
-                        <Icon size={16} className={isImage ? 'text-purple-500' : 'text-blue-500'} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{a.originalName}</p>
-                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            {(a.fileSize / 1024).toFixed(0)} KB
-                          </p>
+                      <li key={a.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
+                        <Icon className={cn('size-4 shrink-0', isImage ? 'text-primary' : 'text-info-text')} aria-hidden />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-foreground">{a.originalName}</p>
+                          <p className="text-xs text-muted-foreground">{(a.fileSize / 1024).toFixed(0)} KB</p>
                         </div>
-                        <a
-                          href={`/api/attachments/file/${a.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                          title="Unduh"
-                        >
-                          <Download size={14} style={{ color: 'var(--color-text-muted)' }} />
-                        </a>
-                        {payment.status !== 'Cancelled' && (
-                          <button
-                            onClick={() => deleteMutation.mutate(a.id)}
-                            className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/20"
-                            title="Hapus"
+                        <Button asChild variant="ghost" size="icon-touch" className="sm:size-9">
+                          <a
+                            href={`/api/attachments/file/${a.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Unduh ${a.originalName}`}
                           >
-                            <Trash2 size={14} className="text-red-400" />
-                          </button>
+                            <Download aria-hidden />
+                          </a>
+                        </Button>
+                        {payment.status !== 'Cancelled' && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-touch"
+                            className="text-danger-text sm:size-9"
+                            aria-label={`Hapus ${a.originalName}`}
+                            onClick={() => setDeleteTarget({ id: a.id, name: a.originalName })}
+                          >
+                            <Trash2 aria-hidden />
+                          </Button>
                         )}
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               )}
-            </div>
+            </section>
           </div>
         )}
-      </div>
+      </DetailSheet>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        tone="danger"
+        title="Hapus lampiran?"
+        description={deleteTarget ? `Lampiran "${deleteTarget.name}" akan dihapus permanen.` : undefined}
+        confirmLabel="Hapus"
+        loading={deleteMutation.isPending}
+        onConfirm={() => (deleteTarget ? deleteMutation.mutateAsync(deleteTarget.id) : undefined)}
+      />
     </>
   );
 };
 
 function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: 'var(--color-border)' }}>
-      <div className="flex items-center gap-1.5 mb-1" style={{ color: 'var(--color-text-muted)' }}>
+    <div className="rounded-lg border border-border p-3">
+      <dt className="mb-1 flex items-center gap-1.5 text-muted-foreground">
         {icon}
-        <span className="text-xs uppercase tracking-wide font-medium">{label}</span>
-      </div>
-      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+      </dt>
+      <dd className="break-words text-sm font-medium text-foreground">{value}</dd>
     </div>
   );
 }

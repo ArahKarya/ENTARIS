@@ -1,8 +1,9 @@
 import React, { useMemo, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { X, Copy, Download, Printer, Check } from 'lucide-react';
+import { Copy, Download, Printer, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface AssetForQr {
   code: string;
@@ -22,7 +23,6 @@ const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
 
 const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
-  useBodyScrollLock(isOpen);
   const [copied, setCopied] = React.useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -103,80 +103,59 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
     else print();
   };
 
-  if (!isOpen || !asset) return null;
+  if (!asset) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ga-qr-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="rounded-xl shadow-2xl w-full max-w-md overflow-hidden bg-card border border-border">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h3 id="ga-qr-modal-title" className="font-semibold text-foreground">QR Aset — {asset.code}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-accent rounded" aria-label="Tutup">
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>QR Aset — {asset.code}</DialogTitle>
+          <DialogDescription>{asset.name}. Pindai untuk melihat info aset.</DialogDescription>
+        </DialogHeader>
 
-        <div className="p-5 space-y-4">
-          {!qrCode ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-              Aset ini belum punya kode QR. Hubungi admin untuk generate ulang.
+        {!qrCode ? (
+          <div role="status" className="rounded-lg border border-warning/40 bg-warning-subtle p-4 text-sm text-warning-text">
+            Aset ini belum punya kode QR. Hubungi admin untuk generate ulang.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {/* The QR keeps a literal white card + dark modules in both themes: scanners need the contrast. */}
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-white py-4">
+              <div ref={canvasRef} className="rounded bg-white p-3">
+                <QRCodeCanvas
+                  value={url}
+                  size={240}
+                  level="M"
+                  includeMargin={false}
+                  bgColor="#ffffff"
+                  fgColor="#0f172a"
+                  role="img"
+                  aria-label={`Kode QR aset ${asset.code}`}
+                />
+              </div>
+              <p className="break-all px-4 text-center font-mono text-[11px] text-slate-600">{url}</p>
             </div>
-          ) : (
-            <>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">{asset.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Scan untuk lihat info aset</p>
-              </div>
 
-              <div className="flex flex-col items-center gap-3 py-4 bg-white rounded-lg border border-border">
-                <div ref={canvasRef} className="bg-white p-3 rounded">
-                  <QRCodeCanvas
-                    value={url}
-                    size={240}
-                    level="M"
-                    includeMargin={false}
-                    bgColor="#ffffff"
-                    fgColor="#0f172a"
-                  />
-                </div>
-                <p className="text-[11px] text-gray-500 text-center px-4 break-all font-mono">{url}</p>
-              </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <Button variant="outline" onClick={handleCopy}>
+                {copied ? <Check className="text-success" aria-hidden /> : <Copy aria-hidden />}
+                {copied ? 'Tersalin' : 'Salin'}
+              </Button>
+              <Button variant="outline" onClick={handleDownload}>
+                <Download aria-hidden /> PNG
+              </Button>
+              <Button onClick={handlePrint}>
+                <Printer aria-hidden /> Cetak
+              </Button>
+            </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={handleCopy}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground bg-card border border-border hover:bg-accent rounded-lg transition-colors"
-                >
-                  {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                  {copied ? 'Tersalin' : 'Salin'}
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground bg-card border border-border hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Download size={14} /> PNG
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
-                >
-                  <Printer size={14} /> Cetak
-                </button>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-[11px] text-blue-900 leading-relaxed">
-                <strong>Tip:</strong> Cetak QR lalu tempel di aset fisik. Scan dengan HP untuk lihat kode, nama, kategori, status & kondisi aset.
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+            <div className="rounded-lg border border-info/30 bg-info-subtle p-3 text-xs leading-relaxed text-info-text">
+              <strong>Tip:</strong> Cetak QR lalu tempel di aset fisik. Scan dengan HP untuk lihat kode, nama, kategori, status & kondisi aset.
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
