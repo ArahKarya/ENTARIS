@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BellRing, CheckCircle2, FileWarning, PackageX, ShieldCheck, Truck, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BellRing, CheckCircle2, FileWarning, PackageX, ShieldCheck, Truck, Wrench, type LucideIcon } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
+import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
+import { useMaintenanceDashboard } from './maintenanceData';
 
 interface OverdueItem {
   type: 'sales' | 'purchase';
@@ -43,6 +45,8 @@ const POLL_MS = 60_000;
 interface Props {
   canFinance: boolean;
   canApprovals: boolean;
+  /** Any EAM module (ga_maintenance / ga_vehicle / ga_documents) + widget enabled. */
+  canMaintenance?: boolean;
 }
 
 /**
@@ -50,7 +54,7 @@ interface Props {
  * (same query keys as the individual widgets, so requests are shared via the cache).
  * Finance-only sources follow the same gating as their widgets.
  */
-export default function AttentionList({ canFinance, canApprovals }: Props) {
+export default function AttentionList({ canFinance, canApprovals, canMaintenance = false }: Props) {
   const overdue = useQuery<OverdueItem[]>({
     queryKey: ['dashboard-overdue'],
     queryFn: async () => (await api.get('/dashboard/overdue')).data,
@@ -77,7 +81,10 @@ export default function AttentionList({ canFinance, canApprovals }: Props) {
     enabled: canApprovals,
   });
 
+  const maintenance = useMaintenanceDashboard(canMaintenance);
+
   const queries = [
+    ...(canMaintenance ? [maintenance] : []),
     ...(canFinance ? [overdue, pendingDo] : []),
     stock,
     negative,
@@ -155,6 +162,17 @@ export default function AttentionList({ canFinance, canApprovals }: Props) {
     });
   }
 
+  for (const m of maintenance.data?.attention ?? []) {
+    rows.push({
+      key: m.key,
+      icon: Wrench,
+      tone: m.tone,
+      title: m.title,
+      detail: m.detail,
+      href: m.href,
+    });
+  }
+
   return (
     <WidgetCard
       title="Perlu Perhatian"
@@ -168,6 +186,7 @@ export default function AttentionList({ canFinance, canApprovals }: Props) {
       emptyText="Tidak ada yang perlu ditindaklanjuti"
       minHeight={140}
     >
+      <ScrollRegion label="Daftar hal yang perlu perhatian" className="max-h-[19rem] overflow-y-auto">
       <ul className="divide-y divide-border">
         {rows.map(({ key, icon: Icon, tone, title, detail, href }) => (
           <li key={key}>
@@ -187,6 +206,7 @@ export default function AttentionList({ canFinance, canApprovals }: Props) {
           </li>
         ))}
       </ul>
+      </ScrollRegion>
     </WidgetCard>
   );
 }

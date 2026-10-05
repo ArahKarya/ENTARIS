@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useCallback, useMemo, useEffect } from 'react';
+import { Children, lazy, Suspense, useState, useCallback, useMemo, useEffect } from 'react';
 import { Settings2, LayoutDashboard, DollarSign, TrendingUp, Package, Factory, Building2 } from 'lucide-react';
 import { PageHeader } from '../components/shared';
 import { Button } from '../components/ui/button';
@@ -30,11 +30,15 @@ import CashFlowChart from '../components/widgets/CashFlowChart';
 import AgingSummary from '../components/widgets/AgingSummary';
 import CashPositionWidget from '../components/widgets/CashPositionWidget';
 import TopVendors from '../components/widgets/TopVendors';
+import MaintenanceUpcoming from '../components/widgets/MaintenanceUpcoming';
+import UpcomingDueInvoices from '../components/widgets/UpcomingDueInvoices';
+import { canViewMaintenance } from '../components/widgets/maintenanceData';
 import CogsBackfillWidget from '../components/widgets/CogsBackfillWidget';
 import { WidgetSkeleton } from '../components/dashboard-kit';
 import DashboardSettings from '../components/DashboardSettings';
 import { DEFAULT_WIDGETS, type WidgetConfig } from '../components/dashboardWidgets';
 import DashboardSectionNav, { type SectionDef } from '../components/DashboardSectionNav';
+import { tabId } from '../components/dashboardTabId';
 import DashboardPeriodFilter, { type PeriodRange } from '../components/DashboardPeriodFilter';
 import { computePresetRange } from '../components/dashboardPeriod';
 import { SetupChecklistCard } from '../components/onboarding/SetupChecklistCard';
@@ -56,14 +60,14 @@ const FINANCE_WIDGET_IDS = new Set([
   'revenue-chart', 'recent-activities', 'top-customers',
   'overdue-invoices', 'expense-breakdown',
   'financial-ratios', 'monthly-profit', 'cash-flow-summary', 'aging-summary',
-  'cash-position', 'top-vendors',
+  'cash-position', 'top-vendors', 'upcoming-due',
   // Aset & profitability sensitive — finance only
   'fixed-assets-kpi', 'fixed-assets-by-category', 'depreciation-due', 'top-assets',
   'profitability-per-sku',
 ]);
 
 const KEUANGAN_WIDGETS = ['revenue-chart', 'monthly-profit', 'cash-flow-summary', 'financial-ratios', 'expense-breakdown', 'aging-summary', 'overdue-invoices', 'top-vendors'];
-const SALES_WIDGETS = ['top-customers', 'recent-activities', 'profitability-per-sku'];
+const SALES_WIDGETS = ['top-customers', 'recent-activities', 'profitability-per-sku', 'upcoming-due'];
 const STOK_WIDGETS = ['warehouse-kpi', 'stock-alert', 'movement-trend', 'category-distribution', 'top-items', 'recent-movements', 'cogs-backfill'];
 const PRODUKSI_WIDGETS = ['production-stats', 'yield-trend', 'production-deep-dive'];
 const ASET_WIDGETS = ['fixed-assets-kpi', 'fixed-assets-by-category', 'depreciation-due', 'top-assets'];
@@ -89,6 +93,20 @@ function loadWidgetPrefs(): Record<string, boolean> {
 
 function saveWidgetPrefs(prefs: Record<string, boolean>) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+}
+
+/**
+ * Responsive grid that never leaves a hole: columns follow the number of widgets
+ * actually rendered (hidden/disabled ones are `false`/null children).
+ */
+function WidgetGrid({ children, max = 2 }: { children: React.ReactNode; max?: 2 | 3 }) {
+  const items = Children.toArray(children).filter(Boolean);
+  if (items.length === 0) return null;
+  const cols =
+    items.length === 1 ? 'grid-cols-1'
+    : items.length === 2 || max === 2 ? 'grid-cols-1 lg:grid-cols-2'
+    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+  return <div className={`grid gap-4 ${cols}`}>{items}</div>;
 }
 
 interface SectionHeaderProps {
@@ -128,11 +146,19 @@ export const Dashboard = () => {
 
   const canApprovals = useMemo(() => can('approvals', 'view'), []);
 
+
+  // Pemeliharaan: any EAM module (server re-checks each source) — independent of 'reports'.
+  const canMaintenance = useMemo(() => canViewMaintenance(), []);
+  // COGS backfill API is gated by the 'journal' module.
+  const canCogs = useMemo(() => can('journal', 'view'), []);
+
   const availableWidgets = useMemo(
-    () => canFinance
-      ? DEFAULT_WIDGETS
-      : DEFAULT_WIDGETS.filter((w) => !FINANCE_WIDGET_IDS.has(w.id)),
-    [canFinance]
+    () => DEFAULT_WIDGETS.filter(
+      (w) => (canFinance || !FINANCE_WIDGET_IDS.has(w.id))
+        && (canMaintenance || w.id !== 'maintenance')
+        && (canCogs || w.id !== 'cogs-backfill'),
+    ),
+    [canFinance, canMaintenance, canCogs]
   );
 
   const widgets: WidgetConfig[] = useMemo(
@@ -215,9 +241,22 @@ export const Dashboard = () => {
     enabled: canFinance,
   });
 
+  // One-month periods make the revenue chart a single point: show the trailing 6 months instead.
+  const singleMonth = period.startDate.slice(0, 7) === period.endDate.slice(0, 7);
+  const trailingStart = useMemo(() => {
+    const [y, m] = period.endDate.split('-').map(Number);
+    const d = new Date(y, m - 6, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  }, [period.endDate]);
+  const trailing = useQuery({
+    queryKey: ['dashboard-charts', trailingStart, period.endDate],
+    queryFn: async () => (await api.get('/dashboard/charts', { params: { startDate: trailingStart, endDate: period.endDate } })).data,
+    enabled: canFinance && singleMonth,
+  });
+
   const showKeuangan = canFinance && anyEnabled(KEUANGAN_WIDGETS);
   const showSales = canFinance && anyEnabled(SALES_WIDGETS);
-  const showStok = anyEnabled(STOK_WIDGETS);
+  const showStok = anyEnabled(canCogs ? STOK_WIDGETS : STOK_WIDGETS.filter((id) => id !== 'cogs-backfill'));
   const showProduksi = anyEnabled(PRODUKSI_WIDGETS);
   const showAset = canFinance && anyEnabled(ASET_WIDGETS);
 
@@ -232,6 +271,7 @@ export const Dashboard = () => {
   }, [showKeuangan, showSales, showStok, showProduksi, showAset]);
 
   const showAttention = isEnabled('attention-list');
+  const showMaintenance = canMaintenance && isEnabled('maintenance');
   const showRevenue = canFinance && isEnabled('revenue-chart');
 
   return (
@@ -269,75 +309,78 @@ export const Dashboard = () => {
       <DashboardSectionNav sections={sections} />
 
       {/* ─────────── SECTION: OVERVIEW ─────────── */}
-      <section id="overview" aria-label="Overview" className="space-y-4 scroll-mt-20">
+      <section id="overview" role="tabpanel" aria-labelledby={tabId('overview')} className="space-y-4 scroll-mt-20">
         <SectionHeader icon={LayoutDashboard} title="Overview" subtitle="Ringkasan performa utama" />
-        <KPICards period={period} canFinance={canFinance} />
+        <KPICards period={period} canFinance={canFinance} canMaintenance={showMaintenance} />
         {(showRevenue || showAttention) && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {showRevenue && (
               <div className={showAttention ? 'min-w-0 lg:col-span-2' : 'min-w-0 lg:col-span-3'}>
                 <Lazy height={330}>
-                  <RevenueChart data={chartData} loading={isChartsLoading} isError={isChartsError} onRetry={() => void refetchCharts()} />
+                  {singleMonth ? (
+                    <RevenueChart
+                      data={trailing.data}
+                      loading={trailing.isLoading}
+                      isError={trailing.isError}
+                      onRetry={() => void trailing.refetch()}
+                      description="6 bulan terakhir hingga akhir periode terpilih"
+                    />
+                  ) : (
+                    <RevenueChart data={chartData} loading={isChartsLoading} isError={isChartsError} onRetry={() => void refetchCharts()} />
+                  )}
                 </Lazy>
               </div>
             )}
             {showAttention && (
               <div className={showRevenue ? 'min-w-0' : 'min-w-0 lg:col-span-3'}>
-                <AttentionList canFinance={canFinance} canApprovals={canApprovals} />
+                <AttentionList canFinance={canFinance} canApprovals={canApprovals} canMaintenance={showMaintenance} />
               </div>
             )}
           </div>
         )}
-        {canFinance && isEnabled('cash-position') && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <CashPositionWidget />
-          </div>
-        )}
+        <WidgetGrid>
+          {canFinance && isEnabled('cash-position') && <CashPositionWidget />}
+          {showMaintenance && <MaintenanceUpcoming />}
+        </WidgetGrid>
       </section>
 
       {/* ─────────── SECTION: KEUANGAN ─────────── */}
       {showKeuangan && (
-        <section id="keuangan" aria-label="Keuangan" className="space-y-4 scroll-mt-20">
+        <section id="keuangan" role="tabpanel" aria-labelledby={tabId('keuangan')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={DollarSign} title="Keuangan" subtitle="Laba, arus kas & rasio" />
 
-          {(isEnabled('monthly-profit') || isEnabled('expense-breakdown')) && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {isEnabled('monthly-profit') && (
-                <Lazy height={330}>
-                  <MonthlyProfitChart startDate={period.startDate} endDate={period.endDate} />
-                </Lazy>
-              )}
-              {isEnabled('expense-breakdown') && (
-                <Lazy height={330}>
-                  <ExpenseBreakdown startDate={period.startDate} endDate={period.endDate} />
-                </Lazy>
-              )}
-            </div>
-          )}
+          <WidgetGrid>
+            {isEnabled('monthly-profit') && (
+              <Lazy height={330}>
+                <MonthlyProfitChart startDate={period.startDate} endDate={period.endDate} />
+              </Lazy>
+            )}
+            {isEnabled('expense-breakdown') && (
+              <Lazy height={330}>
+                <ExpenseBreakdown startDate={period.startDate} endDate={period.endDate} />
+              </Lazy>
+            )}
+          </WidgetGrid>
 
-          {(isEnabled('cash-flow-summary') || isEnabled('financial-ratios') || isEnabled('aging-summary')) && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {isEnabled('cash-flow-summary') && <CashFlowChart startDate={period.startDate} endDate={period.endDate} />}
-              {isEnabled('financial-ratios') && <FinancialRatios />}
-              {isEnabled('aging-summary') && <AgingSummary />}
-            </div>
-          )}
+          <WidgetGrid max={3}>
+            {isEnabled('cash-flow-summary') && <CashFlowChart startDate={period.startDate} endDate={period.endDate} />}
+            {isEnabled('financial-ratios') && <FinancialRatios />}
+            {isEnabled('aging-summary') && <AgingSummary />}
+          </WidgetGrid>
 
-          {(isEnabled('overdue-invoices') || isEnabled('top-vendors')) && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {isEnabled('overdue-invoices') && <OverdueInvoices />}
-              {isEnabled('top-vendors') && <TopVendors />}
-            </div>
-          )}
+          <WidgetGrid>
+            {isEnabled('overdue-invoices') && <OverdueInvoices />}
+            {isEnabled('top-vendors') && <TopVendors />}
+          </WidgetGrid>
         </section>
       )}
 
       {/* ─────────── SECTION: SALES ─────────── */}
       {showSales && (
-        <section id="sales" aria-label="Sales" className="space-y-4 scroll-mt-20">
+        <section id="sales" role="tabpanel" aria-labelledby={tabId('sales')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={TrendingUp} title="Sales" subtitle="Pelanggan & aktivitas pembayaran" />
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <WidgetGrid>
             {isEnabled('top-customers') && <TopCustomers />}
             {isEnabled('recent-activities') && (
               <RecentActivities
@@ -347,11 +390,12 @@ export const Dashboard = () => {
                 onRetry={() => void refetchActivities()}
               />
             )}
-          </div>
+          </WidgetGrid>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <WidgetGrid>
             <PendingDOWidget />
-          </div>
+            {isEnabled('upcoming-due') && <UpcomingDueInvoices />}
+          </WidgetGrid>
 
           {isEnabled('profitability-per-sku') && (
             <ProfitabilityPerSku startDate={period.startDate} endDate={period.endDate} />
@@ -361,52 +405,58 @@ export const Dashboard = () => {
 
       {/* ─────────── SECTION: STOK & GUDANG ─────────── */}
       {showStok && (
-        <section id="stok" aria-label="Stok & Gudang" className="space-y-4 scroll-mt-20">
+        <section id="stok" role="tabpanel" aria-labelledby={tabId('stok')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Package} title="Stok & Gudang" subtitle="Inventori, pergerakan & peringatan stok" />
 
           {isEnabled('warehouse-kpi') && <WarehouseKPICards />}
 
           {(isEnabled('movement-trend') || isEnabled('category-distribution')) && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
               {isEnabled('movement-trend') && (
-                <div className="min-w-0 lg:col-span-2">
+                <div className={isEnabled('category-distribution') ? 'min-w-0 lg:col-span-2' : 'min-w-0 lg:col-span-3'}>
                   <Lazy height={330}>
                     <MovementTrendChart />
                   </Lazy>
                 </div>
               )}
-              {isEnabled('category-distribution') && <CategoryDistribution />}
+              {isEnabled('category-distribution') && (
+                <div className={isEnabled('movement-trend') ? 'min-w-0' : 'min-w-0 lg:col-span-3'}>
+                  <CategoryDistribution />
+                </div>
+              )}
             </div>
           )}
 
-          {(isEnabled('top-items') || isEnabled('recent-movements')) && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {isEnabled('top-items') && <TopItemsByStock />}
-              {isEnabled('recent-movements') && <RecentMovements />}
-            </div>
-          )}
+          <WidgetGrid>
+            {isEnabled('top-items') && <TopItemsByStock />}
+            {isEnabled('recent-movements') && <RecentMovements />}
+          </WidgetGrid>
 
           {isEnabled('stock-alert') && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <WidgetGrid>
               <StockAlert />
               <NegativeStockWidget />
-            </div>
+            </WidgetGrid>
           )}
 
-          {isEnabled('cogs-backfill') && <CogsBackfillWidget />}
+          {canCogs && isEnabled('cogs-backfill') && <CogsBackfillWidget />}
         </section>
       )}
 
       {/* ─────────── SECTION: PRODUKSI ─────────── */}
       {showProduksi && (
-        <section id="produksi" aria-label="Produksi" className="space-y-4 scroll-mt-20">
+        <section id="produksi" role="tabpanel" aria-labelledby={tabId('produksi')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Factory} title="Produksi" subtitle="Statistik produksi & yield" />
 
           {(isEnabled('production-stats') || isEnabled('yield-trend')) && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {isEnabled('production-stats') && <ProductionStatsWidget />}
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+              {isEnabled('production-stats') && (
+                <div className={isEnabled('yield-trend') ? 'min-w-0' : 'min-w-0 lg:col-span-3'}>
+                  <ProductionStatsWidget />
+                </div>
+              )}
               {isEnabled('yield-trend') && (
-                <div className="min-w-0 lg:col-span-2">
+                <div className={isEnabled('production-stats') ? 'min-w-0 lg:col-span-2' : 'min-w-0 lg:col-span-3'}>
                   <Lazy height={330}>
                     <YieldTrendChart />
                   </Lazy>
@@ -425,21 +475,19 @@ export const Dashboard = () => {
 
       {/* ─────────── SECTION: ASET TETAP ─────────── */}
       {showAset && (
-        <section id="aset" aria-label="Aset Tetap" className="space-y-4 scroll-mt-20">
+        <section id="aset" role="tabpanel" aria-labelledby={tabId('aset')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Building2} title="Aset Tetap" subtitle="Nilai aset, distribusi, dan jadwal penyusutan" />
 
           {isEnabled('fixed-assets-kpi') && <FixedAssetsKPI />}
 
-          {(isEnabled('fixed-assets-by-category') || isEnabled('depreciation-due')) && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {isEnabled('fixed-assets-by-category') && (
-                <Lazy height={330}>
-                  <FixedAssetsByCategory />
-                </Lazy>
-              )}
-              {isEnabled('depreciation-due') && <DepreciationDue />}
-            </div>
-          )}
+          <WidgetGrid>
+            {isEnabled('fixed-assets-by-category') && (
+              <Lazy height={330}>
+                <FixedAssetsByCategory />
+              </Lazy>
+            )}
+            {isEnabled('depreciation-due') && <DepreciationDue />}
+          </WidgetGrid>
 
           {isEnabled('top-assets') && <TopAssetsByValue />}
         </section>

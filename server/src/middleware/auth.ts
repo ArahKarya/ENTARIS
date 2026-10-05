@@ -119,6 +119,22 @@ export const requirePerm = (module: string) => {
   };
 };
 
+/** Lolos bila punya izin modul mana pun dari daftar (GET→view, selainnya→edit). */
+export const requireAnyPerm = (modules: string[]) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) return DENY(res);
+      const action: PermAction = req.method === 'GET' || req.method === 'HEAD' ? 'view' : 'edit';
+      for (const m of modules) {
+        if (await can(req.user.role, m, action)) return next();
+      }
+      return DENY(res);
+    } catch {
+      return DENY(res);
+    }
+  };
+};
+
 /**
  * Gate untuk router DATA REFERENSI (master data): GET selalu lolos (data dipakai
  * banyak form), tulis (POST/PUT/PATCH/DELETE) butuh izin `edit` modul.

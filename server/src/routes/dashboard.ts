@@ -234,6 +234,35 @@ router.get('/overdue', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/upcoming-due — faktur penjualan/pembelian yang BELUM jatuh
+// tempo tapi jatuh tempo dalam 14 hari ke depan (pelengkap /overdue).
+router.get('/upcoming-due', async (_req, res) => {
+  try {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 14 * 86400000);
+    const where = {
+      dueDate: { gte: now, lte: horizon },
+      outstanding: { gt: 0 },
+      status: { notIn: ['Draft', 'Cancelled', 'Paid'] as Array<'Draft' | 'Cancelled' | 'Paid'> },
+    };
+    const [sales, purchases] = await Promise.all([
+      prisma.salesInvoice.findMany({ where, include: { customer: { select: { name: true } } }, orderBy: { dueDate: 'asc' }, take: 8 }),
+      prisma.purchaseInvoice.findMany({ where, include: { supplier: { select: { name: true } } }, orderBy: { dueDate: 'asc' }, take: 8 }),
+    ]);
+    const daysLeft = (d: Date | null) => Math.max(0, Math.ceil((new Date(d!).getTime() - now.getTime()) / 86400000));
+    const data = [
+      ...sales.map((inv) => ({ type: 'sales' as const, invoiceNumber: inv.invoiceNumber, partyName: inv.customer.name, amount: Number(inv.outstanding), dueDate: inv.dueDate, daysLeft: daysLeft(inv.dueDate) })),
+      ...purchases.map((inv) => ({ type: 'purchase' as const, invoiceNumber: inv.invoiceNumber, partyName: inv.supplier.name, amount: Number(inv.outstanding), dueDate: inv.dueDate, daysLeft: daysLeft(inv.dueDate) })),
+    ]
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+      .slice(0, 8);
+    return res.json(data);
+  } catch (error) {
+    logger.error({ error }, 'GET /dashboard/upcoming-due error');
+    return res.status(500).json({ error: 'Gagal mengambil faktur akan jatuh tempo.' });
+  }
+});
+
 // GET /api/dashboard/expense-breakdown — expenses by category for period (default current month)
 router.get('/expense-breakdown', async (req, res) => {
   try {

@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
+
+import { tabId } from './dashboardTabId';
 
 export interface SectionDef {
   id: string;
@@ -59,30 +62,29 @@ export default function DashboardSectionNav({ sections, scrollRootId = 'main-con
   return (
     <nav
       aria-label="Bagian dasbor"
-      className="sticky top-0 z-20 -mx-3 border-b border-border bg-background/90 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6"
+      className="sticky top-0 z-20 -mx-3 border-b border-border bg-background/90 px-3 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6"
     >
-      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
-        {sections.map((s) => {
-          const Icon = s.icon;
-          const isActive = active === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => handleClick(s.id)}
-              aria-current={isActive ? 'true' : undefined}
-              className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 sm:px-3 ${
-                isActive
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
-              }`}
-            >
-              <Icon size={13} aria-hidden />
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Anchor-scroll nav rendered with the shared Tabs (underline). Manual activation:
+          arrow keys move focus, Enter/Space scrolls to the section. */}
+      <Tabs value={active} onValueChange={handleClick} activationMode="manual">
+        <TabsList variant="underline" aria-label="Bagian dasbor" className="no-scrollbar h-11 gap-5 border-b-0 sm:h-10">
+          {sections.map((s) => {
+            const Icon = s.icon;
+            return (
+              <TabsTrigger
+                key={s.id}
+                value={s.id}
+                id={tabId(s.id)}
+                aria-controls={s.id}
+                className="h-11 shrink-0 rounded-sm sm:h-10"
+              >
+                <Icon size={14} aria-hidden />
+                {s.label}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
     </nav>
   );
 }
