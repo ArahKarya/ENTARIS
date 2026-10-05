@@ -52,7 +52,7 @@ Dibangun **fullstack TypeScript** (**React 19.2** + **Express 5.2** + **Prisma 7
 - **Bertanya ke data** — "berapa piutang yang lewat 60 hari?", "stok beras mana yang di bawah minimum?" — AIRA memanggil *tool* ERP yang tepat lalu merangkum hasilnya.
 - **Menyiapkan draf, bukan memposting sendiri** — AIRA bisa menyiapkan draf invoice, jurnal, atau pengajuan. Semua aksi yang mengubah pembukuan masuk ke **alur approval** dan baru berefek setelah disetujui manusia.
 - **Tunduk pada hak akses** — AIRA hanya bisa memakai tool yang diizinkan untuk peran pengguna yang sedang login (RBAC yang sama dengan UI).
-- **Aman secara teknis** — setiap permintaan tulis dari AIRA wajib bertanda tangan HMAC-SHA256 per-*run* dengan stempel waktu (anti-pemalsuan & anti-*replay*).
+- **Aman secara teknis** — Entaris menjadi server MCP (`/mcp`): setiap panggilan membawa token profil + *actor assertion* bertanda tangan HMAC-SHA256 (TTL 120 dtk, nonce sekali pakai) yang menyebut pengguna yang dilayani; Entaris sendiri yang menegakkan hak akses dan tier persetujuan.
 - **Terdaftar & terukur** — **386 tool di 45 modul** dideklarasikan di `server/src/ai/aira-tool-router.json` (lengkap dengan tingkat risiko, peran, dan level otonomi), sehingga kemampuan AIRA bisa ditinjau dan diatur dari satu tempat.
 
 ## 🏛️ Arsitektur

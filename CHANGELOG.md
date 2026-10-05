@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### AIRA sebagai MCP server lengkap untuk Hermes (`/mcp`)
+**Ditambah**:
+- Endpoint **`POST /mcp`** (Streamable HTTP, stateless) menyajikan seluruh 462 tool registry (kini `enabled:true` default; override per tool tetap via `AiToolConfig`) + meta-tool `cari_tool`, `dokumen_tool`, `whoami`, `panggil_tool` (mode ringkas `X-Entaris-Tools: compact`, tanpa aktor). `GET /mcp/health` tanpa auth.
+- Identitas per-user: token servis per profil Hermes (`Authorization: Bearer entmcp_…`, hanya sha256 disimpan) + **actor assertion** bertanda tangan HMAC-SHA256 per panggilan (TTL 120 dtk, nonce sekali pakai di tabel `mcp_nonces`; dapat juga dibawa di `params.arguments` untuk klien dengan header statis seperti Hermes). Aktor default opsional per token untuk CLI/dev.
+- User: `airaEnabled`, `airaTier` (`read`/`standard`/`direct`), `airaJabatan`. `tools/list` per aktor = RBAC role ∩ level AIRA.
+- Tier: read langsung; write langsung bila `draftCapable`; write non-draft + semua critical diantrikan sebagai `ApprovalRequest` `ai_tool:<nama>` dan dijalankan sebagai **pengaju asli** saat disetujui di *Persetujuan* (ditolak = tak ada efek). Level `direct` = langsung (tetap RBAC + gate normal). Chat grup (`gf=true`) menurunkan `direct`→`standard`.
+- Eksekusi lewat handler Express asli (JWT internal 120 dtk, `audit_trail.via/via_meta` = `mcp` + token + channel + tool + approvalId), substitusi `:id` path, batas hasil 60.000 karakter + petunjuk paginasi, galat Indonesia sebagai `isError`, `idempotencyKey`, rate limit per token, body 256 KB, kill switch 503.
+- Admin REST `/api/ai/mcp/*` (status, token CRUD/revoke/rotate-secret, riwayat panggilan) dan UI **Pengaturan → AIRA (MCP)** (status + kill switch, perintah Hermes siap-salin, token tampil sekali, riwayat) + **Akses AIRA / level / Jabatan** di Manajemen Pengguna; *Persetujuan* menampilkan "Permintaan AIRA".
+- Tabel `mcp_tokens`, `mcp_call_logs`, `mcp_nonces`; kolom `users.aira_*`, `audit_trail.via/via_meta`; migrasi loose idempoten `2026101200000_aira_mcp.sql`.
+- Dokumen: `docs/ai-tools/ARSITEKTUR-MCP.md` (spesifikasi), `docs/ai-tools/HERMES-SETUP.md` (pemasangan, temuan kemampuan klien MCP Hermes, implementasi referensi Python/Node, curl, troubleshooting).
+
+**Dihapus (dipensiunkan)**: `/api/ai/router`, verifikasi A3 HMAC (`airaApproval.ts`), jalur Admin `x-aira-service-token`, `AiSetting.serviceToken`, route whitelist/channels/whitelistModules/`tool-router` sync, serta UI channel/whitelist/tabel tool/Test Tool/health aira-core. Panel chat `/api/ai/chat/*` tetap (menampilkan *offline* sampai tahap 3).
+
+**Deploy**: jalankan migrasi (`prisma migrate deploy` + file `.sql` lepas; entrypoint menjalankan keduanya), set env opsional **`MCP_SECRET_KEY`** (≥32 karakter acak; kosong = turunan `JWT_SECRET`), `AIRA_SERVICE_SECRET` tidak lagi wajib (dihapus dari `docker-compose.yml`; `AIRA_API_TOKEN` kini opsional). Buat token di Pengaturan → AIRA (MCP), beri Akses AIRA ke pengguna, lalu ikuti `HERMES-SETUP.md`.
+
 ### Katalog tool AIRA/MCP lengkap & terdokumentasi (Stage 0)
 **Ditambah**:
 - Inventori route statis (`npm run ai-tools:inventory`): memetakan 539 endpoint beserta guard mount-nya tanpa menjalankan server/DB; denylist endpoint yang tidak boleh menjadi tool (`server/src/ai/catalog/denylist.ts`); ekstraksi parameter dari skema Zod.
