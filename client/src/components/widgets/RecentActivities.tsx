@@ -1,72 +1,57 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { ArrowDownRight, ArrowUpRight, Activity } from 'lucide-react';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
 
-interface RecentActivitiesProps {
-  data: any[] | null;
+interface Payment {
+  id: string;
+  paymentNumber: string;
+  paymentType: string;
+  date: string;
+  amount: number;
 }
 
-const RecentActivities: React.FC<RecentActivitiesProps> = ({ data }) => (
-  <div
-    className="border rounded-xl p-5 flex flex-col"
-    style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-  >
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-        Aktivitas Terakhir
-      </h2>
-      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-        Live
-      </span>
-    </div>
+interface RecentActivitiesProps {
+  data: Payment[] | null;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}
 
-    <div className="flex-1 space-y-3 overflow-y-auto">
-      {data?.length ? (
-        data.map((a: any) => (
-          <div key={a.id} className="flex items-center gap-3">
-            <div
-              className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                a.paymentType === 'Receive' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-              )}
-            >
-              {a.paymentType === 'Receive' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
-                {a.paymentNumber}
-              </p>
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                {new Date(a.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-            <span
-              className={cn(
-                'text-xs font-semibold tabular-nums',
-                a.paymentType === 'Receive' ? 'text-green-600' : 'text-red-500'
-              )}
-            >
-              {a.paymentType === 'Receive' ? '+' : '-'}
-              {new Intl.NumberFormat('id-ID').format(a.amount)}
-            </span>
-          </div>
-        ))
-      ) : (
-        <div className="flex flex-col items-center justify-center h-full py-8 gap-3" style={{ color: 'var(--color-text-muted)' }}>
-          <BarChart3 size={36} />
-          <p className="text-xs">Belum ada aktivitas</p>
-        </div>
-      )}
-    </div>
-
-    <a
+export default function RecentActivities({ data, isLoading, isError, onRetry }: RecentActivitiesProps) {
+  return (
+    <WidgetCard
+      title="Transaksi Kas Terakhir"
+      icon={Activity}
       href="/payments"
-      className="block mt-4 text-xs font-medium transition-colors text-center pt-3 border-t hover:text-blue-600"
-      style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}
+      hrefLabel="Lihat semua"
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      isEmpty={!data?.length}
+      emptyIcon={Activity}
+      emptyText="Belum ada transaksi"
     >
-      Lihat semua &rarr;
-    </a>
-  </div>
-);
-
-export default RecentActivities;
+      <ul className="space-y-2.5">
+        {(data ?? []).map((a) => {
+          const receive = a.paymentType === 'Receive';
+          const Icon = receive ? ArrowDownRight : ArrowUpRight;
+          return (
+            <li key={a.id} className="flex items-center gap-3">
+              <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-md', receive ? 'bg-success-subtle text-success-text' : 'bg-danger-subtle text-danger-text')}>
+                <Icon className="size-4" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-foreground">{a.paymentNumber}</p>
+                <p className="text-xs text-muted-foreground">{formatDate(a.date, 'short')} · {receive ? 'Masuk' : 'Keluar'}</p>
+              </div>
+              <span className={cn('num text-xs font-semibold', receive ? 'text-success-text' : 'text-danger-text')}>
+                {receive ? '+' : '-'}{formatRupiah(a.amount, { symbol: false })}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </WidgetCard>
+  );
+}

@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
-import { formatRupiah } from '../../lib/formatters';
-import { BalanceSheetPDF } from '../../lib/pdf/ReportPDF';
-import { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
-import { ReportLayout, AccountTreeTable } from '../../components/reports';
-import LedgerDetailDrawer from '../../components/reports/LedgerDetailDrawer';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { BalanceSheetPDF } from '@/lib/pdf/ReportPDF';
+import { useCompanyPDF } from '@/lib/pdf/useCompanyPDF';
+import LedgerDetailDrawer from '@/components/reports/LedgerDetailDrawer';
+import {
+  ExportMenu,
+  ReportFilters,
+  ReportNotice,
+  ReportPage,
+  ReportState,
+  ReportTable,
+  flattenAccountTree,
+  periodLabel,
+  useReportAsOf,
+  type AccountNode,
+  type ReportRow,
+} from '@/components/report-kit';
+
+const COLUMNS = [{ key: 'balance', label: 'Saldo (Rp)' }];
 
 const BalanceSheet: React.FC = () => {
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const { date, setDate } = useReportAsOf();
   const company = useCompanyPDF();
 
   // Drill-down drawer state
@@ -27,8 +38,8 @@ const BalanceSheet: React.FC = () => {
   });
 
   const handleExport = () => {
-    const flatten = (accounts: any[], section: string): object[] =>
-      accounts?.flatMap((a: any): object[] => [
+    const flatten = (accounts: AccountNode[] | undefined, section: string): object[] =>
+      accounts?.flatMap((a): object[] => [
         { Seksi: section, 'Nama Akun': a.name, 'No. Akun': a.accountNumber, 'Saldo (Rp)': a.balance },
         ...flatten(a.children || [], section),
       ]) || [];
@@ -37,110 +48,95 @@ const BalanceSheet: React.FC = () => {
       ...flatten(report?.liabilities, 'Kewajiban'),
       ...flatten(report?.equity, 'Ekuitas'),
     ];
-    exportToExcel(data, `Neraca-${date}`);
+    return exportToExcel(data, `Neraca-${date}`);
   };
 
-  const handleAccountClick = (accountId: string, accountName: string) => {
-    setSelectedAccount({ id: accountId, name: accountName });
-    setDrawerOpen(true);
-  };
+  const totalAssets: number = report?.totalAssets || 0;
+  const totalLiabilities: number = report?.totalLiabilities || 0;
+  const totalEquity: number = report?.totalEquity || 0;
+  const isBalanced = !isLoading && Math.abs(totalAssets - (totalLiabilities + totalEquity)) <= 1;
 
-  const isBalanced = !isLoading &&
-    Math.abs((report?.totalAssets || 0) - ((report?.totalLiabilities || 0) + (report?.totalEquity || 0))) <= 1;
+  const { assetRows, passivaRows } = useMemo(() => {
+    const open = (node: AccountNode) => {
+      setSelectedAccount({ id: node.id, name: node.name });
+      setDrawerOpen(true);
+    };
+    const tree = (key: string, nodes: AccountNode[] | undefined): ReportRow[] => {
+      const rows = flattenAccountTree(nodes, { onSelect: open });
+      return rows.length > 0 ? rows : [{ key: `${key}-empty`, kind: 'note', label: 'Tidak ada data' }];
+    };
+    return {
+      assetRows: [
+        ...tree('assets', report?.assets),
+        { key: 'assets-total', kind: 'grand', label: 'Total Aset', values: [totalAssets] },
+      ] as ReportRow[],
+      passivaRows: [
+        { key: 'liab-head', kind: 'section', label: 'Kewajiban' },
+        ...tree('liab', report?.liabilities),
+        { key: 'liab-total', kind: 'total', label: 'Total Kewajiban', values: [totalLiabilities] },
+        { key: 'eq-head', kind: 'section', label: 'Ekuitas' },
+        ...tree('eq', report?.equity),
+        { key: 'eq-total', kind: 'total', label: 'Total Ekuitas', values: [totalEquity] },
+        { key: 'passiva-total', kind: 'grand', label: 'Total Pasiva (L + E)', values: [totalLiabilities + totalEquity] },
+      ] as ReportRow[],
+    };
+  }, [report, totalAssets, totalLiabilities, totalEquity]);
 
   return (
     <>
-      <ReportLayout
+      <ReportPage
         title="Neraca (Balance Sheet)"
-        subtitle="Posisi keuangan aset, liabilitas, dan ekuitas"
-        dateFilter={{ mode: 'single', date, onDateChange: setDate }}
-        pdfDocument={
-          <BalanceSheetPDF
-            company={company}
-            asOf={date}
-            assets={report?.assets ?? []}
-            liabilities={report?.liabilities ?? []}
-            equity={report?.equity ?? []}
-            totalAssets={report?.totalAssets ?? 0}
-            totalLiabilities={report?.totalLiabilities ?? 0}
-            totalEquity={report?.totalEquity ?? 0}
+        description="Posisi keuangan aset, liabilitas, dan ekuitas"
+        period={periodLabel(date)}
+        actions={
+          <ExportMenu
+            disabled={isLoading || isError}
+            onExcel={handleExport}
+            pdf={{
+              fileName: `Neraca-${date}.pdf`,
+              render: () => (
+                <BalanceSheetPDF
+                  company={company}
+                  asOf={date}
+                  assets={report?.assets ?? []}
+                  liabilities={report?.liabilities ?? []}
+                  equity={report?.equity ?? []}
+                  totalAssets={report?.totalAssets ?? 0}
+                  totalLiabilities={report?.totalLiabilities ?? 0}
+                  totalEquity={report?.totalEquity ?? 0}
+                />
+              ),
+            }}
           />
         }
-        pdfFileName={`Neraca-${date}.pdf`}
-        onExportExcel={handleExport}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={() => refetch()}
-        alert={
-          !isLoading && !isBalanced ? (
-            <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-              <AlertTriangle size={16} className="text-yellow-600 shrink-0" />
-              <span>Terdapat selisih antara total Aktiva dan Pasiva. Periksa jurnal yang tidak seimbang.</span>
-            </div>
-          ) : undefined
+        filters={
+          <>
+            <ReportFilters mode="asOf" value={date} onChange={setDate} />
+            {!isLoading && !isError && !isBalanced && (
+              <ReportNotice>Terdapat selisih antara total Aktiva dan Pasiva. Periksa jurnal yang tidak seimbang.</ReportNotice>
+            )}
+          </>
         }
       >
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          {/* Assets */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="section-header flex justify-between">
-              <span>Aset</span>
-              <span className="font-semibold text-gray-700 tracking-normal normal-case whitespace-nowrap">{formatRupiah(report?.totalAssets || 0)}</span>
-            </div>
-            <div className="overflow-y-auto max-h-[500px]">
-              {report?.assets?.map((a: any) => (
-                <AccountTreeTable key={a.id} data={[a]} indentPx={20} valueColWidth="w-48" onAccountClick={handleAccountClick} />
-              ))}
-            </div>
-            <div className="px-4 py-3 border-t border-gray-100 flex justify-between bg-gray-50/60">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Aset</span>
-              <span className="text-sm font-semibold text-gray-900 tabular-nums whitespace-nowrap">{formatRupiah(report?.totalAssets || 0)}</span>
-            </div>
+        <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+            <ReportTable
+              caption={`Aset per ${date}`}
+              labelHeader="Aset"
+              codeHeader="No. Akun"
+              columns={COLUMNS}
+              rows={assetRows}
+            />
+            <ReportTable
+              caption={`Kewajiban dan ekuitas per ${date}`}
+              labelHeader="Kewajiban dan Ekuitas"
+              codeHeader="No. Akun"
+              columns={COLUMNS}
+              rows={passivaRows}
+            />
           </div>
-
-          {/* Liabilities + Equity */}
-          <div className="space-y-4">
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="section-header flex justify-between">
-                <span>Kewajiban</span>
-                <span className="font-semibold text-gray-700 tracking-normal normal-case whitespace-nowrap">{formatRupiah(report?.totalLiabilities || 0)}</span>
-              </div>
-              <div className="overflow-y-auto max-h-[240px]">
-                {report?.liabilities?.map((a: any) => (
-                  <AccountTreeTable key={a.id} data={[a]} indentPx={20} valueColWidth="w-48" onAccountClick={handleAccountClick} />
-                ))}
-              </div>
-              <div className="px-4 py-3 border-t border-gray-100 flex justify-between bg-gray-50/60">
-                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Kewajiban</span>
-                <span className="text-sm font-semibold text-gray-900 tabular-nums whitespace-nowrap">{formatRupiah(report?.totalLiabilities || 0)}</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="section-header flex justify-between">
-                <span>Ekuitas</span>
-                <span className="font-semibold text-gray-700 tracking-normal normal-case whitespace-nowrap">{formatRupiah(report?.totalEquity || 0)}</span>
-              </div>
-              <div className="overflow-y-auto max-h-[240px]">
-                {report?.equity?.map((a: any) => (
-                  <AccountTreeTable key={a.id} data={[a]} indentPx={20} valueColWidth="w-48" onAccountClick={handleAccountClick} />
-                ))}
-              </div>
-              <div className="px-4 py-3 border-t border-gray-100 flex justify-between bg-gray-50/60">
-                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Ekuitas</span>
-                <span className="text-sm font-semibold text-gray-900 tabular-nums whitespace-nowrap">{formatRupiah(report?.totalEquity || 0)}</span>
-              </div>
-            </div>
-
-            {/* Pasiva Total */}
-            <div className="bg-blue-600 text-white rounded-xl px-4 py-4 flex justify-between items-center">
-              <span className="text-sm font-semibold">Total Pasiva (L + E)</span>
-              <span className="text-lg font-bold tabular-nums whitespace-nowrap">{formatRupiah((report?.totalLiabilities || 0) + (report?.totalEquity || 0))}</span>
-            </div>
-          </div>
-        </div>
-      </ReportLayout>
+        </ReportState>
+      </ReportPage>
 
       <LedgerDetailDrawer
         isOpen={drawerOpen}

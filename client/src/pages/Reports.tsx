@@ -1,142 +1,186 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BarChart3, Scale, Clock, ClipboardList, Banknote, ChevronRight, Receipt, BookOpen, Package, CreditCard, FileText, CalendarDays, Gauge, Truck, Award } from 'lucide-react';
+import React, { useId, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Award,
+  BarChart3,
+  BookOpen,
+  Banknote,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  FileText,
+  Gauge,
+  Package,
+  Receipt,
+  Scale,
+  Search,
+  Truck,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { getRoute } from '@/app/routes';
+import { can } from '@/lib/permissions';
+import { cn } from '@/lib/utils';
+import { focusRing } from '@/components/ui/styles';
+import { Input } from '@/components/ui/input';
+import { EmptyState, PageHeader } from '@/components/shared';
 
-const reports = [
+interface ReportEntry {
+  path: string;
+  description: string;
+  icon: LucideIcon;
+}
+
+interface ReportGroup {
+  id: string;
+  title: string;
+  reports: readonly ReportEntry[];
+}
+
+// Judul kartu = label registry rute (sama dengan H1 halaman tujuan).
+const GROUPS: readonly ReportGroup[] = [
   {
-    title: 'Laporan Harian',
-    description: 'Ringkasan lengkap aktivitas penjualan, pembelian, produksi, keuangan, piutang, hutang, dan deposit.',
-    icon: CalendarDays,
-    path: '/reports/daily',
+    id: 'keuangan',
+    title: 'Keuangan',
+    reports: [
+      { path: '/reports/daily', icon: CalendarDays, description: 'Ringkasan lengkap aktivitas penjualan, pembelian, produksi, keuangan, piutang, hutang, dan deposit.' },
+      { path: '/reports/trial-balance', icon: ClipboardList, description: 'Verifikasi keseimbangan saldo debit dan kredit per akun.' },
+      { path: '/reports/profit-loss', icon: BarChart3, description: 'Ringkasan pendapatan dan beban untuk menghitung laba bersih.' },
+      { path: '/reports/balance-sheet', icon: Scale, description: 'Posisi keuangan aset, liabilitas, dan ekuitas perusahaan.' },
+      { path: '/reports/cash-flow', icon: Banknote, description: 'Pergerakan kas dari aktivitas operasi, investasi, dan pendanaan.' },
+      { path: '/reports/ledger-book', icon: BookOpen, description: 'Detail mutasi per akun dengan saldo berjalan (debit, kredit, saldo).' },
+      { path: '/reports/tax', icon: Receipt, description: 'Ringkasan PPN Keluaran, PPN Masukan, dan PPh berdasarkan periode.' },
+    ],
   },
   {
-    title: 'Neraca Saldo',
-    description: 'Verifikasi keseimbangan saldo debit dan kredit per akun.',
-    icon: ClipboardList,
-    path: '/reports/trial-balance',
+    id: 'penjualan',
+    title: 'Penjualan & Piutang',
+    reports: [
+      { path: '/reports/aging-ar', icon: Clock, description: 'Analisis umur piutang pelanggan berdasarkan tanggal jatuh tempo.' },
+      { path: '/reports/receivable-schedule', icon: FileText, description: 'Daftar piutang berdasarkan jatuh tempo dan status penagihan.' },
+      { path: '/reports/profitability-per-sku', icon: Package, description: 'Margin side-by-side: Material WAC vs Loaded HPP (sudah include biaya produksi & NRV produk samping).' },
+    ],
   },
   {
-    title: 'Laba Rugi',
-    description: 'Ringkasan pendapatan dan beban untuk menghitung laba bersih.',
-    icon: BarChart3,
-    path: '/reports/profit-loss',
+    id: 'pembelian',
+    title: 'Pembelian & Hutang',
+    reports: [
+      { path: '/reports/aging-ap', icon: Clock, description: 'Analisis umur hutang ke vendor berdasarkan tanggal jatuh tempo.' },
+      { path: '/reports/payable-schedule', icon: CreditCard, description: 'Daftar hutang berdasarkan jatuh tempo, status, dan prioritas pembayaran.' },
+      { path: '/reports/po-outstanding', icon: Truck, description: 'Sisa pesanan pembelian yang belum diterima per item, nilai sisa, dan PO terlambat.' },
+      { path: '/reports/supplier-performance', icon: Award, description: 'Ketepatan kirim, lead time, fill rate, dan selisih harga faktur vs PO per pemasok.' },
+    ],
   },
   {
-    title: 'Neraca',
-    description: 'Posisi keuangan aset, liabilitas, dan ekuitas perusahaan.',
-    icon: Scale,
-    path: '/reports/balance-sheet',
-  },
-  {
-    title: 'Aging Piutang',
-    description: 'Analisis umur piutang pelanggan berdasarkan tanggal jatuh tempo.',
-    icon: Clock,
-    path: '/reports/aging-ar',
-  },
-  {
-    title: 'Aging Hutang',
-    description: 'Analisis umur hutang ke vendor berdasarkan tanggal jatuh tempo.',
-    icon: Clock,
-    path: '/reports/aging-ap',
-  },
-  {
-    title: 'Arus Kas',
-    description: 'Pergerakan kas dari aktivitas operasi, investasi, dan pendanaan.',
-    icon: Banknote,
-    path: '/reports/cash-flow',
-  },
-  {
-    title: 'Buku Besar',
-    description: 'Detail mutasi per akun dengan saldo berjalan (debit, kredit, saldo).',
-    icon: BookOpen,
-    path: '/reports/ledger-book',
-  },
-  {
-    title: 'Laporan Pajak',
-    description: 'Ringkasan PPN Keluaran, PPN Masukan, dan PPh berdasarkan periode.',
-    icon: Receipt,
-    path: '/reports/tax',
-  },
-  {
-    title: 'HPP per Produk',
-    description: 'Analisis Harga Pokok Penjualan per produk, margin, dan profitabilitas.',
-    icon: Package,
-    path: '/reports/hpp',
-  },
-  {
-    title: 'Profitability per SKU (Loaded)',
-    description: 'Margin side-by-side: Material WAC vs Loaded HPP (sudah include biaya produksi & NRV produk samping).',
-    icon: Package,
-    path: '/reports/profitability-per-sku',
-  },
-  {
-    title: 'Modal Produksi per Periode',
-    description: 'Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap rendemen dan produk samping.',
-    icon: Package,
-    path: '/reports/production-cost-summary',
-  },
-  {
-    title: 'Laporan OEE',
-    description: 'Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime.',
-    icon: Gauge,
-    path: '/reports/oee',
-  },
-  {
-    title: 'Jadwal Hutang',
-    description: 'Daftar hutang berdasarkan jatuh tempo, status, dan prioritas pembayaran.',
-    icon: CreditCard,
-    path: '/reports/payable-schedule',
-  },
-  {
-    title: 'Jadwal Piutang',
-    description: 'Daftar piutang berdasarkan jatuh tempo dan status penagihan.',
-    icon: FileText,
-    path: '/reports/receivable-schedule',
-  },
-  {
-    title: 'PO Outstanding',
-    description: 'Sisa pesanan pembelian yang belum diterima per item, nilai sisa, dan PO terlambat.',
-    icon: Truck,
-    path: '/reports/po-outstanding',
-  },
-  {
-    title: 'Kinerja Pemasok',
-    description: 'Ketepatan kirim, lead time, fill rate, dan selisih harga faktur vs PO per pemasok.',
-    icon: Award,
-    path: '/reports/supplier-performance',
+    id: 'produksi',
+    title: 'Produksi & Persediaan',
+    reports: [
+      { path: '/reports/hpp', icon: Package, description: 'Analisis Harga Pokok Penjualan per produk, margin, dan profitabilitas.' },
+      { path: '/reports/production-cost-summary', icon: Package, description: 'Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap rendemen dan produk samping.' },
+      { path: '/reports/oee', icon: Gauge, description: 'Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime.' },
+    ],
   },
 ];
 
+interface Card extends ReportEntry {
+  label: string;
+  haystack: string;
+}
+
+/** Cards a user may open, with the registry label and searchable text. */
+function buildGroups(query: string): { group: ReportGroup; cards: Card[] }[] {
+  const q = query.trim().toLowerCase();
+  return GROUPS.map((group) => ({
+    group,
+    cards: group.reports.flatMap<Card>((report) => {
+      const route = getRoute(report.path);
+      if (!route) return [];
+      if (route.module && !can(route.module)) return [];
+      const label = route.label;
+      const haystack = [label, report.description, group.title, ...(route.keywords ?? [])].join(' ').toLowerCase();
+      return q && !haystack.includes(q) ? [] : [{ ...report, label, haystack }];
+    }),
+  })).filter((entry) => entry.cards.length > 0);
+}
+
 const Reports: React.FC = () => {
-  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const searchId = useId();
+  const groups = useMemo(() => buildGroups(query), [query]);
+  const total = groups.reduce((sum, g) => sum + g.cards.length, 0);
 
   return (
-    <div className="space-y-5 pb-8">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Laporan Keuangan</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Pilih laporan yang ingin Anda lihat atau cetak.</p>
+    <div className="space-y-6 pb-8">
+      <PageHeader title="Semua Laporan" description="Pilih laporan yang ingin Anda lihat atau cetak." />
+
+      <div role="search" aria-label="Pencarian laporan" className="relative w-full sm:max-w-sm">
+        <label htmlFor={searchId} className="sr-only">Cari laporan</label>
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+        <Input
+          id={searchId}
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Cari laporan, mis. pajak, piutang, OEE"
+          autoComplete="off"
+          className="pl-9 pr-9 max-sm:h-11 [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="Hapus pencarian"
+            className={cn('absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground', focusRing)}
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {reports.map((report) => (
-          <button
-            key={report.path}
-            onClick={() => navigate(report.path)}
-            className="bg-white border border-gray-200 rounded-xl p-5 text-left hover:border-blue-300 hover:shadow-sm transition-all group"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-                <report.icon size={18} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
-              </div>
-              <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-400 transition-colors mt-1" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-              {report.title}
-            </h3>
-            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{report.description}</p>
-          </button>
-        ))}
-      </div>
+      <p className="sr-only" role="status">{total} laporan ditemukan</p>
+
+      {groups.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card">
+          <EmptyState
+            kind={query ? 'no-results' : 'empty'}
+            title={query ? 'Laporan tidak ditemukan' : 'Belum ada laporan yang dapat diakses'}
+            description={query ? 'Coba kata kunci lain.' : 'Hubungi administrator untuk meminta akses.'}
+            compact
+          />
+        </div>
+      ) : (
+        groups.map(({ group, cards }) => (
+          <section key={group.id} aria-labelledby={`grp-${group.id}`} className="space-y-3">
+            <h2 id={`grp-${group.id}`} className="text-sm font-semibold text-muted-foreground">
+              {group.title}
+            </h2>
+            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {cards.map((card) => (
+                <li key={card.path}>
+                  <Link
+                    to={card.path}
+                    className={cn(
+                      'group flex h-full min-h-11 items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-1)] transition-colors hover:border-primary hover:bg-muted/40',
+                      focusRing,
+                    )}
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:bg-primary-subtle group-hover:text-primary-subtle-foreground">
+                      <card.icon className="size-[18px]" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{card.label}</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{card.description}</span>
+                    </span>
+                    <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      )}
     </div>
   );
 };

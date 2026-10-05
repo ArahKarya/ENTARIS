@@ -1,23 +1,32 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
-import { format, endOfMonth } from 'date-fns';
-import { formatRupiah } from '../../lib/formatters';
-import { ProfitLossPDF } from '../../lib/pdf/ReportPDF';
-import { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
-import { useCompanySettings } from '../../contexts/CompanySettingsContext';
-import { ReportLayout, AccountTreeTable, ReportSummaryCards } from '../../components/reports';
-import type { SummaryCard } from '../../components/reports';
-import LedgerDetailDrawer from '../../components/reports/LedgerDetailDrawer';
+import { BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { ProfitLossPDF } from '@/lib/pdf/ReportPDF';
+import { useCompanyPDF } from '@/lib/pdf/useCompanyPDF';
+import { useCompanySettings } from '@/contexts/CompanySettingsContext';
+import LedgerDetailDrawer from '@/components/reports/LedgerDetailDrawer';
+import {
+  ExportMenu,
+  ReportFilters,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  ReportTable,
+  flattenAccountTree,
+  periodLabel,
+  useReportRange,
+  type AccountNode,
+  type ReportRow,
+} from '@/components/report-kit';
+
+const COLUMNS = [{ key: 'balance', label: 'Jumlah (Rp)' }];
 
 const ProfitLoss: React.FC = () => {
-  // Default ke satu bulan penuh (bukan month-to-date) supaya entri akhir-bulan
-  // seperti penyusutan & jurnal penyesuaian (diposting tgl 30/31) langsung
-  // muncul. Konsisten dgn CashFlow yang memakai endOfMonth.
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  // Default = satu bulan penuh (bukan month-to-date) supaya entri akhir-bulan
+  // (penyusutan & jurnal penyesuaian tgl 30/31) langsung muncul.
+  const { startDate, endDate, setRange } = useReportRange();
   const company = useCompanyPDF();
   const companySettings = useCompanySettings();
 
@@ -35,86 +44,82 @@ const ProfitLoss: React.FC = () => {
 
   const handleExport = () => {
     const flat = [
-      ...(report?.revenue?.flatMap((r: any) => [{ Seksi: 'Pendapatan', 'Nama Akun': r.name, 'Saldo (Rp)': r.balance }]) || []),
-      ...(report?.expense?.flatMap((e: any) => [{ Seksi: 'Beban', 'Nama Akun': e.name, 'Saldo (Rp)': e.balance }]) || []),
+      ...(report?.revenue?.flatMap((r: { name: string; balance: number }) => [{ Seksi: 'Pendapatan', 'Nama Akun': r.name, 'Saldo (Rp)': r.balance }]) || []),
+      ...(report?.expense?.flatMap((e: { name: string; balance: number }) => [{ Seksi: 'Beban', 'Nama Akun': e.name, 'Saldo (Rp)': e.balance }]) || []),
       { Seksi: '---', 'Nama Akun': 'LABA BERSIH', 'Saldo (Rp)': report?.netProfit || 0 },
     ];
-    exportToExcel(flat, `Laba-Rugi-${startDate}-sd-${endDate}`);
+    return exportToExcel(flat, `Laba-Rugi-${startDate}-sd-${endDate}`);
   };
 
-  const handleAccountClick = (accountId: string, accountName: string) => {
-    setSelectedAccount({ id: accountId, name: accountName });
-    setDrawerOpen(true);
-  };
-
-  const summaryCards: SummaryCard[] = [
-    { label: 'Total Pendapatan', value: report?.totalRevenue || 0, icon: TrendingUp, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { label: 'Total Beban', value: report?.totalExpense || 0, icon: TrendingDown, color: 'text-red-600', bgColor: 'bg-red-50' },
-    {
-      label: 'Laba Bersih',
-      value: report?.netProfit || 0,
-      icon: BarChart3,
-      color: (report?.netProfit || 0) >= 0 ? 'text-blue-600' : 'text-red-600',
-      bgColor: 'bg-blue-50',
-    },
-  ];
+  const rows: ReportRow[] = useMemo(() => {
+    const open = (node: AccountNode) => {
+      setSelectedAccount({ id: node.id, name: node.name });
+      setDrawerOpen(true);
+    };
+    const section = (key: string, title: string, nodes: AccountNode[] | undefined, emptyText: string): ReportRow[] => [
+      { key: `${key}-head`, kind: 'section', label: title },
+      ...(nodes && nodes.length > 0
+        ? flattenAccountTree(nodes, { onSelect: open })
+        : [{ key: `${key}-empty`, kind: 'note' as const, label: emptyText }]),
+    ];
+    const netProfit = report?.netProfit || 0;
+    return [
+      ...section('rev', 'I. Pendapatan', report?.revenue, 'Tidak ada data pendapatan'),
+      { key: 'rev-total', kind: 'total', label: 'Total Pendapatan', values: [report?.totalRevenue || 0] },
+      ...section('exp', 'II. Beban-Beban', report?.expense, 'Tidak ada data beban'),
+      { key: 'exp-total', kind: 'total', label: 'Total Beban', values: [Math.abs(report?.totalExpense || 0)] },
+      { key: 'net', kind: 'grand', label: 'Laba (Rugi) Bersih', values: [netProfit] },
+    ];
+  }, [report]);
 
   return (
     <>
-      <ReportLayout
+      <ReportPage
         title="Laporan Laba Rugi"
-        subtitle={`Performa finansial ${companySettings?.companyName || 'perusahaan'}`}
-        dateFilter={{ mode: 'range', startDate, endDate, onStartDateChange: setStartDate, onEndDateChange: setEndDate }}
-        pdfDocument={
-          <ProfitLossPDF
-            company={company}
-            period={`${startDate} s/d ${endDate}`}
-            revenue={report?.revenue ?? []}
-            expense={report?.expense ?? []}
-            totalRevenue={report?.totalRevenue ?? 0}
-            totalExpense={report?.totalExpense ?? 0}
-            netProfit={report?.netProfit ?? 0}
+        description={`Performa finansial ${companySettings?.companyName || 'perusahaan'}`}
+        period={periodLabel({ startDate, endDate })}
+        actions={
+          <ExportMenu
+            disabled={isLoading || isError}
+            onExcel={handleExport}
+            pdf={{
+              fileName: `Laba-Rugi-${startDate}-sd-${endDate}.pdf`,
+              render: () => (
+                <ProfitLossPDF
+                  company={company}
+                  period={`${startDate} s/d ${endDate}`}
+                  revenue={report?.revenue ?? []}
+                  expense={report?.expense ?? []}
+                  totalRevenue={report?.totalRevenue ?? 0}
+                  totalExpense={report?.totalExpense ?? 0}
+                  netProfit={report?.netProfit ?? 0}
+                />
+              ),
+            }}
           />
         }
-        pdfFileName={`Laba-Rugi-${startDate}-sd-${endDate}.pdf`}
-        onExportExcel={handleExport}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={() => refetch()}
-        extraControls={<ReportSummaryCards cards={summaryCards} />}
+        filters={<ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />}
+        summary={
+          <ReportSummaryCards
+            loading={isLoading}
+            items={[
+              { label: 'Total Pendapatan', value: report?.totalRevenue || 0, icon: TrendingUp, tone: 'positive' },
+              { label: 'Total Beban', value: report?.totalExpense || 0, icon: TrendingDown, tone: 'neutral' },
+              { label: 'Laba Bersih', value: report?.netProfit || 0, icon: BarChart3 },
+            ]}
+          />
+        }
       >
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          {/* Revenue */}
-          <div className="section-header">I. Pendapatan</div>
-          {report?.revenue?.length > 0 ? (
-            <AccountTreeTable data={report.revenue} onAccountClick={handleAccountClick} />
-          ) : (
-            <div className="py-6 text-center text-gray-400 text-sm border-b border-gray-50">Tidak ada data pendapatan</div>
-          )}
-          <div className="flex justify-between items-center px-4 py-3 bg-green-50/60 border-b border-gray-100">
-            <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">Total Pendapatan</span>
-            <span className="text-sm font-semibold text-green-700 tabular-nums whitespace-nowrap pr-6">{formatRupiah(report?.totalRevenue || 0)}</span>
-          </div>
-
-          {/* Expenses */}
-          <div className="section-header mt-2">II. Beban-Beban</div>
-          {report?.expense?.length > 0 ? (
-            <AccountTreeTable data={report.expense} onAccountClick={handleAccountClick} />
-          ) : (
-            <div className="py-6 text-center text-gray-400 text-sm border-b border-gray-50">Tidak ada data beban</div>
-          )}
-          <div className="flex justify-between items-center px-4 py-3 bg-red-50/60 border-b border-gray-100">
-            <span className="text-xs font-semibold text-red-700 uppercase tracking-wide">Total Beban</span>
-            <span className="text-sm font-semibold text-red-700 tabular-nums whitespace-nowrap pr-6">{formatRupiah(Math.abs(report?.totalExpense || 0))}</span>
-          </div>
-
-          {/* Net Profit */}
-          <div className={`flex justify-between items-center px-4 py-4 ${(report?.netProfit || 0) >= 0 ? 'bg-blue-600' : 'bg-red-600'}`}>
-            <span className="text-sm font-semibold text-white uppercase tracking-wide">Laba (Rugi) Bersih</span>
-            <span className="text-lg font-bold text-white tabular-nums whitespace-nowrap pr-6">{formatRupiah(report?.netProfit || 0)}</span>
-          </div>
-        </div>
-      </ReportLayout>
+        <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
+          <ReportTable
+            caption={`Laporan laba rugi, ${periodLabel({ startDate, endDate })}`}
+            columns={COLUMNS}
+            codeHeader="No. Akun"
+            labelHeader="Uraian"
+            rows={rows}
+          />
+        </ReportState>
+      </ReportPage>
 
       <LedgerDetailDrawer
         isOpen={drawerOpen}

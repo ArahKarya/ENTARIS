@@ -1,11 +1,26 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Info, Download, ChevronDown, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import api from '../../lib/api';
-import { cn } from '../../lib/utils';
-import Select from '../../components/Select';
-import { exportToExcel } from '../../lib/exportExcel';
+import { AlertTriangle, Calculator, ChevronDown, ChevronRight, Factory, Layers, Wallet } from 'lucide-react';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { formatNumber, formatRupiah } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { ComboboxFilter } from '@/components/shared';
+import { focusRing } from '@/components/ui/styles';
+import {
+  ExportMenu,
+  ReportDataTable,
+  ReportFilters,
+  ReportNotice,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  TOTAL_ROW_CLASS,
+  periodLabel,
+  toIso,
+  useReportRange,
+  type DataColumn,
+} from '@/components/report-kit';
 
 interface Row {
   outputName: string;
@@ -37,17 +52,53 @@ interface ReportData {
   runs: RunRow[];
 }
 
-const fmt0 = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
-const fmt2 = (n: number) => Number(n).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const toISO = (d: Date) => {
-  const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return z.toISOString().substring(0, 10);
-};
+const fmt0 = (n: number) => formatNumber(Number(n));
+const fmt2 = (n: number) => formatNumber(Number(n), { decimals: 2 });
+const groupKey = (g: { outputName: string; warehouseName: string }) => `${g.outputName}|${g.warehouseName}`;
+const RAW_CELL = 'bg-info-subtle/40';
+
+/** GL minus pure-material cost per kg; sign is printed, colour only reinforces it. */
+function DiffCell({ gl, raw }: { gl: number; raw: number }) {
+  const d = gl - raw;
+  return (
+    <span className={cn('num', d > 0 ? 'text-danger-text' : d < 0 ? 'text-success-text' : 'text-muted-foreground')}>
+      {d > 0 ? '+' : d < 0 ? '−' : ''}
+      {fmt2(Math.abs(d))}
+    </span>
+  );
+}
+
+function ByproductCell({ kg, flagZero }: { kg: number; flagZero?: boolean }) {
+  if (flagZero && kg === 0) {
+    return (
+      <span className="inline-flex items-center justify-end gap-1 font-medium text-warning-text">
+        <AlertTriangle className="size-3.5" aria-hidden />
+        0<span className="sr-only"> (tanpa produk samping tercatat)</span>
+      </span>
+    );
+  }
+  return <>{fmt0(kg)}</>;
+}
+
+const metricColumns = (): DataColumn<Row>[] => [
+  { key: 'runs', header: 'Run', numeric: true, render: (g) => g.runCount },
+  { key: 'inKg', header: 'Bahan (kg)', numeric: true, render: (g) => fmt0(g.inputKg) },
+  { key: 'inRp', header: 'Nilai Bahan Real', numeric: true, render: (g) => fmt0(g.inputRp) },
+  { key: 'inPer', header: 'Modal Bahan/kg', numeric: true, render: (g) => fmt2(g.inputPerKg) },
+  { key: 'outKg', header: 'Output (kg)', numeric: true, render: (g) => fmt0(g.mainKg) },
+  { key: 'yield', header: 'Rendemen', numeric: true, render: (g) => `${fmt2(g.yieldPct)}%` },
+  { key: 'raw', header: 'Modal Murni/kg', numeric: true, className: cn(RAW_CELL, 'font-bold'), render: (g) => fmt2(g.rawMaterialPerKg) },
+  { key: 'gl', header: 'HPP GL/kg', numeric: true, render: (g) => fmt2(g.glPerKg) },
+  { key: 'diff', header: 'Selisih/kg', numeric: true, render: (g) => <DiffCell gl={g.glPerKg} raw={g.rawMaterialPerKg} /> },
+  { key: 'by', header: 'Produk Samping (kg)', numeric: true, render: (g) => <ByproductCell kg={g.byproductKg} /> },
+];
 
 export default function ProductionCostSummary() {
   const now = new Date();
-  const [startDate, setStartDate] = useState(toISO(new Date(now.getFullYear(), now.getMonth(), 1)));
-  const [endDate, setEndDate] = useState(toISO(now));
+  const { startDate, endDate, setRange } = useReportRange({
+    startDate: toIso(new Date(now.getFullYear(), now.getMonth(), 1)),
+    endDate: toIso(now),
+  });
   const [warehouseId, setWarehouseId] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -60,7 +111,7 @@ export default function ProductionCostSummary() {
     },
   });
 
-  const { data, isLoading, isError } = useQuery<ReportData>({
+  const { data, isLoading, isError, refetch } = useQuery<ReportData>({
     queryKey: ['report-production-cost-summary', startDate, endDate, warehouseId],
     queryFn: async () => {
       const res = await api.get('/reports/production-cost-summary', {
@@ -73,7 +124,7 @@ export default function ProductionCostSummary() {
   const runsByGroup = useMemo(() => {
     const m = new Map<string, RunRow[]>();
     for (const r of data?.runs ?? []) {
-      const k = `${r.outputName}|${r.warehouseName}`;
+      const k = groupKey(r);
       const arr = m.get(k) ?? [];
       arr.push(r);
       m.set(k, arr);
@@ -113,183 +164,133 @@ export default function ProductionCostSummary() {
     await exportToExcel(rows, `modal-produksi_${startDate}_${endDate}`);
   };
 
-  const diffCell = (gl: number, raw: number) => {
-    const d = gl - raw;
-    return (
-      <span className={cn('tabular-nums', d > 0 ? 'text-red-600' : d < 0 ? 'text-green-700' : 'text-gray-500')}>
-        {d > 0 ? '+' : d < 0 ? '−' : ''}{fmt2(Math.abs(d))}
-      </span>
-    );
+  const toggle = (key: string) => setOpen((o) => ({ ...o, [key]: !o[key] }));
+
+  const columns: DataColumn<Row>[] = [
+    {
+      key: 'output',
+      header: 'Jenis Output',
+      rowHeader: true,
+      render: (g) => {
+        const key = groupKey(g);
+        const isOpen = !!open[key];
+        return (
+          <button
+            type="button"
+            onClick={() => toggle(key)}
+            aria-expanded={isOpen}
+            aria-label={`Rincian per nomor produksi, ${g.outputName}, ${g.warehouseName}`}
+            className={cn('-ml-1 inline-flex min-h-8 items-center gap-1 rounded-sm px-1 text-left max-sm:min-h-11', focusRing)}
+          >
+            {isOpen ? <ChevronDown className="size-4 shrink-0" aria-hidden /> : <ChevronRight className="size-4 shrink-0" aria-hidden />}
+            {g.outputName}
+          </button>
+        );
+      },
+    },
+    { key: 'wh', header: 'Gudang', className: 'whitespace-nowrap text-xs text-muted-foreground', render: (g) => g.warehouseName },
+    ...metricColumns(),
+  ];
+
+  const renderRuns = (g: Row) => {
+    const key = groupKey(g);
+    if (!open[key]) return null;
+    return (runsByGroup.get(key) ?? []).map((r) => (
+      <tr key={r.runId} className="border-b border-border bg-muted/40 text-xs">
+        <th scope="row" className="py-2 pl-8 pr-4 text-left font-mono font-normal max-sm:pr-3">{r.runNumber}</th>
+        <td className="px-4 py-2 text-muted-foreground max-sm:px-3">
+          {new Date(r.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+        </td>
+        <td aria-hidden="true" />
+        <td className="num px-4 py-2 text-right max-sm:px-3">{fmt0(r.inputKg)}</td>
+        <td className="num px-4 py-2 text-right max-sm:px-3">{fmt0(r.inputRp)}</td>
+        <td className="num px-4 py-2 text-right max-sm:px-3">{fmt2(r.inputPerKg)}</td>
+        <td className="num px-4 py-2 text-right max-sm:px-3">{fmt0(r.mainKg)}</td>
+        <td className="num px-4 py-2 text-right max-sm:px-3">{fmt2(r.yieldPct)}%</td>
+        <td className={cn('num px-4 py-2 text-right max-sm:px-3', RAW_CELL)}>{fmt2(r.rawMaterialPerKg)}</td>
+        <td className="num px-4 py-2 text-right max-sm:px-3">{fmt2(r.glPerKg)}</td>
+        <td className="px-4 py-2 text-right max-sm:px-3"><DiffCell gl={r.glPerKg} raw={r.rawMaterialPerKg} /></td>
+        <td className="num px-4 py-2 text-right max-sm:px-3"><ByproductCell kg={r.byproductKg} flagZero /></td>
+      </tr>
+    ));
   };
 
+  const t = data?.total;
+  const total = t && (
+    <tr className={TOTAL_ROW_CLASS}>
+      <th scope="row" className="px-4 py-2.5 text-left max-sm:px-3">TOTAL</th>
+      <td aria-hidden="true" />
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{t.runCount}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.inputKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.inputRp)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(t.inputPerKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.mainKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(t.yieldPct)}%</td>
+      <td className={cn('num px-4 py-2.5 text-right max-sm:px-3', RAW_CELL)}>{fmt2(t.rawMaterialPerKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(t.glPerKg)}</td>
+      <td className="px-4 py-2.5 text-right max-sm:px-3"><DiffCell gl={t.glPerKg} raw={t.rawMaterialPerKg} /></td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.byproductKg)}</td>
+    </tr>
+  );
+
+  const hasRuns = !!t && t.runCount > 0;
+
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/reports" className="p-1.5 hover:bg-gray-100 rounded-lg" style={{ color: 'var(--color-text-muted)' }}>
-          <ArrowLeft size={20} />
-        </Link>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-          Modal Produksi per Periode
-        </h1>
-      </div>
-
-      <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-start gap-2">
-        <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-900">
-          <strong>Dua cara baca modal:</strong>
-          <ul className="text-blue-700 mt-1 space-y-0.5 list-disc list-inside text-xs">
-            <li><strong>Modal Bahan Baku Murni/kg</strong> = nilai bahan baku real (pembelian) ÷ kg output utama. Tanpa biaya estimasi &amp; produk samping. Laporan manajemen — tidak diposting ke GL.</li>
-            <li><strong>HPP GL/kg</strong> = nilai yang diposting ke persediaan = bahan − NRV produk samping + biaya konversi estimasi (sesuai PSAK 14).</li>
-            <li>Selisih <span className="text-red-600">+</span> = HPP GL lebih tinggi (biaya estimasi &gt; nilai produk samping); <span className="text-green-700">−</span> = sebaliknya.</li>
-          </ul>
+    <ReportPage
+      title="Modal Produksi per Periode"
+      description="Modal bahan baku murni dan HPP GL per kg output, per jenis dan gudang"
+      period={periodLabel({ startDate, endDate })}
+      actions={<ExportMenu onExcel={handleExport} disabled={isLoading || isError || !data || data.summary.length === 0} />}
+      filters={
+        <div className="flex flex-col gap-3">
+          <ReportNotice tone="info">
+            <p className="font-medium">Dua cara baca modal</p>
+            <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
+              <li><strong>Modal Bahan Baku Murni/kg</strong> = nilai bahan baku real (pembelian) dibagi kg output utama. Tanpa biaya estimasi dan produk samping. Laporan manajemen, tidak diposting ke GL.</li>
+              <li><strong>HPP GL/kg</strong> = nilai yang diposting ke persediaan = bahan − NRV produk samping + biaya konversi estimasi (sesuai PSAK 14).</li>
+              <li>Selisih bertanda <strong>+</strong> = HPP GL lebih tinggi (biaya estimasi lebih besar dari nilai produk samping); <strong>−</strong> = sebaliknya.</li>
+            </ul>
+          </ReportNotice>
+          <ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange}>
+            <ComboboxFilter
+              label="Gudang output"
+              value={warehouseId}
+              onChange={setWarehouseId}
+              options={(warehouses ?? []).map((w) => ({ value: w.id, label: w.name }))}
+              allLabel="Semua gudang"
+              searchPlaceholder="Cari gudang…"
+              className="w-full sm:w-56"
+            />
+          </ReportFilters>
         </div>
-      </div>
-
-      <div className="card p-4 mb-6 flex flex-wrap gap-4 items-end">
-        <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Dari</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm" style={{ borderColor: 'var(--color-border)' }} />
-        </div>
-        <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Sampai</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm" style={{ borderColor: 'var(--color-border)' }} />
-        </div>
-        <div className="min-w-[220px]">
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Gudang Output</label>
-          <Select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} className="w-full">
-            <option value="">Semua gudang</option>
-            {(warehouses ?? []).map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </Select>
-        </div>
-        <button onClick={handleExport} disabled={!data || data.summary.length === 0}
-          className="btn-secondary text-sm py-2 px-3 flex items-center gap-2 ml-auto disabled:opacity-50">
-          <Download size={14} /> Excel
-        </button>
-      </div>
-
-      {data && data.total.runCount > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="card p-4">
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Produksi</p>
-            <p className="text-lg font-bold mt-1">{data.total.runCount} run</p>
-            <p className="text-[11px] text-gray-500">{fmt0(data.total.inputKg)} kg bahan → {fmt0(data.total.mainKg)} kg</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Nilai Bahan Real</p>
-            <p className="text-lg font-bold mt-1">Rp {fmt0(data.total.inputRp)}</p>
-            <p className="text-[11px] text-gray-500">Rp {fmt2(data.total.inputPerKg)}/kg bahan</p>
-          </div>
-          <div className="card p-4 border-2 border-sky-200 bg-sky-50/40">
-            <p className="text-xs font-medium text-sky-700">Modal Bahan Baku Murni</p>
-            <p className="text-lg font-bold mt-1 text-sky-900">Rp {fmt2(data.total.rawMaterialPerKg)}/kg</p>
-            <p className="text-[11px] text-sky-700">rendemen {fmt2(data.total.yieldPct)}% (campuran semua jenis)</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>HPP GL</p>
-            <p className="text-lg font-bold mt-1">Rp {fmt2(data.total.glPerKg)}/kg</p>
-            <p className="text-[11px]">selisih {diffCell(data.total.glPerKg, data.total.rawMaterialPerKg)}/kg</p>
-          </div>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="card p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Memuat...</div>
-      ) : isError ? (
-        <div className="card p-8 text-center text-red-600">Gagal memuat laporan.</div>
-      ) : data && data.summary.length > 0 ? (
-        <div className="card overflow-hidden">
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Jenis Output</th>
-                  <th>Gudang</th>
-                  <th className="text-right">Run</th>
-                  <th className="text-right">Bahan (kg)</th>
-                  <th className="text-right">Nilai Bahan Real</th>
-                  <th className="text-right">Modal Bahan/kg</th>
-                  <th className="text-right">Output (kg)</th>
-                  <th className="text-right">Rendemen</th>
-                  <th className="text-right bg-sky-50">Modal Murni/kg</th>
-                  <th className="text-right">HPP GL/kg</th>
-                  <th className="text-right">Selisih/kg</th>
-                  <th className="text-right">Produk Samping (kg)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.summary.map((g) => {
-                  const key = `${g.outputName}|${g.warehouseName}`;
-                  const isOpen = !!open[key];
-                  const runs = runsByGroup.get(key) ?? [];
-                  return [
-                    <tr key={key} className="cursor-pointer hover:bg-gray-50" onClick={() => setOpen((o) => ({ ...o, [key]: !o[key] }))}>
-                      <td className="font-medium">
-                        <span className="inline-flex items-center gap-1">
-                          {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          {g.outputName}
-                        </span>
-                      </td>
-                      <td className="text-xs text-gray-600">{g.warehouseName}</td>
-                      <td className="text-right tabular-nums">{g.runCount}</td>
-                      <td className="text-right tabular-nums">{fmt0(g.inputKg)}</td>
-                      <td className="text-right tabular-nums">{fmt0(g.inputRp)}</td>
-                      <td className="text-right tabular-nums">{fmt2(g.inputPerKg)}</td>
-                      <td className="text-right tabular-nums">{fmt0(g.mainKg)}</td>
-                      <td className="text-right tabular-nums">{fmt2(g.yieldPct)}%</td>
-                      <td className="text-right tabular-nums font-bold text-sky-900 bg-sky-50">{fmt2(g.rawMaterialPerKg)}</td>
-                      <td className="text-right tabular-nums">{fmt2(g.glPerKg)}</td>
-                      <td className="text-right">{diffCell(g.glPerKg, g.rawMaterialPerKg)}</td>
-                      <td className="text-right tabular-nums">{fmt0(g.byproductKg)}</td>
-                    </tr>,
-                    ...(isOpen ? runs.map((r) => (
-                      <tr key={r.runId} className="bg-gray-50/60 text-xs">
-                        <td className="pl-8 font-mono">{r.runNumber}</td>
-                        <td className="text-gray-500">{new Date(r.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</td>
-                        <td />
-                        <td className="text-right tabular-nums">{fmt0(r.inputKg)}</td>
-                        <td className="text-right tabular-nums">{fmt0(r.inputRp)}</td>
-                        <td className="text-right tabular-nums">{fmt2(r.inputPerKg)}</td>
-                        <td className="text-right tabular-nums">{fmt0(r.mainKg)}</td>
-                        <td className="text-right tabular-nums">{fmt2(r.yieldPct)}%</td>
-                        <td className="text-right tabular-nums bg-sky-50">{fmt2(r.rawMaterialPerKg)}</td>
-                        <td className="text-right tabular-nums">{fmt2(r.glPerKg)}</td>
-                        <td className="text-right">{diffCell(r.glPerKg, r.rawMaterialPerKg)}</td>
-                        <td className={cn('text-right tabular-nums', r.byproductKg === 0 && 'text-amber-600 font-medium')}>
-                          {r.byproductKg === 0 ? '0 ⚠' : fmt0(r.byproductKg)}
-                        </td>
-                      </tr>
-                    )) : []),
-                  ];
-                })}
-                <tr className="font-bold bg-gray-100">
-                  <td>TOTAL</td>
-                  <td />
-                  <td className="text-right tabular-nums">{data.total.runCount}</td>
-                  <td className="text-right tabular-nums">{fmt0(data.total.inputKg)}</td>
-                  <td className="text-right tabular-nums">{fmt0(data.total.inputRp)}</td>
-                  <td className="text-right tabular-nums">{fmt2(data.total.inputPerKg)}</td>
-                  <td className="text-right tabular-nums">{fmt0(data.total.mainKg)}</td>
-                  <td className="text-right tabular-nums">{fmt2(data.total.yieldPct)}%</td>
-                  <td className="text-right tabular-nums text-sky-900 bg-sky-50">{fmt2(data.total.rawMaterialPerKg)}</td>
-                  <td className="text-right tabular-nums">{fmt2(data.total.glPerKg)}</td>
-                  <td className="text-right">{diffCell(data.total.glPerKg, data.total.rawMaterialPerKg)}</td>
-                  <td className="text-right tabular-nums">{fmt0(data.total.byproductKg)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="text-[11px] px-4 py-2 text-gray-500">
-            Klik baris untuk rincian per nomor produksi. ⚠ = produksi tanpa produk samping tercatat (cek input).
-            Total campuran semua jenis/gudang — bandingkan per baris untuk keputusan.
-          </p>
-        </div>
-      ) : (
-        <div className="card p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>
-          Tidak ada produksi di periode ini.
-        </div>
-      )}
-    </div>
+      }
+      summary={
+        hasRuns && t ? (
+          <ReportSummaryCards
+            items={[
+              { label: 'Produksi', value: t.runCount, formatted: `${t.runCount} run`, icon: Factory, hint: `${fmt0(t.inputKg)} kg bahan → ${fmt0(t.mainKg)} kg` },
+              { label: 'Nilai Bahan Real', value: t.inputRp, icon: Wallet, tone: 'neutral', hint: `${formatRupiah(t.inputPerKg, { decimals: 2 })}/kg bahan` },
+              { label: 'Modal Bahan Baku Murni', value: t.rawMaterialPerKg, formatted: `${formatRupiah(t.rawMaterialPerKg, { decimals: 2 })}/kg`, icon: Layers, tone: 'neutral', hint: `rendemen ${fmt2(t.yieldPct)}% (campuran)` },
+              { label: 'HPP GL', value: t.glPerKg, formatted: `${formatRupiah(t.glPerKg, { decimals: 2 })}/kg`, icon: Calculator, tone: 'neutral', hint: <>selisih <DiffCell gl={t.glPerKg} raw={t.rawMaterialPerKg} />/kg dari modal murni</> },
+            ]}
+          />
+        ) : undefined
+      }
+    >
+      <ReportState isLoading={isLoading} isError={isError} isEmpty={!!data && data.summary.length === 0} onRetry={() => refetch()}>
+        <ReportDataTable
+          caption={`Modal produksi per jenis output dan gudang, ${periodLabel({ startDate, endDate })}`}
+          columns={columns}
+          rows={data?.summary ?? []}
+          getRowKey={groupKey}
+          afterRow={renderRuns}
+          footer={total}
+        />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Pilih jenis output untuk melihat rincian per nomor produksi. Ikon peringatan = produksi tanpa produk samping tercatat (periksa input).
+          Total adalah campuran semua jenis/gudang; bandingkan per baris untuk keputusan.
+        </p>
+      </ReportState>
+    </ReportPage>
   );
 }

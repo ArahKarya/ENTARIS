@@ -1,12 +1,12 @@
 import React from 'react';
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { groupByCategory } from '../stockCategories';
-import { C } from './theme';
-
-Font.registerHyphenationCallback((word) => [word]);
+import { C, FOOTER_SPACE } from './theme';
+import { pdfDate, pdfDateTime, pdfFixed, pdfNum, pdfRp } from './pdfFormat';
+import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: 56, paddingHorizontal: 36, backgroundColor: C.white },
+  page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: FOOTER_SPACE, paddingHorizontal: 36, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
@@ -27,8 +27,8 @@ const S = StyleSheet.create({
   warehouseTitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: C.dark },
   warehouseMeta: { fontSize: 8, color: C.muted },
 
-  tableHeader: { flexDirection: 'row', backgroundColor: C.primary, paddingVertical: 5, paddingHorizontal: 6 },
-  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.3 },
+  tableHeader: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.primary, paddingVertical: 5, paddingHorizontal: 6 },
+  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.3 },
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
   cell: { fontSize: 8 },
@@ -56,13 +56,8 @@ const S = StyleSheet.create({
   footerText: { fontSize: 7, color: C.faint },
 });
 
-function idr(n: number): string {
-  const sign = n < 0 ? '-' : '';
-  return sign + 'Rp ' + Math.abs(n).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-function fmtNum(n: number, dec = 3): string {
-  return n.toLocaleString('id-ID', { maximumFractionDigits: dec });
-}
+const idr = (n: number): string => pdfRp(n);
+const fmtNum = (n: number, dec = 3): string => pdfNum(n, dec);
 
 export interface WarehouseStockItem {
   code: string;
@@ -101,38 +96,17 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
     (s, w) => s + w.items.reduce((ws, i) => ws + i.currentStock * i.averageCost, 0),
     0,
   );
-  const printDate = generatedAt.toLocaleString('id-ID', {
-    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-  const asOfLabel = asOfDate
-    ? new Date(asOfDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
-    : null;
+  const printDate = pdfDateTime(generatedAt);
+  const asOfLabel = asOfDate ? pdfDate(asOfDate) : null;
 
   return (
     <Document>
       <Page size="A4" style={S.page} wrap>
-        {/* Header */}
-        <View style={S.headerRow} fixed>
-          <View style={S.companyBlock}>
-            {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
-            <View style={S.companyInfo}>
-              <Text style={S.companyName}>{company.name}</Text>
-              {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-            </View>
-          </View>
-          <View>
-            <Text style={S.title}>LAPORAN STOK PER GUDANG</Text>
-            {asOfLabel ? (
-              <>
-                <Text style={S.subtitle}>Posisi per {asOfLabel}</Text>
-                <Text style={S.subtitle}>Dicetak {printDate}</Text>
-              </>
-            ) : (
-              <Text style={S.subtitle}>Per {printDate}</Text>
-            )}
-          </View>
-        </View>
-        <View style={S.divider} fixed />
+        <PdfHeader
+          company={company}
+          title="LAPORAN STOK PER GUDANG"
+          dateLine={asOfLabel ? `Posisi per ${asOfLabel}` : `Per ${printDate}`}
+        />
         {valuationNote && (
           <Text style={{ fontSize: 7, color: C.faint, fontStyle: 'italic', marginBottom: 8 }}>
             {valuationNote}
@@ -210,7 +184,7 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
                                 {fmtNum(qty)}
                               </Text>
                               <Text style={[S.cell, S.colCost, { color: C.muted }]}>
-                                {cost > 0 ? cost.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}
+                                {cost > 0 ? pdfFixed(cost, 0) : '—'}
                               </Text>
                               <Text style={[S.cell, S.colVal, { color: val < 0 ? C.red : C.dark }]}>
                                 {val !== 0 ? idr(val) : '—'}
@@ -231,14 +205,7 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
           );
         })}
 
-        {/* Footer */}
-        <View style={S.footer} fixed>
-          <View style={S.footerLine} />
-          <View style={S.footerRow}>
-            <Text style={S.footerText}>{company.name} — Stok per Gudang</Text>
-            <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} dari ${totalPages}`} />
-          </View>
-        </View>
+        <PdfFooter company={company.name} docRef="Stok per Gudang" paddingHorizontal={36} printedAt={printDate} />
       </Page>
     </Document>
   );

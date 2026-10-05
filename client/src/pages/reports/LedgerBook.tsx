@@ -1,42 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '../../lib/utils';
-import { formatRupiah, formatDate } from '../../lib/formatters';
-import { ReportLayout } from '../../components/reports';
-
-interface LedgerEntry {
-  id: string;
-  date: string;
-  debit: number;
-  credit: number;
-  description: string;
-  referenceType: string | null;
-  runningBalance: number;
-}
-
-interface AccountLedger {
-  accountId: string;
-  accountNumber: string;
-  accountName: string;
-  rootType: string;
-  openingBalance: number;
-  entries: LedgerEntry[];
-  totalDebit: number;
-  totalCredit: number;
-  closingBalance: number;
-}
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { formatDateRange } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { EmptyState } from '@/components/shared';
+import { ExportMenu, ReportFilters, ReportPage, ReportState, useReportRange } from '@/components/report-kit';
+import { LedgerAccountCard, type AccountLedger } from '@/components/reports/LedgerAccountCard';
 
 const PAGE_SIZE = 200;
+const ALL_HISTORY = { startDate: '', endDate: '' };
 
 const LedgerBook: React.FC = () => {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  // Default = semua histori (tanpa filter tanggal), sama seperti sebelumnya.
+  const { startDate, endDate, setRange, list } = useReportRange(ALL_HISTORY);
+  const searchTerm = list.search;
+  const [expandedAccounts, setExpandedAccounts] = useState<ReadonlySet<string>>(new Set());
   const [page, setPage] = useState(1);
 
   const { data: ledgerData, isLoading, isError, refetch } = useQuery<AccountLedger[]>({
@@ -54,11 +37,7 @@ const LedgerBook: React.FC = () => {
     if (!ledgerData) return [];
     if (!searchTerm) return ledgerData;
     const q = searchTerm.toLowerCase();
-    return ledgerData.filter(
-      (a) =>
-        a.accountName.toLowerCase().includes(q) ||
-        a.accountNumber.includes(q),
-    );
+    return ledgerData.filter((a) => a.accountName.toLowerCase().includes(q) || a.accountNumber.includes(q));
   }, [ledgerData, searchTerm]);
 
   // Pagination: pack accounts into pages until each page holds ~PAGE_SIZE entries.
@@ -81,41 +60,34 @@ const LedgerBook: React.FC = () => {
     return result.length > 0 ? result : [[]];
   }, [filtered]);
 
-  const totalEntries = useMemo(
-    () => filtered.reduce((s, a) => s + a.entries.length, 0),
-    [filtered],
-  );
+  const totalEntries = useMemo(() => filtered.reduce((s, a) => s + a.entries.length, 0), [filtered]);
 
   const totalPages = pages.length;
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const pageAccounts = pages[safePage - 1] ?? [];
 
-  // Reset to page 1 when filter/data changes
-  React.useEffect(() => { setPage(1); }, [searchTerm, startDate, endDate, ledgerData]);
+  // Back to page 1 when the filter or the data changes.
+  const resetKey = `${searchTerm}|${startDate}|${endDate}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  const [prevData, setPrevData] = useState(ledgerData);
+  if (prevResetKey !== resetKey || prevData !== ledgerData) {
+    setPrevResetKey(resetKey);
+    setPrevData(ledgerData);
+    setPage(1);
+  }
 
-  const toggleAccount = (accountId: string) => {
+  const toggleAccount = useCallback((accountId: string) => {
     setExpandedAccounts((prev) => {
       const next = new Set(prev);
       if (next.has(accountId)) next.delete(accountId);
       else next.add(accountId);
       return next;
     });
-  };
-
-  const expandAll = () => {
-    if (!filtered) return;
-    setExpandedAccounts(new Set(filtered.map((a) => a.accountId)));
-  };
-
-  const collapseAll = () => {
-    setExpandedAccounts(new Set());
-  };
+  }, []);
 
   const handleExportExcel = () => {
-    if (!filtered) return;
     const rows: Record<string, string | number>[] = [];
     for (const account of filtered) {
-      // Account header row
       rows.push({
         'No. Akun': account.accountNumber,
         'Nama Akun': account.accountName,
@@ -125,7 +97,6 @@ const LedgerBook: React.FC = () => {
         'Kredit (Rp)': '',
         'Saldo (Rp)': account.openingBalance,
       });
-      // Entry rows
       for (const entry of account.entries) {
         rows.push({
           'No. Akun': account.accountNumber,
@@ -137,7 +108,6 @@ const LedgerBook: React.FC = () => {
           'Saldo (Rp)': entry.runningBalance,
         });
       }
-      // Total row
       rows.push({
         'No. Akun': account.accountNumber,
         'Nama Akun': account.accountName,
@@ -147,253 +117,105 @@ const LedgerBook: React.FC = () => {
         'Kredit (Rp)': account.totalCredit,
         'Saldo (Rp)': account.closingBalance,
       });
-      // Blank separator
       rows.push({ 'No. Akun': '', 'Nama Akun': '', Tanggal: '', Keterangan: '', 'Debit (Rp)': '', 'Kredit (Rp)': '', 'Saldo (Rp)': '' });
     }
     exportToExcel(rows, `Buku-Besar-${startDate}-sd-${endDate}`);
   };
 
+  const period = startDate && endDate ? `Periode ${formatDateRange(startDate, endDate)}` : 'Semua histori';
+  const pageBtn = 'max-sm:size-11';
+
   return (
-    <ReportLayout
+    <ReportPage
       title="Buku Besar"
-      subtitle="Mutasi per akun dengan saldo berjalan."
-      dateFilter={{
-        mode: 'range',
-        startDate,
-        endDate,
-        onStartDateChange: setStartDate,
-        onEndDateChange: setEndDate,
-      }}
-      onExportExcel={handleExportExcel}
-      onPrint={() => window.print()}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={refetch}
-    >
-      {/* Preset periods */}
-      <div className="flex flex-wrap items-center gap-2 mb-3 no-print">
-        <span className="text-xs text-gray-400">Preset:</span>
-        <button
-          onClick={() => { setStartDate(''); setEndDate(''); }}
-          className="btn-secondary text-xs py-1.5 px-3"
-        >
-          Semua Histori
-        </button>
-        <button
-          onClick={() => { setStartDate(format(new Date(), 'yyyy-01-01')); setEndDate(format(new Date(), 'yyyy-MM-dd')); }}
-          className="btn-secondary text-xs py-1.5 px-3"
-        >
-          Tahun Ini (YTD)
-        </button>
-        <button
-          onClick={() => { setStartDate(format(new Date(), 'yyyy-MM-01')); setEndDate(format(new Date(), 'yyyy-MM-dd')); }}
-          className="btn-secondary text-xs py-1.5 px-3"
-        >
-          Bulan Ini
-        </button>
-      </div>
-
-      {/* Search + expand/collapse */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 no-print">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari akun..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <button onClick={expandAll} className="btn-secondary text-xs py-2 px-3">
-          Buka Semua
-        </button>
-        <button onClick={collapseAll} className="btn-secondary text-xs py-2 px-3">
-          Tutup Semua
-        </button>
-        {filtered && (
-          <span className="text-xs text-gray-400">
-            {filtered.length} akun · {totalEntries.toLocaleString('id-ID')} mutasi
-          </span>
-        )}
-      </div>
-
-      {/* Ledger content */}
-      <div className="space-y-3">
-        {pageAccounts.length === 0 && !isLoading && (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            Tidak ada data buku besar untuk periode ini.
-          </div>
-        )}
-
-        {pageAccounts.map((account) => {
-          const isExpanded = expandedAccounts.has(account.accountId);
-
-          return (
-            <div
-              key={account.accountId}
-              className="bg-white border border-gray-200 rounded-xl overflow-hidden"
-            >
-              {/* Account header */}
-              <button
-                onClick={() => toggleAccount(account.accountId)}
-                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {isExpanded ? (
-                    <ChevronDown size={16} className="text-gray-400" />
-                  ) : (
-                    <ChevronRight size={16} className="text-gray-400" />
-                  )}
-                  <span className="text-xs font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-                    {account.accountNumber}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-800">
-                    {account.accountName}
-                  </span>
-                  <span className="text-xs text-gray-400 uppercase">
-                    {account.entries.length} mutasi
-                  </span>
-                </div>
-                <div className="flex items-center gap-6 text-sm font-mono tabular-nums">
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400 block">Saldo Akhir</span>
-                    <span className={cn(
-                      'font-medium',
-                      account.closingBalance >= 0 ? 'text-gray-900' : 'text-red-600',
-                    )}>
-                      {formatRupiah(Math.abs(account.closingBalance))}
-                      {account.closingBalance < 0 && ' (CR)'}
-                    </span>
-                  </div>
-                </div>
-              </button>
-
-              {/* Expanded detail */}
-              {isExpanded && (
-                <div className="border-t border-gray-100 table-responsive">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        <th className="text-left px-5 py-2 w-28">Tanggal</th>
-                        <th className="text-left px-3 py-2">Keterangan</th>
-                        <th className="text-right px-3 py-2 w-32">Debit</th>
-                        <th className="text-right px-3 py-2 w-32">Kredit</th>
-                        <th className="text-right px-5 py-2 w-36">Saldo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Opening balance row */}
-                      {account.openingBalance !== 0 && (
-                        <tr className="bg-blue-50/50 border-b border-gray-50">
-                          <td className="px-5 py-2 text-xs text-gray-400" colSpan={4}>
-                            <em>Saldo Awal</em>
-                          </td>
-                          <td className="px-5 py-2 text-right font-mono text-xs font-medium text-blue-700">
-                            {formatRupiah(Math.abs(account.openingBalance))}
-                            {account.openingBalance < 0 && ' (CR)'}
-                          </td>
-                        </tr>
-                      )}
-
-                      {account.entries.map((entry, idx) => (
-                        <tr
-                          key={entry.id}
-                          className={cn(
-                            'border-b border-gray-50',
-                            idx % 2 === 1 && 'bg-gray-50/30',
-                          )}
-                        >
-                          <td className="px-5 py-2 text-xs text-gray-500 whitespace-nowrap">
-                            {formatDate(entry.date)}
-                          </td>
-                          <td className="px-3 py-2 text-xs text-gray-700">
-                            {entry.description || '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
-                            {entry.debit > 0 ? (
-                              <span className="text-gray-900">{formatRupiah(entry.debit)}</span>
-                            ) : (
-                              <span className="text-gray-300">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
-                            {entry.credit > 0 ? (
-                              <span className="text-gray-900">{formatRupiah(entry.credit)}</span>
-                            ) : (
-                              <span className="text-gray-300">—</span>
-                            )}
-                          </td>
-                          <td className="px-5 py-2 text-right font-mono text-xs font-medium tabular-nums">
-                            <span className={entry.runningBalance < 0 ? 'text-red-600' : 'text-gray-900'}>
-                              {formatRupiah(Math.abs(entry.runningBalance))}
-                              {entry.runningBalance < 0 && ' (CR)'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-
-                      {/* Total row */}
-                      <tr className="bg-gray-100 font-semibold">
-                        <td className="px-5 py-2.5 text-xs text-gray-600" colSpan={2}>
-                          Total Mutasi
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-900 tabular-nums">
-                          {formatRupiah(account.totalDebit)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-900 tabular-nums">
-                          {formatRupiah(account.totalCredit)}
-                        </td>
-                        <td className="px-5 py-2.5 text-right font-mono text-xs font-bold tabular-nums">
-                          <span className={account.closingBalance < 0 ? 'text-red-600' : 'text-gray-900'}>
-                            {formatRupiah(Math.abs(account.closingBalance))}
-                            {account.closingBalance < 0 && ' (CR)'}
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+      description="Mutasi per akun dengan saldo berjalan."
+      period={period}
+      actions={<ExportMenu disabled={isLoading || isError} onExcel={handleExportExcel} />}
+      filters={
+        <ReportFilters mode="range" allowAll value={{ startDate, endDate }} onChange={setRange}>
+          <div className="grid w-full gap-1.5 sm:w-auto sm:min-w-60">
+            <Label htmlFor="ledger-search">Cari akun</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Input
+                id="ledger-search"
+                type="search"
+                value={list.searchInput}
+                onChange={(e) => list.setSearch(e.target.value)}
+                placeholder="Nama atau nomor akun"
+                autoComplete="off"
+                className="pl-9 pr-9 max-sm:h-11 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {list.searchInput && (
+                <button
+                  type="button"
+                  onClick={() => list.setSearch('')}
+                  aria-label="Hapus pencarian"
+                  className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
               )}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 no-print">
-          <span className="text-xs text-gray-500">
-            Halaman {safePage} dari {totalPages} · ~{PAGE_SIZE} mutasi/halaman
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(1)}
-              disabled={safePage === 1}
-              className="btn-secondary text-xs py-1.5 px-2.5 disabled:opacity-40"
-            >« Awal</button>
-            <button
-              onClick={() => setPage(safePage - 1)}
-              disabled={safePage === 1}
-              className="btn-secondary text-xs py-1.5 px-2.5 disabled:opacity-40"
-            >‹ Sebelumnya</button>
-            <span className="text-xs text-gray-600 px-2">
-              {safePage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(safePage + 1)}
-              disabled={safePage === totalPages}
-              className="btn-secondary text-xs py-1.5 px-2.5 disabled:opacity-40"
-            >Berikutnya ›</button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={safePage === totalPages}
-              className="btn-secondary text-xs py-1.5 px-2.5 disabled:opacity-40"
-            >Akhir »</button>
           </div>
+          <Button variant="outline" className="max-sm:h-11" onClick={() => setExpandedAccounts(new Set(filtered.map((a) => a.accountId)))}>
+            Buka Semua
+          </Button>
+          <Button variant="outline" className="max-sm:h-11" onClick={() => setExpandedAccounts(new Set())}>
+            Tutup Semua
+          </Button>
+        </ReportFilters>
+      }
+    >
+      <ReportState
+        isLoading={isLoading}
+        isError={isError}
+        isEmpty={filtered.length === 0}
+        filtered={!!searchTerm}
+        onRetry={() => refetch()}
+      >
+        <p className="text-xs text-muted-foreground" role="status">
+          {filtered.length} akun · {totalEntries.toLocaleString('id-ID')} mutasi
+        </p>
+        <div className="space-y-3">
+          {pageAccounts.length === 0 ? (
+            <EmptyState kind="empty" title="Tidak ada data buku besar untuk periode ini." compact />
+          ) : (
+            pageAccounts.map((account) => (
+              <LedgerAccountCard
+                key={account.accountId}
+                account={account}
+                expanded={expandedAccounts.has(account.accountId)}
+                onToggle={toggleAccount}
+              />
+            ))
+          )}
         </div>
-      )}
-    </ReportLayout>
+
+        {totalPages > 1 && (
+          <nav aria-label="Halaman buku besar" className="no-print flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">
+              Halaman {safePage} dari {totalPages} · ~{PAGE_SIZE} mutasi/halaman
+            </span>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman pertama" onClick={() => setPage(1)} disabled={safePage === 1}>
+                <ChevronsLeft className="size-4" aria-hidden />
+              </Button>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman sebelumnya" onClick={() => setPage(safePage - 1)} disabled={safePage === 1}>
+                <ChevronLeft className="size-4" aria-hidden />
+              </Button>
+              <span className="num px-2 text-xs">{safePage} / {totalPages}</span>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman berikutnya" onClick={() => setPage(safePage + 1)} disabled={safePage === totalPages}>
+                <ChevronRight className="size-4" aria-hidden />
+              </Button>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman terakhir" onClick={() => setPage(totalPages)} disabled={safePage === totalPages}>
+                <ChevronsRight className="size-4" aria-hidden />
+              </Button>
+            </div>
+          </nav>
+        )}
+      </ReportState>
+    </ReportPage>
   );
 };
 

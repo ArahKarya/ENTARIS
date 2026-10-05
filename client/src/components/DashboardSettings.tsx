@@ -20,6 +20,7 @@ export interface WidgetConfig {
 }
 
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
+  { id: 'attention-list', name: 'Perlu Perhatian', description: 'Faktur jatuh tempo, stok kritis, surat jalan tertunda, dan persetujuan menunggu', icon: AlertTriangle, enabled: true },
   { id: 'revenue-chart', name: 'Grafik Pendapatan', description: 'Area chart pendapatan vs beban 6 bulan terakhir', icon: BarChart3, enabled: true },
   { id: 'recent-activities', name: 'Aktivitas Terakhir', description: 'Transaksi pembayaran terbaru', icon: Clock, enabled: true },
   { id: 'top-customers', name: 'Pelanggan Teratas', description: 'Top 5 pelanggan berdasarkan total penjualan', icon: Users, enabled: true },

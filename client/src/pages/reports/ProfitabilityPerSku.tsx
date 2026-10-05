@@ -1,10 +1,26 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TrendingUp, TrendingDown, Calculator, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import api from '../../lib/api';
-import { cn } from '../../lib/utils';
-import Select from '../../components/Select';
+import { Calculator, Coins, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import api from '@/lib/api';
+import { formatNumber, formatRupiah } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  ExportMenu,
+  ReportDataTable,
+  ReportFilterSection,
+  ReportFilters,
+  ReportNotice,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  periodLabel,
+  toIso,
+  useReportRange,
+  type DataColumn,
+  type SummaryItem,
+} from '@/components/report-kit';
 
 interface ItemRow {
   itemId: string;
@@ -41,15 +57,72 @@ interface ReportData {
 
 type MarginBasis = 'material' | 'loaded' | 'both';
 
-const fmt = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const BASIS_LABEL: Record<MarginBasis, string> = {
+  both: 'Material + Loaded (berdampingan)',
+  material: 'Material saja',
+  loaded: 'Loaded saja',
+};
+
+const LOADED_CELL = 'bg-info-subtle/40';
+
+const marginTone = (pct: number) => (pct >= 20 ? 'text-success-text' : pct >= 0 ? 'text-warning-text' : 'text-danger-text');
+
+function MarginCell({ pct, amount }: { pct: number; amount: number }) {
+  return (
+    <>
+      <span className={cn('inline-flex items-center justify-end gap-1', marginTone(pct))}>
+        {pct >= 0 ? <TrendingUp className="size-3.5" aria-hidden /> : <TrendingDown className="size-3.5" aria-hidden />}
+        {pct}%
+      </span>
+      <div className="text-xs text-muted-foreground">{formatRupiah(amount, { symbol: false, negative: 'parens' })}</div>
+    </>
+  );
+}
+
+function coverageClass(pct: number): string {
+  if (pct === 100) return 'bg-success-subtle text-success-text';
+  if (pct >= 50) return 'bg-warning-subtle text-warning-text';
+  return 'bg-neutral-subtle text-neutral-text';
+}
+
+function buildColumns(showMaterial: boolean, showLoaded: boolean): DataColumn<ItemRow>[] {
+  const cols: DataColumn<ItemRow>[] = [
+    { key: 'code', header: 'Kode', className: 'whitespace-nowrap font-mono text-xs', render: (r) => r.itemCode },
+    { key: 'name', header: 'Produk', rowHeader: true, render: (r) => r.itemName },
+    { key: 'qty', header: 'Qty', numeric: true, render: (r) => formatNumber(r.totalQty) },
+    { key: 'revenue', header: 'Pendapatan', numeric: true, render: (r) => formatRupiah(r.totalRevenue, { symbol: false }) },
+  ];
+  if (showMaterial) {
+    cols.push(
+      { key: 'matCogs', header: 'HPP Material', numeric: true, render: (r) => formatRupiah(r.materialCogs, { symbol: false }) },
+      { key: 'matMargin', header: 'Margin Material', numeric: true, render: (r) => <MarginCell pct={r.materialMarginPct} amount={r.materialMargin} /> },
+    );
+  }
+  if (showLoaded) {
+    cols.push(
+      { key: 'loadCogs', header: 'HPP Loaded', numeric: true, className: LOADED_CELL, render: (r) => formatRupiah(r.loadedCogs, { symbol: false }) },
+      { key: 'loadMargin', header: 'Margin Loaded', numeric: true, className: LOADED_CELL, render: (r) => <MarginCell pct={r.loadedMarginPct} amount={r.loadedMargin} /> },
+    );
+  }
+  cols.push({
+    key: 'coverage',
+    header: 'Cakupan',
+    numeric: true,
+    render: (r) => (
+      <span className={cn('inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium', coverageClass(r.coveragePct))}>
+        {r.coveragePct}% ({r.linesWithBatch}/{r.totalLines})
+      </span>
+    ),
+  });
+  return cols;
+}
 
 export default function ProfitabilityPerSku() {
   const now = new Date();
-  const [startDate, setStartDate] = useState(`${now.getFullYear()}-01-01`);
-  const [endDate, setEndDate] = useState(now.toISOString().substring(0, 10));
+  const { startDate, endDate, setRange } = useReportRange({ startDate: `${now.getFullYear()}-01-01`, endDate: toIso(now) });
   const [basis, setBasis] = useState<MarginBasis>('both');
 
-  const { data, isLoading } = useQuery<ReportData>({
+  const { data, isLoading, isError, refetch } = useQuery<ReportData>({
     queryKey: ['report-profitability-per-sku', startDate, endDate],
     queryFn: async () => {
       const res = await api.get('/reports/profitability-per-sku', { params: { startDate, endDate } });
@@ -59,185 +132,66 @@ export default function ProfitabilityPerSku() {
 
   const showMaterial = basis === 'material' || basis === 'both';
   const showLoaded = basis === 'loaded' || basis === 'both';
+  const s = data?.summary;
+
+  const cards: SummaryItem[] = [{ label: 'Total Pendapatan', value: s?.totalRevenue ?? 0, icon: Wallet, tone: 'neutral' }];
+  if (showMaterial) {
+    cards.push(
+      { label: 'HPP Material (WAC)', value: s?.totalMaterialCogs ?? 0, icon: Coins, tone: 'neutral' },
+      { label: 'Margin Material', value: s?.materialGrossProfit ?? 0, icon: TrendingUp, hint: `${s?.materialMarginPct ?? 0}% dari pendapatan` },
+    );
+  }
+  if (showLoaded) {
+    cards.push(
+      { label: 'HPP Loaded', value: s?.totalLoadedCogs ?? 0, icon: Calculator, tone: 'neutral' },
+      { label: 'Margin Loaded', value: s?.loadedGrossProfit ?? 0, icon: TrendingUp, hint: `${s?.loadedMarginPct ?? 0}% dari pendapatan` },
+    );
+  }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/reports" className="p-1.5 hover:bg-gray-100 rounded-lg" style={{ color: 'var(--color-text-muted)' }}>
-          <ArrowLeft size={20} />
-        </Link>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-          Profitability per SKU
-        </h1>
-      </div>
-
-      {/* Info banner */}
-      <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-start gap-2">
-        <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-900">
-          <strong>Material vs Loaded HPP:</strong>
-          <ul className="text-blue-700 mt-1 space-y-0.5 list-disc list-inside text-xs">
-            <li><strong>Material</strong> = COGS pakai WAC saat ini (existing — gambaran biaya material saja).</li>
-            <li><strong>Loaded</strong> = COGS pakai loaded HPP per batch (Phase 3) — mencakup material + biaya produksi (listrik, buruh, dll) − produk samping NRV. Hanya tersedia untuk sale lines yang link ke batch.</li>
-            <li><strong>Coverage</strong> = persentase line yang sudah link ke batch. 100% = semua line specific-id; 0% = belum ada batch pick.</li>
-          </ul>
+    <ReportPage
+      title="Profitabilitas per SKU"
+      description="Margin per produk dengan basis HPP Material (WAC) dan HPP Loaded per batch"
+      period={periodLabel({ startDate, endDate })}
+      actions={<ExportMenu disabled={isLoading || isError} />}
+      filters={
+        <div className="flex flex-col gap-3">
+          <ReportNotice tone="info">
+            <p className="font-medium">Material vs Loaded HPP</p>
+            <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
+              <li><strong>Material</strong> = COGS pakai WAC saat ini (gambaran biaya material saja).</li>
+              <li><strong>Loaded</strong> = COGS pakai loaded HPP per batch, mencakup material + biaya produksi (listrik, buruh, dll) dikurangi produk samping NRV. Hanya tersedia untuk baris penjualan yang terhubung ke batch.</li>
+              <li><strong>Cakupan</strong> = persentase baris yang sudah terhubung ke batch. 100% = semua baris spesifik; 0% = belum ada batch dipilih.</li>
+            </ul>
+          </ReportNotice>
+          <ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />
+          <ReportFilterSection>
+            <div className="grid gap-1.5">
+              <Label htmlFor="sku-basis">Basis margin</Label>
+              <Select value={basis} onValueChange={(v) => setBasis(v as MarginBasis)}>
+                <SelectTrigger id="sku-basis" className="w-full sm:w-72 max-sm:h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(BASIS_LABEL) as MarginBasis[]).map((k) => (
+                    <SelectItem key={k} value={k}>{BASIS_LABEL[k]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </ReportFilterSection>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="card p-4 mb-6 flex flex-wrap gap-4 items-end">
-        <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Dari</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm" style={{ borderColor: 'var(--color-border)' }} />
-        </div>
-        <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Sampai</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm" style={{ borderColor: 'var(--color-border)' }} />
-        </div>
-        <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-muted)' }}>Basis Margin</label>
-          <Select value={basis} onChange={(e) => setBasis(e.target.value as MarginBasis)}
-            className="w-full" style={{ borderColor: 'var(--color-border)' }}>
-            <option value="both">Material + Loaded (side-by-side)</option>
-            <option value="material">Material only</option>
-            <option value="loaded">Loaded only</option>
-          </Select>
-        </div>
-      </div>
-
-      {/* Summary */}
-      {data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="card p-4">
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Total Pendapatan</p>
-            <p className="text-lg font-bold mt-1" style={{ color: 'var(--color-text-primary)' }}>
-              Rp {fmt(data.summary.totalRevenue)}
-            </p>
-          </div>
-          {showMaterial && (
-            <>
-              <div className="card p-4">
-                <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                  HPP Material (WAC)
-                </p>
-                <p className="text-lg font-bold mt-1" style={{ color: 'var(--color-text-primary)' }}>
-                  Rp {fmt(data.summary.totalMaterialCogs)}
-                </p>
-              </div>
-              <div className="card p-4">
-                <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                  Margin Material
-                </p>
-                <p className={cn(
-                  'text-lg font-bold mt-1',
-                  data.summary.materialGrossProfit >= 0 ? 'text-green-600' : 'text-red-600',
-                )}>
-                  Rp {fmt(data.summary.materialGrossProfit)}
-                  <span className="ml-1 text-xs">({data.summary.materialMarginPct}%)</span>
-                </p>
-              </div>
-            </>
-          )}
-          {showLoaded && (
-            <>
-              <div className="card p-4 border-2 border-emerald-200 bg-emerald-50/40">
-                <p className="text-xs font-medium text-emerald-700 flex items-center gap-1">
-                  <Calculator size={11} /> HPP Loaded
-                </p>
-                <p className="text-lg font-bold mt-1 text-emerald-900">
-                  Rp {fmt(data.summary.totalLoadedCogs)}
-                </p>
-              </div>
-              <div className="card p-4 border-2 border-emerald-200 bg-emerald-50/40">
-                <p className="text-xs font-medium text-emerald-700">Margin Loaded</p>
-                <p className={cn(
-                  'text-lg font-bold mt-1',
-                  data.summary.loadedGrossProfit >= 0 ? 'text-emerald-700' : 'text-red-600',
-                )}>
-                  Rp {fmt(data.summary.loadedGrossProfit)}
-                  <span className="ml-1 text-xs">({data.summary.loadedMarginPct}%)</span>
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Table */}
-      {isLoading ? (
-        <div className="card p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Memuat...</div>
-      ) : data && data.items.length > 0 ? (
-        <div className="card overflow-hidden">
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Kode</th>
-                  <th>Produk</th>
-                  <th className="text-right">Qty</th>
-                  <th className="text-right">Pendapatan</th>
-                  {showMaterial && <th className="text-right">HPP Material</th>}
-                  {showMaterial && <th className="text-right">Margin Material</th>}
-                  {showLoaded && <th className="text-right bg-emerald-50/30">HPP Loaded</th>}
-                  {showLoaded && <th className="text-right bg-emerald-50/30">Margin Loaded</th>}
-                  <th className="text-right">Coverage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((item) => (
-                  <tr key={item.itemId}>
-                    <td className="font-mono text-xs">{item.itemCode}</td>
-                    <td className="font-medium">{item.itemName}</td>
-                    <td className="text-right tabular-nums">{fmt(item.totalQty)}</td>
-                    <td className="text-right tabular-nums">{fmt(item.totalRevenue)}</td>
-                    {showMaterial && <td className="text-right tabular-nums">{fmt(item.materialCogs)}</td>}
-                    {showMaterial && (
-                      <td className="text-right tabular-nums">
-                        <span className={cn('inline-flex items-center gap-1',
-                          item.materialMarginPct >= 20 ? 'text-green-600' : item.materialMarginPct >= 0 ? 'text-amber-600' : 'text-red-600',
-                        )}>
-                          {item.materialMarginPct >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                          {item.materialMarginPct}%
-                        </span>
-                        <div className="text-[10px] text-gray-400">{fmt(item.materialMargin)}</div>
-                      </td>
-                    )}
-                    {showLoaded && (
-                      <td className="text-right tabular-nums bg-emerald-50/30">
-                        {fmt(item.loadedCogs)}
-                      </td>
-                    )}
-                    {showLoaded && (
-                      <td className="text-right tabular-nums bg-emerald-50/30">
-                        <span className={cn('inline-flex items-center gap-1',
-                          item.loadedMarginPct >= 20 ? 'text-green-600' : item.loadedMarginPct >= 0 ? 'text-amber-600' : 'text-red-600',
-                        )}>
-                          {item.loadedMarginPct >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                          {item.loadedMarginPct}%
-                        </span>
-                        <div className="text-[10px] text-gray-400">{fmt(item.loadedMargin)}</div>
-                      </td>
-                    )}
-                    <td className="text-right">
-                      <span className={cn('badge text-xs',
-                        item.coveragePct === 100 ? 'badge-green' : item.coveragePct >= 50 ? 'badge-yellow' : 'badge-gray',
-                      )}>
-                        {item.coveragePct}% ({item.linesWithBatch}/{item.totalLines})
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="card p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>
-          Tidak ada data penjualan di periode ini.
-        </div>
-      )}
-    </div>
+      }
+      summary={<ReportSummaryCards loading={isLoading} items={cards} />}
+    >
+      <ReportState isLoading={isLoading} isError={isError} isEmpty={!!data && data.items.length === 0} onRetry={() => refetch()}>
+        <ReportDataTable
+          caption={`Profitabilitas per SKU, ${periodLabel({ startDate, endDate })}`}
+          columns={buildColumns(showMaterial, showLoaded)}
+          rows={data?.items ?? []}
+          getRowKey={(r) => r.itemId}
+        />
+      </ReportState>
+    </ReportPage>
   );
 }

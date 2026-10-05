@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { TrendingUp, Building2, Banknote, ArrowRightLeft } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { cn } from '../../lib/utils';
-import { formatRupiah } from '../../lib/formatters';
-import { CashFlowPDF } from '../../lib/pdf/ReportPDF';
-import { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
-import { ReportLayout, ReportSummaryCards } from '../../components/reports';
-import type { SummaryCard } from '../../components/reports';
+import { ArrowRightLeft, Banknote, Building2, TrendingUp } from 'lucide-react';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import { CashFlowPDF } from '@/lib/pdf/ReportPDF';
+import { useCompanyPDF } from '@/lib/pdf/useCompanyPDF';
+import {
+  ExportMenu,
+  ReportFilters,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  ReportTable,
+  periodLabel,
+  useReportRange,
+  type ReportRow,
+} from '@/components/report-kit';
+
+interface CashFlowItem {
+  name: string;
+  amount: number;
+}
 
 interface CashFlowData {
   operating: number;
@@ -17,15 +28,16 @@ interface CashFlowData {
   financing: number;
   netChange: number;
   details: {
-    operating: { name: string; amount: number }[];
-    investing: { name: string; amount: number }[];
-    financing: { name: string; amount: number }[];
+    operating: CashFlowItem[];
+    investing: CashFlowItem[];
+    financing: CashFlowItem[];
   };
 }
 
+const COLUMNS = [{ key: 'amount', label: 'Jumlah (Rp)' }];
+
 const CashFlow: React.FC = () => {
-  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  const { startDate, endDate, setRange } = useReportRange();
   const company = useCompanyPDF();
 
   const { data, isLoading, isError, refetch } = useQuery<CashFlowData>({
@@ -36,100 +48,82 @@ const CashFlow: React.FC = () => {
     },
   });
 
-  const handleExport = () => {
-    const rows: object[] = [];
-    const sections = [
-      { label: 'Aktivitas Operasi', items: data?.details?.operating || [], subtotal: data?.operating || 0 },
-      { label: 'Aktivitas Investasi', items: data?.details?.investing || [], subtotal: data?.investing || 0 },
-      { label: 'Aktivitas Pendanaan', items: data?.details?.financing || [], subtotal: data?.financing || 0 },
-    ];
-    for (const s of sections) {
-      for (const item of s.items) {
-        rows.push({ Kategori: s.label, Keterangan: item.name, 'Jumlah (Rp)': item.amount });
-      }
-      rows.push({ Kategori: s.label, Keterangan: `Subtotal ${s.label}`, 'Jumlah (Rp)': s.subtotal });
-    }
-    rows.push({ Kategori: '---', Keterangan: 'NET CHANGE', 'Jumlah (Rp)': data?.netChange || 0 });
-    exportToExcel(rows, `Arus-Kas-${startDate}-sd-${endDate}`);
-  };
-
   const sections = [
     { key: 'operating', label: 'Aktivitas Operasi', icon: TrendingUp, value: data?.operating || 0, items: data?.details?.operating || [] },
     { key: 'investing', label: 'Aktivitas Investasi', icon: Building2, value: data?.investing || 0, items: data?.details?.investing || [] },
     { key: 'financing', label: 'Aktivitas Pendanaan', icon: Banknote, value: data?.financing || 0, items: data?.details?.financing || [] },
   ];
 
-  const summaryCards: SummaryCard[] = sections.map((s) => ({
-    label: s.label,
-    value: s.value,
-    icon: s.icon,
-    color: s.value >= 0 ? 'text-green-700' : 'text-red-600',
-    bgColor: 'bg-gray-100',
-  }));
-
-  const accentCard: SummaryCard = {
-    label: 'Net Change',
-    value: data?.netChange || 0,
-    icon: ArrowRightLeft,
-    color: (data?.netChange || 0) >= 0 ? 'text-white' : 'text-red-200',
-    bgColor: 'bg-white/20',
+  const handleExport = () => {
+    const rows: object[] = [];
+    for (const s of sections) {
+      for (const item of s.items) {
+        rows.push({ Kategori: s.label, Keterangan: item.name, 'Jumlah (Rp)': item.amount });
+      }
+      rows.push({ Kategori: s.label, Keterangan: `Subtotal ${s.label}`, 'Jumlah (Rp)': s.value });
+    }
+    rows.push({ Kategori: '---', Keterangan: 'NET CHANGE', 'Jumlah (Rp)': data?.netChange || 0 });
+    exportToExcel(rows, `Arus-Kas-${startDate}-sd-${endDate}`);
   };
 
+  const rows: ReportRow[] = sections.flatMap<ReportRow>((s) => [
+    { key: `${s.key}-head`, kind: 'section', label: s.label },
+    ...(s.items.length > 0
+      ? s.items.map<ReportRow>((item, idx) => ({ key: `${s.key}-${idx}`, label: item.name, values: [item.amount] }))
+      : [{ key: `${s.key}-empty`, kind: 'note' as const, label: 'Tidak ada pergerakan kas' }]),
+    { key: `${s.key}-subtotal`, kind: 'subtotal', label: `Subtotal ${s.label}`, values: [s.value] },
+  ]);
+
+  const period = periodLabel({ startDate, endDate });
+
   return (
-    <ReportLayout
-      title="Laporan Arus Kas"
-      subtitle="Pergerakan kas masuk dan keluar perusahaan"
-      dateFilter={{ mode: 'range', startDate, endDate, onStartDateChange: setStartDate, onEndDateChange: setEndDate }}
-      pdfDocument={
-        <CashFlowPDF
-          company={company}
-          period={`${startDate} s/d ${endDate}`}
-          operating={data?.operating ?? 0}
-          investing={data?.investing ?? 0}
-          financing={data?.financing ?? 0}
-          netChange={data?.netChange ?? 0}
-          operatingItems={(data?.details?.operating ?? []).map((it) => ({ description: it.name, amount: it.amount }))}
-          investingItems={(data?.details?.investing ?? []).map((it) => ({ description: it.name, amount: it.amount }))}
-          financingItems={(data?.details?.financing ?? []).map((it) => ({ description: it.name, amount: it.amount }))}
+    <ReportPage
+      title="Arus Kas"
+      description="Pergerakan kas masuk dan keluar perusahaan"
+      period={period}
+      actions={
+        <ExportMenu
+          disabled={isLoading || isError}
+          onExcel={handleExport}
+          pdf={{
+            fileName: `Arus-Kas-${startDate}-sd-${endDate}.pdf`,
+            render: () => (
+              <CashFlowPDF
+                company={company}
+                period={`${startDate} s/d ${endDate}`}
+                operating={data?.operating ?? 0}
+                investing={data?.investing ?? 0}
+                financing={data?.financing ?? 0}
+                netChange={data?.netChange ?? 0}
+                operatingItems={(data?.details?.operating ?? []).map((it) => ({ description: it.name, amount: it.amount }))}
+                investingItems={(data?.details?.investing ?? []).map((it) => ({ description: it.name, amount: it.amount }))}
+                financingItems={(data?.details?.financing ?? []).map((it) => ({ description: it.name, amount: it.amount }))}
+              />
+            ),
+          }}
         />
       }
-      pdfFileName={`Arus-Kas-${startDate}-sd-${endDate}.pdf`}
-      onExportExcel={handleExport}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      extraControls={<ReportSummaryCards cards={summaryCards} accentCard={accentCard} />}
+      filters={<ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />}
+      summary={
+        <ReportSummaryCards
+          loading={isLoading}
+          items={[
+            ...sections.map((s) => ({ label: s.label, value: s.value, icon: s.icon })),
+            { label: 'Net Change', value: data?.netChange || 0, icon: ArrowRightLeft },
+          ]}
+        />
+      }
     >
-      {/* Detail Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {sections.map((s) => (
-          <div key={s.key} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="section-header flex items-center gap-2">
-              <s.icon size={13} />
-              {s.label}
-            </div>
-            <div className="divide-y divide-gray-50 px-4">
-              {s.items.length > 0 ? s.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center gap-2 py-3">
-                  <span className="text-sm text-gray-600 min-w-0 truncate">{item.name}</span>
-                  <span className={cn('text-sm font-medium tabular-nums whitespace-nowrap shrink-0', item.amount >= 0 ? 'text-green-600' : 'text-red-500')}>
-                    {formatRupiah(item.amount)}
-                  </span>
-                </div>
-              )) : (
-                <p className="py-8 text-center text-sm text-gray-300">Tidak ada pergerakan kas</p>
-              )}
-            </div>
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/60 flex justify-between">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subtotal</span>
-              <span className={cn('text-sm font-semibold tabular-nums whitespace-nowrap', s.value >= 0 ? 'text-green-600' : 'text-red-500')}>
-                {formatRupiah(s.value)}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </ReportLayout>
+      <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
+        <ReportTable
+          caption={`Laporan arus kas, ${period}`}
+          columns={COLUMNS}
+          labelHeader="Keterangan"
+          rows={rows}
+          footer={[{ key: 'net', kind: 'grand', label: 'Net Change (Kenaikan/Penurunan Kas)', values: [data?.netChange || 0] }]}
+        />
+      </ReportState>
+    </ReportPage>
   );
 };
 

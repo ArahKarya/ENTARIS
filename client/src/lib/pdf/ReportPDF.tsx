@@ -1,8 +1,8 @@
 import React from 'react';
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
-import { C, BADGE } from './theme';
-
-Font.registerHyphenationCallback((word) => [word]);
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { C, FOOTER_SPACE } from './theme';
+import { pdfDate, pdfRp } from './pdfFormat';
+import { PdfFooter, PdfHeader } from './kit';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@ const S = StyleSheet.create({
     fontSize: 8.5,
     color: C.dark,
     paddingTop: 36,
-    paddingBottom: 56,
+    paddingBottom: FOOTER_SPACE,
     paddingHorizontal: 36,
     backgroundColor: C.white,
   },
@@ -30,15 +30,15 @@ const S = StyleSheet.create({
   divider: { height: 1.5, backgroundColor: C.primary, marginBottom: 14, marginTop: 8 },
 
   // ── Section header ──
-  sectionHeader: { backgroundColor: C.primary, paddingVertical: 5, paddingHorizontal: 8, marginBottom: 0 },
-  sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.5 },
+  sectionHeader: { backgroundColor: C.primaryLt, borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 5, paddingHorizontal: 8, marginBottom: 0 },
+  sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
 
   // ── Data rows ──
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
   rowGroup: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.primaryLt },
   rowTotal: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.primary },
-  rowGrandTotal: { flexDirection: 'row', backgroundColor: C.primary, paddingVertical: 7, paddingHorizontal: 8, marginTop: 4 },
+  rowGrandTotal: { flexDirection: 'row', backgroundColor: C.primaryLt, borderTopWidth: 1, borderTopColor: C.primary, paddingVertical: 7, paddingHorizontal: 8, marginTop: 4 },
 
   colLabel:    { flex: 1, fontSize: 8, color: C.mid },
   colLabelBold: { flex: 1, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
@@ -50,8 +50,8 @@ const S = StyleSheet.create({
   colCredit: { width: 90, textAlign: 'right', fontSize: 8, fontFamily: 'Helvetica', color: C.mid },
   colBalance:{ width: 100, textAlign: 'right', fontSize: 8, fontFamily: 'Helvetica', color: C.mid },
   colTotalBold: { width: 100, textAlign: 'right', fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
-  colTotalWhite: { width: 100, textAlign: 'right', fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.white },
-  colGTLabel: { flex: 1, fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.white },
+  colTotalWhite: { width: 100, textAlign: 'right', fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
+  colGTLabel: { flex: 1, fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
 
   // ── Summary box ──
   summaryBox: {
@@ -68,11 +68,9 @@ const S = StyleSheet.create({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function idr(n: number, showSign = false): string {
   const prefix = showSign && n > 0 ? '+' : '';
-  return prefix + 'Rp ' + Math.abs(n).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return prefix + pdfRp(Math.abs(n));
 }
-function today(): string {
-  return new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-}
+const today = (): string => pdfDate(new Date());
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface CompanyInfo { name: string; address?: string | null; taxId?: string | null; logoUrl?: string | null; }
@@ -111,7 +109,7 @@ export const TrialBalancePDF: React.FC<TrialBalancePDFProps> = ({ company, perio
           </View>
         ))}
         <View style={S.rowGrandTotal} wrap={false}>
-          <Text style={{ width: 52, fontSize: 8, color: C.white }}>TOTAL</Text>
+          <Text style={{ width: 52, fontSize: 8, color: C.primary }}>TOTAL</Text>
           <Text style={[S.colGTLabel, { fontSize: 8 }]}> </Text>
           <Text style={S.colTotalWhite}>{idr(totalDebit)}</Text>
           <Text style={S.colTotalWhite}>{idr(totalCredit)}</Text>
@@ -161,7 +159,7 @@ export const ProfitLossPDF: React.FC<PLPDFProps> = ({ company, period, revenue, 
       {/* Net profit */}
       <View style={S.rowGrandTotal} wrap={false}>
         <Text style={S.colGTLabel}>LABA BERSIH</Text>
-        <Text style={[S.colTotalWhite, { color: Number(netProfit) >= 0 ? BADGE.greenSoft : BADGE.redSoft }]}>
+        <Text style={[S.colTotalWhite, { color: Number(netProfit) >= 0 ? C.greenDk : C.redDk }]}>
           {idr(Number(netProfit))}
         </Text>
       </View>
@@ -391,36 +389,9 @@ export const AgingPDF: React.FC<AgingPDFProps> = ({ company, type, rows, totals 
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 function ReportHeader({ company, title, period }: { company: CompanyInfo; title: string; period: string }) {
-  return (
-    <>
-      <View style={S.headerRow} fixed>
-        <View style={S.companyBlock}>
-          {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
-          <View style={S.companyInfo}>
-            <Text style={S.companyName}>{company.name}</Text>
-            {company.address && <Text style={S.companyMeta}>{company.address}</Text>}
-            {company.taxId   && <Text style={S.companyMeta}>NPWP: {company.taxId}</Text>}
-          </View>
-        </View>
-        <View>
-          <Text style={S.reportTitle}>{title}</Text>
-          <Text style={S.reportPeriod}>{period}</Text>
-          <Text style={S.reportDate}>Dicetak: {today()}</Text>
-        </View>
-      </View>
-      <View style={S.divider} fixed />
-    </>
-  );
+  return <PdfHeader company={company} title={title} dateLine={period} extraLines={[`Dicetak: ${today()}`]} />;
 }
 
 function ReportFooter({ company, title }: { company: CompanyInfo; title: string }) {
-  return (
-    <View style={S.footer} fixed>
-      <View style={S.footerLine} />
-      <View style={S.footerRow}>
-        <Text style={S.footerText}>{company.name} — {title}</Text>
-        <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Hal. ${pageNumber} / ${totalPages}`} />
-      </View>
-    </View>
-  );
+  return <PdfFooter company={company.name} docRef={title} paddingHorizontal={36} />;
 }

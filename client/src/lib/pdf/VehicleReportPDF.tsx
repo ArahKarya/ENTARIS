@@ -2,14 +2,14 @@
  * PDF report per-kendaraan — ringkasan TCO, rincian biaya, trend bulanan,
  * kepatuhan dokumen, dan kondisi fisik. Dipakai oleh GaVehicleReportTab.
  */
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { VehicleReport, ComplianceState } from '../../components/GaVehicleReportTab';
-import { C } from './theme';
-
-Font.registerHyphenationCallback((word) => [word]);
+import { C, FOOTER_SPACE } from './theme';
+import { pdfDateShort, pdfDateTime, pdfFixed, pdfRp } from './pdfFormat';
+import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: 56, paddingHorizontal: 36, backgroundColor: C.white },
+  page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: FOOTER_SPACE, paddingHorizontal: 36, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
@@ -33,8 +33,8 @@ const S = StyleSheet.create({
   idLabel: { fontSize: 6.5, color: C.faint, marginBottom: 1 },
   idValue: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.mid },
 
-  tableHeader: { flexDirection: 'row', backgroundColor: C.primary, paddingVertical: 5, paddingHorizontal: 6 },
-  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.3 },
+  tableHeader: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.primary, paddingVertical: 5, paddingHorizontal: 6 },
+  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.3 },
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
   totalRow: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 6, borderTopWidth: 1, borderTopColor: C.primary, backgroundColor: C.bgLight },
@@ -62,15 +62,9 @@ const S = StyleSheet.create({
   footerText: { fontSize: 6.5, color: C.faint },
 });
 
-const rp = (v: number) =>
-  `Rp ${Math.round(v).toLocaleString('id-ID')}`;
-const num = (v: number, digits = 0) =>
-  v.toLocaleString('id-ID', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-const dt = (v: string | Date | null | undefined) => {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const rp = (v: number) => pdfRp(Math.round(v));
+const num = (v: number, digits = 0) => pdfFixed(v, digits);
+const dt = (v: string | Date | null | undefined) => pdfDateShort(v);
 const monthLabel = (key: string) => {
   const [y, m] = key.split('-');
   const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -108,23 +102,12 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
   return (
     <Document title={`Report Kendaraan ${asset.code}`}>
       <Page size="A4" style={S.page}>
-        {/* Header */}
-        <View style={S.headerRow}>
-          <View style={S.companyBlock}>
-            {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
-            <View style={S.companyInfo}>
-              <Text style={S.companyName}>{company.name}</Text>
-              {company.address ? <Text style={S.companyMeta}>{company.address}</Text> : null}
-            </View>
-          </View>
-          <View>
-            <Text style={S.title}>REPORT KENDARAAN</Text>
-            <Text style={S.subtitle}>
-              {asset.noPlat ?? asset.code} · {dt(period.from)} — {dt(period.to)}
-            </Text>
-          </View>
-        </View>
-        <View style={S.divider} />
+        <PdfHeader
+          company={company}
+          title="REPORT KENDARAAN"
+          number={asset.noPlat ?? asset.code}
+          dateLine={`Periode: ${dt(period.from)} — ${dt(period.to)}`}
+        />
 
         {/* Ringkasan */}
         <View style={S.summaryRow}>
@@ -333,13 +316,7 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
           </>
         )}
 
-        {/* Footer */}
-        <View style={S.footer} fixed>
-          <Text style={S.footerText}>
-            Dicetak {generatedAt.toLocaleString('id-ID')} · {company.name}
-          </Text>
-          <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} / ${totalPages}`} />
-        </View>
+        <PdfFooter company={company.name} docRef={`Report Kendaraan ${asset.code}`} paddingHorizontal={36} printedAt={pdfDateTime(generatedAt)} />
       </Page>
     </Document>
   );

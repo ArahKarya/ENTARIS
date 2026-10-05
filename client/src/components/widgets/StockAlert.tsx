@@ -1,69 +1,59 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, PackageX } from 'lucide-react';
 import api from '../../lib/api';
-import { PackageX, Loader2, CheckCircle2 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { formatNumber } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
+import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
 
-const StockAlert: React.FC = () => {
-  const { data, isLoading } = useQuery({
+export interface StockAlertItem {
+  id: string;
+  name: string;
+  unit: string;
+  currentStock: number;
+  minimumStock: number;
+  status: 'Habis' | 'Rendah';
+}
+
+export default function StockAlert() {
+  const { data, isLoading, isError, refetch } = useQuery<StockAlertItem[]>({
     queryKey: ['dashboard-stock-alerts'],
-    queryFn: async () => {
-      const r = await api.get('/dashboard/stock-alerts');
-      return r.data;
-    },
+    queryFn: async () => (await api.get('/dashboard/stock-alerts')).data,
   });
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+    <WidgetCard
+      title="Stok Kritis"
+      description="Stok di bawah atau sama dengan minimum"
+      icon={PackageX}
+      href="/inventory"
+      hrefLabel="Stok"
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      isEmpty={!!data && data.length === 0}
+      emptyIcon={CheckCircle2}
+      emptyText="Semua stok aman"
     >
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          Stok Alert
-        </h2>
-        <PackageX size={16} className="text-orange-500" />
-      </div>
-
-      {isLoading ? (
-        <div className="py-8 flex items-center justify-center">
-          <Loader2 className="animate-spin" size={20} style={{ color: 'var(--color-text-muted)' }} />
-        </div>
-      ) : !data || data.length === 0 ? (
-        <div className="py-8 text-center" style={{ color: 'var(--color-text-muted)' }}>
-          <CheckCircle2 size={28} className="mx-auto mb-2 text-green-500 opacity-50" />
-          <p className="text-xs">Semua stok aman</p>
-        </div>
-      ) : (
-        <div className="space-y-2.5 max-h-64 overflow-y-auto">
-          {data.map((item: any) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 py-2 border-b last:border-b-0"
-              style={{ borderColor: 'var(--color-border)' }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                  {item.name}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                  Stok: {item.currentStock} / Min: {item.minimumStock} {item.unit}
-                </p>
-              </div>
-              <span
-                className={cn(
-                  'badge rounded-full text-xs font-semibold',
-                  item.status === 'Habis' ? 'badge-red' : 'badge-yellow'
-                )}
-              >
-                {item.status}
-              </span>
+      <ScrollRegion label="Daftar stok kritis" className="max-h-72 overflow-y-auto">
+<ul className="divide-y divide-border">
+        {(data ?? []).map((item) => (
+          <li key={item.id} className="flex items-center gap-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-foreground">{item.name}</p>
+              <p className="num mt-0.5 text-xs text-muted-foreground">
+                Stok {formatNumber(item.currentStock)} / Min {formatNumber(item.minimumStock)} {item.unit}
+              </p>
             </div>
-          ))}
-        </div>
+            <Badge variant={item.status === 'Habis' ? 'danger' : 'warning'}>{item.status}</Badge>
+          </li>
+        ))}
+      </ul>
+</ScrollRegion>
+      {data && data.length >= 20 && (
+        <Link to="/inventory" className="mt-2 inline-block text-xs text-primary hover:underline">Menampilkan 20 teratas. Lihat semua stok</Link>
       )}
-    </div>
+    </WidgetCard>
   );
-};
-
-export default StockAlert;
+}

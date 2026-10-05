@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Tampilan (UI/UX) — Fase 5: laporan, dasbor, PDF
+**Diubah**:
+- **Kit laporan** (`components/report-kit/`): kerangka seragam (filter periode dengan preset + rentang kustom di URL, kartu ringkasan, tabel laporan keuangan dengan subtotal, angka negatif dalam kurung, status loading/kosong/error, menu ekspor). Dipakai 17 laporan: Neraca Saldo, Laba Rugi, Neraca, Arus Kas, Buku Besar, Pajak, Aging, Jadwal Hutang/Piutang, Harian, OEE, HPP, Biaya Produksi, Profitabilitas per SKU, PO Outstanding, Kinerja Pemasok. Grafik punya alternatif teks (tabel data). Angka tidak berubah (dibandingkan dengan API).
+- **Semua Laporan**: katalog per kelompok (Keuangan, Penjualan & Piutang, Pembelian & Hutang, Produksi & Persediaan), ramah izin dan keyboard.
+- **Dasbor** didesain ulang: strip KPI, tren dengan teks alternatif, daftar "Perlu perhatian", widget sesuai peran, skeleton/empty/error, tata letak 390px.
+- **15 template PDF** diseragamkan (kop perusahaan, header tabel berulang tiap halaman, blok total, tanda tangan, footer "Halaman X dari Y" + waktu cetak), warna navy Entaris dengan isian ringan; format angka/tanggal lewat `lib/format`; status faktur kini berbahasa Indonesia.
+- Retur penjualan pada Laba Rugi tampil negatif dalam kurung, mis. `(Rp 461.500)`.
+
 ### Tampilan (UI/UX) — Fase 4: formulir & modal
 **Diubah**:
 - ±55 modal dan drawer lama (Faktur, Pesanan, Penawaran, Surat Jalan, Retur, Inquiry, Garansi Proyek, uang muka, PO, STT, Faktur Pembelian, Pembayaran, Transfer, Rekonsiliasi, Biaya, Run Produksi, Persetujuan, Gerakan/Transfer Stok, Barang, Jurnal, Transaksi Berulang, Pelanggan/Vendor, Impor, dan dialog dasbor/GA) dipindah ke komponen bersama: Dialog untuk formulir, Sheet untuk detail, Field berlabel, dan ConfirmDialog menggantikan `window.confirm`. Fokus terjaga, Esc menutup, muat di layar 390px, tema terang/gelap. Logika bisnis, payload, dan perhitungan tidak berubah.

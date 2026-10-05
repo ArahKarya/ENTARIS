@@ -66,42 +66,32 @@ export default function DashboardSectionNav({ sections, scrollRootId = 'main-con
   };
 
   return (
-    <div
-      className="sticky top-0 z-20 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 py-2 border-b backdrop-blur"
-      style={{
-        backgroundColor: 'color-mix(in srgb, var(--color-bg-secondary) 92%, transparent)',
-        borderColor: 'var(--color-border)',
-      }}
+    <nav
+      aria-label="Bagian dasbor"
+      className="sticky top-0 z-20 -mx-3 border-b border-border bg-background/90 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6"
     >
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
         {sections.map((s) => {
           const Icon = s.icon;
           const isActive = active === s.id;
           return (
             <button
               key={s.id}
+              type="button"
               onClick={() => handleClick(s.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
+              aria-current={isActive ? 'true' : undefined}
+              className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 sm:px-3 ${
                 isActive
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
               }`}
-              style={
-                isActive
-                  ? undefined
-                  : {
-                      color: 'var(--color-text-secondary)',
-                      borderColor: 'var(--color-border)',
-                      backgroundColor: 'var(--color-bg-primary)',
-                    }
-              }
             >
-              <Icon size={13} />
+              <Icon size={13} aria-hidden />
               {s.label}
             </button>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

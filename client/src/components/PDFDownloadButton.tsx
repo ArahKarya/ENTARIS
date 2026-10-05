@@ -1,6 +1,8 @@
 import React from 'react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFDownloadLink, type DocumentProps } from '@react-pdf/renderer';
 import { FileDown, Loader2 } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface Props {
   document: React.ReactElement;
@@ -12,7 +14,8 @@ interface Props {
 
 /**
  * Wrapper around PDFDownloadLink that shows a spinner while the PDF is being
- * generated and provides consistent styling across the app.
+ * generated. The link itself is styled as the button (no nested <a><button>),
+ * uses design tokens only, and keeps a 44px touch target.
  */
 const PDFDownloadButton: React.FC<Props> = ({
   document: doc,
@@ -22,69 +25,28 @@ const PDFDownloadButton: React.FC<Props> = ({
   variant = 'button',
 }) => {
   // Cast to satisfy @react-pdf/renderer's strict DocumentProps type
-  const pdfDoc = doc as React.ReactElement<any>;
+  const pdfDoc = doc as React.ReactElement<DocumentProps>;
 
-  if (variant === 'icon') {
-    return (
-      <PDFDownloadLink document={pdfDoc} fileName={fileName}>
-        {({ loading }) => (
-          <button
-            title={label}
-            className={
-              className ??
-              'p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors'
-            }
-          >
-            {loading ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <FileDown size={15} />
-            )}
-          </button>
-        )}
-      </PDFDownloadLink>
-    );
-  }
+  const styles = {
+    icon: cn(buttonVariants({ variant: 'ghost', size: 'icon-touch' }), 'text-muted-foreground'),
+    'menu-item': cn(
+      buttonVariants({ variant: 'ghost' }),
+      'min-h-11 w-full justify-start rounded-none px-3 text-sm',
+    ),
+    button: cn(buttonVariants({ variant: 'outline' }), 'min-h-11 sm:min-h-9'),
+  }[variant];
 
-  if (variant === 'menu-item') {
-    return (
-      <PDFDownloadLink document={pdfDoc} fileName={fileName}>
-        {({ loading }) => (
-          <button
-            className={
-              className ??
-              'w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors'
-            }
-          >
-            {loading ? (
-              <Loader2 size={13} className="animate-spin text-gray-400" />
-            ) : (
-              <FileDown size={13} className="text-red-500" />
-            )}
-            {loading ? 'Membuat PDF...' : label}
-          </button>
-        )}
-      </PDFDownloadLink>
-    );
-  }
-
-  // default: 'button'
   return (
-    <PDFDownloadLink document={pdfDoc} fileName={fileName}>
+    <PDFDownloadLink document={pdfDoc} fileName={fileName} className={cn(styles, className)} aria-label={variant === 'icon' ? label : undefined}>
       {({ loading }) => (
-        <button
-          className={
-            className ??
-            'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors'
-          }
-        >
-          {loading ? (
-            <Loader2 size={14} className="animate-spin" />
+        <>
+          {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
+          {variant === 'icon' ? (
+            <span className="sr-only">{loading ? 'Membuat PDF…' : label}</span>
           ) : (
-            <FileDown size={14} />
+            <span role={loading ? 'status' : undefined}>{loading ? 'Membuat PDF…' : label}</span>
           )}
-          {loading ? 'Membuat...' : label}
-        </button>
+        </>
       )}
     </PDFDownloadLink>
   );

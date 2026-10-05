@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
-import { exportToExcel } from '../../lib/exportExcel';
-import { formatRupiah } from '../../lib/formatters';
-import { cn } from '../../lib/utils';
-import { ReportLayout, ReportSummaryCards } from '../../components/reports';
-import type { SummaryCard } from '../../components/reports';
+import { ArrowDownCircle, ArrowUpCircle, Receipt, Scale } from 'lucide-react';
 import { format } from 'date-fns';
-import { ArrowUpCircle, ArrowDownCircle, Scale, Receipt } from 'lucide-react';
+import api from '@/lib/api';
+import { exportToExcel } from '@/lib/exportExcel';
+import {
+  ExportMenu,
+  ReportFilters,
+  ReportPage,
+  ReportState,
+  ReportSummaryCards,
+  ReportTable,
+  periodLabel,
+  useReportRange,
+  type ReportRow,
+} from '@/components/report-kit';
 
 interface TaxMonth {
   month: string;
@@ -17,7 +24,7 @@ interface TaxMonth {
   net: number;
 }
 
-interface TaxReport {
+interface TaxReportData {
   months: TaxMonth[];
   totals: {
     ppnKeluaran: number;
@@ -27,17 +34,31 @@ interface TaxReport {
   };
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
 const monthLabel = (m: string) => {
   const [year, month] = m.split('-');
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${months[parseInt(month, 10) - 1]} ${year}`;
+  return `${MONTHS[parseInt(month, 10) - 1]} ${year}`;
 };
 
-const TaxReport: React.FC = () => {
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-01-01'));
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+const COLUMNS = [
+  { key: 'ppnKeluaran', label: 'PPN Keluaran' },
+  { key: 'ppnMasukan', label: 'PPN Masukan' },
+  { key: 'net', label: 'Selisih PPN' },
+  { key: 'pph', label: 'PPh' },
+];
 
-  const { data: report, isLoading, isError, refetch } = useQuery<TaxReport>({
+const EMPTY_TOTALS = { ppnKeluaran: 0, ppnMasukan: 0, pph: 0, net: 0 };
+
+const TaxReport: React.FC = () => {
+  // Default = tahun berjalan sampai hari ini (sama seperti sebelumnya).
+  const today = new Date();
+  const { startDate, endDate, setRange } = useReportRange({
+    startDate: format(today, 'yyyy-01-01'),
+    endDate: format(today, 'yyyy-MM-dd'),
+  });
+
+  const { data: report, isLoading, isError, refetch } = useQuery<TaxReportData>({
     queryKey: ['tax-report', startDate, endDate],
     queryFn: async () => {
       const r = await api.get('/tax/report', { params: { startDate, endDate } });
@@ -45,39 +66,8 @@ const TaxReport: React.FC = () => {
     },
   });
 
-  const totals = report?.totals || { ppnKeluaran: 0, ppnMasukan: 0, pph: 0, net: 0 };
-
-  const summaryCards: SummaryCard[] = [
-    {
-      label: 'PPN Keluaran',
-      value: totals.ppnKeluaran,
-      icon: ArrowUpCircle,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-    },
-    {
-      label: 'PPN Masukan',
-      value: totals.ppnMasukan,
-      icon: ArrowDownCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
-      label: 'Total PPh',
-      value: totals.pph,
-      icon: Receipt,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-    },
-  ];
-
-  const accentCard: SummaryCard = {
-    label: 'PPN Kurang/Lebih Bayar',
-    value: totals.net,
-    icon: Scale,
-    color: 'text-white',
-    bgColor: 'bg-blue-600',
-  };
+  const totals = report?.totals || EMPTY_TOTALS;
+  const months = report?.months ?? [];
 
   const handleExport = () => {
     if (!report?.months) return;
@@ -98,88 +88,48 @@ const TaxReport: React.FC = () => {
           'PPh (Rp)': totals.pph,
         },
       ],
-      `Laporan-Pajak-${startDate}-sd-${endDate}`
+      `Laporan-Pajak-${startDate}-sd-${endDate}`,
     );
   };
 
+  const rows: ReportRow[] = months.map((m) => ({
+    key: m.month,
+    label: monthLabel(m.month),
+    values: [m.ppnKeluaran, m.ppnMasukan, m.net, m.pph],
+  }));
+
+  const period = periodLabel({ startDate, endDate });
+
   return (
-    <ReportLayout
+    <ReportPage
       title="Laporan Pajak"
-      subtitle="Ringkasan PPN dan PPh berdasarkan transaksi invoice"
-      dateFilter={{
-        mode: 'range',
-        startDate,
-        endDate,
-        onStartDateChange: setStartDate,
-        onEndDateChange: setEndDate,
-      }}
-      onExportExcel={handleExport}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      extraControls={
-        <ReportSummaryCards cards={summaryCards} accentCard={accentCard} />
+      description="Ringkasan PPN dan PPh berdasarkan transaksi invoice"
+      period={period}
+      actions={<ExportMenu disabled={isLoading || isError} onExcel={handleExport} />}
+      filters={<ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />}
+      summary={
+        <ReportSummaryCards
+          loading={isLoading}
+          items={[
+            { label: 'PPN Keluaran', value: totals.ppnKeluaran, icon: ArrowUpCircle, tone: 'neutral' },
+            { label: 'PPN Masukan', value: totals.ppnMasukan, icon: ArrowDownCircle, tone: 'neutral' },
+            { label: 'Total PPh', value: totals.pph, icon: Receipt, tone: 'neutral' },
+            { label: 'PPN Kurang/Lebih Bayar', value: totals.net, icon: Scale, tone: 'neutral' },
+          ]}
+        />
       }
     >
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
-      >
-       <div className="table-responsive">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Bulan</th>
-              <th className="text-right">PPN Keluaran</th>
-              <th className="text-right">PPN Masukan</th>
-              <th className="text-right">Selisih PPN</th>
-              <th className="text-right pr-4">PPh</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(!report?.months || report.months.length === 0) ? (
-              <tr>
-                <td colSpan={5} className="py-16 text-center" style={{ color: 'var(--color-text-muted)' }}>
-                  Tidak ada data pajak untuk periode ini
-                </td>
-              </tr>
-            ) : (
-              report.months.map((m) => (
-                <tr key={m.month}>
-                  <td className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                    {monthLabel(m.month)}
-                  </td>
-                  <td className="text-right tabular-nums text-blue-600">
-                    {m.ppnKeluaran > 0 ? formatRupiah(m.ppnKeluaran) : '—'}
-                  </td>
-                  <td className="text-right tabular-nums text-green-600">
-                    {m.ppnMasukan > 0 ? formatRupiah(m.ppnMasukan) : '—'}
-                  </td>
-                  <td className={cn('text-right tabular-nums', m.net >= 0 ? 'text-orange-600' : 'text-green-600')}>
-                    {formatRupiah(m.net)}
-                  </td>
-                  <td className="text-right tabular-nums pr-4" style={{ color: 'var(--color-text-secondary)' }}>
-                    {m.pph > 0 ? formatRupiah(m.pph) : '—'}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-          {report?.months && report.months.length > 0 && (
-            <tfoot>
-              <tr className="bg-blue-600 text-white">
-                <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">Total</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals.ppnKeluaran)}</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals.ppnMasukan)}</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatRupiah(totals.net)}</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums pr-4">{formatRupiah(totals.pph)}</td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
-       </div>
-      </div>
-    </ReportLayout>
+      <ReportState isLoading={isLoading} isError={isError} isEmpty={months.length === 0} onRetry={() => refetch()}>
+        <ReportTable
+          caption={`Laporan pajak per bulan, ${period}`}
+          columns={COLUMNS}
+          labelHeader="Bulan"
+          zero="dash"
+          rows={rows}
+          footer={[{ key: 'total', kind: 'total', label: 'Total', values: [totals.ppnKeluaran, totals.ppnMasukan, totals.net, totals.pph] }]}
+        />
+      </ReportState>
+    </ReportPage>
   );
 };
 

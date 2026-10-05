@@ -3,13 +3,13 @@
  * Berisi identitas kendaraan, info inspeksi, checklist per kategori,
  * catatan, dan foto bukti. Dipakai dari riwayat inspeksi GaVehiclePage.
  */
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
-import { C } from './theme';
-
-Font.registerHyphenationCallback((word) => [word]);
+import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+import { C, FOOTER_SPACE } from './theme';
+import { pdfDateShort, pdfDateTime, pdfNum } from './pdfFormat';
+import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: 56, paddingHorizontal: 36, backgroundColor: C.white },
+  page: { fontFamily: 'Helvetica', fontSize: 8.5, color: C.dark, paddingTop: 36, paddingBottom: FOOTER_SPACE, paddingHorizontal: 36, backgroundColor: C.white },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
@@ -33,8 +33,8 @@ const S = StyleSheet.create({
   idLabel: { fontSize: 6.5, color: C.faint, marginBottom: 1 },
   idValue: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.mid },
 
-  tableHeader: { flexDirection: 'row', backgroundColor: C.primary, paddingVertical: 5, paddingHorizontal: 6 },
-  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.3 },
+  tableHeader: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.primary, paddingVertical: 5, paddingHorizontal: 6 },
+  tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.3 },
   catRow: { flexDirection: 'row', backgroundColor: C.bgLight, paddingVertical: 4, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: C.border },
   catText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.2 },
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: C.border },
@@ -59,12 +59,8 @@ const S = StyleSheet.create({
   footerText: { fontSize: 6.5, color: C.faint },
 });
 
-const num = (v: number) => v.toLocaleString('id-ID');
-const dt = (v: string | Date | null | undefined) => {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const num = (v: number) => pdfNum(v, 3);
+const dt = (v: string | Date | null | undefined) => pdfDateShort(v);
 
 const RESULT_LABELS: Record<string, string> = {
   BAIK: 'Baik', PERLU_PERHATIAN: 'Perlu Perhatian', TIDAK_LAYAK: 'Tidak Layak',
@@ -180,23 +176,12 @@ export default function InspectionDetailPDF({
   return (
     <Document title={`Inspeksi ${asset.noPlat ?? asset.code} ${dt(inspection.tanggal)}`}>
       <Page size="A4" style={S.page}>
-        {/* Header */}
-        <View style={S.headerRow}>
-          <View style={S.companyBlock}>
-            {company.logoUrl ? <Image style={S.companyLogo} src={company.logoUrl} /> : null}
-            <View style={S.companyInfo}>
-              <Text style={S.companyName}>{company.name}</Text>
-              {company.address ? <Text style={S.companyMeta}>{company.address}</Text> : null}
-            </View>
-          </View>
-          <View>
-            <Text style={S.title}>HASIL INSPEKSI KENDARAAN</Text>
-            <Text style={S.subtitle}>
-              {asset.noPlat ?? asset.code} · {dt(inspection.tanggal)}
-            </Text>
-          </View>
-        </View>
-        <View style={S.divider} />
+        <PdfHeader
+          company={company}
+          title="HASIL INSPEKSI KENDARAAN"
+          number={asset.noPlat ?? asset.code}
+          dateLine={`Tanggal: ${dt(inspection.tanggal)}`}
+        />
 
         {/* Ringkasan inspeksi */}
         <View style={S.summaryRow}>
@@ -304,13 +289,7 @@ export default function InspectionDetailPDF({
           </>
         )}
 
-        {/* Footer */}
-        <View style={S.footer} fixed>
-          <Text style={S.footerText}>
-            Dicetak oleh {printedBy} · {generatedAt.toLocaleString('id-ID')} · {company.name}
-          </Text>
-          <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} / ${totalPages}`} />
-        </View>
+        <PdfFooter company={company.name} docRef={`Inspeksi ${asset.noPlat ?? asset.code}`} paddingHorizontal={36} printedAt={`${pdfDateTime(generatedAt)} oleh ${printedBy}`} />
       </Page>
     </Document>
   );

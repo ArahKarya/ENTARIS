@@ -1,21 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Loader2 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
+import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { formatNumber } from '@/lib/format';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
+import { ChartFrame } from '../dashboard-kit/ChartFrame';
+import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE } from '../dashboard-kit/chart-theme';
 
 interface MovementTrendRaw {
   month: string;
@@ -33,21 +23,11 @@ interface MovementTrendItem {
   net: number;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const formatNumber = (val: number | string, decimals = 0) =>
-  Number(val).toLocaleString('id-ID', { maximumFractionDigits: decimals });
-
-// ---------------------------------------------------------------------------
-// Main Widget
-// ---------------------------------------------------------------------------
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const LABELS: Record<string, string> = { masuk: 'Masuk', keluar: 'Keluar', net: 'Net' };
 
 export default function MovementTrendChart() {
-  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-
-  const { data, isLoading } = useQuery<MovementTrendItem[]>({
+  const { data, isLoading, isError, refetch } = useQuery<MovementTrendItem[]>({
     queryKey: ['warehouse-movement-trend'],
     queryFn: async () => {
       const r = await api.get<MovementTrendRaw[]>('/inventory/dashboard/movement-trend');
@@ -62,86 +42,50 @@ export default function MovementTrendChart() {
       });
     },
   });
+  const rows = data ?? [];
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border)' }}
+    <WidgetCard
+      title="Tren Pergerakan Stok"
+      description="6 bulan terakhir"
+      icon={BarChart3}
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      isEmpty={!!data && rows.length === 0}
+      emptyIcon={BarChart3}
+      emptyText="Belum ada data pergerakan"
+      minHeight={290}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          Tren Pergerakan Stok (6 Bulan)
-        </h2>
-        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" />
-            Masuk
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" />
-            Keluar
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
-            Net
-          </span>
-        </div>
-      </div>
-      <div className="h-64">
-        {isLoading ? (
-          <div className="py-12 flex items-center justify-center">
-            <Loader2 className="animate-spin" size={24} style={{ color: 'var(--color-text-muted)' }} />
-          </div>
-        ) : !data || data.length === 0 ? (
-          <div className="py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
-            <BarChart3 size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-xs">Belum ada data pergerakan</p>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#9ca3af', fontSize: 11 }}
-                dy={8}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#9ca3af', fontSize: 11 }}
-                tickFormatter={(v) => formatNumber(v)}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--color-bg-primary)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '8px',
-                  fontSize: 12,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                  color: 'var(--color-text-primary)',
-                }}
-                formatter={(value, name) => {
-                  const labels: Record<string, string> = { masuk: 'Masuk', keluar: 'Keluar', net: 'Net Change' };
-                  return [formatNumber(Number(value)), labels[String(name)] ?? String(name)];
-                }}
-              />
-              <Legend wrapperStyle={{ display: 'none' }} />
-              <Bar dataKey="masuk" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="keluar" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              <Line
-                type="monotone"
-                dataKey="net"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={{ r: 3, fill: '#3b82f6' }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
+      <ChartFrame
+        summary={`Grafik batang kuantitas stok masuk dan keluar per bulan dengan garis perubahan bersih, ${rows.length} bulan.`}
+        legend={[
+          { label: 'Masuk', color: 'var(--chart-3)' },
+          { label: 'Keluar', color: 'var(--chart-4)' },
+          { label: 'Net', color: 'var(--chart-1)', dashed: true },
+        ]}
+        table={{
+          caption: 'Pergerakan stok per bulan',
+          columns: ['Bulan', 'Masuk', 'Keluar', 'Net'],
+          rows: rows.map((r) => [r.month, formatNumber(r.masuk), formatNumber(r.keluar), formatNumber(r.net)]),
+        }}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={rows} margin={{ top: 5, right: 8, left: 0, bottom: 0 }} accessibilityLayer={false}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_STROKE} />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
+            <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={(v) => formatNumber(v)} width={48} />
+            <Tooltip
+              contentStyle={TOOLTIP_STYLE}
+              cursor={{ fill: 'var(--muted)' }}
+              formatter={(v, n) => [formatNumber(Number(v)), LABELS[String(n)] ?? String(n)]}
+            />
+            <Bar dataKey="masuk" name="masuk" stackId="a" fill="var(--chart-3)" isAnimationActive={false} />
+            <Bar dataKey="keluar" name="keluar" stackId="a" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            <Line type="monotone" dataKey="net" name="net" stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: 'var(--chart-1)' }} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </ChartFrame>
+    </WidgetCard>
   );
 }
