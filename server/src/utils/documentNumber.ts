@@ -15,7 +15,7 @@ import { Prisma } from '@prisma/client';
  */
 export async function generateDocumentNumber(
   tx: Prisma.TransactionClient,
-  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ' | 'ST' | 'DO' | 'STT' | 'PO' | 'PSN' | 'RN' | 'UJ' | 'PP' | 'DPR',
+  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ' | 'ST' | 'DO' | 'STT' | 'PO' | 'PSN' | 'RN' | 'UJ' | 'PP' | 'DPR' | 'DKB',
   date: Date,
   fiscalYearId: string
 ): Promise<string> {
@@ -93,6 +93,9 @@ export async function generateDocumentNumber(
   } else if (prefix === 'DPR') {
     const r = await tx.productionRunDraft.findFirst({ where: { draftNumber: startsWith }, orderBy: { draftNumber: 'desc' }, select: { draftNumber: true } });
     lastNumber = r?.draftNumber ?? null;
+  } else if (prefix === 'DKB') {
+    const r = await tx.cashBookDraft.findFirst({ where: { draftNumber: startsWith }, orderBy: { draftNumber: 'desc' }, select: { draftNumber: true } });
+    lastNumber = r?.draftNumber ?? null;
   } else {
     // JV, OB and any other journal-backed prefixes share journalEntry
     const r = await tx.journalEntry.findFirst({ where: { entryNumber: startsWith }, orderBy: { entryNumber: 'desc' }, select: { entryNumber: true } });
@@ -116,7 +119,7 @@ export async function generateDocumentNumber(
   // the document table hands out a number whose JV already exists, and the
   // journalEntry.entryNumber @unique constraint throws P2002 at submit time.
   // Skip forward past any sequence whose derived JV names are already taken.
-  const derivesJournal = prefix !== 'JV' && prefix !== 'OB' && prefix !== 'DPR';
+  const derivesJournal = prefix !== 'JV' && prefix !== 'OB' && prefix !== 'DPR' && prefix !== 'DKB';
   let seq = lastSeq + 1;
   if (derivesJournal) {
     for (let attempt = 0; attempt < 200; attempt++) {
