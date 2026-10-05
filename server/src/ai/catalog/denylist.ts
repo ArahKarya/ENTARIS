@@ -116,6 +116,47 @@ export const DENY_RULES: DenyRule[] = [
     reason: 'Probe infrastruktur (health & versi build) — dipantau di luar katalog; bukan fungsi bisnis.',
   },
   {
+    id: 'file-upload-download-ga',
+    category: 'file-biner',
+    exact: [
+      'POST /api/ga/assets/:id/photos',
+      'POST /api/ga/documents/:id/versions',
+      'GET /api/ga/documents/:id/versions/:vid/file',
+      'POST /api/ga/inventory/items/:id/image',
+      'GET /api/ga/inventory/items/:id/image',
+      'POST /api/ga/maintenance/work-orders/:id/photos',
+      'POST /api/ga/vehicle/assets/:id/inspections/:iid/photos',
+      'GET /api/ga/vehicle/assets/:id/inspections/:iid/photos/:pid/file',
+    ],
+    reason:
+      'Unggah/unduh berkas biner EAM (foto aset/WO/inspeksi, PDF dokumen legal, gambar item) via multipart atau stream. Tool JSON tidak dapat membawa berkas; metadata tersedia lewat tool daftar/detail masing-masing.',
+  },
+  {
+    id: 'file-payment-request',
+    category: 'file-biner',
+    exact: ['POST /api/payment-requests/:id/attachments', 'GET /api/payment-requests/attachments/:attId'],
+    reason: 'Unggah lampiran (multipart) dan unduh lampiran (sendFile) Pengajuan Pembayaran. Metadata lampiran tersedia di payreq_get.',
+  },
+  {
+    id: 'report-export-binary',
+    category: 'file-biner',
+    exact: ['POST /api/reports/export'],
+    reason: 'Membuat berkas .xlsx dari data yang dikirim klien (stream biner, bukan pembacaan data ERP). Agen memakai tool laporan JSON.',
+  },
+  {
+    id: 'recurring-run-due',
+    category: 'destruktif-sistem',
+    exact: ['POST /api/recurring/run-due'],
+    reason: 'Memicu massal eksekusi semua template berulang jatuh tempo (posting jurnal banyak sekaligus). Sudah dijalankan scheduler harian 02:00; gunakan rec_execute untuk satu template.',
+  },
+  {
+    id: 'settings-infra',
+    category: 'infra',
+    exact: ['GET /api/settings/runtime', 'GET /api/settings/check-update', 'POST /api/settings/company/onboarding'],
+    reason:
+      'runtime membocorkan info infrastruktur (hostname, versi Node, memori); check-update menjalankan git fetch + request keluar di server; onboarding hanya penanda wizard UI. Bukan fungsi bisnis.',
+  },
+  {
     id: 'notification-job',
     category: 'infra',
     exact: ['POST /api/notifications/check'],

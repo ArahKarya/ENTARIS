@@ -20,6 +20,8 @@ interface Entry {
 }
 
 let index: Map<string, Entry> | undefined;
+/** helper skema berbentuk fungsi, mis. `const optText = (max) => z.string().max(max).optional()` */
+const fnIndex = new Map<string, ts.Expression>();
 
 function walkTs(dir: string, out: string[]): string[] {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -48,7 +50,9 @@ function buildIndex(): Map<string, Entry> {
     for (const st of sf.statements) {
       if (!ts.isVariableStatement(st)) continue;
       for (const d of st.declarationList.declarations) {
-        if (ts.isIdentifier(d.name) && d.initializer && isSchemaExpr(d.initializer.getText(sf))) {
+        if (ts.isIdentifier(d.name) && d.initializer && ts.isArrowFunction(d.initializer) && !ts.isBlock(d.initializer.body) && /\bz\./.test(d.initializer.body.getText(sf))) {
+          fnIndex.set(d.name.text, d.initializer.body);
+        } else if (ts.isIdentifier(d.name) && d.initializer && isSchemaExpr(d.initializer.getText(sf))) {
           // nama bentrok antar file: yang pertama menang, kecuali yang lebih spesifik (route-local) menimpa nanti lewat lookup file
           const key = d.name.text;
           if (!index.has(key)) index.set(key, { expr: d.initializer, sf });
@@ -105,6 +109,10 @@ function unchain(expr: ts.Expression): Chain {
       }
       mods.push({ name: pa.name.text, args: cur.arguments });
       cur = pa.expression;
+    } else if (ts.isCallExpression(cur) && ts.isIdentifier(cur.expression) && fnIndex.has(cur.expression.text)) {
+      // helper fungsi: ekspansi ke ekspresi z.* di dalam badan fungsi
+      const inner = unchain(fnIndex.get(cur.expression.text) as ts.Expression);
+      return { base: inner.base, mods: [...inner.mods, ...mods.reverse()] };
     } else {
       return { base: cur, mods: mods.reverse() };
     }

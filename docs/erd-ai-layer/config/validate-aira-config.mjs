@@ -4,7 +4,8 @@
  * Cek: struktur, role/module/capability terdaftar, nama unik, konsistensi risk/handler,
  *      write/critical wajib confirm_template, read wajib handler GET.
  *
- * Pakai: node validate-aira-config.mjs
+ * Pakai: node validate-aira-config.mjs [path/ke/aira-tool-router.json]
+ * (default: server/src/ai/aira-tool-router.json)
  * Exit 0 = lolos. Exit 1 = ada error. Jalankan tiap nambah/ubah tool.
  */
 import { readFileSync } from 'node:fs';
@@ -12,7 +13,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const cfg = JSON.parse(readFileSync(join(__dir, 'aira-tool-router.json'), 'utf8'));
+// Sumber tunggal registry: server/src/ai/aira-tool-router.json (salinan di folder ini sudah dihapus).
+const cfg = JSON.parse(readFileSync(process.argv[2] || join(__dir, '../../../server/src/ai/aira-tool-router.json'), 'utf8'));
 const errors = [];
 const warnings = [];
 
@@ -57,7 +59,7 @@ for (const [i, t] of (cfg.tools || []).entries()) {
   if (t.handler && !/^(GET|POST|PUT|PATCH|DELETE) \/.+/.test(t.handler)) errors.push(`${at}: handler harus 'METHOD /path' (mis. 'POST /api/payments')`);
   // aturan AIRA: read => handler GET + tanpa confirm_template; write/critical => wajib confirm_template
   if (t.risk === 'read') {
-    if (t.handler && !t.handler.startsWith('GET ')) errors.push(`${at}: risk=read WAJIB handler GET`);
+    if (t.handler && !t.handler.startsWith('GET ') && !t.safeNonGet) errors.push(`${at}: risk=read WAJIB handler GET (kecuali safeNonGet)`);
     if (t.confirm_template) warnings.push(`${at}: risk=read tak perlu confirm_template`);
   }
   if ((t.risk === 'write' || t.risk === 'critical') && !t.confirm_template)
