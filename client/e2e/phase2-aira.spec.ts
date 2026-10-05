@@ -98,7 +98,7 @@ test.describe('AIRA chat', () => {
     await settle(page)
     expect(new URL(page.url()).pathname).toBe('/aira')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Asisten AIRA')
-    await expect(page.getByRole('button', { name: 'Ringkas piutang jatuh tempo minggu ini' })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Contoh permintaan' }).getByRole('button')).toHaveCount(3)
     await page.screenshot({ path: shot(testInfo, 'empty'), animations: 'disabled' })
     await axe(page, testInfo, 'empty')
     await noHorizontalOverflow(page)

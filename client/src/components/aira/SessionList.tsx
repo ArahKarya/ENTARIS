@@ -78,7 +78,7 @@ function SessionRow(props: {
     </SimpleTooltip>
   );
   return (
-    <li className={cn('group flex items-center gap-1 rounded-md pr-1', active ? 'bg-primary-subtle' : 'hover:bg-surface-hover')}>
+    <li className={cn('group relative flex items-center gap-1 rounded-md pr-1', active ? 'bg-primary-subtle' : 'hover:bg-surface-hover')}>
       <button
         type="button"
         onClick={props.onSelect}
@@ -88,7 +88,12 @@ function SessionRow(props: {
         <span className={cn('block truncate', active ? 'font-medium text-primary-subtle-foreground' : 'text-foreground')}>{titleOf(s)}</span>
         {s.busy && <span className="text-xs text-muted-foreground">Sedang menjawab…</span>}
       </button>
-      <div className="flex shrink-0 items-center opacity-100 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+      <div
+        className={cn(
+          'flex shrink-0 items-center md:absolute md:right-1 md:top-1/2 md:-translate-y-1/2 md:rounded-md md:opacity-0 md:shadow-[var(--shadow-1)] md:group-focus-within:opacity-100 md:group-hover:opacity-100',
+          active ? 'md:bg-primary-subtle' : 'md:bg-card',
+        )}
+      >
         {act('Ubah nama', <Pencil className="size-3.5" aria-hidden />, () => { setDraft(s.title ?? ''); setEditing(true); })}
         {act('Ekspor Markdown', <Download className="size-3.5" aria-hidden />, props.onExport)}
         {act(archived ? 'Pulihkan sesi' : 'Arsipkan sesi', archived ? <ArchiveRestore className="size-3.5" aria-hidden /> : <Archive className="size-3.5" aria-hidden />, props.onArchive)}

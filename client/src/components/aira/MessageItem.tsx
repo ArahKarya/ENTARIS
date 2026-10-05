@@ -46,9 +46,10 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function UserBubble({ message }: { message: ViewMessage }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const att = message.attachments[0];
   const local = message.localAttachment;
-  const isImage = (att?.mimeType ?? '').startsWith('image/') || !!local?.previewUrl;
+  const isImage = !imgFailed && ((att?.mimeType ?? '').startsWith('image/') || !!local?.previewUrl);
   const placeholder = message.content.startsWith('Lampiran: ') && (att || local);
   return (
     <div className="flex max-w-[85%] flex-col items-end gap-1.5">
@@ -58,6 +59,7 @@ function UserBubble({ message }: { message: ViewMessage }) {
             <img
               src={local?.previewUrl ?? attachmentUrl(att!.id)}
               alt={`Lampiran ${att?.fileName ?? local?.name}`}
+              onError={() => setImgFailed(true)}
               className="size-14 rounded-md object-cover"
             />
           ) : (

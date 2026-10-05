@@ -94,7 +94,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
   const resync = useCallback(async (id: string) => {
     try {
       const page = await fetchMessages(id);
-      if (sessionRef.current !== id) return;
+      if (sessionRef.current !== id || page.data.length === 0) return;
       setMessages((prev) => {
         const minSeq = page.data[0]?.seq ?? Number.POSITIVE_INFINITY;
         const older = prev.filter((m) => typeof m.seq === 'number' && m.seq < minSeq);
@@ -126,19 +126,24 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
               onSessionsChanged();
             }
           } else if (e.event === 'turn') {
+            // Salin id lama ke konstanta: updater state berjalan nanti, sesudah variabel ini diganti.
+            const oldBot = assistantId;
+            const oldUser = userId;
+            const { message_id: newBot, user_message_id: newUser } = e.data;
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.id === assistantId) return { ...m, id: e.data.message_id };
-                if (userId && m.id === userId) return { ...m, id: e.data.user_message_id };
+                if (m.id === oldBot) return { ...m, id: newBot };
+                if (oldUser && m.id === oldUser) return { ...m, id: newUser };
                 return m;
               }),
             );
-            assistantId = e.data.message_id;
-            userId = e.data.user_message_id;
+            assistantId = newBot;
+            userId = newUser;
           } else if (e.event === 'title') {
             onSessionsChanged();
           } else {
-            setMessages((prev) => applyEvent(prev, assistantId, e));
+            const targetId = assistantId;
+            setMessages((prev) => applyEvent(prev, targetId, e));
             if (e.event === 'done') finalStatus = 'ok';
             if (e.event === 'error') {
               finalStatus = 'error';

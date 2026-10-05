@@ -18,6 +18,7 @@ import { SessionList } from '@/components/aira/SessionList';
 import { chatKeys, downloadSession, fetchHealth, fetchLastSession } from '@/components/aira/chatApi';
 import { readLastSession, writeLastSession } from '@/components/aira/sessionGroups';
 import { useChatConversation } from '@/components/aira/useChatConversation';
+import { useIsDesktop } from '@/components/aira/useIsDesktop';
 import { useSessionList } from '@/components/aira/useSessionList';
 import type { ViewMessage } from '@/components/aira/types';
 
@@ -37,6 +38,7 @@ export function AiraChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
+  const isDesktop = useIsDesktop();
 
   const list = useSessionList();
   const health = useQuery({ queryKey: chatKeys.health, queryFn: fetchHealth, refetchInterval: 30_000, retry: false, staleTime: 10_000 });
@@ -142,9 +144,11 @@ export function AiraChat() {
 
   return (
     <div className="flex h-[calc(100dvh-5rem)] gap-4 sm:h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-6.5rem)]">
-      <aside aria-label="Riwayat percakapan" className="hidden w-72 shrink-0 rounded-lg border border-border bg-card p-3 md:block">
-        {sessionPanel}
-      </aside>
+      {isDesktop && (
+        <aside aria-label="Riwayat percakapan" className="w-72 shrink-0 rounded-lg border border-border bg-card p-3">
+          {sessionPanel}
+        </aside>
+      )}
 
       <section aria-labelledby="aira-title" className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col">
         <header className="mb-2 flex items-center gap-3 border-b border-border pb-3">
@@ -217,8 +221,8 @@ export function AiraChat() {
         />
       </section>
 
-      <Sheet open={drawer} onOpenChange={setDrawer}>
-        <SheetContent side="left" size="sm" className="md:hidden">
+      <Sheet open={drawer && !isDesktop} onOpenChange={setDrawer}>
+        <SheetContent side="left" size="sm">
           <SheetHeader>
             <SheetTitle>Riwayat percakapan</SheetTitle>
             <SheetDescription>Cari, buka, atau kelola sesi AIRA Anda.</SheetDescription>
