@@ -343,7 +343,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                   const refaksi = Number(item.refaksi ?? 0);
                   const diterima = Number(item.timbanganDiterima ?? 0);
                   if (truk > 0 || refaksi > 0) {
-                    parts.push(`Timbangan: ${pdfNum(truk, 3)} − ${pdfNum(refaksi, 3)} = ${pdfNum(diterima, 3)} kg`);
+                    parts.push(`Timbangan: ${pdfNum(truk, 3)} - ${pdfNum(refaksi, 3)} = ${pdfNum(diterima, 3)} kg`);
                   }
                   const pot = Number(item.potonganItem ?? 0);
                   if (pot > 0) parts.push(`Potongan: ${idr(pot)}`);
@@ -395,14 +395,14 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
             )}
             {showPph && (
               <View style={S.summaryRight}>
-                <Text style={[S.summaryLabel, { color: C.orange }]}>PPh (per item) (−)</Text>
+                <Text style={[S.summaryLabel, { color: C.orange }]}>PPh (per item) (-)</Text>
                 <Text style={[S.summaryValue, { color: C.orange }]}>({idr(pphAmount)})</Text>
               </View>
             )}
             {showPot && (
               <View style={S.summaryRight}>
                 <Text style={[S.summaryLabel, { color: C.red }]}>
-                  {labelPotongan || 'Potongan'} (−)
+                  {labelPotongan || 'Potongan'} (-)
                 </Text>
                 <Text style={[S.summaryValue, { color: C.red }]}>({idr(numPot)})</Text>
               </View>
@@ -446,7 +446,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
               {Array.from(grouped.values()).map((d) => (
                 <View key={d.accountNumber} style={S.summaryRight}>
                   <Text style={[S.summaryLabel, { color: C.orange }]}>
-                    {d.accountNumber} {d.label} (−)
+                    {d.accountNumber} {d.label} (-)
                   </Text>
                   <Text style={[S.summaryValue, { color: C.orange }]}>({idr(d.total)})</Text>
                 </View>

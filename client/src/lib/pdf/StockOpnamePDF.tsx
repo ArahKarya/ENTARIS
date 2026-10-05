@@ -101,7 +101,7 @@ const StockOpnamePDF: React.FC<StockOpnamePDFProps> = ({
           <View style={S.summaryBox}>
             <Text style={S.summaryLabel}>Selisih Bersih</Text>
             <Text style={[S.summaryValue, { color: net >= 0 ? C.greenDk : C.redDk }]}>
-              {net < 0 ? '−' : ''}{pdfRp(Math.abs(net))}{net < 0 ? ' (defisit)' : ''}
+              {net < 0 ? '-' : ''}{pdfRp(Math.abs(net))}{net < 0 ? ' (defisit)' : ''}
             </Text>
           </View>
         </View>

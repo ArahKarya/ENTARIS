@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Perbaikan PDF (pemeriksaan visual)
+**Diperbaiki**:
+- **Laba Rugi / Neraca / Arus Kas PDF menghilangkan tanda minus** — kerugian tampil sebagai laba positif ("LABA BERSIH" Rp 16,65 jt padahal rugi). Kini negatif tampil `-Rp …`. Neraca Saldo juga tidak lagi menampilkan "—" untuk angka negatif.
+- Header tabel kini berulang di halaman berikutnya (Neraca Saldo, Aging); kolom Aging tidak lagi bertumpuk; judul seksi tidak lagi tertinggal sendirian di dasar halaman; baris "Seimbang" tidak lagi sendirian di halaman baru.
+- Simbol yang tidak dapat dirender (`−` U+2212, `→`, `✓`, `⚠`) diganti: diskon di Penawaran/Faktur/Opname kembali bertanda minus, panah Transfer Gudang digambar sebagai SVG.
+- Laporan Kendaraan: nama aset ditambahkan, nilai enum (mis. `PAJAK_TAHUNAN`, `GOOD`, `DEPAN_KIRI`) tampil dalam bahasa Indonesia, teks tidak lagi bertabrakan dengan kolom sebelah. Detail Inspeksi: sel identitas tidak lagi bertabrakan.
+- Periode laporan ditulis ringkas ("01 Jan 2026 s/d 31 Okt 2026").
+
 ### Tampilan (UI/UX) — Fase 6: pembersihan akhir
 **Diubah**:
 - **Code-splitting:** semua halaman dimuat saat dibutuhkan; chunk utama 4,88 MB → 239 KB. Pada jaringan Fast 3G dengan CPU 4×, `/login` memuat 8,98 s → 2,51 s dan `/` 8,97 s → 3,02 s. Library berat (PDF, grafik) dipisah menjadi chunk vendor. Ada layar pemulihan "Muat ulang" bila chunk gagal dimuat (mis. setelah pembaruan versi), dan pramuat saat kursor/fokus di menu.
