@@ -31,6 +31,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { TIER_LABEL, type AiraTier } from "@/lib/mcpEndpoint";
 import { Field } from "@/components/shared";
 
 interface RoleOption {
@@ -45,7 +47,18 @@ export interface EditableUser {
   email: string;
   role: string;
   supervisorId?: string | null;
+  airaEnabled?: boolean;
+  airaTier?: AiraTier;
+  airaJabatan?: string | null;
 }
+
+const TIER_HINT: Record<AiraTier, string> = {
+  read: "Agen hanya boleh membaca data.",
+  standard:
+    "Membaca dan membuat draf langsung; tindakan lain (posting, pembayaran, pembatalan) menunggu persetujuan manusia.",
+  direct:
+    "Tindakan tulis/kritis dijalankan langsung atas nama pengguna ini, tanpa persetujuan terpisah. Tetap tunduk pada hak akses perannya.",
+};
 
 const NO_SUPERVISOR = "__none";
 
@@ -112,6 +125,9 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
   const [supervisorId, setSupervisorId] = useState<string>(
     editUser?.supervisorId ?? NO_SUPERVISOR,
   );
+  const [airaEnabled, setAiraEnabled] = useState(editUser?.airaEnabled ?? false);
+  const [airaTier, setAiraTier] = useState<AiraTier>(editUser?.airaTier ?? "standard");
+  const [airaJabatan, setAiraJabatan] = useState(editUser?.airaJabatan ?? "");
   const [errors, setErrors] = useState<UserFormErrors>({});
   const [submitError, setSubmitError] = useState("");
 
@@ -137,7 +153,7 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
   };
 
   const mutation = useMutation({
-    mutationFn: (payload: Record<string, string | null>) =>
+    mutationFn: (payload: Record<string, string | boolean | null>) =>
       isEdit
         ? api.put(`/users/${editUser!.id}`, payload)
         : api.post("/users", payload),
@@ -160,12 +176,15 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
     setErrors(next);
     setSubmitError("");
     if (Object.keys(next).length > 0) return;
-    const payload: Record<string, string | null> = {
+    const payload: Record<string, string | boolean | null> = {
       username: form.username.trim(),
       email: form.email.trim(),
       fullName: form.fullName.trim(),
       role: form.role,
       supervisorId: supervisorId === NO_SUPERVISOR ? null : supervisorId,
+      airaEnabled,
+      airaTier,
+      airaJabatan: airaJabatan.trim() || null,
     };
     if (form.password) payload.password = form.password;
     mutation.mutate(payload);
@@ -276,6 +295,66 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
           autoComplete="new-password"
         />
       </Field>
+
+      <fieldset className="grid gap-3 rounded-lg border border-border p-3">
+        <legend className="px-1 text-sm font-medium text-foreground">AIRA (asisten AI)</legend>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p id="aira-enabled-label" className="text-sm font-medium text-foreground">
+              Akses AIRA
+            </p>
+            <p id="aira-enabled-desc" className="mt-0.5 text-xs text-muted-foreground">
+              Izinkan pengguna ini memakai AIRA (WhatsApp/Telegram/panel). Hak data tetap mengikuti peran.
+            </p>
+          </div>
+          <Switch
+            checked={airaEnabled}
+            onCheckedChange={setAiraEnabled}
+            aria-labelledby="aira-enabled-label"
+            aria-describedby="aira-enabled-desc"
+          />
+        </div>
+        {airaEnabled && (
+          <>
+            <Field label="Level akses AIRA" hint={TIER_HINT[airaTier]}>
+              {(control) => (
+                <Select value={airaTier} onValueChange={(v) => setAiraTier(v as AiraTier)}>
+                  <SelectTrigger {...control}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIER_LABEL) as AiraTier[]).map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {TIER_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
+            {airaTier === "direct" && (
+              <p
+                role="note"
+                className="rounded-md bg-warning-subtle px-3 py-2 text-xs text-warning-text"
+              >
+                Perhatian: pada level Langsung, instruksi lewat AIRA dapat memposting transaksi tanpa
+                persetujuan terpisah. Gunakan hanya untuk pengguna tepercaya.
+              </p>
+            )}
+            <Field
+              label="Jabatan AIRA"
+              hint="Teks bebas (mis. Direktur Keuangan). Dibaca agen untuk menyesuaikan gaya bicara."
+            >
+              <Input
+                value={airaJabatan}
+                onChange={(e) => setAiraJabatan(e.target.value)}
+                maxLength={100}
+                autoComplete="off"
+              />
+            </Field>
+          </>
+        )}
+      </fieldset>
 
       {submitError && (
         <p

@@ -3,7 +3,7 @@
  *
  * Desktop: grouped vertical nav on the left. Mobile: a section select.
  * The active section lives in the URL (?tab=company|fiscal|tax|accounts|roles|
- * notifications|backup|agentic|appearance|about); unknown or hidden ids fall
+ * notifications|backup|agentic (AIRA MCP)|appearance|about); unknown or hidden ids fall
  * back to "company".
  */
 import React, { useMemo } from 'react';

@@ -379,11 +379,6 @@
       "count": 1
     }
   },
-  "src/pages/settings/AgenticSystemTab.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 7
-    }
-  },
   "src/pages/settings/BackupTab.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 7

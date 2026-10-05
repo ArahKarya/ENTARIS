@@ -17,6 +17,12 @@ export const docTypeLabel: Record<string, string> = {
 /** Pengajuan yang MENGUBAH dokumen existing (bukan membuat baru) → tampil sebagai perbandingan. */
 export const isEditApprovalType = (t: string) => t === 'ProductionRunEdit' || t === 'PurchaseInvoiceRevisePrice';
 
+/** Permintaan dari agen AIRA lewat MCP (documentType `ai_tool:<nama>`): dijalankan sebagai pengaju saat disetujui. */
+export const isAiToolApproval = (t: string) => t.startsWith('ai_tool:');
+
+/** Label tampilan tipe pengajuan (mengenali ai_tool:*). */
+export const approvalTypeLabel = (t: string) => (isAiToolApproval(t) ? 'Permintaan AIRA' : docTypeLabel[t] ?? t);
+
 // Total harga akhir satu baris PI dari payload pengajuan.
 // hargaAkhir = qty×rate×(1−disc%) + PPN − PPh − potonganItem.
 // Payload pengajuan TIDAK menyimpan it.amount → harus dihitung di sini,

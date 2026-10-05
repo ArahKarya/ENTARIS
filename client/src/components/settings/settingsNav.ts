@@ -43,7 +43,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { id: 'notifications', label: 'Notifikasi', icon: Send, description: 'Kirim notifikasi sistem ke Telegram.' },
       { id: 'backup', label: 'Cadangan & Pemulihan', icon: HardDrive, description: 'Buat, unduh, unggah, dan pulihkan cadangan database.' },
-      { id: 'agentic', label: 'Sistem Agentik (AIRA)', icon: Bot, rbacOnly: true, description: 'Koneksi AIRA, whitelist akses, dan daftar tool agentik.' },
+      { id: 'agentic', label: 'AIRA (MCP)', icon: Bot, rbacOnly: true, description: 'Status AIRA, token MCP untuk Hermes, dan riwayat panggilan tool.' },
       { id: 'appearance', label: 'Tampilan', icon: Palette, description: 'Tema terang, gelap, atau mengikuti sistem.' },
       { id: 'about', label: 'Tentang', icon: Info, description: 'Versi aplikasi, pembaruan, dan riwayat perubahan.' },
     ],

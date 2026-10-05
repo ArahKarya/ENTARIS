@@ -6,7 +6,7 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
 import { ApprovalDetailDialog } from './approvals/ApprovalDetailDialog';
-import { fmtDate, fmtNum, docTypeLabel, isEditApprovalType } from './approvals/approval-utils';
+import { fmtDate, fmtNum, approvalTypeLabel, isAiToolApproval, isEditApprovalType } from './approvals/approval-utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, StatusBadge } from '@/components/shared';
 
@@ -234,7 +234,8 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card" aria-label="Daftar pengajuan">
           {requests.map((req) => {
             const ownNeedsRevision = req.status === 'NeedsRevision' && req.requestedBy === currentUserId;
-            const docLabel = docTypeLabel[req.documentType] ?? req.documentType;
+            const docLabel = approvalTypeLabel(req.documentType);
+            const isAi = isAiToolApproval(req.documentType);
             return (
               <li key={req.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1 space-y-1">
@@ -247,9 +248,11 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                   </div>
                   <p className="text-sm">
                     <span className="num font-semibold text-foreground">
-                      {req.documentType === 'ProductionRun' || req.documentType === 'ProductionRunEdit'
-                        ? `${fmtNum(Number(req.amount ?? 0))} kg input`
-                        : `Rp ${fmtNum(Number(req.amount ?? 0))}`}
+                      {isAi
+                        ? req.payload?.confirm || req.payload?.tool || req.documentType
+                        : req.documentType === 'ProductionRun' || req.documentType === 'ProductionRunEdit'
+                          ? `${fmtNum(Number(req.amount ?? 0))} kg input`
+                          : `Rp ${fmtNum(Number(req.amount ?? 0))}`}
                     </span>
                     {req.approver && (
                       <span className="ml-2 inline-flex items-center gap-1 text-success-text">
@@ -276,7 +279,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                       <Button size="sm" onClick={() => approveMut.mutate(req.id)} disabled={busy} loading={approveMut.isPending && approveMut.variables === req.id}>
                         {!(approveMut.isPending && approveMut.variables === req.id) && <Check aria-hidden />} Setuju
                       </Button>
-                      {!isEditApprovalType(req.documentType) && (
+                      {!isEditApprovalType(req.documentType) && !isAi && (
                         <Button size="sm" variant="outline" onClick={() => setReasonModal({ mode: 'revision', id: req.id })} disabled={busy}>
                           <Pencil aria-hidden /> Minta Edit
                         </Button>

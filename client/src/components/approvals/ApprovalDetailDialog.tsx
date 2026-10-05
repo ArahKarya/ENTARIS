@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { StatusBadge } from '@/components/shared';
 import { pinnedDialogClass, PinnedBody, PinnedFooter, PinnedHeader } from '../overlays/dialog-parts';
 import type { ApprovalRequest } from '../ApprovalPanel';
-import { docTypeLabel, fmtDate, fmtNum, isEditApprovalType, piLineTotal, piTotals, prodHppEstimate } from './approval-utils';
+import { approvalTypeLabel, fmtDate, fmtNum, isAiToolApproval, isEditApprovalType, piLineTotal, piTotals, prodHppEstimate } from './approval-utils';
 import { EditComparisonView } from './EditComparisonView';
+import { AiToolApprovalSummary } from './AiToolApprovalSummary';
 
 export interface ApprovalDetailDialogProps {
   request: ApprovalRequest | null;
@@ -77,9 +78,10 @@ function DetailContent({
   const processIds: string[] = p.processIds ?? [];
   const basisLabel: Record<string, string> = { InputQty: 'per kg input', OutputQty: 'per kg output', Fixed: 'tetap' };
   const fmtT = (v: any) => (v ? new Date(v).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-  const pi = isProd || isDO || isEdit ? null : piTotals(p);
+  const pi = isProd || isDO || isEdit || isAiToolApproval(detailReq.documentType) ? null : piTotals(p);
   const hppEst = isProd ? prodHppEstimate(p) : null;
-  const docLabel = docTypeLabel[detailReq.documentType] ?? '';
+  const docLabel = approvalTypeLabel(detailReq.documentType);
+  const isAi = isAiToolApproval(detailReq.documentType);
 
   return (
     <DialogContent size={isProd || isDO ? 'lg' : 'doc'} className={pinnedDialogClass}>
@@ -98,7 +100,7 @@ function DetailContent({
           </div>
         )}
         {/* Info umum */}
-        {!isEdit && <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+        {!isEdit && !isAi && <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
           {p.date && (
             <div>
               <span className="text-muted-foreground">Tanggal:</span> <span className="text-foreground">{p.date}</span>
@@ -167,7 +169,9 @@ function DetailContent({
           )}
         </div>}
 
-        {isEdit ? (
+        {isAi ? (
+          <AiToolApprovalSummary payload={detailReq.payload} status={detailReq.status} />
+        ) : isEdit ? (
           <EditComparisonView
             comparison={detailCtx?.comparison}
             loading={detailCtxLoading}
@@ -574,7 +578,7 @@ function DetailContent({
             <Button size="sm" variant="outline" className="text-danger-text hover:bg-danger-subtle" onClick={() => onReject(detailReq.id)}>
               Tolak
             </Button>
-            {!isEdit && (
+            {!isEdit && !isAi && (
               <Button size="sm" variant="outline" onClick={() => onRevision(detailReq.id)}>
                 Minta Edit
               </Button>
