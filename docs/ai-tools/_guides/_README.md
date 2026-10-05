@@ -17,7 +17,7 @@ Arsitektur MCP (identitas per-user, tier, antrian persetujuan, spesifikasi token
 | [AUDIT.md](AUDIT.md) | Hasil rekonsiliasi registry Juni 2026 vs kode (temuan & perbaikan) |
 | `catalog.json` | Versi mesin-baca (dokumentasi per tool ikut disertakan) — kelak disajikan sebagai resource MCP |
 
-Toolset: penjualan, pembelian, persediaan, produksi, akuntansi, kas-bank, aset-umum, pengajuan-pembayaran, persetujuan, laporan, dashboard, master-data, sistem.
+Toolset: penjualan, pembelian, persediaan, produksi, akuntansi, kas-bank, aset-umum, pengajuan-pembayaran, persetujuan, laporan, dashboard, master-data, sistem, obrolan.
 
 ## Tier
 

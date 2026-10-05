@@ -35,6 +35,7 @@ import reportRoutes from './routes/reports';
 import aiConfigRoutes from './routes/ai/config';
 import aiMcpAdminRoutes from './routes/ai/mcp';
 import aiChatRoutes from './routes/ai/chat';
+import chatHistoryRoutes from './routes/chatHistory';
 import mcpRouter from './mcp/router';
 import settingsRoutes from './routes/settings';
 import fiscalYearRoutes from './routes/fiscalYears';
@@ -281,7 +282,8 @@ app.use('/api/payment-requests', paymentRequestRoutes);    // semua user login; 
 //         Eksekusi tool oleh agen TIDAK lewat /api/ai (lihat /mcp) — jalur /api/ai/router sudah dipensiunkan.
 app.use('/api/ai/config', requirePerm('settings'), aiConfigRoutes);
 app.use('/api/ai/mcp', requirePerm('settings'), aiMcpAdminRoutes);
-app.use('/api/ai/chat', aiChatRoutes);
+app.use('/api/ai/chat', aiChatRoutes);          // panel chat: sesi/pesan disimpan Entaris, agen via API engine
+app.use('/api/chat-history', chatHistoryRoutes);  // dipakai tool MCP chat_* (hanya sesi milik aktor)
 
 // ─── Serve Frontend (Production) ──────────────────────────────────────────────
 // In production, serve the built React client from ../client/dist.
