@@ -1,6 +1,6 @@
 # Arsitektur MCP: Entaris sebagai MCP Server untuk engine AIRA
 
-Status: **Tahap 1-2 diimplementasikan** (endpoint `/mcp`, identitas per-user, tier & antrian persetujuan, token & riwayat di Settings). Panel chat masih memakai proxy lama (tahap 3). Katalog tool: [README.md](README.md) · [INDEX.md](INDEX.md). Panduan klien MCP (koneksi, assertion, implementasi referensi): [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md).
+Status: **Tahap 1-4 diimplementasikan** (endpoint `/mcp`, identitas per-user, tier & antrian persetujuan, token & riwayat di Settings; panel chat memakai engine AIRA lewat API kompatibel-OpenAI, lihat [PANEL-CHAT.md](PANEL-CHAT.md)). Katalog tool: [README.md](README.md) · [INDEX.md](INDEX.md). Panduan klien MCP (koneksi, assertion, implementasi referensi): [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md).
 
 ## Ringkasan
 
@@ -91,7 +91,7 @@ Manusia di Entaris > Persetujuan:
 | Kill switch | `AiSetting.agenticEnabled=false` -> semua panggilan `503` seketika (dicek tiap request, dicatat) |
 | Denylist | endpoint di `catalog/denylist.ts` (auth, user/role admin, backup, import, `/api/ai/*`, ...) tidak ada di registry sehingga tak dapat dipanggil |
 | Identitas internal | JWT 120 detik bertanda `via:'mcp'` (+ nama token, channel, tool, approvalId) -> kolom `audit_trail.via` / `via_meta`; IP klien diteruskan lewat `X-Forwarded-For` ke loopback |
-| Riwayat | `mcp_call_logs`: token, aktor, channel, tool, risk, **hash** argumen, keputusan (`allowed/queued/denied/error`), HTTP status, durasi, approvalId. Argumen mentah tak disimpan |
+| Riwayat | `mcp_call_logs`: token, aktor, channel, **ref** (assertion `ref`, korelasi per giliran chat), tool, risk, **hash** argumen, keputusan (`allowed/queued/denied/error`), HTTP status, durasi, approvalId, **card** (petunjuk kartu hasil). Argumen mentah tak disimpan |
 | Jalur lama | `/api/ai/router`, A3 HMAC (`airaApproval`), `x-aira-service-token` (Admin), `AiSetting.serviceToken`, whitelist channel/modul **dihapus** (kolom/tabel dibiarkan; `ai_settings.service_token` dikosongkan oleh migrasi) |
 
 ## Admin REST (`requireCap('rbac.manage')`)
@@ -115,7 +115,7 @@ Manusia di Entaris > Persetujuan:
 
 ## Keputusan: engine AIRA menggantikan AIRA Core
 
-**AIRA Core** (agent core LangGraph.js) **digantikan oleh engine AIRA** (Opsi 1 owner). Panel chat Entaris akan diarahkan ulang ke API engine AIRA (tahap 3; sementara proxy `/api/ai/chat/*` dipertahankan dan menampilkan *offline*).
+**AIRA Core** (agent core LangGraph.js) **digantikan oleh engine AIRA** (Opsi 1 owner). Panel chat Entaris memanggil API engine AIRA (kompatibel-OpenAI) dan menyimpan sesi/pesan sendiri; proxy lama sudah dihapus. Detail: [PANEL-CHAT.md](PANEL-CHAT.md).
 
 **Dipindahkan ke service server Entaris (tahap 2 lanjutan):** logika cashbook-dari-struk (`classifyRows`, `buildCashBookDraft`, `journalBuilder`, `resolvers`) -> tool tulis **`kas_buat_draft_dari_baris`** yang membuat Draft Buku Kas (aturan DR/CR deterministik di server; jurnal baru terbentuk saat manusia memposting); tier `policy.ts`/`AIRA_AUTO_MAX_AMOUNT` -> ambang tier per tool. **Tidak dipindahkan:** memory/RAG dan penjadwal tetap di sisi engine AIRA.
 
@@ -126,5 +126,5 @@ Manusia di Entaris > Persetujuan:
 | 0 | Katalog lengkap + drift guard | selesai |
 | 1-2 | `/mcp`, token + actor assertion, tier, antrian persetujuan, Settings AIRA (MCP), registrasi pengguna | **selesai (dokumen ini)** |
 | 2b | Tool buku kas dari nota (`kas_*`: `kas_daftar_akun`, `kas_buat_draft_dari_baris`, `kas_draft_*`) + UI peninjauan Draft Buku Kas | **selesai** (prompts MCP + resource katalog belum) |
-| 3 | Panel chat -> API engine AIRA | belum |
-| 4 | Pensiun aira-core (proxy `/api/ai/chat/*`, env `AIRA_CORE_BASE_URL`/`AIRA_API_TOKEN`, jaringan `aira-net`) | belum |
+| 3 | Panel chat -> API engine AIRA (sesi & pesan disimpan Entaris, blok identitas tepercaya, kartu hasil, memori `chat_*`) | **selesai** ([PANEL-CHAT.md](PANEL-CHAT.md)) |
+| 4 | Pensiun aira-core (proxy lama `/api/ai/chat/*`, env `AIRA_CORE_BASE_URL`/`AIRA_API_TOKEN`, jaringan `aira-net`) | **selesai** |

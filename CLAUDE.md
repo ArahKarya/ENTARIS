@@ -8,7 +8,7 @@ Entaris (Enterprise Agentic Reasoning Integrated System) — sistem ERP penuh un
 
 - Nama produk: **Entaris** — tagline "Agentic Reasoning System"; agen AI: **AIRA**; pembuat: PT Arah Karya Sinergi.
 - Panduan merek, logo & warna: `docs/brand/entaris/README.md` (logo "Anyaman ∇" — tiga bilah menganyam segitiga terbalik; navy `#1B2B48`, biru `#3D8BE0`).
-- Pengenal teknis lama `simple-erp` (kontrak `app` ke aira-core, nama proses pm2, prefiks file backup `simple_erp_*`) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi aira-core/deploy.
+- Pengenal teknis lama `simple-erp` (nama proses pm2, nama project Docker Compose, prefiks file backup `simple_erp_*`) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi deploy.
 
 ## Tech Stack
 
@@ -123,7 +123,7 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 ## Katalog Tool AIRA/MCP (`docs/ai-tools/`)
 
 - Registry tunggal: `server/src/ai/aira-tool-router.json` (default semua `enabled:true`; override per tool via `AiToolConfig` / `PATCH /api/ai/config/tools/:name`). Tiap route API baru **wajib** punya tool di registry **atau** entri di `server/src/ai/catalog/denylist.ts` (alasan wajib) — kalau tidak, test `aiToolsCatalog` / `npm run ai-tools:check` gagal.
-- Tool write/critical wajib `confirm_template` + `postingEffect` + `draftCapable`; `params` diturunkan dari Zod/query; `toolset` salah satu dari 13 toolset; tier: read=Auto, write=Draft/Approve, critical=Wajib-Approve.
+- Tool write/critical wajib `confirm_template` + `postingEffect` + `draftCapable`; `params` diturunkan dari Zod/query; `toolset` salah satu dari 14 toolset (termasuk `obrolan`); tier: read=Auto, write=Draft/Approve, critical=Wajib-Approve.
 - Setelah mengubah registry/panduan (`docs/ai-tools/_guides/*.md`): `cd server && npm run ai-tools:docs` lalu commit. Jangan edit `docs/ai-tools/*.md` hasil generate secara manual. Arsitektur MCP: `docs/ai-tools/ARSITEKTUR-MCP.md`; panduan klien MCP: `docs/ai-tools/PANDUAN-KLIEN-MCP.md`.
 
 ## AIRA sebagai MCP Server (`/mcp`)
@@ -133,7 +133,17 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 - **Eksekusi** = handler Express asli lewat loopback dengan JWT 120 dtk atas nama aktor (`via:'mcp'` → `audit_trail.via/via_meta`). Jangan membuat jalur eksekusi tool lain; RBAC/validasi/`needsApproval` harus tetap lewat handler normal.
 - **Tier**: read langsung; write langsung hanya bila `draftCapable`; write non-draft + semua critical → `ApprovalRequest` `ai_tool:<nama>` (payload `{tool,args,handler,confirm,actor,via}`), dieksekusi sebagai PENGAJU asli saat disetujui (`mcp/approve.ts` dipanggil `services/approvalDecision.ts`). Level `direct` = langsung (tetap RBAC); `gf=true` menurunkan `direct`→`standard`.
 - Kill switch `AiSetting.agenticEnabled` (503 tiap panggilan), rate limit per token (in-memory), body 256 KB, riwayat `mcp_call_logs` (hash argumen), `idempotencyKey` untuk tool tulis. Admin REST: `/api/ai/mcp/*` (`rbac.manage`); UI: Pengaturan → AIRA (MCP) + Manajemen Pengguna (Akses AIRA).
-- Jalur lama dipensiunkan: `/api/ai/router`, A3 HMAC, `x-aira-service-token`, whitelist/channel config. Panel chat `/api/ai/chat/*` masih ke aira-core (tahap 3 → engine AIRA).
+- Jalur lama dipensiunkan: `/api/ai/router`, A3 HMAC, `x-aira-service-token`, whitelist/channel config, proxy panel chat ke layanan lama (jaringan `aira-net`, env `AIRA_CORE_BASE_URL`/`AIRA_API_TOKEN`).
+- `whoami` mengembalikan `identity_prompt` (blok identitas tepercaya; engine wajib menyuntikkannya tiap giliran untuk kanal non-panel). `mcp_call_logs` menyimpan `ref` (assertion) + `card` (petunjuk kartu hasil, juga ada di `structuredContent.card`).
+
+## Panel Chat AIRA (`/aira`, `/api/ai/chat/*`)
+
+- **Entaris menyimpan sesi & pesan sendiri** (`chat_sessions`, `chat_messages`, `chat_attachments`; migrasi loose `2026101400000_chat_sessions.sql`), per pengguna; kepemilikan ditegakkan di setiap query (sesi orang lain = 404). Agen dipanggil lewat API kompatibel-OpenAI (`POST {AIRA_ENGINE_URL}/v1/chat/completions`, stream) — ENV saja: `AIRA_ENGINE_URL`, `AIRA_ENGINE_KEY`, opsional `AIRA_ENGINE_MODEL`, `AIRA_ENGINE_TIMEOUT_MS`, `AIRA_ENGINE_TURN_SECRET`, `AIRA_CHAT_*` (lihat `docs/ai-tools/PANEL-CHAT.md`). Pengaturan > AIRA (MCP) hanya menampilkan status engine baca-saja.
+- Kode: `server/src/services/chat/` (contextWindow murni, summaryService inkremental, engineClient, turnPrepare/turnRun, sessionService, messageStore, toolEvents, retention), `routes/ai/chat.ts` (tipis), `routes/chatHistory.ts` (handler tool MCP `chat_cari_riwayat`/`chat_ambil_sesi`, toolset `obrolan`, hanya sesi milik aktor), `ai/identityBlock.ts`.
+- **Blok identitas tepercaya** disusun server dari DB pada SETIAP giliran dan dikirim sebagai pesan `system` pertama; konten `system`/`developer` dari browser dibuang, penanda palsu dinetralkan, blok tidak pernah disimpan/ditampilkan; `actorSnapshot` disimpan di pesan pengguna. Perubahan format blok → naikkan `IDENTITY_BLOCK_VERSION`.
+- Durabilitas: pesan pengguna disimpan SEBELUM agen dipanggil; teks asisten di-flush bertahap dan difinalkan ok/aborted/error; satu giliran per sesi (lease DB, 409). Konteks agen = identitas + ringkasan inkremental + pesan terbaru dalam anggaran token; ringkasan gagal tidak pernah membuang pesan diam-diam.
+- Tes: unit (`services/chat/__tests__`, `ai/__tests__/identityBlock`, `mcp/__tests__/cards|callToolRefCard`), integrasi DB (`__tests__/integration/chat*.integration.test.ts`, perlu `DATABASE_URL`) dengan agen tiruan reusable `src/__tests__/helpers/mockAgent.ts` (dapat memanggil `/mcp` dengan assertion bertanda tangan).
+- Klien: `pages/AiraChat.tsx` + `components/aira/*` (daftar sesi, pesan + Markdown aman, kartu generik `CardParts`, composer, banner offline).
 
 ## Buku Kas dari Nota (Draft Buku Kas)
 

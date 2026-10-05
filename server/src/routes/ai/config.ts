@@ -1,7 +1,7 @@
 // AIRA config route — override per-tool + kill switch. Gate mount: requirePerm('settings')
 // (di index.ts) — GET butuh view, tulis butuh edit. Endpoint sensitif tambah requireCap('rbac.manage').
 // Token MCP, status & riwayat panggilan ada di routes/ai/mcp.ts. Whitelist channel/modul,
-// service token & sinkronisasi tool-router (kontrak aira-core) sudah dipensiunkan.
+// service token & sinkronisasi tool-router (kontrak layanan lama) sudah dipensiunkan.
 
 import { Router } from 'express';
 import { z } from 'zod';

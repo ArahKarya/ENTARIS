@@ -4,7 +4,7 @@
 
 Katalog ini mendokumentasikan **semua fungsi Entaris** yang dapat dipanggil agen (AIRA) sebagai *tool*. Saat ini: **474** tool dalam **14** toolset (read 219, write 150, critical 105); 557 route API terinventaris. Seluruh tool **aktif** secara default dan disajikan lewat satu endpoint MCP `/mcp` (lihat ARSITEKTUR-MCP.md); tier read/write/critical menentukan apakah panggilan langsung dieksekusi atau menunggu persetujuan manusia, dan owner dapat menonaktifkan/menetapkan tier per tool.
 
-Arsitektur MCP (identitas per-user, tier, antrian persetujuan, spesifikasi token + actor assertion): [ARSITEKTUR-MCP.md](ARSITEKTUR-MCP.md). Panduan klien MCP + implementasi referensi penanda tangan: [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md).
+Arsitektur MCP (identitas per-user, tier, antrian persetujuan, spesifikasi token + actor assertion): [ARSITEKTUR-MCP.md](ARSITEKTUR-MCP.md). Panduan klien MCP + implementasi referensi penanda tangan: [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md). Panel chat (sesi disimpan Entaris, kontrak ke engine, blok identitas): [PANEL-CHAT.md](PANEL-CHAT.md).
 
 ## Cara membaca
 
