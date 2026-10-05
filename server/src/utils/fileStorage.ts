@@ -3,7 +3,13 @@ import fs from 'fs/promises';
 import crypto from 'crypto';
 import { logger } from '../lib/logger';
 
-const UPLOAD_BASE = process.env.UPLOAD_DIR || '/app/uploads/attachments';
+// Docker (NODE_ENV=production) keeps the volume at /app/uploads/attachments; local
+// development has no /app, so it falls back to server/uploads/attachments (gitignored).
+const UPLOAD_BASE =
+  process.env.UPLOAD_DIR ||
+  (process.env.NODE_ENV === 'production'
+    ? '/app/uploads/attachments'
+    : path.resolve(process.cwd(), 'uploads/attachments'));
 const MAX_IMAGE_WIDTH = 1920;
 const IMAGE_QUALITY = 80;
 
