@@ -1258,6 +1258,8 @@ model CashBookDraftRow {
   needsReview    Boolean       @default(false) @map("needs_review")
   reason         String?
   skip           Boolean       @default(false)
+  // true bila manusia memilih/menegaskan akun & jenis (dasar pembelajaran pola saat posting)
+  userEdited     Boolean       @default(false) @map("user_edited")
   journalEntryId String?       @map("journal_entry_id")
   postedAt       DateTime?     @map("posted_at")
   error          String?

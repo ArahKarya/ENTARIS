@@ -109,6 +109,8 @@ export interface HandlerCallInput {
   channel?: string | null;
   approvalId?: string;
   clientIp?: string;
+  /** Referensi opak chat/sesi (actor assertion `ref`). */
+  ref?: string;
 }
 
 export type HandlerBody = { kind: 'json'; data: unknown } | { kind: 'text'; data: string } | { kind: 'binary'; contentType: string; bytes: number } | { kind: 'empty' };
@@ -130,6 +132,7 @@ export async function callHandler(input: HandlerCallInput): Promise<HandlerResul
       mcpChannel: input.channel ?? undefined,
       mcpTool: input.tool.name,
       mcpApprovalId: input.approvalId,
+      ...(input.ref ? { mcpRef: input.ref.slice(0, 200) } : {}),
     },
     INTERNAL_JWT_TTL_SEC,
   );

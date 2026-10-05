@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS "cash_book_draft_rows" (
     "needs_review" BOOLEAN NOT NULL DEFAULT false,
     "reason" TEXT,
     "skip" BOOLEAN NOT NULL DEFAULT false,
+    "user_edited" BOOLEAN NOT NULL DEFAULT false,
     "journal_entry_id" TEXT,
     "posted_at" TIMESTAMP(3),
     "error" TEXT,
