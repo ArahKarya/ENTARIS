@@ -30,10 +30,11 @@ const META_LABELS: Record<string, string> = {
 
 const VERB: Record<string, string> = { read: 'Mengambil', write: 'Menyiapkan', critical: 'Mengajukan' };
 
+const ACTIVE_VERB = /^(?:me[a-z]+|ber[a-z]+|per[a-z]+|mem[a-z]+|men[a-z]+|meng[a-z]+|meny[a-z]+)\b/i;
+
 function firstClause(desc: string): string {
   const clause = desc.split(/[.;:(]/)[0]?.trim() ?? '';
-  const lower = clause.charAt(0).toLowerCase() + clause.slice(1);
-  return lower.length > 70 ? `${lower.slice(0, 69).trimEnd()}…` : lower;
+  return clause.length > 56 ? `${clause.slice(0, 55).trimEnd()}…` : clause;
 }
 
 /** Label Indonesia singkat untuk chip progres (diturunkan dari registry; tanpa data bisnis). */
@@ -43,7 +44,10 @@ export function toolLabel(name: string): string {
   const t = getTool(name);
   if (!t) return `Menjalankan ${name}…`;
   const clause = firstClause(t.desc);
-  return `${VERB[t.risk] ?? 'Menjalankan'} ${clause || name}…`;
+  if (!clause) return `Menjalankan ${name}…`;
+  // Deskripsi yang sudah diawali kata kerja aktif ("Membuat DRAFT ...") dipakai apa adanya.
+  if (ACTIVE_VERB.test(clause)) return `${clause}…`;
+  return `${VERB[t.risk] ?? 'Menjalankan'} ${clause.charAt(0).toLowerCase()}${clause.slice(1)}…`;
 }
 
 const endState = (decision: string): ToolProgress['state'] => (decision === 'error' || decision === 'denied' ? 'error' : 'done');

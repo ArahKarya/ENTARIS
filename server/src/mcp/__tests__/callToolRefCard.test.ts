@@ -94,5 +94,8 @@ describe('watchTurn', () => {
     expect(toolLabel('whoami')).toMatch(/identitas/);
     expect(toolLabel('coa_list')).toMatch(/…$/);
     expect(toolLabel('tidak_ada_tool')).toBe('Menjalankan tidak_ada_tool…');
+    // deskripsi yang sudah berawalan kata kerja aktif tidak diberi kata kerja ganda
+    expect(toolLabel('kas_buat_draft_dari_baris')).toMatch(/^Membuat DRAFT Buku Kas/);
+    expect(toolLabel('kas_buat_draft_dari_baris')).not.toMatch(/^Menyiapkan membuat/);
   });
 });

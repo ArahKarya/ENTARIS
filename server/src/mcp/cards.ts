@@ -51,7 +51,7 @@ function cashBook(d: Rec): CardHint | undefined {
     href: str(d.reviewPath) ?? `/cash-book-drafts/${id}`,
     status: str(src.status),
     entityId: id,
-    facts: facts(['Status', str(src.status)], ['Tanggal', str(src.entryDate)?.slice(0, 10)]),
+    facts: facts(['Tanggal', str(src.entryDate)?.slice(0, 10)]),
   };
 }
 
