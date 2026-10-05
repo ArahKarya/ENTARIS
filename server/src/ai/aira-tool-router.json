@@ -32267,6 +32267,892 @@
       "errors": [
         "400: gudang tidak ditemukan"
       ]
+    },
+    {
+      "name": "kas_daftar_akun",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Katalog untuk klasifikasi buku kas: akun lawan yang boleh dipakai (id, kode, nama, tipe, penanda kas, peran sistem), akun kas/bank yang bisa dipilih sebagai kas draft, aturan jenis transaksi -> jurnal DR/CR, batas baris, dan pola terpelajari (keterangan -> akun hasil koreksi manusia sebelumnya) sebagai petunjuk. WAJIB dipanggil sebelum kas_buat_draft_dari_baris; klasifikasikan HANYA dengan kode dari daftar ini.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "params": [],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ accounts[], cashAccounts[], rules{advanceAccountId, defaultExpenseAccountId, defaultIncomeAccountId}, txnTypes[], limits{maxRows, reviewThreshold}, learnedMaps[] }.",
+      "handler": "GET /api/cash-book-drafts/accounts",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 2,
+      "errors": [
+        "403: tidak punya izin melihat modul Jurnal"
+      ],
+      "related": [
+        "kas_buat_draft_dari_baris",
+        "kas_pola_terpelajari"
+      ]
+    },
+    {
+      "name": "kas_pola_terpelajari",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Daftar lengkap pola terpelajari (keterangan ternormalisasi + jenis -> akun, jumlah koreksi/hits) hingga 500 entri. Server memakainya otomatis saat membuat draft; engine boleh membacanya sebagai petunjuk tambahan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {},
+      "params": [],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ data: [{ pattern, txnType, accountId, accountCode, accountName, hits, updatedAt }] }.",
+      "handler": "GET /api/cash-book-drafts/learned-maps",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 2,
+      "related": [
+        "kas_daftar_akun"
+      ]
+    },
+    {
+      "name": "kas_draft_list",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Daftar Draft Buku Kas ber-paging dengan jumlah per status, total masuk/keluar, jumlah baris dan baris yang perlu ditinjau. Draft berstatus Discarded hanya muncul bila status=Discarded.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number",
+        "limit": "number",
+        "status": "enum",
+        "search": "string",
+        "startDate": "date",
+        "endDate": "date"
+      },
+      "params": [
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Halaman (default 1)."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Per halaman (default 25, maksimum 200)."
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "type": "enum",
+          "required": false,
+          "enum": [
+            "Draft",
+            "PartiallyPosted",
+            "Posted",
+            "Discarded"
+          ],
+          "description": "Filter status draft."
+        },
+        {
+          "name": "search",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Cari nomor draft, judul, atau catatan sumber."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "date",
+          "required": false,
+          "description": "Tanggal halaman mulai (YYYY-MM-DD)."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "date",
+          "required": false,
+          "description": "Tanggal halaman sampai (YYYY-MM-DD)."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ data: draft ringkas, total, page, limit, counts per status }.",
+      "handler": "GET /api/cash-book-drafts",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 2,
+      "errors": [
+        "400: status/format tanggal tidak dikenal"
+      ],
+      "related": [
+        "kas_draft_get"
+      ]
+    },
+    {
+      "name": "kas_draft_get",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Satu Draft Buku Kas lengkap: header, semua baris (jenis, akun, keyakinan, penanda perlu ditinjau + alasan, duplikat, skip, nomor jurnal bila sudah diposting), total masuk/keluar, jumlah perlu ditinjau dan cek saldo (saldo awal + masuk - keluar vs saldo akhir).",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "UUID draft buku kas."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "Draft + rows[] + totals + needsReviewCount + duplicateCount + balance{checked, ok, difference, warning}.",
+      "handler": "GET /api/cash-book-drafts/:id",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 2,
+      "errors": [
+        "404: draft tidak ditemukan"
+      ],
+      "related": [
+        "kas_draft_list",
+        "kas_draft_ubah_baris",
+        "kas_draft_posting"
+      ]
+    },
+    {
+      "name": "kas_buat_draft_dari_baris",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Membuat DRAFT Buku Kas dari baris yang dibaca engine dari foto/scan nota atau halaman buku kas (maks. 300 baris per draft, dalam satu panggilan). Server memvalidasi, menentukan arah DR/CR secara deterministik dari kolom masuk/keluar, mengoreksi jenis yang bertentangan, menerapkan pola terpelajari, dan menandai baris ragu/duplikat sebagai perlu ditinjau. TIDAK membuat jurnal: manusia meninjau dan memposting di Entaris (Kas & Bank > Draft Buku Kas). Dicatat createdVia=mcp, sumber AIRA, dan sourceRef dari actor assertion.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "title": "string",
+        "entryDate": "date",
+        "cashAccountId": "string",
+        "openingBalance": "number",
+        "closingBalance": "number",
+        "sourceRef": "string",
+        "sourceNote": "string",
+        "rows": "array<object>"
+      },
+      "params": [
+        {
+          "name": "title",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Judul draft (default: \"Buku kas <entryDate>\")."
+        },
+        {
+          "name": "entryDate",
+          "in": "body",
+          "type": "date",
+          "required": true,
+          "description": "Tanggal halaman buku kas (YYYY-MM-DD); dipakai bila baris tak punya tanggal."
+        },
+        {
+          "name": "cashAccountId",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "ID akun kas/bank draft (dari kas_daftar_akun.cashAccounts)."
+        },
+        {
+          "name": "openingBalance",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Saldo awal tertulis di halaman (untuk cek saldo)."
+        },
+        {
+          "name": "closingBalance",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Saldo akhir tertulis di halaman (untuk cek saldo)."
+        },
+        {
+          "name": "sourceRef",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Referensi opak chat/sesi (mis. id pesan foto). Default: ref dari actor assertion."
+        },
+        {
+          "name": "sourceNote",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Catatan sumber (mis. \"halaman 3 buku kas Oktober, tulisan tangan\")."
+        },
+        {
+          "name": "rows",
+          "in": "body",
+          "type": "array<object>",
+          "required": true,
+          "fields": [
+            {
+              "name": "date",
+              "in": "body",
+              "type": "date",
+              "required": false,
+              "description": "Tanggal baris (YYYY-MM-DD). Kosong = tanggal halaman (entryDate)."
+            },
+            {
+              "name": "description",
+              "in": "body",
+              "type": "string",
+              "required": true,
+              "description": "Keterangan persis seperti tertulis di nota/buku kas (maks. 500 karakter)."
+            },
+            {
+              "name": "masuk",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Kas masuk (kolom debit buku kas). Isi salah satu: masuk ATAU keluar."
+            },
+            {
+              "name": "keluar",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Kas keluar (kolom kredit buku kas). Isi salah satu: masuk ATAU keluar."
+            },
+            {
+              "name": "amount",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Alternatif: nominal (>0) bersama direction."
+            },
+            {
+              "name": "direction",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "masuk",
+                "keluar"
+              ],
+              "description": "Alternatif: arah bersama amount."
+            },
+            {
+              "name": "txnType",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "pengeluaran",
+                "pemasukan",
+                "uang_muka",
+                "terima_kasbon",
+                "lainnya"
+              ],
+              "description": "Klasifikasi usulan engine. Arah DR/CR ditentukan server dari kolom masuk/keluar, bukan dari jenis ini."
+            },
+            {
+              "name": "accountCode",
+              "in": "body",
+              "type": "string",
+              "required": false,
+              "description": "Kode akun lawan (mis. 6.1.2) HANYA dari daftar kas_daftar_akun. Untuk uang_muka/terima_kasbon diabaikan (server memakai Uang Muka Karyawan)."
+            },
+            {
+              "name": "confidence",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Keyakinan jujur 0..1 atas klasifikasi akun. < 0.7 otomatis ditandai perlu ditinjau."
+            },
+            {
+              "name": "reason",
+              "in": "body",
+              "type": "string",
+              "required": false,
+              "description": "Alasan singkat klasifikasi (tampil ke peninjau)."
+            }
+          ],
+          "description": "Baris hasil baca: [{date?, description, masuk|keluar (atau amount+direction), txnType?, accountCode?, confidence?, reason?}], 1 sampai 300 baris."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "Draft baru (id, draftNumber DKB-YYYYMM-NNNN, status Draft) + rows + totals + needsReviewCount + reviewPath. Baris tak valid membuat seluruh panggilan ditolak dengan rowErrors (perbaiki lalu kirim ulang).",
+      "handler": "POST /api/cash-book-drafts",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 2,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/saldo. Hanya menyimpan draft (cash_book_drafts + baris). Jurnal baru dibuat saat kas_draft_posting disetujui: satu jurnal seimbang per baris (pengeluaran/lainnya keluar = DR akun lawan / CR kas; pemasukan/lainnya masuk = DR kas / CR akun lawan; uang_muka = DR Uang Muka Karyawan / CR kas; terima_kasbon = DR kas / CR Uang Muka Karyawan).",
+      "confirm_template": "Buat draft buku kas tanggal {entryDate} dengan {rows} baris (belum ada jurnal; ditinjau manusia sebelum posting).",
+      "accessNote": "Pemegang izin edit modul Jurnal (sama dengan jurnal manual). Admin diberi notifikasi bila draft berasal dari AIRA.",
+      "prerequisites": [
+        "Panggil kas_daftar_akun dulu; pakai hanya kode akun dari daftarnya.",
+        "Akun kas draft adalah akun kas/bank (1.1.x atau dipetakan CASH)."
+      ],
+      "errors": [
+        "400: baris tidak valid (rowErrors: nominal <= 0, masuk dan keluar sekaligus, tanggal salah, keterangan kosong)",
+        "400: lebih dari 300 baris",
+        "400: akun kas bukan akun kas/bank",
+        "403: tidak punya izin Jurnal (edit)"
+      ],
+      "related": [
+        "kas_daftar_akun",
+        "kas_draft_get",
+        "kas_draft_posting"
+      ]
+    },
+    {
+      "name": "kas_draft_ubah_header",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Mengubah header Draft Buku Kas (judul, tanggal halaman, akun kas, saldo awal/akhir, catatan). Hanya selagi draft berstatus Draft atau Sebagian Diposting; akun kas tidak bisa diganti setelah sebagian baris diposting.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "title": "string",
+        "entryDate": "date",
+        "cashAccountId": "string",
+        "openingBalance": "number",
+        "closingBalance": "number",
+        "sourceNote": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "UUID draft buku kas."
+        },
+        {
+          "name": "title",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Judul draft."
+        },
+        {
+          "name": "entryDate",
+          "in": "body",
+          "type": "date",
+          "required": false,
+          "description": "Tanggal halaman (YYYY-MM-DD)."
+        },
+        {
+          "name": "cashAccountId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID akun kas/bank baru."
+        },
+        {
+          "name": "openingBalance",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Saldo awal (null = kosongkan)."
+        },
+        {
+          "name": "closingBalance",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Saldo akhir (null = kosongkan)."
+        },
+        {
+          "name": "sourceNote",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Catatan sumber."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "Draft terbaru (seperti kas_draft_get).",
+      "handler": "PUT /api/cash-book-drafts/:id",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 2,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/saldo; hanya mengubah draft.",
+      "confirm_template": "Ubah header draft buku kas {id}.",
+      "errors": [
+        "400: draft sudah Posted/Discarded",
+        "400: akun kas tidak valid atau sama dengan akun lawan suatu baris"
+      ],
+      "related": [
+        "kas_draft_get"
+      ]
+    },
+    {
+      "name": "kas_draft_ubah_baris",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Mengubah banyak baris Draft Buku Kas sekaligus: akun lawan, jenis transaksi, keterangan, nominal, tanggal, arah, skip (lewati), reviewed (tegaskan sudah ditinjau). Mengubah akun/jenis menandai baris sebagai pilihan manusia sehingga dipelajari saat posting. Jenis uang_muka/terima_kasbon otomatis memakai akun Uang Muka Karyawan. Baris yang sudah punya jurnal tidak dapat diubah.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "rows": "array<object>"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "UUID draft buku kas."
+        },
+        {
+          "name": "rows",
+          "in": "body",
+          "type": "array<object>",
+          "required": true,
+          "fields": [
+            {
+              "name": "id",
+              "in": "body",
+              "type": "string",
+              "required": true,
+              "description": "ID baris (dari kas_draft_get)."
+            },
+            {
+              "name": "description",
+              "in": "body",
+              "type": "string",
+              "required": false,
+              "description": "Keterangan baru."
+            },
+            {
+              "name": "amount",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Nominal baru (>0)."
+            },
+            {
+              "name": "date",
+              "in": "body",
+              "type": "date",
+              "required": false,
+              "description": "Tanggal baru (YYYY-MM-DD)."
+            },
+            {
+              "name": "direction",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "masuk",
+                "keluar"
+              ],
+              "description": "Arah baru (jenis disesuaikan otomatis)."
+            },
+            {
+              "name": "txnType",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "pengeluaran",
+                "pemasukan",
+                "uang_muka",
+                "terima_kasbon",
+                "lainnya"
+              ],
+              "description": "Jenis baru; harus cocok dengan arah baris."
+            },
+            {
+              "name": "accountId",
+              "in": "body",
+              "type": "string",
+              "required": false,
+              "description": "ID akun lawan (dari kas_daftar_akun). null = kosongkan."
+            },
+            {
+              "name": "skip",
+              "in": "body",
+              "type": "boolean",
+              "required": false,
+              "description": "true = lewati baris (tidak diposting)."
+            },
+            {
+              "name": "reviewed",
+              "in": "body",
+              "type": "boolean",
+              "required": false,
+              "description": "true = baris ditegaskan sudah ditinjau (menghapus penanda perlu-ditinjau)."
+            }
+          ],
+          "description": "Perubahan per baris: [{id, accountId?, txnType?, description?, amount?, date?, direction?, skip?, reviewed?}]."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ updated, draft } (draft terbaru). Kesalahan memuat rowErrors dan tidak menyimpan apa pun.",
+      "handler": "PUT /api/cash-book-drafts/:id/rows",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 2,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/saldo; hanya mengubah baris draft.",
+      "confirm_template": "Ubah {rows} baris pada draft buku kas {id}.",
+      "errors": [
+        "400: draft sudah Posted/Discarded",
+        "400: baris sudah diposting",
+        "400: akun lawan grup/nonaktif/sama dengan akun kas",
+        "400: jenis tidak cocok dengan arah kas"
+      ],
+      "related": [
+        "kas_draft_get",
+        "kas_daftar_akun"
+      ]
+    },
+    {
+      "name": "kas_draft_tambah_baris",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Menambah baris ke Draft Buku Kas yang belum diposting penuh (total maksimal 300 baris). Baris diklasifikasikan dengan aturan yang sama seperti saat pembuatan draft.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "rows": "array<object>"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "UUID draft buku kas."
+        },
+        {
+          "name": "rows",
+          "in": "body",
+          "type": "array<object>",
+          "required": true,
+          "fields": [
+            {
+              "name": "date",
+              "in": "body",
+              "type": "date",
+              "required": false,
+              "description": "Tanggal baris (YYYY-MM-DD). Kosong = tanggal halaman (entryDate)."
+            },
+            {
+              "name": "description",
+              "in": "body",
+              "type": "string",
+              "required": true,
+              "description": "Keterangan persis seperti tertulis di nota/buku kas (maks. 500 karakter)."
+            },
+            {
+              "name": "masuk",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Kas masuk (kolom debit buku kas). Isi salah satu: masuk ATAU keluar."
+            },
+            {
+              "name": "keluar",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Kas keluar (kolom kredit buku kas). Isi salah satu: masuk ATAU keluar."
+            },
+            {
+              "name": "amount",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Alternatif: nominal (>0) bersama direction."
+            },
+            {
+              "name": "direction",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "masuk",
+                "keluar"
+              ],
+              "description": "Alternatif: arah bersama amount."
+            },
+            {
+              "name": "txnType",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "pengeluaran",
+                "pemasukan",
+                "uang_muka",
+                "terima_kasbon",
+                "lainnya"
+              ],
+              "description": "Klasifikasi usulan engine. Arah DR/CR ditentukan server dari kolom masuk/keluar, bukan dari jenis ini."
+            },
+            {
+              "name": "accountCode",
+              "in": "body",
+              "type": "string",
+              "required": false,
+              "description": "Kode akun lawan (mis. 6.1.2) HANYA dari daftar kas_daftar_akun. Untuk uang_muka/terima_kasbon diabaikan (server memakai Uang Muka Karyawan)."
+            },
+            {
+              "name": "confidence",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "Keyakinan jujur 0..1 atas klasifikasi akun. < 0.7 otomatis ditandai perlu ditinjau."
+            },
+            {
+              "name": "reason",
+              "in": "body",
+              "type": "string",
+              "required": false,
+              "description": "Alasan singkat klasifikasi (tampil ke peninjau)."
+            }
+          ],
+          "description": "Baris baru, format sama dengan kas_buat_draft_dari_baris."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ added, needsReviewCount, draft } HTTP 201.",
+      "handler": "POST /api/cash-book-drafts/:id/rows",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 2,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/saldo; hanya menambah baris draft.",
+      "confirm_template": "Tambah {rows} baris ke draft buku kas {id}.",
+      "errors": [
+        "400: total baris melebihi 300",
+        "400: draft sudah Posted/Discarded",
+        "400: baris tidak valid (rowErrors)"
+      ],
+      "related": [
+        "kas_buat_draft_dari_baris",
+        "kas_draft_get"
+      ]
+    },
+    {
+      "name": "kas_draft_buang",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Membuang Draft Buku Kas (status Discarded). Hanya draft berstatus Draft; tidak ada jurnal yang terdampak.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "UUID draft buku kas."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ message }.",
+      "handler": "POST /api/cash-book-drafts/:id/discard",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 2,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/saldo; draft ditandai Discarded dan tidak muncul di daftar.",
+      "confirm_template": "Buang draft buku kas {id}?",
+      "errors": [
+        "4",
+        "0",
+        "0",
+        ":",
+        " ",
+        "h",
+        "a",
+        "n",
+        "y",
+        "a",
+        " ",
+        "d",
+        "r",
+        "a",
+        "f",
+        "t",
+        " ",
+        "b",
+        "e",
+        "r",
+        "s",
+        "t",
+        "a",
+        "t",
+        "u",
+        "s",
+        " ",
+        "D",
+        "r",
+        "a",
+        "f",
+        "t",
+        " ",
+        "y",
+        "a",
+        "n",
+        "g",
+        " ",
+        "b",
+        "i",
+        "s",
+        "a",
+        " ",
+        "d",
+        "i",
+        "b",
+        "u",
+        "a",
+        "n",
+        "g"
+      ],
+      "related": [
+        "kas_draft_list"
+      ]
+    },
+    {
+      "name": "kas_draft_posting",
+      "group": "Bank & Kas",
+      "toolset": "kas-bank",
+      "module": "journal",
+      "desc": "Memposting Draft Buku Kas: satu jurnal seimbang per baris non-skip pada tanggal barisnya (tahun buku harus terbuka), atas nama pengguna yang memposting. Default semua-atau-tidak-sama-sekali; partial=true memposting baris yang valid dan mencatat kesalahan per baris (status Sebagian Diposting). Pilihan akun manusia dipelajari. Tidak bisa dobel-posting.",
+      "risk": "critical",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "partial": "boolean"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "UUID draft buku kas."
+        },
+        {
+          "name": "partial",
+          "in": "body",
+          "type": "boolean",
+          "required": false,
+          "description": "true = posting baris yang valid saja; baris bermasalah dicatat per baris."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "{ status, postedCount, totalAmount, journals[{rowIdx, journalEntryId, entryNumber}], failed[{idx, error}], learned }.",
+      "handler": "POST /api/cash-book-drafts/:id/post",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 2,
+      "draftCapable": false,
+      "postingEffect": "Jurnal JV-… (Submitted) per baris ke buku besar tak-terhapus; saldo akun kas dan akun lawan berubah. pengeluaran/lainnya keluar = DR akun lawan / CR kas; pemasukan/lainnya masuk = DR kas / CR akun lawan; uang_muka = DR Uang Muka Karyawan (1.5.6) / CR kas; terima_kasbon = DR kas / CR Uang Muka Karyawan. Tidak ada efek stok.",
+      "confirm_template": "POSTING draft buku kas {id} menjadi jurnal (satu jurnal per baris)? Saldo kas dan akun lawan akan berubah.",
+      "accessNote": "Pemegang izin edit modul Jurnal (sama dengan membuat jurnal manual). Aktor AIRA level Standar selalu lewat antrian persetujuan.",
+      "prerequisites": [
+        "Draft berstatus Draft atau Sebagian Diposting.",
+        "Setiap baris non-skip punya akun lawan valid (detail, aktif, bukan akun kas).",
+        "Tahun buku terbuka untuk tanggal tiap baris."
+      ],
+      "errors": [
+        "400: baris bermasalah (rowErrors) - tidak ada yang diposting",
+        "400: draft sudah diposting",
+        "400: tahun buku ditutup untuk tanggal baris",
+        "403: tidak punya izin Jurnal (edit)"
+      ],
+      "related": [
+        "kas_draft_get",
+        "kas_draft_ubah_baris",
+        "je_cancel"
+      ]
     }
   ]
 }

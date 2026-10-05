@@ -24,6 +24,7 @@ import gaBuildingRoutes from './routes/ga/building';
 import gaEquipmentRoutes from './routes/ga/equipment';
 import coaRoutes from './routes/coa';
 import journalRoutes from './routes/journals';
+import cashBookDraftRoutes from './routes/cashBookDrafts';
 import salesRoutes from './routes/sales';
 import purchaseRoutes from './routes/purchase';
 import paymentRoutes from './routes/payments';
@@ -214,6 +215,7 @@ app.use('/api/payment-request-types', requireWrite('settings'), paymentRequestTy
 
 // Transaksional (view+edit per modul):
 app.use('/api/journals', requirePerm('journal'), journalRoutes);
+app.use('/api/cash-book-drafts', requirePerm('journal'), cashBookDraftRoutes); // Draft Buku Kas: izin = Jurnal Umum
 app.use('/api/sales/invoices', requirePerm('sales_invoice'), salesRoutes);
 app.use('/api/purchase/invoices', requirePerm('purchase_invoice'), purchaseRoutes);
 app.use('/api/payments', requirePerm('payment'), paymentRoutes);

@@ -21,6 +21,8 @@ export interface TokenPayload {
   mcpChannel?: string;
   mcpTool?: string;
   mcpApprovalId?: string;
+  /** Referensi opak chat/sesi dari actor assertion (`ref`), diteruskan ke handler. */
+  mcpRef?: string;
 }
 
 export const generateToken = (payload: TokenPayload): string => {

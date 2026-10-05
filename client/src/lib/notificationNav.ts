@@ -41,6 +41,8 @@ export function notificationLink(n: NotifItem, role: string | undefined): string
     case 'payment_request_cancelled':
     case 'payment_request_settlement_due':
       return meta.paymentRequestId ? `/payment-requests/${encodeURIComponent(meta.paymentRequestId)}` : '/payment-requests';
+    case 'cash_book_draft':
+      return meta.draftId ? `/cash-book-drafts/${encodeURIComponent(meta.draftId)}` : '/cash-book-drafts';
     case 'guarantee_due':
       return '/project-guarantees';
     case 'po_overdue':

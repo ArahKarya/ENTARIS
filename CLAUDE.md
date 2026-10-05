@@ -135,6 +135,24 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 - Kill switch `AiSetting.agenticEnabled` (503 tiap panggilan), rate limit per token (in-memory), body 256 KB, riwayat `mcp_call_logs` (hash argumen), `idempotencyKey` untuk tool tulis. Admin REST: `/api/ai/mcp/*` (`rbac.manage`); UI: Pengaturan → AIRA (MCP) + Manajemen Pengguna (Akses AIRA).
 - Jalur lama dipensiunkan: `/api/ai/router`, A3 HMAC, `x-aira-service-token`, whitelist/channel config. Panel chat `/api/ai/chat/*` masih ke aira-core (tahap 3 → engine AIRA).
 
+## Buku Kas dari Nota (Draft Buku Kas)
+
+- Foto/nota buku kas dibaca engine AIRA (atau ditempel/CSV di UI) -> **draft** `DKB-YYYYMM-NNNN` (`cash_book_drafts` + `cash_book_draft_rows`), TANPA efek GL. Kode: `utils/cashBookRules.ts` (aturan murni), `services/cashBookDraft.ts` (buat/ubah/buang), `services/cashBookDraftPost.ts` (posting + belajar), `services/cashBookDraftList.ts`, `routes/cashBookDrafts.ts` (`/api/cash-book-drafts`, izin modul `journal`), UI `pages/CashBookDrafts.tsx` + `pages/CashBookDraftReview.tsx` + `components/cash-book/`.
+- Arah DR/CR **deterministik di kode**, tidak pernah dari LLM; arah = kolom masuk/keluar:
+
+| txnType | arah | jurnal |
+|---|---|---|
+| `pengeluaran` | keluar | DR akun lawan (beban) / CR kas |
+| `pemasukan` | masuk | DR kas / CR akun lawan |
+| `uang_muka` | keluar | DR Uang Muka Karyawan (1.5.6, role `EMPLOYEE_ADVANCE`) / CR kas |
+| `terima_kasbon` | masuk | DR kas / CR Uang Muka Karyawan |
+| `lainnya` | keluar / masuk | DR akun usulan / CR kas (masuk: DR kas / CR akun usulan); selalu `needsReview` |
+
+- Akun usulan default via Akun Sistem `OTHER_EXPENSE` (kas keluar) / `OTHER_INCOME` (kas masuk), kas = akun aset 1.1.x atau role `CASH` (`assertCashAccount`, sama dengan Pengajuan Pembayaran). Jangan hardcode nomor akun.
+- `needsReview`: keyakinan < 0,7, `lainnya`, jenis bertentangan dengan arah (jenis dikoreksi + akun engine dibuang), akun kosong/default/tak dikenal, kemungkinan duplikat. Baris tak valid secara struktur (nominal <= 0, masuk dan keluar sekaligus, tanggal salah, > 300 baris) menolak seluruh pembuatan dengan `rowErrors`.
+- **Pola terpelajari** (`cash_book_learned_maps`): saat posting, baris yang akun/jenisnya dipilih atau ditegaskan manusia (`userEdited`) di-upsert (`hits`++; akun berbeda = timpa, `hits`=1); dipakai bila engine tak memberi akun / keyakinan rendah, tidak menimpa akun berkeyakinan tinggi dari engine.
+- Posting = satu jurnal seimbang per baris via `postJournalInTx` (tahun buku terbuka per tanggal baris, atas nama pemosting), satu transaksi, klaim atomik; `partial=true` -> `PartiallyPosted`. MCP: tool `kas_*` (`kas_draft_posting` critical = antrian persetujuan untuk aktor Standar); `kas_buat_draft_dari_baris` mencatat `createdVia='mcp'`, `sourceRef` dari `ref` actor assertion.
+
 ## Coding Conventions
 
 ### Backend

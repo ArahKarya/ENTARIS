@@ -2,11 +2,11 @@
 
 > Dibangkitkan otomatis dari `server/src/ai/aira-tool-router.json` — jangan edit manual. Panduan alur: `docs/ai-tools/_guides/`.
 
-Endpoint MCP target: `/mcp/kas-bank` · 27 tool (read 11, write 8, critical 8)
+Endpoint MCP target: `/mcp/kas-bank` · 37 tool (read 15, write 13, critical 9)
 
 ## Tujuan
 
-Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entaris: transaksi pembayaran (terima/bayar/uang muka/refund), buku Transaksi Kas & Bank, uang jaminan proyek, rekonsiliasi bank, dan template transaksi berulang. Tool baca aman otomatis; tool yang memposting jurnal (`pay_record`, `pg_create`, `pg_settle`, `rec_execute`) dan semua pembatalan bertingkat kritis, sehingga membutuhkan persetujuan eksplisit.
+Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entaris: transaksi pembayaran (terima/bayar/uang muka/refund), buku Transaksi Kas & Bank, uang jaminan proyek, rekonsiliasi bank, dan template transaksi berulang. Buku kas dari foto/nota ditangani lewat **Draft Buku Kas** (`kas_*`): engine mengusulkan baris, manusia meninjau dan memposting. Tool baca aman otomatis; tool yang memposting jurnal (`pay_record`, `pg_create`, `pg_settle`, `rec_execute`) dan semua pembatalan bertingkat kritis, sehingga membutuhkan persetujuan eksplisit.
 
 ## ALUR BISNIS
 
@@ -41,6 +41,24 @@ Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entar
 - Eksekusi otomatis dilakukan scheduler harian 02:00. `rec_execute` menjalankan **satu** template sekarang (bertanggal hari ini). Endpoint massal `POST /api/recurring/run-due` sengaja **tidak** menjadi tool (lihat DENYLIST).
 - `rec_delete` hanyalah soft delete (`isActive=false`); aktifkan lagi lewat `rec_update`.
 
+### Buku kas dari nota (Draft Buku Kas)
+
+Alur untuk engine AIRA bila pengguna mengirim **foto/scan nota atau halaman buku kas** dan meminta pencatatan. Engine hanya *mengusulkan*; Entaris menyimpan draft, memvalidasi, menentukan arah DR/CR, meminta tinjauan manusia, lalu memposting. **Engine tidak pernah memposting sendiri** (`kas_draft_posting` selalu masuk antrian persetujuan untuk aktor level Standar).
+
+1. **`kas_daftar_akun`** - panggil dulu. Hasilnya: katalog akun lawan (`id`, `code`, `name`, `type`, `isCash`, `role`), akun kas/bank untuk dipilih (`cashAccounts`), tabel aturan jenis transaksi, batas baris dan **pola terpelajari** (keterangan -> akun hasil koreksi manusia sebelumnya; pakai sebagai petunjuk).
+2. **Baca foto, ekstrak baris, klasifikasikan.** Satu baris = `{date?, description, masuk | keluar}` (atau `amount` + `direction`). `masuk` = kas masuk (kolom debit buku kas), `keluar` = kas keluar (kolom kredit). Salin keterangan apa adanya, jangan merangkum. Untuk tiap baris usulkan `txnType` (`pengeluaran`, `pemasukan`, `uang_muka`, `terima_kasbon`, `lainnya`), `accountCode` **hanya dari daftar `kas_daftar_akun`**, `confidence` 0..1 yang **jujur** (di bawah 0,7 baris otomatis ditandai "perlu ditinjau") dan `reason` singkat. Bila ragu pakai `lainnya` atau kosongkan `accountCode`; jangan mengarang kode akun. Catat juga saldo awal/akhir di halaman bila tertulis (`openingBalance`, `closingBalance`) agar server dapat memeriksa selisihnya.
+3. **`kas_buat_draft_dari_baris`** - satu panggilan untuk seluruh halaman (maksimal **300 baris**; pecah bila lebih). Tanggal halaman `entryDate` dipakai bila baris tak bertanggal. `cashAccountId` = salah satu `cashAccounts`. Sertakan `sourceNote` (mis. "halaman 3, tulisan tangan"). Server mencatat `createdVia=mcp`, aktor, dan `sourceRef` (diambil dari `ref` pada actor assertion bila tidak diisi). Hasil: nomor `DKB-YYYYMM-NNNN`, total masuk/keluar, jumlah baris perlu ditinjau, cek saldo, dan `reviewPath`. **Belum ada jurnal.**
+4. **Beritahu pengguna** untuk meninjau dan memposting di Entaris: **Kas & Bank -> Draft Buku Kas** (`/cash-book-drafts/<id>`). Sebutkan nomor draft, jumlah baris yang ragu, serta peringatan saldo/duplikat bila ada. Koreksi lewat chat boleh dengan `kas_draft_ubah_baris` / `kas_draft_tambah_baris` / `kas_draft_buang`; posting oleh pengguna di layar peninjauan, atau lewat `kas_draft_posting` (menunggu persetujuan manusia di Persetujuan).
+
+Yang dilakukan server (deterministik, bukan LLM):
+
+- **Arah ditentukan kolom masuk/keluar**, bukan `txnType`. Jenis yang bertentangan (mis. `pemasukan` pada kas keluar) dikoreksi ke jenis polos arah itu, keyakinan dibatasi 0,5, akun usulan engine dibuang (diganti pola terpelajari atau akun default) dan baris ditandai perlu ditinjau dengan alasannya.
+- `uang_muka` / `terima_kasbon` selalu memakai akun sistem Uang Muka Karyawan (role `EMPLOYEE_ADVANCE`); `accountCode` dari engine diabaikan.
+- Baris tanpa akun / akun tak dikenal / akun grup / nonaktif / sama dengan akun kas: **tidak membatalkan draft**; baris ditandai, akunnya dikosongkan atau diganti usulan default (Beban Diluar Usaha Lainnya `OTHER_EXPENSE` untuk kas keluar, Pendapatan Diluar Usaha Lainnya `OTHER_INCOME` untuk kas masuk).
+- **Pola terpelajari** dipakai bila engine tak memberi akun atau keyakinannya rendah; akun berkeyakinan tinggi dari engine tidak pernah ditimpa diam-diam (hanya dicatat di `reason`). Satu koreksi manusia = keyakinan 0,65 (tetap perlu ditinjau); dua kali 0,75; tiga kali atau lebih 0,85.
+- **Duplikat**: tanggal + nominal + arah + keterangan sama dengan baris di draft/posting lain pada akun kas yang sama (atau baris sebelumnya di draft yang sama) -> `kemungkinan duplikat` + perlu ditinjau.
+- Baris tak valid (nominal <= 0, masuk dan keluar sekaligus, tanggal salah, keterangan kosong, lebih dari 300 baris) membuat **seluruh panggilan ditolak** dengan `rowErrors` berindeks baris; perbaiki dan kirim ulang.
+
 ### Aturan posting
 
 | Transaksi | Jurnal |
@@ -55,6 +73,7 @@ Toolset **kas-bank** memungkinkan AIRA membaca dan mengoperasikan arus kas Entar
 | Settlement jaminan | DR Kas-Bank (dikembalikan) + DR Akun Beban (hangus; default Beban Lain-lain, harus EXPENSE non-grup) / CR Uang Jaminan (1.8) |
 | Eksekusi template `journal` | Jurnal Umum `Submitted` sesuai baris template; saldo akun diperbarui |
 | Rekonsiliasi | Tidak ada jurnal |
+| Draft Buku Kas diposting (`kas_draft_posting`) | **Satu jurnal seimbang per baris** pada tanggal baris, atas nama pemosting. `pengeluaran` / `lainnya` keluar = DR akun lawan / CR kas; `pemasukan` / `lainnya` masuk = DR kas / CR akun lawan; `uang_muka` = DR Uang Muka Karyawan (1.5.6) / CR kas; `terima_kasbon` = DR kas / CR Uang Muka Karyawan. Semua baris dalam satu transaksi (atau `partial=true`: baris valid saja, sisanya `PartiallyPosted` dengan error per baris) |
 
 Pembatalan memakai pola **soft-cancel**: jurnal berstatus `Cancelled`, ledger `isCancelled`, saldo akun dibalik (tidak membuat jurnal balikan `[BATAL]` baru, agar sinkronisasi ledger-vs-jurnal tetap sehat). Total debit selalu sama dengan total kredit.
 
@@ -63,6 +82,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 ### Persetujuan
 
 - Modul kas-bank **tidak** melewati antrian `needsApproval`: `pay_record`, `pg_create`, `pg_settle`, dan `rec_execute` langsung memposting bagi pemanggil yang punya izin edit modulnya. Kontrol keamanannya berada di tier AIRA (kritis = wajib persetujuan) dan RBAC.
+- Draft Buku Kas memakai izin modul `journal` (lihat = view, ubah/posting = edit, sama dengan jurnal manual); posting tidak lewat `needsApproval` tetapi aktor AIRA level Standar selalu lewat antrian persetujuan.
 - Pembatalan butuh capability `doc.cancel` (default hanya Admin): `pay_cancel`, `pg_cancel`, `pg_settlement_cancel`.
 - Izin modul: `payment`, `reconciliation`, `recurring`, `project_guarantee` (Accountant edit; Viewer hanya `payment` dan `project_guarantee` lihat; StaffProduksi tidak punya akses default kecuali yang dikonfigurasi).
 
@@ -76,6 +96,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 - Uang jaminan: bagian hangus **harus** akun beban (EXPENSE); bagian dikembalikan **harus** akun kas/bank. Total return + hangus tidak boleh melebihi sisa jaminan.
 - `rec_create` template jurnal: eksekusi **tidak memvalidasi** debit = kredit dan tidak mengecek `isActive`; pastikan template seimbang sebelum eksekusi.
 - Rekonsiliasi `Completed` terkunci permanen; selesaikan hanya setelah semua item dicocokkan sesuai rekening koran.
+- **Draft Buku Kas**: jangan menebak kode akun, jangan mengisi `masuk` dan `keluar` sekaligus, jangan menganggap draft = sudah tercatat (belum ada jurnal sampai diposting), dan jangan menunggu `kas_draft_posting` langsung jalan (menunggu persetujuan). Jurnal dari draft yang salah dibatalkan lewat `je_cancel` (toolset akuntansi) pada nomor jurnal baris terkait.
 - Format tanggal `YYYY-MM-DD`; jumlah dalam Rupiah (angka, tanpa pemisah ribuan).
 
 ### Peta istilah
@@ -93,6 +114,8 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 | Saldo Awal | `isOpeningBalance`, akun Ekuitas Saldo Awal 3.1 |
 | Uang Jaminan Proyek | `ProjectGuarantee`, akun 1.8, nomor `UJ-...` |
 | Hangus | bagian jaminan yang dipotong/tidak kembali, dibebankan ke akun beban |
+| Buku Kas / Kas Harian / Petty Cash dari nota | `CashBookDraft` (`DKB-YYYYMM-NNNN`), baris `CashBookDraftRow`, pola `CashBookLearnedMap` |
+| Kasbon / Uang Muka Karyawan | `txnType` `uang_muka` / `terima_kasbon`, akun 1.5.6 (role `EMPLOYEE_ADVANCE`) |
 | Rekonsiliasi Bank | `BankReconciliation`, status `Draft/Completed` |
 | Rekening Koran / Statement | item statement (`statementAmount`) |
 | Transaksi Berulang | `RecurringTemplate` (hanya `journal` yang dieksekusi) |
@@ -102,6 +125,16 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 
 | Tool | Risk | Draft | Handler |
 |---|---|---|---|
+| [`kas_buat_draft_dari_baris`](#kas_buat_draft_dari_baris) | write | ya | `POST /api/cash-book-drafts` |
+| [`kas_daftar_akun`](#kas_daftar_akun) | read | - | `GET /api/cash-book-drafts/accounts` |
+| [`kas_draft_buang`](#kas_draft_buang) | write | ya | `POST /api/cash-book-drafts/:id/discard` |
+| [`kas_draft_get`](#kas_draft_get) | read | - | `GET /api/cash-book-drafts/:id` |
+| [`kas_draft_list`](#kas_draft_list) | read | - | `GET /api/cash-book-drafts` |
+| [`kas_draft_posting`](#kas_draft_posting) | critical | tidak | `POST /api/cash-book-drafts/:id/post` |
+| [`kas_draft_tambah_baris`](#kas_draft_tambah_baris) | write | ya | `POST /api/cash-book-drafts/:id/rows` |
+| [`kas_draft_ubah_baris`](#kas_draft_ubah_baris) | write | ya | `PUT /api/cash-book-drafts/:id/rows` |
+| [`kas_draft_ubah_header`](#kas_draft_ubah_header) | write | ya | `PUT /api/cash-book-drafts/:id` |
+| [`kas_pola_terpelajari`](#kas_pola_terpelajari) | read | - | `GET /api/cash-book-drafts/learned-maps` |
 | [`pay_cancel`](#pay_cancel) | critical | tidak | `POST /api/payments/:id/cancel` |
 | [`pay_cash_journals`](#pay_cash_journals) | read | - | `GET /api/payments/cash-journals` |
 | [`pay_get`](#pay_get) | read | - | `GET /api/payments/:id` |
@@ -131,6 +164,613 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 | [`recon_unmatch`](#recon_unmatch) | write | ya | `PATCH /api/reconciliation/:id/unmatch` |
 
 ## Rincian tool
+
+### kas_buat_draft_dari_baris
+
+**Ringkasan:** Membuat DRAFT Buku Kas dari baris yang dibaca engine dari foto/scan nota atau halaman buku kas (maks. 300 baris per draft, dalam satu panggilan). Server memvalidasi, menentukan arah DR/CR secara deterministik dari kolom masuk/keluar, mengoreksi jenis yang bertentangan, menerapkan pola terpelajari, dan menandai baris ragu/duplikat sebagai perlu ditinjau. TIDAK membuat jurnal: manusia meninjau dan memposting di Entaris (Kas & Bank > Draft Buku Kas). Dicatat createdVia=mcp, sumber AIRA, dan sourceRef dari actor assertion.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
+- **Catatan akses:** Pemegang izin edit modul Jurnal (sama dengan jurnal manual). Admin diberi notifikasi bila draft berasal dari AIRA.
+- **Handler:** `POST /api/cash-book-drafts` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `title` | body | `string` | tidak | Judul draft (default: "Buku kas <entryDate>"). |
+| `entryDate` | body | `date` | ya | Tanggal halaman buku kas (YYYY-MM-DD); dipakai bila baris tak punya tanggal. |
+| `cashAccountId` | body | `string` | ya | ID akun kas/bank draft (dari kas_daftar_akun.cashAccounts). |
+| `openingBalance` | body | `number` | tidak | Saldo awal tertulis di halaman (untuk cek saldo). |
+| `closingBalance` | body | `number` | tidak | Saldo akhir tertulis di halaman (untuk cek saldo). |
+| `sourceRef` | body | `string` | tidak | Referensi opak chat/sesi (mis. id pesan foto). Default: ref dari actor assertion. |
+| `sourceNote` | body | `string` | tidak | Catatan sumber (mis. "halaman 3 buku kas Oktober, tulisan tangan"). |
+| `rows` | body | `array<object>` | ya | Baris hasil baca: [{date?, description, masuk\|keluar (atau amount+direction), txnType?, accountCode?, confidence?, reason?}], 1 sampai 300 baris. |
+| `rows[].date` | body | `date` | tidak | Tanggal baris (YYYY-MM-DD). Kosong = tanggal halaman (entryDate). |
+| `rows[].description` | body | `string` | ya | Keterangan persis seperti tertulis di nota/buku kas (maks. 500 karakter). |
+| `rows[].masuk` | body | `number` | tidak | Kas masuk (kolom debit buku kas). Isi salah satu: masuk ATAU keluar. |
+| `rows[].keluar` | body | `number` | tidak | Kas keluar (kolom kredit buku kas). Isi salah satu: masuk ATAU keluar. |
+| `rows[].amount` | body | `number` | tidak | Alternatif: nominal (>0) bersama direction. |
+| `rows[].direction` | body | enum: `masuk`, `keluar` | tidak | Alternatif: arah bersama amount. |
+| `rows[].txnType` | body | enum: `pengeluaran`, `pemasukan`, `uang_muka`, `terima_kasbon`, `lainnya` | tidak | Klasifikasi usulan engine. Arah DR/CR ditentukan server dari kolom masuk/keluar, bukan dari jenis ini. |
+| `rows[].accountCode` | body | `string` | tidak | Kode akun lawan (mis. 6.1.2) HANYA dari daftar kas_daftar_akun. Untuk uang_muka/terima_kasbon diabaikan (server memakai Uang Muka Karyawan). |
+| `rows[].confidence` | body | `number` | tidak | Keyakinan jujur 0..1 atas klasifikasi akun. < 0.7 otomatis ditandai perlu ditinjau. |
+| `rows[].reason` | body | `string` | tidak | Alasan singkat klasifikasi (tampil ke peninjau). |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_buat_draft_dari_baris",
+  "args": {
+    "entryDate": "2026-01-31",
+    "cashAccountId": "<id>",
+    "rows": [
+      {
+        "description": "<description>"
+      }
+    ]
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Buat draft buku kas tanggal 2026-01-31 dengan [...] baris (belum ada jurnal; ditinjau manusia sebelum posting)."
+}
+```
+
+**Isi hasil:** Draft baru (id, draftNumber DKB-YYYYMM-NNNN, status Draft) + rows + totals + needsReviewCount + reviewPath. Baris tak valid membuat seluruh panggilan ditolak dengan rowErrors (perbaiki lalu kirim ulang).
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/saldo. Hanya menyimpan draft (cash_book_drafts + baris). Jurnal baru dibuat saat kas_draft_posting disetujui: satu jurnal seimbang per baris (pengeluaran/lainnya keluar = DR akun lawan / CR kas; pemasukan/lainnya masuk = DR kas / CR akun lawan; uang_muka = DR Uang Muka Karyawan / CR kas; terima_kasbon = DR kas / CR Uang Muka Karyawan).
+
+**Teks konfirmasi:** Buat draft buku kas tanggal {entryDate} dengan {rows} baris (belum ada jurnal; ditinjau manusia sebelum posting).
+
+**Prasyarat**
+
+- Panggil kas_daftar_akun dulu; pakai hanya kode akun dari daftarnya.
+- Akun kas draft adalah akun kas/bank (1.1.x atau dipetakan CASH).
+
+**Error umum**
+
+- 400: baris tidak valid (rowErrors: nominal <= 0, masuk dan keluar sekaligus, tanggal salah, keterangan kosong)
+- 400: lebih dari 300 baris
+- 400: akun kas bukan akun kas/bank
+- 403: tidak punya izin Jurnal (edit)
+
+**Tool terkait:** [`kas_daftar_akun`](#kas_daftar_akun), [`kas_draft_get`](#kas_draft_get), [`kas_draft_posting`](#kas_draft_posting)
+
+### kas_daftar_akun
+
+**Ringkasan:** Katalog untuk klasifikasi buku kas: akun lawan yang boleh dipakai (id, kode, nama, tipe, penanda kas, peran sistem), akun kas/bank yang bisa dipilih sebagai kas draft, aturan jenis transaksi -> jurnal DR/CR, batas baris, dan pola terpelajari (keterangan -> akun hasil koreksi manusia sebelumnya) sebagai petunjuk. WAJIB dipanggil sebelum kas_buat_draft_dari_baris; klasifikasikan HANYA dengan kode dari daftar ini.
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
+- **Handler:** `GET /api/cash-book-drafts/accounts` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter:** tidak ada.
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_daftar_akun",
+  "args": {}
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<{ accounts[], cashAccounts[], rules{advanceAccountId, defaultExpenseAccountId, defaultInco>"
+}
+```
+
+**Isi hasil:** { accounts[], cashAccounts[], rules{advanceAccountId, defaultExpenseAccountId, defaultIncomeAccountId}, txnTypes[], limits{maxRows, reviewThreshold}, learnedMaps[] }.
+
+**Error umum**
+
+- 403: tidak punya izin melihat modul Jurnal
+
+**Tool terkait:** [`kas_buat_draft_dari_baris`](#kas_buat_draft_dari_baris), [`kas_pola_terpelajari`](#kas_pola_terpelajari)
+
+### kas_draft_buang
+
+**Ringkasan:** Membuang Draft Buku Kas (status Discarded). Hanya draft berstatus Draft; tidak ada jurnal yang terdampak.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
+- **Handler:** `POST /api/cash-book-drafts/:id/discard` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | UUID draft buku kas. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_buang",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Buang draft buku kas <id>?"
+}
+```
+
+**Isi hasil:** { message }.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/saldo; draft ditandai Discarded dan tidak muncul di daftar.
+
+**Teks konfirmasi:** Buang draft buku kas {id}?
+
+**Error umum**
+
+- 4
+- 0
+- 0
+- :
+-  
+- h
+- a
+- n
+- y
+- a
+-  
+- d
+- r
+- a
+- f
+- t
+-  
+- b
+- e
+- r
+- s
+- t
+- a
+- t
+- u
+- s
+-  
+- D
+- r
+- a
+- f
+- t
+-  
+- y
+- a
+- n
+- g
+-  
+- b
+- i
+- s
+- a
+-  
+- d
+- i
+- b
+- u
+- a
+- n
+- g
+
+**Tool terkait:** [`kas_draft_list`](#kas_draft_list)
+
+### kas_draft_get
+
+**Ringkasan:** Satu Draft Buku Kas lengkap: header, semua baris (jenis, akun, keyakinan, penanda perlu ditinjau + alasan, duplikat, skip, nomor jurnal bila sudah diposting), total masuk/keluar, jumlah perlu ditinjau dan cek saldo (saldo awal + masuk - keluar vs saldo akhir).
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
+- **Handler:** `GET /api/cash-book-drafts/:id` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | UUID draft buku kas. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_get",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<Draft + rows[] + totals + needsReviewCount + duplicateCount + balance{checked, ok, differe>"
+}
+```
+
+**Isi hasil:** Draft + rows[] + totals + needsReviewCount + duplicateCount + balance{checked, ok, difference, warning}.
+
+**Error umum**
+
+- 404: draft tidak ditemukan
+
+**Tool terkait:** [`kas_draft_list`](#kas_draft_list), [`kas_draft_ubah_baris`](#kas_draft_ubah_baris), [`kas_draft_posting`](#kas_draft_posting)
+
+### kas_draft_list
+
+**Ringkasan:** Daftar Draft Buku Kas ber-paging dengan jumlah per status, total masuk/keluar, jumlah baris dan baris yang perlu ditinjau. Draft berstatus Discarded hanya muncul bila status=Discarded.
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
+- **Handler:** `GET /api/cash-book-drafts` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `page` | query | `number` | tidak | Halaman (default 1). |
+| `limit` | query | `number` | tidak | Per halaman (default 25, maksimum 200). |
+| `status` | query | enum: `Draft`, `PartiallyPosted`, `Posted`, `Discarded` | tidak | Filter status draft. |
+| `search` | query | `string` | tidak | Cari nomor draft, judul, atau catatan sumber. |
+| `startDate` | query | `date` | tidak | Tanggal halaman mulai (YYYY-MM-DD). |
+| `endDate` | query | `date` | tidak | Tanggal halaman sampai (YYYY-MM-DD). |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_list",
+  "args": {
+    "page": 1,
+    "limit": 1
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<{ data: draft ringkas, total, page, limit, counts per status }.>"
+}
+```
+
+**Isi hasil:** { data: draft ringkas, total, page, limit, counts per status }.
+
+**Error umum**
+
+- 400: status/format tanggal tidak dikenal
+
+**Tool terkait:** [`kas_draft_get`](#kas_draft_get)
+
+### kas_draft_posting
+
+**Ringkasan:** Memposting Draft Buku Kas: satu jurnal seimbang per baris non-skip pada tanggal barisnya (tahun buku harus terbuka), atas nama pengguna yang memposting. Default semua-atau-tidak-sama-sekali; partial=true memposting baris yang valid dan mencatat kesalahan per baris (status Sebagian Diposting). Pilihan akun manusia dipelajari. Tidak bisa dobel-posting.
+
+- **Risk / tier:** `critical` / Wajib-Approve
+- **Draft-capable:** tidak (efek langsung)
+- **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
+- **Catatan akses:** Pemegang izin edit modul Jurnal (sama dengan membuat jurnal manual). Aktor AIRA level Standar selalu lewat antrian persetujuan.
+- **Handler:** `POST /api/cash-book-drafts/:id/post` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | UUID draft buku kas. |
+| `partial` | body | `boolean` | tidak | true = posting baris yang valid saja; baris bermasalah dicatat per baris. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_posting",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "POSTING draft buku kas <id> menjadi jurnal (satu jurnal per baris)? Saldo kas dan akun lawan akan berubah."
+}
+```
+
+**Isi hasil:** { status, postedCount, totalAmount, journals[{rowIdx, journalEntryId, entryNumber}], failed[{idx, error}], learned }.
+
+**Efek pembukuan/stok:** Jurnal JV-… (Submitted) per baris ke buku besar tak-terhapus; saldo akun kas dan akun lawan berubah. pengeluaran/lainnya keluar = DR akun lawan / CR kas; pemasukan/lainnya masuk = DR kas / CR akun lawan; uang_muka = DR Uang Muka Karyawan (1.5.6) / CR kas; terima_kasbon = DR kas / CR Uang Muka Karyawan. Tidak ada efek stok.
+
+**Teks konfirmasi:** POSTING draft buku kas {id} menjadi jurnal (satu jurnal per baris)? Saldo kas dan akun lawan akan berubah.
+
+**Prasyarat**
+
+- Draft berstatus Draft atau Sebagian Diposting.
+- Setiap baris non-skip punya akun lawan valid (detail, aktif, bukan akun kas).
+- Tahun buku terbuka untuk tanggal tiap baris.
+
+**Error umum**
+
+- 400: baris bermasalah (rowErrors) - tidak ada yang diposting
+- 400: draft sudah diposting
+- 400: tahun buku ditutup untuk tanggal baris
+- 403: tidak punya izin Jurnal (edit)
+
+**Tool terkait:** [`kas_draft_get`](#kas_draft_get), [`kas_draft_ubah_baris`](#kas_draft_ubah_baris), [`je_cancel`](akuntansi.md#je_cancel)
+
+### kas_draft_tambah_baris
+
+**Ringkasan:** Menambah baris ke Draft Buku Kas yang belum diposting penuh (total maksimal 300 baris). Baris diklasifikasikan dengan aturan yang sama seperti saat pembuatan draft.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
+- **Handler:** `POST /api/cash-book-drafts/:id/rows` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | UUID draft buku kas. |
+| `rows` | body | `array<object>` | ya | Baris baru, format sama dengan kas_buat_draft_dari_baris. |
+| `rows[].date` | body | `date` | tidak | Tanggal baris (YYYY-MM-DD). Kosong = tanggal halaman (entryDate). |
+| `rows[].description` | body | `string` | ya | Keterangan persis seperti tertulis di nota/buku kas (maks. 500 karakter). |
+| `rows[].masuk` | body | `number` | tidak | Kas masuk (kolom debit buku kas). Isi salah satu: masuk ATAU keluar. |
+| `rows[].keluar` | body | `number` | tidak | Kas keluar (kolom kredit buku kas). Isi salah satu: masuk ATAU keluar. |
+| `rows[].amount` | body | `number` | tidak | Alternatif: nominal (>0) bersama direction. |
+| `rows[].direction` | body | enum: `masuk`, `keluar` | tidak | Alternatif: arah bersama amount. |
+| `rows[].txnType` | body | enum: `pengeluaran`, `pemasukan`, `uang_muka`, `terima_kasbon`, `lainnya` | tidak | Klasifikasi usulan engine. Arah DR/CR ditentukan server dari kolom masuk/keluar, bukan dari jenis ini. |
+| `rows[].accountCode` | body | `string` | tidak | Kode akun lawan (mis. 6.1.2) HANYA dari daftar kas_daftar_akun. Untuk uang_muka/terima_kasbon diabaikan (server memakai Uang Muka Karyawan). |
+| `rows[].confidence` | body | `number` | tidak | Keyakinan jujur 0..1 atas klasifikasi akun. < 0.7 otomatis ditandai perlu ditinjau. |
+| `rows[].reason` | body | `string` | tidak | Alasan singkat klasifikasi (tampil ke peninjau). |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_tambah_baris",
+  "args": {
+    "id": "<id>",
+    "rows": [
+      {
+        "description": "<description>"
+      }
+    ]
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Tambah [...] baris ke draft buku kas <id>."
+}
+```
+
+**Isi hasil:** { added, needsReviewCount, draft } HTTP 201.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/saldo; hanya menambah baris draft.
+
+**Teks konfirmasi:** Tambah {rows} baris ke draft buku kas {id}.
+
+**Error umum**
+
+- 400: total baris melebihi 300
+- 400: draft sudah Posted/Discarded
+- 400: baris tidak valid (rowErrors)
+
+**Tool terkait:** [`kas_buat_draft_dari_baris`](#kas_buat_draft_dari_baris), [`kas_draft_get`](#kas_draft_get)
+
+### kas_draft_ubah_baris
+
+**Ringkasan:** Mengubah banyak baris Draft Buku Kas sekaligus: akun lawan, jenis transaksi, keterangan, nominal, tanggal, arah, skip (lewati), reviewed (tegaskan sudah ditinjau). Mengubah akun/jenis menandai baris sebagai pilihan manusia sehingga dipelajari saat posting. Jenis uang_muka/terima_kasbon otomatis memakai akun Uang Muka Karyawan. Baris yang sudah punya jurnal tidak dapat diubah.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
+- **Handler:** `PUT /api/cash-book-drafts/:id/rows` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | UUID draft buku kas. |
+| `rows` | body | `array<object>` | ya | Perubahan per baris: [{id, accountId?, txnType?, description?, amount?, date?, direction?, skip?, reviewed?}]. |
+| `rows[].id` | body | `string` | ya | ID baris (dari kas_draft_get). |
+| `rows[].description` | body | `string` | tidak | Keterangan baru. |
+| `rows[].amount` | body | `number` | tidak | Nominal baru (>0). |
+| `rows[].date` | body | `date` | tidak | Tanggal baru (YYYY-MM-DD). |
+| `rows[].direction` | body | enum: `masuk`, `keluar` | tidak | Arah baru (jenis disesuaikan otomatis). |
+| `rows[].txnType` | body | enum: `pengeluaran`, `pemasukan`, `uang_muka`, `terima_kasbon`, `lainnya` | tidak | Jenis baru; harus cocok dengan arah baris. |
+| `rows[].accountId` | body | `string` | tidak | ID akun lawan (dari kas_daftar_akun). null = kosongkan. |
+| `rows[].skip` | body | `boolean` | tidak | true = lewati baris (tidak diposting). |
+| `rows[].reviewed` | body | `boolean` | tidak | true = baris ditegaskan sudah ditinjau (menghapus penanda perlu-ditinjau). |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_ubah_baris",
+  "args": {
+    "id": "<id>",
+    "rows": [
+      {
+        "id": "<id>"
+      }
+    ]
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Ubah [...] baris pada draft buku kas <id>."
+}
+```
+
+**Isi hasil:** { updated, draft } (draft terbaru). Kesalahan memuat rowErrors dan tidak menyimpan apa pun.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/saldo; hanya mengubah baris draft.
+
+**Teks konfirmasi:** Ubah {rows} baris pada draft buku kas {id}.
+
+**Error umum**
+
+- 400: draft sudah Posted/Discarded
+- 400: baris sudah diposting
+- 400: akun lawan grup/nonaktif/sama dengan akun kas
+- 400: jenis tidak cocok dengan arah kas
+
+**Tool terkait:** [`kas_draft_get`](#kas_draft_get), [`kas_daftar_akun`](#kas_daftar_akun)
+
+### kas_draft_ubah_header
+
+**Ringkasan:** Mengubah header Draft Buku Kas (judul, tanggal halaman, akun kas, saldo awal/akhir, catatan). Hanya selagi draft berstatus Draft atau Sebagian Diposting; akun kas tidak bisa diganti setelah sebagian baris diposting.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `journal` / `edit`)
+- **Handler:** `PUT /api/cash-book-drafts/:id` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | UUID draft buku kas. |
+| `title` | body | `string` | tidak | Judul draft. |
+| `entryDate` | body | `date` | tidak | Tanggal halaman (YYYY-MM-DD). |
+| `cashAccountId` | body | `string` | tidak | ID akun kas/bank baru. |
+| `openingBalance` | body | `number` | tidak | Saldo awal (null = kosongkan). |
+| `closingBalance` | body | `number` | tidak | Saldo akhir (null = kosongkan). |
+| `sourceNote` | body | `string` | tidak | Catatan sumber. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_draft_ubah_header",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Ubah header draft buku kas <id>."
+}
+```
+
+**Isi hasil:** Draft terbaru (seperti kas_draft_get).
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/saldo; hanya mengubah draft.
+
+**Teks konfirmasi:** Ubah header draft buku kas {id}.
+
+**Error umum**
+
+- 400: draft sudah Posted/Discarded
+- 400: akun kas tidak valid atau sama dengan akun lawan suatu baris
+
+**Tool terkait:** [`kas_draft_get`](#kas_draft_get)
+
+### kas_pola_terpelajari
+
+**Ringkasan:** Daftar lengkap pola terpelajari (keterangan ternormalisasi + jenis -> akun, jumlah koreksi/hits) hingga 500 entri. Server memakainya otomatis saat membuat draft; engine boleh membacanya sebagai petunjuk tambahan.
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `journal` / `view`)
+- **Handler:** `GET /api/cash-book-drafts/learned-maps` (src/routes/cashBookDrafts.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter:** tidak ada.
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "kas_pola_terpelajari",
+  "args": {}
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<{ data: [{ pattern, txnType, accountId, accountCode, accountName, hits, updatedAt }] }.>"
+}
+```
+
+**Isi hasil:** { data: [{ pattern, txnType, accountId, accountCode, accountName, hits, updatedAt }] }.
+
+**Tool terkait:** [`kas_daftar_akun`](#kas_daftar_akun)
 
 ### pay_cancel
 

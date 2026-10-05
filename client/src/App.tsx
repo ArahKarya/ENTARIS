@@ -77,6 +77,8 @@ const GaMasterPage = lazyPage(() => import('./pages/ga/GaMasterPage').then((m) =
 const PaymentRequests = lazyPage(() => import('./pages/PaymentRequests').then((m) => ({ default: m.PaymentRequests })));
 const PaymentRequestForm = lazyPage(() => import('./pages/PaymentRequestForm').then((m) => ({ default: m.PaymentRequestForm })));
 const PaymentRequestSettlementPage = lazyPage(() => import('./pages/PaymentRequestSettlement').then((m) => ({ default: m.PaymentRequestSettlementPage })));
+const CashBookDrafts = lazyPage(() => import('./pages/CashBookDrafts').then((m) => ({ default: m.CashBookDrafts })));
+const CashBookDraftReview = lazyPage(() => import('./pages/CashBookDraftReview').then((m) => ({ default: m.CashBookDraftReview })));
 const PaymentRequestDetailPage = lazyPage(() => import('./pages/PaymentRequestDetail').then((m) => ({ default: m.PaymentRequestDetailPage })));
 // Dev-only component review page; the import is dropped from production builds.
 const UiPlayground = import.meta.env.DEV ? lazyPage(() => import('./pages/dev/UiPlayground')) : null;
@@ -96,6 +98,7 @@ const ROUTE_PRELOAD: Record<string, () => void> = {
   '/sales-returns': SalesReturnsPage.preload,
   '/purchase': PurchaseInvoices.preload,
   '/payments': Payments.preload,
+  '/cash-book-drafts': CashBookDrafts.preload,
   '/vendor-deposits': VendorDeposits.preload,
   '/project-guarantees': ProjectGuarantees.preload,
   '/ga': GaDashboardPage.preload,
@@ -222,6 +225,8 @@ function App() {
             <Route path="/sales-returns" element={<PermRoute module="sales_return"><SalesReturnsPage /></PermRoute>} />
             <Route path="/purchase" element={<PermRoute module="purchase_invoice"><PurchaseInvoices /></PermRoute>} />
             <Route path="/payments" element={<PermRoute module="payment"><Payments /></PermRoute>} />
+            <Route path="/cash-book-drafts" element={<PermRoute module="journal"><CashBookDrafts /></PermRoute>} />
+            <Route path="/cash-book-drafts/:id" element={<PermRoute module="journal"><CashBookDraftReview /></PermRoute>} />
             <Route path="/vendor-deposits" element={<PermRoute module="vendor_deposit"><VendorDeposits /></PermRoute>} />
             <Route path="/project-guarantees" element={<PermRoute module="project_guarantee"><ProjectGuarantees /></PermRoute>} />
             {/* General Affairs */}

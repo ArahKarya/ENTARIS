@@ -203,7 +203,7 @@ async function runDomainTool(
     const res = await callHandler({
       tool, args,
       actor: { id: ctx.actor.id, role: ctx.actor.role },
-      tokenName: ctx.token.name, channel: ctx.actor.channel, clientIp: ctx.clientIp,
+      tokenName: ctx.token.name, channel: ctx.actor.channel, clientIp: ctx.clientIp, ref: ctx.actor.ref,
     });
     const formatted = formatHandlerResult(res);
     const decision: CallDecision = res.status === 401 || res.status === 403 ? 'denied' : res.status >= 500 ? 'error' : 'allowed';

@@ -14,6 +14,7 @@ export interface AuthRequest extends Request {
     mcpChannel?: string;
     mcpTool?: string;
     mcpApprovalId?: string;
+    mcpRef?: string;
   };
 }
 

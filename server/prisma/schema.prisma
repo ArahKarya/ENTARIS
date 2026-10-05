@@ -1208,6 +1208,83 @@ model ProductionRunDraft {
   @@map("production_run_drafts")
 }
 
+/// Draft Buku Kas (dari nota / halaman buku kas). Tidak berefek ke GL sampai diposting.
+model CashBookDraft {
+  id             String             @id @default(uuid())
+  draftNumber    String             @unique @map("draft_number")
+  // Draft | PartiallyPosted | Posted | Discarded
+  status         String             @default("Draft")
+  title          String
+  entryDate      DateTime           @map("entry_date")
+  cashAccountId  String             @map("cash_account_id")
+  openingBalance Decimal?           @map("opening_balance") @db.Decimal(20, 2)
+  closingBalance Decimal?           @map("closing_balance") @db.Decimal(20, 2)
+  // manual | aira
+  source         String             @default("manual")
+  // Referensi opak chat/sesi engine AIRA (tidak diinterpretasi).
+  sourceRef      String?            @map("source_ref")
+  sourceNote     String?            @map("source_note")
+  createdById    String             @map("created_by_id")
+  // mcp | ui
+  createdVia     String?            @map("created_via")
+  postedAt       DateTime?          @map("posted_at")
+  postedById     String?            @map("posted_by_id")
+  lastError      String?            @map("last_error")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  rows           CashBookDraftRow[]
+
+  @@index([status, entryDate])
+  @@index([createdById])
+  @@map("cash_book_drafts")
+}
+
+model CashBookDraftRow {
+  id             String        @id @default(uuid())
+  draftId        String        @map("draft_id")
+  draft          CashBookDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  idx            Int
+  rowDate        DateTime      @map("row_date")
+  description    String
+  amount         Decimal       @db.Decimal(20, 2)
+  // masuk (kas masuk / debit kas) | keluar (kas keluar / kredit kas)
+  direction      String
+  // pengeluaran | pemasukan | uang_muka | terima_kasbon | lainnya
+  txnType        String        @map("txn_type")
+  accountId      String?       @map("account_id")
+  accountCode    String?       @map("account_code")
+  accountLabel   String?       @map("account_label")
+  confidence     Decimal       @default(0) @db.Decimal(4, 3)
+  needsReview    Boolean       @default(false) @map("needs_review")
+  reason         String?
+  skip           Boolean       @default(false)
+  // true bila manusia memilih/menegaskan akun & jenis (dasar pembelajaran pola saat posting)
+  userEdited     Boolean       @default(false) @map("user_edited")
+  journalEntryId String?       @map("journal_entry_id")
+  postedAt       DateTime?     @map("posted_at")
+  error          String?
+
+  @@unique([draftId, idx])
+  @@index([journalEntryId])
+  @@index([rowDate, amount])
+  @@map("cash_book_draft_rows")
+}
+
+/// Pola keterangan ternormalisasi -> akun, dipelajari dari koreksi manusia saat posting.
+model CashBookLearnedMap {
+  id        String   @id @default(uuid())
+  pattern   String
+  txnType   String   @map("txn_type")
+  accountId String   @map("account_id")
+  hits      Int      @default(1)
+  updatedBy String   @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([pattern, txnType])
+  @@index([accountId])
+  @@map("cash_book_learned_maps")
+}
+
 model ProductionRun {
   id                  String                 @id @default(uuid())
   runNumber           String                 @unique @map("run_number")

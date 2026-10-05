@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fitur: Buku Kas dari nota (Draft Buku Kas) - AIRA tahap 2b
+**Ditambah**:
+- **Draft Buku Kas** (`DKB-YYYYMM-NNNN`): halaman buku kas / nota yang dibaca engine AIRA dari foto (atau ditempel/CSV oleh manusia) disimpan sebagai draft tanpa efek ke buku besar. Tabel `cash_book_drafts`, `cash_book_draft_rows`, `cash_book_learned_maps`; migrasi loose idempoten `2026101300000_cash_book_drafts.sql`.
+- Aturan **deterministik di server** (`utils/cashBookRules.ts`, bukan LLM): arah DR/CR dari kolom masuk/keluar; `pengeluaran` DR akun lawan / CR kas, `pemasukan` DR kas / CR akun lawan, `uang_muka` DR Uang Muka Karyawan (role `EMPLOYEE_ADVANCE`) / CR kas, `terima_kasbon` DR kas / CR Uang Muka Karyawan, `lainnya` (selalu ditinjau) ke akun usulan (`OTHER_EXPENSE` / `OTHER_INCOME` dari Akun Sistem). Keyakinan < 0,7, jenis yang bertentangan dengan arah, akun tak dikenal/grup/nonaktif, dan kemungkinan duplikat (tanggal + nominal + arah + keterangan sama pada akun kas yang sama) ditandai *perlu ditinjau*. Cek saldo (awal + masuk - keluar vs akhir) berupa peringatan, bukan penghalang.
+- **Pola terpelajari**: koreksi akun oleh manusia disimpan (keterangan ternormalisasi + jenis -> akun, `hits`) dan dipakai untuk baris serupa berikutnya bila engine tak memberi akun/keyakinannya rendah; akun berkeyakinan tinggi dari engine tidak pernah ditimpa diam-diam.
+- Posting: satu jurnal seimbang per baris non-skip (memakai `postJournalInTx`, guard tahun buku terbuka, atas nama pemosting), satu transaksi per draft, klaim atomik (tak bisa dobel-posting); `partial=true` memposting baris valid dan mencatat error per baris (`PartiallyPosted`).
+- REST `/api/cash-book-drafts` (izin modul `journal`, sama dengan jurnal manual): `GET /`, `GET /accounts`, `GET /learned-maps`, `GET /:id`, `POST /`, `PUT /:id`, `PUT /:id/rows`, `POST /:id/rows`, `POST /:id/post`, `POST /:id/discard`; jejak audit; notifikasi ke Admin saat draft dibuat AIRA (tautan `/cash-book-drafts/:id`).
+- MCP: 10 tool `kas_*` (toolset kas-bank): `kas_daftar_akun`, `kas_pola_terpelajari`, `kas_draft_list`, `kas_draft_get`, `kas_buat_draft_dari_baris`, `kas_draft_ubah_header`, `kas_draft_ubah_baris`, `kas_draft_tambah_baris`, `kas_draft_buang` (draftCapable) dan `kas_draft_posting` (critical: selalu antrian persetujuan untuk aktor Standar). `ref` actor assertion diteruskan ke handler (`mcpRef`) sebagai `sourceRef` draft. Panduan alur engine di `docs/ai-tools/_guides/kas-bank.md`.
+- UI **Kas & Bank -> Draft Buku Kas** (`/cash-book-drafts`, daftar dengan tab status di URL) dan halaman tinjau `/cash-book-drafts/:id` (cek saldo langsung, kartu ringkasan, tabel editable dengan penanda *Ragu*/*Duplikat?* + alasan, akun massal, filter "hanya yang perlu ditinjau", Simpan/Posting semua/Buang dengan konfirmasi, hanya-baca setelah diposting dengan tautan jurnal) serta **Buat dari Tempel/CSV** (kolom tanggal, keterangan, masuk, keluar). Kata kunci pencarian global: buku kas, nota, kas harian, petty cash.
+
+**Deploy**: jalankan migrasi (`prisma migrate deploy` + file `.sql` lepas; entrypoint menjalankan keduanya). Tidak ada env/konfigurasi baru. Pastikan Akun Sistem `EMPLOYEE_ADVANCE`, `OTHER_EXPENSE`, `OTHER_INCOME` terpetakan agar kasbon dan akun usulan berfungsi.
+
 ### AIRA sebagai MCP server lengkap untuk engine AIRA (`/mcp`)
 **Ditambah**:
 - Endpoint **`POST /mcp`** (Streamable HTTP, stateless) menyajikan seluruh 462 tool registry (kini `enabled:true` default; override per tool tetap via `AiToolConfig`) + meta-tool `cari_tool`, `dokumen_tool`, `whoami`, `panggil_tool` (mode ringkas `X-Entaris-Tools: compact`, tanpa aktor). `GET /mcp/health` tanpa auth.

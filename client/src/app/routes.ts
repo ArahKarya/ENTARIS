@@ -55,6 +55,7 @@ import {
   ArrowLeftRight,
   Wallet2,
   HandCoins,
+  NotebookPen,
 } from 'lucide-react';
 import { AiraIcon } from '@/components/shell/AiraIcon';
 
@@ -160,6 +161,8 @@ export const ROUTES: readonly RouteEntry[] = [
 
   // ── Kas & Bank ─────────────────────────────────────────────────────────
   r({ path: '/payments', label: 'Transaksi Kas & Bank', section: 'cash', icon: CreditCard, module: 'payment', keywords: ['pembayaran', 'payment', 'kas', 'bank', 'penerimaan', 'pengeluaran'] }),
+  r({ path: '/cash-book-drafts', label: 'Draft Buku Kas', section: 'cash', icon: NotebookPen, module: 'journal', keywords: ['buku kas', 'nota', 'kas harian', 'petty cash', 'kas kecil', 'struk', 'catatan kas', 'draft kas', 'kasbon', 'dkb', 'foto nota', 'aira'] }),
+  r({ path: '/cash-book-drafts/:id', label: 'Tinjau Draft Buku Kas', section: 'cash', icon: NotebookPen, module: 'journal', parent: '/cash-book-drafts', nav: false, keywords: ['tinjau draft kas', 'posting buku kas'] }),
   r({ path: '/reconciliation', label: 'Rekonsiliasi Bank', section: 'cash', icon: Scale, module: 'reconciliation', keywords: ['rekonsiliasi', 'reconciliation', 'rekening koran'] }),
   r({ path: '/recurring', label: 'Transaksi Berulang', section: 'cash', icon: Repeat, module: 'recurring', keywords: ['recurring', 'berulang', 'rutin'] }),
   r({ path: '/project-guarantees', label: 'Uang Jaminan Proyek', section: 'cash', icon: Landmark, module: 'project_guarantee', keywords: ['jaminan', 'guarantee', 'retensi'] }),

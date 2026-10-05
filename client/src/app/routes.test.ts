@@ -168,4 +168,17 @@ describe('document title and search', () => {
     expect(searchRoutes('laba', ALL)[0].path).toBe('/reports/profit-loss');
     expect(searchRoutes('laba', () => false)).toEqual([]);
   });
+
+  it('lists Draft Buku Kas under Kas & Bank, gated by the journal module, and finds it by everyday words', () => {
+    const entry = matchRoute('/cash-book-drafts');
+    expect(entry).toMatchObject({ label: 'Draft Buku Kas', section: 'cash', module: 'journal' });
+    expect(matchRoute('/cash-book-drafts/abc-123')?.path).toBe('/cash-book-drafts');
+    expect(activeNavPath('/cash-book-drafts/abc-123')).toBe('/cash-book-drafts');
+    expect(documentTitleFor('/cash-book-drafts', 'PT Contoh')).toBe('Draft Buku Kas · PT Contoh');
+    for (const q of ['buku kas', 'nota', 'kas harian', 'petty cash']) {
+      expect(searchRoutes(q, ALL).map((e) => e.path), q).toContain('/cash-book-drafts');
+    }
+    expect(searchRoutes('buku kas', (m) => m !== 'journal').map((e) => e.path)).not.toContain('/cash-book-drafts');
+    expect(navSections(ALL).find((s) => s.id === 'cash')?.items.map((i) => i.path)).toContain('/cash-book-drafts');
+  });
 });

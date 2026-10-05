@@ -134,6 +134,7 @@ export async function executeApprovedToolCall(request: ApprovalRequest, deps: { 
       tokenName: payload.tokenName,
       channel: payload.channel,
       approvalId: request.id,
+      ref: payload.ref,
     });
   } catch (err) {
     logger.error({ err, requestId: request.id }, 'MCP: eksekusi pengajuan gagal (jaringan/argumen)');

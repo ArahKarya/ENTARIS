@@ -117,7 +117,7 @@ Manusia di Entaris > Persetujuan:
 
 **AIRA Core** (agent core LangGraph.js) **digantikan oleh engine AIRA** (Opsi 1 owner). Panel chat Entaris akan diarahkan ulang ke API engine AIRA (tahap 3; sementara proxy `/api/ai/chat/*` dipertahankan dan menampilkan *offline*).
 
-**Dipindahkan ke service server Entaris (tahap 2 lanjutan):** logika cashbook-dari-struk (`classifyRows`, `buildCashBookDraft`, `journalBuilder`, `resolvers`) -> tool tulis **`kas_buat_draft_dari_baris`** yang membuat draft jurnal; tier `policy.ts`/`AIRA_AUTO_MAX_AMOUNT` -> ambang tier per tool. **Tidak dipindahkan:** memory/RAG dan penjadwal tetap di sisi engine AIRA.
+**Dipindahkan ke service server Entaris (tahap 2 lanjutan):** logika cashbook-dari-struk (`classifyRows`, `buildCashBookDraft`, `journalBuilder`, `resolvers`) -> tool tulis **`kas_buat_draft_dari_baris`** yang membuat Draft Buku Kas (aturan DR/CR deterministik di server; jurnal baru terbentuk saat manusia memposting); tier `policy.ts`/`AIRA_AUTO_MAX_AMOUNT` -> ambang tier per tool. **Tidak dipindahkan:** memory/RAG dan penjadwal tetap di sisi engine AIRA.
 
 ## Tahapan
 
@@ -125,6 +125,6 @@ Manusia di Entaris > Persetujuan:
 |---|---|---|
 | 0 | Katalog lengkap + drift guard | selesai |
 | 1-2 | `/mcp`, token + actor assertion, tier, antrian persetujuan, Settings AIRA (MCP), registrasi pengguna | **selesai (dokumen ini)** |
-| 2b | Tool `kas_buat_draft_dari_baris`, prompts MCP, resource katalog | belum |
+| 2b | Tool buku kas dari nota (`kas_*`: `kas_daftar_akun`, `kas_buat_draft_dari_baris`, `kas_draft_*`) + UI peninjauan Draft Buku Kas | **selesai** (prompts MCP + resource katalog belum) |
 | 3 | Panel chat -> API engine AIRA | belum |
 | 4 | Pensiun aira-core (proxy `/api/ai/chat/*`, env `AIRA_CORE_BASE_URL`/`AIRA_API_TOKEN`, jaringan `aira-net`) | belum |
