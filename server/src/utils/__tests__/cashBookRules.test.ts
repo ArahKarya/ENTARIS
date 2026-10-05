@@ -325,8 +325,9 @@ describe('classifyRow — contradictions (direction is authoritative)', () => {
     expect(r).toMatchObject({ txnType: 'pengeluaran', contradiction: true, needsReview: true });
     expect(r.confidence).toBeLessThanOrEqual(0.5);
     expect(r.reason).toMatch(/tidak cocok dengan arah kas keluar/);
-    // low confidence after the cap: the engine account is kept only as a low-confidence suggestion
-    expect(r.accountId).toBe(SALES);
+    // the engine's account belonged to the wrong kind of transaction: dropped, default expense account suggested
+    expect(r.accountId).toBe(EXP);
+    expect(r.source).toBe('default');
   });
   it('pengeluaran with masuk -> pemasukan', () => {
     const r = classifyRow(cls({ direction: 'masuk', engine: { txnType: 'pengeluaran', accountId: BEBAN_ATK, confidence: 0.9 } }));

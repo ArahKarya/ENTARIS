@@ -330,8 +330,9 @@ export function classifyRow(input: ClassifyInput): ClassifyResult {
     txnType = coerceTxnType(engineType, direction);
     reasons.push(`jenis "${engineType}" tidak cocok dengan arah kas ${direction}; dikoreksi menjadi "${txnType}"`);
     confidence = Math.min(confidence, 0.5);
-    // The engine's account was chosen for a different kind of transaction.
-    if (isAdvanceType(engineType) || engineAccountId === input.advanceAccountId) engineAccountId = null;
+    // The account was chosen for the wrong kind of transaction (e.g. a revenue account for a cash-out row):
+    // never carry it over, fall back to learned map / default account for the real direction.
+    engineAccountId = null;
   }
   if (engineAccountId && engineAccountId === input.cashAccountId) {
     reasons.push('akun lawan sama dengan akun kas; diabaikan');
