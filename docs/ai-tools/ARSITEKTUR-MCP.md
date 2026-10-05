@@ -92,7 +92,7 @@ Manusia di Entaris > Persetujuan:
 | Denylist | endpoint di `catalog/denylist.ts` (auth, user/role admin, backup, import, `/api/ai/*`, ...) tidak ada di registry sehingga tak dapat dipanggil |
 | Identitas internal | JWT 120 detik bertanda `via:'mcp'` (+ nama token, channel, tool, approvalId) -> kolom `audit_trail.via` / `via_meta`; IP klien diteruskan lewat `X-Forwarded-For` ke loopback |
 | Riwayat | `mcp_call_logs`: token, aktor, channel, **ref** (assertion `ref`, korelasi per giliran chat), tool, risk, **hash** argumen, keputusan (`allowed/queued/denied/error`), HTTP status, durasi, approvalId, **card** (petunjuk kartu hasil). Argumen mentah tak disimpan |
-| Jalur lama | `/api/ai/router`, A3 HMAC (`airaApproval`), `x-aira-service-token` (Admin), `AiSetting.serviceToken`, whitelist channel/modul **dihapus** (kolom/tabel dibiarkan; `ai_settings.service_token` dikosongkan oleh migrasi) |
+| Jalur lama | `/api/ai/router`, A3 HMAC (`airaApproval`), `x-aira-service-token` (Admin), `AiSetting.serviceToken`, whitelist channel/modul **dihapus**; tabel `ai_whitelist`, `ai_executed_runs` dan kolom lama `ai_settings` ikut dibuang oleh migrasi `2026101500000_aira_legacy_cleanup.sql` |
 
 ## Admin REST (`requireCap('rbac.manage')`)
 

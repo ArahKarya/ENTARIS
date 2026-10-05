@@ -73,5 +73,12 @@ DO $$ BEGIN
 END $$;
 
 -- Pensiun jalur lama: service token Admin (x-aira-service-token) tidak lagi dipakai.
--- Kolom tetap ada (kompatibilitas); nilainya dikosongkan.
-UPDATE "ai_settings" SET "service_token" = NULL WHERE "service_token" IS NOT NULL;
+-- Nilainya dikosongkan; kolomnya sendiri dihapus oleh 2026101500000_aira_legacy_cleanup.sql
+-- (dijaga agar aman dijalankan ulang setelah kolom hilang).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'ai_settings' AND column_name = 'service_token') THEN
+    UPDATE "ai_settings" SET "service_token" = NULL WHERE "service_token" IS NOT NULL;
+  END IF;
+END $$;

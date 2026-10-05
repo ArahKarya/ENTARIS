@@ -3307,47 +3307,14 @@ model AiToolConfig {
   @@map("ai_tool_configs")
 }
 
-/// Config koneksi ERP↔AIRA (sisi-ERP saja). SEMUA urusan agentic (model AI,
-/// provider, memori, konteks, channels) dihandle AIRA — BUKAN ERP. Model ini
-/// hanya menyimpan toggle on/off layer agentic + service token untuk auth AIRA
-/// ke ERP Tool Router (Bearer).
+/// Saklar layer AIRA (sisi Entaris saja). Model AI, memori, dan kanal dikelola
+/// engine AIRA, bukan Entaris. Model ini hanya menyimpan saklar on/off MCP.
 model AiSetting {
-  id               String   @id @default(uuid())
-  agenticEnabled   Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
-  serviceToken     String?  @map("service_token") // token AIRA → ERP Tool Router (Bearer)
-  // M2-A4: channel aktif (web|telegram|whatsapp). Kosong = SEMUA aktif (fail-safe).
-  activeChannels   String[] @default([]) @map("active_channels")
-  // M2-A4: scope modul (group bisnis) yang boleh dipakai AIRA. Kosong = SEMUA (fail-safe).
-  whitelistModules String[] @default([]) @map("whitelist_modules")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  agenticEnabled Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("ai_settings")
-}
-
-/// Whitelist akses terstruktur (channel ↔ user eksternal). Siap dipakai engine.
-model AiWhitelist {
-  id         String   @id @default(uuid())
-  channel    String // telegram | whatsapp
-  externalId String   @map("external_id") // chat_id TG / nomor WA
-  label      String?
-  role       String?  @default("Viewer") // role efektif via kanal ini
-  enabled    Boolean  @default(true)
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@unique([channel, externalId])
-  @@map("ai_whitelist")
-}
-
-/// Idempotency log: tiap run AIRA yang sudah dieksekusi (anti-replay A3).
-/// runId = UUID unik per-run AIRA, sekali pakai.
-model AiExecutedRun {
-  id         String   @id @default(uuid())
-  runId      String   @unique @map("run_id")
-  tool       String
-  executedAt DateTime @default(now()) @map("executed_at")
-  ref        String? // journalId / docId hasil eksekusi (opsional)
-
-  @@map("ai_executed_runs")
 }
 
 // ─── Pengajuan Pembayaran (Payment Request) ─────────────────────────────────

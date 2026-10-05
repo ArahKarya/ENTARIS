@@ -10,14 +10,7 @@
 
 ALTER TABLE parties ADD COLUMN IF NOT EXISTS is_wapu BOOLEAN NOT NULL DEFAULT false;
 
-CREATE TABLE IF NOT EXISTS ai_executed_runs (
-  id          TEXT PRIMARY KEY,
-  run_id      TEXT NOT NULL,
-  tool        TEXT NOT NULL,
-  executed_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  ref         TEXT
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS ai_executed_runs_run_id_key ON ai_executed_runs (run_id);
+-- (ai_executed_runs dibuat di sini sebelumnya; dihapus oleh 2026101500000_aira_legacy_cleanup.sql
+--  bersama jalur A3 yang sudah pensiun, jadi tidak dibuat ulang di tiap boot.)
 
 CREATE INDEX IF NOT EXISTS sales_orders_fiscal_year_id_idx ON sales_orders (fiscal_year_id);
