@@ -15,7 +15,35 @@ import { checkRate } from './rateLimit';
 import { buildActorServer, buildAnonymousServer, isCompactMode } from './server';
 import { authenticateBearer, touchToken } from './tokenService';
 
-const ACTOR_METHODS = new Set(['tools/list', 'tools/call']);
+/** Kunci argumen tools/call untuk membawa actor assertion bila klien tak bisa mengatur header per panggilan. */
+export const ARG_ACTOR_KEY = '_entaris_actor';
+export const ARG_ACTOR_SIG_KEY = '_entaris_actor_sig';
+
+interface EmbeddedAssertion {
+  payload: string;
+  sig: string;
+}
+
+/**
+ * Klien MCP seperti Hermes hanya punya header STATIS per server, tetapi hook `pre_tool_call`-nya
+ * dapat menambah argumen. Maka assertion boleh dibawa di `params.arguments` (kunci khusus, dibuang
+ * sebelum tool jalan). Keamanan sama dengan header: HMAC dengan signing secret, TTL, nonce sekali pakai —
+ * model AI tidak bisa memalsukannya karena tak memegang secret.
+ */
+export function extractEmbeddedAssertion(body: unknown): EmbeddedAssertion | null {
+  const items = Array.isArray(body) ? body : [body];
+  let found: EmbeddedAssertion | null = null;
+  for (const m of items) {
+    const args = (m as { params?: { arguments?: Record<string, unknown> } } | null)?.params?.arguments;
+    if (!args || typeof args !== 'object') continue;
+    const payload = args[ARG_ACTOR_KEY];
+    const sig = args[ARG_ACTOR_SIG_KEY];
+    if (typeof payload === 'string' && typeof sig === 'string' && !found) found = { payload, sig };
+    delete args[ARG_ACTOR_KEY]; // selalu dibuang: tak boleh bocor ke handler/hash argumen
+    delete args[ARG_ACTOR_SIG_KEY];
+  }
+  return found;
+}
 
 function rpcError(res: Response, status: number, code: number, message: string, data?: Record<string, unknown>) {
   return res.status(status).json({ jsonrpc: '2.0', error: { code, message, ...(data ? { data } : {}) }, id: null });
@@ -70,8 +98,16 @@ router.post('/', async (req: Request, res: Response) => {
     touchToken(token.id, req.ip);
 
     const methods = methodsOf(req.body);
-    const needsActor = methods.some((m) => ACTOR_METHODS.has(m));
-    const who = await resolveActor(req.headers, token, needsActor);
+    const compact = isCompactMode(req.headers, req.query);
+    // tools/list mode ringkas hanya memuat definisi meta-tool statis → tak perlu aktor
+    // (klien dengan header statis mis. Hermes dapat menemukan tool tanpa assertion).
+    const needsActor = methods.some((m) => m === 'tools/call' || (m === 'tools/list' && !compact));
+    const embedded = extractEmbeddedAssertion(req.body);
+    const hasHeaderAssertion = req.headers['x-entaris-actor'] !== undefined || req.headers['x-entaris-actor-sig'] !== undefined;
+    const headers = embedded && !hasHeaderAssertion
+      ? { ...req.headers, 'x-entaris-actor': embedded.payload, 'x-entaris-actor-sig': embedded.sig }
+      : req.headers;
+    const who = await resolveActor(headers, token, needsActor);
     if (!who.ok) {
       await recordCall({ tokenId: token.id, tool: '(auth)', risk: 'read', argsHash: '', decision: 'denied', httpStatus: who.status, durationMs: Date.now() - started, error: who.code });
       logger.warn({ token: token.name, code: who.code, ip: req.ip }, 'MCP: aktor ditolak');
@@ -80,8 +116,8 @@ router.post('/', async (req: Request, res: Response) => {
 
     const actor: ActorContext | null = who.actor;
     const server = actor
-      ? buildActorServer({ ctx: { token, actor, clientIp: req.ip }, compact: isCompactMode(req.headers, req.query) })
-      : buildAnonymousServer();
+      ? buildActorServer({ ctx: { token, actor, clientIp: req.ip }, compact })
+      : buildAnonymousServer(compact);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on('close', () => {
       void transport.close();

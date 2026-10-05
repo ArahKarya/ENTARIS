@@ -18,7 +18,7 @@ const m = vi.hoisted(() => {
 vi.mock('../../lib/prisma', () => ({ prisma: m }));
 vi.mock('../../services/permissionService', () => ({ can: vi.fn().mockResolvedValue(true), hasCap: vi.fn().mockResolvedValue(true) }));
 
-import router from '../router';
+import router, { extractEmbeddedAssertion } from '../router';
 import { resolveActor } from '../context';
 import { encryptSecret, generateMcpToken, sha256Hex, signPayload } from '../crypto';
 import { resetRateLimits } from '../rateLimit';
@@ -188,6 +188,41 @@ describe('POST /mcp (HTTP gates)', () => {
     expect((await fetch(base, { method: 'DELETE' })).status).toBe(405);
     const h = await fetch(`${base}/health`);
     expect(h.status).toBe(200);
+  });
+
+  it('compact tools/list needs no actor (static meta tools only); full list still does', async () => {
+    const compact = await post(LIST, { 'x-entaris-tools': 'compact' });
+    expect(compact.status).toBe(200);
+    expect(((await compact.json()) as any).result.tools.map((t: any) => t.name)).toEqual(['cari_tool', 'dokumen_tool', 'whoami', 'panggil_tool']);
+    expect((await post(LIST)).status).toBe(401);
+  });
+
+  it('assertion can ride in tools/call arguments (static-header clients like Hermes); keys are stripped', async () => {
+    const a = assertion({ ch: 'telegram' });
+    const call = {
+      jsonrpc: '2.0', id: 5, method: 'tools/call',
+      params: { name: 'whoami', arguments: { _entaris_actor: a['x-entaris-actor'], _entaris_actor_sig: a['x-entaris-actor-sig'] } },
+    };
+    const r = await post(call);
+    const body = (await r.json()) as any;
+    expect(r.status).toBe(200);
+    expect(body.result.structuredContent.actor.nama).toBe('Budi');
+    expect(body.result.structuredContent.channel).toBe('telegram');
+    expect(body.result.structuredContent.identitas_dari).toBe('actor_assertion');
+    const bad = await post({ ...call, params: { name: 'whoami', arguments: { _entaris_actor: a['x-entaris-actor'], _entaris_actor_sig: 'd'.repeat(64) } } });
+    expect(bad.status).toBe(401);
+    // the AI model cannot forge it: a payload signed without the secret is refused
+    const forged = assertion({ uid: 'admin' }, 'model-guess');
+    const f = await post({ ...call, params: { name: 'whoami', arguments: { _entaris_actor: forged['x-entaris-actor'], _entaris_actor_sig: forged['x-entaris-actor-sig'] } } });
+    expect(f.status).toBe(401);
+  });
+
+  it('extractEmbeddedAssertion removes the keys even when nothing is used', () => {
+    const body = { params: { arguments: { x: 1, _entaris_actor: 'a', _entaris_actor_sig: 'b' } } };
+    expect(extractEmbeddedAssertion(body)).toEqual({ payload: 'a', sig: 'b' });
+    expect(body.params.arguments).toEqual({ x: 1 });
+    expect(extractEmbeddedAssertion({ params: { arguments: { _entaris_actor: 'only-one' } } })).toBeNull();
+    expect(extractEmbeddedAssertion(null)).toBeNull();
   });
 
   it('whoami over HTTP returns structured content for the assertion actor', async () => {

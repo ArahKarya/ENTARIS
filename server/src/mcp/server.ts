@@ -46,6 +46,9 @@ export function buildActorServer({ ctx, compact }: ServerInput): Server {
 }
 
 /** Server untuk method protokol tanpa aktor (initialize, ping). tools/* ditolak router (aktor wajib). */
-export function buildAnonymousServer(): Server {
-  return new Server({ name: 'entaris', version: MCP_SERVER_VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
+export function buildAnonymousServer(compact = false): Server {
+  const server = new Server({ name: 'entaris', version: MCP_SERVER_VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
+  // Mode ringkas tanpa aktor: hanya definisi meta-tool statis (tanpa data & tanpa tool domain).
+  if (compact) server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: metaToolDefs(true) as unknown as Tool[] }));
+  return server;
 }

@@ -52,6 +52,7 @@ describe('queueToolCall', () => {
 
   it('renderConfirm leaves unknown placeholders and never prints objects', () => {
     expect(renderConfirm('A {x} {y} {z}', { x: 1, z: { a: 1 } })).toBe('A 1 {y} {z}');
+    expect(renderConfirm('{items} baris', { items: [1, 2, 3] })).toBe('3 baris');
     expect(isAiToolDocumentType('ai_tool:x')).toBe(true);
     expect(isAiToolDocumentType('ProductionRun')).toBe(false);
   });

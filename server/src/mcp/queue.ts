@@ -35,6 +35,7 @@ export function renderConfirm(tpl: string | undefined, args: Record<string, unkn
   if (!tpl) return '';
   return tpl.replace(/\{(\w+)\}/g, (_m, k: string) => {
     const v = args[k];
+    if (Array.isArray(v)) return String(v.length);
     return v === undefined || v === null || typeof v === 'object' ? `{${k}}` : String(v);
   });
 }
