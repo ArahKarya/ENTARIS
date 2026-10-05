@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { Batch } from './overlays/BatchSelect';
 import { cap } from '../lib/permissions';
 import { fetchBatches, allocateFifo } from '../lib/fifoAllocate';
+import { TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,11 +43,16 @@ interface Props {
   // submit ke endpoint resubmit alih-alih create.
   prefillPayload?: any | null;
   resubmitRequestId?: string | null;
+  // Draft mode: edit a saved draft (prefillPayload = draft.payload). Saving
+  // updates the draft (PUT) — it never posts. Without `draft` (and without
+  // editRun / resubmit) saving creates a new draft.
+  draft?: { id: string; draftNumber: string; lastError?: string | null } | null;
 }
 
+const DRAFTS_ENDPOINT = '/inventory/production-runs/drafts';
 const today = () => new Date().toISOString().split('T')[0];
 
-export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPayload, resubmitRequestId }: Props) {
+export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPayload, resubmitRequestId, draft }: Props) {
   const queryClient = useQueryClient();
   const [date, setDate] = useState(today());
   const [warehouseId, setWarehouseId] = useState('');
@@ -128,8 +134,8 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
           ? p.downtimes.map((d: any) => ({ machineId: d.machineId ?? '', category: d.category ?? 'Lain', durationMin: d.durationMin != null ? String(Number(d.durationMin)) : '', reason: d.reason ?? '' }))
           : []);
         setOeeOpen(!!(p.shift || p.plannedStart || (Array.isArray(p.runMachines) && p.runMachines.length > 0) || (Array.isArray(p.downtimes) && p.downtimes.length > 0)));
-        setAllowNegativeStock(false);
-        setNegativeStockReason('');
+        setAllowNegativeStock(!!p.allowNegativeStock);
+        setNegativeStockReason(typeof p.negativeStockReason === 'string' ? p.negativeStockReason : '');
         setErrors([]);
         return;
       }
@@ -550,15 +556,20 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       let pendingApproval = false;
       let editPending = false;
       let resubmitted = false;
+      let draftSaved: { draft?: { draftNumber?: string }; warnings?: string[] } | null = null;
       if (resubmitRequestId) {
         await api.put(`/approvals/requests/${resubmitRequestId}/resubmit`, { payload: fullPayload });
         resubmitted = true;
       } else if (editRun) {
         const res = await api.put(`/inventory/production-runs/${editRun.id}`, fullPayload);
         editPending = res.data?.pendingApproval === true;
+      } else if (draft) {
+        const res = await api.put(`${DRAFTS_ENDPOINT}/${draft.id}`, fullPayload);
+        draftSaved = res.data;
       } else {
         const res = await api.post('/inventory/production-runs', fullPayload);
-        pendingApproval = res.data?.pendingApproval === true;
+        if (res.data?.draft) draftSaved = res.data;
+        else pendingApproval = res.data?.pendingApproval === true;
       }
       queryClient.invalidateQueries({ queryKey: ['production-runs'] });
       queryClient.invalidateQueries({ queryKey: ['production-run-detail'] });
@@ -566,7 +577,10 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
       queryClient.invalidateQueries({ queryKey: ['approval-pending'] });
-      if (editPending) {
+      if (draftSaved) {
+        toast.success(`Draft ${draftSaved.draft?.draftNumber ?? ''} tersimpan. Belum memengaruhi stok, jurnal, atau HPP sampai diposting.`);
+        for (const w of draftSaved.warnings ?? []) toast.warning(w);
+      } else if (editPending) {
         // Perubahan BELUM diterapkan — hanya diantrekan; tidak ada update optimistis.
         toast.success('Perubahan dikirim untuk persetujuan');
       } else if (resubmitted) {
@@ -578,7 +592,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       }
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || (editRun ? 'Gagal mengedit proses produksi.' : 'Gagal mencatat proses produksi.'));
+      toast.error(err.response?.data?.error || (editRun ? 'Gagal mengedit proses produksi.' : resubmitRequestId ? 'Gagal mengajukan ulang.' : 'Gagal menyimpan draft produksi.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -591,13 +605,26 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       <DialogContent size="lg" className={pinnedDialogClass}>
         <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <PinnedHeader>
-            <DialogTitle>{editRun ? `Edit ${editRun.runNumber}` : 'Proses Produksi'}</DialogTitle>
+            <DialogTitle>
+              {editRun ? `Edit ${editRun.runNumber}` : draft ? `Edit Draft ${draft.draftNumber}` : resubmitRequestId ? 'Perbaiki Pengajuan' : 'Draft Proses Produksi'}
+            </DialogTitle>
             <DialogDescription>
-              Catat bahan input, hasil output, biaya, dan data OEE untuk satu proses produksi.
+              {editRun || resubmitRequestId
+                ? 'Catat bahan input, hasil output, biaya, dan data OEE untuk satu proses produksi.'
+                : 'Isi bahan input, hasil output, biaya, dan data OEE. Disimpan sebagai draft — stok, jurnal, dan HPP baru terbentuk setelah draft diposting.'}
             </DialogDescription>
           </PinnedHeader>
 
           <PinnedBody className="space-y-5">
+            {draft?.lastError && (
+              <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger-subtle p-3 text-sm text-danger-text">
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <div>
+                  <p className="font-medium">Posting sebelumnya gagal / dikembalikan</p>
+                  <p className="break-words">{draft.lastError}</p>
+                </div>
+              </div>
+            )}
             {errors.length > 0 && (
               <div
                 ref={errorsRef}
@@ -761,7 +788,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
               Batal
             </Button>
             <Button type="submit" loading={isSubmitting} className="min-w-[120px]">
-              {isSubmitting ? 'Menyimpan…' : editRun ? 'Simpan Perubahan' : 'Simpan Produksi'}
+              {isSubmitting ? 'Menyimpan…' : editRun ? 'Simpan Perubahan' : resubmitRequestId ? 'Kirim Ulang' : 'Simpan Draft'}
             </Button>
           </PinnedFooter>
         </form>

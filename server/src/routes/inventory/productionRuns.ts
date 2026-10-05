@@ -7,10 +7,9 @@ import { validateBody } from '../../utils/validate';
 import { CreateProductionRunSchema, UpdateProductionRunSchema } from '../../utils/schemas';
 import { handleRouteError } from '../../utils/errors';
 import { cancelProductionRunInTx } from '../../services/productionRunCancel';
-import { submitProductionRunInTx } from '../../services/productionRunSubmit';
+import { createDraft } from '../../services/productionRunDraft';
 import { editProductionRunInTx } from '../../services/productionRunEdit';
-import { needsApproval, queueApproval, approvalsLink } from '../../services/approvalGate';
-import { notifyAdmins } from '../../services/notificationService';
+import { needsApproval } from '../../services/approvalGate';
 import { queueEditApproval } from '../../services/approvalEditRequests';
 import { logger } from '../../lib/logger';
 import { parseListPaging, parseSort } from '../../utils/listQuery';
@@ -200,9 +199,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/inventory/production-runs — record a production run.
-// Heavy lifting (inputs/outputs validation, multi-account JE, stock movements,
-// WAC, COGS backfill) lives in services/productionRunSubmit.ts.
+// POST /api/inventory/production-runs — input produksi selalu disimpan sebagai
+// DRAFT (tanpa efek stok/GL/HPP/OEE). Posting terpisah: POST /drafts/:id/post
+// (routes/inventory/productionRunDrafts.ts → services/productionRunDraft.ts).
+// Validasi payload sama persis seperti sebelumnya. → 201 { draft, warnings }
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateProductionRunSchema, req.body, res);
   if (!body) return;
@@ -211,36 +211,13 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 
   try {
-    // Approval gate: tanpa capability bypass → masuk antrian, dokumen dibuat saat approve.
-    if (await needsApproval(req.user!.role)) {
-      const amount = (body.inputs ?? []).reduce((s: number, it: any) => s + Number(it.quantity ?? 0), 0);
-      const request = await prisma.$transaction((tx) =>
-        queueApproval(tx, {
-          documentType: 'ProductionRun',
-          payload: req.body,
-          amount,
-          requestedBy: req.user!.userId,
-          label: 'Data Produksi (Input bahan baku)',
-        }),
-      );
-      const requester = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { fullName: true } });
-      const link = approvalsLink(request.id);
-      await notifyAdmins({
-        type: 'approval_pending',
-        title: '🔔 Persetujuan: Data Produksi',
-        message: `Data Produksi (${amount.toLocaleString('id-ID')} kg input) dari ${requester?.fullName ?? 'staf'} menunggu persetujuan Anda.${link ? `\n\n🔗 Buka & proses: ${link}` : ''}`,
-        metadata: { kind: 'approval', requestId: request.id, documentType: 'ProductionRun' },
-        excludeUserId: req.user!.userId,
-      });
-      return res.status(202).json({ pendingApproval: true, request, message: 'Data produksi menunggu persetujuan manajer sebelum diproses.' });
-    }
-    const result = await prisma.$transaction(
-      (tx) => submitProductionRunInTx(tx, body, req.user!.userId),
-      { timeout: 30000 },
-    );
+    // Raw body is stored as-is (full modal payload). Typed `any` only keeps the
+    // baselined violation count of this file unchanged (eslint-suppressions.json is frozen).
+    const rawBody: any = req.body;
+    const result = await prisma.$transaction((tx) => createDraft(tx, body, rawBody, req.user!.userId));
     return res.status(201).json(result);
   } catch (error: any) {
-    return handleRouteError(res, error, 'POST /inventory/production-runs', 'Gagal mencatat proses produksi.');
+    return handleRouteError(res, error, 'POST /inventory/production-runs', 'Gagal menyimpan draft proses produksi.');
   }
 });
 

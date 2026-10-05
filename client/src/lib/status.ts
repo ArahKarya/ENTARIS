@@ -37,6 +37,7 @@ export type DocType =
   | 'project_guarantee'
   | 'inventory_item'
   | 'production_run'
+  | 'production_draft'
   | 'ga_document'
   | 'payment_request'
   | 'payment_request_settlement';
@@ -169,6 +170,12 @@ const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusMet
   },
   // Proses produksi: posted on save (stock + GL), Cancelled when reversed.
   production_run: { posted: POSTED, active: POSTED },
+  // Draft proses produksi: tanpa efek stok/GL sampai diposting (langsung / lewat persetujuan).
+  production_draft: {
+    draft: m('Draft', 'neutral'),
+    pendingapproval: m('Menunggu persetujuan', 'warning'),
+    posted: POSTED,
+  },
   // Dokumen & sertifikat GA: an expired document needs renewal (danger).
   ga_document: { expired: m('Kedaluwarsa', 'danger') },
   // Permintaan barang GA: FULFILLED = every item received into stock; PAID = billed and posted by GA finance.

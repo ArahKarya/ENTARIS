@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fitur: input produksi disimpan sebagai draft dulu
+**Berubah**:
+- Input Data Produksi tidak lagi langsung diposting. `POST /api/inventory/production-runs` kini selalu menyimpan **draft** (`DPR-YYYYMM-NNNN`, tabel baru `production_run_drafts`) tanpa efek ke stok, jurnal, HPP/WAC, COGS, laporan, dasbor, maupun OEE; saat simpan hanya muncul peringatan stok (tidak memblokir).
+- Posting adalah aksi terpisah (`POST /production-runs/drafts/:id/post`): role Admin/bypass langsung membentuk proses produksi; role lain mengirim pengajuan persetujuan (draft `Menunggu persetujuan`). Disetujui → proses produksi dibuat, draft `Diposting`; ditolak/perlu revisi → draft kembali `Draft` dengan catatan. Klaim atomik mencegah dobel-posting.
+- Endpoint draft: `GET/PUT/DELETE /production-runs/drafts[/:id]` (hapus = soft, hanya status Draft; ubah/hapus/posting oleh pembuat atau pemegang `approval.bypass`).
+- UI: tombol utama modal menjadi **Simpan Draft**; tampilan baru **Draft** di Proses Produksi (lencana jumlah, status, Edit/Posting/Hapus dengan konfirmasi, alert `lastError`).
+- Migrasi loose idempoten `2026101100000_production_run_drafts.sql`. Pengajuan `ProductionRun` lama tetap bisa disetujui seperti biasa.
+
 ### Perbaikan: biaya rata-rata tertimbang saat edit/batal
 **Diperbaiki**:
 - Edit/batal produksi, batal STT, dan edit pergerakan stok menghitung ulang biaya rata-rata dengan merata-ratakan semua pergerakan masuk sekaligus — mengabaikan saldo berjalan, urutan, dan pergerakan keluar — sehingga nilai bisa melonjak (mis. 2.330 → 11.500) bila ada penyesuaian stok awal berharga lain. Kini dihitung dengan **memutar ulang pergerakan aktif secara kronologis** (createdAt, lalu id) memakai aturan yang sama dengan jalur langsung; `utils/weightedAverageReplay.ts`, dipakai oleh `services/averageCostRecompute.ts`. Jurnal/HPP yang sudah diposting tidak disentuh.

@@ -3,6 +3,7 @@
  * (pages/InventoryPage.tsx). Kept free of React so they can be unit tested.
  */
 import { formatNumber, toNumber } from '@/lib/format';
+import type { Paginated } from '@/components/shared';
 
 export type Qty = string | number;
 
@@ -179,6 +180,33 @@ export interface ProductionRunRow {
   isCancelled: boolean;
   items?: ProductionRunLine[];
   machine?: { id: string; code: string; name: string } | null;
+}
+
+export type ProductionDraftStatus = 'Draft' | 'PendingApproval' | 'Posted';
+
+export interface ProductionDraftRow {
+  id: string;
+  draftNumber: string;
+  date: string;
+  notes?: string | null;
+  status: ProductionDraftStatus;
+  lastError?: string | null;
+  postedRunId?: string | null;
+  postedRunNumber?: string | null;
+  createdAt: string;
+  createdBy?: { id: string; fullName: string | null } | null;
+  summary?: {
+    inputQty: number;
+    outputQty: number;
+    inputCount: number;
+    outputCount: number;
+    mainOutput: string | null;
+    inputNames: string[];
+  } | null;
+}
+
+export interface ProductionDraftList extends Paginated<ProductionDraftRow> {
+  counts?: Partial<Record<ProductionDraftStatus, number>>;
 }
 
 export interface ProductionRunSummary {
