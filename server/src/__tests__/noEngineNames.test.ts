@@ -15,9 +15,9 @@ const FORBIDDEN = new RegExp(
   [join('her', 'mes'), join('hon', 'cho'), join('9', 'router'), join('nous', '\\s+', 'research')].join('|'),
   'i',
 );
-// Nama paket npm pihak ketiga yang ditarik plugin eslint (bukan teks kita): hanya di lockfile klien.
+// Nama paket npm pihak ketiga yang ditarik plugin eslint (bukan teks kita): hanya di lockfile klien dan situs.
 const PKG = join('her', 'mes', '-(?:estree|parser)');
-const LOCKFILE = 'client/package-lock.json';
+const LOCKFILES = ['client/package-lock.json', 'website/package-lock.json'];
 const LOCKFILE_ALLOWED = [
   new RegExp(`^\\s*"${PKG}": "[^"]+",?$`), // entri dependencies
   new RegExp(`^\\s*"node_modules/${PKG}": \\{$`), // kunci paket
@@ -43,7 +43,7 @@ const trackedFiles = (root: string): string[] =>
     .filter(Boolean);
 
 function isAllowed(file: string, line: string): boolean {
-  if (file === LOCKFILE) return LOCKFILE_ALLOWED.some((re) => re.test(line));
+  if (LOCKFILES.includes(file)) return LOCKFILE_ALLOWED.some((re) => re.test(line));
   if (file === MIGRATION) return MIGRATION_ALLOWED.some((re) => re.test(line));
   return false;
 }

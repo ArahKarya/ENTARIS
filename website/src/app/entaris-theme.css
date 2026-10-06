@@ -1,0 +1,146 @@
+/*
+ * Entaris re-theme of the ported ERP•AI design system (site.css).
+ *
+ * site.css derives every surface, ink and accent from a small set of base tokens (beige-*, ink-*,
+ * tacet-orange). Re-pointing those tokens to the Entaris palette (docs/brand/entaris/README.md:
+ * navy #1B2B48, blue #3D8BE0, mid blue #2E5CA8, light blue #9CC9F5, dark blue #2F6FC4) re-themes
+ * the whole system in light and dark mode without touching the generated file.
+ *
+ * The `entaris` layer is declared after site.css's layers, so it wins over all of them.
+ */
+@layer properties, theme, base, components, utilities, erp-unlayered, entaris;
+
+@layer entaris {
+  .erp-root,
+  html:has(.erp-root) {
+    /* Cool paper → navy ramp (hue 255) replacing the warm beige ramp (hue 78). */
+    --beige-50: oklch(98.4% 0.004 255); /* #f9fbfd */
+    --beige-100: oklch(97.2% 0.006 255);
+    --beige-200: oklch(94.8% 0.01 255);
+    --beige-300: oklch(91.2% 0.014 255);
+    --beige-400: oklch(86% 0.02 255);
+    --beige-500: oklch(69% 0.035 258);
+    --beige-600: oklch(54% 0.045 260);
+    --beige-700: oklch(42% 0.05 262);
+    --beige-800: oklch(32% 0.05 263);
+    --beige-900: oklch(23% 0.045 264);
+    --beige-950: oklch(15.5% 0.035 265);
+
+    --ink-deep: oklch(24% 0.055 264); /* ≈ navy #1B2B48 */
+    --ink-mid: oklch(41% 0.03 262);
+    --ink-muted: oklch(45% 0.025 262);
+    --ink-nav: oklch(30% 0.045 264);
+    --ink-light: oklch(95% 0.008 255);
+    --ink-light-mid: oklch(70% 0.025 255);
+    --ink-light-muted: oklch(62% 0.025 255);
+
+    /* Accent: Entaris blue replaces the orange accent everywhere it is referenced. */
+    --tacet-orange: oklch(62% 0.15 254); /* #3D8BE0 */
+    --tacet-orange-on-light: oklch(52% 0.15 257); /* #2F6FC4 — AA on white */
+    --gold: oklch(70% 0.09 248); /* light blue family instead of warm gold */
+    --gold-on-light: oklch(46% 0.12 258); /* #2E5CA8 */
+
+    --entaris-navy: #1b2b48;
+    --entaris-blue: #3d8be0;
+    --entaris-blue-mid: #2e5ca8;
+    --entaris-blue-light: #9cc9f5;
+    --entaris-blue-dark: #2f6fc4;
+  }
+}
+
+/*
+ * Tokens site.css declares on descendant elements (CTA card, metal hero) with hard-coded warm hex
+ * sheens and purple flares. They are re-declared on every descendant so the layer order wins.
+ */
+@layer entaris {
+  .erp-root * {
+    --tacet-cta-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #f8fbff 0%, #d5dfec 100%);
+    --hero-metal-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #f8fbff 0%, #d5dfec 100%);
+    --tacet-cta-flare-b: color-mix(in srgb, var(--beige-400), var(--entaris-blue-light) 18%);
+    --hero-metal-flare-b: color-mix(in srgb, var(--beige-400), var(--entaris-blue-light) 18%);
+  }
+  .erp-root.dark * {
+    --tacet-cta-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #24334f 0%, #121b2c 100%);
+    --hero-metal-sheen: radial-gradient(64% 87% at 12.2% 21.5%, #24334f 0%, #121b2c 100%);
+    --tacet-cta-flare-b: color-mix(in srgb, var(--entaris-blue), transparent 84%);
+    --hero-metal-flare-b: color-mix(in srgb, var(--entaris-blue), transparent 84%);
+  }
+
+  /* Dark mode: the on-light accent would be too dark on navy surfaces. */
+  .erp-root.dark {
+    --tacet-orange-on-light: var(--entaris-blue-light);
+    --gold-on-light: var(--entaris-blue-light);
+  }
+}
+
+/* Surfaces that bake in ERP•AI's purple glow / pastel rainbow wash: swap for an Entaris blue glow. */
+@layer entaris {
+  .erp-root .hero-catalog {
+    background-image: radial-gradient(circle at 50% 0%, rgb(61 139 224 / 0.12), transparent 42%);
+  }
+  .erp-root .page-shell::before {
+    background-image: linear-gradient(rgb(255 255 255 / 0.2), transparent 544px),
+      radial-gradient(60% 420px at 50% 0%, rgb(156 201 245 / 0.35), transparent 70%);
+  }
+  .erp-root.dark .page-shell::before {
+    background-image: radial-gradient(60% 420px at 50% 0%, rgb(61 139 224 / 0.16), transparent 70%);
+  }
+}
+
+/* The root (and the document behind it) must carry the page colour: some heroes are transparent
+   and would otherwise show the white browser canvas in dark mode. */
+@layer entaris {
+  .erp-root {
+    background-color: var(--background);
+  }
+}
+
+/* AIRA page (main.tacet-proto-page): the ERP•AI rainbow wash image becomes a blue glow. */
+@layer entaris {
+  .erp-root:has(#main-content.tacet-proto-page),
+  body:has(.erp-root:has(#main-content.tacet-proto-page)) {
+    background:
+      radial-gradient(60% 38rem at 50% 0%, rgb(156 201 245 / 0.4), transparent 70%),
+      var(--background);
+  }
+  .erp-root.dark:has(#main-content.tacet-proto-page) {
+    background:
+      radial-gradient(60% 38rem at 50% 0%, rgb(61 139 224 / 0.18), transparent 70%),
+      var(--background);
+  }
+}
+
+/*
+ * Leftover ERP•AI red/purple/green mixes found by the hover/interactive audit:
+ * - home hero human panel hover mixed --red with the accent (rose-red panel + maroon CTA);
+ * - the shader hero glow (self-hosted) layers --pur and --grn.
+ */
+@layer entaris {
+  .erp-root .hero-catalog__panel {
+    --hero-human-hover-bg: var(--entaris-blue-dark);
+  }
+  .erp-root,
+  .erp-root .erpai-hero,
+  .erp-root .hero-bg-prototype--shader {
+    --hero-shader-b: color-mix(in oklab, var(--entaris-blue-light), transparent 78%);
+    --hero-shader-c: color-mix(in oklab, var(--entaris-blue-mid), transparent 88%);
+    --hero-shader-line-b: color-mix(in oklab, var(--entaris-blue-light), transparent 90%);
+  }
+  /* Skip link: white on #3D8BE0 is 3.5:1; dark blue #2F6FC4 passes AA (4.9:1). */
+  .erp-root .skip-link {
+    background: var(--entaris-blue-dark);
+    color: #fff;
+  }
+}
+
+/* Second audit pass: shader ::before layers, warm seam shadow. */
+@layer entaris {
+  .erp-root .erpai-hero .hero-bg-prototype--shader {
+    --hero-shader-before-b: color-mix(in oklab, var(--entaris-blue-light), transparent 84%);
+    --hero-shader-before-line-b: color-mix(in oklab, var(--entaris-blue-light), transparent 94%);
+  }
+  .erp-root,
+  html:has(.erp-root) {
+    --footer-main-seam-shadow: 0 1.25rem 3rem rgb(27 43 72 / 16%);
+  }
+}
