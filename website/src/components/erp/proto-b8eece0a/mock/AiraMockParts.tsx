@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AiraIcon } from "../sections/AiraIcon";
+import { AiraMark } from "@/components/site/AiraLogo";
 
 /*
  * Building blocks of the illustrative AIRA UI mockups. All figures and names are sample data for
@@ -58,7 +59,7 @@ export function AiraAnswer({ children, ...reveal }: RevealProps & { children: Re
   return (
     <Reveal className="aira-msg aira-msg--aira" {...reveal}>
       <span className="aira-msg__avatar" aria-hidden="true">
-        <AiraIcon name="sparkles" />
+        <AiraMark size={16} />
       </span>
       <div className="aira-msg__body">{children}</div>
     </Reveal>
@@ -117,7 +118,7 @@ export function AiraPanel({ title, children }: { title: string; children: ReactN
     <div className="aira-panel">
       <div className="aira-panel__head">
         <span className="aira-panel__name">
-          <AiraIcon name="sparkles" />
+          <AiraMark size={15} />
           AIRA
         </span>
         <span className="aira-panel__title">{title}</span>

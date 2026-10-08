@@ -21,15 +21,15 @@ const AVAILABLE_ROWS = [
   ["Bank", "Unggah mutasi rekening (CSV atau Excel)", "Mutasi dicocokkan dengan transaksi di buku; yang belum cocok ditandai."],
   ["Pajak", "Rekap PPN keluaran dan masukan bulanan", "Siap dipakai untuk pelaporan SPT Masa."],
   ["Spreadsheet", "Impor & ekspor Excel, ekspor PDF", "Saldo awal dan bagan akun bisa diimpor dari Excel; laporan dan daftar transaksi bisa diunduh kapan saja."],
-  ["Telegram", "Notifikasi ke staf", "Pengingat jatuh tempo, stok minimum, dan persetujuan sampai ke Telegram staf."],
+  ["WhatsApp, Telegram & PWA", "Notifikasi, chat, foto nota & approval di HP", "Kirim foto nota untuk draft buku kas, tanya data operasional, pengingat jatuh tempo, dan tombol persetujuan langsung dari HP."],
   ["Aplikasi aset (EAM)", "Satu login, satu data", "Staf lapangan memakai aplikasi aset yang terhubung ke data ERP; QR aset bisa dipindai tanpa login."],
 ] as const;
 
 const CUSTOM_ROWS = [
+  ["Modul custom bisnis", "Operasional unik", "Modul spesifik perusahaan Anda dibangun di atas Entaris; otomatis terhubung ke buku besar dan dikenali oleh AIRA lewat protokol MCP tanpa melatih model dari awal."],
   ["e-Faktur / Coretax", "Pajak", "Faktur pajak disiapkan dari invoice penjualan."],
-  ["WhatsApp & email", "Komunikasi", "Invoice dan pengingat jatuh tempo terkirim langsung ke pelanggan."],
   ["Mesin & sensor pabrik", "Produksi", "Timbangan, PLC, atau sistem monitoring terhubung; hasil produksi dan rendemen tercatat otomatis per batch."],
-  ["Sistem lain", "Kasir, marketplace, atau sistem internal", "Data bertukar dengan Entaris tanpa input ulang."],
+  ["Sistem eksternal", "Kasir, marketplace, atau sistem internal", "Data bertukar dengan Entaris tanpa input ulang."],
 ] as const;
 
 export default function Page() {
@@ -38,9 +38,9 @@ export default function Page() {
       <PageFrame
         hero={
           <PageHero
-            eyebrow={{ name: "Integrasi" }}
-            lines={["Terhubung dengan alat", "yang sudah Anda pakai."]}
-            lead="Entaris bertukar data dengan bank, laporan pajak, Telegram, dan spreadsheet yang sudah Anda pakai — tanpa input ulang. Semua tetap tercatat di satu buku besar."
+            eyebrow={{ name: "Integrasi & Kustomisasi" }}
+            lines={["Terhubung dan berkembang", "sesuai proses bisnis Anda."]}
+            lead="Entaris bertukar data dengan bank, pajak, Telegram, dan spreadsheet — serta dirancang fleksibel untuk penambahan modul custom sendiri seiring pertumbuhan bisnis Anda."
             primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
             compact
           />
@@ -58,12 +58,12 @@ export default function Page() {
         <InfoMatrix
           id="sesuai-kebutuhan"
           kicker="Sesuai kebutuhan"
-          title="Bisa dibangun untuk bisnis Anda."
-          lead="Belum standar di Entaris, tetapi bisa kami diskusikan dan dibangun sesuai proses bisnis Anda."
-          head={["Sistem", "Bidang", "Yang terjadi"]}
+          title="Bisa dibangun modul custom untuk bisnis Anda."
+          lead="Entaris didesain modular dan fleksibel. Anda atau tim pengembang dapat membangun modul kustom sendiri yang langsung menyatu dengan buku besar dan otomatis dapat dioperasikan oleh AIRA."
+          head={["Sistem / Modul", "Bidang", "Yang terjadi"]}
           rows={CUSTOM_ROWS}
           columns="minmax(10rem, 0.2fr) repeat(2, minmax(0, 0.4fr))"
-          ariaLabel="Integrasi yang bisa dibangun sesuai kebutuhan"
+          ariaLabel="Integrasi dan modul custom yang bisa dibangun sesuai kebutuhan"
           quiet
         />
         <PageCta

@@ -1,4 +1,5 @@
 import { EntarisMark } from "@/components/site/EntarisLogo";
+import { AiraMark } from "@/components/site/AiraLogo";
 import { AiraIcon, type AiraIconName } from "../sections/AiraIcon";
 import { ReceivablesAnswer, SampleBadge, seqStyle, ToolRow, UserBubble } from "./AiraMockParts";
 
@@ -36,7 +37,7 @@ export function AiraWindow() {
           <ul>
             {SIDE_ITEMS.map((item) => (
               <li key={item.label} className={item.active ? "is-active" : undefined}>
-                <AiraIcon name={item.icon} />
+                {item.label === "AIRA" ? <AiraMark size={16} /> : <AiraIcon name={item.icon} />}
                 <span>{item.label}</span>
               </li>
             ))}

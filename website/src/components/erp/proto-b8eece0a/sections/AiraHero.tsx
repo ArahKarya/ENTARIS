@@ -12,15 +12,14 @@ export function AiraHero() {
         <div className="tacet-proto-hero__story">
           <AiraEyebrow name="AIRA" context="Agen AI di dalam Entaris" />
           <h1 id="aira-hero-title">
-            <span>Agen AI yang bernalar di atas </span>
+            <span>Agen AI yang ikut bekerja di atas </span>
             <span>buku besar Anda.</span>
           </h1>
         </div>
         <div className="tacet-proto-hero__summary">
           <p className="tacet-proto-hero__lede">
             AIRA bekerja di atas data transaksi yang sama dengan modul lain di Entaris — bukan salinan. Ia menjawab pertanyaan, menganalisis
-            laporan, dan menyiapkan draf. Semua angkanya konsisten dengan buku besar, dan setiap perubahan pembukuan tetap menunggu persetujuan
-            manusia.
+            laporan, dan mengerjakan tugas sampai jadi draf. Siap diakses di mana saja, bahkan dalam genggaman smartphone Anda — dengan setiap perubahan pembukuan tetap menunggu persetujuan manusia.
           </p>
           <div className="aira-hero__actions">
             <Link href={DEMO_HREF} className="ent-btn ent-btn--solid aira-hero__btn">

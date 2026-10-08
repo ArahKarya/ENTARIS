@@ -7,11 +7,11 @@ import "./site-chrome.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://entaris.arahkarya.com"),
   title: {
-    default: "Entaris — ERP dengan kemampuan reasoning",
-    template: "%s | Entaris",
+    default: "ENTARIS — Enterprise Agentic Reasoning Integrated System | Sistem yang Ikut Bertumbuh dengan Bisnis Kamu",
+    template: "%s | ENTARIS",
   },
   description:
-    "Entaris adalah ERP yang bisa bernalar: penjualan, pembelian, inventori, produksi & keuangan dalam satu buku besar, dengan agen AI AIRA yang menjawab, menganalisis, dan menyiapkan draf. Fleksibel, mudah diakses, sesuai standar akuntansi, dan siap tumbuh.",
+    "ENTARIS (Enterprise Agentic Reasoning Integrated System) adalah ERP modern dengan agen AI AIRA: penjualan, pembelian, inventori multi-gudang, BOM manufaktur, pengajuan pembayaran, dan draf buku kas dari foto nota, dengan keamanan draf dan gerbang persetujuan manusia.",
   icons: {
     icon: [{ url: "/brand/entaris-icon.svg", type: "image/svg+xml" }],
     apple: "/brand/entaris-icon-maskable.svg",

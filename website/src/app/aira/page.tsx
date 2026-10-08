@@ -4,9 +4,9 @@ import { AiraMain } from "@/components/erp/proto-b8eece0a/AiraMain";
 import "./aira.css";
 
 export const metadata: Metadata = {
-  title: "AIRA — agen AI di dalam Entaris",
+  title: "AIRA — Artificial Intelligence Reasoning Agent di dalam ENTARIS",
   description:
-    "AIRA bernalar di atas data transaksi yang sama dengan buku besar Entaris: menjawab pertanyaan data, menyiapkan draf, dan setiap perubahan pembukuan menunggu persetujuan manusia.",
+    "AIRA (Artificial Intelligence Reasoning Agent) ikut bekerja di atas data transaksi real-time ENTARIS melalui protokol MCP: menjawab pertanyaan, menganalisis laporan, menyusun draf dokumen bisnis, dan memproses foto nota dengan gerbang persetujuan aman.",
 };
 
 export default function Page() {

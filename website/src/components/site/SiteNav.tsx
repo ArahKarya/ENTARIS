@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EntarisLogo } from "./EntarisLogo";
+import { AiraMark } from "./AiraLogo";
 import { DEMO_HREF, NAV_ITEMS } from "./siteConfig";
 
 /*
  * Floating top bar in the ERP•AI style: centred rounded bar over a soft wash that gains a surface
  * once the page scrolls. Below 960px the links collapse into a full-width sheet.
  */
-export function SiteNav() {
+export function SiteNav({ home = false }: { home?: boolean } = {}) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,7 +42,8 @@ export function SiteNav() {
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
                 <Link href={item.href} className="ent-nav__link" aria-current={pathname === item.href ? "page" : undefined}>
-                  {item.label}
+                  {item.href === "/aira" && <AiraMark size={15} className="ent-nav__aira-mark" />}
+                  <span>{item.label}</span>
                 </Link>
               </li>
             ))}
@@ -70,7 +72,10 @@ export function SiteNav() {
             <li key={item.href}>
               <Link href={item.href} className="ent-mobile__link" aria-current={pathname === item.href ? "page" : undefined} onClick={() => setMenuOpen(false)}>
                 <span className="ent-mobile__index">{String(i + 1).padStart(2, "0")}</span>
-                <span className="ent-mobile__label">{item.label}</span>
+                <span className="ent-mobile__label">
+                  {item.href === "/aira" && <AiraMark size={16} className="ent-nav__aira-mark" />}
+                  <span>{item.label}</span>
+                </span>
                 <span className="ent-mobile__desc">{item.description}</span>
               </Link>
             </li>
@@ -80,7 +85,7 @@ export function SiteNav() {
           Minta demo
         </Link>
       </div>
-      <div className="ent-nav-spacer" aria-hidden="true" />
+      {!home && <div className="ent-nav-spacer" aria-hidden="true" />}
     </>
   );
 }

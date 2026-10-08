@@ -12,7 +12,7 @@ type SiteShellProps = {
 export function SiteShell({ children, home = false }: SiteShellProps) {
   return (
     <ErpRoot home={home}>
-      <SiteNav />
+      <SiteNav home={home} />
       {children}
       <SiteFooter />
     </ErpRoot>

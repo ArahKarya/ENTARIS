@@ -412,6 +412,99 @@
     line-height: 1.5;
   }
 
+  /* ---------- Process Mobile Showcase (Large Prominent Display) ---------- */
+  .erp-root .aira-mobile-showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    margin-top: clamp(3rem, 6vw, 5rem);
+    padding: clamp(1.75rem, 3.5vw, 3rem);
+    border: 1px solid var(--tacet-panel-border);
+    border-radius: 1.25rem;
+    background: color-mix(in oklab, var(--background) 95%, var(--entaris-blue));
+    box-shadow: 0 16px 44px -12px rgba(27, 43, 72, 0.14);
+  }
+  .erp-root .aira-mobile-showcase__media {
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in oklab, var(--tacet-panel-border) 80%, var(--entaris-blue));
+    box-shadow: 0 24px 60px -14px rgba(27, 43, 72, 0.26);
+    width: 100%;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .erp-root .aira-mobile-showcase__media:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 30px 70px -16px rgba(27, 43, 72, 0.32);
+  }
+  .erp-root .aira-mobile-showcase__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+  .erp-root .aira-mobile-showcase__badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    background: color-mix(in oklab, var(--entaris-blue) 12%, transparent);
+    color: var(--entaris-blue-dark);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .erp-root .aira-mobile-showcase__content h3 {
+    margin: 0.85rem 0 0.75rem;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .erp-root .aira-mobile-showcase__content p {
+    margin: 0 0 1.25rem;
+    color: var(--text-m);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .erp-root .aira-mobile-showcase__points {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .erp-root .aira-mobile-showcase__points li {
+    position: relative;
+    padding-left: 1.25rem;
+    color: var(--text-m);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  .erp-root .aira-mobile-showcase__points li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--entaris-blue);
+  }
+  .erp-root .aira-mobile-showcase__points li strong {
+    color: var(--foreground);
+  }
+  @media (max-width: 959px) {
+    .erp-root .aira-mobile-showcase {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+      padding: 1.5rem;
+    }
+  }
+
   /* ---------- Story mockups ---------- */
   .erp-root .aira-story__media {
     background-color: color-mix(in srgb, var(--background), var(--surface-container) 40%);
@@ -905,4 +998,89 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
+
+  /* ---------- FAQ Accordion ---------- */
+  .erp-root .aira-faq-section {
+    border-top: 1px solid var(--tacet-panel-border);
+    background: color-mix(in oklab, var(--background) 96%, var(--foreground));
+  }
+  .erp-root .aira-faq-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+  .erp-root .aira-faq-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: var(--space-4);
+  }
+  .erp-root .aira-faq-item {
+    border: 1px solid var(--tacet-panel-border);
+    border-radius: 0.75rem;
+    background: var(--background);
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .erp-root .aira-faq-item.is-open {
+    border-color: color-mix(in oklab, var(--entaris-blue) 45%, var(--border));
+    box-shadow: 0 4px 18px -6px color-mix(in oklab, var(--entaris-blue) 12%, transparent);
+  }
+  .erp-root .aira-faq-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    padding: 1.15rem 1.35rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+    transition: background 0.15s ease;
+  }
+  .erp-root .aira-faq-trigger:hover {
+    background: color-mix(in oklab, var(--foreground) 3%, transparent);
+  }
+  .erp-root .aira-faq-trigger__question {
+    flex: 1;
+  }
+  .erp-root .aira-faq-trigger__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--foreground) 6%, transparent);
+    color: var(--entaris-blue);
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .erp-root .aira-faq-item.is-open .aira-faq-trigger__icon {
+    background: var(--entaris-blue);
+    color: #ffffff;
+  }
+  .erp-root .aira-faq-panel {
+    border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .erp-root .aira-faq-panel__inner {
+    padding: 1.1rem 1.35rem 1.35rem;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+  .erp-root .aira-faq-panel__inner p {
+    margin: 0;
+  }
 }
+

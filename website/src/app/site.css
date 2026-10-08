@@ -15883,10 +15883,12 @@
   }
 
   .erp-root .hero-catalog__layer-icon--agent {
-    --hero-catalog-icon-direction: -1;
+    --hero-catalog-icon-direction: 1;
 
+    width: 1.15rem;
+    height: 1.15rem;
     color: var(--hero-packet-accent);
-    transform: scaleX(-1);
+    transform: none;
   }
 
   .erp-root .hero-catalog__row--story {

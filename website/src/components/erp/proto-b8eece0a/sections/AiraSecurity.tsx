@@ -6,30 +6,30 @@ type Control = { icon: AiraIconName; title: string; text: string };
 const CONTROLS: readonly Control[] = [
   {
     icon: "user-shield",
-    title: "Hak akses sama dengan pengguna",
-    text: "AIRA hanya bisa membuka data dan fitur yang diizinkan untuk peran pengguna yang sedang masuk — Admin, Accountant, Staf Produksi, atau Viewer.",
+    title: "Hak akses sama dengan penanya (RBAC)",
+    text: "AIRA hanya bisa membuka data dan memanggil tool yang diizinkan untuk peran pengguna yang sedang berbicara (Admin, Accountant, Staf Produksi, Viewer). Di percakapan grup berlaku kewenangan anggota terendah.",
   },
   {
     icon: "signature",
-    title: "Setiap permintaan diverifikasi",
-    text: "Setiap perubahan yang diminta lewat AIRA diberi tanda pengenal dan waktu, lalu diperiksa sistem — permintaan palsu atau yang dikirim ulang otomatis ditolak.",
+    title: "Pernyataan pelaku bertanda tangan (HMAC)",
+    text: "Setiap panggilan diverifikasi dengan token profil engine dan pernyataan pelaku bertanda tangan HMAC-SHA256 (berlaku 120 detik, nonce sekali pakai). Tidak ada akun 'super' bersama.",
   },
   {
     icon: "list-details",
-    title: "Kemampuan AIRA bisa diatur",
-    text: "Setiap kemampuan AIRA tercatat lengkap dengan tingkat risiko dan peran yang boleh memakainya — admin bisa meninjau dan mengaturnya dari satu tempat.",
+    title: "Arsitektur Otak vs Tangan",
+    text: "Engine AI ('otak') boleh diganti, tetapi aturan keamanan, persetujuan, dan jejak audit berada di ENTARIS ('tangan dan penjaga'). Data dan pembukuan tidak pernah terkunci ke satu vendor AI.",
   },
   {
     icon: "circle-check",
     title: "Pembukuan menunggu persetujuan",
-    text: "Semua aksi yang mengubah pembukuan masuk alur approval dan baru berefek setelah disetujui manusia. Tidak ada posting otomatis.",
+    text: "Secara bawaan semua aksi finansial berhenti sebagai draf atau antrean persetujuan manusia. Admin dapat memberi level 'Langsung' khusus untuk pengguna terpercaya tertentu sesuai kebijakan perusahaan.",
   },
 ];
 
 const STATS: readonly { value: string; label: string }[] = [
-  { value: "386", label: "kemampuan terdaftar" },
-  { value: "6", label: "area bisnis" },
-  { value: "4", label: "peran bawaan" },
+  { value: "Ratusan", label: "kemampuan terdaftar (MCP)" },
+  { value: "14", label: "area bisnis (toolset)" },
+  { value: "100%", label: "kedaulatan server mandiri" },
 ];
 
 /** #keamanan — the controls around AIRA. */

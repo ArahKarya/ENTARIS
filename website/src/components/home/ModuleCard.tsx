@@ -7,13 +7,14 @@ type ModuleCardProps = {
   name: string;
   desc: string;
   index: number;
+  onClick?: () => void;
 };
 
 /**
  * Gallery card without photography: a tinted category color, a subtle CSS pattern and a large
- * category glyph. Cards are informational (no link), so the copy stays visible on hover.
+ * category glyph. Cards are interactive, opening module details when clicked.
  */
-export function ModuleCard({ category, name, desc, index }: ModuleCardProps) {
+export function ModuleCard({ category, name, desc, index, onClick }: ModuleCardProps) {
   const style = {
     "--card-bg": category.color,
     "--card-fg": "#fff",
@@ -22,7 +23,23 @@ export function ModuleCard({ category, name, desc, index }: ModuleCardProps) {
   } as CSSProperties;
 
   return (
-    <article className="catalog-card catalog-card--landscape home-module-card" style={style}>
+    <article
+      className="catalog-card catalog-card--landscape home-module-card is-interactive"
+      style={style}
+      onClick={onClick}
+      tabIndex={onClick ? 0 : undefined}
+      role={onClick ? "button" : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+    >
       <div className="home-module-card__tint absolute inset-0 pointer-events-none" aria-hidden="true" />
       <div className={`absolute inset-0 pointer-events-none ${category.pattern}`} aria-hidden="true" />
       <Icon name={category.icon} className="home-module-card__glyph" />

@@ -135,6 +135,8 @@
   .erp-root .ent-nav__link {
     position: relative;
     display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.55rem 0.9rem;
     border-radius: 0.5rem;
     color: var(--ink-nav);
@@ -142,6 +144,25 @@
     font-size: 0.9375rem;
     font-weight: 600;
     text-decoration: none;
+  }
+  .erp-root .ent-nav__aira-mark {
+    flex-shrink: 0;
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .erp-root .ent-nav__link:hover .ent-nav__aira-mark {
+    transform: rotate(-10deg) scale(1.15);
+  }
+  .erp-root.dark .ent-nav__aira-mark path[fill="#1B2B48"] {
+    fill: #ffffff;
+  }
+  .erp-root.dark .ent-nav__aira-mark path[fill="#2E5CA8"] {
+    fill: #9cc9f5;
+  }
+  .erp-root .ent-mobile__label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .erp-root.dark .ent-nav__link {
     color: var(--foreground);
@@ -188,6 +209,10 @@
   }
   .erp-root .ent-nav-spacer {
     height: 5.5rem;
+  }
+  .erp-root:has(.hero-catalog) .ent-nav-spacer,
+  .erp-root .page-shell:has(> .hero-catalog) > .ent-nav-spacer {
+    display: none !important;
   }
 
   /* ---------- Mobile sheet ---------- */

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { usePageNav } from "../shared/usePageNav";
 import { AiraAnalytics } from "./sections/AiraAnalytics";
 import { AiraExamples } from "./sections/AiraExamples";
+import { AiraFaq } from "./sections/AiraFaq";
 import { AiraHero } from "./sections/AiraHero";
 import { AiraPageNav } from "./sections/AiraPageNav";
 import { AiraProcess } from "./sections/AiraProcess";
@@ -14,7 +15,7 @@ import { useAiraMotion } from "./useAiraMotion";
 
 /**
  * Main content of /aira: hero, in-page nav, #cara-kerja, the three sticky stories
- * (#bertanya, #stok, #approval), #analitik, #keamanan and #contoh. SiteShell supplies nav + footer.
+ * (#bertanya, #stok, #approval), #analitik, #keamanan, #faq and #contoh. SiteShell supplies nav + footer.
  */
 export function AiraMain() {
   const mainRef = useRef<HTMLElement>(null);
@@ -32,6 +33,7 @@ export function AiraMain() {
       ))}
       <AiraAnalytics />
       <AiraSecurity />
+      <AiraFaq />
       <AiraExamples />
     </main>
   );

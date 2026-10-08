@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/keamanan", destination: "/#keamanan-data", permanent: true },
       { source: "/self-hosted", destination: "/#keamanan-data", permanent: true },
+      { source: "/dokumentasi", destination: "/docs", permanent: true },
     ];
   },
 };
