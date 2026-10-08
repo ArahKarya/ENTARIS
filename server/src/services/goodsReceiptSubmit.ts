@@ -91,6 +91,21 @@ export async function submitGoodsReceiptInTx(
     }
   }
 
+  // Each PO-line link must belong to the PO this STT points at; otherwise the
+  // receipt would bump qtyReceived on a different PO.
+  const linkedPoItemIds = [...new Set(body.items.map((l) => l.purchaseOrderItemId).filter((v): v is string => !!v))];
+  if (linkedPoItemIds.length > 0) {
+    if (!body.purchaseOrderId) {
+      throw new BusinessError('Baris STT terhubung ke baris PO, tetapi PO tidak dipilih.');
+    }
+    const owned = await tx.purchaseOrderItem.count({
+      where: { id: { in: linkedPoItemIds }, purchaseOrderId: body.purchaseOrderId },
+    });
+    if (owned !== linkedPoItemIds.length) {
+      throw new BusinessError('Ada baris STT yang terhubung ke baris PO lain. Pilih ulang PO agar baris dimuat dari PO tersebut.');
+    }
+  }
+
   // Resolve inventory accounts up-front so JE can group properly
   const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
   const accruedAcct = await systemAccounts.getAccount('ACCRUED_PAYABLE');

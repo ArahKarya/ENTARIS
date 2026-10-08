@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### STT dari PO: qty diterima
+**Diperbaiki**:
+- Memilih PO lewat dropdown di form "Buat STT" (halaman Penerimaan Barang) tidak memuat baris PO, sehingga item dan **qty tetap kosong**. Lebih penting lagi, STT yang dibuat lewat jalur ini **tidak menambah qty diterima di PO** (status penerimaan PO tidak bergerak), karena tautan baris PO hanya dikirim bila STT dibuka dari halaman PO. Kini memilih PO memuat baris sisa PO (item, qty sisa, satuan, gudang tujuan), dengan konfirmasi bila baris sudah diisi, dan tautan baris dikirim berdasarkan PO asal tiap baris.
+- Server menolak tautan baris STT ke baris PO yang bukan milik PO yang dipilih.
+
 ### Surat Jalan: nomor PO pelanggan dari Pesanan (SO)
 **Diperbaiki**:
 - Surat Jalan yang dibuat dari Pesanan kini membawa **No. PO pelanggan** (`customerRefNo`) dan **No. SO** di semua tempat: daftar (kolom "Ref PO / SO"), drawer detail (No. PO Pelanggan, No. Pesanan), dan **PDF Surat Jalan** (No. PO dan No. SO di kolom kanan kop). Sebelumnya hanya daftar tertunda untuk invoice yang membawa data Pesanan, sehingga daftar, detail, dan PDF tidak menampilkan PO pelanggan sama sekali.

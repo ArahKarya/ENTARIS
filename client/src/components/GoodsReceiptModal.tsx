@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { NumberInput } from '@/components/ui/number-input';
-import { Field, DateInput } from '@/components/shared';
+import { Field, DateInput, ConfirmDialog } from '@/components/shared';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker, type PickerOption as SelectOption } from './purchase-cash/OptionPicker';
 import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
@@ -24,6 +24,8 @@ interface GRItem {
   description: string;
   /** Set when the line was prefilled from a PO line (bumps its qtyReceived). */
   purchaseOrderItemId?: string;
+  /** PO the line was prefilled from; the PO-line link is sent only while the STT still points at it. */
+  sourcePurchaseOrderId?: string;
 }
 
 const defaultItem = (): GRItem => ({
@@ -59,6 +61,9 @@ interface Props {
   initialPurchaseOrder?: GoodsReceiptSourcePO | null;
 }
 
+/** True when the user has not entered anything on the line yet. */
+const isBlankLine = (it: GRItem) => !it.inventoryItemId && !it.itemName.trim() && !(it.quantity > 0);
+
 /** Outstanding PO lines → STT lines (warehouse defaults to the PO destination). */
 function itemsFromPO(po: GoodsReceiptSourcePO): GRItem[] {
   const lines = po.items
@@ -73,6 +78,7 @@ function itemsFromPO(po: GoodsReceiptSourcePO): GRItem[] {
       quantity: Math.round(remaining * 1000) / 1000,
       description: it.description ?? '',
       purchaseOrderItemId: it.id,
+      sourcePurchaseOrderId: po.id,
     }));
   return lines.length > 0 ? lines : [defaultItem()];
 }
@@ -107,6 +113,43 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     initialPurchaseOrder ? itemsFromPO(initialPurchaseOrder) : [defaultItem()],
   );
   const [error, setError] = useState('');
+  const [loadingPO, setLoadingPO] = useState(false);
+  // PO lines waiting for the user to confirm replacing lines they already typed.
+  const [pendingPOLines, setPendingPOLines] = useState<{ poNumber: string; lines: GRItem[] } | null>(null);
+
+  /**
+   * Picking a PO in the form loads its outstanding lines (remaining qty, item,
+   * unit, destination warehouse) — the same prefill as "Buat STT dari PO" —
+   * so the receipt is linked to the PO lines and their qtyReceived moves.
+   */
+  const handlePickPO = async (id: string) => {
+    setPurchaseOrderId(id);
+    if (!id) return;
+    setLoadingPO(true);
+    try {
+      const { data: po } = await api.get(`/purchase-orders/${id}`);
+      const source: GoodsReceiptSourcePO = {
+        id: po.id,
+        partyId: po.partyId ?? null,
+        warehouseId: po.warehouseId ?? null,
+        items: po.items ?? [],
+      };
+      const lines = itemsFromPO(source);
+      if (!lines.some((l) => l.purchaseOrderItemId)) {
+        toast.info(`Semua baris ${po.poNumber} sudah diterima penuh.`);
+        return;
+      }
+      if (items.every(isBlankLine)) {
+        setItems(lines);
+      } else {
+        setPendingPOLines({ poNumber: po.poNumber, lines });
+      }
+    } catch {
+      toast.error('Gagal memuat baris PO. Coba pilih ulang.');
+    } finally {
+      setLoadingPO(false);
+    }
+  };
 
   const { data: parties } = useQuery({
     queryKey: ['parties-suppliers'],
@@ -232,9 +275,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         // provisional cost untuk JE accrual + weighted average.
         lockedUnitCost: 0,
         description: it.description.trim() || null,
-        // Only keep the PO-line link while the STT still points at that PO.
+        // Only keep the PO-line link while the STT still points at the PO the line came from.
         purchaseOrderItemId:
-          it.purchaseOrderItemId && !isCustomerOwned && purchaseOrderId === initialPurchaseOrder?.id
+          it.purchaseOrderItemId && !isCustomerOwned && purchaseOrderId && it.sourcePurchaseOrderId === purchaseOrderId
             ? it.purchaseOrderItemId
             : null,
       })),
@@ -289,7 +332,12 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
           {isCustomerOwned ? (
             <Input value="— Tidak berlaku untuk barang titipan —" disabled readOnly />
           ) : (
-            <OptionPicker options={poOptions} value={purchaseOrderId} onChange={setPurchaseOrderId} placeholder="— Tanpa PO —" />
+            <OptionPicker
+              options={poOptions}
+              value={purchaseOrderId}
+              onChange={(v) => void handlePickPO(v)}
+              placeholder={loadingPO ? 'Memuat baris PO…' : '— Tanpa PO —'}
+            />
           )}
         </Field>
         <Field label="No. Mobil">
@@ -413,6 +461,21 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         pembelian dibuat dari STT ini. Sementara harga belum ada, sistem pakai averageCost item saat ini sebagai
         provisional cost.
       </Callout>
+      <ConfirmDialog
+        open={!!pendingPOLines}
+        onOpenChange={(open) => { if (!open) setPendingPOLines(null); }}
+        title="Ganti baris dengan sisa PO?"
+        description={
+          pendingPOLines
+            ? `Baris yang sudah Anda isi akan diganti dengan ${pendingPOLines.lines.length} baris sisa ${pendingPOLines.poNumber} (item, qty sisa, satuan, gudang tujuan). Pilih Batal untuk tetap memakai baris Anda; PO tetap terpilih tetapi baris Anda tidak terhubung ke baris PO.`
+            : undefined
+        }
+        confirmLabel="Ganti baris"
+        onConfirm={() => {
+          if (pendingPOLines) setItems(pendingPOLines.lines);
+          setPendingPOLines(null);
+        }}
+      />
     </FormDialog>
   );
 };
