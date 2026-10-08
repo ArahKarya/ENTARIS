@@ -65,7 +65,7 @@ export function AiraProcess() {
                 <strong>Persetujuan satu ketukan:</strong> Notifikasi pengajuan pembayaran atau PO masuk ke ponsel dengan perbandingan nilai sebelum/sesudah dan tombol otorisasi instan.
               </li>
               <li>
-                <strong>Identitas aman &amp; diaudit:</strong> Setiap pesan dipetakan ke akun pengguna berizin resmi dengan token HMAC-SHA256 berbatas waktu 120 detik (`via = 'mcp'`).
+                <strong>Identitas aman &amp; diaudit:</strong> Setiap pesan dipetakan ke akun pengguna berizin resmi dengan token HMAC-SHA256 berbatas waktu 120 detik (`via = &apos;mcp&apos;`).
               </li>
             </ul>
           </div>

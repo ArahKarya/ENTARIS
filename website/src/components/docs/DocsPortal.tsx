@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DOC_COLLECTIONS, type DocArticle, type DocCollection } from "./docsData";
+import { resolveDocsSelection } from "./docsSelection";
 import { WHATSAPP_DISPLAY, WHATSAPP_NUMBER, DEMO_HREF } from "@/components/site/siteConfig";
 import { EntarisLogo } from "@/components/site/EntarisLogo";
 
@@ -224,13 +225,18 @@ function DocIcon({ name, className = "" }: { name: string; className?: string })
   }
 }
 
+/** Shown when the URL names no (valid) collection or article. */
+const DEFAULT_SELECTION = { collectionId: "setup", articleId: "quickstart-docker" } as const;
+
 export function DocsPortal() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Active collection and article states
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string>("setup");
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>("quickstart-docker");
+  // Active collection and article come straight from the URL (?c=…&a=…), the single source of truth.
+  const { collectionId: selectedCollectionId, articleId: selectedArticleId } = useMemo(
+    () => resolveDocsSelection(DOC_COLLECTIONS, { c: searchParams.get("c"), a: searchParams.get("a") }, DEFAULT_SELECTION),
+    [searchParams],
+  );
 
   // Search Modal state
   const [searchQuery, setSearchQuery] = useState("");
@@ -241,28 +247,6 @@ export function DocsPortal() {
 
   // Copy feedback state
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // Sync state with URL params on mount / change
-  useEffect(() => {
-    const cParam = searchParams.get("c");
-    const aParam = searchParams.get("a");
-
-    if (cParam && DOC_COLLECTIONS.some((c) => c.id === cParam)) {
-      setSelectedCollectionId(cParam);
-      if (aParam) {
-        setSelectedArticleId(aParam);
-      } else {
-        setSelectedArticleId(null);
-      }
-    } else if (aParam) {
-      // Find collection containing this article
-      const foundCollection = DOC_COLLECTIONS.find((c) => c.articles.some((a) => a.id === aParam));
-      if (foundCollection) {
-        setSelectedCollectionId(foundCollection.id);
-        setSelectedArticleId(aParam);
-      }
-    }
-  }, [searchParams]);
 
   // Keyboard shortcut for Search (⌘K / Ctrl+K)
   useEffect(() => {
@@ -281,8 +265,6 @@ export function DocsPortal() {
   // Update navigation helper
   const navigateTo = useCallback(
     (collectionId: string, articleId: string | null = null) => {
-      setSelectedCollectionId(collectionId);
-      setSelectedArticleId(articleId);
       setIsMobileMenuOpen(false);
       setIsSearchOpen(false);
 
