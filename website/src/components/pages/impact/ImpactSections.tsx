@@ -1,4 +1,4 @@
-import { QUOTES, STORIES } from "./impactContent";
+import { IMPACT_IS_PLACEHOLDER, QUOTES, STORIES } from "./impactContent";
 
 const initials = (name: string): string =>
   name
@@ -9,13 +9,13 @@ const initials = (name: string): string =>
     .map((word) => word[0].toUpperCase())
     .join("");
 
-/** #pengguna — logo row plus one result card per company. */
+/** #pengguna: logo row plus one result card per company. */
 export function ImpactCompanies() {
   return (
     <section id="pengguna" className="role-section role-section--quiet imp-section">
       <header className="role-intro">
-        <p className="role-kicker">Mereka yang memakai Entaris</p>
-        <h2>Mereka sudah memakai Entaris.</h2>
+        <p className="role-kicker">{IMPACT_IS_PLACEHOLDER ? "Contoh pengguna" : "Mereka yang memakai Entaris"}</p>
+        <h2>{IMPACT_IS_PLACEHOLDER ? "Seperti ini cerita pengguna akan tampil." : "Mereka sudah memakai Entaris."}</h2>
       </header>
       <ul className="imp-logos" aria-label="Perusahaan pengguna Entaris">
         {STORIES.map((story) => (
@@ -40,12 +40,12 @@ export function ImpactCompanies() {
   );
 }
 
-/** #apa-kata-mereka — quote cards. */
+/** #apa-kata-mereka: quote cards. */
 export function ImpactQuotes() {
   return (
     <section id="apa-kata-mereka" className="role-section imp-section">
       <header className="role-intro">
-        <h2>Apa kata mereka.</h2>
+        <h2>{IMPACT_IS_PLACEHOLDER ? "Contoh kutipan pengguna." : "Apa kata mereka."}</h2>
       </header>
       <div className="imp-quotes">
         {QUOTES.map((quote) => (

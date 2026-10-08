@@ -89,7 +89,7 @@ describe("hand-over links", () => {
     const href = emailHref(VALID);
     expect(href.startsWith(`mailto:${CONTACT_EMAIL}?subject=`)).toBe(true);
     const query = new URLSearchParams(href.split("?")[1]);
-    expect(query.get("subject")).toBe("Permintaan demo Entaris — PT Sinar Pangan");
+    expect(query.get("subject")).toBe("Permintaan demo Entaris: PT Sinar Pangan");
     expect(query.get("body")).toBe(buildSummary(VALID));
   });
 

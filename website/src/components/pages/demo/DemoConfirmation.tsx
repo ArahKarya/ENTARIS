@@ -15,7 +15,7 @@ export function DemoConfirmation({ values, onEdit, headingRef }: DemoConfirmatio
       <h2 ref={headingRef} tabIndex={-1}>
         Satu langkah lagi: kirim ringkasan ke tim kami.
       </h2>
-      <p className="demo-confirm__lead">Pilih saluran yang Anda mau — ringkasan data Anda sudah terisi otomatis di pesannya.</p>
+      <p className="demo-confirm__lead">Pilih saluran yang Anda mau. Ringkasan data Anda sudah terisi otomatis di pesannya.</p>
       <div className="demo-confirm__actions">
         <a className={`ent-btn ${whatsappPrimary ? "ent-btn--solid" : "ent-btn--ghost"}`} href={whatsappHref(values)} target="_blank" rel="noopener noreferrer">
           Lanjut via WhatsApp

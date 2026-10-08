@@ -184,16 +184,31 @@
   }
   .erp-root .ent-nav__toggle {
     display: none;
-    flex-direction: column;
-    justify-content: center;
-    gap: 5px;
-    width: 2.5rem;
-    height: 2.5rem;
-    padding: 0 0.6rem;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 0.85rem;
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     background: transparent;
+    color: var(--foreground);
+    font: 600 0.875rem/1 var(--font-body);
     cursor: pointer;
+  }
+  .erp-root .ent-nav__toggle:focus-visible,
+  .erp-root .ent-nav__link:focus-visible,
+  .erp-root .ent-nav__brand:focus-visible,
+  .erp-root .ent-mobile__link:focus-visible {
+    outline: 3px solid var(--entaris-focus);
+    outline-offset: 2px;
+  }
+  .erp-root .ent-nav__toggle-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 1.1rem;
   }
   .erp-root .ent-nav__toggle-bar {
     display: block;
@@ -365,16 +380,22 @@
     display: inline-flex;
     padding: 0.2rem;
     border: 1px solid rgb(255 255 255 / 18%);
-    border-radius: 999px;
+    border-radius: 6px;
   }
   .erp-root .ent-footer__theme-btn {
+    min-height: 44px;
     padding: 0.3rem 0.85rem;
     border: 0;
-    border-radius: 999px;
+    border-radius: 6px;
     background: transparent;
     color: inherit;
     font: inherit;
     cursor: pointer;
+  }
+  .erp-root .ent-footer__theme-btn:focus-visible,
+  .erp-root .ent-footer a:focus-visible {
+    outline: 3px solid var(--entaris-blue-light);
+    outline-offset: 2px;
   }
   .erp-root .ent-footer__theme-btn[aria-checked="true"] {
     background: rgb(255 255 255 / 14%);

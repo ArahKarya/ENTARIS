@@ -78,11 +78,9 @@
     border-bottom: 1px dashed var(--entaris-blue);
     background: color-mix(in oklab, var(--entaris-blue) 10%, var(--background));
     color: var(--foreground);
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: 0.72rem;
-    letter-spacing: 0.06em;
     text-align: center;
-    text-transform: uppercase;
   }
 
   @media (max-width: 48rem) {
@@ -101,5 +99,18 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
+  }
+}
+
+/* Audit 001 follow-up: touch targets and dark-theme hero contrast. */
+@layer entaris {
+  .erp-root .tacet-page-nav .inpage-nav-arrow,
+  .erp-root .proto-page-nav .inpage-nav-arrow {
+    width: 44px;
+  }
+
+  /* Dark theme: the blue glow sat right behind the hero paragraph and pulled it under 4.5:1. */
+  .erp-root.dark .erpai-hero .hero-bg-prototype--shader {
+    opacity: 0.35;
   }
 }

@@ -26,7 +26,7 @@ export function SiteFooter() {
             <EntarisLogo negative />
             <p className="ent-footer__tagline">Enterprise Agentic Reasoning Integrated System</p>
             <p className="ent-footer__summary">
-              Sistem yang ikut bertumbuh dengan bisnis kamu. Dibangun dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang ikut bekerja di atas data transaksi Anda. Berjalan di server Anda sendiri — data 100% milik Anda.
+              Sistem yang ikut bertumbuh dengan bisnis Anda. Dibangun dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang ikut bekerja di atas data transaksi Anda. Berjalan di server Anda sendiri, jadi datanya milik Anda.
             </p>
             <Link className="ent-btn ent-btn--light" href={DEMO_HREF}>
               Minta demo &amp; lisensi

@@ -84,7 +84,7 @@ export function ModuleDetailModal({ module, onClose }: ModuleDetailModalProps) {
             onClick={() => setActiveTab("gl")}
           >
             <Icon name="finance" style={{ width: 15, height: 15 }} />
-            <span>Dampak PSAK & GL</span>
+            <span>Dampak PSAK & buku besar</span>
           </button>
           <button
             type="button"
@@ -179,7 +179,7 @@ export function ModuleDetailModal({ module, onClose }: ModuleDetailModalProps) {
                 <p>{module.airaCapability}</p>
               </div>
               <div className="module-modal-aira-note">
-                <strong>Catatan Keamanan:</strong> AIRA tunduk pada hak akses pengguna penanya (RBAC). Secara bawaan, seluruh tindakan finansial berhenti sebagai <em>draf</em> atau antrean approval dan wajib disetujui staf berwenang sebelum menyentuh buku besar.
+                <strong>Catatan Keamanan:</strong> AIRA tunduk pada hak akses pengguna yang bertanya. Secara bawaan, seluruh tindakan finansial berhenti sebagai <em>draf</em> atau antrean persetujuan dan wajib disetujui staf berwenang sebelum menyentuh buku besar.
               </div>
             </div>
           )}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EntarisLogo } from "./EntarisLogo";
 import { AiraMark } from "./AiraLogo";
 import { DEMO_HREF, NAV_ITEMS } from "./siteConfig";
@@ -15,6 +15,8 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -23,11 +25,22 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // While the sheet is open: Escape closes it, the page behind stops scrolling, and focus moves
+  // into the sheet; on close focus returns to the toggle.
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    const toggle = toggleRef.current;
+    root.style.overflow = "hidden";
+    sheetRef.current?.querySelector<HTMLElement>("a, button")?.focus();
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      root.style.overflow = previousOverflow;
+      toggle?.focus();
+    };
   }, [menuOpen]);
 
   return (
@@ -35,7 +48,7 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
       <div className="ent-nav" data-scrolled={scrolled ? "true" : "false"} data-menu-open={menuOpen ? "true" : "false"}>
         <div className="ent-nav__wash" aria-hidden="true" />
         <nav className="ent-nav__bar" aria-label="Navigasi utama">
-          <Link href="/" className="ent-nav__brand" aria-label="Entaris — beranda" onClick={() => setMenuOpen(false)}>
+          <Link href="/" className="ent-nav__brand" aria-label="Entaris, beranda" onClick={() => setMenuOpen(false)}>
             <EntarisLogo />
           </Link>
           <ul className="ent-nav__links">
@@ -53,20 +66,23 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
               Minta demo
             </Link>
             <button
+              ref={toggleRef}
               type="button"
               className="ent-nav__toggle"
               aria-expanded={menuOpen}
               aria-controls="ent-mobile-menu"
-              aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
               onClick={() => setMenuOpen((open) => !open)}
             >
-              <span className="ent-nav__toggle-bar" />
-              <span className="ent-nav__toggle-bar" />
+              <span className="ent-nav__toggle-icon" aria-hidden="true">
+                <span className="ent-nav__toggle-bar" />
+                <span className="ent-nav__toggle-bar" />
+              </span>
+              <span className="ent-nav__toggle-label">{menuOpen ? "Tutup" : "Menu"}</span>
             </button>
           </div>
         </nav>
       </div>
-      <div id="ent-mobile-menu" className="ent-mobile" hidden={!menuOpen}>
+      <div id="ent-mobile-menu" ref={sheetRef} className="ent-mobile" hidden={!menuOpen}>
         <ul className="ent-mobile__links">
           {NAV_ITEMS.map((item, i) => (
             <li key={item.href}>

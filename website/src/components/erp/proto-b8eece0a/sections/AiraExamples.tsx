@@ -45,7 +45,7 @@ const EXAMPLES: readonly Example[] = [
   },
 ];
 
-/** #contoh — four example questions (footer seam). */
+/** #contoh: four example questions (footer seam). */
 export function AiraExamples() {
   return (
     <section id="contoh" className="tacet-proto-section tacet-proto-section--framed tacet-footer-seam">
@@ -65,7 +65,6 @@ export function AiraExamples() {
               <span>{example.text}</span>
               <a href={example.href}>
                 {example.cta}
-                <AiraIcon name="arrow-right" className="ui-icon" />
               </a>
             </article>
           ))}

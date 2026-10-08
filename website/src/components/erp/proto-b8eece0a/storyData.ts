@@ -32,7 +32,7 @@ export const STORIES: readonly Story[] = [
     title: "Tanya data, dapat jawaban dari buku besar.",
     lede: "Tidak perlu menyusun laporan dulu. Tanyakan dalam bahasa sehari-hari, AIRA membaca data transaksi yang sama dengan modul Keuangan.",
     chapters: [
-      { title: "Tanya seperti ke rekan kerja", text: "“Berapa piutang yang lewat 60 hari?” — tanpa filter, tanpa rumus." },
+      { title: "Tanya seperti ke rekan kerja", text: "Ketik “Berapa piutang yang lewat 60 hari?” dan jawabannya datang tanpa Anda menyusun filter atau rumus." },
       { title: "AIRA mencari data yang tepat", text: "Laporan umur piutang di modul Keuangan dibaca sesuai hak akses peran Anda." },
       { title: "Jawaban yang bisa ditelusuri", text: "Ringkasan per pelanggan, konsisten dengan saldo Piutang Usaha di buku besar." },
     ],
@@ -51,7 +51,7 @@ export const STORIES: readonly Story[] = [
     chapters: [
       { title: "Tanyakan kondisi gudang", text: "Satu pertanyaan menggantikan beberapa laporan stok yang dibuka bergantian." },
       { title: "Dibaca dari mutasi stok", text: "Saldo dihitung dari transaksi masuk dan keluar yang sama dengan modul Inventori." },
-      { title: "Daftar yang siap ditindaklanjuti", text: "Barang, stok saat ini, dan batas minimumnya — untuk diputuskan tim pembelian." },
+      { title: "Daftar yang siap ditindaklanjuti", text: "Barang, stok saat ini, dan batas minimumnya, siap diputuskan tim pembelian." },
     ],
     mock: "stock",
     mockLabel: "Contoh tampilan AIRA menampilkan stok di bawah minimum",
@@ -66,9 +66,9 @@ export const STORIES: readonly Story[] = [
     title: "AIRA menyiapkan draf & permintaan, manusia menyetujui.",
     lede: "Secara bawaan, AIRA tidak memposting sendiri. Faktur, pengajuan pembayaran, produksi, hingga buku kas dari foto nota berhenti sebagai draf yang menunggu persetujuan.",
     chapters: [
-      { title: "AIRA menyusun draf dokumen", text: "Pelanggan, barang, dan akun transaksi diisi dari data riil — statusnya tetap Draf tanpa mengubah buku besar." },
+      { title: "AIRA menyusun draf dokumen", text: "Pembeli, barang, dan akun transaksi diisi dari data riil. Statusnya tetap Draf dan buku besar belum berubah." },
       { title: "Masuk antrean persetujuan", text: "Pejabat berwenang meninjau perbandingan nilai sebelum dan sesudah, lalu menyetujui atau menolak." },
-      { title: "Diposting atas nama penanya", text: "Setelah disetujui, jurnal double-entry terbentuk otomatis dan tercatat rapi di jejak audit via = 'mcp'." },
+      { title: "Diposting atas nama penanya", text: "Setelah disetujui, jurnal debit dan kredit terbentuk otomatis dan tercatat di jejak audit sebagai kerja AIRA." },
     ],
     mock: "invoice",
     mockLabel: "Contoh tampilan draf invoice dari AIRA yang menunggu persetujuan",

@@ -6,18 +6,18 @@ type Control = { icon: AiraIconName; title: string; text: string };
 const CONTROLS: readonly Control[] = [
   {
     icon: "user-shield",
-    title: "Hak akses sama dengan penanya (RBAC)",
-    text: "AIRA hanya bisa membuka data dan memanggil tool yang diizinkan untuk peran pengguna yang sedang berbicara (Admin, Accountant, Staf Produksi, Viewer). Di percakapan grup berlaku kewenangan anggota terendah.",
+    title: "Hak akses sama dengan penanya",
+    text: "AIRA hanya bisa membuka data dan menjalankan tugas yang diizinkan untuk peran pengguna yang sedang berbicara (Admin, Accountant, Staf Produksi, Viewer). Di percakapan grup berlaku kewenangan anggota terendah.",
   },
   {
     icon: "signature",
-    title: "Pernyataan pelaku bertanda tangan (HMAC)",
-    text: "Setiap panggilan diverifikasi dengan token profil engine dan pernyataan pelaku bertanda tangan HMAC-SHA256 (berlaku 120 detik, nonce sekali pakai). Tidak ada akun 'super' bersama.",
+    title: "Setiap permintaan ditandatangani",
+    text: "Setiap permintaan AIRA membawa tanda tangan digital atas nama pengguna yang meminta. Izinnya hanya berlaku dua menit dan sekali pakai. Tidak ada akun 'super' bersama.",
   },
   {
     icon: "list-details",
-    title: "Arsitektur Otak vs Tangan",
-    text: "Engine AI ('otak') boleh diganti, tetapi aturan keamanan, persetujuan, dan jejak audit berada di ENTARIS ('tangan dan penjaga'). Data dan pembukuan tidak pernah terkunci ke satu vendor AI.",
+    title: "Otak AI bisa diganti, aturannya tetap",
+    text: "Otak AI boleh diganti, tetapi aturan keamanan, persetujuan, dan jejak audit tetap berada di Entaris. Data dan pembukuan tidak terkunci ke satu vendor AI.",
   },
   {
     icon: "circle-check",
@@ -27,12 +27,12 @@ const CONTROLS: readonly Control[] = [
 ];
 
 const STATS: readonly { value: string; label: string }[] = [
-  { value: "Ratusan", label: "kemampuan terdaftar (MCP)" },
-  { value: "14", label: "area bisnis (toolset)" },
-  { value: "100%", label: "kedaulatan server mandiri" },
+  { value: "Ratusan", label: "tugas bisnis terdaftar" },
+  { value: "14", label: "area bisnis" },
+  { value: "Server Anda", label: "tempat data disimpan" },
 ];
 
-/** #keamanan — the controls around AIRA. */
+/** #keamanan: the controls around AIRA. */
 export function AiraSecurity() {
   return (
     <section id="keamanan" className="tacet-proto-section tacet-proto-section--darker">
@@ -41,7 +41,7 @@ export function AiraSecurity() {
         <div>
           <div className="tacet-proto-copy">
             <h2>Batas AIRA sama dengan batas pengguna.</h2>
-            <p>AIRA tidak punya jalur belakang. Ia tunduk pada hak akses, tanda tangan permintaan, dan alur approval yang sama dengan tim Anda.</p>
+            <p>AIRA tidak punya jalur belakang. Ia tunduk pada hak akses, tanda tangan permintaan, dan alur persetujuan yang sama dengan tim Anda.</p>
           </div>
           <dl className="aira-stats">
             {STATS.map((stat) => (

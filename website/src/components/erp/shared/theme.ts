@@ -33,7 +33,7 @@ function setStore(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
   } catch {
-    /* storage unavailable (private mode) — cookie still holds the preference */
+    /* storage unavailable (private mode): cookie still holds the preference */
   }
 }
 function deleteStore(key: string) {
