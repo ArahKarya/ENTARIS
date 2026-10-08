@@ -46,6 +46,8 @@ router.get('/', async (req, res) => {
         include: {
           customer: { select: { id: true, name: true } },
           invoice: { select: { id: true, invoiceNumber: true } },
+          // Pesanan asal → No. PO pelanggan (customerRefNo) & No. SO tampil di daftar Surat Jalan.
+          salesOrder: { select: { id: true, soNumber: true, customerRefNo: true } },
           _count: { select: { items: true } },
         },
         // Default: tanggal terbaru lalu DO number terbesar dalam tanggal yang sama.
@@ -103,6 +105,8 @@ router.get('/:id', async (req, res) => {
         },
         customer: true,
         invoice: { select: { id: true, invoiceNumber: true, status: true, grandTotal: true } },
+        // Pesanan asal → No. PO pelanggan & No. SO untuk detail dan PDF Surat Jalan.
+        salesOrder: { select: { id: true, soNumber: true, customerRefNo: true } },
         user: { select: { id: true, fullName: true } },
       },
     });

@@ -59,6 +59,9 @@ export function buildDeliveryOrderWhere(query: Record<string, unknown>): Deliver
       { doNumber: { contains: search, mode: 'insensitive' } },
       { customer: { name: { contains: search, mode: 'insensitive' } } },
       { nomorMobil: { contains: search, mode: 'insensitive' } },
+      // Cari lewat No. SO atau No. PO pelanggan dari Pesanan asal.
+      { salesOrder: { soNumber: { contains: search, mode: 'insensitive' } } },
+      { salesOrder: { customerRefNo: { contains: search, mode: 'insensitive' } } },
     ];
   }
 

@@ -14,7 +14,7 @@ describe('buildDeliveryOrderWhere', () => {
     expect(where('Draft')).toEqual({ status: 'Draft' });
   });
 
-  it('combines party, dates and search (DO number, customer, no. mobil)', () => {
+  it('combines party, dates and search (DO number, customer, no. mobil, SO number, customer PO ref)', () => {
     const r = buildDeliveryOrderWhere({ partyId: 'c1', startDate: '2026-02-01', endDate: '2026-02-28', search: 'BE 1' });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -25,6 +25,8 @@ describe('buildDeliveryOrderWhere', () => {
         { doNumber: { contains: 'BE 1', mode: 'insensitive' } },
         { customer: { name: { contains: 'BE 1', mode: 'insensitive' } } },
         { nomorMobil: { contains: 'BE 1', mode: 'insensitive' } },
+        { salesOrder: { soNumber: { contains: 'BE 1', mode: 'insensitive' } } },
+        { salesOrder: { customerRefNo: { contains: 'BE 1', mode: 'insensitive' } } },
       ],
     });
   });

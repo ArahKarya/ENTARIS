@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Surat Jalan: nomor PO pelanggan dari Pesanan (SO)
+**Diperbaiki**:
+- Surat Jalan yang dibuat dari Pesanan kini membawa **No. PO pelanggan** (`customerRefNo`) dan **No. SO** di semua tempat: daftar (kolom "Ref PO / SO"), drawer detail (No. PO Pelanggan, No. Pesanan), dan **PDF Surat Jalan** (No. PO dan No. SO di kolom kanan kop). Sebelumnya hanya daftar tertunda untuk invoice yang membawa data Pesanan, sehingga daftar, detail, dan PDF tidak menampilkan PO pelanggan sama sekali.
+- Pencarian Surat Jalan kini juga mencari lewat No. SO dan No. PO pelanggan.
+- Baris PO/SO di PDF hanya dicetak bila ada isinya (Surat Jalan tanpa Pesanan tidak berubah).
+
 ### AIRA — pembersihan jalur lama (Tahap 4)
 **Dihapus**:
 - Tabel `ai_whitelist` dan `ai_executed_runs` serta kolom `service_token`, `active_channels`, `whitelist_modules` pada `ai_settings` (migrasi `2026101500000_aira_legacy_cleanup.sql`, idempoten). Data lama (whitelist kanal, catatan eksekusi A3, token layanan) tidak dipakai lagi; jejak panggilan kini ada di `mcp_call_logs`. Kanal dikelola engine AIRA.
