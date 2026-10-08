@@ -1,9 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Link from "next/link";
+import { useRef } from "react";
 import { Icon } from "./HomeIcons";
-import { DEMO_HREF } from "@/components/site/siteConfig";
 
 export type FeaturedModule = {
   id: string;
