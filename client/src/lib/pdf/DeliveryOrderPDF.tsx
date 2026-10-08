@@ -21,6 +21,10 @@ export interface DeliveryOrderPDFProps {
   doNumber: string;
   date: string;
   status: string;
+  /** No. PO pelanggan dari Pesanan asal (bila Surat Jalan dibuat via SO). */
+  poRef?: string | null;
+  /** No. Pesanan (SO) asal. */
+  soNumber?: string | null;
   customer: { name: string; address?: string | null; phone?: string | null };
   nomorMobil?: string | null;
   driverName?: string | null;
@@ -38,7 +42,7 @@ export interface DeliveryOrderPDFProps {
 }
 
 const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
-  title = 'SURAT JALAN', footnote, doNumber, date, customer, nomorMobil, driverName, recipientName, notes, items, company,
+  title = 'SURAT JALAN', footnote, doNumber, date, poRef, soNumber, customer, nomorMobil, driverName, recipientName, notes, items, company,
 }) => (
   <Document title={`${title} ${doNumber}`} author={company.name}>
     <Page size="A4" style={{ ...NCR_PAGE, paddingBottom: FOOTER_SPACE }} wrap>
@@ -50,6 +54,8 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
           <PdfPartyBlock tone="mono" label="Kepada" name={customer.name} lines={[customer.address, customer.phone && `Telp: ${customer.phone}`]} />
         </View>
         <View style={{ flex: 1 }}>
+          {poRef?.trim() ? <PdfMetaField tone="mono" label="No. PO" value={poRef.trim()} bold /> : null}
+          {soNumber ? <PdfMetaField tone="mono" label="No. SO" value={soNumber} bold /> : null}
           <PdfMetaField tone="mono" label="No. Mobil" value={nomorMobil ? nomorMobil.toUpperCase() : null} bold />
           <PdfMetaField tone="mono" label="Supir" value={driverName} bold />
           <PdfMetaField tone="mono" label="Penerima" value={recipientName} bold />

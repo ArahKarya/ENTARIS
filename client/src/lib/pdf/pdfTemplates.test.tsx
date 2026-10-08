@@ -47,6 +47,8 @@ const cases: Array<[string, () => ReactElement]> = [
     }} />
   )],
   ['DeliveryOrderPDF', () => <DeliveryOrderPDF status="Submitted" doNumber="DO-1" date={day} customer={{ name: 'CV Maju' }} items={ncrItems} company={company} />],
+  ['DeliveryOrderPDF (dari SO, dengan No. PO)', () => <DeliveryOrderPDF status="Submitted" doNumber="DO-2" date={day} poRef="PO-7702" soNumber="PSN-202609-0009" customer={{ name: 'CV Maju' }} items={ncrItems} company={company} />],
+  ['DeliveryOrderPDF (SO tanpa No. PO)', () => <DeliveryOrderPDF status="Submitted" doNumber="DO-3" date={day} poRef="  " soNumber="PSN-202609-0010" customer={{ name: 'CV Maju' }} items={ncrItems} company={company} />],
   ['GoodsReceiptPDF', () => <GoodsReceiptPDF sttNumber="STT-1" date={day} supplier={{ name: 'CV Tani' }} items={ncrItems} company={company} />],
   ['WarehouseTransferPDF', () => <WarehouseTransferPDF transferNumber="TRF-1" date={day} fromWarehouseName="A" toWarehouseName="B" items={ncrItems} company={company} />],
   ['WarehouseStockPDF', () => (

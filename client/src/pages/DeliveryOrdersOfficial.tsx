@@ -39,6 +39,7 @@ interface DeliveryOrderRow {
   nomorMobil: string | null;
   customer?: { id: string; name: string } | null;
   invoice?: { id: string; invoiceNumber: string } | null;
+  salesOrder?: { id: string; soNumber: string; customerRefNo: string | null } | null;
   _count?: { items: number };
 }
 
@@ -107,6 +108,21 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>,
+      },
+      {
+        id: 'poRef',
+        header: 'Ref PO / SO',
+        meta: { hideBelow: 'lg', cellClassName: 'min-w-32 whitespace-nowrap' },
+        cell: ({ row }) => {
+          const so = row.original.salesOrder;
+          if (!so) return <span className="text-muted-foreground">-</span>;
+          return (
+            <div className="flex flex-col">
+              <span className="num font-mono text-xs text-foreground">{so.customerRefNo?.trim() || '-'}</span>
+              <span className="num font-mono text-xs text-muted-foreground">{so.soNumber}</span>
+            </div>
+          );
+        },
       },
       {
         id: 'nomorMobil',
@@ -178,7 +194,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
       <FilterBar
         list={list}
         searchLabel="Cari surat jalan"
-        searchPlaceholder="Cari nomor DO, pelanggan, no. mobil"
+        searchPlaceholder="Cari nomor DO, SO, PO, pelanggan, no. mobil"
         status={{ options: STATUS_FILTER }}
         dateRange
       >

@@ -77,6 +77,8 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
         address: customer?.address ?? null,
         phone: customer?.phone ?? null,
       }}
+      poRef={doc.salesOrder?.customerRefNo ?? null}
+      soNumber={doc.salesOrder?.soNumber ?? null}
       nomorMobil={doc.nomorMobil}
       driverName={doc.driverName}
       recipientName={doc.recipientName}
@@ -164,6 +166,18 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                         <dt className="text-xs text-muted-foreground">Tanggal</dt>
                         <dd className="text-xs font-medium text-foreground">{formatDate(doc.date)}</dd>
                       </div>
+                      {doc.salesOrder && (
+                        <>
+                          <div>
+                            <dt className="text-xs text-muted-foreground">No. PO Pelanggan</dt>
+                            <dd className="font-mono text-xs font-medium text-foreground">{doc.salesOrder.customerRefNo?.trim() || '—'}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-muted-foreground">No. Pesanan (SO)</dt>
+                            <dd className="font-mono text-xs font-medium text-foreground">{doc.salesOrder.soNumber}</dd>
+                          </div>
+                        </>
+                      )}
                       <div>
                         <dt className="text-xs text-muted-foreground">No. Mobil</dt>
                         <dd className="font-mono text-xs font-medium uppercase text-foreground">{doc.nomorMobil || '—'}</dd>
