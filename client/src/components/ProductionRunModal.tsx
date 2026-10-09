@@ -270,7 +270,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const itemOptions = useMemo((): ComboboxOption[] =>
     items.filter((i: any) => i.isActive !== false).map((i: any) => ({
       value: i.id,
-      label: `${i.code} — ${i.name}`,
+      label: `${i.code} · ${i.name}`,
     })),
     [items],
   );
@@ -336,7 +336,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       }));
       if (shortfall > 0) {
         newRows.push({ itemId: row.itemId, quantity: String(shortfall), sourceMovementId: '', batchUnitCost: '' });
-        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia — baris sisa memakai biaya rata-rata (WAC).`);
+        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia. Baris sisa memakai biaya rata-rata (WAC).`);
       } else {
         toast.success(`Dibagi ke ${allocations.length} batch (FIFO).`);
       }
@@ -611,7 +611,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
             <DialogDescription>
               {editRun || resubmitRequestId
                 ? 'Catat bahan input, hasil output, biaya, dan data OEE untuk satu proses produksi.'
-                : 'Isi bahan input, hasil output, biaya, dan data OEE. Disimpan sebagai draft — stok, jurnal, dan HPP baru terbentuk setelah draft diposting.'}
+                : 'Isi bahan input, hasil output, biaya, dan data OEE. Disimpan sebagai draft. Stok, jurnal, dan HPP baru terbentuk setelah draft diposting.'}
             </DialogDescription>
           </PinnedHeader>
 
@@ -725,7 +725,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
             {/* Cost components. usedStandardIds: standards already used on another row of this side are hidden (prevents double entry). */}
             <RunCostSection
               title="Biaya Produksi (Sisi Input)"
-              hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Tidak posting GL — informational saja."
+              hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Tidak posting GL (informational saja)."
               rows={inputCostRows}
               standards={standards.filter((s) => s.costSide === 'InputSide')}
               usedStandardIds={new Set(inputCostRows.map((r) => r.c.standardId).filter(Boolean))}

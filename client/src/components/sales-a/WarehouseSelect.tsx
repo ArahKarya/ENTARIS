@@ -58,8 +58,8 @@ export function WarehouseSelect({
       disabled={disabled}
       className={className}
       placeholder={label}
-      emptyLabel={autoDefault ? undefined : '— Tidak dipilih —'}
-      options={warehouses.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))}
+      emptyLabel={autoDefault ? undefined : 'Tidak dipilih'}
+      options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
     />
   );
 }

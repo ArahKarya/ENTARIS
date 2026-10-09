@@ -74,7 +74,7 @@ export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
     onError: (e) => toast.error(apiError(e, 'Gagal simpan service log.')),
   });
 
-  const label = (a: CoaAccount) => `${a.accountNumber} — ${a.name}`;
+  const label = (a: CoaAccount) => `${a.accountNumber} · ${a.name}`;
 
   return (
     <ModalShell title="Tambah Service Log" icon={Wrench} onClose={onClose}>
@@ -115,7 +115,7 @@ export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
                 onChange={setAccountId}
                 options={expenseOptions.map((a) => a.id)}
                 labels={Object.fromEntries(expenseOptions.map((a) => [a.id, label(a)]))}
-                emptyLabel="— pilih akun beban —"
+                emptyLabel="pilih akun beban"
               />
               <SelectField
                 label="Sumber dana (kredit)"
@@ -123,7 +123,7 @@ export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
                 onChange={setCreditAccountId}
                 options={sourceOptions.map((a) => a.id)}
                 labels={Object.fromEntries(sourceOptions.map((a) => [a.id, label(a)]))}
-                emptyLabel="— default: kas utama —"
+                emptyLabel="default: kas utama"
               />
             </FieldRow>
           )}

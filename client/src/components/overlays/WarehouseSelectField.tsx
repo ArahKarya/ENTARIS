@@ -71,10 +71,10 @@ export function WarehouseSelectField({
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
-            {!autoDefault && <SelectItem value={NONE}>— Tidak dipilih —</SelectItem>}
+            {!autoDefault && <SelectItem value={NONE}>Tidak dipilih</SelectItem>}
             {warehouses.map((w) => (
               <SelectItem key={w.id} value={w.id}>
-                {w.code} — {w.name}
+                {w.code} · {w.name}
               </SelectItem>
             ))}
           </SelectContent>

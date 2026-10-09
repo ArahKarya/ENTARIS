@@ -92,7 +92,7 @@ export async function submitPurchaseInvoiceInTx(
       }
       if (grItem.goodsReceipt.isCustomerOwned) {
         throw new BusinessError(
-          `STT ${grItem.goodsReceipt.sttNumber} adalah barang titipan pelanggan (repros) — tidak bisa di-invoice sebagai pembelian.`,
+          `STT ${grItem.goodsReceipt.sttNumber} adalah barang titipan pelanggan (repros). Tidak bisa di-invoice sebagai pembelian.`,
         );
       }
       if (grItem.goodsReceipt.partyId !== body.partyId) {
@@ -134,7 +134,7 @@ export async function submitPurchaseInvoiceInTx(
       .join(', ');
     throw new BusinessError(
       `Item inventori "${names}" tidak bisa di-invoice langsung. ` +
-      `Buat STT / BPB (Bukti Penerimaan Barang) terlebih dahulu — invoice hanya bisa di-generate dari STT yang sudah submit. ` +
+      `Buat STT / BPB (Bukti Penerimaan Barang) terlebih dahulu. Invoice hanya bisa di-generate dari STT yang sudah submit. ` +
       `Stok masuk lewat STT, bukan invoice.`,
     );
   }

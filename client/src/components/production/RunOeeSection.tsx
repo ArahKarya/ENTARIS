@@ -105,10 +105,10 @@ export function RunOeeSection(p: RunOeeSectionProps) {
               {(control) => (
                 <Select value={p.shift || NONE} onValueChange={(v) => p.onShift(v === NONE ? '' : v)}>
                   <SelectTrigger {...control}>
-                    <SelectValue placeholder="— Pilih shift —" />
+                    <SelectValue placeholder="Pilih shift" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE}>— Pilih shift —</SelectItem>
+                    <SelectItem value={NONE}>Pilih shift</SelectItem>
                     <SelectItem value="1">Shift 1</SelectItem>
                     <SelectItem value="2">Shift 2</SelectItem>
                     <SelectItem value="3">Shift 3</SelectItem>
@@ -144,13 +144,13 @@ export function RunOeeSection(p: RunOeeSectionProps) {
                         <div className="min-w-0 flex-1">
                           <Select value={m.machineId || NONE} onValueChange={(v) => p.onUpdateMachine(idx, { machineId: v === NONE ? '' : v })}>
                             <SelectTrigger aria-label={`Mesin baris ${idx + 1}`}>
-                              <SelectValue placeholder="— Pilih mesin —" />
+                              <SelectValue placeholder="Pilih mesin" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={NONE}>— Pilih mesin —</SelectItem>
+                              <SelectItem value={NONE}>Pilih mesin</SelectItem>
                               {p.machines.map((opt) => (
                                 <SelectItem key={opt.id} value={opt.id}>
-                                  {opt.code} — {opt.name}
+                                  {opt.code} · {opt.name}
                                   {opt.idealRatePerHour != null ? ` (${Number(opt.idealRatePerHour).toLocaleString('id-ID')} ${opt.unit}/jam)` : ''}
                                 </SelectItem>
                               ))}
@@ -170,7 +170,7 @@ export function RunOeeSection(p: RunOeeSectionProps) {
                         </Field>
                       </div>
                       {m.machineId && machine && machine.idealRatePerHour == null && (
-                        <p className="text-xs text-warning-text">Mesin ini belum punya kapasitas ideal — Performance OEE tidak terhitung.</p>
+                        <p className="text-xs text-warning-text">Mesin ini belum punya kapasitas ideal. Performance OEE tidak terhitung.</p>
                       )}
                     </li>
                   );
@@ -211,12 +211,12 @@ export function RunOeeSection(p: RunOeeSectionProps) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>— Semua / line —</SelectItem>
+                        <SelectItem value={NONE}>Semua / line</SelectItem>
                         {p.runMachines.filter((m) => m.machineId).map((m) => {
                           const opt = p.machineById.get(m.machineId);
                           return (
                             <SelectItem key={m.machineId} value={m.machineId}>
-                              {opt ? `${opt.code} — ${opt.name}` : m.machineId}
+                              {opt ? `${opt.code} · ${opt.name}` : m.machineId}
                             </SelectItem>
                           );
                         })}
@@ -295,7 +295,7 @@ export function RunOeeSection(p: RunOeeSectionProps) {
                   <PreviewMetric label="OEE" pct={preview.line.oeePct} highlight />
                 </div>
               </div>
-              <p className="text-xs text-info-text">Estimasi — server menghitung ulang saat disimpan.</p>
+              <p className="text-xs text-info-text">Estimasi. Server menghitung ulang saat disimpan.</p>
             </div>
           )}
         </div>

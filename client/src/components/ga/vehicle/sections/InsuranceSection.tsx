@@ -151,7 +151,7 @@ export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
         title="Hapus Data Asuransi"
-        description={`Hapus data asuransi "${deleteTarget ? `${deleteTarget.provider} — ${deleteTarget.policyNumber ?? ''}` : ''}"?`}
+        description={`Hapus data asuransi "${deleteTarget ? `${deleteTarget.provider} · ${deleteTarget.policyNumber ?? ''}` : ''}"?`}
         confirmLabel="Ya, Hapus"
         tone="danger"
         loading={deleteMut.isPending}

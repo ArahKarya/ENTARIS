@@ -522,7 +522,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                     <View key={sidx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingLeft: 8 }}>
                       <Text style={{ fontSize: 7, color: C.muted }}>
                         • {s.accountNumber} {s.accountName}
-                        {s.notes ? ` — ${s.notes}` : ''}
+                        {s.notes ? ` (${s.notes})` : ''}
                       </Text>
                       <Text style={{ fontSize: 7, color: C.muted }}>{idr(Number(s.amount))}</Text>
                     </View>

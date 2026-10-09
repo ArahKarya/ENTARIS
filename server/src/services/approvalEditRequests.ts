@@ -217,11 +217,11 @@ export function computeInvoiceRevise(before: InvoiceBefore, rawBody: Body) {
 export function buildInvoiceReviseComparison(before: InvoiceBefore, body: Body): ApprovalComparison {
   const { lines, totalDelta, newTotal } = computeInvoiceRevise(before, body);
   const rateRows: ComparisonRow[] = lines.map((l) => ({
-    label: `${l.itemName} — harga per ${l.unit || 'unit'}`,
+    label: `${l.itemName} · harga per ${l.unit || 'unit'}`,
     before: l.oldRate, after: l.newRate, kind: 'currency', changed: l.oldRate !== l.newRate,
   }));
   const valueRows: ComparisonRow[] = lines.map((l) => ({
-    label: `${l.itemName} — nilai (${l.quantity.toLocaleString('id-ID')} ${l.unit})`.trim(),
+    label: `${l.itemName} · nilai (${l.quantity.toLocaleString('id-ID')} ${l.unit})`.trim(),
     before: round(l.oldRate * l.quantity, 2), after: round(l.newRate * l.quantity, 2), kind: 'currency',
     changed: l.oldRate !== l.newRate,
   }));
@@ -365,7 +365,7 @@ async function prepareInvoiceRevise(db: Db, invoiceId: string, rawBody: Body) {
   });
   if (!inv) throw new BusinessError('Invoice pembelian tidak ditemukan.');
   if (inv.status === 'Cancelled') throw new BusinessError('Invoice sudah dibatalkan, tidak bisa direvisi.');
-  if (inv.status === 'Draft') throw new BusinessError('Invoice masih Draft — edit langsung, bukan revisi harga.');
+  if (inv.status === 'Draft') throw new BusinessError('Invoice masih Draft. Edit langsung, bukan revisi harga.');
   const known = new Set(inv.items.map((i) => i.id));
   for (const l of body.lines ?? []) {
     if (!known.has(String(l.itemId))) throw new BusinessError('Ada baris revisi yang bukan bagian dari invoice ini.');

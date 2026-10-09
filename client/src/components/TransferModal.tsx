@@ -113,7 +113,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
   const accountOptions = (exclude: string) =>
     (cashAccounts ?? []).map((a: any) => ({
       value: String(a.id),
-      label: `${a.accountNumber} — ${a.name}`,
+      label: `${a.accountNumber} · ${a.name}`,
       disabled: a.id === exclude,
     }));
 
@@ -143,7 +143,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
         <OptionPicker
           value={sourceAccountId}
           onChange={setSourceAccountId}
-          placeholder="— Pilih Akun Asal —"
+          placeholder="Pilih Akun Asal"
           options={accountOptions(destAccountId)}
         />
       </Field>
@@ -161,7 +161,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
         <OptionPicker
           value={destAccountId}
           onChange={setDestAccountId}
-          placeholder="— Pilih Akun Tujuan —"
+          placeholder="Pilih Akun Tujuan"
           options={accountOptions(sourceAccountId)}
         />
       </Field>

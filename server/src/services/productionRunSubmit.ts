@@ -518,7 +518,7 @@ export async function submitProductionRunInTx(
       data: {
         entryNumber: jvNumber,
         date: txDate,
-        narration: `Produksi: ${runNumber} — ${inputNames} → ${outputNames}`,
+        narration: `Produksi: ${runNumber} (${inputNames} → ${outputNames})`,
         status: 'Submitted',
         fiscalYearId: fiscalYear.id,
         createdBy: userId,

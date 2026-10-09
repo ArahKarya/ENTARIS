@@ -165,10 +165,10 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
   });
 
   const supplierOptions: SelectOption[] = (parties ?? []).map((p: any) => ({ value: p.id, label: p.name }));
-  const warehouseOptions: SelectOption[] = (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }));
+  const warehouseOptions: SelectOption[] = (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }));
   const itemOptions = (inventoryItems ?? []).map((i: any) => ({
     value: i.id,
-    label: `${i.code} — ${i.name}`,
+    label: `${i.code} · ${i.name}`,
     meta: { unit: i.unit, name: i.name },
   }));
 
@@ -232,7 +232,7 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
       if (intent === 'draft' || !isDraftFlow) {
         afterSave(isEdit ? `PO ${number} disimpan.` : `Draf PO ${number} tersimpan.`);
       } else if (po?.approvalRequestId) {
-        afterSave(`PO ${number} diajukan — menunggu persetujuan.`);
+        afterSave(`PO ${number} diajukan dan menunggu persetujuan.`);
       } else {
         afterSave(`PO ${number} dipesan.`);
       }
@@ -358,7 +358,7 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
       size="doc"
       className="lg:max-w-6xl"
       title={title}
-      description="Pesanan pembelian ke supplier — tidak ada GL/stock impact"
+      description="Pesanan pembelian ke supplier (tidak ada GL/stock impact)"
       busy={mutation.isPending}
       footer={footer}
     >
@@ -391,11 +391,11 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {!isUmum && (
           <Field label="Supplier" required error={errors.partyId}>
-            <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="— Pilih Supplier —" />
+            <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
           </Field>
         )}
         <Field label="Gudang Tujuan" hint="Dipakai sebagai gudang default saat Buat STT dari PO.">
-          <OptionPicker options={warehouseOptions} value={warehouseId} onChange={setWarehouseId} placeholder="— Pilih gudang —" />
+          <OptionPicker options={warehouseOptions} value={warehouseId} onChange={setWarehouseId} placeholder="Pilih gudang" />
         </Field>
         <Field label="No. Penawaran Pemasok">
           <Input type="text" value={supplierQuoteRef} onChange={(e) => setSupplierQuoteRef(e.target.value)} maxLength={100} placeholder="mis. QT-2026/0042" />
@@ -417,8 +417,8 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
                 value={termSel}
                 onChange={setTermSel}
                 searchable={false}
-                placeholder="— Tidak ditentukan —"
-                emptyLabel="— Tidak ditentukan —"
+                placeholder="Tidak ditentukan"
+                emptyLabel="Tidak ditentukan"
                 options={[
                   ...PAYMENT_TERM_PRESETS.map((d) => ({ value: String(d), label: paymentTermLabel(d) })),
                   { value: 'custom', label: 'Lainnya…' },

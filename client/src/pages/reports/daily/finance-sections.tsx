@@ -43,7 +43,7 @@ export function FinanceSection({ data }: { data: DailyData['finance'] }) {
       <ul className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {data.cashBankBalances.map((cb) => (
           <li key={cb.accountNumber} className="rounded-lg border border-border bg-info-subtle px-3 py-2">
-            <p className="text-xs font-medium text-info-text">{cb.accountNumber} — {cb.accountName}</p>
+            <p className="text-xs font-medium text-info-text">{cb.accountNumber} · {cb.accountName}</p>
             <p className="num mt-0.5 text-sm font-semibold text-foreground">{formatRupiah(cb.balance, { negative: 'parens' })}</p>
           </li>
         ))}

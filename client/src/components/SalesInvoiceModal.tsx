@@ -126,7 +126,7 @@ const SalesInvoiceModal: React.FC<{
     () =>
       (inventoryItems ?? []).map((inv: any) => ({
         value: inv.id,
-        label: `${inv.code} — ${inv.name} (${inv.currentStock} ${inv.unit})`,
+        label: `${inv.code} · ${inv.name} (${inv.currentStock} ${inv.unit})`,
       })),
     [inventoryItems],
   );
@@ -135,7 +135,7 @@ const SalesInvoiceModal: React.FC<{
     () =>
       (serviceItems ?? []).map((svc: any) => ({
         value: svc.id,
-        label: `${svc.code} — ${svc.name} (${svc.unit})`,
+        label: `${svc.code} · ${svc.name} (${svc.unit})`,
       })),
     [serviceItems],
   );
@@ -431,7 +431,7 @@ const SalesInvoiceModal: React.FC<{
                           setItems([defaultItem()]);
                         }
                       }}
-                      placeholder="— Pilih / cari pelanggan —"
+                      placeholder="Pilih / cari pelanggan"
                       aria-label="Pilih pelanggan"
                     />
                   )}
@@ -447,7 +447,7 @@ const SalesInvoiceModal: React.FC<{
                   <div role="status" className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-subtle p-2">
                     <span className="text-xs font-semibold text-warning-text">⚠ WAPU</span>
                     <p className="text-xs leading-snug text-warning-text">
-                      Customer ini Wajib Pungut — PPN dipungut sendiri oleh customer ke kas negara.
+                      Customer ini Wajib Pungut. PPN dipungut sendiri oleh customer ke kas negara.
                       Semua baris item akan otomatis PPN 0%.
                     </p>
                   </div>
@@ -516,7 +516,7 @@ const SalesInvoiceModal: React.FC<{
                 <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary-subtle p-2.5 text-xs text-primary-subtle-foreground">
                   <Truck size={13} className="mt-0.5 shrink-0" aria-hidden />
                   <span>
-                    Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim — COGS pakai biaya per unit yang dikunci di Surat Jalan.
+                    Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim. COGS pakai biaya per unit yang dikunci di Surat Jalan.
                   </span>
                 </p>
               )}
@@ -659,7 +659,7 @@ const SalesInvoiceModal: React.FC<{
                       {orphanInventoryLines.map((l) => (
                         <li key={l.id}>
                           <span className="font-medium">{l.itemName}</span>
-                          <span> — belum link ke Surat Jalan</span>
+                          <span>: belum link ke Surat Jalan</span>
                         </li>
                       ))}
                     </ul>
@@ -716,7 +716,7 @@ const SalesInvoiceModal: React.FC<{
                 {canSubmit
                   ? `Total: ${formatRupiah(grandTotal)}`
                   : hasOrphanInventory
-                    ? 'Item inventori harus via Surat Jalan — lihat peringatan di atas.'
+                    ? 'Item inventori harus via Surat Jalan. Lihat peringatan di atas.'
                     : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
               </p>
               <FooterButton type="submit" loading={mutation.isPending} disabled={!canSubmit && !mutation.isPending}>

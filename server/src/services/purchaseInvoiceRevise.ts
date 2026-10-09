@@ -82,7 +82,7 @@ export async function revisePurchaseInvoiceInTx(
   });
   if (!invoice) throw new BusinessError('Invoice pembelian tidak ditemukan.');
   if (invoice.status === 'Cancelled') throw new BusinessError('Invoice sudah dibatalkan, tidak bisa direvisi.');
-  if (invoice.status === 'Draft') throw new BusinessError('Invoice masih Draft — edit langsung, bukan revisi harga.');
+  if (invoice.status === 'Draft') throw new BusinessError('Invoice masih Draft. Edit langsung, bukan revisi harga.');
 
   const lineMap = new Map(invoice.items.map((it) => [it.id, it]));
 
@@ -229,7 +229,7 @@ export async function revisePurchaseInvoiceInTx(
     data: {
       entryNumber,
       date: now,
-      narration: `Revisi harga ${invoice.invoiceNumber} — ${invoice.supplier.name}: ${input.reason.trim()}`,
+      narration: `Revisi harga ${invoice.invoiceNumber} (${invoice.supplier.name}): ${input.reason.trim()}`,
       status: 'Submitted',
       submittedAt: now,
       fiscalYearId: invoice.fiscalYearId,

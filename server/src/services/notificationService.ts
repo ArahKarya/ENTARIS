@@ -239,7 +239,7 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
       userIds,
       type: 'guarantee_due',
       title: overdue ? 'Uang Jaminan Lewat Jatuh Tempo' : 'Uang Jaminan Mendekati Jatuh Tempo',
-      message: `${g.guaranteeNumber} (${g.projectName}) ke ${g.party.name} — sisa Rp ${outstanding.toLocaleString('id-ID')}, ${overdue ? 'jatuh tempo pengembalian sudah lewat' : 'jatuh tempo pengembalian'} ${dueStr}. Tagih pengembalian ke pemberi proyek.`,
+      message: `${g.guaranteeNumber} (${g.projectName}) ke ${g.party.name}: sisa Rp ${outstanding.toLocaleString('id-ID')}, ${overdue ? 'jatuh tempo pengembalian sudah lewat' : 'jatuh tempo pengembalian'} ${dueStr}. Tagih pengembalian ke pemberi proyek.`,
       metadata: { guaranteeId: g.id, guaranteeNumber: g.guaranteeNumber },
     });
   }

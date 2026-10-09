@@ -297,7 +297,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     : (isReceive ? 'Terima Pembayaran' : 'Bayar Hutang');
 
   const accountOptions = (list?: any[]) =>
-    (list ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} — ${a.name}` }));
+    (list ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` }));
 
   const typeButtons: Array<{ t: PaymentType; label: string; icon: React.ReactNode }> = [
     { t: 'Receive', label: 'Penerimaan', icon: <TrendingDown aria-hidden /> },
@@ -355,7 +355,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           hint={
             isDepositRefund ? (
               <>
-                Refund uang muka — sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
+                Refund uang muka: sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
                 Sisa uang muka: <span className="font-semibold">{formatRupiah(selectedSource?.remaining ?? 0)}</span>.
                 Saldo deposit otomatis turun, jurnal: DR Bank / CR Uang Muka.
               </>
@@ -370,8 +370,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           <OptionPicker
             value={refundSourcePaymentId}
             onChange={setRefundSourcePaymentId}
-            placeholder="— Tanpa link (generic refund) —"
-            emptyLabel="— Tanpa link (generic refund) —"
+            placeholder="Tanpa link (generic refund)"
+            emptyLabel="Tanpa link (generic refund)"
             searchable={false}
             options={(sourcePayments ?? []).map((p: any) => ({
               value: p.id,
@@ -391,7 +391,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           <OptionPicker
             value={partyId}
             onChange={setPartyId}
-            placeholder="— Pilih —"
+            placeholder="Pilih"
             options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
           />
         </Field>
@@ -402,7 +402,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           {openInvoices.length > 0 && (
             <Callout tone="info" icon={<span className="sr-only">Info:</span>}>
               <p className="mb-2 font-medium">
-                {openInvoices.length} invoice terbuka — total <span className="num">{formatRupiah(totalInvoiceOutstanding)}</span>
+                {openInvoices.length} invoice terbuka, total <span className="num">{formatRupiah(totalInvoiceOutstanding)}</span>
               </p>
               <div
                 role="region"
@@ -473,7 +473,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           <OptionPicker
             value={accountId}
             onChange={setAccountId}
-            placeholder="— Pilih Akun —"
+            placeholder="Pilih Akun"
             options={accountOptions(cashAccounts)}
           />
         </Field>
@@ -496,7 +496,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
                     aria-label={`Akun baris split ${n}`}
                     value={sp.accountId}
                     onChange={(v) => updateSplit(idx, { accountId: v })}
-                    placeholder="— Pilih Akun —"
+                    placeholder="Pilih Akun"
                     options={accountOptions(allAccounts)}
                   />
                 </div>

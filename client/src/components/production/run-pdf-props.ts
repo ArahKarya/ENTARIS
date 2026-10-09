@@ -51,7 +51,7 @@ export function buildPdfProps(run: any, company: ReturnType<typeof useCompanyPDF
   return {
     runNumber: run.runNumber,
     date: run.date,
-    warehouseName: firstWh ? `${firstWh.code} — ${firstWh.name}` : null,
+    warehouseName: firstWh ? `${firstWh.code} · ${firstWh.name}` : null,
     referenceNumber: run.referenceNumber ?? null,
     notes: run.notes ?? null,
     yieldPct: run.yieldPct != null ? Number(run.yieldPct) : null,

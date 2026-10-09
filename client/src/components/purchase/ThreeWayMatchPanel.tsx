@@ -57,7 +57,7 @@ export function ThreeWayMatchPanel({ match, loading, className }: PanelProps) {
       {match && (
         <p className="mt-1 text-xs text-muted-foreground">
           Toleransi: qty {match.tolerance.qtyPct}% · harga {match.tolerance.pricePct}% dari harga PO (setelah diskon).
-          Peringatan saja — tidak memblokir penyimpanan.
+          Peringatan saja, tidak memblokir penyimpanan.
         </p>
       )}
       {lines.length > 0 && (

@@ -378,7 +378,7 @@ export const GaDocumentsPage = () => {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Hapus Dokumen"
-        description={`Hapus dokumen ${deleteTarget?.code ?? ''} — ${deleteTarget?.title ?? ''}? Semua versi file ikut terhapus.`}
+        description={`Hapus dokumen ${deleteTarget?.code ?? ''} · ${deleteTarget?.title ?? ''}? Semua versi file ikut terhapus.`}
         confirmLabel="Ya, Hapus"
         tone="danger"
         loading={deleteMutation.isPending}

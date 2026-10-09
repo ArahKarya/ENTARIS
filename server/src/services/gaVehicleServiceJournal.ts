@@ -67,7 +67,7 @@ export async function postVehicleServiceJournalInTx(
   }
   if (log.source !== 'EAM') {
     throw new BusinessError(
-      `Service log bersumber "${log.source}" (data historis) tidak dapat diposting ke jurnal — nilainya sudah tercatat di GL lewat input manual.`,
+      `Service log bersumber "${log.source}" (data historis) tidak dapat diposting ke jurnal karena nilainya sudah tercatat di GL lewat input manual.`,
     );
   }
 
@@ -117,7 +117,7 @@ export async function postVehicleServiceJournalInTx(
   const entryNumber = await generateDocumentNumber(tx, 'JV', parsedDate, fiscalYear.id);
 
   const plat = log.asset?.name ?? log.asset?.code ?? '-';
-  const narration = `Biaya service kendaraan ${plat} — ${log.deskripsi}${log.bengkel ? ` (${log.bengkel})` : ''}`;
+  const narration = `Biaya service kendaraan ${plat}: ${log.deskripsi}${log.bengkel ? ` (${log.bengkel})` : ''}`;
 
   const journalEntry = await tx.journalEntry.create({
     data: {

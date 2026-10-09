@@ -112,7 +112,7 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
       open={isOpen}
       onClose={onClose}
       title="Refund / Offset Uang Muka Vendor"
-      description={`${deposit.paymentNumber} — ${deposit.party?.name ?? ''}`}
+      description={`${deposit.paymentNumber} · ${deposit.party?.name ?? ''}`}
       busy={mutation.isPending}
       submitLabel="Proses"
       busyLabel="Memproses…"
@@ -177,8 +177,8 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
             aria-label="Akun kas/bank untuk refund"
             value={cashAccountId}
             onChange={setCashAccountId}
-            placeholder="— Pilih akun kas/bank —"
-            options={(cashAccounts || []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} — ${a.name}` }))}
+            placeholder="Pilih akun kas/bank"
+            options={(cashAccounts || []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` }))}
             className="mt-2"
           />
         )}

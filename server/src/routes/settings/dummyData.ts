@@ -537,7 +537,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
               data: {
                 movementNumber: smAdjNum, date: adjDate, itemId: bekatul.id, movementType: 'AdjustmentOut',
                 quantity: adjQty, unitCost: 0, totalValue: 0,
-                notes: 'Stok opname — selisih bekatul', fiscalYearId: adjFy.id, createdById: admin.id, warehouseId: whId,
+                notes: 'Stok opname: selisih bekatul', fiscalYearId: adjFy.id, createdById: admin.id, warehouseId: whId,
               },
             });
             await applyStock(bekatul.id, -adjQty);

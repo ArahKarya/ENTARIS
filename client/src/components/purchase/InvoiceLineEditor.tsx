@@ -138,11 +138,11 @@ export function InvoiceLineEditor({
                       id={`pi-inv-${k}`}
                       value={item.inventoryItemId}
                       onChange={(v) => onSelectInventory(idx, v)}
-                      placeholder="— Pilih dari Stok —"
-                      emptyLabel="— Pilih dari Stok —"
+                      placeholder="Pilih dari Stok"
+                      emptyLabel="Pilih dari Stok"
                       options={(inventoryItems ?? []).map((inv) => ({
                         value: inv.id,
-                        label: inv.code ? `${inv.code} — ${inv.name}` : inv.name,
+                        label: inv.code ? `${inv.code} · ${inv.name}` : inv.name,
                       }))}
                     />
                     {!item.inventoryItemId && (

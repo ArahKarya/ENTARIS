@@ -232,7 +232,7 @@ export function InsuranceModal({ assetId, editRecord, onClose, onSaved }: BasePr
         try {
           const documentId = await uploadSupportingDocument({
             file,
-            title: `Polis ${f.provider} — ${f.policyNumber || INSURANCE_TYPE_LABELS[f.type]}`,
+            title: `Polis ${f.provider} · ${f.policyNumber || INSURANCE_TYPE_LABELS[f.type]}`,
             typeCode: 'ASURANSI_KENDARAAN',
             assetId,
           });

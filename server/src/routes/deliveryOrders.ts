@@ -133,7 +133,7 @@ router.post('/', async (req: AuthRequest, res) => {
           payload: req.body,
           amount: 0,
           requestedBy: req.user!.userId,
-          label: 'Surat Jalan (menunggu approval — stok minus)',
+          label: 'Surat Jalan (menunggu approval, stok minus)',
         }),
       );
       const requester = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { fullName: true } });

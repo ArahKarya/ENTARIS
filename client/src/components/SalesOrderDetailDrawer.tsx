@@ -442,8 +442,8 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                               aria-label="Terima ke Kas/Bank"
                               value={dpAccountId}
                               onChange={setDpAccountId}
-                              emptyLabel="— Pilih akun —"
-                              options={(cashAccounts ?? []).map((a: any) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` }))}
+                              emptyLabel="Pilih akun"
+                              options={(cashAccounts ?? []).map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` }))}
                             />
                           )}
                         </Field>
@@ -502,7 +502,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                             aria-label="Gudang Sumber"
                             value={genWarehouseId}
                             onChange={setGenWarehouseId}
-                            emptyLabel="— Pilih gudang —"
+                            emptyLabel="Pilih gudang"
                             options={(warehouses ?? []).map((w: any) => ({ value: w.id, label: w.name }))}
                           />
                         )}

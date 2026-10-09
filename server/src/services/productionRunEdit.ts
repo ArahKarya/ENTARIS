@@ -478,7 +478,7 @@ export async function editProductionRunInTx(
       data: {
         entryNumber: oldJvNumber + revSuffix,
         date: txDate,
-        narration: `Produksi (revisi): ${oldRun.runNumber} — ${inputNames} → ${outputNames}`,
+        narration: `Produksi (revisi): ${oldRun.runNumber} (${inputNames} → ${outputNames})`,
         status: 'Submitted',
         fiscalYearId: fiscalYear.id,
         createdBy: userId,

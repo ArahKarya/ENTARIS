@@ -53,7 +53,7 @@ export function RunInputsSection({
                     options={itemOptions}
                     value={row.itemId}
                     onChange={(v) => onUpdate(idx, 'itemId', v)}
-                    placeholder="— Pilih Item —"
+                    placeholder="Pilih Item"
                     hint={
                       item
                         ? `Stok gudang: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit ?? ''}`
@@ -168,7 +168,7 @@ export function RunOutputsSection({
                     options={itemOptions}
                     value={row.itemId}
                     onChange={(v) => onUpdate(idx, 'itemId', v)}
-                    placeholder="— Pilih Item —"
+                    placeholder="Pilih Item"
                   />
                 </div>
                 <Field label={`Qty${item?.unit ? ` (${item.unit})` : ''}`}>

@@ -251,7 +251,7 @@ export function PaymentRequestTypesTab() {
             </Field>
             <AccountPicker
               label="Akun biaya default"
-              hint="Opsional — terisi otomatis di rincian, bisa diubah Keuangan."
+              hint="Opsional. Terisi otomatis di rincian, bisa diubah Keuangan."
               value={form.defaultExpenseAccountId}
               onChange={(v) => set('defaultExpenseAccountId', v)}
               accounts={expenseAccounts}

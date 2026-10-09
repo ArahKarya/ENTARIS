@@ -137,7 +137,7 @@ export function DepreciationRunPanel({ month, onMonthChange }: DepreciationRunPa
               Posting penyusutan bulanan
             </h2>
             <p className="max-w-prose text-sm text-muted-foreground">
-              Memposting semua jadwal penyusutan aset aktif yang jatuh di bulan terpilih dan belum diposting — satu
+              Memposting semua jadwal penyusutan aset aktif yang jatuh di bulan terpilih dan belum diposting. Satu
               jurnal per aset agar mudah ditelusuri.
             </p>
           </div>

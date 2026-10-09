@@ -309,7 +309,7 @@ export const Warehouses = () => {
               Gudang <strong>{deactivateTarget.name}</strong> tidak akan muncul lagi di pilihan gudang dan dashboard
               stok. Saldo dan riwayat transaksinya tetap tersimpan, dan gudang bisa diaktifkan kembali kapan saja.
               {deactivateTarget.isDefault && (
-                <> Gudang ini adalah gudang default — tetapkan gudang lain sebagai default terlebih dahulu.</>
+                <> Gudang ini adalah gudang default. Tetapkan gudang lain sebagai default terlebih dahulu.</>
               )}
             </>
           ) : null

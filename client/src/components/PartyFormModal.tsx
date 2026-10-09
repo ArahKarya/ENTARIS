@@ -284,7 +284,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
 
           <OverlayFooter className="sm:items-center sm:justify-between">
             <p className="hidden truncate text-xs text-muted-foreground sm:block">
-              {typeLabel}{form.name ? ` — ${form.name}` : ''}
+              {typeLabel}{form.name ? ` · ${form.name}` : ''}
             </p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>

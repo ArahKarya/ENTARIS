@@ -178,7 +178,7 @@ async function loadPostingContext(tx: Tx, id: string, lineAccounts: LineAccounts
     expenseAccountId: overrides.has(r.id) ? (overrides.get(r.id) as string | null) : r.expenseAccountId,
   }));
   const advanceAccountId = await resolveAdvanceAccount(tx, pr.journalEntryId);
-  const narration = `Pertanggungjawaban ${pr.number} — ${pr.purpose}`.slice(0, 250);
+  const narration = `Pertanggungjawaban ${pr.number}: ${pr.purpose}`.slice(0, 250);
   return { pr, lines, advanceAccountId, narration };
 }
 
@@ -202,7 +202,7 @@ export async function previewSettlementInTx(
   });
   const ids = [...new Set(preview.lines.map((l) => l.accountId).filter((a): a is string => !!a))];
   const accounts = await tx.account.findMany({ where: { id: { in: ids } }, select: { id: true, accountNumber: true, name: true } });
-  const label = new Map(accounts.map((a) => [a.id, `${a.accountNumber} — ${a.name}`]));
+  const label = new Map(accounts.map((a) => [a.id, `${a.accountNumber} · ${a.name}`]));
   return { ...preview, lines: preview.lines.map((l) => ({ ...l, accountLabel: l.accountId ? label.get(l.accountId) ?? null : null })) };
 }
 

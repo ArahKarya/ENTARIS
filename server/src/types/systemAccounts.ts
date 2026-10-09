@@ -142,7 +142,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
   SALES_DISCOUNT: {
     key: 'SALES_DISCOUNT',
     label: 'Diskon Penjualan',
-    description: 'Contra revenue — potongan harga penjualan ke pelanggan',
+    description: 'Contra revenue: potongan harga penjualan ke pelanggan',
     multiAccount: false,
     required: false,
     expectedRootType: 'REVENUE' as const,
@@ -150,7 +150,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
   SALES_RETURN: {
     key: 'SALES_RETURN',
     label: 'Retur Penjualan',
-    description: 'Contra revenue — pengembalian barang dari pelanggan',
+    description: 'Contra revenue: pengembalian barang dari pelanggan',
     multiAccount: false,
     required: false,
     expectedRootType: 'REVENUE' as const,
@@ -248,7 +248,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
   ALLOWANCE_DOUBTFUL: {
     key: 'ALLOWANCE_DOUBTFUL',
     label: 'Cadangan Kerugian Piutang',
-    description: 'Contra asset — penyisihan piutang ragu-ragu',
+    description: 'Contra asset: penyisihan piutang ragu-ragu',
     multiAccount: false,
     required: false,
     expectedRootType: 'ASSET' as const,
@@ -258,7 +258,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
   PREPAID_EXPENSE: {
     key: 'PREPAID_EXPENSE',
     label: 'Biaya Dibayar Dimuka',
-    description: 'Aset lancar — biaya yang sudah dibayar tapi belum jatuh tempo',
+    description: 'Aset lancar: biaya yang sudah dibayar tapi belum jatuh tempo',
     multiAccount: true,
     required: false,
     expectedRootType: 'ASSET' as const,
@@ -266,7 +266,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
   ACCRUED_EXPENSE: {
     key: 'ACCRUED_EXPENSE',
     label: 'Hutang Beban Akrual',
-    description: 'Kewajiban — beban yang sudah terjadi tapi belum dibayar',
+    description: 'Kewajiban: beban yang sudah terjadi tapi belum dibayar',
     multiAccount: false,
     required: false,
     expectedRootType: 'LIABILITY' as const,

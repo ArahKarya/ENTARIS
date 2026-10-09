@@ -37,7 +37,7 @@ export function TravelSection({ value, onChange, errors = {} }: TravelSectionPro
         <Field label="Tanggal kembali" required error={errors.endDate} hint={days ? `Durasi ${days} hari (${Math.max(days - 1, 0)} malam).` : 'Tidak boleh sebelum tanggal berangkat.'}>
           {(control) => <DateInput id={control.id} value={value.endDate} min={value.startDate || undefined} onChange={(v) => set('endDate', v)} />}
         </Field>
-        <Field label="Peserta" hint="Opsional — nama peserta lain bila berangkat bersama." className="sm:col-span-2">
+        <Field label="Peserta" hint="Opsional. Nama peserta lain bila berangkat bersama." className="sm:col-span-2">
           <Textarea rows={2} maxLength={500} value={value.participants} onChange={(e) => set('participants', e.target.value)} />
         </Field>
       </CardContent>

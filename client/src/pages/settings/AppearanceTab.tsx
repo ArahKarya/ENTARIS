@@ -20,7 +20,7 @@ export function AppearanceTab() {
         </p>
         <p>
           {currentMeta.description}
-          {theme === 'system' && ` — saat ini ${resolvedTheme === 'dark' ? 'gelap' : 'terang'}.`}
+          {theme === 'system' && `, saat ini ${resolvedTheme === 'dark' ? 'gelap' : 'terang'}.`}
         </p>
       </div>
     </SettingsCard>

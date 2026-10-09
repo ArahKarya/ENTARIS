@@ -136,7 +136,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
                   options={(customers ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
                   value={partyId}
                   onChange={setPartyId}
-                  placeholder="— Pilih Pelanggan —"
+                  placeholder="Pilih Pelanggan"
                   disabled={!!savedId}
                 />
             </div>
@@ -191,10 +191,10 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
                 <Field label="Akun Kas/Bank" required>
                   {(control) => (
                     <Select value={accountId} onValueChange={setAccountId} disabled={!!savedId}>
-                      <SelectTrigger {...control}><SelectValue placeholder="— Pilih Akun —" /></SelectTrigger>
+                      <SelectTrigger {...control}><SelectValue placeholder="Pilih Akun" /></SelectTrigger>
                       <SelectContent>
                         {cashAccounts?.map((a: any) => (
-                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} · {a.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

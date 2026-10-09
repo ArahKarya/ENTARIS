@@ -83,7 +83,7 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
   const pdfDoc = note ? (
     <DeliveryOrderPDF
       title="SURAT JALAN SEMENTARA"
-      footnote="Dokumen sementara — bukan dokumen resmi penagihan. Akan ditautkan ke surat jalan resmi."
+      footnote="Dokumen sementara, bukan dokumen resmi penagihan. Akan ditautkan ke surat jalan resmi."
       doNumber={note.number}
       date={note.date}
       status={note.status}
@@ -107,7 +107,7 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
               {note?.number ?? 'Surat Jalan Sementara'}
               {note && <StatusBadge status={note.status} label={sc.label} tone={scTone} />}
             </SheetTitle>
-            <SheetDescription className="text-xs">Dokumen sementara — tanpa stok, tanpa jurnal</SheetDescription>
+            <SheetDescription className="text-xs">Dokumen sementara: tanpa stok, tanpa jurnal</SheetDescription>
           </SheetHeader>
 
           <SheetBody className="p-0">
@@ -215,7 +215,7 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
               <Field label="Surat jalan resmi" required>
                 {(control) => (
                   <Select value={linkDoId} onValueChange={setLinkDoId}>
-                    <SelectTrigger {...control}><SelectValue placeholder="— pilih surat jalan resmi —" /></SelectTrigger>
+                    <SelectTrigger {...control}><SelectValue placeholder="pilih surat jalan resmi" /></SelectTrigger>
                     <SelectContent>
                       {(doCandidates ?? []).map((d: any) => (
                         <SelectItem key={d.id} value={d.id}>

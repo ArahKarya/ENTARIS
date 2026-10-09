@@ -89,7 +89,7 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
   options={assetOptions(assets)}
   value={form.assetId}
   onChange={(v) => set({ assetId: v })}
-  placeholder={isLoading ? 'Memuat…' : '— Pilih aset —'}
+  placeholder={isLoading ? 'Memuat…' : 'Pilih aset'}
 />
       )}
       <fieldset className="flex flex-col gap-1.5" aria-describedby="schedule-interval-hint">

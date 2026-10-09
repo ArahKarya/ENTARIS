@@ -60,7 +60,7 @@ export function WarehouseField({
       onChange={onChange}
       placeholder={placeholder}
       disabled={disabled}
-      options={warehouses.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))}
+      options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
     />
   );
 }

@@ -104,7 +104,7 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
   options={assetOptions(assets)}
   value={form.assetId}
   onChange={(v) => set({ assetId: v })}
-  placeholder={isLoading ? 'Memuat…' : '— Pilih aset —'}
+  placeholder={isLoading ? 'Memuat…' : 'Pilih aset'}
   disabled={!!prefill?.assetId}
 />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -224,7 +224,7 @@ export function AssignModal({
   options={(users ?? []).map((u) => ({ value: u.id, label: `${u.fullName} (${u.username})` }))}
   value={assignedToId}
   onChange={setAssignedToId}
-  placeholder={isLoading ? 'Memuat…' : '— Pilih teknisi —'}
+  placeholder={isLoading ? 'Memuat…' : 'Pilih teknisi'}
 />
     </FormModal>
   );
@@ -388,16 +388,16 @@ export function AddPartModal({ id, onClose, onDone }: { id: string; onClose: () 
       submitting={mutation.isPending}
     >
       <ComboboxField label="Item inventaris" required error={submitted ? errors.item : undefined}
-  options={(items ?? []).map((it) => ({ value: it.id, label: `${it.sku} — ${it.name}` }))}
+  options={(items ?? []).map((it) => ({ value: it.id, label: `${it.sku} · ${it.name}` }))}
   value={form.inventoryItemId}
   onChange={(v) => set({ inventoryItemId: v })}
-  placeholder={loadingItems ? 'Memuat…' : '— Pilih item —'}
+  placeholder={loadingItems ? 'Memuat…' : 'Pilih item'}
 />
       <ComboboxField label="Lokasi asal" hint="Isi untuk mengurangi stok dari lokasi ini."
-  options={(locations ?? []).map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
+  options={(locations ?? []).map((l) => ({ value: l.id, label: `${l.code} · ${l.name}` }))}
   value={form.fromLocationId}
   onChange={(v) => set({ fromLocationId: v })}
-  placeholder="— Tanpa pengurangan stok —"
+  placeholder="Tanpa pengurangan stok"
 />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Qty" required error={submitted ? errors.qty : undefined}>

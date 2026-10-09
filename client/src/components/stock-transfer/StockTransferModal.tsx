@@ -97,7 +97,7 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
       }));
       if (shortfall > 0) {
         newRows.push({ id: crypto.randomUUID(), itemId: row.itemId, quantity: shortfall, unit: row.unit, sourceMovementId: '' });
-        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia — baris sisa memakai biaya rata-rata (WAC).`);
+        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia. Baris sisa memakai biaya rata-rata (WAC).`);
       } else {
         toast.success(`Dibagi ke ${allocations.length} batch (FIFO).`);
       }
@@ -130,12 +130,12 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
   });
 
   const whOptions = useMemo<ComboboxOption[]>(
-    () => (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` })),
+    () => (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` })),
     [warehouses],
   );
 
   const itemOptions = useMemo<ComboboxOption[]>(
-    () => (invItems ?? []).map((i) => ({ value: i.id, label: `${i.code} — ${i.name}` })),
+    () => (invItems ?? []).map((i) => ({ value: i.id, label: `${i.code} · ${i.name}` })),
     [invItems],
   );
 

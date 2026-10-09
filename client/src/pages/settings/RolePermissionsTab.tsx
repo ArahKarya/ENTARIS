@@ -202,7 +202,7 @@ export const RolePermissionsTab: React.FC = () => {
           <SettingsCard title={selected.name}>
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Lock className="size-4 shrink-0" aria-hidden />
-              Peran ini adalah super-admin — selalu memiliki akses penuh dan tidak dapat dibatasi.
+              Peran ini adalah super-admin, selalu memiliki akses penuh dan tidak dapat dibatasi.
             </p>
           </SettingsCard>
         ) : (
@@ -233,7 +233,7 @@ export const RolePermissionsTab: React.FC = () => {
                 </Field>
               </div>
               {selected.isSystem && (
-                <p className="mt-3 text-xs text-muted-foreground">Peran bawaan — izinnya boleh diubah, tetapi peran tidak dapat dihapus.</p>
+                <p className="mt-3 text-xs text-muted-foreground">Peran bawaan: izinnya boleh diubah, tetapi peran tidak dapat dihapus.</p>
               )}
               {!selected.isSystem && selected.userCount > 0 && (
                 <p className="mt-3 text-xs text-muted-foreground">Peran masih dipakai {selected.userCount} pengguna sehingga tidak dapat dihapus.</p>

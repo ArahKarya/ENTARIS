@@ -136,7 +136,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
       const raw = (await api.get('/warehouses')).data;
       const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
       const m: Record<string, string> = {};
-      for (const w of list) m[w.id] = w.code ? `${w.code} — ${w.name}` : w.name;
+      for (const w of list) m[w.id] = w.code ? `${w.code} · ${w.name}` : w.name;
       return m;
     },
     staleTime: 5 * 60 * 1000,
@@ -147,7 +147,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
       const raw = (await api.get('/inventory/machines')).data;
       const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
       const m: Record<string, string> = {};
-      for (const mc of list) m[mc.id] = mc.code ? `${mc.code} — ${mc.name}` : mc.name;
+      for (const mc of list) m[mc.id] = mc.code ? `${mc.code} · ${mc.name}` : mc.name;
       return m;
     },
     staleTime: 5 * 60 * 1000,
@@ -164,7 +164,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const approveMut = useMutation({
     mutationFn: async (id: string) => (await api.post(`/approvals/requests/${id}/approve`, { notes: '' })).data,
     onSuccess: (data: any) => {
-      toast.success(data?.createdDocument ? `Disetujui — ${data.createdDocument.number} dibuat.` : 'Disetujui.');
+      toast.success(data?.createdDocument ? `Disetujui. ${data.createdDocument.number} dibuat.` : 'Disetujui.');
       invalidateAll();
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal approve.'),

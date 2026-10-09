@@ -153,10 +153,10 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
 
   const diffMessage =
     diff === 0
-      ? 'Realisasi sama dengan uang muka — tidak ada pengembalian maupun kekurangan.'
+      ? 'Realisasi sama dengan uang muka. Tidak ada pengembalian maupun kekurangan.'
       : diff < 0
-        ? `Sisa uang muka ${formatMoney(-diff)} — dikembalikan ke kas perusahaan (dicatat Keuangan saat memposting).`
-        : `Kurang bayar ${formatMoney(diff)} — dibayarkan perusahaan kepada Anda (dicatat Keuangan saat memposting).`;
+        ? `Sisa uang muka ${formatMoney(-diff)} dikembalikan ke kas perusahaan (dicatat Keuangan saat memposting).`
+        : `Kurang bayar ${formatMoney(diff)} dibayarkan perusahaan kepada Anda (dicatat Keuangan saat memposting).`;
 
   return (
     <form
@@ -204,7 +204,7 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
             <CardHeader>
               <CardTitle>Rincian realisasi</CardTitle>
               <CardDescription>
-                {isTravel ? 'Dimulai dari rencana perjalanan — ubah nominal sesuai biaya sebenarnya, tambah atau hapus baris.' : 'Catat pengeluaran yang benar-benar terjadi.'}
+                {isTravel ? 'Dimulai dari rencana perjalanan. Ubah nominal sesuai biaya sebenarnya, tambah atau hapus baris.' : 'Catat pengeluaran yang benar-benar terjadi.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -252,7 +252,7 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
             <Field label="Catatan untuk atasan & Keuangan" hint="Opsional.">
               <Textarea rows={4} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
             </Field>
-            <Field label="Batas waktu pertanggungjawaban" hint="Opsional — pengingat dikirim bila terlewat.">
+            <Field label="Batas waktu pertanggungjawaban" hint="Opsional. Pengingat dikirim bila terlewat.">
               {(control) => <DateInput id={control.id} value={deadline} min={isoDay(pr.paymentDate) || undefined} onChange={setDeadline} />}
             </Field>
           </CardContent>

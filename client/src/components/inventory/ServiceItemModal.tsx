@@ -136,10 +136,10 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
                     <SelectValue placeholder="Pilih akun" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_ACCOUNT}>— Pilih Akun —</SelectItem>
+                    <SelectItem value={NO_ACCOUNT}>Pilih Akun</SelectItem>
                     {revenueAccounts?.map((acc) => (
                       <SelectItem key={acc.id} value={acc.id}>
-                        {acc.accountNumber} — {acc.name}
+                        {acc.accountNumber} · {acc.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

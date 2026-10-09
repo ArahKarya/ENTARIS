@@ -163,7 +163,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
               {() => (
                 <PickerSelect
                   aria-label="Invoice Penjualan"
-                  placeholder="— Pilih invoice —"
+                  placeholder="Pilih invoice"
                   value={invoiceId}
                   onChange={(v) => { setInvoiceId(v); setLines({}); }}
                   options={returnableInvoices.map((i) => ({
@@ -278,7 +278,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
                   {summary.credit > 0 && <div className="flex justify-between text-muted-foreground"><span>↳ Jadi kredit pelanggan</span><span className="tabular-nums">{formatRupiah(summary.credit)}</span></div>}
                 </>
               ) : (
-                <div className="text-muted-foreground">Retur qty-only (nilai Rp0) — hanya mengembalikan stok fisik, tidak mengubah piutang/kredit pelanggan.</div>
+                <div className="text-muted-foreground">Retur qty-only (nilai Rp0): hanya mengembalikan stok fisik, tidak mengubah piutang/kredit pelanggan.</div>
               )}
             </div>
           )}

@@ -120,7 +120,7 @@ export function InvoiceLineRow({
                   options={inventoryOptions}
                   value={item.inventoryItemId}
                   onChange={(v) => selectInventoryItem(idx, v)}
-                  placeholder="— Pilih dari Stok Gudang —"
+                  placeholder="Pilih dari Stok Gudang"
                 />
                 {!item.inventoryItemId && (
                   <Input
@@ -140,7 +140,7 @@ export function InvoiceLineRow({
                 {/* Phase 5: batch picker (optional, hybrid FIFO/specific-id) */}
                 {item.inventoryItemId && item.warehouseId && !fromDO && (
                   <div>
-                    <p className="mb-0.5 text-[10px] text-muted-foreground">Batch (opsional — default WAC)</p>
+                    <p className="mb-0.5 text-[10px] text-muted-foreground">Batch (opsional, default WAC)</p>
                     <BatchSelect
                       label={`Batch baris ${n}`}
                       itemId={item.inventoryItemId}
@@ -161,7 +161,7 @@ export function InvoiceLineRow({
                   options={serviceOptions}
                   value={item.serviceItemId}
                   onChange={(v) => selectServiceItem(idx, v)}
-                  placeholder="— Pilih Layanan —"
+                  placeholder="Pilih Layanan"
                 />
                 {!item.serviceItemId && (
                   <Input

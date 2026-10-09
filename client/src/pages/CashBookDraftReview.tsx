@@ -85,15 +85,15 @@ export const CashBookDraftReview = () => {
   const editable = canEdit && !!draft && isEditableStatus(draft.status);
 
   const accountOptions = useMemo<ComboboxOption[]>(
-    () => (accounts?.accounts ?? []).map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })),
+    () => (accounts?.accounts ?? []).map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
     [accounts],
   );
   const cashOptions = useMemo(
-    () => (accounts?.cashAccounts ?? []).map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })),
+    () => (accounts?.cashAccounts ?? []).map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
     [accounts],
   );
   const labelOf = useCallback(
-    (accId: string) => accountOptions.find((o) => o.value === accId)?.label.replace(' — ', ' ') ?? null,
+    (accId: string) => accountOptions.find((o) => o.value === accId)?.label.replace(' · ', ' ') ?? null,
     [accountOptions],
   );
   const advanceId = accounts?.rules.advanceAccountId ?? null;

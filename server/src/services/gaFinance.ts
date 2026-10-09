@@ -438,7 +438,7 @@ export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
   }
   if (log.source !== 'EAM') {
     throw new BusinessError(
-      `Service log bersumber "${log.source}" (data historis) tidak dapat diposting — nilainya sudah tercatat di GL lewat input manual.`,
+      `Service log bersumber "${log.source}" (data historis) tidak dapat diposting karena nilainya sudah tercatat di GL lewat input manual.`,
     );
   }
   if (!args.partyId) throw new BusinessError('Vendor/bengkel wajib dipilih untuk jalur Faktur Pembelian.');
@@ -452,7 +452,7 @@ export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
     : await accountByNumber(tx, ACC_VEHICLE_MAINTENANCE);
 
   const plat = log.asset?.name ?? log.asset?.code ?? '-';
-  const narration = `Biaya service kendaraan ${plat} — ${log.deskripsi}`;
+  const narration = `Biaya service kendaraan ${plat}: ${log.deskripsi}`;
 
   const { invoice, journalEntry } = await createExpensePurchaseInvoice(tx, {
     date,
@@ -460,7 +460,7 @@ export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
     partyId: args.partyId,
     expenseAccountId: debitAcc.id,
     amount,
-    itemName: `Service ${plat} — ${log.deskripsi}`.slice(0, 200),
+    itemName: `Service ${plat}: ${log.deskripsi}`.slice(0, 200),
     narration,
     notes: args.notes ?? null,
     userId: args.userId,
@@ -545,7 +545,7 @@ export async function payMaterialRequestInTx(tx: Tx, args: PayGaBillArgs) {
     : await accountByNumber(tx, ACC_VEHICLE_MAINTENANCE);
 
   const target = mr.asset?.name ?? mr.machineTarget ?? '-';
-  const narration = `Pengadaan sparepart ${mr.code} — ${target}`;
+  const narration = `Pengadaan sparepart ${mr.code}: ${target}`;
 
   let journalEntryId: string;
   let purchaseInvoiceId: string | null = null;

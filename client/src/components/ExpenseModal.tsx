@@ -95,14 +95,14 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
       .flatMap((t) =>
         groups[t].map((a: any) => ({
           value: a.id,
-          label: `${a.accountNumber} — ${a.name}`,
+          label: `${a.accountNumber} · ${a.name}`,
           group: ACCOUNT_TYPE_LABELS[t] || t,
         }))
       );
   }, [allAccounts]);
 
   const cashOptions = useMemo((): SelectOption[] =>
-    cashAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
+    cashAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
     [cashAccounts],
   );
 
@@ -201,7 +201,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
           options={debitOptions}
           value={debitAccountId}
           onChange={setDebitAccountId}
-          placeholder="— Pilih Akun Pengeluaran —"
+          placeholder="Pilih Akun Pengeluaran"
         />
       </Field>
 
@@ -210,7 +210,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
           options={cashOptions}
           value={creditAccountId}
           onChange={setCreditAccountId}
-          placeholder="— Pilih Akun Kas/Bank —"
+          placeholder="Pilih Akun Kas/Bank"
         />
       </Field>
 
@@ -219,8 +219,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
           options={partyOptions}
           value={partyId}
           onChange={setPartyId}
-          placeholder="— Tanpa Pihak Terkait —"
-          emptyLabel="— Tanpa Pihak Terkait —"
+          placeholder="Tanpa Pihak Terkait"
+          emptyLabel="Tanpa Pihak Terkait"
         />
       </Field>
 

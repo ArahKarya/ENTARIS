@@ -35,7 +35,7 @@ export default function PurchaseOrderApprovalSummary({ poId }: { poId: string })
         <div><span className="text-muted-foreground">Nomor:</span> <span className="font-mono text-foreground">{po.poNumber}</span></div>
         <div><span className="text-muted-foreground">Tanggal:</span> <span className="text-foreground">{po.date.slice(0, 10)}</span></div>
         <div><span className="text-muted-foreground">Supplier:</span> <span className="text-foreground">{po.supplier?.name ?? 'PO Umum'}</span></div>
-        <div><span className="text-muted-foreground">Gudang:</span> <span className="text-foreground">{po.warehouse ? `${po.warehouse.code} — ${po.warehouse.name}` : '—'}</span></div>
+        <div><span className="text-muted-foreground">Gudang:</span> <span className="text-foreground">{po.warehouse ? `${po.warehouse.code} · ${po.warehouse.name}` : '—'}</span></div>
         <div><span className="text-muted-foreground">Termin:</span> <span className="text-foreground">{paymentTermLabel(po.paymentTermDays)}</span></div>
         <div><span className="text-muted-foreground">No. Penawaran:</span> <span className="text-foreground">{po.supplierQuoteRef || '—'}</span></div>
         {po.terms && <div className="col-span-2"><span className="text-muted-foreground">Syarat:</span> <span className="text-foreground">{po.terms}</span></div>}

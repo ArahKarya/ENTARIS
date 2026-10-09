@@ -141,7 +141,7 @@ const withUnit = (label: string) => (
 function SupplierName({ po, className }: { po: PurchaseOrderRow; className?: string }) {
   if (po.supplier) return <span className={className}>{po.supplier.name}</span>;
   return (
-    <span className={className} title="PO Umum — boleh dipenuhi pemasok mana saja">
+    <span className={className} title="PO Umum: boleh dipenuhi pemasok mana saja">
       <span className="font-normal italic text-muted-foreground">PO Umum</span>
     </span>
   );
@@ -326,7 +326,7 @@ export const PurchaseOrders = () => {
     <div className="space-y-5 pb-8">
       <PageHeader
         title="Pesanan Pembelian"
-        description="Pesanan ke pemasok — PO Umum (tanpa pemasok terikat) atau PO Khusus. Belum memengaruhi stok maupun jurnal."
+        description="Pesanan ke pemasok: PO Umum (tanpa pemasok terikat) atau PO Khusus. Belum memengaruhi stok maupun jurnal."
         actions={
           canCreate ? (
             <Button onClick={openCreate}>

@@ -140,7 +140,7 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
               options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
               value={partyId}
               onChange={setPartyId}
-              placeholder="— Pilih Pihak —"
+              placeholder="Pilih Pihak"
             />
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -170,10 +170,10 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
               <Field label="Akun Sumber Dana" required>
                 {(control) => (
                   <Select value={accountId} onValueChange={setAccountId}>
-                    <SelectTrigger {...control}><SelectValue placeholder="— Pilih Akun Kas/Bank —" /></SelectTrigger>
+                    <SelectTrigger {...control}><SelectValue placeholder="Pilih Akun Kas/Bank" /></SelectTrigger>
                     <SelectContent>
                       {cashAccounts?.map((a: any) => (
-                        <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                        <SelectItem key={a.id} value={a.id}>{a.accountNumber} · {a.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -182,7 +182,7 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Jatuh Tempo Pengembalian" hint="Opsional — sistem mengingatkan H-7 via notifikasi & Telegram.">
+              <Field label="Jatuh Tempo Pengembalian" hint="Opsional. Sistem mengingatkan H-7 via notifikasi & Telegram.">
                 <DateInput value={expectedReturnDate} onChange={setExpectedReturnDate} />
               </Field>
               <Field label="Catatan">

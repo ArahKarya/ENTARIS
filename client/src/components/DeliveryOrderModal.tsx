@@ -164,7 +164,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     () =>
       (inventoryItems ?? []).map((inv: any) => ({
         value: inv.id,
-        label: `${inv.code} — ${inv.name}`,
+        label: `${inv.code} · ${inv.name}`,
       })),
     [inventoryItems],
   );
@@ -203,7 +203,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   const soOptions = useMemo<PickerOption[]>(
     () => (openSOs ?? [])
       .filter((so: any) => !partyId || so.partyId === partyId)
-      .map((so: any) => ({ value: so.id, label: `${so.soNumber} — ${so.customer?.name ?? ''}` })),
+      .map((so: any) => ({ value: so.id, label: `${so.soNumber} · ${so.customer?.name ?? ''}` })),
     [openSOs, partyId],
   );
 
@@ -234,7 +234,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       });
       setItems(rows.length > 0 ? rows : [defaultItem()]);
       if (rows.length > 0 && rows.every((r) => r.quantity === 0)) {
-        toast.info('Semua item SO sudah terkirim penuh — isi qty bila mau kirim lebih.');
+        toast.info('Semua item SO sudah terkirim penuh. Isi qty bila mau kirim lebih.');
       }
     } catch {
       setError('Gagal mengambil detail SO.');
@@ -248,7 +248,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     },
     onSuccess: (data: any) => {
       if (data?.pendingApproval) {
-        toast.success('Surat jalan diajukan — menunggu persetujuan manajer (stok minus).');
+        toast.success('Surat jalan diajukan dan menunggu persetujuan manajer (stok minus).');
       } else {
         toast.success(
           isEdit
@@ -422,7 +422,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         options={soOptions}
                         value={salesOrderId}
                         onChange={(v) => void handlePickSO(v)}
-                        placeholder="— Tanpa SO (kirim bebas) —"
+                        placeholder="Tanpa SO (kirim bebas)"
                       />
                     )}
                   </Field>
@@ -434,7 +434,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                       options={partyOptions}
                       value={partyId}
                       onChange={setPartyId}
-                      placeholder="— Pilih Pelanggan —"
+                      placeholder="Pilih Pelanggan"
                       disabled={!!salesOrderId}
                     />
                   )}
@@ -524,7 +524,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                             options={inventoryOptions}
                             value={item.inventoryItemId}
                             onChange={(v) => selectInventoryItem(idx, v)}
-                            placeholder="— Pilih dari Stok Gudang —"
+                            placeholder="Pilih dari Stok Gudang"
                           />
                           {!item.inventoryItemId && (
                             <Input
@@ -629,7 +629,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                   </div>
                 )}
                 <p className="mt-3 text-[11px] italic text-muted-foreground">
-                  Surat jalan tidak mencatat rupiah — invoice menyusul setelah pengiriman.
+                  Surat jalan tidak mencatat rupiah. Invoice menyusul setelah pengiriman.
                 </p>
               </div>
             </div>

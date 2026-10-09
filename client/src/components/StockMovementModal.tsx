@@ -94,12 +94,12 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
   const selectedItem = items.find((i: any) => i.id === form.itemId);
 
   const itemOptions = useMemo((): ComboboxOption[] =>
-    items.map((i: any) => ({ value: i.id, label: `${i.code} — ${i.name} (${i.unit})` })),
+    items.map((i: any) => ({ value: i.id, label: `${i.code} · ${i.name} (${i.unit})` })),
     [items],
   );
 
   const accountOptions = useMemo((): ComboboxOption[] =>
-    nonGroupAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
+    nonGroupAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
     [nonGroupAccounts],
   );
 
@@ -210,7 +210,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               <Field label="Item" required>
                 <Input
                   readOnly
-                  value={editMovement?.item ? `${editMovement.item.code} — ${editMovement.item.name} (${editMovement.item.unit})` : ''}
+                  value={editMovement?.item ? `${editMovement.item.code} · ${editMovement.item.name} (${editMovement.item.unit})` : ''}
                   className="bg-muted"
                 />
               </Field>
@@ -221,7 +221,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
                 options={itemOptions}
                 value={form.itemId}
                 onChange={(v) => setForm(f => ({ ...f, itemId: v }))}
-                placeholder="— Pilih Item —"
+                placeholder="Pilih Item"
               />
             )}
 
@@ -305,7 +305,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               options={accountOptions}
               value={form.offsetAccountId}
               onChange={(v) => setForm(f => ({ ...f, offsetAccountId: v }))}
-              placeholder="— Pilih Akun Lawan —"
+              placeholder="Pilih Akun Lawan"
               disabled={isProductionLinked}
               hint={
                 offsetMissing
@@ -327,7 +327,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">— Tidak Ada —</SelectItem>
+                    <SelectItem value="__none">Tidak Ada</SelectItem>
                     <SelectItem value="PurchaseInvoice">Invoice Pembelian</SelectItem>
                     <SelectItem value="SalesInvoice">Invoice Penjualan</SelectItem>
                   </SelectContent>

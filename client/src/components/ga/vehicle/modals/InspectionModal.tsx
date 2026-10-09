@@ -154,7 +154,7 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
         <FieldRow cols={4}>
           <TextField label="Tanggal" type="date" value={tanggal} onChange={setTanggal} required />
           <TextField label="Odometer (km)" type="number" value={odometer} onChange={setOdometer} />
-          <SelectField label="Level BBM" value={fuelLevel} onChange={setFuelLevel} options={FUEL_LEVELS} labels={FUEL_LEVEL_LABELS} emptyLabel="— Pilih —" />
+          <SelectField label="Level BBM" value={fuelLevel} onChange={setFuelLevel} options={FUEL_LEVELS} labels={FUEL_LEVEL_LABELS} emptyLabel="Pilih" />
           <TextField label="Interval (hari)" type="number" value={intervalDays} onChange={setIntervalDays} inputMode="numeric" />
         </FieldRow>
         <FieldRow>
