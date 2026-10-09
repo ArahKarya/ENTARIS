@@ -1,9 +1,6 @@
-// Blok identitas tepercaya untuk engine AIRA: siapa yang sedang berbicara, apa perannya, apa yang
-// boleh dilakukannya. Disusun HANYA di server dari keadaan DB terkini pada SETIAP giliran (tidak
-// pernah di-cache antar giliran, tidak pernah berasal dari klien) dan dikirim sebagai pesan
-// `system` PERTAMA. Fakta yang sama dipakai tool MCP `whoami` (`identity_prompt`).
-//
-// Bagian murni (renderIdentityBlock, neutralizeUserText, summarizeToolsets) tidak menyentuh DB.
+// Trusted identity block for the AIRA engine (who is speaking, their role and permissions). Built
+// only on the server from current DB state on EVERY turn, never cached or taken from the client,
+// and sent as the first `system` message; MCP `whoami` returns the same facts.
 
 import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma';

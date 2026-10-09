@@ -156,7 +156,7 @@ export function intervalLabel(s: Pick<ScheduleRow, 'intervalDays' | 'intervalHou
   return '-';
 }
 
-/** ISO/date string → yyyy-mm-dd for date inputs (UTC date part, as before). */
+/** ISO/date string → yyyy-mm-dd for date inputs (UTC date part). */
 export const toDateInput = (v: string | null | undefined): string => (v ? new Date(v).toISOString().slice(0, 10) : '');
 
 export const assetLabel = (a: { code?: string; name?: string } | null | undefined): string =>

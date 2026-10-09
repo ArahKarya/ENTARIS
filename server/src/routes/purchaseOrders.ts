@@ -27,8 +27,6 @@ import {
 
 const router = Router();
 
-// PO: Admin + Accountant only (sesuai keputusan Phase 1)
-
 // GET / list
 // Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
 // search (PO number / supplier name), receipt (unreceived|partial|full|closed),

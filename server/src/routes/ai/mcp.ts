@@ -27,7 +27,7 @@ router.use((_req, res, next) => {
   next();
 });
 
-// STATUS / KILL SWITCH
+// Status and kill switch
 
 router.get('/status', async (_req, res) => {
   try {
@@ -72,7 +72,7 @@ router.put('/status', async (req, res) => {
   }
 });
 
-// TOKEN
+// Tokens
 
 const futureDate = z
   .string()
@@ -170,7 +170,7 @@ router.post('/tokens/:id/rotate-secret', async (req, res) => {
   }
 });
 
-// RIWAYAT PANGGILAN
+// Call history
 
 const CallsQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),

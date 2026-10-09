@@ -17,9 +17,8 @@ import {
 } from './onboarding-state';
 
 /**
- * "Lengkapi penyiapan" card for the dashboard. Admin-only, appears after the
- * onboarding wizard was finished or skipped (`onboardedAt` set) while some setup
- * tasks are still open, and hides for good on this browser once dismissed.
+ * Dashboard setup checklist. Requires settings edit permission; shows after the
+ * wizard (`onboardedAt` set) while tasks are open, hidden for good once dismissed.
  */
 export function SetupChecklistCard() {
   const company = useCompanySettings() as OnboardingCompany | null;

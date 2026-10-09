@@ -13,25 +13,21 @@ export interface ModuleDef {
 }
 
 export const MODULES: ModuleDef[] = [
-  // PENJUALAN
   { key: 'sales_order', label: 'Pesanan Penjualan (SO)', group: 'Penjualan' },
   { key: 'delivery_order', label: 'Surat Jalan (DO)', group: 'Penjualan' },
   { key: 'sales_invoice', label: 'Invoice Penjualan', group: 'Penjualan' },
   { key: 'quotation', label: 'Penawaran & Inquiry', group: 'Penjualan' },
   { key: 'sales_return', label: 'Retur Penjualan', group: 'Penjualan' },
   { key: 'customer_deposit', label: 'Uang Muka Pelanggan', group: 'Penjualan' },
-  // PEMBELIAN
   { key: 'purchase_order', label: 'Pesanan Pembelian (PO)', group: 'Pembelian' },
   { key: 'goods_receipt', label: 'Penerimaan Barang (BPB/STT)', group: 'Pembelian' },
   { key: 'purchase_invoice', label: 'Invoice Pembelian', group: 'Pembelian' },
   { key: 'vendor_deposit', label: 'Uang Muka Vendor', group: 'Pembelian' },
-  // STOK & PRODUKSI
   { key: 'inventory', label: 'Stok & Gudang', group: 'Stok & Produksi' },
   { key: 'stock_transfer', label: 'Transfer Stok', group: 'Stok & Produksi' },
   { key: 'stock_opname', label: 'Stok Opname', group: 'Stok & Produksi' },
   { key: 'production', label: 'Produksi', group: 'Stok & Produksi' },
   { key: 'warehouse', label: 'Daftar Gudang', group: 'Stok & Produksi' },
-  // BANK & KAS
   { key: 'payment', label: 'Transaksi Bank/Kas', group: 'Bank & Kas' },
   { key: 'reconciliation', label: 'Rekonsiliasi Bank', group: 'Bank & Kas' },
   { key: 'recurring', label: 'Transaksi Berulang', group: 'Bank & Kas' },
@@ -39,12 +35,10 @@ export const MODULES: ModuleDef[] = [
   // Verifikasi & pembayaran Pengajuan Pembayaran (Keuangan). Membuat/melihat pengajuan
   // sendiri & persetujuan atasan TIDAK butuh izin modul ini (semua user login).
   { key: 'payment_request', label: 'Pengajuan Pembayaran (Keuangan)', group: 'Bank & Kas' },
-  // AKUNTANSI
   { key: 'coa', label: 'Bagan Akun (COA)', group: 'Akuntansi' },
   { key: 'journal', label: 'Buku Besar / Jurnal', group: 'Akuntansi' },
   { key: 'fixed_assets', label: 'Aset Tetap', group: 'Akuntansi' },
   { key: 'approvals', label: 'Approval (pengajuan)', group: 'Akuntansi' },
-  // GENERAL AFFAIRS (modul GA)
   { key: 'ga_assets', label: 'Aset', group: 'EAM · Manajemen Aset' },
   { key: 'ga_vehicle', label: 'Kendaraan', group: 'EAM · Manajemen Aset' },
   { key: 'ga_building', label: 'Gedung & Sewa', group: 'EAM · Manajemen Aset' },
@@ -54,11 +48,8 @@ export const MODULES: ModuleDef[] = [
   { key: 'ga_inventory', label: 'Inventaris (Sparepart/ATK)', group: 'EAM · Manajemen Aset' },
   { key: 'ga_documents', label: 'Dokumen Legal & Sertifikat', group: 'EAM · Manajemen Aset' },
   { key: 'ga_master', label: 'Master Data EAM', group: 'EAM · Manajemen Aset' },
-  // LAPORAN
   { key: 'reports', label: 'Laporan', group: 'Laporan' },
-  // MASTER DATA
   { key: 'parties', label: 'Pelanggan & Vendor', group: 'Master Data' },
-  // SISTEM
   { key: 'settings', label: 'Pengaturan', group: 'Sistem' },
   { key: 'users', label: 'Manajemen User', group: 'Sistem' },
   { key: 'audit', label: 'Jejak Audit & Sistem', group: 'Sistem' },];
@@ -98,10 +89,8 @@ export const BUILTIN_ROLES: BuiltinRoleDef[] = [
 ];
 
 /**
- * Matriks izin default per role bawaan (mereproduksi akses saat ini = no-regression).
- * Admin = super-admin (lolos semua), tidak perlu dicantum. Nilai: 'edit' = view+edit,
- * 'view' = view saja. Capabilities default: hanya Admin (via super-admin) — role lain
- * tidak punya cap (sesuai perilaku lama: cancel/approve/bypass hanya Admin).
+ * Default permissions per built-in role ('edit' implies view). Admin is super-admin and is not listed;
+ * by default no other role has capabilities (see DEFAULT_CAPS).
  */
 export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
   Accountant: {
@@ -128,14 +117,12 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
 };
 
 /**
- * Modul yang ditambahkan SETELAH rilis RBAC awal. ensureRbacSeed mem-backfill
- * izin DEFAULT_MATRIX modul ini ke role sistem yang sudah ada di DB production
- * — one-shot per key (hanya bila belum ada satupun RolePermission utk modul
- * tsb), supaya izin yang sengaja dicabut Admin tidak dihidupkan kembali tiap boot.
+ * Modules whose DEFAULT_MATRIX permissions ensureRbacSeed backfills into existing system roles, once per key
+ * (only when no RolePermission exists for it) so permissions an Admin revoked are not restored on every boot.
  */
 export const BACKFILL_MODULES: string[] = ['project_guarantee', 'payment_request'];
 
-/** Capabilities default per role bawaan non-super (kosong = sama seperti sekarang). */
+/** Default capabilities per non-super built-in role. */
 export const DEFAULT_CAPS: Record<string, string[]> = {
   Accountant: [],
   StaffProduksi: [],

@@ -1,8 +1,4 @@
-/**
- * Rekonsiliasi Bank (/reconciliation) — list of reconciliation sessions on the
- * Phase 3 list kit (see pages/SalesInvoices.tsx), plus the matching workspace
- * for one session (?recon=<id>, components/reconciliation/ReconciliationWorkspace).
- */
+/** Bank reconciliation sessions (/reconciliation); ?recon=<id> opens the matching workspace. */
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

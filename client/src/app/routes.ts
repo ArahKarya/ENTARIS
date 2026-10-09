@@ -1,13 +1,8 @@
 /**
- * Route registry: the single source of truth for every protected page in
- * App.tsx. Sidebar, Topbar breadcrumbs, document title and the command palette
- * all read from here, so a page has one label everywhere.
- *
- * - URLs are unchanged (labels only). App.tsx still owns <Route> elements.
- * - `module` mirrors the RBAC module used by <PermRoute> and the old sidebar:
- *   an item shows when the user can 'view' that module; no module = always.
- * - Pages that are not in the sidebar (`nav: false`) name a `parent`; their
- *   active nav item and breadcrumb trail come from that parent.
+ * Route registry: single source of page labels for the sidebar, breadcrumbs, document title
+ * and command palette. App.tsx still owns the <Route> elements.
+ * - `module` is the RBAC module checked by <PermRoute>: the item shows with 'view'; no module = always.
+ * - Pages with `nav: false` name a `parent` that supplies their active nav item and breadcrumb.
  */
 import type { ComponentType } from 'react';
 import {

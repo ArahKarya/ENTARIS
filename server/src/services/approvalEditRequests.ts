@@ -1,11 +1,5 @@
-// Approval gate untuk MUTASI dokumen yang sudah ada (bukan pembuatan baru):
-//   - 'ProductionRunEdit'          → PUT /inventory/production-runs/:id
-//   - 'PurchaseInvoiceRevisePrice' → POST /purchase/invoices/:id/revise-price
-//
-// Beda dgn antrian pembuatan: documentId + documentNumber sudah terisi saat
-// request dibuat, dan payload = body asli + snapshot kondisi SAAT INI (`_before`)
-// supaya layar approval bisa menampilkan perbandingan sebelum/sesudah.
-// Eksekusi (saat approve) ada di services/approvalDecision.ts.
+// Approval gate for edits to existing documents (ProductionRunEdit, PurchaseInvoiceRevisePrice).
+// documentId/documentNumber are set at request time; payload = original body + `_before` snapshot.
 
 import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';

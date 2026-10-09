@@ -1,24 +1,8 @@
-// Stock-as-of-date snapshot service.
-//
-// Computes per-warehouse stock quantity as it stood at the END of a given
-// date. We CANNOT forward-sum movements from zero because opening balances and
-// some historical adjustments were written directly to inventory_stocks
-// without a corresponding StockMovement row (verified: forward-sum diverges
-// from live stock by >100k kg on some items, even going negative).
-//
-// Instead we ANCHOR on the live per-warehouse stock (inventory_stocks — the
-// source of truth) and walk BACKWARD:
-//
-//   qty_asof(X) = live_currentStock − Σ(signed movements with date > endOfDay(X))
-//
-// For X = today this subtracts nothing → exactly equals the live dashboard.
-// For past dates it reverses every movement that happened after X. This
-// guarantees consistency with the live stock screen.
-//
-// Valuation note: movement rows do NOT store a running average cost, so we
-// value the as-of quantity using the item's CURRENT averageCost. For recent
-// dates this is accurate; for far-past dates it is an approximation. The
-// `valuationNote` field documents this. Quantity is exact relative to live.
+// Per-warehouse stock as of the end of a date. Forward-summing movements is wrong (opening
+// balances and some adjustments have no StockMovement row), so this anchors on live
+// inventory_stocks and walks backward: qty_asof(X) = live - sum(signed movements after X).
+// Value uses the item's current averageCost (no running cost per movement), so far-past dates
+// are approximate; see `valuationNote`.
 
 import Decimal from 'decimal.js';
 import { StockMovementType } from '@prisma/client';
@@ -82,7 +66,7 @@ export async function buildStockSnapshot(
   }
   const whIds = warehouses.map((w) => w.id);
 
-  // 1. Anchor: live per-warehouse stock (source of truth).
+  // Anchor: live per-warehouse stock (source of truth).
   const liveStocks = await prisma.inventoryStock.findMany({
     where: { warehouseId: { in: whIds } },
     include: { item: { select: { id: true, code: true, name: true, unit: true, averageCost: true, category: true } } },
@@ -101,9 +85,7 @@ export async function buildStockSnapshot(
     });
   }
 
-  // 2. Walk backward: subtract every signed movement that happened AFTER the
-  // target end-of-day. groupBy can't conditionally sign → fetch In and Out
-  // separately, using date > dayEnd (strictly after the target date).
+  // groupBy cannot sign conditionally, so In and Out are fetched separately (date > dayEnd).
   const afterFilter = { warehouseId: { in: whIds }, isCancelled: false, date: { gt: dayEnd } };
   const [inAfter, outAfter] = await Promise.all([
     prisma.stockMovement.groupBy({

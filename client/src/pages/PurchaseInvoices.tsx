@@ -1,9 +1,6 @@
 /**
- * Faktur Pembelian (/purchase) — follows the list-kit pattern of
- * pages/SalesInvoices.tsx, plus a second tab for approval requests:
- *  • Daftar Faktur          ?tab omitted
- *  • Persetujuan & Pengajuan ?tab=approval (non-Admin submissions, resubmit)
- * The tab lives in the URL; switching tabs drops the list params.
+ * Purchase invoices (/purchase), plus ?tab=approval for approval requests and resubmits.
+ * Switching tabs drops the list params.
  */
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

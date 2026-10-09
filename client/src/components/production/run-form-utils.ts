@@ -3,13 +3,13 @@
 export interface LineItem {
   itemId: string;
   quantity: string;
-  // Phase 2 batch tracking: when sourceMovementId is set, server locks the
-  // cost to batchUnitCost. Empty string = WAC fallback (legacy).
+  // When sourceMovementId is set the server locks the cost to batchUnitCost;
+  // empty string falls back to WAC.
   sourceMovementId: string;
   batchUnitCost: string;
 }
 
-// Phase 3: cost component row in the modal.
+// Cost component row in the modal.
 export interface CostLine {
   standardId: string;        // '' = freetext
   description: string;
@@ -39,7 +39,7 @@ export interface OutputLineItem {
   isByProduct: boolean;
 }
 
-// OEE: downtime row in the modal (B2: optional per-machine attribution).
+// OEE downtime row; per-machine attribution is optional.
 export interface DowntimeLine {
   machineId: string;       // '' = run-level (tidak dialokasi ke mesin)
   category: string;
@@ -47,7 +47,7 @@ export interface DowntimeLine {
   reason: string;
 }
 
-// B2: one machine running in the run (parallel; own start/stop).
+// One machine running in the run (parallel, with its own start/stop).
 export interface MachineLine {
   machineId: string;
   startAt: string;         // datetime-local
@@ -112,7 +112,7 @@ export interface OeeInputs {
 }
 
 /**
- * OEE live preview (B2 multi-machine); mirrors server logic in services/oee.ts.
+ * OEE live preview; mirrors server logic in services/oee.ts.
  * Server re-computes authoritatively on submit; this is purely cosmetic.
  */
 export function computeOeePreview({

@@ -51,10 +51,8 @@ const InvoiceItemSchema = z.object({
   description: z.string().nullable().optional(),
   // From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS.
   deliveryOrderItemId: z.string().uuid().nullable().optional(),
-  // Phase 5: batch picker. When sourceMovementId is set, the SM Out generated
-  // at submit (or DO submit for from-DO lines) links back to this inbound
-  // batch and the unit_cost_loaded snapshot from the batch is copied onto
-  // the sales line for Phase 6 "loaded margin" reports.
+  // Batch picker: the stock-out links to this inbound batch and copies its
+  // unit_cost_loaded onto the sales line for loaded-margin reports.
   sourceMovementId: z.string().uuid().nullable().optional(),
 });
 
@@ -287,10 +285,8 @@ export const ApplyCustomerDepositSchema = z.object({
 });
 
 // Customer Deposit Refund / Offset
-// Menyelesaikan sisa uang muka pelanggan dengan kombinasi:
-//   - offset terhadap piutang (otomatis FIFO ke invoice terlama), dan/atau
-//   - pengembalian kas ke rekening bank/kas.
-// Minimal salah satu dari offsetAmount / cashAmount > 0.
+// Settles the remaining deposit by offsetting receivables (FIFO, oldest invoice
+// first) and/or a cash refund; at least one of offsetAmount / cashAmount > 0.
 export const RefundCustomerDepositSchema = z
   .object({
     date: z.string().min(1, 'Tanggal wajib diisi.'),
@@ -308,9 +304,8 @@ export const RefundCustomerDepositSchema = z
   });
 
 // Vendor Deposit Refund / Offset
-// Menyelesaikan sisa uang muka vendor (DP belanja yang dikembalikan vendor):
-//   - offset terhadap hutang (otomatis FIFO ke purchase invoice terlama), dan/atau
-//   - pengembalian kas ke rekening bank/kas.
+// Settles the remaining deposit by offsetting payables (FIFO, oldest purchase
+// invoice first) and/or a cash refund.
 export const RefundVendorDepositSchema = z
   .object({
     date: z.string().min(1, 'Tanggal wajib diisi.'),
@@ -443,7 +438,7 @@ export const CreateStockMovementSchema = z.object({
   referenceId: z.string().nullable().optional(),
   referenceNumber: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
-  // Phase 5: batch picker for adjustment Out
+  // Batch picker for adjustment Out
   sourceMovementId: z.string().uuid().nullable().optional(),
 });
 
@@ -458,12 +453,9 @@ export const UpdateStockMovementSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-// Production Cost Standards (Phase 1: master rate for cost components)
-// costSide: 'InputSide' = charged per input qty (e.g. listrik per kg input).
-//           'OutputSide' = charged per main output qty (e.g. kirim per kg output).
-// basis:    'InputQty'  = rate × sum(input qty)
-//           'OutputQty' = rate × main output qty
-//           'Fixed'     = flat per run (rate is the total)
+// Production Cost Standards (master rate for cost components)
+// basis: InputQty = rate × sum(input qty), OutputQty = rate × main output qty,
+// Fixed = flat per run (rate is the total). costSide picks input vs main output qty.
 export const ProductionCostSideEnum = z.enum(['InputSide', 'OutputSide']);
 export const ProductionCostBasisEnum = z.enum(['InputQty', 'OutputQty', 'Fixed']);
 
@@ -509,8 +501,7 @@ export const CreateMachineSchema = z.object({
 export const UpdateMachineSchema = CreateMachineSchema.partial();
 
 // User Management
-// RBAC dinamis: role = key Role (string). Keberadaan role divalidasi di route
-// users (cek ke tabel roles), bukan enum hardcoded lagi.
+// role is a Role key (string); the users route checks it against the roles table.
 const UserRoleEnum = z.string().min(1, 'Role wajib diisi.');
 
 /** Registrasi AIRA (MCP) per user: akses, level (read/standard/direct), jabatan untuk persona agen. */
@@ -636,11 +627,8 @@ const ProductionRunCostInputSchema = z.object({
 const ProductionInputLineSchema = z.object({
   itemId: z.string().min(1, 'Item wajib dipilih.'),
   quantity: z.coerce.number().positive('Kuantitas harus lebih dari 0.'),
-  // Phase 2: batch picker. When provided, this input line consumes a specific
-  // inbound stock movement (batch). batchUnitCost is captured from the picker
-  // so the production cost is locked even if WAC changes later. Both fields
-  // are optional for backward compatibility — callers that don't send them
-  // fall back to WAC-based costing (legacy behavior).
+  // Batch picker: consume a specific inbound batch and lock its unit cost even if
+  // WAC changes later. Optional; without them costing falls back to WAC.
   sourceMovementId: z.string().uuid().nullable().optional(),
   batchUnitCost: z.coerce.number().min(0).nullable().optional(),
 });
@@ -662,8 +650,8 @@ const ProductionDowntimeLineSchema = z.object({
   durationMin: z.coerce.number().min(0, 'Durasi tidak boleh negatif.'),
 });
 
-// B2 multi-mesin: satu baris mesin yang dipakai dalam run (paralel, on/off
-// sendiri). OEE dihitung per mesin; output dialokasi proporsional run-time.
+// One machine used in the run (parallel, own start/stop). OEE is computed per
+// machine; output is allocated in proportion to run time.
 const ProductionRunMachineLineSchema = z.object({
   machineId: z.string().uuid('Mesin tidak valid.'),
   startAt: z.coerce.date().nullable().optional(),
@@ -681,19 +669,15 @@ export const CreateProductionRunSchema = z.object({
   referenceNumber: z.string().nullable().optional(),
   inputs: z.array(ProductionInputLineSchema).min(1, 'Minimal satu item input.'),
   outputs: z.array(ProductionOutputLineSchema).min(1, 'Minimal satu item output.'),
-  // Phase 3: cost components for loaded HPP computation. Each cost entry is a
-  // snapshot at submit time — retroactive master edits don't affect history.
-  // GL is NOT posted from these — real expenses still flow via JV/invoice.
+  // Cost components for loaded HPP, snapshotted at submit (later master edits do
+  // not change history). No GL is posted from these; real expenses go via JV/invoice.
   costs: z.array(ProductionRunCostInputSchema).optional().default([]),
-  // Phase 3: when set, computedHpp is locked to this value (user override the
-  // auto-computed loaded HPP). Otherwise the service computes it from
-  // material + costs - byproduct value.
+  // User override for computedHpp; otherwise it is material + costs - byproduct value.
   hppOverride: z.coerce.number().min(0).nullable().optional(),
   // Traceability: list of process master ids that this run went through.
   // Optional + order-insensitive (multiselect). Empty array = unspecified.
   processIds: z.array(z.string().uuid()).optional().default([]),
-  // OEE tracking (semua opsional, backward-compatible)
-  // B2 multi-mesin: jendela shift standar (planned production time) & istirahat.
+  // OEE tracking (all optional): standard shift window (planned production time) and breaks.
   plannedStart: z.coerce.date().nullable().optional(),
   plannedEnd: z.coerce.date().nullable().optional(),
   breakStart: z.coerce.date().nullable().optional(),
@@ -703,21 +687,17 @@ export const CreateProductionRunSchema = z.object({
   shift: z.string().max(20).nullable().optional(),               // "1" | "2" | "3"
   shiftLead: z.string().max(150).nullable().optional(),          // kepala shift (teks bebas)
   manpowerCount: z.coerce.number().int().min(0).nullable().optional(),
-  // OEE Quality/output is DERIVED dari baris Input/Output run (bukan manual
-  // good/reject). goodQty/rejectQty tidak lagi dipakai — frontend berhenti
-  // mengirimnya. Field dibiarkan ignored-optional supaya payload lama tetap
-  // diterima tanpa error.
+  // OEE quality is derived from the run's input/output lines. goodQty/rejectQty
+  // are ignored and stay optional so old payloads are still accepted.
   goodQty: z.coerce.number().min(0).nullable().optional(),       // LEGACY — diabaikan
   rejectQty: z.coerce.number().min(0).nullable().optional(),     // LEGACY — diabaikan
   downtimes: z.array(ProductionDowntimeLineSchema).optional().default([]),
-  // LEGACY (single-machine, diabaikan untuk perhitungan B2)
-  // Tetap opsional supaya payload lama tidak ditolak. machineId/startAt/endAt
-  // tidak lagi dipakai untuk compute OEE.
+  // Legacy single-machine fields: not used for OEE, optional so old payloads still pass.
   machineId: z.string().uuid('Mesin tidak valid.').nullable().optional(),
   startAt: z.coerce.date().nullable().optional(),
   endAt: z.coerce.date().nullable().optional(),
   // When true, production can consume more than current stock (stock goes negative).
-  // ADMIN ONLY (enforced di route handler). Wajib isi `negativeStockReason`.
+  // Requires the inventory.negative_stock capability (checked in the route) and `negativeStockReason`.
   // Use case: backdated production input where sales already reduced stock.
   allowNegativeStock: z.boolean().optional().default(false),
   // Alasan bypass — wajib min 10 karakter kalau allowNegativeStock=true.
@@ -731,10 +711,8 @@ export const CreateProductionRunSchema = z.object({
       path: ['negativeStockReason'],
     });
   }
-  // Main output unitPrice is OPTIONAL (Phase 3+): when omitted, the server
-  // back-fills it with the computed loaded HPP (material + costs − byproduct
-  // NRV, divided by main qty). User can still supply a value to override.
-  // By-products keep the strict requirement so their NRV is always explicit.
+  // Main output unitPrice is optional: when omitted the server fills in the loaded
+  // HPP ((material + costs - byproduct NRV) / main qty). By-products must send NRV.
   data.outputs.forEach((o, idx) => {
     if (o.isByProduct && (o.unitPrice == null || o.unitPrice < 0)) {
       ctx.addIssue({
@@ -804,17 +782,11 @@ export const UpdateServiceItemSchema = CreateServiceItemSchema.partial().extend(
 // Stok Opname
 const StockOpnameItemSchema = z.object({
   itemId: z.string().uuid('Item ID harus UUID yang valid.'),
-  // Catatan: TIDAK divalidasi >=0 di sini. Form opname mengirim SEMUA item
-  // gudang untuk audit trail, termasuk item yang stok sistemnya sudah minus
-  // secara historis (belum disentuh user di sesi opname ini). Menolak nilai
-  // negatif di sini akan memblokir seluruh submit walau item minusnya bukan
-  // yang sedang di-opname. Guard sebenarnya (tolak input BARU yang negatif)
-  // ada di route: hanya reject actualStock<0 kalau nilainya BEDA dari stok
-  // sistem saat ini (artinya user aktif mengetik angka negatif).
+  // Not validated >= 0: the form sends every item, including ones already negative
+  // in the system. The route rejects actualStock < 0 only when it differs from system stock.
   actualStock: z.coerce.number(),
-  // Nilai satuan manual (opsional). Bila diisi dan berbeda dari averageCost
-  // item, opname akan MEREVALUASI nilai persediaan: averageCost item di-set
-  // ke nilai ini dan selisih nilainya dijurnal ke akun Selisih Persediaan.
+  // Optional manual unit value. If it differs from averageCost, the item is revalued
+  // to it and the value difference is journaled to Selisih Persediaan.
   unitCost: z.coerce.number().min(0, 'Nilai satuan tidak boleh negatif.').optional(),
   notes: z.string().nullable().optional(),
 });
@@ -853,7 +825,7 @@ export const CreateDeliveryOrderSchema = z.object({
   recipientName: z.string().max(200).nullable().optional(),
   notes: z.string().nullable().optional(),
   items: z.array(DeliveryOrderItemSchema).min(1, 'Minimal satu item.'),
-  // ADMIN ONLY bypass — wajib isi negativeStockReason. Enforced di route handler.
+  // Requires the inventory.negative_stock capability (checked in the route) and negativeStockReason.
   allowNegativeStock: z.boolean().optional().default(false),
   negativeStockReason: z.string().max(500).nullable().optional(),
   // Surat Jalan Sementara yang ditautkan ke DO resmi ini (opsional)
@@ -888,10 +860,8 @@ const GoodsReceiptItemSchema = z.object({
   itemName: z.string().min(1, 'Nama item wajib diisi.'),
   quantity: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
   unit: z.string().min(1, 'Satuan wajib diisi.'),
-  // Optional — STT tidak punya harga di UI. Kalau dikirim 0/undefined,
-  // service akan pakai averageCost item saat ini sebagai provisional cost
-  // untuk JE accrual + weighted-avg. PI submit nanti yang kasih harga
-  // aktual, selisih posted ke "Selisih Harga Pembelian".
+  // Optional: when 0/undefined the current averageCost is the provisional cost for
+  // the accrual and WAC; PI submit posts the difference to Selisih Harga Pembelian.
   lockedUnitCost: z.coerce.number().min(0).default(0).optional(),
   description: z.string().nullable().optional(),
   purchaseOrderItemId: z.string().uuid().nullable().optional(),
@@ -1031,7 +1001,7 @@ export const PaymentRequestInputSchema = z.object({
   lines: z.array(PaymentRequestLineSchema).max(100, 'Maksimal 100 baris rincian.'),
 });
 
-// Pertanggungjawaban uang muka / perjalanan dinas (stage 2)
+// Pertanggungjawaban uang muka / perjalanan dinas (settlement)
 export const PaymentRequestSettlementLineSchema = z.object({
   description: z.string().trim().min(1, 'Uraian realisasi wajib diisi.').max(500),
   amount: z.number().positive('Nominal harus lebih dari 0.').max(1e13, 'Nominal terlalu besar.'),

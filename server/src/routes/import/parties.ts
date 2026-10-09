@@ -173,7 +173,7 @@ router.post(
                 await prisma.payment.delete({ where: { id: ep.id } });
               }
 
-              // 1) AR/AP opening balance journal
+              // AR/AP opening balance journal
               if (openingBalance > 0) {
                 const receivableAccount = isCustomer ? arAccount : apAccount;
                 {
@@ -225,7 +225,7 @@ router.post(
                 }
               }
 
-              // 2) Vendor deposit: create Payment record + GL journal
+              // Vendor deposit: Payment record + GL journal
               if (depositBalance > 0 && isSupplier) {
                 await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
                   const payNumber = await generateDocumentNumber(tx, 'PAY', now, fiscalYear.id);
@@ -290,7 +290,7 @@ router.post(
                 }, { timeout: 15000 });
               }
 
-              // 3) Customer deposit: create Payment record + GL journal
+              // Customer deposit: Payment record + GL journal
               if (customerDepositBalance > 0 && isCustomer) {
                 await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
                   const payNumber = await generateDocumentNumber(tx, 'PAY', now, fiscalYear.id);

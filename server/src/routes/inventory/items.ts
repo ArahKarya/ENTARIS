@@ -39,16 +39,8 @@ async function loadItems(where: Record<string, unknown>, warehouseId: string | u
   })) as typeof allItems;
 }
 
-// GET /api/inventory/items
-// When `warehouseId` is provided, `currentStock` is overridden with the
-// per-warehouse stock from inventory_stocks (0 if no row). Without the param,
-// the response shows the global total denormalized on inventory_items.
-//
-// List-page mode (any of sort / stockStatus / category sent — see
-// services/inventoryItemList): whitelisted sort with a code tie-breaker,
-// stockStatus (out | low | ok) and category filters, `total` = matching rows,
-// each row gets `stockStatus`. Without those params the historic behaviour
-// (stock-descending, total = DB count) is kept byte-for-byte for pickers.
+// GET /api/inventory/items: with `warehouseId`, currentStock is that warehouse's stock (0 if no row), else the global total.
+// Sending sort/stockStatus/category switches to list-page mode (services/inventoryItemList); pickers rely on the default response.
 router.get('/', async (req, res) => {
   try {
     const query = req.query as Record<string, unknown>;
@@ -116,19 +108,8 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// GET /api/inventory/items/:id/batches?warehouseId=X
-// Returns the inbound stock movement batches for an item, with per-batch
-// remaining availability for production input batch picker.
-//
-// Batch = a non-cancelled inbound StockMovement (In / AdjustmentIn).
-//   qtyConsumedByProduction = SUM(production_run_items.quantity WHERE
-//                              sourceMovementId = batch.id AND parent run not cancelled)
-//   qtyAvailable = batch.quantity - qtyConsumedByProduction
-//
-// Caveat: other outbound (sales, transfer, material issue) is NOT yet batch-
-// tracked (Phase 5 will extend tracking). So SUM(qtyAvailable across batches)
-// may exceed currentStock for that item/warehouse — caller should compare with
-// the returned `currentStock` and warn if mismatch is material.
+// GET /api/inventory/items/:id/batches?warehouseId=X: inbound batches (non-cancelled inbound movements) with remaining qty
+// for the production batch picker. Callers should compare the batch total with the returned `currentStock`.
 router.get('/:id/batches', async (req, res) => {
   try {
     const itemId = req.params.id as string;
@@ -151,12 +132,7 @@ router.get('/:id/batches', async (req, res) => {
       currentStock = Number(stockRow?.currentStock ?? 0);
     }
 
-    // 1. All inbound movements for this item/warehouse, non-cancelled.
-    // TransferIn disertakan: stok yang dipindah antar-gudang membawa cost-nya
-    // (unit_cost = WAC saat transfer) dan layak jadi batch yang bisa dipilih di
-    // gudang tujuan — mis. bahan setengah jadi diproduksi di gudang A lalu ditransfer ke
-    // gudang B untuk diproduksi lagi. Konsumsi & FIFO-absorb di bawah sudah
-    // memperhitungkan TransferOut + currentStock per gudang, jadi aman.
+    // TransferIn counts as a batch: it carries the WAC at transfer time, so goods moved between warehouses stay pickable.
     const inboundFilter: any = {
       itemId,
       isCancelled: false,
@@ -178,10 +154,7 @@ router.get('/:id/batches', async (req, res) => {
       return res.json({ data: [], item, currentStock });
     }
 
-    // 2. Universal consumption: sum outbound stockMovements that link back to
-    // each inbound batch via stock_movements.source_movement_id. This covers
-    // production input, sales, transfer, and adjustment Out — anywhere the
-    // submit service sets the back-link.
+    // Consumption = outbound movements linked back to the batch via source_movement_id (any submit service that sets it).
     const consumed = await prisma.stockMovement.groupBy({
       by: ['sourceMovementId'],
       where: {
@@ -198,7 +171,7 @@ router.get('/:id/batches', async (req, res) => {
       }
     }
 
-    // 3. Compose raw per-batch availability from EXPLICIT tracking only.
+    // Availability from explicit tracking only.
     const rawBatches = inbound.map((m) => {
       const qtyConsumedTracked = consumedMap.get(m.id) ?? 0;
       return {
@@ -215,14 +188,8 @@ router.get('/:id/batches', async (req, res) => {
       };
     });
 
-    // 4. FIFO-absorb untracked outbound (legacy sales/transfers before batch
-    // picker existed) so the picker never shows more than physically present.
-    //
-    // untrackedConsumption = max(0, sum(qtyAvailableTracked) - currentStock)
-    // — the excess of explicit availability over actual warehouse stock is
-    // the historical untracked consumption. Allocate it FIFO from the oldest
-    // batches (rawBatches is already sorted asc by date) so the remaining
-    // visible batches accurately reflect what's still on the floor.
+    // Untracked outbound = max(0, tracked availability - currentStock), absorbed FIFO from the oldest batches
+    // (rawBatches is sorted by date asc) so the picker never shows more than is physically present.
     const totalAvailableTracked = rawBatches.reduce((s, b) => s + b.qtyAvailableTracked, 0);
     let untrackedRemaining = Math.max(0, totalAvailableTracked - currentStock);
 

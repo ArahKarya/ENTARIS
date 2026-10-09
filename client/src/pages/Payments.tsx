@@ -1,14 +1,6 @@
 /**
- * Transaksi Kas & Bank (/payments) — list kit page (see pages/SalesInvoices.tsx).
- *
- * One server-paginated list of every cash movement: payments (all six types)
- * plus journal lines on cash/bank accounts that are not linked to a payment
- * (pinbuk, beban, other cash journals). Rows, KPIs and export all come from
- * GET /payments/ledger(+/summary) with the same filters.
- *
- * Transactions are never edited here: a payment is cancelled (with
- * confirmation) and re-entered; deposits and journals are cancelled in their
- * own modules, so their ⋯ action links there.
+ * Cash and bank ledger (/payments): payments plus cash/bank journal lines not linked to a payment.
+ * Nothing is edited here: a payment is cancelled and re-entered; deposits and journals link to their module.
  */
 import { useCallback, useId, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';

@@ -1,10 +1,4 @@
-/**
- * Material request detail (side sheet, deep-linked as ?mr=<id> by the page):
- * header fields, lifecycle actions (submit / approve / reject with reason /
- * cancel), payment info once PAID, and per-item procurement editing plus
- * "Terima barang" (stock in). The receive form opens as a dialog, so the
- * sheet steps aside while it is open.
- */
+/** Material request detail sheet (?mr=<id>); the sheet steps aside while the receive dialog is open. */
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

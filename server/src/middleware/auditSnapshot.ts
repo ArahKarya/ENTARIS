@@ -3,13 +3,8 @@ import { logger } from '../lib/logger';
 import { redactSecrets } from '../utils/redact';
 
 /**
- * Before-state ("oldValues") capture for the audit trail.
- *
- * A small registry maps an API route prefix (path after `/api/`) to a loader
- * that fetches the current row by id with a slim select. The audit middleware
- * runs the matching loader BEFORE the route handler so the snapshot reflects
- * the state prior to the change. Loaders must be cheap (single findUnique,
- * no line items) and failures are swallowed — auditing never blocks a request.
+ * Audit "oldValues": per route prefix, a loader fetches the row before the handler runs.
+ * Loaders must stay cheap (one findUnique, no line items); failures are swallowed so auditing never blocks a request.
  */
 
 export type SnapshotLoader = (id: string) => Promise<unknown>;

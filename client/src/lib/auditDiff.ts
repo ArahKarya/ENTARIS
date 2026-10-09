@@ -1,9 +1,6 @@
 /**
- * Helpers for the audit trail (/audit): a readable field-by-field diff of an
- * audit entry's old/new JSON values, value formatting and relative time.
- *
- * Values arrive already redacted by the server (secrets replaced when the log
- * was written); nothing here tries to reveal or re-derive them.
+ * Field-by-field diff and formatting for audit entries. Values arrive already redacted by the
+ * server; nothing here tries to reveal or re-derive them.
  */
 
 export type DiffChange = 'added' | 'removed' | 'changed' | 'unchanged';

@@ -55,7 +55,6 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Create reconciliation
       const res = await api.post('/reconciliation', data);
       const recon = res.data;
 

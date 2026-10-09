@@ -1,15 +1,6 @@
 /**
- * Stok & Produksi → Dashboard (/inventory without ?tab).
- *
- * Every figure is aggregated server-side over ALL active items / the selected
- * period (the old version summed the first 100 items in the browser):
- *  • KPIs            /inventory/items/summary?isActive=true,
- *                    /inventory/movements/summary (period + previous period)
- *  • Perlu tindakan  /inventory/items?stockStatus=out|low (list mode)
- *  • Nilai stok      /inventory/dashboard/stock-value?groupBy=category|warehouse
- *  • Gerakan         /inventory/movements (period, newest first)
- * Period (?period / ?startDate / ?endDate) and the value grouping (?valueBy)
- * live in the URL.
+ * Inventory dashboard. Every figure is aggregated server-side over all active
+ * items, never summed in the browser. Period and value grouping live in the URL.
  */
 import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';

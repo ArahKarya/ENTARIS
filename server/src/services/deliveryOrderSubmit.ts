@@ -30,20 +30,8 @@ export interface SubmitDeliveryOrderInput {
 }
 
 /**
- * Submit a delivery order (Surat Jalan):
- *   - validate fiscal year is open + customer is active
- *   - validate stock availability per inventory item (aggregate across lines,
- *     skip non-inventory rows) — same allowNegativeStock override as sales
- *   - create DeliveryOrder header in Submitted status
- *   - for each inventory line: resolve source warehouse, decrement totals at
- *     inventory_items + per-warehouse inventory_stocks, write a stockMovement
- *     of type Out with unitCost locked from inventoryItem.averageCost (so a
- *     later sales invoice posts COGS at the cost at *delivery* time)
- *   - link each DeliveryOrderItem to its stockMovement (null for service/
- *     non-inventory lines)
- *
- * No GL impact at this stage — the journal is posted by the matching sales
- * invoice. Caller owns the surrounding $transaction.
+ * Submit a delivery order. Out movements lock unitCost from averageCost so the later sales invoice
+ * posts COGS at delivery-time cost. No GL impact here (the invoice posts it). Caller owns the transaction.
  */
 export async function submitDeliveryOrderInTx(
   tx: Tx,
@@ -64,11 +52,8 @@ export async function submitDeliveryOrderInTx(
 
   const doNumber = await generateDocumentNumber(tx, 'DO', parsedDate, fiscalYear.id);
 
-  // Stock availability check — per (item, warehouse) pair.
-  // inventory_stocks is the source of truth; inventory_items.currentStock is a
-  // denormalized total across all warehouses and must NOT gate a per-warehouse
-  // shipment (it lets an empty warehouse pass, and blocks a stocked one when a
-  // sibling warehouse is negative). Mirrors the frontend check.
+  // Check stock per (item, warehouse) from inventory_stocks; currentStock is a cross-warehouse
+  // total and must not gate a per-warehouse shipment.
   const qtyByItemWh = new Map<string, { itemId: string; warehouseId: string; qty: number }>();
   for (const it of body.items) {
     if (!it.inventoryItemId) continue;
@@ -168,12 +153,8 @@ export async function submitDeliveryOrderInTx(
       const unitCost = Number(inventoryItem.averageCost);
       const totalValue = new Decimal(qty).times(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
 
-      // Block oversold: per-warehouse stock must be enough. Selling more than
-      // physically available cascades into negative inventory, which then
-      // corrupts WAC formula and produces absurd COGS (see incident 2026-05).
-      // Admin override (allowNegativeStock) tetap dihormati di sini — sama
-      // dengan pre-check agregat di atas — supaya bypass benar-benar tembus
-      // (bug fix 2026-05: dulu per-gudang ini hard-block walau bypass aktif).
+      // Block oversold lines: negative per-warehouse stock corrupts WAC and COGS.
+      // allowNegativeStock still bypasses this, same as the aggregate pre-check.
       const warehouseStock = await tx.inventoryStock.findUnique({
         where: { itemId_warehouseId: { itemId: inventoryItem.id, warehouseId } },
         select: { currentStock: true },
@@ -250,9 +231,6 @@ export async function submitDeliveryOrderInTx(
 
   logger.info({ doNumber, items: body.items.length, partyId: body.partyId }, 'Delivery order submitted');
 
-  // findUniqueOrThrow keeps the return type non-nullable for callers — the row
-  // was just created in the same transaction so the `findFirst` would never
-  // return null in practice.
   return tx.deliveryOrder.findUniqueOrThrow({
     where: { id: deliveryOrder.id },
     include: { items: true, customer: true },

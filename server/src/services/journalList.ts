@@ -1,17 +1,6 @@
 /**
- * Query building for the journal list (GET /api/journals, page "Jurnal Umum").
- *
- * Response contract is unchanged ({ data, total, page, limit }, each row with
- * its lines + account and creator); this module only adds filters and a
- * whitelisted sort:
- *   status     Draft | Submitted | Cancelled
- *   accountId  entries with at least one line on that account
- *   startDate/endDate (YYYY-MM-DD, business-local calendar days)
- *   search     entry number, narration, line description, account name/number
- *   hideCancelled=true (legacy flag, still honoured)
- *   sort       date | entryNumber, "-" prefix for descending (default -date)
- *
- * Read-only: nothing here touches posting, balances or cancellation.
+ * Journal list filters: status, accountId (any line on it), startDate/endDate (business days),
+ * search, hideCancelled=true, sort date | entryNumber ("-" = desc, default -date).
  */
 import { DocumentStatus, Prisma } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';

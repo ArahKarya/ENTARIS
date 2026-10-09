@@ -20,9 +20,7 @@ router.get('/metrics', async (_req, res) => {
           date: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
         }
       }),
-      // Inventory module pakai nilai operasional (qty fisik × avg cost),
-      // bukan saldo GL. Dashboard utama (routes/dashboard.ts) tetap pakai
-      // GL — keduanya disengaja beda karena melayani audience berbeda.
+      // Operational value (physical qty x avg cost), not the GL balance; the main dashboard uses GL on purpose.
       prisma.$queryRaw<[{ total: string | number }]>`
         SELECT COALESCE(SUM(current_stock * average_cost), 0) AS total
         FROM inventory_items
@@ -75,10 +73,8 @@ router.get('/by-category', async (_req, res) => {
   }
 });
 
-// GET /api/inventory/dashboard/stock-value?groupBy=category|warehouse —
-// operational stock value (qty × average cost) of active items per category
-// or per warehouse (inventory_stocks balance × the item's average cost).
-// → { groupBy, total, groups: [{ key, label, itemCount, value, share }] }
+// GET /api/inventory/dashboard/stock-value?groupBy=category|warehouse: operational stock value
+// (qty x average cost) of active items; per warehouse uses the inventory_stocks balance.
 router.get('/stock-value', async (req, res) => {
   const groupBy = parseStockValueGroupBy(req.query.groupBy);
   if (!groupBy) return res.status(400).json({ error: 'Pengelompokan harus category atau warehouse.' });
@@ -133,10 +129,8 @@ router.get('/movement-trend', async (_req, res) => {
       select: { date: true, movementType: true, quantity: true },
     });
 
-    // Group by month
     const monthMap = new Map<string, { inQty: number; outQty: number; adjInQty: number; adjOutQty: number }>();
 
-    // Initialize all months
     for (let i = 0; i < months; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - months + 1 + i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -261,12 +255,10 @@ router.get('/production', async (req, res) => {
   try {
     const now = new Date();
 
-    // Parse filter params
     const filterItemId = typeof req.query.itemId === 'string' ? req.query.itemId : undefined;
     const filterStartDate = typeof req.query.startDate === 'string' ? new Date(req.query.startDate) : undefined;
     const filterEndDate = typeof req.query.endDate === 'string' ? new Date(req.query.endDate + 'T23:59:59') : undefined;
 
-    // Build period boundaries
     const periodStart = filterStartDate || new Date(now.getFullYear(), now.getMonth(), 1);
     const periodEnd = filterEndDate || new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     const periodDays = Math.max(1, Math.ceil((periodEnd.getTime() - periodStart.getTime()) / 86400000));
@@ -289,7 +281,6 @@ router.get('/production', async (req, res) => {
     const baseWhere: any = { isCancelled: false };
     if (runIdFilter) baseWhere.id = { in: runIdFilter };
 
-    // 1. KPI: total runs, period runs, prev period runs, avg yield
     const [totalRuns, periodRuns, prevPeriodRuns, allActiveRuns] = await Promise.all([
       prisma.productionRun.count({ where: baseWhere }),
       prisma.productionRun.count({ where: { ...baseWhere, date: { gte: periodStart, lte: periodEnd } } }),
@@ -313,7 +304,6 @@ router.get('/production', async (req, res) => {
       ? periodYield.reduce((s, r) => s + Number(r.yieldPct), 0) / periodYield.length
       : 0;
 
-    // 2. Total input/output quantities in period
     const periodRunIds = allActiveRuns
       .filter(r => { const d = new Date(r.date); return d >= periodStart && d <= periodEnd; })
       .map(r => r.id);
@@ -348,7 +338,6 @@ router.get('/production', async (req, res) => {
       .filter(i => i.lineType === 'ByProduct' || i.isByProduct)
       .reduce((s, i) => s + Number(i.quantity), 0);
 
-    // 3. Yield trend: daily within period
     const trendRuns = allActiveRuns.filter(r => {
       const d = new Date(r.date);
       return d >= periodStart && d <= periodEnd && r.yieldPct !== null;
@@ -365,7 +354,6 @@ router.get('/production', async (req, res) => {
       .map(([date, v]) => ({ date, avgYield: Math.round((v.total / v.count) * 100) / 100, count: v.count }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // 4. Top 5 input items in period
     const inputItemMap = new Map<string, number>();
     for (const item of allPeriodItems.filter(i => i.lineType === 'Input')) {
       inputItemMap.set(item.itemId, (inputItemMap.get(item.itemId) || 0) + Number(item.quantity));
@@ -384,7 +372,6 @@ router.get('/production', async (req, res) => {
       return { id, name: item?.name || '', unit: item?.unit || '', quantity: qty };
     });
 
-    // 5. Top 5 output items in period
     const outputItemMap = new Map<string, number>();
     for (const item of allPeriodItems.filter(i => i.lineType === 'Output')) {
       outputItemMap.set(item.itemId, (outputItemMap.get(item.itemId) || 0) + Number(item.quantity));
@@ -403,7 +390,6 @@ router.get('/production', async (req, res) => {
       return { id, name: item?.name || '', unit: item?.unit || '', quantity: qty };
     });
 
-    // 6. Best & worst yield runs in period
     const sortedByYield = periodYield
       .sort((a, b) => Number(b.yieldPct) - Number(a.yieldPct));
     const bestYield = sortedByYield.slice(0, 5).map(r => ({
@@ -413,7 +399,6 @@ router.get('/production', async (req, res) => {
       runNumber: r.runNumber, date: r.date, yieldPct: Number(r.yieldPct),
     }));
 
-    // 7. Recent 10 production runs (within period)
     const recentProduction = await prisma.productionRun.findMany({
       where: { ...baseWhere, date: { gte: periodStart, lte: periodEnd } },
       select: {
@@ -426,10 +411,7 @@ router.get('/production', async (req, res) => {
       take: 10,
     });
 
-    // 8. Loaded HPP analytics (Phase 3+): pull totals + per-product avg HPP
-    //    untuk run dalam periode yang punya computedHpp non-null. Tujuan:
-    //    dashboard "Production Deep Dive" tampilkan rata-rata HPP per produk
-    //    utama + breakdown komponen biaya periode.
+    // Loaded HPP analytics: only runs in the period with a non-null computedHpp.
     const runsWithHpp = periodRunIds.length > 0
       ? await prisma.productionRun.findMany({
           where: {
@@ -620,11 +602,8 @@ router.get('/yield-trend', async (_req, res) => {
   }
 });
 
-// GET /api/inventory/dashboard/oee — OEE period report
-//   Query: startDate, endDate (ISO date). Default = current month.
-//   Run-level pcts dipakai untuk summary/trend/perShift (sudah dihitung saat
-//   submit, di-label "rata-rata" di UI). perMachine dari ProductionRunMachine,
-//   downtimeByCategory dari ProductionDowntime (Pareto).
+// GET /api/inventory/dashboard/oee: period report, default current month.
+// Summary/trend/perShift average the run-level pcts computed at submit; perMachine and downtime use their own tables.
 router.get('/oee', async (req, res) => {
   try {
     const now = new Date();
@@ -646,7 +625,6 @@ router.get('/oee', async (req, res) => {
     const round1 = (n: number) => Math.round(n * 10) / 10;
     const avgOf = (vals: number[]) => (vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0);
 
-    // 1. Run-level data dalam periode
     const runs = await prisma.productionRun.findMany({
       where: { isCancelled: false, date: { gte: periodStart, lte: periodEnd } },
       select: {
@@ -664,7 +642,7 @@ router.get('/oee', async (req, res) => {
     const runIds = runs.map((r) => r.id);
     const toNum = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
-    // 2. Per-machine rows (join run agar filter date + isCancelled)
+    // Join the run to filter by date and isCancelled.
     const machineRows = runIds.length > 0
       ? await prisma.productionRunMachine.findMany({
           where: { productionRunId: { in: runIds } },
@@ -682,7 +660,6 @@ router.get('/oee', async (req, res) => {
         })
       : [];
 
-    // 3. Downtime events (join run untuk filter date)
     const downtimeRows = runIds.length > 0
       ? await prisma.productionDowntime.findMany({
           where: { productionRunId: { in: runIds } },
@@ -690,7 +667,6 @@ router.get('/oee', async (req, res) => {
         })
       : [];
 
-    // Summary
     const oeeVals = runs.map((r) => toNum(r.oeePct)).filter((v): v is number => v !== null);
     const availVals = runs.map((r) => toNum(r.availabilityPct)).filter((v): v is number => v !== null);
     const perfVals = runs.map((r) => toNum(r.performancePct)).filter((v): v is number => v !== null);
@@ -732,7 +708,6 @@ router.get('/oee', async (req, res) => {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Per Machine
     const machineMap = new Map<string, {
       machineId: string; code: string; name: string;
       oee: number[]; avail: number[]; perf: number[]; qual: number[];
@@ -772,7 +747,6 @@ router.get('/oee', async (req, res) => {
       }))
       .sort((a, b) => b.avgOee - a.avgOee);
 
-    // Per Shift
     const shiftMap = new Map<string, { oee: number[]; avail: number[]; perf: number[]; qual: number[]; runs: number }>();
     for (const r of runs) {
       const shift = r.shift && r.shift.trim() ? r.shift : '(Tanpa Shift)';

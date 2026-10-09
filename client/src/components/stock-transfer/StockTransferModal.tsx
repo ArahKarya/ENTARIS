@@ -30,7 +30,7 @@ interface TransferItemRow {
   quantity: number;
   unit?: string;
   description?: string;
-  // Phase 5: optional batch picker — locks unitCost to a specific inbound batch.
+  // Optional batch pick: locks unitCost to a specific inbound batch.
   sourceMovementId?: string;
 }
 

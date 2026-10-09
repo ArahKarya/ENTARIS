@@ -1,7 +1,5 @@
-// Operational reports (HPP, payable schedule, receivable schedule, daily).
-// Split out from the main reports.ts to keep that file under the audit's
-// 800-line target. Role gate is applied here too because this sub-router
-// is mounted standalone in reports.ts.
+// Operational reports (HPP, payable/receivable schedules, daily). Mounted by reports.ts under
+// /api/reports, which requires the reports permission in index.ts.
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { logger } from '../../lib/logger';
@@ -84,16 +82,8 @@ router.get('/hpp', async (req, res) => {
   }
 });
 
-// GET /api/reports/profitability-per-sku — Phase 6 loaded-margin report
-// For each SKU, compare revenue vs material WAC vs loaded HPP (when sale lines
-// were linked to a specific batch via Phase 5 picker). Both basis shown side
-// by side so user can decide which is most representative.
-//
-// `material_cogs` = sum(qty × inventory_item.average_cost)  (WAC at query time)
-// `loaded_cogs`   = sum(qty × COALESCE(si.unit_cost_loaded, batch.unit_cost,
-//                                       inventory_item.average_cost))
-// loaded_cogs falls back gracefully when no batch pick / no loaded HPP, so
-// the report still produces a number even for legacy invoices.
+// GET /api/reports/profitability-per-sku: revenue vs material WAC (at query time) vs loaded HPP per SKU.
+// loaded_cogs = qty x COALESCE(si.unit_cost_loaded, batch.unit_cost, average_cost), so it works without a batch pick.
 router.get('/profitability-per-sku', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -190,11 +180,8 @@ router.get('/profitability-per-sku', async (req, res) => {
   }
 });
 
-// GET /api/reports/production-cost-summary — Modal per Periode (laporan manajemen).
-// Per output utama × gudang: kg bahan, nilai bahan (REAL, dari batch/invoice),
-// kg output, rendemen, modal bahan baku murni/kg (WAC 2 = nilai bahan ÷ kg output)
-// vs HPP GL/kg (nilai yang diposting = bahan − NRV produk samping + biaya konversi).
-// Informasi saja — tidak membuat jurnal.
+// GET /api/reports/production-cost-summary: per main output x warehouse, raw material cost/kg (material value / output kg)
+// vs posted HPP/kg (material - by-product NRV + conversion cost). Read-only, no journal.
 router.get('/production-cost-summary', async (req, res) => {
   try {
     const start = parseQueryDate(req.query.startDate) ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -406,7 +393,6 @@ router.get('/daily', async (req, res) => {
       apInvoices,
       vendorDepositPayments,
     ] = await Promise.all([
-      // 1. Sales invoices of the day
       prisma.salesInvoice.findMany({
         where: { date: dayRange, status: activeStatus },
         include: {
@@ -415,7 +401,6 @@ router.get('/daily', async (req, res) => {
         },
         orderBy: { date: 'asc' },
       }),
-      // 2. Purchase invoices of the day
       prisma.purchaseInvoice.findMany({
         where: { date: dayRange, status: activeStatus },
         include: {
@@ -424,7 +409,6 @@ router.get('/daily', async (req, res) => {
         },
         orderBy: { date: 'asc' },
       }),
-      // 3. Production runs of the day
       prisma.productionRun.findMany({
         where: { date: dayRange, isCancelled: false },
         include: {
@@ -432,7 +416,6 @@ router.get('/daily', async (req, res) => {
         },
         orderBy: { date: 'asc' },
       }),
-      // 4. Payments of the day
       prisma.payment.findMany({
         where: { date: dayRange, status: 'Submitted' },
         include: {
@@ -441,23 +424,20 @@ router.get('/daily', async (req, res) => {
         },
         orderBy: { date: 'asc' },
       }),
-      // 5. Manual journal count of the day
       prisma.journalEntry.count({
         where: { date: dayRange, status: 'Submitted' },
       }),
-      // 6. All outstanding AR invoices (as of end of day)
+      // Outstanding AR and AP as of end of day.
       prisma.salesInvoice.findMany({
         where: { outstanding: { gt: 0 }, status: activeStatus },
         include: { customer: { select: { name: true } } },
         orderBy: { dueDate: 'asc' },
       }),
-      // 7. All outstanding AP invoices
       prisma.purchaseInvoice.findMany({
         where: { outstanding: { gt: 0 }, status: activeStatus },
         include: { supplier: { select: { name: true } } },
         orderBy: { dueDate: 'asc' },
       }),
-      // 8. Vendor deposits
       prisma.payment.findMany({
         where: { paymentType: 'VendorDeposit', status: 'Submitted' },
         include: {
@@ -483,7 +463,6 @@ router.get('/daily', async (req, res) => {
       balance: Number(a.balance),
     }));
 
-    // 1. Sales summary
     const sales = {
       invoices: salesInvoices.map((si) => ({
         invoiceNumber: si.invoiceNumber,
@@ -501,7 +480,6 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // 2. Purchases summary
     const purchases = {
       invoices: purchaseInvoices.map((pi) => ({
         invoiceNumber: pi.invoiceNumber,
@@ -519,7 +497,6 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // 3. Production summary
     const production = {
       runs: productionRuns.map((pr) => {
         const inputs = pr.items.filter((i) => i.lineType === 'Input');
@@ -544,7 +521,6 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // 4. Finance summary
     const paymentsIn = paymentsData.filter((p) => p.paymentType === 'Receive' || p.paymentType === 'CustomerDeposit');
     const paymentsOut = paymentsData.filter((p) => p.paymentType === 'Pay' || p.paymentType === 'VendorDeposit');
     const finance = {
@@ -569,7 +545,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // 5. Receivables (aging)
+    // Receivables aging
     const agingBucket = (dueDate: Date | null, refDate: Date) => {
       if (!dueDate) return 'current';
       const diff = Math.floor((refDate.getTime() - dueDate.getTime()) / 86400000);
@@ -599,7 +575,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // 6. Payables (aging)
+    // Payables aging
     const apBySupplier = new Map<string, { supplierName: string; current: number; d1_30: number; d31_60: number; d61_90: number; d91_plus: number; total: number }>();
     for (const inv of apInvoices) {
       const name = inv.supplier?.name || '—';
@@ -619,7 +595,6 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // 7. Vendor deposits
     const vendorDeposits = {
       deposits: vendorDepositPayments.map((p) => {
         const totalApplied = p.depositApplications.reduce((s, a) => s + Number(a.appliedAmount), 0);
@@ -640,7 +615,7 @@ router.get('/daily', async (req, res) => {
     };
     vendorDeposits.summary.totalRemaining = vendorDeposits.deposits.reduce((s, d) => s + d.remaining, 0);
 
-    // 8. Kondisi stok (snapshot per gudang as-of akhir tanggal)
+    // Stock snapshot per warehouse as of end of day.
     const snapshot = await buildStockSnapshot(dateStr);
     const stock = {
       asOfDate: snapshot.asOfDate,

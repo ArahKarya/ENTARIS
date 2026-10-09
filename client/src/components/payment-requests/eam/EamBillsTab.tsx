@@ -1,14 +1,7 @@
 /**
- * "Tagihan EAM" tab of Pengajuan Pembayaran (/payment-requests?tab=eam) — the
- * queue of EAM costs (vehicle tax / STNK / KIR, vehicle service, spare-part
- * material requests) waiting to be posted to the ERP books. HRGA submits and
- * approves them in EAM; finance chooses the accounts and payment method here.
- * Finance only (payment_request edit); the parent page gates the tab.
- *
- * Phase 3 list kit with server paging: GET /payment-requests/eam does search,
- * date range, sorting and paging ({data,total,page,limit}); all of it lives in
- * the URL via useListState. The default view is the queue (not yet posted).
- * Lazy-loaded by pages/PaymentRequests.tsx to keep the main chunk small.
+ * Queue of EAM costs (vehicle tax, service, spare-part MRs) waiting to be posted;
+ * finance picks accounts and payment method. Requires payment_request edit
+ * (gated by the parent page). Search, paging and sorting run server-side.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

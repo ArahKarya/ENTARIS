@@ -1,10 +1,6 @@
 /**
- * Route-level code splitting helpers.
- *
- * `lazyPage` wraps React.lazy with a shared Suspense fallback (role=status, same
- * spinner as LoadingState, reserved height so the shell does not jump) and a
- * chunk-load error boundary ("Muat ulang") for stale deploys. Each wrapped page
- * also exposes `preload()` so navigation links can warm the chunk on hover/focus.
+ * `lazyPage`: React.lazy with a shared Suspense fallback (reserved height so the shell
+ * does not jump), a chunk-load error boundary for stale deploys, and `preload()` for hover/focus.
  */
 import { Component, lazy, Suspense, type ComponentProps, type ComponentType, type ErrorInfo, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';

@@ -378,7 +378,7 @@ router.get('/pending-do', async (_req, res) => {
 
 // GET /api/dashboard/negative-stock — items dengan stok < 0 (item-level atau
 // per-gudang). Plus latest movement utk konteks "siapa & kapan & kenapa".
-// Widget Dashboard ini dipake monitor bypass admin (sejak v3.2.1).
+// Used by the dashboard widget that monitors approval-bypass roles.
 router.get('/negative-stock', async (_req, res) => {
   try {
     const items = await prisma.$queryRaw<any[]>`

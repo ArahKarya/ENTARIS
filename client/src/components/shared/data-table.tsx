@@ -14,11 +14,8 @@
  * Sorting is opt-in per column (`enableSorting: true`); in server mode the
  * column id must be the API sort field (e.g. id: 'date' → ?sort=-date).
  *
- * Mobile strategy (<640px): PRIORITY COLUMNS + HORIZONTAL SCROLL. Mark
- * secondary columns with `meta.hideBelow`; keep the document number, party,
- * the key amount, status and the ⋯ menu visible. The scroll container is a
- * labelled, focusable region so any overflow stays reachable by keyboard.
- * (`mobileCard` remains for legacy client-mode callers.)
+ * Mobile (<640px): priority columns plus horizontal scroll. Hide secondary
+ * columns with `meta.hideBelow`; the scroll region is focusable for keyboard use.
  *
  * Density: rows are 44px (Nyaman) or 36px (Ringkas). Secondary lines inside
  * a cell can hide in compact mode with `group-data-[density=compact]/table:hidden`.

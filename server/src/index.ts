@@ -153,9 +153,8 @@ app.use(
   })
 );
 
-// MCP (AIRA)
-// Endpoint MCP stateless untuk mesin AI (engine AIRA). Auth sendiri (Bearer token MCP + actor
-// assertion), body-limit sendiri → dipasang SEBELUM body parser global & auth /api.
+// Stateless MCP endpoint for the AIRA engine. It has its own auth (MCP bearer token + actor assertion) and body limit,
+// so it mounts before the global body parser and /api auth.
 app.use('/mcp', mcpRouter);
 
 // Body Parsing
@@ -181,9 +180,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/ga/public', gaPublicQrRoutes); // GA: QR publik (tanpa auth)
 
-// Build version stamped at process start — changes every container restart
-// (= every deploy). Used by VersionWatcher di client untuk deteksi update
-// dan prompt user reload, supaya tidak perlu Ctrl-Shift-R manual lagi.
+// Changes on every process start (every deploy); the client VersionWatcher uses it to prompt a reload.
 const BUILD_VERSION = `${Date.now()}`;
 logger.info({ buildVersion: BUILD_VERSION }, 'Build version stamped for this process');
 
@@ -196,12 +193,8 @@ app.get('/api/version', (_req, res) => {
 app.use('/api', authMiddleware);
 app.use('/api', auditTrailMiddleware);
 
-// RBAC dinamis: gate per modul di mount
-// requirePerm(module): GET→view, tulis→edit (router transaksional).
-// requireWrite(module): GET terbuka (data referensi), tulis→edit.
-// Mount tanpa gate (dashboard/search/attachments/notifications/users/settings/
-// import-via-requireWrite/approvals) di-gate di dalam file (mixed-sensitivity).
-// Endpoint sensitif (cancel/decide/dll) pakai requireCap di dalam route file.
+// requirePerm(module): GET needs view, writes need edit. requireWrite(module): GET open (reference data), writes need edit.
+// Routers mounted without a gate check permissions per endpoint; sensitive actions use requireCap in the route file.
 
 // Data referensi (GET terbuka untuk mengisi form di seluruh app):
 app.use('/api/coa', requireWrite('coa'), coaRoutes);
@@ -250,7 +243,7 @@ app.use('/api/purchase-orders', requirePerm('purchase_order'), purchaseOrderRout
 app.use('/api/cogs-backfill', requirePerm('journal'), cogsBackfillRoutes);
 app.use('/api/approvals', requirePerm('approvals'), approvalRoutes);
 
-// Sistem (modul 'audit'/'settings' → hanya Admin/super by default):
+// System modules: by default only Admin holds the audit and settings permissions.
 app.use('/api/audit-logs', requirePerm('audit'), auditRoutes);
 app.use('/api/health-check', requirePerm('audit'), healthCheckRoutes);
 app.use('/api/backup', requirePerm('audit'), backupRoutes);
@@ -268,38 +261,26 @@ app.use(
   dashboardRoutes,
 );
 app.use('/api/search', searchRoutes);                // pencarian global
-app.use('/api/attachments', attachmentRoutes);       // lampiran — ikut dokумен induk
+app.use('/api/attachments', attachmentRoutes);       // access follows the parent document
 app.use('/api/notifications', notificationRoutes);   // per-user; POST /check di-gate di file
 app.use('/api/settings', settingsRoutes);            // GET /company terbuka; tulis di-gate di file
-app.use('/api/users', usersRoutes);                  // /me/password terbuka; admin di-gate di file
+app.use('/api/users', usersRoutes);                  // /me/password open; other endpoints requirePerm('users')
 app.use('/api/roles', roleRoutes);                   // kelola RBAC — guard requireCap('rbac.manage') di file
 app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di inventory/index.ts
 app.use('/api/payment-requests', paymentRequestRoutes);    // semua user login; izin keuangan/direktur dicek per endpoint
 
-// AIRA: AI Tool Layer & Tool Router (Agentic System)
-// config: override tool + kill switch; mcp: token MCP, status, riwayat panggilan → gate
-//         requirePerm('settings') + cap rbac.manage di endpoint sensitif (di file).
-//         Eksekusi tool oleh agen TIDAK lewat /api/ai (lihat /mcp) — jalur /api/ai/router sudah dipensiunkan.
+// AIRA admin: tool config and MCP tokens need the settings permission, plus rbac.manage on sensitive endpoints.
+// Agents execute tools only through /mcp, never through /api/ai.
 app.use('/api/ai/config', requirePerm('settings'), aiConfigRoutes);
 app.use('/api/ai/mcp', requirePerm('settings'), aiMcpAdminRoutes);
 app.use('/api/ai/chat', aiChatRoutes);          // panel chat: sesi/pesan disimpan Entaris, agen via API engine
 app.use('/api/chat-history', chatHistoryRoutes);  // dipakai tool MCP chat_* (hanya sesi milik aktor)
 
-// Serve Frontend (Production)
-// In production, serve the built React client from ../client/dist.
-//
-// Cache strategy:
-//   - /assets/*  → Vite content-hashes filenames; aman cache 1 tahun (immutable).
-//   - index.html → no-store; browser selalu fetch terbaru saat user
-//                  refresh/buka-tutup tab. Karena index.html merujuk asset
-//                  ber-hash, perubahan apa pun otomatis ter-pull saat HTML
-//                  baru diambil — tidak butuh Ctrl-Shift-R lagi.
-// Serve Uploaded Files (foto WO, item GA, dokumen, dll)
-// Frontend memanggil path statis /uploads/<...> langsung (bukan lewat API),
-// jadi harus di-serve sebelum SPA fallback catch-all agar tidak balik index.html.
+// The client requests /uploads/<...> directly, so it must be served before the SPA fallback.
 const uploadsDir = path.resolve(process.env.UPLOADS_DIR || './uploads');
 app.use('/uploads', express.static(uploadsDir));
 
+// Built client: hashed /assets/* are cached for a year; index.html is never cached so a reload picks up new builds.
 const clientDist = path.resolve(__dirname, '../../client/dist');
 app.use(express.static(clientDist, {
   setHeaders: (res, filePath) => {
@@ -322,11 +303,7 @@ app.get('*path', (_req, res, next) => {
   });
 });
 
-// Global Error Handler
-// Always log the full error internally but expose only a generic message to
-// the client. Per-route handlers (handleRouteError / BusinessError) own user-
-// facing messages; this is the fallback for uncaught throws and should never
-// leak Prisma internals, stack details, or DB schema info.
+// Fallback for uncaught throws: log the full error, return only a generic message (never Prisma, stack or schema details).
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = typeof err?.status === 'number' && err.status >= 400 && err.status < 600
     ? err.status
@@ -356,8 +333,6 @@ app.listen(port, () => {
     logger.error({ err }, 'ensureProjectGuaranteeAccount failed');
   });
 
-  // All background jobs (token purge, quotation sweep, recurring runner) go
-  // through the central scheduler. Postgres advisory locks make it safe to
-  // run multiple replicas — only one will pick up each scheduled tick.
+  // All background jobs go through the central scheduler; Postgres advisory locks let only one replica run each tick.
   startScheduler();
 });

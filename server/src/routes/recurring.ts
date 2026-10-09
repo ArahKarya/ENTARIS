@@ -225,7 +225,7 @@ router.post('/:id/execute', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/recurring/run-due — Admin: execute all due templates
+// POST /api/recurring/run-due: execute all due templates (requires the doc.cancel capability)
 router.post('/run-due', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const now = new Date();

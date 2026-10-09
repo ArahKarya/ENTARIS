@@ -1,25 +1,7 @@
-// Revisi harga Purchase Invoice yang sudah Submitted/Paid.
-//
-// Use case: supplier mengoreksi harga SETELAH PI di-submit — sering kali
-// barangnya sudah sebagian/seluruhnya diproduksi/dijual, jadi tidak bisa
-// sekadar cancel + buat ulang (stok bisa minus).
-//
-// Per item, delta = (rate_baru − rate_lama) × qty dipecah (split) berdasarkan
-// berapa banyak barang yang MASIH di stok vs SUDAH keluar:
-//   - porsi masih-di-stok  → DR/CR Persediaan + koreksi averageCost (WAC)
-//   - porsi sudah-keluar    → DR/CR 5.11 Selisih Harga Pembelian (variance
-//                             periode berjalan; tidak mengutak-atik COGS lama)
-// Lawan dari delta selalu Hutang Usaha (2.1.1) — karena yang berubah adalah
-// kewajiban ke supplier.
-//
-// Konvensi tanda (delta = nilai baru − lama):
-//   delta > 0 (harga NAIK)  → hutang bertambah:
-//       CR Hutang (2.1.1)            delta
-//       DR Persediaan (porsi stok)   + DR 5.11 (porsi keluar)
-//   delta < 0 (harga TURUN)  → kebalikannya.
-//
-// GL selalu balance: total DR (Persediaan + 5.11) = total CR (Hutang), atau
-// sebaliknya untuk delta negatif.
+// Price revision of a Submitted/Paid purchase invoice whose goods may already be consumed
+// (cancel + recreate could drive stock negative). Delta = (new rate - old rate) x qty, split by
+// qty: still in stock -> Persediaan + WAC correction; already out -> 5.11 variance (old COGS
+// untouched). Counter entry is always Hutang Usaha 2.1.1: delta > 0 CRs it, delta < 0 DRs it.
 
 import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

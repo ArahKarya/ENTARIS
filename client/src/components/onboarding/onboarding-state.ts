@@ -1,10 +1,7 @@
 /**
- * Onboarding (penyiapan awal) state helpers. Kept free of React so the gating
- * rules can be unit-tested and shared by the wizard and the dashboard checklist.
- *
- * Source of truth is the server (`company_settings.onboarded_at`). The old
- * localStorage flag `onboardingDone='true'` is still honoured as an extra
- * suppression (e2e setup and browsers that finished the old wizard rely on it).
+ * Onboarding state helpers, free of React so the gating rules are unit-testable.
+ * The server (`company_settings.onboarded_at`) is the source of truth; the
+ * localStorage flag `onboardingDone='true'` still suppresses it (e2e setup relies on it).
  */
 import api from '@/lib/api';
 import { tenantName } from '@/components/auth/login-helpers';

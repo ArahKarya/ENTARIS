@@ -1,13 +1,5 @@
-// GA Public QR — PUBLIC, no auth (ported from GA Monitor).
-//
-// Mounted at /api/ga/public by routes/ga/index.ts. Scanning an asset QR code
-// resolves to limited, non-sensitive asset info plus a photo proxy that only
-// serves photos belonging to the scanned QR's asset.
-//
-// IMPORTANT: this router is intentionally UNAUTHENTICATED. Only expose
-// non-sensitive fields here — never acquisitionCost, customFields, notes that
-// could leak internal data, or any internal IDs beyond what is needed to load
-// photos.
+// Public, unauthenticated QR lookup mounted at /api/ga/public in index.ts.
+// Expose only non-sensitive asset fields (never acquisitionCost, customFields or internal notes); the photo proxy serves only the scanned asset's photos.
 
 import { Router } from 'express';
 import path from 'path';

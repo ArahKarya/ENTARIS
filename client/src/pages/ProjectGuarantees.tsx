@@ -1,14 +1,6 @@
 /**
- * Uang Jaminan Proyek (/project-guarantees) — server-paginated list built on
- * the Phase 3 list kit (see pages/SalesInvoices.tsx for the reference pattern).
- *
- * Setoran jaminan (tender/pelaksanaan/pemeliharaan) ke pemberi proyek.
- * Status: Disetor → Selesai (via settlement kembali/hangus) | Dibatalkan.
- *
- * The list calls GET /project-guarantees with `page` (paged mode, rows carry a
- * server-derived `dueState`); KPI cards come from GET /project-guarantees/summary
- * with the same filters. Rows open a detail drawer with the settlement history,
- * where individual settlements can be cancelled.
+ * Project guarantee deposits (/project-guarantees). Status: Disetor → Selesai (settled as returned
+ * or forfeited) | Dibatalkan. Individual settlements can be cancelled from the detail drawer.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -86,7 +78,7 @@ function errorMessage(err: unknown, fallback: string): string {
 
 const activeSettlements = (g: ProjectGuaranteeRow) => (g.settlements ?? []).filter((s) => !s.isCancelled);
 
-/** Settle: open guarantee with a remaining balance (same rule as before). */
+/** Settle: open guarantee with a remaining balance. */
 const isSettleable = (g: ProjectGuaranteeRow) => g.status === 'Disetor' && g.outstanding > OUTSTANDING_EPSILON;
 /** Cancel the deposit: not cancelled yet and no active settlement (server rule). */
 const isCancellable = (g: ProjectGuaranteeRow) => g.status !== 'Dibatalkan' && activeSettlements(g).length === 0;

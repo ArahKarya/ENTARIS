@@ -177,7 +177,6 @@ export async function submitSalesReturnInTx(
   const creditPortion = totalReturn.minus(arReduce).toDecimalPlaces(2);
   const creditPortionNum = creditPortion.toNumber();
 
-  // Create header + items
   const returnNumber = await generateDocumentNumber(tx, 'RN', parsedDate, fiscalYear.id);
   const salesReturn = await tx.salesReturn.create({
     data: {

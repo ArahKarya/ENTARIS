@@ -1,7 +1,7 @@
 /**
  * Shared parsing for paginated list endpoints.
  *
- * Contract (unchanged, reused by every list endpoint):
+ * Contract shared by every list endpoint:
  *   GET /api/<resource>?page=1&limit=25&search=…&sort=-date&<filters>
  *   → { data: T[], total: number, page: number, limit: number }
  *

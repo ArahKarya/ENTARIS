@@ -1,6 +1,6 @@
 // Tagihan EAM — antrian biaya EAM (pajak kendaraan, service, sparepart MR) di dalam
 // Pengajuan Pembayaran. Mounted at /api/payment-requests/eam (paymentRequests.ts),
-// FINANCE ONLY: every endpoint needs 'payment_request' edit.
+// Finance only: every endpoint needs 'payment_request' edit.
 //
 // Posting/cancel reuse services/gaFinance.ts through services/gaBillQueue.ts —
 // the single source of GL truth (the old /api/ga/finance alias is retired).

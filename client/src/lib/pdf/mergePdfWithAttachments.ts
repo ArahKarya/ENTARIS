@@ -1,13 +1,5 @@
-// Client-side PDF merge: invoice PDF + list of attachments (PDF/JPG/PNG/WebP)
-// into a single downloadable PDF.
-//
-// Flow:
-//   1. Caller provides the invoice PDF as a Blob (from @react-pdf/renderer pdf(...).toBlob()).
-//   2. For each attachment URL:
-//      - fetch as ArrayBuffer
-//      - if PDF: copyPages into merged doc
-//      - if image: embed and add a page sized to the image (portrait A4 fit)
-//   3. Return a single merged Blob ready for saveAs / URL.createObjectURL.
+// Merge the invoice PDF Blob with attachments (PDF pages copied, JPG/PNG/WebP fitted to a
+// portrait A4 page) into one downloadable PDF.
 
 import { PDFDocument, PageSizes } from 'pdf-lib';
 

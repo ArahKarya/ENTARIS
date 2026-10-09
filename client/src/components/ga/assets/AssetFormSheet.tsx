@@ -1,7 +1,6 @@
 /**
- * Create / edit an asset in a side sheet. Same contract as before:
- * POST /ga/assets (code optional → server auto-numbers) or PUT /ga/assets/:id,
- * then an optional photo upload to /ga/assets/:id/photos.
+ * Create/edit an asset (blank code: the server auto-numbers), then an optional
+ * photo upload to /ga/assets/:id/photos.
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

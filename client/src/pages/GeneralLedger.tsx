@@ -1,11 +1,6 @@
 /**
- * Jurnal Umum (/gl) — server-paginated journal list on the Phase 3 list kit
- * (pattern: pages/SalesInvoices.tsx). GET /journals keeps its original
- * response shape ({ data, total, page, limit }, each entry with its lines);
- * filters/sort live in server/src/services/journalList.ts.
- *
- * Opens on the current month (as before) unless the URL already carries list
- * params; Reset clears it to "all periods".
+ * General journal (/gl); filters and sort live in server/src/services/journalList.ts.
+ * Opens on the current month unless the URL already carries list params; Reset shows all periods.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -162,8 +157,7 @@ export const GeneralLedger = () => {
   const queryClient = useQueryClient();
   const accounts = useAccountOptions();
 
-  // Default to the current month so recent entries are not buried (since
-  // 2026-05-24); skipped when the URL already says what to show.
+  // Default to the current month so recent entries are not buried; skipped when the URL already says what to show.
   const [pendingDefault, setPendingDefault] = useState(() => !LIST_URL_KEYS.some((k) => searchParams.has(k)));
   useEffect(() => {
     if (!pendingDefault) return;

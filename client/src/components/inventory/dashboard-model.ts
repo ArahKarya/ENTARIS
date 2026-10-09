@@ -1,10 +1,6 @@
 /**
- * Pure rules for the Stok & Produksi dashboards (inventory: no ?tab,
- * production: ?tab=production without ?view). No React, unit tested.
- *
- * The reporting period lives in the URL:
- *   ?period=thisMonth|lastMonth|last30|thisQuarter|ytd      (default thisMonth)
- *   ?period=custom&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+ * Pure rules for the inventory and production dashboards. The period lives in the
+ * URL: ?period=thisMonth (default)|lastMonth|last30|thisQuarter|ytd|custom&startDate&endDate.
  */
 import type { StatDelta } from '@/components/shared';
 import { formatDateRange, formatNumber, formatPercent, parseDate } from '@/lib/format';

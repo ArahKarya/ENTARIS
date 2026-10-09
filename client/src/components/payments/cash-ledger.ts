@@ -75,7 +75,7 @@ export function kindLabel(kind: string): string {
 export const statusDocType = (row: Pick<CashLedgerRow, 'source'>): DocType =>
   row.source === 'journal' ? 'journal' : 'payment';
 
-/** Where a row's cancel action leads (cancellation itself is unchanged). */
+/** Where a row's cancel action leads. */
 export type CancelRoute =
   | { kind: 'dialog' }
   | { kind: 'redirect'; path: string; label: string; message: string };

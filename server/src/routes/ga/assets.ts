@@ -1,16 +1,5 @@
-// GA Assets — physical asset registry (ported from GA Monitor).
-//
-// Mounted under /api/ga/assets with requirePerm('ga_assets') enforced by
-// routes/ga/index.ts — do NOT add auth middleware here.
-//
-// Asset code auto-numbering: {CATEGORY_PREFIX}-{BRANCH_CODE}-{NNNN}, sequence
-// per (category, branch), race-safe via a transaction-scoped advisory lock.
-// Each asset gets a unique QR code string (crypto.randomUUID) stored in
-// GaAssetQr — clients render the QR image themselves (no `qrcode` npm dep).
-//
-// NOTE: the XLSX bulk-import / template endpoints from the GA Monitor source
-// were OMITTED — they depend on the `xlsx` package which is not an ERP dep
-// (only `exceljs` is present). Port separately if bulk import is needed.
+// GA Assets: physical asset registry, mounted with requirePerm('ga_assets') in index.ts (no auth middleware here).
+// Asset code {CATEGORY_PREFIX}-{BRANCH_CODE}-{NNNN}, sequence per category and branch under an advisory lock; clients render the QR.
 
 import { Router } from 'express';
 import crypto from 'crypto';
@@ -289,7 +278,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create
 router.post('/', async (req: AuthRequest, res) => {
   const input = validateBody(AssetSchema, req.body, res);
   if (!input) return;
@@ -337,7 +325,6 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// Update
 router.put('/:id', async (req, res) => {
   const input = validateBody(AssetSchema.partial(), req.body, res);
   if (!input) return;

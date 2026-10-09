@@ -1,8 +1,6 @@
 /**
- * Stock opname count entry (/stock-opname?opname=new).
- * Logic unchanged from the original page: all active items are sent (audit
- * trail), blank actual = system stock, blank unit cost = average cost
- * (filled = revaluation). Only markup/tokens were modernised.
+ * Stock opname count entry. All active items are sent (audit trail); blank actual
+ * means system stock, blank unit cost means average cost (filled = revaluation).
  */
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';

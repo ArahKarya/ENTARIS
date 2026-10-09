@@ -316,7 +316,7 @@ export function classifyRow(input: ClassifyInput): ClassifyResult {
   if (typeof engine.reason === 'string' && engine.reason.trim()) reasons.push(engine.reason.trim().slice(0, 200));
   let confidence = clampConfidence(engine.confidence);
 
-  // 1. txnType — direction is authoritative, never the engine's type.
+  // The cash direction decides txnType, never the engine's type.
   let engineType: TxnType | null = null;
   if (isTxnType(engine.txnType)) engineType = engine.txnType;
   else if (engine.txnType !== undefined && engine.txnType !== null && engine.txnType !== '') {
@@ -341,7 +341,6 @@ export function classifyRow(input: ClassifyInput): ClassifyResult {
     reasons.push(engine.accountProblem);
   }
 
-  // 2. account
   let accountId: string | null = null;
   let source: ClassifySource = 'none';
   if (isAdvanceType(txnType)) {

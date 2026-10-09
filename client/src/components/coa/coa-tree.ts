@@ -305,7 +305,7 @@ export function splitHighlight(text: string, query: string): TextPart[] {
   return parts;
 }
 
-/** Flat export rows (same columns as before the redesign). */
+/** Flat export rows. */
 export function exportRows(nodes: readonly CoaNode[]) {
   return walkTree(nodes).map((n) => ({
     accountNumber: n.accountNumber,

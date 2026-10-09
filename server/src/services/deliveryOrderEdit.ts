@@ -10,27 +10,8 @@ import type { SubmitDeliveryOrderInput } from './deliveryOrderSubmit';
 type Tx = Prisma.TransactionClient;
 
 /**
- * Edit a delivery order: cancel-but-keep-record then re-apply the new
- * header + items with the same doNumber. Used when the user fixes a typo
- * in qty / wrong item / wrong warehouse on a DO that's still Submitted
- * and not yet folded into an invoice.
- *
- * Steps:
- *   1. Load existing DO. Reject when Cancelled or already linked to an
- *      invoice (caller must un-invoice first).
- *   2. Reverse every active stockMovement created by this DO (restore
- *      item-level total + per-warehouse stock).
- *   3. Mark those movements isCancelled.
- *   4. Delete old DeliveryOrderItems.
- *   5. Re-validate stock availability for the NEW items (mirroring submit).
- *   6. Apply new items: decrement stock + create fresh Out movements with
- *      locked unitCost (current averageCost AT EDIT TIME — same semantics
- *      as a fresh DO).
- *   7. Persist new DeliveryOrderItem rows. Update header (date/notes/
- *      shipping meta).
- *
- * doNumber is preserved so any external printout / paper trail still
- * references the same physical delivery.
+ * Edit a Submitted, not-yet-invoiced DO: reverse its movements, then re-apply the new lines with
+ * unitCost locked at the averageCost at edit time. doNumber is kept so printouts stay valid.
  */
 export async function editDeliveryOrderInTx(
   tx: Tx,
@@ -52,7 +33,6 @@ export async function editDeliveryOrderInTx(
     );
   }
 
-  // 1) Reverse old stock movements + restore stock.
   const oldMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'DeliveryOrder', referenceId: doId, isCancelled: false },
   });
@@ -69,11 +49,10 @@ export async function editDeliveryOrderInTx(
     });
   }
 
-  // 2) Drop old item rows. Header is reused (preserves doNumber).
+  // Header is reused (preserves doNumber).
   await tx.deliveryOrderItem.deleteMany({ where: { deliveryOrderId: doId } });
 
-  // 3) Validate party still active. Allow customer change as long as it's
-  // a Customer/Both party — same rule as submit.
+  // Customer may change as long as the party is Customer/Both (same rule as submit).
   const party = await tx.party.findUnique({ where: { id: body.partyId } });
   if (!party) throw new BusinessError('Data pelanggan tidak ditemukan.');
   if (!party.isActive) throw new BusinessError('Pelanggan sudah tidak aktif.');
@@ -84,12 +63,8 @@ export async function editDeliveryOrderInTx(
   const txDate = new Date(body.date);
   if (isNaN(txDate.getTime())) throw new BusinessError('Format tanggal tidak valid.');
 
-  // 4) Pre-validate stock per (item, warehouse) — post-reversal stock.
-  // Stock availability check — per (item, warehouse) pair.
-  // inventory_stocks is the source of truth; inventory_items.currentStock is a
-  // denormalized total across all warehouses and must NOT gate a per-warehouse
-  // shipment (it lets an empty warehouse pass, and blocks a stocked one when a
-  // sibling warehouse is negative). Mirrors the frontend check.
+  // Check post-reversal stock per (item, warehouse) from inventory_stocks; currentStock is a
+  // cross-warehouse total and must not gate a per-warehouse shipment.
   const qtyByItemWh = new Map<string, { itemId: string; warehouseId: string; qty: number }>();
   for (const it of body.items) {
     if (!it.inventoryItemId) continue;
@@ -148,7 +123,6 @@ export async function editDeliveryOrderInTx(
     }
   }
 
-  // 5) Update header (preserve doNumber).
   await tx.deliveryOrder.update({
     where: { id: doId },
     data: {
@@ -161,8 +135,6 @@ export async function editDeliveryOrderInTx(
     },
   });
 
-  // 6) Apply new items (mirrors submit body, sharing the same fiscal year
-  // lookup pattern).
   const fiscalYear = await tx.fiscalYear.findFirst({
     where: { isClosed: false, startDate: { lte: txDate }, endDate: { gte: txDate } },
   });
@@ -249,9 +221,7 @@ export async function editDeliveryOrderInTx(
     }
   }
 
-  // Editing drops & recreates the DO lines, which loses their SO link. Restore
-  // it and re-derive the SO's delivered_qty + status from the real lines so the
-  // order always mirrors the surat-jalan numbers.
+  // Recreated lines lose their SO link: restore it and re-derive SO delivered_qty + status.
   if (oldDo.salesOrderId) {
     await relinkDoItemsToSOInTx(tx, doId);
     await recomputeDeliveredQtyInTx(tx, oldDo.salesOrderId);

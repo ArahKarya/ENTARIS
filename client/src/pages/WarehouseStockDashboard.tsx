@@ -1,11 +1,6 @@
 /**
- * Stok per Gudang (/warehouse-stock) — stock position dashboard.
- *
- * Source: GET /warehouses/stock-snapshot?date=&warehouseIds= — stock per
- * warehouse "as of" the end of the selected day (live stock for today). The
- * endpoint returns the whole snapshot (non-zero rows only), so the DataTable
- * runs in client mode; warehouse, date, search and filters live in the URL.
- * The PDF export uses the same endpoint and scope (warehouse + date).
+ * Stock per warehouse as of the end of the selected day (live for today). The snapshot holds
+ * non-zero rows only and is filtered in memory; the PDF export uses the same endpoint and scope.
  */
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';

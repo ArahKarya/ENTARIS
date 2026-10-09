@@ -1,13 +1,6 @@
 /**
- * Query building for the fixed asset register, GET /api/fixed-assets.
- *
- * The endpoint historically returned a bare array with every asset (optional
- * exact `status` / `category` filters, newest first). That legacy mode is kept
- * byte-for-byte; the paged mode — `{ data, total, page, limit }` with search,
- * acquisition-date range and a whitelisted sort — applies only when `page` is
- * sent (same convention as services/serviceItemList).
- *
- * Read-only: nothing here touches depreciation schedules or GL entries.
+ * Fixed asset register. Without `page` the endpoint returns the bare array of all assets
+ * (exact status/category, newest first); with `page` it returns `{ data, total, page, limit }`.
  */
 import { Prisma } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';
@@ -26,7 +19,7 @@ export const FIXED_ASSET_SORT_FIELDS = [
   'bookValue',
 ] as const;
 export type FixedAssetSortField = (typeof FIXED_ASSET_SORT_FIELDS)[number];
-/** Same order as the legacy list (newest record first). */
+/** Default order: newest record first. */
 export const DEFAULT_FIXED_ASSET_SORT: SortSpec<FixedAssetSortField> = { field: 'createdAt', dir: 'desc' };
 
 const STATUSES = new Set<string>(FIXED_ASSET_STATUSES);

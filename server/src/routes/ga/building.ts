@@ -1,6 +1,4 @@
-// GA Building — data bangunan (1-1 per asset) dan rental (1-many).
-// Di-mount di /api/ga/building dengan requirePerm('ga_building').
-// Auth + RBAC ditangani di mount (index.ts), bukan di file ini.
+// GA building data (1-1 per asset) and rentals, mounted with requirePerm('ga_building') in index.ts.
 
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
@@ -52,7 +50,7 @@ const BuildingRentalSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// BUILDING DATA (1-1 dengan Asset)
+// Building data (1-1 with Asset)
 
 router.get('/assets/:id', async (req, res) => {
   try {
@@ -103,7 +101,7 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-// RENTAL (1-many dengan Asset)
+// Rental (1-many with Asset)
 
 router.get('/assets/:id/rentals', async (req, res) => {
   try {

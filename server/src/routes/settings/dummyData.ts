@@ -11,7 +11,7 @@ import { calcWeightedAverage } from '../../utils/weightedAverage';
 
 const router = Router();
 
-// POST /api/settings/generate-dummy — Generate dummy transactions (Admin only)
+// POST /api/settings/generate-dummy: requires settings edit permission.
 router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
   try {
     const admin = await prisma.user.findFirst({ where: { role: 'Admin' } });
@@ -20,7 +20,6 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
     const fiscalYear = await prisma.fiscalYear.findFirst({ where: { isClosed: false }, orderBy: { startDate: 'desc' } });
     if (!fiscalYear) return res.status(400).json({ error: 'Tidak ada tahun fiskal aktif.' });
 
-    // Get account IDs
     const accounts = await prisma.account.findMany({ where: { isGroup: false } });
     const acctMap = new Map(accounts.map(a => [a.accountNumber, a.id]));
     const cashMappings = await systemAccounts.getAccounts('CASH');
@@ -50,7 +49,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       const { generateDocumentNumber } = await import('../../utils/documentNumber');
       const { getOpenFiscalYear } = await import('../../utils/fiscalYear');
 
-      // --- Initial Capital Injection: Kas + Bank ---
+      // Initial capital injection into cash and bank
       // Use fiscal year start date or Jan 1 of current year (whichever is within an open FY)
       const initDate = new Date(fiscalYear.startDate);
       const initFy = fiscalYear;
@@ -74,14 +73,13 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           { accountId: bankId || kasId!, date: initDate, debit: 150000000, credit: 0, referenceType: 'JournalEntry', referenceId: 'dummy-modal-init', fiscalYearId: initFy.id },
           { accountId: modalId, date: initDate, debit: 0, credit: 500000000, referenceType: 'JournalEntry', referenceId: 'dummy-modal-init', fiscalYearId: initFy.id },
         ]});
-        // Update account balances
         await tx.account.update({ where: { id: kasId! }, data: { balance: { increment: 350000000 } } });
         if (bankId) await tx.account.update({ where: { id: bankId }, data: { balance: { increment: 150000000 } } });
         await tx.account.update({ where: { id: modalId }, data: { balance: { increment: 500000000 } } });
         results.journals++;
       }
 
-      // --- Dummy Parties ---
+      // Dummy parties
       const customerNames = [
         'Toko Beras Sejahtera', 'UD Sumber Jaya', 'CV Makmur Abadi', 'Toko Beras Melati',
         'PT Beras Nusantara', 'UD Sumber Rezeki', 'Toko Beras Cirebon', 'CV Padi Emas',
@@ -109,7 +107,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         results.parties++;
       }
 
-      // --- Dummy Inventory Items ---
+      // Dummy inventory items
       const itemDefs = [
         { code: 'GBH-GKP', name: 'Gabah Kering Panen (GKP)', unit: 'Kg', category: 'Bahan Baku', minimumStock: 5000 },
         { code: 'GBH-GKG', name: 'Gabah Kering Giling (GKG)', unit: 'Kg', category: 'Bahan Baku', minimumStock: 3000 },
@@ -132,7 +130,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         }
       }
 
-      // --- Dummy Transactions (last 3 months) ---
+      // Dummy transactions for the last 3 months
       const now = new Date();
       for (let monthOffset = 2; monthOffset >= 0; monthOffset--) {
         const month = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
@@ -365,10 +363,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         results.journals++;
       }
 
-      // --- Dummy Stock Movements & Production Runs ---
-      // Stock lives per warehouse (inventory_stocks) with inventory_items.currentStock
-      // as the denormalised total — every change goes through applyStock so the two
-      // never drift. Default (or first active) warehouse; one is created if none exist.
+      // Every stock change goes through applyStock so inventory_stocks and the denormalized currentStock never drift.
       const whId =
         (await resolveWarehouseId(tx)) ??
         (await tx.warehouse.findFirst({ where: { isActive: true }, orderBy: { sortOrder: 'asc' }, select: { id: true } }))?.id ??
@@ -572,7 +567,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         }
       }
 
-      // --- Recalculate all account balances from ledger entries ---
+      // Recalculate all account balances from ledger entries
       const allAccounts = await tx.account.findMany({ where: { isGroup: false }, select: { id: true, rootType: true } });
       for (const acct of allAccounts) {
         const sums = await tx.accountingLedgerEntry.aggregate({
@@ -588,7 +583,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         await tx.account.update({ where: { id: acct.id }, data: { balance } });
       }
 
-      // --- Recalculate party outstanding amounts ---
+      // Recalculate party outstanding amounts
       const allParties = await tx.party.findMany({ select: { id: true, partyType: true } });
       for (const party of allParties) {
         let outstanding = 0;
@@ -618,13 +613,12 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
   }
 });
 
-// POST /api/settings/delete-dummy — Delete only dummy data (Admin only)
+// POST /api/settings/delete-dummy: deletes only dummy data; requires settings edit permission.
 router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
   try {
     const results = { parties: 0, salesInvoices: 0, purchaseInvoices: 0, payments: 0, journals: 0, inventoryItems: 0, movements: 0, productionRuns: 0 };
 
     await prisma.$transaction(async (tx) => {
-      // 1. Collect all dummy entity IDs
       const dummySI = await tx.salesInvoice.findMany({ where: { isDummy: true }, select: { id: true } });
       const dummyPI = await tx.purchaseInvoice.findMany({ where: { isDummy: true }, select: { id: true } });
       const dummyParties = await tx.party.findMany({ where: { isDummy: true }, select: { id: true } });
@@ -634,7 +628,6 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
       const partyIds = dummyParties.map(p => p.id);
       const itemIds = dummyItems.map(i => i.id);
 
-      // 2. Find payments linked to dummy parties
       const dummyPayments = await tx.payment.findMany({
         where: { partyId: { in: partyIds } },
         select: { id: true, journalEntryId: true },
@@ -642,17 +635,15 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
       const paymentIds = dummyPayments.map(p => p.id);
       const paymentJeIds = dummyPayments.map(p => p.journalEntryId).filter((id): id is string => id != null);
 
-      // 3. Delete payment allocations
+      // Deletion order follows FK constraints: allocations, payments, ledger, journals, invoices, runs, parties last.
       if (paymentIds.length > 0) {
         await tx.paymentAllocation.deleteMany({ where: { paymentId: { in: paymentIds } } });
       }
 
-      // 4. Delete payments (must come before journal entries and parties)
       if (paymentIds.length > 0) {
         results.payments = (await tx.payment.deleteMany({ where: { id: { in: paymentIds } } })).count;
       }
 
-      // 5. Delete ledger entries referencing dummy invoices, payments, and dummy journal markers
       const dummyRefIds = [
         ...siIds, ...piIds, ...paymentIds,
         'dummy-modal-init', 'dummy-gaji', 'dummy-listrik', 'dummy-pay-pi',
@@ -665,13 +656,12 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         await tx.accountingLedgerEntry.deleteMany({ where: { partyId: { in: partyIds } } });
       }
 
-      // 6. Delete journal entries linked to payments
       if (paymentJeIds.length > 0) {
         await tx.journalItem.deleteMany({ where: { journalEntryId: { in: paymentJeIds } } });
         await tx.journalEntry.deleteMany({ where: { id: { in: paymentJeIds } } });
       }
 
-      // 7. Find and delete all dummy-created journal entries by narration patterns
+      // Dummy journals are identified by their narration prefixes.
       const dummyJournals = await tx.journalEntry.findMany({
         where: {
           OR: [
@@ -691,7 +681,6 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         results.journals = (await tx.journalEntry.deleteMany({ where: { id: { in: journalIds } } })).count;
       }
 
-      // 8. Delete invoice items then invoices
       if (siIds.length > 0) {
         await tx.salesInvoiceItem.deleteMany({ where: { salesInvoiceId: { in: siIds } } });
         results.salesInvoices = (await tx.salesInvoice.deleteMany({ where: { isDummy: true } })).count;
@@ -701,7 +690,6 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         results.purchaseInvoices = (await tx.purchaseInvoice.deleteMany({ where: { isDummy: true } })).count;
       }
 
-      // 9. Delete production runs linked to dummy inventory items
       if (itemIds.length > 0) {
         const dummyProdItems = await tx.productionRunItem.findMany({
           where: { itemId: { in: itemIds } },
@@ -718,10 +706,9 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         results.inventoryItems = (await tx.inventoryItem.deleteMany({ where: { isDummy: true } })).count;
       }
 
-      // 10. Delete dummy parties (now safe — no FK references remain)
       results.parties = (await tx.party.deleteMany({ where: { isDummy: true } })).count;
 
-      // 11. Recalculate all account balances from ledger entries
+      // Recalculate account balances and party outstanding from what remains.
       const allAccounts = await tx.account.findMany({ where: { isGroup: false }, select: { id: true, rootType: true } });
       for (const acct of allAccounts) {
         const sums = await tx.accountingLedgerEntry.aggregate({
@@ -735,7 +722,6 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         await tx.account.update({ where: { id: acct.id }, data: { balance } });
       }
 
-      // 12. Recalculate party outstanding amounts
       const remainingParties = await tx.party.findMany({ select: { id: true, partyType: true } });
       for (const party of remainingParties) {
         let outstanding = 0;
@@ -765,7 +751,7 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
   }
 });
 
-// POST /api/settings/reset-data — Reset all data and re-seed (Admin only, development)
+// POST /api/settings/reset-data: wipes all data and re-seeds; requires settings edit permission.
 router.post('/reset-data', requirePerm('settings'), async (req, res) => {
   const body = req.body;
   if (body?.confirmation !== 'RESET') {

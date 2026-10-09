@@ -49,7 +49,6 @@ interface ReportLayoutProps {
   pdfFileName?: string;
   onExportExcel?: () => void;
 
-  // State
   isLoading: boolean;
   isError?: boolean;
   onRetry?: () => void;

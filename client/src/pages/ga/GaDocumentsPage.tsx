@@ -1,12 +1,6 @@
 /**
- * Dokumen & Sertifikat (/ga/documents) — legal documents and certificates
- * with versioned PDF uploads and expiry tracking. Server-paginated list built
- * on the Phase 3 list kit (see pages/SalesInvoices.tsx for the pattern).
- *
- * The list calls GET /ga/documents with `page` (paged mode, rows carry a
- * server-derived `expiryState`); KPI cards come from GET /ga/documents/summary
- * with the same filters. Rows open the detail sheet (?doc=<id>) with the
- * version history. Write actions need `ga_documents` edit permission.
+ * Legal documents and certificates (/ga/documents) with versioned PDFs; `expiryState` is derived
+ * server-side. ?doc=<id> opens the version history. Writes need ga_documents edit.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

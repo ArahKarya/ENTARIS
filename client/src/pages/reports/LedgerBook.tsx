@@ -16,7 +16,7 @@ const PAGE_SIZE = 200;
 const ALL_HISTORY = { startDate: '', endDate: '' };
 
 const LedgerBook: React.FC = () => {
-  // Default = semua histori (tanpa filter tanggal), sama seperti sebelumnya.
+  // Default: all history, no date filter.
   const { startDate, endDate, setRange, list } = useReportRange(ALL_HISTORY);
   const searchTerm = list.search;
   const [expandedAccounts, setExpandedAccounts] = useState<ReadonlySet<string>>(new Set());

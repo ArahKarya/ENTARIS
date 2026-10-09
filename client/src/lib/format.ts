@@ -1,10 +1,6 @@
 /**
- * Display formatting for Entaris — the single source for money, numbers and
- * dates in the UI (Bahasa Indonesia, id-ID). Display only: never feed these
- * strings back into calculations.
- *
- * Pair numeric output with the `num` utility (NUM_CLASS) for tabular, lining
- * figures that do not wrap: <td className={NUM_CLASS}>{formatRupiah(x)}</td>
+ * Single source for UI money, number and date formatting (id-ID). Display only: never feed these
+ * strings back into calculations. Pair numbers with NUM_CLASS for tabular, non-wrapping figures.
  */
 
 export const LOCALE = 'id-ID';

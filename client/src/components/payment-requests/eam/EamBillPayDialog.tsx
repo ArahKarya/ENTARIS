@@ -1,9 +1,6 @@
 /**
- * "Bayar / Posting" dialog for one EAM bill (Tagihan EAM tab). Same inputs, validation and
- * payload as before: choose the payment method (direct journal from cash/bank,
- * or a purchase invoice to a vendor), the expense account (preselected from
- * the bill's default account), amount and date, then post. The journal
- * preview shows exactly which accounts will be debited and credited.
+ * Pay/post one EAM bill as a direct cash/bank journal or a vendor purchase invoice;
+ * the expense account is preselected from the bill's default.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -99,7 +96,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
     if (!bill || !accounts || accountId) return;
     const def = accounts.find((a) => a.accountNumber === bill.defaultAccountNumber);
     if (def) setAccountId(def.id);
-    // Only when the accounts arrive / the bill changes (same as before).
+    // Only when the accounts arrive or the bill changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accounts, bill]);
 

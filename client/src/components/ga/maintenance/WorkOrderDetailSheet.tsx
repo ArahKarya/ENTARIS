@@ -1,11 +1,6 @@
 /**
- * Work order detail (side sheet, deep-linked as ?wo=<id> by the page).
- *
- * Shows the WO fields, cost breakdown, parts, checklist, photos and linked
- * material requests, plus the lifecycle actions the status allows
- * (assign → start → complete → close, cancel). Forms that use
- * pickers open as dialogs, so the sheet steps aside while
- * one is open and comes back when it closes.
+ * Work order detail sheet (deep-linked as ?wo=<id>). Picker forms open as
+ * dialogs, so the sheet steps aside while one is open.
  */
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';

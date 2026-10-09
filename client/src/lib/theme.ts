@@ -1,9 +1,6 @@
 /**
- * Theme ids and pure helpers (no React). Entaris supports exactly three theme
- * preferences. Older builds stored Bloomberg/NeoClean pack ids under the same
- * key; `normalizeTheme` migrates any unknown value to 'system'.
- * public/theme-init.js mirrors this logic so the right class is on <html>
- * before the first paint.
+ * Theme ids and pure helpers. `normalizeTheme` maps any unknown stored value (old pack ids) to 'system'.
+ * public/theme-init.js mirrors this logic so the right class is on <html> before first paint.
  */
 export type ThemeId = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';

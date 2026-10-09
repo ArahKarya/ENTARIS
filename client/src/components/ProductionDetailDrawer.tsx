@@ -119,7 +119,6 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
           </div>
         )}
 
-        {/* Body */}
         {/* Focusable so the scrollable body works by keyboard. */}
         <SheetBody className="p-0" role="region" aria-label="Isi detail produksi" tabIndex={0}>
           {isLoading ? (
@@ -164,7 +163,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 </div>
               )}
 
-              {/* OEE: captured production data + metrics (B2 multi-machine) */}
+              {/* OEE: captured production data and metrics */}
               {hasOeeData && (
                 <div className="space-y-3">
                   {/* Line-level (aggregate) OEE metric panel */}
@@ -252,7 +251,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     </div>
                   </div>
 
-                  {/* Per-machine OEE table (B2) */}
+                  {/* Per-machine OEE table */}
                   {runMachineList.length > 0 && (
                     <div>
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
@@ -370,7 +369,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                             {fmtNum(Number(line.quantity))} {line.item?.unit}
                           </span>
                         </div>
-                        {/* Phase 2: show batch info if linked */}
+                        {/* Batch info if linked */}
                         {line.sourceMovement && (
                           <div className="mt-1 text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
                             <span>
@@ -393,7 +392,6 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 </div>
               </div>
 
-              {/* Arrow separator */}
               <div className="flex justify-center">
                 <ArrowRight size={20} className="text-muted-foreground rotate-90" />
               </div>
@@ -472,7 +470,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 </div>
               )}
 
-              {/* Phase 3: Cost components — show snapshot */}
+              {/* Cost components snapshot */}
               {Array.isArray(run.runCosts) && run.runCosts.length > 0 && (
                 <div>
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
@@ -527,7 +525,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                 </div>
               )}
 
-              {/* Phase 3: Loaded HPP breakdown */}
+              {/* Loaded HPP breakdown */}
               {run.computedHpp != null && (
                 <div className="bg-success-subtle border border-success/30 rounded-lg p-4 space-y-1.5">
                   <h3 className="text-xs font-bold text-success-text uppercase tracking-wide mb-2 flex items-center gap-2">

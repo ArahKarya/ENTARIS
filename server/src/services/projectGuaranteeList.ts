@@ -1,16 +1,7 @@
 /**
- * Query building, due-date state and aggregation for the project guarantee
- * list (GET /api/project-guarantees?page=… and GET /api/project-guarantees/summary).
- *
- * Every filter is a plain Prisma `where` (status, party, type, deposit date,
- * due-date state, search), so the list and the KPI cards share
- * `buildProjectGuaranteeWhere` and always describe the same rows. Sorting by
- * the remaining balance needs amounts derived from the active settlements, so
- * the paged list loads a light projection of the matching rows, sorts and
- * slices it here, and only then loads full rows for the page (same approach
- * as services/customerDepositList).
- *
- * Read-only: nothing here touches GL entries or account balances.
+ * Project guarantee list and summary (GET /api/project-guarantees). List and KPI cards share
+ * buildProjectGuaranteeWhere. Sorting by remaining balance needs settlement-derived amounts, so a
+ * light projection is sorted and sliced here before full rows load. Read-only.
  */
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

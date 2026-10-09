@@ -8,7 +8,7 @@
 //
 // GL (on pay): DR beban per baris (or DR Uang Muka Karyawan for CASH_ADVANCE /
 // TRAVEL) / CR kas-bank. Cancel payment voids that journal.
-// Stage 2: pertanggungjawaban uang muka (/:id/settlement/*) — requester submits
+// Settlement (/:id/settlement/*): requester submits
 // realization lines, supervisor approves, Finance verifies accounts and posts
 // DR beban / CR Uang Muka Karyawan (+ kas-bank for sisa / kurang bayar).
 import { Router, type Response } from 'express';

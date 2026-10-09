@@ -491,9 +491,8 @@ model SalesInvoiceItem {
   accountId           String              @map("account_id")
   account             Account             @relation(fields: [accountId], references: [id])
   description         String?
-  // Phase 5: batch picker for sales. When set, the stock-out movement created
-  // at invoice submit links back to this inbound batch. unitCostLoaded is the
-  // loaded HPP captured at submit (used for Phase 6 "loaded margin" reports).
+  // Batch picker: the stock-out created at submit links to this inbound batch.
+  // unitCostLoaded is the loaded HPP captured at submit (loaded-margin reports).
   sourceMovementId    String?             @map("source_movement_id")
   sourceMovement      StockMovement?      @relation("SalesBatchSource", fields: [sourceMovementId], references: [id])
   unitCostLoaded      Decimal?            @map("unit_cost_loaded") @db.Decimal(20, 4)
@@ -506,11 +505,8 @@ model SalesInvoiceItem {
   @@map("sales_invoice_items")
 }
 
-// Delivery Order (Surat Jalan). Physical delivery record — decrements stock
-// without GL impact. Multiple DOs can be aggregated into a single sales
-// invoice for monthly/weekly billing (DeliveryOrderItem.deliveryOrderId on
-// SalesInvoiceItem). DO stockMovements lock the unitCost at delivery time
-// so COGS posted at invoice matches the goods that physically left.
+// Delivery Order (Surat Jalan): decrements stock without GL; several DOs can be billed on one
+// invoice. Its stock movements lock unitCost at delivery so invoice COGS matches what left.
 model DeliveryOrder {
   id            String              @id @default(uuid())
   doNumber      String              @unique @map("do_number")
@@ -605,7 +601,7 @@ model PurchaseInvoice {
   purchaseOrder       PurchaseOrder?             @relation("PIFromPO", fields: [purchaseOrderId], references: [id])
   // STT (GoodsReceipt) header-level back-relation. PI created from STT.
   // 1 STT → at most 1 active PI; many lines billed at once.
-  // 1 PI bisa menagih >1 STT sekaligus sejak 2026-09-30 (gabung nota).
+  // One PI can bill several STTs at once (combined invoice).
   goodsReceipts       GoodsReceipt[]             @relation("PIFromGR")
   gaVehicleTaxes      GaVehicleTax[]             @relation("GaVehicleTaxInvoice")
   gaServiceLogs       GaVehicleServiceLog[]      @relation("GaServiceLogInvoice")
@@ -973,11 +969,8 @@ enum StockMovementType {
   TransferIn
 }
 
-// Physical/logical storage location. Stock balance is tracked per
-// (item, warehouse) in InventoryStock. Cost (averageCost) stays at the
-// item level — single weighted average across warehouses by design,
-// keeping the model simpler for use cases where cost doesn't materially
-// differ by location.
+// Storage location. Stock is tracked per (item, warehouse) in InventoryStock; averageCost
+// stays at item level by design (one weighted average across warehouses).
 model Warehouse {
   id                   String                   @id @default(uuid())
   code                 String                   @unique
@@ -1077,9 +1070,8 @@ model StockTransfer {
   status          DocumentStatus      @default(Draft)
   notes           String?
   items           StockTransferItem[]
-  // SJG (Surat Jalan Antar Gudang) physical-delivery metadata. Stock moves
-  // are still instant on submit (Phase-1 design choice). These fields only
-  // feed the printed PDF for the driver.
+  // SJG (Surat Jalan Antar Gudang) metadata for the driver's PDF only; stock
+  // still moves instantly on submit.
   nomorMobil      String?             @map("nomor_mobil")
   driverName      String?             @map("driver_name")
   recipientName   String?             @map("recipient_name")
@@ -1109,7 +1101,7 @@ model StockTransferItem {
   item             InventoryItem  @relation(fields: [itemId], references: [id])
   quantity         Decimal        @db.Decimal(20, 3)
   description      String?
-  // Phase 5: batch picker for transfers. When set, the source-warehouse Out
+  // Batch picker for transfers. When set, the source-warehouse Out
   // movement created at submit links back to this inbound batch. The
   // destination-warehouse In movement is a fresh inbound batch.
   sourceMovementId String?        @map("source_movement_id")
@@ -1152,7 +1144,7 @@ model StockMovement {
   // unit_cost is still used for GL/WAC. unitCostLoaded is informational and
   // drives "loaded margin" reports.
   unitCostLoaded            Decimal?            @map("unit_cost_loaded") @db.Decimal(20, 4)
-  // Phase 5: universal batch tracking. For outbound movements (Out /
+  // Batch tracking. For outbound movements (Out /
   // AdjustmentOut) this links to the inbound StockMovement (batch) the qty
   // was consumed from. The /items/:id/batches endpoint sums these to compute
   // per-batch availability.
@@ -1175,11 +1167,8 @@ model StockMovement {
   @@map("stock_movements")
 }
 
-// Draft Data Produksi: input produksi disimpan dulu sebagai draft (tanpa efek
-// stok/GL/HPP/OEE). Posting = aksi eksplisit terpisah yang menjalankan
-// submitProductionRunInTx (langsung utk role bypass, via approval utk lainnya).
-// Tidak ada relasi FK ke ProductionRun/User: draft tak boleh memengaruhi
-// konsumen ProductionRun (laporan, OEE, dashboard).
+// Production input draft: no stock/GL/HPP/OEE effect until posted via submitProductionRunInTx
+// (directly for bypass roles, else via approval). No FK to ProductionRun/User on purpose.
 model ProductionRunDraft {
   id                String    @id @default(uuid())
   draftNumber       String    @unique @map("draft_number")
@@ -1324,7 +1313,7 @@ model ProductionRun {
   performancePct      Decimal?               @map("performance_pct") @db.Decimal(5, 2)
   qualityPct          Decimal?               @map("quality_pct") @db.Decimal(5, 2)
   oeePct              Decimal?               @map("oee_pct") @db.Decimal(5, 2)
-  // B2 multi-mesin: jendela shift standar (planned production time) & istirahat.
+  // Standard shift window (planned production time) and break.
   // plannedMin = (plannedEnd − plannedStart) − (breakEnd − breakStart).
   plannedStart        DateTime?              @map("planned_start")
   plannedEnd          DateTime?              @map("planned_end")
@@ -1385,8 +1374,8 @@ model ProductionDowntime {
   @@map("production_downtimes")
 }
 
-// B2: mesin yang dipakai dalam satu production run (paralel, start/stop sendiri).
-// OEE dihitung PER mesin; nilai tersimpan saat submit/edit.
+// Machine used in a production run (parallel, own start/stop). OEE is computed per
+// machine and stored at submit/edit.
 model ProductionRunMachine {
   id              String        @id @default(uuid())
   productionRunId String        @map("production_run_id")
@@ -1902,7 +1891,7 @@ model PurchaseOrder {
   terms                String?
   expectedDeliveryDate DateTime?           @map("expected_delivery_date")
   totalEstimated       Decimal             @default(0) @map("total_estimated") @db.Decimal(15, 2)
-  // Stage 2 pricing (see services/purchaseOrderCalc.ts). totalEstimated = grandTotal.
+  // Pricing lives in services/purchaseOrderCalc.ts. totalEstimated = grandTotal.
   subtotal             Decimal             @default(0) @db.Decimal(15, 2)
   discountTotal        Decimal             @default(0) @map("discount_total") @db.Decimal(15, 2)
   taxTotal             Decimal             @default(0) @map("tax_total") @db.Decimal(15, 2)
@@ -2114,14 +2103,9 @@ model SalesReturnItem {
 }
 
 // Uang Jaminan Proyek (Project Guarantee)
-// Setoran jaminan (tender/pelaksanaan/pemeliharaan) ke pemberi proyek.
-// Setor: DR Uang Jaminan (1.8) / CR Kas-Bank. Settlement (bisa parsial,
-// berulang): DR Kas-Bank (kembali) + DR Beban (hangus) / CR Uang Jaminan.
-// outstanding = amount − Σ(return+forfeit settlement aktif) — selalu dihitung.
-// JE/ALE lines sengaja TANPA partyId: applyPartyImpact menaikkan
-// outstandingAmount pihak utk baris ASSET ber-party (tak ada special-case 1.8)
-// — link pihak cukup di row ini. Plain-scalar FK (account/journal/fy/user)
-// supaya tak menambah back-relation di banyak model. Lihat routes/projectGuarantees.ts.
+// Deposit: DR Uang Jaminan (1.8) / CR Kas-Bank. Settlement (partial, repeatable): DR Kas-Bank
+// (returned) + DR Beban (forfeited) / CR Uang Jaminan. outstanding = amount - active settlements.
+// JE/ALE lines carry no partyId on purpose, or applyPartyImpact would raise the party's outstanding.
 model ProjectGuarantee {
   id                 String                       @id @default(uuid())
   guaranteeNumber    String                       @unique @map("guarantee_number")
@@ -2212,12 +2196,9 @@ model TelegramPendingRevise {
   @@map("telegram_pending_revise")
 }
 
-// GENERAL AFFAIRS (GA) — modul aset fisik, dokumen legal, inventaris GA,
-// maintenance/work order, kendaraan, gedung/sewa, equipment/kalibrasi.
-// Di-merge dari aplikasi GA Monitor. Model di-prefix `Ga*` + tabel `ga_*`
-// (hindari bentrok dgn InventoryItem/Warehouse/Notification/AuditLog ERP).
-// Referensi user = scalar FK (tanpa relation) supaya User ERP tak terbebani
-// back-relation. Notifikasi/audit/settings pakai milik ERP.
+// General Affairs (GA): physical assets, legal documents, GA inventory, work orders, vehicles,
+// buildings, equipment. Models are prefixed `Ga*` / `ga_*` to avoid clashing with ERP models;
+// user references are scalar FKs without relations.
 
 enum GaAssetStatus {
   ACTIVE
@@ -2976,11 +2957,8 @@ model GaVehicleServiceRequest {
   @@map("ga_vehicle_service_requests")
 }
 
-// Fleet management: pajak, asuransi, BBM, inspeksi, insiden kendaraan
-// Semua model ini scoped ke GaAsset (kategori Kendaraan) via assetId, sejalan
-// dengan pola GaVehicleData/GaVehicleServiceLog yang sudah ada. Dipisah dari
-// GaVehicleData (1-1) karena masing-masing bersifat 1-many dengan histori
-// (pajak tahun ini vs tahun lalu, polis lama vs baru, log BBM per pengisian).
+// Fleet management: tax, insurance, fuel, inspections, incidents. Scoped to GaAsset (vehicle)
+// via assetId; kept out of GaVehicleData (1-1) because each one keeps a 1-many history.
 
 model GaVehicleTax {
   id          String             @id @default(cuid())
@@ -3314,11 +3292,9 @@ model AiSetting {
 }
 
 // Pengajuan Pembayaran (Payment Request)
-// Stage 1: pengajuan → atasan → keuangan → (direktur bila ≥ ApprovalRule
-// 'PaymentRequest') → dibayar (JV DR beban / uang muka, CR kas-bank).
-// Stage 2: pertanggungjawaban uang muka / perjalanan dinas (settlement*, travel*).
-// source/sourceRef dicadangkan utk stage 3 (tagihan EAM).
-// kind/status disimpan TEXT (lihat services/paymentRequestRules.ts).
+// Flow: request, supervisor, finance, director (when >= ApprovalRule 'PaymentRequest'), paid
+// (JV DR expense or advance / CR cash-bank). settlement*/travel* hold the advance settlement;
+// source/sourceRef mark EAM bills. kind/status are TEXT (see services/paymentRequestRules.ts).
 
 model PaymentRequestType {
   id                      String           @id @default(uuid())
@@ -3391,7 +3367,7 @@ model PaymentRequest {
   travelStartDate      DateTime?                  @map("travel_start_date")
   travelEndDate        DateTime?                  @map("travel_end_date")
   travelParticipants   String?                    @map("travel_participants")
-  // Stage 2 — pertanggungjawaban uang muka / perjalanan dinas (satu per pengajuan).
+  // Settlement of a cash advance / business travel (one per request).
   // settlementStatus: null (bukan uang muka / tidak wajib) | OPEN | SUBMITTED |
   // PENDING_FINANCE | REVISION | SETTLED.
   settlementStatus     String?                    @map("settlement_status")
@@ -3410,7 +3386,7 @@ model PaymentRequest {
   settlementCashAccountId String?                 @map("settlement_cash_account_id")
   settlementCashAccount Account?                  @relation("PaymentRequestSettlementCash", fields: [settlementCashAccountId], references: [id], onDelete: SetNull)
   settlementReference  String?                    @map("settlement_reference")
-  // Stage 3 (tagihan EAM dll) — asal dokumen.
+  // Document origin (EAM bills etc.).
   source               String                     @default("MANUAL")
   sourceRef            String?                    @map("source_ref")
   lines                PaymentRequestLine[]

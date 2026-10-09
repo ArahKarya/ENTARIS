@@ -76,7 +76,7 @@ d('invoice from delivery order', () => {
           data: { itemId: item.id, warehouseId, currentStock: 100 },
         });
 
-        // 1) Ship via DO at the original 10_000 cost.
+        // Ship via DO at the original 10_000 cost.
         const doResult = await submitDeliveryOrderInTx(
           tx,
           {
@@ -98,13 +98,12 @@ d('invoice from delivery order', () => {
         let itemAfter = await tx.inventoryItem.findUnique({ where: { id: item.id } });
         expect(Number(itemAfter!.currentStock)).toBe(70);
 
-        // 2) Simulate cost shift BEFORE billing — averageCost climbs to 15_000.
+        // Cost shifts before billing: averageCost climbs to 15_000.
         await tx.inventoryItem.update({
           where: { id: item.id },
           data: { averageCost: 15_000 },
         });
 
-        // 3) Bill via invoice referencing the DO item.
         const invoice = await submitSalesInvoiceInTx(
           tx,
           {

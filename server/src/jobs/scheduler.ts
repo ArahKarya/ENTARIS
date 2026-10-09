@@ -10,14 +10,9 @@ import { purgeExpiredNonces } from '../mcp/tokenService';
 import { purgeArchivedChatSessions } from '../services/chat/retention';
 
 /**
- * Postgres advisory lock helper. Returns true if THIS connection acquired the
- * lock (it auto-releases on connection close). Use a stable bigint key per
- * job so a future second instance can't run the same job concurrently.
- *
- * NOTE: pg_try_advisory_lock is session-scoped. The prisma adapter uses a
- * pooled connection, so we wrap the actual work in a $transaction() to pin
- * one connection for the whole job + use the transactional variant
- * (pg_try_advisory_xact_lock) so the lock auto-releases at COMMIT/ROLLBACK.
+ * Postgres advisory lock with a stable bigint key per job, so two instances never run
+ * the same job. The pool does not pin connections, so the job runs inside $transaction()
+ * with pg_try_advisory_xact_lock, which releases at COMMIT/ROLLBACK.
  */
 async function withAdvisoryLock<T>(
   jobKey: bigint,

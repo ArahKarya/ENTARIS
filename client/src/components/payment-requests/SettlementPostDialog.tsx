@@ -1,9 +1,6 @@
 /**
- * Finance step of a settlement: verify the expense account per realization
- * line, record the cash movement when realization ≠ advance (employee returns
- * the rest / company pays the shortfall) and post ONE journal. The DR/CR
- * preview comes from the server (same rules as the posting) and is refreshed
- * whenever an account changes.
+ * Finance step of a settlement: verify expense accounts, record the cash leg when
+ * realization ≠ advance, and post one journal. The DR/CR preview comes from the server.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';

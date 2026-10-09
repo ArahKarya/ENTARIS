@@ -8,15 +8,8 @@ import { logger } from '../lib/logger';
 type Tx = Prisma.TransactionClient;
 
 /**
- * Cancel a submitted delivery order (Surat Jalan):
- *   - reject if already cancelled or already folded into a sales invoice
- *     (caller must cancel the invoice first)
- *   - for each line linked to a stockMovement: restore item.currentStock,
- *     restore per-warehouse inventory_stocks, mark the movement isCancelled
- *   - flip DO status to Cancelled
- *
- * No GL impact (DO submit never posted any). Caller owns the surrounding
- * $transaction. Returns the cancelled DO ID + new status.
+ * Cancel a submitted delivery order: rejected if already invoiced (cancel the invoice first);
+ * restores item and per-warehouse stock. No GL impact. Caller owns the transaction.
  */
 export async function cancelDeliveryOrderInTx(
   tx: Tx,

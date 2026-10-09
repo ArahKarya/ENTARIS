@@ -210,10 +210,8 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
           where: { id: deposit.journalEntry.id },
           data: { status: 'Cancelled', cancelledAt: new Date() },
         });
-        // Soft-cancel original ALE rows. Avoid the legacy [BATAL] reversal
-        // pattern — adding mirrored rows alongside live originals doubles
-        // raw DR/CR totals on ALE while JI is implicitly excluded by the
-        // parent JE's status, breaking the ALE↔JI sync health check.
+        // Soft-cancel original ALE rows. Mirrored [BATAL] rows next to live originals would
+        // double ALE DR/CR totals and break the ALE vs JournalItem sync health check.
         await tx.accountingLedgerEntry.updateMany({
           where: { referenceId: deposit.journalEntry.id, isCancelled: false },
           data: { isCancelled: true },
@@ -228,12 +226,8 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
           await updateAccountBalance(tx, vendorDepositAccount.id, 0, depositAmount);
           await updateAccountBalance(tx, openingEquityAccount.id, depositAmount, 0);
 
-          // FIX(double-reversal): jangan buat JV pembalik [BATAL].
-          // Pola lama membuat baris pembalik aktif SEKALIGUS soft-cancel
-          // jurnal asli di jalur lain -> saldo dobel terbalik (kasus
-          // pembayaran uang muka yang dibatalkan dan beberapa STT).
-          // Cukup: reverse balance (sudah dilakukan di atas) + soft-cancel
-          // defensif ALE asli hasil import legacy bila ada.
+          // Never add a [BATAL] reversal JV: the original is soft-cancelled elsewhere, so it
+          // would double-reverse the balance. Defensively soft-cancel legacy imported ALE rows.
           await tx.accountingLedgerEntry.updateMany({
             where: { description: { contains: deposit.paymentNumber }, isCancelled: false },
             data: { isCancelled: true },
@@ -493,7 +487,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
       const createdApplications: string[] = [];
       let cashJournalId: string | null = null;
 
-      // 1. Offset ke hutang (FIFO oldest-first)
+      // Offset against payables (FIFO, oldest first).
       if (offsetReq.gt(0)) {
         await tx.$queryRaw`SELECT id FROM purchase_invoices WHERE party_id = ${deposit.partyId} AND status IN ('Submitted','PartiallyPaid','Overdue') FOR UPDATE`;
 
@@ -578,7 +572,6 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
         await recalcPartyOutstanding(tx, deposit.partyId);
       }
 
-      // 2. Refund kas dari vendor
       // Vendor mengembalikan kas DP ke rekening kita: DR Bank/Kas / CR Uang Muka Pembelian.
       if (cashReq.gt(0)) {
         const cashAccount = await tx.account.findUnique({ where: { id: body.cashAccountId! } });

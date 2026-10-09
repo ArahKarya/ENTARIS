@@ -56,11 +56,8 @@ export async function ensureRbacSeed(): Promise<void> {
       }
     }
 
-    // Backfill modul yang ditambahkan setelah rilis RBAC awal ke role sistem
-    // existing — ONE-SHOT per module key: hanya bila belum ada satupun
-    // RolePermission utk modul itu. roles.ts me-rewrite izin via
-    // deleteMany+createMany, jadi backfill tanpa guard akan menghidupkan
-    // kembali izin yang sengaja dicabut Admin tiap boot.
+    // One-shot backfill of newer modules into system roles, only when the module has no
+    // RolePermission yet; otherwise every boot would restore permissions an Admin revoked.
     for (const moduleKey of BACKFILL_MODULES) {
       const already = await prisma.rolePermission.count({ where: { module: moduleKey } });
       if (already > 0) continue;

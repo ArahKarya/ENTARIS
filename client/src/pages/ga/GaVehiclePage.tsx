@@ -1,12 +1,6 @@
 /**
- * Kendaraan (/ga/vehicle) — fleet module.
- *
- *   /ga/vehicle                          fleet list (KPIs + filters in the URL)
- *   /ga/vehicle?vehicle=<id>&section=…   vehicle detail, one tab per section
- *
- * List filters stay in the URL while a vehicle is open, so "Kendaraan" in the
- * breadcrumb returns to the same filtered list. All UI lives in
- * components/ga/vehicle; write actions need can('ga_vehicle', 'edit').
+ * Fleet (/ga/vehicle); ?vehicle=<id>&section=… opens a vehicle. List filters stay in the URL while a
+ * vehicle is open, so the breadcrumb returns to the same list. Writes need ga_vehicle edit.
  */
 import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';

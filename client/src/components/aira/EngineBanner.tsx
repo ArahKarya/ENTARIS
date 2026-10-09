@@ -1,4 +1,4 @@
-// Banner saat engine AIRA offline: coba lagi + tautan Pengaturan (hanya admin).
+// Shown while the AIRA engine is offline: retry, plus a Settings link when isAdmin.
 
 import { Link } from 'react-router-dom';
 import { WifiOff } from 'lucide-react';

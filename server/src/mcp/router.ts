@@ -1,8 +1,5 @@
-// Endpoint MCP `/mcp` — Streamable HTTP, STATELESS (tanpa session; tiap POST berdiri sendiri,
-// respons JSON biasa). Dipasang SEBELUM auth/CSRF/audit milik /api: autentikasi sendiri
-// (Bearer token MCP + actor assertion), bukan cookie/JWT user.
-//
-// Urutan gerbang per request: token → kill switch → rate limit → aktor (assertion/default) → SDK.
+// Stateless Streamable HTTP endpoint `/mcp`, mounted before the /api auth/CSRF/audit stack; it
+// authenticates itself. Gate order: token, kill switch, rate limit, actor, SDK.
 
 import express, { Router, type NextFunction, type Request, type Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -25,10 +22,8 @@ interface EmbeddedAssertion {
 }
 
 /**
- * Sebagian klien MCP hanya punya header STATIS per server, tetapi lapisan integrasinya
- * dapat menambah argumen sebelum pemanggilan tool. Maka assertion boleh dibawa di `params.arguments` (kunci khusus, dibuang
- * sebelum tool jalan). Keamanan sama dengan header: HMAC dengan signing secret, TTL, nonce sekali pakai —
- * model AI tidak bisa memalsukannya karena tak memegang secret.
+ * Some MCP clients only send static headers, so the assertion may ride in `params.arguments`
+ * (stripped before the tool runs). Same HMAC, TTL and single-use nonce checks as the header.
  */
 export function extractEmbeddedAssertion(body: unknown): EmbeddedAssertion | null {
   const items = Array.isArray(body) ? body : [body];

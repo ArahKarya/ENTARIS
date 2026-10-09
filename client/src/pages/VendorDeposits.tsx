@@ -1,14 +1,6 @@
 /**
- * Uang Muka Vendor (/vendor-deposits) — server-paginated list built on the
- * Phase 3 list kit (see pages/SalesInvoices.tsx for the reference pattern and
- * pages/CustomerDeposits.tsx for its customer-side twin).
- *
- * The list calls GET /vendor-deposits with `page` (paged mode); KPI cards come
- * from GET /vendor-deposits/summary with the same filters. Callers that omit
- * `page` (PaymentModal, …) keep the legacy `{ data }` response. The status
- * filter uses the usage state derived on the server (Aktif / Terpakai
- * Sebagian / Terpakai / Dibatalkan), the same rules the badge always used.
- * Deposits have no detail view yet, so rows are not clickable.
+ * Vendor deposits (/vendor-deposits). Callers that omit `page` (PaymentModal) get the unpaged
+ * `{ data }` response. Status uses the server-derived usage state; rows are not clickable yet.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

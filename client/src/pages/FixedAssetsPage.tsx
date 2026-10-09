@@ -1,14 +1,7 @@
 /**
- * Aset Tetap (/fixed-assets) — Phase 3 list kit (see pages/SalesInvoices.tsx).
- *
- * Tabs live in the URL (switching drops the list params, see PurchaseInvoices):
- *   • Daftar Aset          ?tab omitted — server-paginated register + KPIs
- *   • Posting Penyusutan   ?tab=depreciation&month=YYYY-MM — monthly run
- *                          (edit permission only; posting is always confirmed)
- * The detail sheet is deep-linkable: ?asset=<id> (schedule + per-period posting).
- *
- * Write actions (create, import, edit, dispose, post depreciation) need the
- * `fixed_assets` edit permission; the server enforces the same rule.
+ * Fixed assets (/fixed-assets): register (no ?tab) and monthly depreciation posting
+ * (?tab=depreciation&month=YYYY-MM, always confirmed); ?asset=<id> opens the detail sheet.
+ * Write actions need `fixed_assets` edit permission (the server enforces the same rule).
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

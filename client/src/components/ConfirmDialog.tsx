@@ -1,9 +1,6 @@
 /**
- * Legacy API adapter over the shared ConfirmDialog (components/shared).
- * Kept so existing callers (`open` / `message` / `onCancel` / `variant`) keep
- * working unchanged. Unlike the shared dialog, the caller closes it: after
- * `onConfirm` the dialog stays controlled by `open`, and `onCancel` fires only
- * for dismissals (Batal, Esc, overlay, X), never after a confirm.
+ * Legacy adapter over the shared ConfirmDialog. The caller closes it: `onCancel`
+ * fires only for dismissals, never after a confirm.
  */
 import { useRef } from 'react';
 import { ConfirmDialog as SharedConfirmDialog } from '@/components/shared/confirm-dialog';

@@ -233,7 +233,6 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
   const numBiaya = Number(biayaLain);
   const numGT    = Number(grandTotal);
 
-  // Subtotal from items
   const subtotal = items.reduce((s, i) => s + Number(i.amount), 0);
   // Per-item tax: sum each item's tax, fallback to invoice-level for old invoices
   const hasPerItemTax = items.some(i => Number(i.taxPct ?? 0) > 0);
@@ -255,7 +254,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
     <Document>
       <Page size="A4" style={S.page}>
 
-        {/* HEADER */}
+        {/* Header */}
         <PdfHeader
           company={company}
           title={title}
@@ -265,7 +264,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           statusColor={pill.text}
         />
 
-        {/* META (date / party) */}
+        {/* Meta (date / party) */}
         <View style={S.metaRow}>
           {/* Left — party info */}
           <View style={S.metaCol}>
@@ -307,7 +306,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         </View>
 
-        {/* ITEMS TABLE */}
+        {/* Items table */}
         <View style={S.tableContainer}>
           {/* Table header */}
           <View style={S.tableHeader} fixed minPresenceAhead={44}>
@@ -376,7 +375,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           ))}
         </View>
 
-        {/* SUMMARY */}
+        {/* Summary */}
         <View style={S.summaryRow}>
           <View style={{ width: 260 }}>
             <View style={[S.summaryRight, { borderTopWidth: 0.5, borderTopColor: C.border }]}>
@@ -418,7 +417,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         </View>
 
-        {/* DEDUCTIONS FROM PAYMENT (komisi/potongan from non-cash splits) */}
+        {/* Deductions from payment (commission/discount from non-cash splits) */}
         {(() => {
           if (!payments || payments.length === 0) return null;
           // Aggregate non-cash splits by account
@@ -457,7 +456,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           );
         })()}
 
-        {/* PAYMENT STATUS */}
+        {/* Payment status */}
         {(() => {
           const numOut = Number(outstanding ?? numGT);
           const numCash = Number(paidFromCash ?? 0);
@@ -498,7 +497,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           );
         })()}
 
-        {/* RINCIAN PEMBAYARAN (detail per payment + split) */}
+        {/* Payment breakdown (per payment and split) */}
         {payments && payments.length > 0 && (
           <View style={{ marginTop: 10, padding: 6, borderWidth: 0.5, borderColor: C.border, borderRadius: 3 }}>
             <Text style={{ fontSize: 8, fontWeight: 600, color: C.muted, marginBottom: 4, letterSpacing: 0.5 }}>
@@ -568,7 +567,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         )}
 
-        {/* BANK ACCOUNTS (sales only) */}
+        {/* Bank accounts (sales only) */}
         {bankAccounts && (
           <View style={S.notesBox}>
             <Text style={S.notesLabel}>INFORMASI PEMBAYARAN</Text>
@@ -576,7 +575,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         )}
 
-        {/* NOTES */}
+        {/* Notes */}
         {notes && (
           <View style={S.notesBox}>
             <Text style={S.notesLabel}>CATATAN</Text>
@@ -584,14 +583,14 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         )}
 
-        {/* FOOTER NOTE */}
+        {/* Footer note */}
         {footerNote && (
           <View style={{ marginTop: 8 }}>
             <Text style={{ fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>{footerNote}</Text>
           </View>
         )}
 
-        {/* SIGNATURE */}
+        {/* Signature */}
         {showSignature && <PdfSignatureBlock signatures={sigLabels.map((label) => ({ label }))} />}
 
         <PdfFooter company={company.name} docRef={invoiceNumber} paddingHorizontal={40} />

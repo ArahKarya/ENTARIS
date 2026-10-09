@@ -33,8 +33,7 @@ export interface InvoiceItem {
   pphPct: number; // PPh % per item
   deliveryOrderItemId?: string | null;
   deliveryOrderNumber?: string;
-  // Phase 5: optional batch picker. When set, the server locks COGS to the
-  // batch's unit cost (specific identification) instead of WAC.
+  // Optional batch pick: the server locks COGS to the batch's unit cost instead of WAC.
   sourceMovementId?: string;
 }
 
@@ -137,7 +136,7 @@ export function InvoiceLineRow({
                   onChange={(v) => updateItem(idx, 'warehouseId', v)}
                   label={`Gudang sumber baris ${n}`}
                 />
-                {/* Phase 5: batch picker (optional, hybrid FIFO/specific-id) */}
+                {/* Optional batch picker (hybrid FIFO/specific-id) */}
                 {item.inventoryItemId && item.warehouseId && !fromDO && (
                   <div>
                     <p className="mb-0.5 text-[10px] text-muted-foreground">Batch (opsional, default WAC)</p>

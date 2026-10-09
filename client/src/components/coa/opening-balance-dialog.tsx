@@ -1,8 +1,6 @@
 /**
- * Atur Saldo Awal — PATCH /coa/:id/balance { balance } (detail accounts only).
- * The server posts an opening-balance journal against Ekuitas Saldo Awal.
- * Input parsing is unchanged from the legacy page; a live preview shows the
- * exact amount that will be submitted.
+ * Opening balance for a detail account. The server posts an opening-balance journal
+ * against Ekuitas Saldo Awal; the preview shows the exact amount submitted.
  */
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

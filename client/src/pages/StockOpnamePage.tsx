@@ -1,7 +1,5 @@
 /**
- * Stok Opname (/stock-opname) — list kit page (pattern: pages/SalesInvoices.tsx).
- * Server-side paging/sort/filter on GET /stock-opname. Detail and the count
- * form stay in-page but are URL-addressable: ?opname=<id> | ?opname=new.
+ * Stock opname (/stock-opname); detail and count form are URL-addressable (?opname=<id> | ?opname=new).
  * No KPI cards: the endpoint has no /summary and page-subset KPIs mislead.
  */
 import { useMemo, useState } from 'react';

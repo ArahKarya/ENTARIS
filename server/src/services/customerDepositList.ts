@@ -1,21 +1,13 @@
 /**
- * Query building, usage state and aggregation for the customer deposit list
- * (GET /api/customer-deposits?page=… and GET /api/customer-deposits/summary).
- *
- * A deposit's usage ("Aktif" / "Terpakai Sebagian" / "Terpakai") depends on
- * amounts computed from its applications and refunds, so it cannot be a plain
- * Prisma filter. The paged list therefore loads a light projection of every
- * deposit matching the DB-level filters, derives the figures here, filters by
- * usage state, sorts and slices — and only then loads full rows for the page.
- * The summary uses the same projection, so KPIs always describe the list.
- *
- * Read-only: nothing here touches GL entries or the customerDepositBalance cache.
+ * Customer deposit list and summary. Usage state derives from applications and refunds, so it is
+ * filtered in memory on a light projection before loading full rows; the summary uses the same
+ * projection so KPIs match the list. Read-only (no GL or customerDepositBalance writes).
  */
 import { DocumentStatus, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';
 
-/** Remaining below this (rupiah) counts as fully used — same rule as the old page. */
+/** Remaining below this (rupiah) counts as fully used. */
 export const REMAINING_EPSILON = 0.01;
 
 /** Usage states derived from the amounts (Cancelled comes from the document status). */
@@ -98,7 +90,7 @@ export interface DepositFigures {
   remaining: number;
 }
 
-/** Same arithmetic as the legacy list: remaining = amount − applied − refunded. */
+/** remaining = amount − applied − refunded. */
 export function depositFigures(
   amount: DecimalLike,
   refundedAmount: DecimalLike,
@@ -114,7 +106,7 @@ export function depositFigures(
   };
 }
 
-/** Badge state shown on the list (identical rules to the previous page). */
+/** Badge state shown on the list. */
 export function deriveDepositState(status: string, totalApplied: number, remaining: number): DepositState {
   if (status === DocumentStatus.Cancelled) return 'Cancelled';
   if (remaining < REMAINING_EPSILON) return 'FullyUsed';
@@ -203,7 +195,7 @@ export interface CustomerDepositSummary {
   /** Every deposit matching the filters, cancelled ones included. */
   count: number;
   cancelledCount: number;
-  /** Sums below exclude cancelled deposits (same as the previous KPI cards). */
+  /** Sums below exclude cancelled deposits. */
   totalDeposit: number;
   totalApplied: number;
   totalRefunded: number;

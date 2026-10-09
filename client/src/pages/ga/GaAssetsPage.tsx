@@ -1,11 +1,6 @@
 /**
- * Daftar Aset (/ga/assets) — physical asset register (EAM).
- *
- * Server-paginated list (GET /ga/assets?paginated=1&thumb=1, search via `q`)
- * following pages/SalesInvoices.tsx: useListState → FilterBar → DataTable.
- * Row click / ?asset=<id> opens the detail sheet; QR and the documents drawer
- * stay available per row. Writes need can('ga_assets','edit') (server:
- * requirePerm('ga_assets') → edit for writes); documents need ga_documents view.
+ * Physical asset register (/ga/assets); ?asset=<id> opens the detail sheet. Writes need
+ * ga_assets edit (same as the server); the documents drawer needs ga_documents view.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

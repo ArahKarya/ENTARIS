@@ -1,9 +1,4 @@
-/**
- * Transaksi Berulang (/recurring) — recurring template list on the Phase 3
- * list kit. GET /recurring returns every template (small set, no paging), so
- * the DataTable runs in client mode; search and filters are URL-synced via
- * useListState and applied in memory.
- */
+/** Recurring templates (/recurring). GET /recurring returns every template, so filtering runs in memory. */
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';

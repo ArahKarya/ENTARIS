@@ -139,14 +139,14 @@ function evalExpr(expr: ts.Expression, ctx: Entry | { sf: ts.SourceFile; file?: 
   const sf = ctx.sf;
   const { base, mods } = unchain(expr);
 
-  // base = identifier (skema lain) ----------------------------------------------------
+  // base = identifier (another schema)
   if (ts.isIdentifier(base)) {
     const local = file ? localIndex(file).get(base.text) : undefined;
     const target = local ?? buildIndex().get(base.text);
     if (!target) return applyMods({ kind: 'scalar', type: 'object' }, mods, sf, file, depth);
     return applyMods(evalExpr(target.expr, target, file, depth + 1), mods, sf, file, depth);
   }
-  // base = z.xxx(...) -----------------------------------------------------------------
+  // base = z.xxx(...)
   if (ts.isCallExpression(base) && ts.isPropertyAccessExpression(base.expression)) {
     const fn = base.expression.name.text;
     const isCoerce = ts.isPropertyAccessExpression(base.expression.expression);

@@ -1,13 +1,7 @@
 /**
- * Proses Produksi → Standar Biaya (?view=costStandards). Standard conversion
- * cost rates used when a production run computes its loaded HPP/kg. The
- * master never posts to the GL; editing it does not change historical HPP
- * (each run keeps a snapshot).
- *
- * The warehouse filter is sent to the API (?warehouseId → standards for that
- * warehouse plus the global ones); search, side and status filter in memory.
- * Writes need can('production','edit'); delete also needs cap('doc.cancel')
- * (server: a used standard is deactivated instead of deleted).
+ * Standard conversion cost rates for loaded HPP/kg. Never posts to the GL and
+ * edits do not change historical HPP (each run keeps a snapshot).
+ * Delete needs cap('doc.cancel'); the server deactivates a used standard instead.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';

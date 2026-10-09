@@ -1,7 +1,5 @@
-// Logika keputusan approval (approve / reject / minta-revisi) yang dipakai
-// BERSAMA oleh route web (routes/approvals.ts) dan handler tombol Telegram
-// (telegramService.pollTelegramUpdates). Sumber kebenaran tunggal supaya kedua
-// jalur konsisten & idempoten (cek status Pending).
+// Approval decisions shared by routes/approvals.ts and the Telegram buttons, so both paths
+// stay consistent and idempotent.
 
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
@@ -36,12 +34,8 @@ export interface DecideApprovalResult {
 }
 
 /**
- * Eksekusi keputusan approval. Never-throw → selalu return {ok,...}.
- * - approve: eksekusi submit dokumen dari payload (gate approve-before-effect),
- *   tandai Approved, notifikasi pengaju.
- * - reject: tandai Rejected, notifikasi pengaju.
- * - revise: wajib `note`, tandai NeedsRevision (reversible), notifikasi pengaju.
- * Idempoten: hanya memproses request berstatus Pending.
+ * Never throws. Idempotent: only Pending requests are processed. Approve runs the stored
+ * submit payload (effects happen only now); revise requires `note`. The requester is notified.
  */
 export async function decideApproval(input: DecideApprovalInput): Promise<DecideApprovalResult> {
   const { requestId, action, actorUserId } = input;
@@ -199,7 +193,6 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
       return { ok: true, status: 'Rejected', documentType: request.documentType };
     }
 
-    // revise
     if (!note) return { ok: false, error: 'Alasan revisi wajib diisi.' };
     await prisma.approvalRequest.update({
       where: { id: request.id },

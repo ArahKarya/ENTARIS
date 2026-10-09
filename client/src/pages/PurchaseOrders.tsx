@@ -1,9 +1,6 @@
 /**
- * Pesanan Pembelian (/purchase-orders) — list kit page (pattern: pages/SalesInvoices.tsx).
- * Server-side paging/sort/filter on GET /purchase-orders. No KPI cards: this
- * list never had any. A PO is a planning document (no stock or GL impact);
- * "PO Umum" has no supplier bound to it. Receipt progress ("Penerimaan") is
- * derived server-side from the lines' qtyReceived (`receiptStatus`).
+ * Purchase orders (/purchase-orders): planning documents with no stock or GL impact; "PO Umum" has
+ * no supplier. Receipt progress (`receiptStatus`) is derived server-side from qtyReceived.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

@@ -1,7 +1,4 @@
-/**
- * New rental contract for a building asset:
- * POST /ga/building/assets/:id/rentals (same payload as before).
- */
+/** New rental contract for a building asset (POST /ga/building/assets/:id/rentals). */
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';

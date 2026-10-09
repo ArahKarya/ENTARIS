@@ -124,7 +124,7 @@ export function RunOeeSection(p: RunOeeSectionProps) {
             </Field>
           </div>
 
-          {/* Machines (B2 multi-machine, parallel) */}
+          {/* Machines (parallel) */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Mesin (paralel)</h4>

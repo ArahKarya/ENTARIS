@@ -82,7 +82,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
     <Page size="A4" orientation="landscape" style={S.page} wrap>
       <Header company={company} date={date} />
 
-      {/* 1. PENJUALAN */}
+      {/* Sales */}
       <SectionTitle title="PENJUALAN" />
       <SummaryRow items={[
         { label: 'Jumlah Faktur', value: String(data.sales.summary.count) },
@@ -115,7 +115,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         <View style={S.empty}><Text style={S.emptyText}>Tidak ada penjualan hari ini</Text></View>
       )}
 
-      {/* 2. PEMBELIAN */}
+      {/* Purchasing */}
       <SectionTitle title="PEMBELIAN" />
       <SummaryRow items={[
         { label: 'Jumlah Faktur', value: String(data.purchases.summary.count) },
@@ -148,7 +148,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         <View style={S.empty}><Text style={S.emptyText}>Tidak ada pembelian hari ini</Text></View>
       )}
 
-      {/* 3. PRODUKSI */}
+      {/* Production */}
       <SectionTitle title="PRODUKSI" />
       <SummaryRow items={[
         { label: 'Jumlah Run', value: String(data.production.summary.totalRuns) },
@@ -185,7 +185,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         <View style={S.empty}><Text style={S.emptyText}>Tidak ada produksi hari ini</Text></View>
       )}
 
-      {/* 3b. KONDISI STOK (snapshot posisi akhir tanggal) */}
+      {/* Stock position (snapshot at the end of the date) */}
       {data.stock && (
         <>
           <SectionTitle title="KONDISI STOK" />
@@ -233,7 +233,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         </>
       )}
 
-      {/* 4. KEUANGAN */}
+      {/* Finance */}
       <SectionTitle title="KEUANGAN" />
       <SummaryRow items={[
         { label: 'Penerimaan', value: idr(data.finance.summary.totalIn) },
@@ -272,7 +272,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         </>
       )}
 
-      {/* 5. PIUTANG */}
+      {/* Receivables */}
       <SectionTitle title="PIUTANG USAHA" />
       <SummaryRow items={[
         { label: 'Total Piutang', value: idr(data.receivables.summary.totalOutstanding) },
@@ -306,7 +306,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         <View style={S.empty}><Text style={S.emptyText}>Tidak ada piutang</Text></View>
       )}
 
-      {/* 6. HUTANG */}
+      {/* Payables */}
       <SectionTitle title="HUTANG USAHA" />
       <SummaryRow items={[
         { label: 'Total Hutang', value: idr(data.payables.summary.totalOutstanding) },
@@ -340,7 +340,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
         <View style={S.empty}><Text style={S.emptyText}>Tidak ada hutang</Text></View>
       )}
 
-      {/* 7. DEPOSIT SUPPLIER */}
+      {/* Supplier deposits */}
       <SectionTitle title="DEPOSIT SUPPLIER" />
       <SummaryRow items={[
         { label: 'Total Deposit', value: idr(data.vendorDeposits.summary.totalDeposits) },

@@ -1,11 +1,6 @@
 /**
- * Peralatan & Kalibrasi (/ga/equipment) — equipment assets
- * (categoryKind=equipment, resolved server-side) with their equipment data
- * (1-1, upsert via PUT) and calibration logs (1-many).
- *
- * Master-detail: the asset list on the left marks calibrations that are due
- * soon or overdue; ?asset=<id> keeps the selection. Writes need
- * can('ga_equipment','edit') (server: requirePerm('ga_equipment')).
+ * Equipment assets (/ga/equipment) with equipment data (1-1, upserted) and calibration logs.
+ * The list marks calibrations due soon or overdue. Writes need ga_equipment edit.
  */
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';

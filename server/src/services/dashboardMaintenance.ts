@@ -1,18 +1,9 @@
 /**
- * Dashboard "Pemeliharaan" (GET /api/dashboard/maintenance): overdue / expiring
- * maintenance obligations from the GA/EAM data, as one pure function over
- * already-loaded rows plus a thin Prisma loader.
- *
- * Definitions (kept in line with the GA pages so numbers agree):
- *  - Jadwal preventif: active schedule, overdue when nextDueAt is before today's
- *    start (business time zone); due this week = today .. today + 6 days.
- *  - Work order: status OPEN/ASSIGNED/IN_PROGRESS with dueAt; overdue when
- *    dueAt < now (same rule as GET /ga/maintenance/work-orders/summary).
- *  - Pajak/STNK/KIR (status ACTIVE) and asuransi (ACTIVE): expired when the
- *    date is before today's start, expiring within 30 days (same window as the
- *    GA documents page, services/gaDocumentList.expiryWindow).
- *  - Dokumen GA: gaDocumentList.deriveExpiryState (EXPIRED status or past
- *    expiry = expired; ACTIVE within 30 days = expiring).
+ * Maintenance dashboard. Definitions must match the GA pages:
+ *  - Preventive schedule: overdue when nextDueAt < today's start (business TZ); due this week = today..+6 days.
+ *  - Work order (OPEN/ASSIGNED/IN_PROGRESS): overdue when dueAt < now.
+ *  - Tax/STNK/KIR and insurance (ACTIVE): expired before today's start, expiring within 30 days.
+ *  - GA documents: gaDocumentList.deriveExpiryState.
  */
 import { prisma } from '../lib/prisma';
 import { businessUtcOffset, localDayRange } from '../utils/listQuery';

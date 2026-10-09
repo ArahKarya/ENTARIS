@@ -1,9 +1,6 @@
 /**
- * Tambah / Edit Akun dialog. Payloads are unchanged from the legacy page:
- *   POST /coa  { accountNumber, name, accountType, rootType, isGroup, description, parentId }
- *   PUT  /coa/:id { accountNumber, name, isGroup, isActive }
- * The server derives rootType from the number prefix and enforces uniqueness
- * and group/child rules; its error message is shown inline.
+ * Add/edit account dialog. The server derives rootType from the number prefix and
+ * enforces uniqueness and group/child rules; its error is shown inline.
  */
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

@@ -139,7 +139,7 @@ export function errorMessage(err: unknown, fallback: string): string {
   return typeof data?.error === 'string' ? data.error : fallback;
 }
 
-/** Downloads one version's PDF (same endpoint and filename as before). */
+/** Downloads one version's PDF. */
 export async function downloadVersion(doc: Pick<GaDocumentRow, 'id' | 'code'>, version: GaDocVersion): Promise<void> {
   try {
     const res = await api.get(`${DOCUMENTS_ENDPOINT}/${doc.id}/versions/${version.id}/file`, { responseType: 'blob' });

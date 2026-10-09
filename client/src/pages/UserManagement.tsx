@@ -1,12 +1,6 @@
 /**
- * Manajemen Pengguna (/users) — list kit page (see pages/SalesInvoices.tsx).
- *
- * GET /users (page, limit, search, role, status, sort) + /users/summary for
- * KPIs. Writes (create/edit, reset password, activate/deactivate, Telegram)
- * use the existing endpoints and are hidden without users:edit. The server
- * never sends password hashes; Telegram chat ids arrive as a boolean only.
- * Account lockout is not modelled server-side, so there is no "Terkunci"
- * status nor an unlock action.
+ * User management (/users). Writes are hidden without users:edit. The server never sends password
+ * hashes and sends Telegram chat ids as a boolean; lockout is not modelled, so there is no unlock action.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

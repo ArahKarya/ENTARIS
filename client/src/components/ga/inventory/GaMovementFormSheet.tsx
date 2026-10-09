@@ -80,7 +80,7 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
         itemId: form.itemId,
         type: form.type,
         quantity: qty,
-        // Locations the type does not use are not sent (same as before: disabled fields were empty).
+        // Locations the movement type does not use are not sent.
         fromLocationId: needs.from ? form.fromLocationId || null : null,
         toLocationId: needs.to ? form.toLocationId || null : null,
         referenceNo: form.referenceNo || null,

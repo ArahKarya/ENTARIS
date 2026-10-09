@@ -1,15 +1,7 @@
 /**
- * Query building for the goods receipt (STT/BPB) list, GET /api/goods-receipts.
- *
- * DocumentStatus is Draft/Submitted/Cancelled; billing state is derived from
- * the purchase-invoice link. The `status` filter accepts:
- *   Uninvoiced    → posted, not billed yet, own stock (needs a PI)
- *   Invoiced      → posted and already folded into a purchase invoice
- *   CustomerOwned → posted customer-owned goods (titipan; never invoiced)
- *   Cancelled, Draft
- *   Submitted     → posted and not billed, titipan included (older callers)
- *
- * Legacy backfill STTs are hidden unless `includeLegacy=true`.
+ * Goods receipt (STT/BPB) list. Billing state derives from the PI link; `status` accepts Uninvoiced
+ * (own stock, needs a PI), Invoiced, CustomerOwned (never invoiced), Submitted (not billed, incl.
+ * customer-owned), Cancelled, Draft. Legacy backfill STTs need `includeLegacy=true`.
  */
 import { Prisma } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';

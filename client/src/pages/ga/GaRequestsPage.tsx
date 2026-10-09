@@ -1,12 +1,6 @@
 /**
- * Pengajuan tab of the Pemeliharaan page: one inbox for vehicle service and
- * tax/STNK/KIR requests (submit from here without opening the vehicle page),
- * with approve / reject (reason) / cancel for users with ga_vehicle edit.
- *
- * GET /ga/vehicle/service-requests and /tax-requests return every request, so
- * the two lists are merged and searched, filtered, sorted and paged in memory
- * on the same URL state as the server-paged lists. KPI cards count all
- * requests (not the visible page).
+ * Vehicle service and tax request inbox; decisions need ga_vehicle edit. Both endpoints return
+ * every request, so the lists are merged and filtered/paged in memory; KPIs count all requests.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

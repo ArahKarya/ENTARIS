@@ -1,8 +1,4 @@
-/**
- * "Tambah Aset Tetap" dialog. Same fields and payload as the former inline
- * form; the server generates the asset number and the straight-line
- * depreciation schedule.
- */
+/** New fixed asset dialog; the server generates the asset number and straight-line depreciation schedule. */
 import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -85,7 +81,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
     }
   }
 
-  // Same account groups as before: assets/accumulated under 1., expenses under 6.
+  // Asset and accumulated depreciation accounts under 1., expenses under 6.
   const assetAccounts = useMemo(() => coa.filter((a) => a.accountNumber.startsWith('1.')), [coa]);
   const expenseAccounts = useMemo(() => coa.filter((a) => a.accountNumber.startsWith('6.')), [coa]);
 

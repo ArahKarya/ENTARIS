@@ -199,7 +199,7 @@ export const BalanceSheetPDF: React.FC<BSPDFProps> = ({ company, asOf, assets, t
     <Page size="A4" style={S.page} wrap>
       <ReportHeader company={company} title="NERACA" period={`Per ${asOf}`} />
 
-      {/* ASSETS */}
+      {/* Assets */}
       <View style={S.sectionHeader} wrap={false} minPresenceAhead={60}><Text style={S.sectionHeaderText}>ASET</Text></View>
       {assets.map((a, i) => <BSRow key={i} item={a} depth={0} alt={i % 2 === 1} />)}
       <View style={S.rowTotal} wrap={false}>
@@ -209,7 +209,7 @@ export const BalanceSheetPDF: React.FC<BSPDFProps> = ({ company, asOf, assets, t
 
       <View style={{ height: 12 }} />
 
-      {/* LIABILITIES */}
+      {/* Liabilities */}
       <View style={S.sectionHeader} wrap={false} minPresenceAhead={60}><Text style={S.sectionHeaderText}>LIABILITAS</Text></View>
       {liabilities.map((a, i) => <BSRow key={i} item={a} depth={0} alt={i % 2 === 1} />)}
       <View style={S.rowTotal} wrap={false}>
@@ -219,7 +219,7 @@ export const BalanceSheetPDF: React.FC<BSPDFProps> = ({ company, asOf, assets, t
 
       <View style={{ height: 8 }} />
 
-      {/* EQUITY */}
+      {/* Equity */}
       <View style={S.sectionHeader} wrap={false} minPresenceAhead={60}><Text style={S.sectionHeaderText}>EKUITAS</Text></View>
       {equity.map((a, i) => <BSRow key={i} item={a} depth={0} alt={i % 2 === 1} />)}
       <View style={S.rowTotal} wrap={false}>

@@ -1,9 +1,4 @@
-/**
- * Penawaran (/quotations) — list kit page (see pages/SalesInvoices.tsx for the
- * reference pattern). Server-paginated list + KPI summary endpoint with the
- * same filters; send/accept/reject/cancel, PDF and convert-to-invoice stay in
- * QuotationDetailDrawer, create/edit in QuotationModal.
- */
+/** Quotations (/quotations); lifecycle actions, PDF and conversion live in QuotationDetailDrawer, create/edit in QuotationModal. */
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';

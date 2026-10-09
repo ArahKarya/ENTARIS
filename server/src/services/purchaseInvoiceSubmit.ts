@@ -44,18 +44,9 @@ export interface SubmitPurchaseInvoiceInput {
 }
 
 /**
- * Submit a purchase invoice + post downstream side-effects:
- *   - validate supplier, parse fiscal year
- *   - compute per-item hargaAkhir (PPN/PPh/potonganItem folded in)
- *   - allocate landed cost (biayaLain + non-linked items) across linked items
- *   - create purchaseInvoice + line items
- *   - build multi-account DR JE (per item-specific inventory account) + CR AP
- *   - post ALE rows + update balances
- *   - recalc party outstanding
- *   - for inventory-linked lines: increment stock (item-total + per-warehouse),
- *     recompute averageCost (WAC), create stockMovement
- *   - auto-settle pending COGS backfill (negative-stock sales that came before
- *     this purchase)
+ * Submit a purchase invoice: hargaAkhir per item includes PPN/PPh/potonganItem, landed cost
+ * (biayaLain + non-linked items) is allocated across STT-linked items, and the JE posts DR per
+ * item inventory account / CR AP. Pending COGS backfill from earlier negative-stock sales settles.
  */
 export async function submitPurchaseInvoiceInTx(
   tx: Tx,
@@ -72,7 +63,7 @@ export async function submitPurchaseInvoiceInTx(
 
   const apAccount = await systemAccounts.getAccount('AP');
   const inventoryAccount = await systemAccounts.getAccount('INVENTORY');
-  // Phase 3: lazy-load only when needed (STT-linked path)
+  // Lazy-loaded, only needed on the STT-linked path.
   let accruedAccount: { id: string; name: string } | null = null;
 
   // Pre-validate any STT-linked items. Reject early if STT cancelled,
@@ -109,14 +100,8 @@ export async function submitPurchaseInvoiceInTx(
     }
   }
 
-  // Policy (2026-05): barang masuk HANYA via STT/BPB
-  // Setiap line dengan inventoryItemId WAJIB link ke goodsReceiptItemId
-  // (line dari STT yg sudah submit). Direct-purchase ditutup supaya:
-  //   1. Tidak ada dobel-tambah stok antara STT dan invoice.
-  //   2. Audit fisik gampang: arus barang murni via STT; invoice = tagihan.
-  //   3. Variance harga (STT provisional vs PI aktual) tertangani lewat
-  //      jalur STT-linked yg sudah ada (5.11 Selisih Harga Pembelian).
-  // Service items / line akun bebas (tanpa inventoryItemId) tetap bisa.
+  // Goods enter only via STT/BPB: every line with inventoryItemId must link to a submitted
+  // goodsReceiptItemId (no double stock-in). Service / free-account lines need no link.
   const orphanInventoryLines = body.items.filter(
     (it) => it.inventoryItemId && !it.goodsReceiptItemId,
   );
@@ -239,12 +224,9 @@ export async function submitPurchaseInvoiceInTx(
     });
   }
 
-  // Build DR (Persediaan) entries grouped by per-item-account — only for
-  // lines yang TIDAK linked ke STT. Untuk yang linked, akrual sudah dibooking
-  // di STT submit; PI hanya reverse accrual + landed cost adjustment ke
-  // Persediaan (bukan 5.11 — sesuai policy 2026-05-20: harga per unit di
-  // stockMovement HARUS reflect total biaya PI termasuk "Resiko Macan"
-  // dan biaya_lain header. Variance diserap ke inventory, bukan expense).
+  // DR Persediaan per item account for non-linked lines. STT-linked lines were accrued at STT
+  // submit; PI reverses the accrual and posts the landed-cost delta to Persediaan, not 5.11, so
+  // the movement unit cost reflects the full PI cost (incl. "Resiko Macan" and header biaya_lain).
   const debitByAccount = new Map<string, { amount: number; names: string[] }>();
   let accruedReversal = new Decimal(0); // DR Hutang Belum Tagih (provisional total)
 
@@ -264,14 +246,9 @@ export async function submitPurchaseInvoiceInTx(
     const amt = effective ? effective.toNumber() : Number(invItem.amount);
 
     if (invItem.goodsReceiptItemId) {
-      // STT-linked line: stock + Persediaan sudah dibooking saat STT submit
-      // pakai sttQty (qty fisik diterima sebelum refaksi). Saat refaksi
-      // diterapkan di PI, qty efektif yg dibayar (invItem.quantity) bisa
-      // lebih kecil dari sttQty — tapi qty di stockMovement TETAP sttQty
-      // (stok fisik tidak berubah). Rumus user (2026-05-20):
-      //   harga akhir per Kg = total invoice PI / qty STT (qty fisik)
-      // Provisional yg sudah ter-DR Persediaan = sttQty × provisionalCost.
-      // Landed cost adjustment = effectiveAmount - provisionalTotal.
+      // STT booked stock at sttQty (physical qty before refaksi); the paid qty may be smaller but
+      // movement qty stays sttQty. Final price per kg = PI total / sttQty; landed cost adjustment
+      // = effectiveAmount - (sttQty x provisionalCost).
       const grItem = sttItemMap.get(invItem.goodsReceiptItemId);
       if (!grItem) continue; // shouldn't happen (pre-validated)
       const sttQty = new Decimal(grItem.quantity.toString());
@@ -282,9 +259,8 @@ export async function submitPurchaseInvoiceInTx(
       accruedReversal = accruedReversal.plus(provisionalTotal);
       landedAdjustments.push({ invItem, grItem, qty: sttQty, provisionalTotal, effectiveAmount, delta });
 
-      // DR/CR Persediaan @ delta ke akun item terkait (1.4.x kalau ada,
-      // fallback ke INVENTORY default). Diserap ke debitByAccount supaya
-      // ter-aggregate per-akun seperti line non-linked.
+      // Post the delta to the item's inventory account (1.4.x, else default INVENTORY), aggregated
+      // per account in debitByAccount like non-linked lines.
       if (!delta.isZero()) {
         let drAccountId = inventoryAccount.id;
         if (invItem.inventoryItemId) {
@@ -293,8 +269,7 @@ export async function submitPurchaseInvoiceInTx(
         }
         const deltaNum = delta.toDecimalPlaces(2).toNumber();
         const existing = debitByAccount.get(drAccountId);
-        // delta positif = DR (inventory naik). Negatif = CR (inventory turun)
-        // dihandle nanti di journal-build by negative debit conversion.
+        // A negative delta (inventory down) becomes a CR when the journal is built.
         if (existing) {
           existing.amount += deltaNum;
           existing.names.push(`adj-landed ${invItem.itemName}`);
@@ -305,7 +280,7 @@ export async function submitPurchaseInvoiceInTx(
       continue;
     }
 
-    // Standalone/legacy line: post DR Persediaan as before.
+    // Standalone line: DR Persediaan.
     if (canDistribute && !invItem.inventoryItemId) continue;
     let drAccountId = inventoryAccount.id;
     if (invItem.inventoryItemId) {
@@ -328,17 +303,13 @@ export async function submitPurchaseInvoiceInTx(
     else debitByAccount.set(inventoryAccount.id, { amount: adjNum, names: ['Biaya tambahan'] });
   }
 
-  // Lazy-load accrual account kalau ada STT-linked line. Variance account
-  // (5.11) tidak lagi diperlukan — landed cost adjustment masuk Persediaan.
+  // Accrual account is needed only for STT-linked lines; landed cost goes to Persediaan, not 5.11.
   if (!accruedReversal.isZero()) {
     accruedAccount = await systemAccounts.getAccount('ACCRUED_PAYABLE');
   }
 
-  // Per policy 2026-05-20: landed cost diserap ke Persediaan (lihat block
-  // STT-linked di atas). Tidak ada lagi posting ke 5.11 Selisih Harga.
-  // Normalisasi: kalau ada akun Persediaan dgn delta negatif (landed cost
-  // LEBIH RENDAH dari provisional → inventory turun), pindah ke
-  // creditJournalItems supaya JE tetap balanced.
+  // A Persediaan account with a negative delta (landed cost below provisional) moves to
+  // creditJournalItems so the JE stays balanced.
   const creditJournalItems: { accountId: string; partyId?: string | null; debit: number; credit: number; description: string }[] = [];
   for (const [accountId, data] of Array.from(debitByAccount.entries())) {
     if (data.amount < 0) {
@@ -425,11 +396,8 @@ export async function submitPurchaseInvoiceInTx(
     });
   }
 
-  // Landed cost: update stockMovement + averageCost per STT-linked item ─
-  // Policy 2026-05-20: setelah PI submit, stockMovement.unit_cost +
-  // total_value disetel ke effective amount (provisional + landed cost
-  // share). inventoryItem.averageCost ikut di-recalc supaya WAC + COGS
-  // future konsisten. Stock fisik (qty) tidak berubah.
+  // Landed cost: set stockMovement unit_cost/total_value to the effective amount and recalc
+  // averageCost per STT-linked item so future WAC/COGS match. Physical qty is unchanged.
   for (const adj of landedAdjustments) {
     if (adj.delta.isZero()) continue;
     if (!adj.grItem?.stockMovementId) continue;
@@ -447,23 +415,14 @@ export async function submitPurchaseInvoiceInTx(
       },
     });
 
-    // Adjust averageCost. delta sudah ter-DR ke Persediaan via JE di atas,
-    // jadi total inventory value naik delta. WAC = (oldStock * oldAvg + delta)
-    // / oldStock. Kalau currentStock = 0 (item baru atau habis), skip
-    // recalc — itu skenario aneh tapi defensive.
+    // WAC = (oldStock * oldAvg + delta) / oldStock; delta is already DR'd to Persediaan above.
     if (adj.invItem.inventoryItemId) {
       const fresh = await tx.inventoryItem.findUnique({
         where: { id: adj.invItem.inventoryItemId },
         select: { currentStock: true, averageCost: true },
       });
-      // Guard M1: only realign WAC when stock is POSITIVE. If stock is ≤ 0
-      // (item fully sold/consumed before PI submit, or oversold), dividing the
-      // landed-cost delta by a zero/negative base produces an absurd or
-      // negative WAC. In that case the landed cost belongs to goods already
-      // shipped (a COGS timing difference) — leave WAC untouched and log so it
-      // can be reviewed. NOTE: the full delta is still DR'd to Persediaan in
-      // the JE above; for fully-depleted stock this is a known limitation
-      // (landed cost on already-sold goods is not retroactively moved to COGS).
+      // Realign WAC only when stock is positive; otherwise the delta belongs to goods already sold,
+      // so WAC is left alone and logged. Known limitation: that delta stays in Persediaan, not COGS.
       if (fresh && Number(fresh.currentStock) > 0) {
         const stock = new Decimal(fresh.currentStock.toString());
         const oldAvg = new Decimal(fresh.averageCost.toString());
@@ -485,12 +444,6 @@ export async function submitPurchaseInvoiceInTx(
       }
     }
   }
-
-  // Direct-purchase path (line tanpa goodsReceiptItemId) sudah di-tolak
-  // di validation awal (orphanInventoryLines guard). STT-linked lines:
-  // stok + averageCost sudah ter-update di STT submit, jadi tidak ada
-  // pekerjaan lagi di sini. Variance harga STT vs PI sudah dihandle di
-  // accrual reversal block sebelumnya.
 
   return invoice;
 }

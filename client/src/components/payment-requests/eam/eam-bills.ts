@@ -1,8 +1,6 @@
 /**
- * Types and pure helpers for the "Tagihan EAM" tab of Pengajuan Pembayaran
- * (formerly /ga/finance). GET /payment-requests/eam merges three EAM sources
- * and does search, date range, sorting and paging on the server; the page
- * only maps URL filters to request params and renders the rows.
+ * Types and pure helpers for the EAM bills tab. The server merges the three EAM
+ * sources and does search, sorting and paging; the page only maps URL filters.
  */
 import { Receipt, Wrench, PackageSearch, type LucideIcon } from 'lucide-react';
 import type { StatusTone } from '@/lib/status';
@@ -62,7 +60,7 @@ export const POSTING_OPTIONS = [
 ];
 export const POSTING_DEFAULT_LABEL = 'Menunggu posting';
 
-/** Same rule as before: a bill is "posted" once it has a journal or a purchase invoice. */
+/** A bill is "posted" once it has a journal or a purchase invoice. */
 export const isPosted = (b: Pick<GaBill, 'journalEntry' | 'purchaseInvoice'>) => !!b.journalEntry || !!b.purchaseInvoice;
 
 export interface BillState {

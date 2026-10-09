@@ -1,10 +1,6 @@
-// Penyusun jendela konteks panel chat (murni, deterministik, tanpa DB/jaringan).
-//
-// Engine AIRA tidak menyimpan state yang dibutuhkan untuk melanjutkan: tiap giliran Entaris
-// mengirim (a) ringkasan bergulir giliran lama, (b) pesan terbaru yang muat dalam anggaran token
-// (≈ karakter / 4, terbaru dulu). Pesan lama TIDAK pernah dibuang diam-diam: bila belum tercakup
-// ringkasan dan tidak muat, pemanggil meringkasnya; bila peringkasan gagal pesan mentah tetap
-// dikirim sampai batas keras, dan baru terakhir dipotong dengan catatan yang terlihat.
+// Pure chat context window: rolling summary + newest messages within the token budget (chars / 4).
+// Old messages are never dropped silently: unsummarized overflow is summarized by the caller; if that
+// fails, raw messages are sent up to the hard limit and only then cut with a visible note.
 
 export interface ChatLike {
   id: string;

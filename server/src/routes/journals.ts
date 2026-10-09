@@ -203,14 +203,9 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
       });
     }
 
-    // FIX(vendor-deposit-cancel-desync, 2026-08-13): jurnal aplikasi Uang Muka
-    // (customer & vendor) dari vendorDeposits.ts/customerDeposits.ts kadang
-    // dibuat TANPA prefix JV-PAY (mis. JV-202608-0164), jadi lolos dari regex
-    // di atas. Kasus nyata: PAY-202608-0024 → PI-202608-0002, dibatalkan lewat
-    // sini, ledger & party.depositBalance ke-reverse tapi vendorDepositApplication
-    // & purchase_invoice.outstanding TIDAK ikut direstore (tidak ada reverse
-    // logic untuk vendor deposit di endpoint ini, hanya untuk customer).
-    // Tangkap juga berdasar pola narasi supaya aman walau nomor entry lolos.
+    // Deposit application journals (customer and vendor) may lack the JV-PAY prefix and
+    // slip past the regex above; cancelling here would leave the application and invoice
+    // outstanding unrestored, so also match on the narration.
     if (/^Aplikasi Uang Muka:/.test(entry.narration ?? '')) {
       return res.status(400).json({
         error:
@@ -288,13 +283,8 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
         data: { status: 'Cancelled', cancelledAt: new Date() },
       });
 
-      // Soft-cancel the original ALE rows (consistent with how
-      // payment/sales-invoice/purchase-invoice cancel handlers work).
-      // Previously this code path created additional [BATAL] reversal
-      // entries while leaving originals active, which doubled raw DR/CR
-      // totals on ALE vs JournalItem (parent JE is now status=Cancelled
-      // so JI rows are implicitly excluded from sums) and tripped the
-      // health check 'ALE vs JournalItem Sync'.
+      // Soft-cancel the original ALE rows, like the other cancel handlers. Adding [BATAL]
+      // reversal rows instead would double ALE totals vs JournalItem and fail the health check.
       await tx.accountingLedgerEntry.updateMany({
         where: { referenceId: entry.id, isCancelled: false },
         data: { isCancelled: true },

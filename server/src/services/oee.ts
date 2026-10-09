@@ -2,31 +2,11 @@ import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 /**
- * OEE (Overall Equipment Effectiveness) computation — MULTI-MACHINE.
- *
- * A production run is a LINE running several machines in PARALLEL. Each
- * machine has its own on/off window; output is DERIVED from the run's item
- * lines (no manual good/reject) and allocated to machines proportional to
- * their effective run time:
- *   - inputQty   = Σ Input line quantities
- *   - produkQty  = Σ main Output line quantities (NOT by-product)
- *   - sampingQty = Σ ByProduct line quantities
- *   - totalOutput = produkQty + sampingQty (basis for allocation)
- *   - loss = max(inputQty − produkQty − sampingQty, 0) (only loss lowers Quality)
- *
- * OEE = Availability × Performance × Quality, computed PER machine and
- * also as a run-level (line) aggregate. Performance reflects the MAIN
- * product only; Quality is run-level ((produk+samping)/input) so it is the
- * same for every machine.
- *
- * Each component is a ratio (0..1) clamped to that range; persisted values
- * are percentages with 2 decimals, allocated quantities with 3. Any
- * component that is not computable (no planned time, no machine rate,
- * zero output, ...) is null, and OEE is null unless all three are present.
- *
- * Pure function — no DB access, no side effects. The caller derives the
- * three quantities from the run's line arrays and resolves the machine
- * rates and downtime list before calling.
+ * Pure multi-machine OEE. A run is a line of parallel machines; output comes from the run's item
+ * lines and is allocated to machines by effective run time (basis = produkQty + sampingQty).
+ * OEE = A × P × Q per machine and for the line: Performance uses the main product only, Quality is
+ * run-level ((produk + samping) / input), so only loss lowers it. Components are clamped to 0..1
+ * and null when not computable; OEE is null unless all three exist.
  */
 
 export interface OeeMachineInput {
@@ -271,10 +251,7 @@ export function computeOee(input: ComputeOeeInput): ComputeOeeResult {
   };
 }
 
-// Persistence helper — shared by submit & edit services. Recreates downtime &
-// ProductionRunMachine rows from the payload, computes OEE per machine + line
-// aggregate, and stores everything. Caller is responsible for deleteMany on
-// edit BEFORE calling this; this only creates + updates.
+// Shared by submit and edit. Only creates/updates rows: on edit the caller deletes existing ones first.
 
 type Tx = Prisma.TransactionClient;
 

@@ -1,11 +1,6 @@
 /**
- * Gedung & Sewa (/ga/building) — building assets (categoryKind=building,
- * resolved server-side) with their building data (1-1, upsert via PUT) and
- * rental contracts (1-many, sewa masuk/keluar).
- *
- * Master-detail: the asset list on the left marks the active contract that
- * ends first; ?asset=<id> keeps the selection. Writes need
- * can('ga_building','edit') (server: requirePerm('ga_building')).
+ * Building assets (/ga/building) with building data (1-1, upserted) and rental contracts (1-many).
+ * The list marks the active contract that ends first. Writes need ga_building edit.
  */
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';

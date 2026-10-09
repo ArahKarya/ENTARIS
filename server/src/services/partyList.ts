@@ -1,13 +1,7 @@
 /**
- * Query building and aggregation for the "Pelanggan & Vendor" list
- * (GET /api/parties with list params, and GET /api/parties/summary).
- *
- * Backward compatibility: GET /api/parties is also used by every party picker
- * (`?type=Customer&limit=…`). Those calls carry none of the list-only params
- * (search, sort, isActive, hasOutstanding), so `isPartyListQuery` returns false
- * and the route keeps its legacy code path byte for byte.
- *
- * Read-only: nothing here touches outstandingAmount / deposit balance caches.
+ * Query building for the "Pelanggan & Vendor" list (GET /api/parties list mode and /summary).
+ * Party pickers send no list-only params, so isPartyListQuery returns false and they keep the
+ * legacy path. Read-only: outstandingAmount and deposit caches are never written.
  */
 import { PartyType, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

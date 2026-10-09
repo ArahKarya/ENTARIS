@@ -1,9 +1,4 @@
-/**
- * Daftar Gudang (/warehouses) — warehouse master on the Phase 3 list kit.
- * GET /warehouses returns every warehouse (small set, no paging), so the
- * DataTable runs in client mode; search and the Aktif/Nonaktif filter are
- * URL-synced via useListState and applied in memory.
- */
+/** Warehouse master (/warehouses). GET /warehouses returns every warehouse, so filtering runs in memory. */
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';

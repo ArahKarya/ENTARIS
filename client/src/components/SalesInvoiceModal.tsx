@@ -364,9 +364,8 @@ const SalesInvoiceModal: React.FC<{
     return acc;
   }, {});
 
-  // Policy (2026-05): inventory item HARUS via Surat Jalan. Direct-sale
-  // dari invoice di-tolak backend, jadi lebih baik kasih guidance + cegah
-  // submit dari client supaya tidak ke-throw error pertama kali.
+  // Inventory items must go out via Surat Jalan; the backend rejects direct sales,
+  // so block submit here with clear guidance.
   const orphanInventoryLines = items.filter(
     (i) => i.itemType === 'product' && i.inventoryItemId && !i.deliveryOrderItemId,
   );
@@ -644,7 +643,7 @@ const SalesInvoiceModal: React.FC<{
               </div>
             </div>
 
-            {/* Policy 2026-05: barang keluar HANYA via Surat Jalan */}
+            {/* Inventory items must go out via Surat Jalan */}
             {hasOrphanInventory && (
               <div role="alert" className="mx-6 mb-4 rounded-lg border border-danger/30 bg-danger-subtle p-3 text-sm text-danger-text">
                 <div className="flex items-start gap-2">

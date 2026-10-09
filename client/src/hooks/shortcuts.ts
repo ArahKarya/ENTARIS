@@ -1,13 +1,7 @@
 /**
- * Keyboard shortcut map: the single source for what `useHotkey` binds and what
- * the "Pintasan Keyboard" dialog lists. Add a shortcut here, bind it with
- * `useShortcut(id, …)`, and the help dialog picks it up automatically.
- *
- * Combo syntax (case-insensitive):
- * - `mod+k`   Ctrl on Windows/Linux, ⌘ on macOS (ctrl/cmd are aliases)
- * - `?`       a single key
- * - `g d`     a sequence: press G, then D within SEQUENCE_TIMEOUT_MS
- * - `escape`  handled by the dialogs themselves; listed for reference only
+ * Single source for what `useHotkey` binds and what the shortcut help dialog lists.
+ * Combos (case-insensitive): `mod+k` = Ctrl or ⌘; `?` = one key; `g d` = sequence within
+ * SEQUENCE_TIMEOUT_MS; `escape` is handled by dialogs and listed for reference only.
  */
 import { getRoute } from '@/app/routes';
 

@@ -192,14 +192,8 @@ export const Dashboard = () => {
     []
   );
 
-  // Period filter state (persisted to localStorage).
-  // FIX(dashboard-stale-period, 2026-08-13): preset non-custom (Bulan Ini, Bulan
-  // Lalu, dst) dulu menyimpan startDate/endDate absolut ke localStorage. Saat
-  // dashboard dibuka lagi di bulan/hari berikutnya, tanggal lama itu dipakai
-  // apa adanya tanpa dihitung ulang — label UI bilang "Bulan Ini" tapi query
-  // API jalan dengan rentang tanggal basi, sehingga data terlihat "tidak
-  // update". Sekarang preset non-custom SELALU dihitung ulang dari hari ini
-  // saat load; hanya preset 'custom' yang boleh pakai tanggal literal tersimpan.
+  // Period persisted to localStorage. Non-custom presets are always recomputed from today on load
+  // so a saved "Bulan Ini" never queries a stale range; only 'custom' keeps its literal dates.
   const [period, setPeriod] = useState<PeriodRange>(() => {
     try {
       const raw = localStorage.getItem('dashboard-period');

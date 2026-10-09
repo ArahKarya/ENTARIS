@@ -27,7 +27,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
   const company = useCompanyPDF();
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  // Set when the cancel failed for insufficient stock: admin may force it with a reason.
+  // Set when the cancel failed for insufficient stock: cap doc.cancel may force it with a reason.
   const [overrideMessage, setOverrideMessage] = useState<string | null>(null);
 
   const isAdmin = cap('doc.cancel');
@@ -53,8 +53,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
     },
     onError: (err: any) => {
       const msg = err.response?.data?.error || 'Gagal membatalkan STT.';
-      // Jika gagal karena stok tidak cukup (barang sudah keluar), Admin boleh
-      // override dengan alasan. Tawarkan retry override.
+      // Insufficient stock (goods already issued): offer a forced retry with a reason.
       if (/tidak mencukupi|stok/i.test(msg) && /tidak dapat membatalkan/i.test(msg)) {
         setOverrideMessage(msg);
         return;

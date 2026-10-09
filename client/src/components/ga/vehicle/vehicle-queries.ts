@@ -1,7 +1,4 @@
-/**
- * Query keys and shared queries of the fleet module. Keys are unchanged from
- * the previous page so caches shared with other screens stay coherent.
- */
+/** Fleet query keys and shared queries; other screens share these cache keys, so keep them stable. */
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';

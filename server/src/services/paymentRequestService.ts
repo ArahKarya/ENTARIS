@@ -1,14 +1,8 @@
 /**
- * Pengajuan Pembayaran — transactional operations. Every transition:
- *   1. loads the request and checks the actor with paymentRequestRules,
- *   2. claims the status with an optimistic `updateMany where status IN (...)`
- *      (a concurrent decision makes count 0 → STALE_STATUS_ERROR),
- *   3. writes a history row, and
- *   4. returns notification events the route dispatches AFTER commit.
- *
- * Payment posts one balanced journal (see buildPaymentJournalLines) through
- * the open-fiscal-year guard; cancelling the payment voids that journal the
- * same way gaFinance does (balances reversed, ledger rows flagged).
+ * Pengajuan Pembayaran transactions. Each transition checks the actor with paymentRequestRules,
+ * claims the status via `updateMany where status IN (...)` (count 0 on a concurrent decision =
+ * STALE_STATUS_ERROR), writes a history row and returns notification events dispatched after commit.
+ * Payment posts one balanced journal under the open-fiscal-year guard; cancelling voids it like gaFinance.
  */
 import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

@@ -22,7 +22,7 @@ router.get('/config', async (_req, res) => {
   }
 });
 
-// POST /api/tax/config — create tax config (Admin only)
+// POST /api/tax/config (requires settings edit permission)
 router.post('/config', async (req, res) => {
   const body = validateBody(CreateTaxConfigSchema, req.body, res);
   if (!body) return;

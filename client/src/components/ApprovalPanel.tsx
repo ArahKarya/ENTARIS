@@ -46,9 +46,8 @@ interface Props {
 }
 
 /**
- * Panel approval reusable: sub-tab status (Menunggu/Disetujui/Ditolak/Perlu
- * Revisi), detail modal, aksi Admin (Setuju/Tolak/Minta Edit), dan tombol
- * "Edit & Ajukan Ulang" untuk staff pemilik pengajuan berstatus Perlu Revisi.
+ * Reusable approval panel. Decisions need cap approval.decide; the requester can
+ * edit and resubmit a request that needs revision.
  */
 export default function ApprovalPanel({ documentType, onResubmit, onViewDocument, focusRequestId, onFocusHandled }: Props) {
   const qc = useQueryClient();

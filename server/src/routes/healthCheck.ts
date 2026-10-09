@@ -1,6 +1,6 @@
-// Admin-only diagnostic dashboard endpoints. Heavy lifting (check SQL +
-// preview/fix transactions) lives in routes/health/{checks,fixes}.ts —
-// this file is now just dispatch + audit-log wrapping.
+// Diagnostic dashboard endpoints (mounted behind the audit permission). Check SQL and
+// preview/fix transactions live in routes/health/{checks,fixes}.ts; this file only
+// dispatches and writes the audit log.
 import { Router } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';

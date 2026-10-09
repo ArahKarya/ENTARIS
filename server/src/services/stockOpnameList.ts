@@ -1,13 +1,7 @@
 /**
- * Query building + row enrichment for the stock opname list
- * (GET /api/stock-opname).
- *
- * The opname header does not store its warehouse: the warehouse picked in the
- * form lives on the adjustment stock movements (referenceType 'StockOpname')
- * and, for older data, possibly on the lines. The warehouse filter therefore
- * resolves matching opname ids from movements first (see the route) and an
- * opname without any difference (no movement) cannot be attributed to a
- * warehouse.
+ * Query building + row enrichment for the stock opname list (GET /api/stock-opname).
+ * The header has no warehouse: it lives on the adjustment movements (or old lines), so the
+ * warehouse filter resolves ids from movements and an opname with no difference has no warehouse.
  */
 import { Prisma, StockOpnameStatus } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';

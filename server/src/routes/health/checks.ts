@@ -262,8 +262,7 @@ export async function checkStockMovementMismatch(): Promise<CheckResult> {
 
 // Per-warehouse stock drift: inventory_items.current_stock (denormalized total)
 // should equal SUM(inventory_stocks.current_stock) for that item. A mismatch
-// means one of the multi-warehouse update paths is missing an inventory_stocks
-// upsert — bug introduced 2026-05-11 with multi-warehouse rollout.
+// means a multi-warehouse update path skipped the inventory_stocks upsert.
 export async function checkWarehouseStockDrift(): Promise<CheckResult> {
   const drifts = await prisma.$queryRaw<Array<{
     item_id: string;

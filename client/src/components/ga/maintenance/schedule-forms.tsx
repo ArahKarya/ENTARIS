@@ -1,7 +1,4 @@
-/**
- * Create / edit a preventive maintenance schedule (interval in days, operating
- * hours or km, plus the next due date). Payloads unchanged from the old page.
- */
+/** Create/edit a preventive maintenance schedule (interval in days, operating hours or km, plus next due date). */
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

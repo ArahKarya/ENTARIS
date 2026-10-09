@@ -69,9 +69,7 @@ export const roleMiddleware = (allowedRoles: string[]) => {
 const DENY = (res: Response) => res.status(403).json({ error: 'Akses ditolak: Tidak memiliki izin.' });
 
 /**
- * Gate berbasis IZIN modul (RBAC dinamis). Aksi diinfer dari HTTP method:
- * GET/HEAD → view, selainnya → edit. Super-admin lolos. Dipakai di mount router
- * transaksional (index.ts) — menggantikan roleMiddleware berbasis nama role.
+ * Module permission gate: GET/HEAD need view, other methods need edit. Super-admin always passes.
  */
 export const requirePerm = (module: string) => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {

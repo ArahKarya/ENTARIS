@@ -1,8 +1,4 @@
-/**
- * Entity definitions for Data Induk Aset (/ga/master). Each tab reads
- * GET /ga/master/<path> and writes POST / PUT /:id / DELETE /:id with the same
- * payload shape as before (fields below).
- */
+/** Entity definitions for the asset master data tabs (GET/POST/PUT/DELETE /ga/master/<path>). */
 import type { ReactNode } from 'react';
 
 export interface MasterRow {

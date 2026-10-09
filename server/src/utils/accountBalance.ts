@@ -69,11 +69,8 @@ export async function recalculateAccountBalances(
   });
 
   for (const account of accounts) {
-    // Source of truth = accounting_ledger_entries (ALE).
-    // Semua laporan resmi (Neraca, Laba Rugi, Trial Balance, Buku Besar, Arus Kas)
-    // membaca ALE, sementara journal_entry_accounts (JEA) sudah divergen secara
-    // historis. Recalculate dari JEA membuat cache accounts.balance menyimpang
-    // dari laporan. Lihat audit 2026-08-06.
+    // Source of truth is accounting_ledger_entries (ALE), which every official report reads.
+    // journal_entry_accounts has diverged, so recalculating from it would drift from the reports.
     const totals = await tx.accountingLedgerEntry.aggregate({
       where: {
         accountId: account.id,

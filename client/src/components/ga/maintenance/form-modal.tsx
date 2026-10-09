@@ -1,8 +1,6 @@
 /**
- * Form dialog shell for the GA maintenance forms (Radix Dialog, Phase 4
- * anatomy: pinned header + scrolling body + pinned footer). Mounted by the
- * parent while open; `onClose` runs on Escape / overlay / close button unless
- * a submit is in flight.
+ * Dialog shell for the GA maintenance forms (pinned header and footer, scrolling
+ * body). `onClose` is ignored while a submit is in flight.
  */
 import type { FormEvent, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';

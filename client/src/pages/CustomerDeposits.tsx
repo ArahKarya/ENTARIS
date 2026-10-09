@@ -1,12 +1,6 @@
 /**
- * Uang Muka Pelanggan (/customer-deposits) — server-paginated list built on
- * the Phase 3 list kit (see pages/SalesInvoices.tsx for the reference pattern).
- *
- * The list calls GET /customer-deposits with `page` (paged mode); KPI cards
- * come from GET /customer-deposits/summary with the same filters. The status
- * filter uses the usage state derived on the server (Aktif / Terpakai
- * Sebagian / Terpakai / Dibatalkan), the same rules the badge always used.
- * Deposits have no detail view yet, so rows are not clickable.
+ * Customer deposits (/customer-deposits). The status filter uses the usage state derived on the
+ * server (same rules as the badge). Deposits have no detail view yet, so rows are not clickable.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

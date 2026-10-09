@@ -239,7 +239,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /:id/cancel: Admin only
+// POST /:id/cancel (requires the doc.cancel capability)
 router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(

@@ -1,9 +1,5 @@
 /**
- * "Surat Jalan Resmi" tab of /delivery-orders — list kit (pattern:
- * pages/SalesInvoices.tsx). Server-side paging/sort/filter on
- * GET /delivery-orders. No KPI cards: this list never had any.
- *
- * "Sudah/Belum Diinvoice" are derived states (status Submitted ± invoice);
+ * Official DO tab of /delivery-orders. "Sudah/Belum Diinvoice" are derived (Submitted ± invoice);
  * the server filter understands status=Submitted|Invoiced|Cancelled.
  */
 import { useMemo, useState } from 'react';

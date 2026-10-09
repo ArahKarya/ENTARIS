@@ -1,10 +1,4 @@
-/**
- * Permintaan Barang (/ga/material-requests) — server-paged MR list built on
- * the Phase 3 list kit (see pages/SalesInvoices.tsx):
- *   GET /ga/material-requests?page=… → { data, total, page, limit }
- *   GET /ga/material-requests/summary (same filters, status ignored) → KPI cards
- * Rows open the detail sheet, deep-linked as ?mr=<id>.
- */
+/** Material requests (/ga/material-requests); KPIs ignore the status filter; ?mr=<id> opens the detail sheet. */
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';

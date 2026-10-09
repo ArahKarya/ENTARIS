@@ -11,12 +11,8 @@ import { logger } from '../../lib/logger';
 
 const router = Router();
 
-// GET /api/inventory/production-cost-standards
-// Filters: ?active=true|false, ?costSide=InputSide|OutputSide,
-//          ?itemId=<uuid>, ?warehouseId=<uuid>
-// Scope filters (item / warehouse) apply inclusive-OR: a standard matches if
-// it targets the scope OR if the field is NULL (global). When both filters
-// supplied, the standard must match BOTH dimensions independently.
+// GET /api/inventory/production-cost-standards: an item/warehouse filter also matches global (NULL) standards;
+// with both filters each dimension must match independently.
 router.get('/', async (req, res) => {
   try {
     const where: any = { AND: [] as any[] };
@@ -133,8 +129,7 @@ router.put(
 );
 
 // DELETE /api/inventory/production-cost-standards/:id
-// Soft-delete approach: if standard already used by a run, deactivate.
-// Otherwise hard delete.
+// Deactivates a standard already used by a run, otherwise hard-deletes it.
 router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   const id = req.params.id as string;
   try {

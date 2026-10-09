@@ -370,7 +370,7 @@ router.patch('/:id/reject', async (req, res) => {
   }
 });
 
-// PATCH /:id/cancel — any → Cancelled (Admin only, blocked if converted)
+// PATCH /:id/cancel: any status to Cancelled, blocked if converted (requires the doc.cancel capability)
 router.patch('/:id/cancel', requireCap('doc.cancel'), async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {

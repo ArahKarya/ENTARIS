@@ -1,9 +1,6 @@
 /**
- * Aggregates for the Stok & Produksi dashboard (GET /api/inventory/dashboard/*).
- *
- * Stock value follows the inventory module's operational valuation (physical
- * qty × weighted average cost), the same figure as /dashboard/metrics and
- * /items/summary — not the GL balance.
+ * Stock & production dashboard. Stock value = physical qty × WAC (same as /dashboard/metrics and
+ * /items/summary), not the GL balance.
  */
 
 export const STOCK_VALUE_GROUPS = ['category', 'warehouse'] as const;

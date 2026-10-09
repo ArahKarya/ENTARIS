@@ -1,9 +1,6 @@
 /**
- * Proses Produksi → Mesin (?view=machines). Machine master for OEE: the ideal
- * capacity (unit/hour) drives the Performance factor. The list also shows each
- * machine's average OEE over the last 30 days (/inventory/dashboard/oee —
- * inventory module; hidden when that read is not permitted).
- * Writes need can('production','edit') (server: requireWrite('production')).
+ * Machine master for OEE: ideal capacity (unit/hour) drives Performance. The
+ * 30-day OEE column is hidden without inventory read permission.
  */
 import { useId, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

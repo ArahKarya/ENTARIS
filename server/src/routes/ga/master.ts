@@ -1,9 +1,5 @@
-// GA master data CRUD — ported from GA Monitor (server/src/routes/master.ts).
-// Entities: branches, cost centers, asset categories, document types,
-// inventory categories, locations.
-//
-// Mounted by index.ts under /api/ga/master with requirePerm (GET=view,
-// writes=edit), so NO auth middleware inside this file.
+// GA master data CRUD (branches, cost centers, categories, document types, locations).
+// Mounted with requirePerm('ga_master') in index.ts (GET = view, writes = edit).
 
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';

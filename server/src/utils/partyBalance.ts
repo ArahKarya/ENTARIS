@@ -16,9 +16,8 @@ type PartyImpactItem = {
  *   1.3   (Uang Muka Pembelian)   → depositBalance           (debit-normal)
  *   otherwise (1.2.1, 2.1.1, ...) → outstandingAmount        (rootType-driven)
  *
- * Both POST (apply) and CANCEL (reverse) must use this helper so the two
- * sides stay symmetric — otherwise cancelling a JV leaks balance into the
- * wrong denorm field (observed with cancelled refund JVs before this fix).
+ * Both post (apply) and cancel (reverse) must use this helper, or a cancelled JV
+ * leaks balance into the wrong denormalized field.
  */
 export async function applyPartyImpact(
   tx: Prisma.TransactionClient,

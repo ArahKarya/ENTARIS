@@ -1,15 +1,6 @@
 /**
- * Query building, stock state and aggregation for the GA office inventory
- * list (GET /api/ga/inventory/items?paginated=1, GET /api/ga/inventory/items/summary)
- * and the paged movement list (GET /api/ga/inventory/movements?page=…).
- *
- * GA inventory is a small catalogue whose stock is the sum of per-location
- * rows, so the item list loads the matching items with their stock rows,
- * derives totals here, filters on the stock state, sorts and slices in memory.
- * The list and the KPI cards share `buildGaItemFilter`, so they always
- * describe the same rows.
- *
- * Read-only: nothing here writes stock or movements.
+ * GA office inventory and movement lists. Item stock is the sum of per-location rows, so stock-state
+ * filtering, sorting and paging happen in memory; list and KPI cards share `buildGaItemFilter`.
  */
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

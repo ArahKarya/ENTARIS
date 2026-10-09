@@ -1,10 +1,6 @@
 /**
- * Resolve the GA asset categories behind the Kendaraan / Gedung / Peralatan
- * pages. Those pages used to send category ids hard-coded from one tenant's
- * database, so they were empty everywhere else.
- *
- * Rule: if any of the legacy ids exists, use only those (that tenant keeps
- * exactly the same lists). Otherwise match category codes, then names.
+ * Resolve GA asset categories for the Kendaraan / Gedung / Peralatan pages: if any legacy
+ * hard-coded id exists, use only those; otherwise match category codes, then names.
  */
 import { prisma } from '../lib/prisma';
 

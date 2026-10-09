@@ -1,13 +1,6 @@
 /**
- * Stok & Produksi → Proses Produksi → Dashboard (?tab=production, no ?view).
- *
- * Server-side aggregates only:
- *  • KPIs        /inventory/production-runs/summary (period + previous period):
- *                runs, input, main output, by-products, input-weighted yield
- *  • Cost/trend  /inventory/dashboard/production: daily yield trend, top
- *                outputs, loaded HPP (conversion cost), recent runs
- *  • Approvals   /approvals/requests?status=Pending (ProductionRun)
- * Period lives in the URL (?period / ?startDate / ?endDate).
+ * Production dashboard. Server-side aggregates only; yield is input-weighted.
+ * Period lives in the URL.
  */
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';

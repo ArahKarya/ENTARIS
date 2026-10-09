@@ -1,9 +1,6 @@
 /**
- * Pertanggungjawaban uang muka / perjalanan dinas (/payment-requests/:id/settlement).
- * The requester lists what was actually spent (with receipts), sees the sisa /
- * kurang bayar against the advance, then submits to the supervisor and Finance.
- * Save = write the lines, upload picked receipts, then (for "Ajukan") submit.
- * TRAVEL requests start from the planned lines (editable) with plan-vs-realization.
+ * Advance / travel settlement (/payment-requests/:id/settlement). Save writes the lines, uploads
+ * picked receipts, then submits for "Ajukan". TRAVEL starts from the planned lines (editable).
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';

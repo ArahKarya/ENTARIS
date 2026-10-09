@@ -24,11 +24,7 @@ async function resolveSchedulerUserId(): Promise<string | null> {
   return admin?.id ?? null;
 }
 
-/**
- * Calculate the next-run date based on frequency. Mirrors the helper kept
- * in routes/recurring.ts (kept local there for the HTTP path to avoid a
- * cross-module dep cycle; logic is intentionally duplicated and trivial).
- */
+/** Next-run date by frequency. Intentionally duplicated in routes/recurring.ts to avoid a dependency cycle. */
 function calculateNextRunDate(
   frequency: string,
   fromDate: Date,

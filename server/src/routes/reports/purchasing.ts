@@ -1,9 +1,6 @@
 /**
- * Purchasing reports (mounted under /api/reports, gated by requirePerm('reports')
- * like the other purchasing reports, e.g. payable-schedule):
- *  GET /po-outstanding       ?partyId&warehouseId&startDate&endDate&overdue=1
- *  GET /supplier-performance ?startDate&endDate&partyId
- * Aggregation lives in services/purchaseReports.ts (pure, tested).
+ * Purchasing reports under /api/reports (requirePerm('reports')): /po-outstanding and /supplier-performance.
+ * Aggregation lives in services/purchaseReports.ts.
  */
 import { Router } from 'express';
 import type { Prisma } from '@prisma/client';

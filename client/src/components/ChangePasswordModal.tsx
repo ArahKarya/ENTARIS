@@ -13,10 +13,7 @@ interface ChangePasswordModalProps {
   onClose: () => void;
 }
 
-/**
- * "Ganti Kata Sandi" from the user menu. Radix Dialog gives the focus trap,
- * Esc and focus return to the menu trigger; the form logic is unchanged.
- */
+/** Change password dialog opened from the user menu; focus returns to the menu trigger. */
 const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
   const returnFocus = useReturnFocus();
   return (

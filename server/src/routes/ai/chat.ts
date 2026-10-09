@@ -1,6 +1,6 @@
-// Panel chat AIRA (tahap 3): Entaris menyimpan sesi & pesan sendiri (per user) dan memanggil agen
-// pemilik lewat API HTTP kompatibel-OpenAI (lihat docs/ai-tools/PANEL-CHAT.md). Setiap query dibatasi
-// userId pemilik (sesi orang lain = 404). Isi pesan tidak pernah ditulis ke log server (hanya id/panjang).
+// AIRA chat panel: Entaris stores sessions and messages per user and calls the agent over an
+// OpenAI-compatible API (docs/ai-tools/PANEL-CHAT.md). Every query is scoped to the owner
+// (other sessions = 404); message content is never logged, only ids and lengths.
 //
 //   GET    /api/ai/chat/health                  status engine (online/offline + latensi)
 //   GET    /api/ai/chat/sessions                daftar sesi (q, status, page, limit)

@@ -1,8 +1,4 @@
-/**
- * Proses Produksi → Approval & Pengajuan (?view=approval): a queue summary
- * strip around the shared <ApprovalPanel/> (rendered as children, unchanged).
- * Counts reuse ApprovalPanel's cached /approvals/requests responses.
- */
+/** Queue summary strip around the shared <ApprovalPanel/>; counts reuse its cached responses. */
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Clock3, Hourglass, RotateCcw } from 'lucide-react';

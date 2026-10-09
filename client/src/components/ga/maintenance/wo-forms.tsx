@@ -1,9 +1,4 @@
-/**
- * Work-order forms of the Pemeliharaan page: create, assign technician,
- * complete (with checklist + costs) and record part usage. Payloads and
- * endpoints are unchanged from the previous page; only the shell and the
- * validation display (inline errors) are new.
- */
+/** Work-order forms: create, assign technician, complete (checklist + costs), record part usage. */
 import { useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,8 +29,6 @@ const PRIORITY_OPTIONS = PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_
 const TYPE_OPTIONS = (Object.keys(TYPE_LABELS) as WoType[]).map((t) => ({ value: t, label: TYPE_LABELS[t] }));
 
 const numOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
-
-// Create
 
 export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill | null; onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -169,8 +162,6 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
   );
 }
 
-// Assign
-
 interface UserOption {
   id: string;
   fullName: string;
@@ -229,8 +220,6 @@ export function AssignModal({
     </FormModal>
   );
 }
-
-// Complete
 
 export function CompleteModal({ id, onClose, onDone }: { id: string; onClose: () => void; onDone: () => void }) {
   const [form, setForm] = useState({ resolution: '', laborHours: '', laborCost: '', externalVendor: '', externalCost: '' });
@@ -318,8 +307,6 @@ export function CompleteModal({ id, onClose, onDone }: { id: string; onClose: ()
     </FormModal>
   );
 }
-
-// Add part
 
 interface InventoryOption {
   id: string;

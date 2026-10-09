@@ -37,22 +37,9 @@ export interface SubmitGoodsReceiptInput {
 }
 
 /**
- * Submit a Bukti Penerimaan Barang (STT/BPB).
- *
- * Behavior:
- *   - Validate fiscal year + supplier (must be Supplier or Both).
- *   - If purchaseOrderId set, validate PO exists & not cancelled.
- *   - Generate STT number.
- *   - For each line:
- *       · resolve warehouse, create In movement w/ locked unitCost
- *       · update inventory_items.currentStock (+) and averageCost (weighted)
- *       · update inventory_stocks per warehouse (+)
- *       · link goods_receipt_items.stockMovementId
- *       · if PO line linked, bump PO item qtyReceived
- *   - Post single JE per STT:
- *       DR Persediaan (per-account, may split across inventory accounts)
- *       CR Hutang Belum Tagih (accrued payable — single line)
- *   - Caller owns the surrounding $transaction.
+ * Submit an STT/BPB: In movements update stock and WAC, linked PO lines get qtyReceived.
+ * One JE per STT: DR Persediaan (per inventory account) / CR Hutang Belum Tagih (accrual).
+ * Caller owns the transaction.
  */
 export async function submitGoodsReceiptInTx(
   tx: Tx,
@@ -130,8 +117,6 @@ export async function submitGoodsReceiptInTx(
     },
   });
 
-  // Aggregate per-account totals for JE (DR side)
-  // Map: inventoryAccountId → total value
   const drByAccount = new Map<string, { amount: Decimal; names: string[] }>();
   let totalCr = new Decimal(0);
 
@@ -144,24 +129,18 @@ export async function submitGoodsReceiptInTx(
     if (!wh) throw new BusinessError(`Gudang tidak ditemukan untuk '${line.itemName}'.`);
 
     const qty = new Decimal(line.quantity);
-    // STT tidak punya harga di UI. Kalau lockedUnitCost 0/undefined, pakai
-    // averageCost item saat ini sebagai provisional. PI nanti yang fix
-    // harga aktual + post variance kalau beda.
+    // No price on the STT form: fall back to the current averageCost as a provisional cost.
+    // The PI later sets the actual price and posts the variance.
     const provided = Number(line.lockedUnitCost ?? 0);
-    // Barang titipan pelanggan: nilai dipaksa 0 — bukan aset kita, tidak
-    // boleh masuk Persediaan/Hutang Belum Tagih. JE di bawah otomatis skip
-    // karena totalCr = 0.
+    // Customer-owned goods are valued at 0 (not our asset), so the JE is skipped (totalCr = 0).
     const unitCost = isCustomerOwned
       ? new Decimal(0)
       : provided > 0
         ? new Decimal(provided)
         : new Decimal(invItem.averageCost.toString());
 
-    // GUARD WAC: barang MILIK SENDIRI tidak boleh masuk dengan nilai 0.
-    // Mutasi In ber-unit_cost 0 mendilusi WAC jadi 0, lalu mutasi Out
-    // berikutnya keluar dengan nilai pasar → saldo GL persediaan minus
-    // (kasus 1.4.71 Repro, Agu 2026). Barang titipan (isCustomerOwned)
-    // dikecualikan karena memang bukan aset perusahaan.
+    // Own goods must not come in at cost 0: it dilutes WAC to 0 and later Outs drive the
+    // inventory GL balance negative. Customer-owned goods are exempt.
     if (!isCustomerOwned && unitCost.lte(0)) {
       throw new BusinessError(
         `Harga satuan untuk '${invItem.name}' belum ada (nilai 0). ` +
@@ -172,7 +151,6 @@ export async function submitGoodsReceiptInTx(
 
     const totalValue = qty.times(unitCost).toDecimalPlaces(2);
 
-    // Stock movement In
     const movementNumber = await generateDocumentNumber(tx, 'SM', parsedDate, fiscalYear.id);
     const movement = await tx.stockMovement.create({
       data: {
@@ -193,9 +171,7 @@ export async function submitGoodsReceiptInTx(
       },
     });
 
-    // Update inventory_items: total stock + weighted average cost.
-    // Barang titipan: averageCost TIDAK disentuh (qty 0-cost akan mendilusi
-    // WAC item kalau item dipakai juga untuk stok milik sendiri).
+    // Customer-owned goods leave averageCost untouched (0-cost qty would dilute WAC of own stock).
     const newAvg = isCustomerOwned
       ? Number(invItem.averageCost)
       : calcWeightedAverage(
@@ -213,7 +189,6 @@ export async function submitGoodsReceiptInTx(
       },
     });
 
-    // Per-warehouse stock
     await adjustWarehouseStock(tx, invItem.id, wh.id, qty.toNumber());
 
     // Create GR item row with SM link
@@ -232,7 +207,6 @@ export async function submitGoodsReceiptInTx(
       },
     });
 
-    // Bump PO item qtyReceived if linked
     if (line.purchaseOrderItemId) {
       await tx.purchaseOrderItem.update({
         where: { id: line.purchaseOrderItemId },
@@ -240,7 +214,6 @@ export async function submitGoodsReceiptInTx(
       });
     }
 
-    // Aggregate JE DR side
     const acctId = invItem.accountId ?? defaultInvAccount.id;
     const existing = drByAccount.get(acctId);
     if (existing) {

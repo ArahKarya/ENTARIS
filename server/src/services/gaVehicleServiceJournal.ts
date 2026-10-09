@@ -5,20 +5,9 @@ import { updateBalancesForItems } from '../utils/accountBalance';
 import { BusinessError } from '../utils/errors';
 
 /**
- * Posting biaya service kendaraan EAM ke jurnal ERP.
- *
- * Alasan: sebelum ini modul EAM sama sekali tidak menyentuh GL — biaya service
- * yang diinput di EAM TIDAK muncul di laporan keuangan, sehingga akuntansi harus
- * menginput ulang secara manual (rawan double-count / terlewat).
- *
- * Jurnal yang dibuat:
- *   DR  <akun beban>        (default 6.7 Beban Pemeliharaan Kendaraan)
- *   CR  <akun kas/bank>     (default 1.1.1 Petty Cash) atau 2.1.1 Hutang Usaha
- *
- * Aturan anti-duplikasi:
- *   - 1 service log = maksimal 1 jurnal (unique index journal_entry_id).
- *   - Log hasil impor historis (source != 'EAM') TIDAK boleh diposting, karena
- *     nilainya sudah ada di GL lewat jalur input manual lama.
+ * Post EAM vehicle service cost: DR expense (default 6.7) / CR cash-bank (default 1.1.1) or 2.1.1.
+ * One journal per service log (unique journal_entry_id); imported logs (source != 'EAM') are
+ * never posted because they are already in the GL.
  */
 
 export const DEFAULT_VEHICLE_EXPENSE_ACCOUNT = '6.7'; // Beban Pemeliharaan Kendaraan
