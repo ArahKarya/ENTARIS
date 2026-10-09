@@ -507,14 +507,10 @@ export const SystemAccountsTab: React.FC = () => {
       {/* Floating save button */}
       {hasChanges && (
         <div className="fixed bottom-6 right-6 z-50">
-          <button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-xl shadow-lg hover:bg-primary-hover disabled:opacity-50 transition-all"
-          >
-            {saveMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+          <Button size="lg" onClick={() => saveMutation.mutate()} loading={saveMutation.isPending} className="shadow-[var(--shadow-3)]">
+            {!saveMutation.isPending && <Save aria-hidden />}
             Simpan Perubahan
-          </button>
+          </Button>
         </div>
       )}
     </div>

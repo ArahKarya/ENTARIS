@@ -6,7 +6,7 @@
 import PurchaseOrderApprovalSummary from '../PurchaseOrderApprovalSummary';
 import { ThreeWayMatchPreview } from '../purchase/ThreeWayMatchPanel';
 import AttachmentPreview from '../AttachmentPreview';
-import { Check, Pencil, FileText } from 'lucide-react';
+import { Check, Pencil, FileText, AlertTriangle } from 'lucide-react';
 import { formatRupiah } from '../../lib/formatters';
 import { cn } from '../../lib/utils';
 import { Button } from '@/components/ui/button';
@@ -381,7 +381,7 @@ function DetailContent({
                   </div>
                   {warn.length > 0 && (
                     <div className="rounded-lg border border-danger/30 bg-danger-subtle px-3 py-2 text-xs text-danger-text space-y-0.5">
-                      <p className="font-semibold">⚠ Perlu dicek</p>
+                      <p className="flex items-center gap-1 font-semibold"><AlertTriangle className="size-3.5" aria-hidden />Perlu dicek</p>
                       {warn.map((w, k) => (
                         <p key={k}>• {w}</p>
                       ))}

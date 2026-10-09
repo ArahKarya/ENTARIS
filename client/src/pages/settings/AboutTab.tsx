@@ -152,7 +152,7 @@ export const AboutTab: React.FC = () => {
               <div className="space-y-1 rounded-lg bg-card p-3 text-xs text-muted-foreground">
                 <p className="font-semibold text-foreground">Cara update di server:</p>
                 {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable) */}
-                <pre className="overflow-x-auto rounded-md bg-neutral-900 p-2.5 font-mono text-xs text-emerald-300" tabIndex={0}>
+                <pre className="overflow-x-auto rounded-md border border-border bg-surface-sunken p-2.5 font-mono text-xs text-foreground" tabIndex={0}>
 {`cd ~/entaris
 git pull origin main
 docker compose up -d --build`}</pre>

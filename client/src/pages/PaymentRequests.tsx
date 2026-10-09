@@ -18,7 +18,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { AlarmClock, BadgeCheck, CircleDollarSign, Download, Eye, FilePenLine, HandCoins, Hourglass, Pencil, Plus, Users } from 'lucide-react';
+import { AlarmClock, BadgeCheck, Download, Eye, FilePenLine, HandCoins, Hourglass, Pencil, Plus, Users, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -575,7 +575,7 @@ export const PaymentRequests = () => {
         />
         <StatCard
           label="Sudah Dibayar"
-          icon={CircleDollarSign}
+          icon={Banknote}
           loading={kpiLoading}
           value={summary ? kpiMoney(paid.amount) : '-'}
           valueTitle={summary ? formatRupiah(paid.amount) : undefined}

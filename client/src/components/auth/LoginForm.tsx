@@ -306,7 +306,7 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
           aria-busy={busy || undefined}
           className={
             'inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-(--primary) px-4 text-base font-semibold text-(--primary-foreground) ' +
-            'transition-colors hover:bg-(--primary-hover) active:bg-[#22406E] dark:active:bg-[#4A8AD8] lg:h-11 lg:text-sm ' +
+            'transition-colors hover:bg-(--primary-hover) active:bg-(--primary-hover) lg:h-11 lg:text-sm ' +
             'aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:bg-(--primary) aria-disabled:active:bg-(--primary) aria-busy:cursor-progress ' +
             focusRing
           }

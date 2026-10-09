@@ -33,7 +33,7 @@ export default function CashFlowChart({ startDate, endDate }: CashFlowProps = {}
 
   return (
     <WidgetCard
-      title="Arus Kas"
+      title="Kas masuk vs keluar"
       description="Pada periode terpilih"
       icon={Wallet}
       href="/reports/cash-flow"

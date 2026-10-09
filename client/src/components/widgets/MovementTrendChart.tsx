@@ -46,7 +46,7 @@ export default function MovementTrendChart() {
 
   return (
     <WidgetCard
-      title="Tren Pergerakan Stok"
+      title="Stok masuk vs keluar per bulan"
       description="6 bulan terakhir"
       icon={BarChart3}
       isLoading={isLoading}

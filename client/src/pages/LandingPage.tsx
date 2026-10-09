@@ -2,10 +2,11 @@ import type { ComponentType, ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, BookOpen, Boxes, Check, ClipboardCheck, Factory, FileCheck2,
-  Layers, LogIn, Mail, MessageCircle, MessagesSquare, Rocket, ShieldCheck, ShoppingCart,
-  Sparkles, Truck, type LucideProps,
+  Layers, LogIn, Mail, MessageCircle, MessagesSquare, Blocks, ShieldCheck, ShoppingCart,
+  Truck, type LucideProps,
 } from 'lucide-react';
 import { BrandMark, Wordmark } from '@/components/shared';
+import { AiraIcon } from '@/components/shell/AiraIcon';
 
 // Public product page for Entaris by PT Arah Karya Sinergi. Route /welcome;
 // logged-in users are redirected to /. No animation loops: content is visible
@@ -56,7 +57,7 @@ const SECTORS = ['Penggilingan padi', 'Pelet biomassa', 'Trading dan distribusi'
 const PRINCIPLES: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
   { icon: Layers, title: 'Integritas data', desc: 'Semua modul memposting ke satu buku besar, jadi laporan operasional dan keuangan membaca data yang sama.' },
   { icon: ShieldCheck, title: 'Keamanan dan jejak audit', desc: 'Hak akses berbasis peran yang bisa diatur, dan setiap aksi tercatat.' },
-  { icon: Rocket, title: 'Siap tumbuh', desc: 'Satu instalasi untuk satu perusahaan. Modul bisa diaktifkan sesuai kebutuhan bisnis.' },
+  { icon: Blocks, title: 'Siap tumbuh', desc: 'Satu instalasi untuk satu perusahaan. Modul bisa diaktifkan sesuai kebutuhan bisnis.' },
 ];
 
 const HERO_POINTS = ['Pembukuan double-entry', 'Multi-gudang dan batch', 'Hak akses dan jejak audit'];
@@ -70,7 +71,7 @@ function FlowDiagram() {
   ];
   const outputs: ReadonlyArray<{ icon: Icon; label: string }> = [
     { icon: BarChart3, label: 'Laporan keuangan' },
-    { icon: Sparkles, label: 'AIRA, analisis dan draf' },
+    { icon: (p: LucideProps) => <AiraIcon size={16} className={p.className} tone="negative" />, label: 'AIRA, analisis dan draf' },
   ];
   const node = 'flex items-center gap-2.5 rounded-lg border border-white/15 bg-[rgb(255_255_255/0.06)] px-3 py-2.5 text-sm text-white';
   const connector = <div aria-hidden className="mx-auto h-5 w-px bg-[rgb(255_255_255/0.25)]" />;
@@ -81,14 +82,14 @@ function FlowDiagram() {
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         {sources.map(({ icon: I, label }) => (
           <div key={label} className={node}>
-            <I className="size-4 shrink-0 text-[#9CC9F5]" strokeWidth={1.75} aria-hidden />
+            <I className="size-4 shrink-0 text-brand-blue-light" strokeWidth={1.75} aria-hidden />
             <span>{label}</span>
           </div>
         ))}
       </div>
       {connector}
-      <div className="flex items-center gap-3 rounded-lg border border-[#9CC9F5]/40 bg-[#9CC9F5]/10 px-4 py-3 text-white">
-        <BookOpen className="size-5 shrink-0 text-[#9CC9F5]" strokeWidth={1.75} aria-hidden />
+      <div className="flex items-center gap-3 rounded-lg border border-brand-blue-light/40 bg-brand-blue-light/10 px-4 py-3 text-white">
+        <BookOpen className="size-5 shrink-0 text-brand-blue-light" strokeWidth={1.75} aria-hidden />
         <div>
           <p className="text-sm font-semibold">Buku besar</p>
           <p className="text-xs text-white/75">Jurnal double-entry terbentuk otomatis dari setiap transaksi</p>
@@ -98,7 +99,7 @@ function FlowDiagram() {
       <div className="grid gap-2 sm:grid-cols-2">
         {outputs.map(({ icon: I, label }) => (
           <div key={label} className={node}>
-            <I className="size-4 shrink-0 text-[#9CC9F5]" strokeWidth={1.75} aria-hidden />
+            <I className="size-4 shrink-0 text-brand-blue-light" strokeWidth={1.75} aria-hidden />
             <span>{label}</span>
           </div>
         ))}
@@ -118,8 +119,8 @@ function SectionHeading({ eyebrow, title, desc, id }: { eyebrow: string; title: 
 }
 
 const ctaOnNavy =
-  'inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9CC9F5] focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy';
-const primaryOnNavy = `${ctaOnNavy} bg-[#FFFFFF] text-[#1B2B48] hover:bg-[#E8EDF5]`;
+  'inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-light focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy';
+const primaryOnNavy = `${ctaOnNavy} bg-[#FFFFFF] text-brand-navy hover:bg-[#E8EDF5]`;
 const outlineOnNavy = `${ctaOnNavy} border border-white/40 text-white hover:bg-[rgb(255_255_255/0.1)]`;
 
 function ContactButtons() {
@@ -150,7 +151,7 @@ export default function LandingPage() {
 
       <header className="sticky top-0 z-40 border-b border-white/10 bg-brand-navy">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6" aria-label="Utama">
-          <Link to="/welcome" className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9CC9F5]">
+          <Link to="/welcome" className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-light">
             <Wordmark variant="negative" size="md" />
           </Link>
           <div className="flex items-center gap-1 sm:gap-6">
@@ -170,7 +171,7 @@ export default function LandingPage() {
           <BrandMark variant="negative" size={560} title="" className="pointer-events-none absolute -right-40 -top-24 opacity-[0.05]" />
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:pb-24 md:pt-20">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9CC9F5]">Agentic ERP</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-blue-light">Agentic ERP</p>
               <h1 id="hero-title" className="mt-4 text-[2rem] font-bold leading-[1.15] tracking-tight text-white md:text-5xl md:leading-[1.1]">
                 Operasional dan keuangan bisnis Anda, dalam satu sistem.
               </h1>
@@ -187,7 +188,7 @@ export default function LandingPage() {
               <ul className="mt-8 flex flex-col gap-2 text-sm text-white/80 sm:flex-row sm:flex-wrap sm:gap-x-6">
                 {HERO_POINTS.map((t) => (
                   <li key={t} className="inline-flex items-center gap-2">
-                    <Check className="size-4 text-[#9CC9F5]" aria-hidden /> {t}
+                    <Check className="size-4 text-brand-blue-light" aria-hidden /> {t}
                   </li>
                 ))}
               </ul>
@@ -312,7 +313,7 @@ export default function LandingPage() {
             <ul className="mt-6 flex flex-col gap-2 text-left text-sm text-white/85">
               {['Implementasi dan migrasi data didampingi', 'Pelatihan untuk tim Anda', 'Data sepenuhnya milik Anda'].map((t) => (
                 <li key={t} className="inline-flex items-center gap-2">
-                  <Check className="size-4 text-[#9CC9F5]" aria-hidden /> {t}
+                  <Check className="size-4 text-brand-blue-light" aria-hidden /> {t}
                 </li>
               ))}
             </ul>

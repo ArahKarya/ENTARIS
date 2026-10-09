@@ -26,7 +26,7 @@ export default function RevenueChart({ data, loading, isError, onRetry, descript
   const totalOut = rows.reduce((s, r) => s + r.beban, 0);
   return (
     <WidgetCard
-      title="Pendapatan vs Beban"
+      title="Apakah pendapatan menutup beban?"
       description={description}
       icon={TrendingUp}
       href="/reports/profit-loss"

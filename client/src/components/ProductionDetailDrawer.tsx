@@ -354,7 +354,6 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
               {/* Input items */}
               <div>
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-info" />
                   Bahan Input ({inputLines.length})
                 </h3>
                 <div className="space-y-1.5">
@@ -402,7 +401,6 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
               {/* Output items */}
               <div>
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-success" />
                   Hasil Output ({outputLines.length})
                 </h3>
                 <div className="space-y-1.5">
@@ -446,7 +444,6 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
               {byProductLines.length > 0 && (
                 <div>
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-warning" />
                     Produk Samping ({byProductLines.length})
                   </h3>
                   <div className="space-y-1.5">
@@ -479,7 +476,6 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
               {Array.isArray(run.runCosts) && run.runCosts.length > 0 && (
                 <div>
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-warning" />
                     Komponen Biaya Produksi ({run.runCosts.length})
                   </h3>
                   {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width */}

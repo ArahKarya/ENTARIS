@@ -12,16 +12,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import {
-  ArrowRight,
-  Boxes,
-  CircleDollarSign,
-  ClipboardCheck,
-  Factory,
-  Layers,
-  PackageCheck,
-  Percent,
-} from 'lucide-react';
+import { ArrowRight, Boxes, ClipboardCheck, Factory, Layers, PackageCheck, Percent, Coins } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import api from '@/lib/api';
 import { formatDate, formatDateTime, formatNumber, formatRupiah } from '@/lib/format';
@@ -162,7 +153,7 @@ export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboar
         />
         <StatCard
           label="Biaya Konversi"
-          icon={CircleDollarSign}
+          icon={Coins}
           loading={!dashQuery.data && !dashQuery.isError}
           value={conv !== null ? formatRupiah(conv, { compact: true }) : '-'}
           valueTitle={conv !== null ? formatRupiah(conv) : undefined}

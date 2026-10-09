@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { AlertCircle, FileText, Image as ImageIcon, Paperclip, Plus, Truck, X } from 'lucide-react';
+import { AlertCircle, FileText, Image as ImageIcon, Paperclip, Plus, Truck, X, AlertTriangle } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
 import { OptionSelect } from '@/components/sales-a/OptionSelect';
@@ -445,7 +445,7 @@ const SalesInvoiceModal: React.FC<{
                 )}
                 {isWapu && (
                   <div role="status" className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-subtle p-2">
-                    <span className="text-xs font-semibold text-warning-text">⚠ WAPU</span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-warning-text"><AlertTriangle className="size-3.5" aria-hidden />WAPU</span>
                     <p className="text-xs leading-snug text-warning-text">
                       Customer ini Wajib Pungut. PPN dipungut sendiri oleh customer ke kas negara.
                       Semua baris item akan otomatis PPN 0%.

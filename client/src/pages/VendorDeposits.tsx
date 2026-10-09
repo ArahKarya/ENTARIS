@@ -13,7 +13,7 @@
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CheckCircle2, CircleDollarSign, Clock, Plus, Undo2, Wallet, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Plus, Undo2, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
@@ -298,7 +298,7 @@ export const VendorDeposits = () => {
         />
         <StatCard
           label="Sisa Deposit"
-          icon={CircleDollarSign}
+          icon={Wallet}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalRemaining)}
           valueTitle={summary ? formatRupiah(summary.totalRemaining) : undefined}
