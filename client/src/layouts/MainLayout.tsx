@@ -66,7 +66,7 @@ export const MainLayout = () => {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-dvh w-full overflow-hidden bg-background">
       {/* Skip nav link (ACC-05) */}
       <a
         href="#main-content"

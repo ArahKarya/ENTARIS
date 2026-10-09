@@ -489,7 +489,7 @@ function PaymentRequestFormBody({
         </p>
       )}
 
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
+      <div className="sticky bottom-0 z-10 -mx-3 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-background/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
         <p className="mr-auto text-sm text-muted-foreground">
           Total <span className="num ml-1 font-semibold text-foreground">{formatMoney(linesTotal(lines))}</span>
         </p>

@@ -86,7 +86,7 @@ export function ComboboxFilter({
             )}
           >
             <Command label={label} loop>
-              <div className="flex items-center gap-2 border-b border-border px-3">
+              <div className="flex items-center gap-2 border-b border-border px-3 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
                 <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <Command.Input
                   placeholder={searchPlaceholder}
@@ -100,7 +100,7 @@ export function ComboboxFilter({
                 <Command.Item
                   value={`__all__ ${allLabel}`}
                   onSelect={() => choose('')}
-                  className="flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm data-[selected=true]:bg-accent"
+                  className="flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm data-[selected=true]:bg-accent data-[selected=true]:shadow-[inset_2px_0_0_var(--primary)]"
                 >
                   <Check className={cn('size-4', value ? 'opacity-0' : 'opacity-100')} aria-hidden />
                   {allLabel}
@@ -110,7 +110,7 @@ export function ComboboxFilter({
                     key={o.value}
                     value={`${o.label} ${o.hint ?? ''} ${o.value}`}
                     onSelect={() => choose(o.value)}
-                    className="flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm data-[selected=true]:bg-accent"
+                    className="flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm data-[selected=true]:bg-accent data-[selected=true]:shadow-[inset_2px_0_0_var(--primary)]"
                   >
                     <Check className={cn('size-4 shrink-0', o.value === value ? 'opacity-100' : 'opacity-0')} aria-hidden />
                     <span className="truncate">{o.label}</span>

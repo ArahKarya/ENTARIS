@@ -90,7 +90,7 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
 
   return (
     <Dialog open onOpenChange={(o) => !o && !post.isPending && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Verifikasi & posting {request.number}</DialogTitle>
           <DialogDescription>

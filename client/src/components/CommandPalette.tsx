@@ -211,7 +211,7 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
 
   return (
     <Command label="Cari halaman, data, atau aksi" shouldFilter={false} loop vimBindings={false} className="flex min-h-0 flex-col">
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
         <Search size={18} strokeWidth={1.75} className="shrink-0 text-muted-foreground" aria-hidden />
         <Command.Input
           ref={inputRef}
@@ -366,7 +366,7 @@ function Item({ value, icon, title, subtitle, chip, trailing, onSelect }: ItemPr
       onSelect={onSelect}
       className={cn(
         'flex min-h-10 cursor-pointer select-none items-center gap-3 rounded-md px-2 py-1.5 text-sm text-foreground outline-none',
-        'data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+        'data-[selected=true]:bg-accent data-[selected=true]:shadow-[inset_2px_0_0_var(--primary)] data-[selected=true]:text-accent-foreground',
         '[&_svg]:shrink-0 [&_svg]:text-muted-foreground',
       )}
     >

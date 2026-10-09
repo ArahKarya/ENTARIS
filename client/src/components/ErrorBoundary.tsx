@@ -7,7 +7,7 @@ interface State {
 
 function ErrorFallback({ onReset }: { onReset: () => void }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted">
+    <div className="min-h-dvh flex items-center justify-center bg-muted">
       <div className="text-center p-8">
         <h2 className="text-xl font-semibold text-foreground mb-2">Terjadi kesalahan tak terduga</h2>
         <p className="text-muted-foreground mb-4">Silakan muat ulang halaman atau coba lagi.</p>

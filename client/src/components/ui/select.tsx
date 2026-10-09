@@ -80,7 +80,7 @@ export const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       'relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none md:py-1.5',
-      'focus:bg-accent focus:text-accent-foreground data-[state=checked]:font-medium',
+      'focus:bg-accent focus:text-accent-foreground focus:shadow-[inset_2px_0_0_var(--primary)] data-[state=checked]:font-medium',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}
