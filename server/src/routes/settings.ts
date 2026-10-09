@@ -69,8 +69,11 @@ router.get('/runtime', requirePerm('settings'), async (req, res) => {
 // GET /api/settings/company
 router.get('/company', async (req, res) => {
   try {
-    const settings = await prisma.companySettings.findFirst({ where: { slug: 'default' } });
-    return res.json(settings);
+    const [settings, dummyParty] = await Promise.all([
+      prisma.companySettings.findFirst({ where: { slug: 'default' } }),
+      prisma.party.findFirst({ where: { isDummy: true }, select: { id: true } }),
+    ]);
+    return res.json(settings ? { ...settings, hasDummyData: Boolean(dummyParty) } : settings);
   } catch (error) {
     logger.error({ error }, 'GET /settings/company error');
     return res.status(500).json({ error: 'Gagal mengambil pengaturan perusahaan.' });

@@ -254,7 +254,7 @@ export default function PublicInquiry() {
                 autoCapitalize="words"
                 value={values.name}
                 onChange={(e) => setField('name', e.target.value)}
-                placeholder="Contoh: Budi / PT Sukses Makmur"
+                placeholder="Nama perusahaan atau perorangan"
                 maxLength={200}
                 className="h-11 md:h-10"
               />

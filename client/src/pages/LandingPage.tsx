@@ -48,15 +48,15 @@ const AIRA_POINTS: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = 
 const STEPS = [
   { n: '1', title: 'Catat transaksi', desc: 'Input penjualan, pembelian, produksi, dan kas lewat formulir ringkas. Stok dan jurnal terbentuk otomatis.' },
   { n: '2', title: 'Kontrol dan setujui', desc: 'Hak akses per peran, dan setiap pengajuan disetujui manajer sebelum diproses.' },
-  { n: '3', title: 'Baca hasilnya', desc: 'Laporan keuangan dan operasional selalu mengikuti transaksi terbaru.' },
+  { n: '3', title: 'Baca hasilnya', desc: 'Laporan keuangan dan operasional dihitung dari transaksi yang sudah diposting.' },
 ];
 
 const SECTORS = ['Penggilingan padi', 'Pelet biomassa', 'Trading dan distribusi', 'Manufaktur', 'Pangan', 'UKM'];
 
 const PRINCIPLES: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
-  { icon: Layers, title: 'Integritas data', desc: 'Satu buku besar untuk semua modul, sehingga angka operasional dan keuangan selalu cocok.' },
+  { icon: Layers, title: 'Integritas data', desc: 'Semua modul memposting ke satu buku besar, jadi laporan operasional dan keuangan membaca data yang sama.' },
   { icon: ShieldCheck, title: 'Keamanan dan jejak audit', desc: 'Hak akses berbasis peran yang bisa diatur, dan setiap aksi tercatat.' },
-  { icon: Rocket, title: 'Siap tumbuh', desc: 'Modular dan multi-perusahaan. Modul bisa ditambah seiring kebutuhan bisnis.' },
+  { icon: Rocket, title: 'Siap tumbuh', desc: 'Satu instalasi untuk satu perusahaan. Modul bisa diaktifkan sesuai kebutuhan bisnis.' },
 ];
 
 const HERO_POINTS = ['Pembukuan double-entry', 'Multi-gudang dan batch', 'Hak akses dan jejak audit'];

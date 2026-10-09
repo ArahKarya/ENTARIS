@@ -105,7 +105,7 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             </Field>
             <Field label="Keterangan / Narasi" required className="md:col-span-2">
               <Input
-                placeholder="Misal: Pembayaran Listrik Bulan Maret 2024"
+                placeholder="Keterangan transaksi"
                 value={narration}
                 onChange={(e) => setNarration(e.target.value)}
               />

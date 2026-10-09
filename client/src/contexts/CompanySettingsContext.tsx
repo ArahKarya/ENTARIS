@@ -14,6 +14,7 @@ interface CompanySettings {
   defaultCurrency: string;
   fiscalYearStartMonth?: number;
   onboardedAt?: string | null;
+  hasDummyData?: boolean;
 }
 
 const CompanySettingsContext = createContext<CompanySettings | null>(null);

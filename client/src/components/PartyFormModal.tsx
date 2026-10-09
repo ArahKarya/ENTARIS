@@ -185,7 +185,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                   <div className="relative">
                   <Building2 className={iconCls} aria-hidden />
                   <Input {...control} value={form.name} onChange={e => set('name', e.target.value)}
-                    placeholder="PT Maju Bersama / Budi Santoso" className={inputCls} />
+                    placeholder="Nama perusahaan atau perorangan" className={inputCls} />
                   </div>
                 )}
               </Field>

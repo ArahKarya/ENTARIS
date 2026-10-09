@@ -18,6 +18,7 @@ import { getStoredUser } from '../lib/permissions';
 import { tenantName } from '../components/auth/login-helpers';
 import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
+import { DummyDataBanner } from '@/components/shell/DummyDataBanner';
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -116,6 +117,7 @@ export const MainLayout = () => {
         {/* Content */}
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 bg-background focus:outline-none">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            <DummyDataBanner />
             <Outlet />
           </div>
         </main>
