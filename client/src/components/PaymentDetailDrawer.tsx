@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
+import { ConfirmDialog, EmptyState, LoadingState, StatusBadge } from '@/components/shared';
 import { DetailSheet } from './purchase-cash/DetailSheet';
 
 interface Props {
@@ -30,7 +30,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: payment, isLoading } = useQuery({
+  const { data: payment, isLoading, isError, refetch } = useQuery({
     queryKey: ['payment-detail', paymentId],
     queryFn: async () => {
       const res = await api.get(`/payments/${paymentId}`);
@@ -104,9 +104,16 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
         description={payment ? 'Detail pembayaran' : 'Memuat detail pembayaran'}
       >
         {isLoading ? (
-          <LoadingState />
+          <LoadingState label="Memuat pembayaran…" />
+        ) : isError ? (
+          <EmptyState
+            kind="error"
+            title="Pembayaran gagal dimuat"
+            description="Permintaan ke server gagal, jadi detail belum bisa ditampilkan. Periksa koneksi lalu coba lagi."
+            action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+          />
         ) : !payment ? (
-          <div className="py-20 text-center text-muted-foreground">Pembayaran tidak ditemukan.</div>
+          <EmptyState title="Pembayaran tidak ditemukan" description="Pembayaran ini mungkin sudah dihapus. Tutup panel lalu muat ulang daftar." />
         ) : (
           <div className="space-y-5">
             <div className="rounded-xl border border-border p-4">

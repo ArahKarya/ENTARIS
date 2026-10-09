@@ -52,7 +52,7 @@ const JournalDetailDrawer: React.FC<Props> = ({ journalEntryId, onClose }) => {
 
         <SheetBody className="space-y-5" role="region" aria-label="Isi detail jurnal" tabIndex={0}>
           {isLoading ? (
-            <LoadingState />
+            <LoadingState label="Memuat jurnal…" />
           ) : !journal ? (
             <p className="py-16 text-center text-sm text-muted-foreground">Jurnal tidak ditemukan.</p>
           ) : (

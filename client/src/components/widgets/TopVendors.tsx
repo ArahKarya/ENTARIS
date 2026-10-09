@@ -29,7 +29,7 @@ export default function TopVendors() {
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={Package}
-      emptyText="Belum ada data pembelian"
+      emptyText="Belum ada faktur pembelian yang diposting. Pemasok teratas muncul setelah faktur pertama diposting."
     >
       <ol className="space-y-2.5">
         {(data ?? []).map((c) => (

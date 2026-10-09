@@ -144,7 +144,7 @@ const TREND_COLUMNS: DataColumn<TrendRow>[] = [
 const [OEE_STYLE, AVAIL_STYLE, PERF_STYLE, QUAL_STYLE] = SERIES_STYLES;
 
 function trendSummary(trend: ReadonlyArray<TrendRow>): string {
-  if (trend.length === 0) return 'Tidak ada data.';
+  if (trend.length === 0) return 'Tidak ada data OEE pada periode ini.';
   const best = trend.reduce((a, b) => (b.avgOee > a.avgOee ? b : a));
   const worst = trend.reduce((a, b) => (b.avgOee < a.avgOee ? b : a));
   return `Tren OEE harian selama ${trend.length} hari. Tertinggi ${fmtPct(best.avgOee)} pada ${best.date}, terendah ${fmtPct(worst.avgOee)} pada ${worst.date}. Garis putus-putus di 85% menandai patokan kelas dunia (Nakajima, JIPM).`;
@@ -302,7 +302,7 @@ export default function OeeReport() {
           <div className="space-y-5">
             <ReportSection title="Tren OEE Harian" icon={Gauge}>
               {data.trend.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada data</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada run produksi dengan data OEE pada periode ini. Ubah periode di atas.</p>
               ) : (
                 <OeeTrendChart trend={data.trend} summary={summary} />
               )}
@@ -315,7 +315,7 @@ export default function OeeReport() {
                 columns={MACHINE_COLUMNS}
                 rows={data.perMachine}
                 getRowKey={(m) => m.machineId}
-                emptyText="Tidak ada data"
+                emptyText="Tidak ada run yang tercatat per mesin pada periode ini."
                 maxHeightClass="max-h-[60vh]"
               />
             </ReportSection>
@@ -328,12 +328,12 @@ export default function OeeReport() {
                   columns={SHIFT_COLUMNS}
                   rows={data.perShift}
                   getRowKey={(s) => s.shift}
-                  emptyText="Tidak ada data"
+                  emptyText="Tidak ada run yang tercatat per shift pada periode ini."
                 />
               </ReportSection>
               <ReportSection title="Downtime per Kategori (Pareto)" icon={Clock}>
                 {data.downtimeByCategory.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada data</p>
+                  <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada downtime yang dicatat pada periode ini.</p>
                 ) : (
                   <DowntimePareto downtime={data.downtimeByCategory} />
                 )}

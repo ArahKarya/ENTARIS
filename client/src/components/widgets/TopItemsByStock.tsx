@@ -43,7 +43,7 @@ export default function TopItemsByStock() {
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={Warehouse}
-      emptyText="Belum ada data item"
+      emptyText="Belum ada item persediaan. Tambahkan item di Inventori."
       minHeight={260}
     >
       <MiniTable

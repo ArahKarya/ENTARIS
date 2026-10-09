@@ -158,7 +158,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
         }
       >
         {isLoading ? (
-          <LoadingState />
+          <LoadingState label="Memuat surat terima barang…" />
         ) : !doc ? (
           <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">STT tidak ditemukan.</div>
         ) : (

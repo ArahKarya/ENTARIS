@@ -57,7 +57,7 @@ export function WidgetCard({
   onRetry,
   isEmpty,
   emptyIcon: EmptyIcon,
-  emptyText = 'Belum ada data',
+  emptyText = 'Tidak ada data untuk ditampilkan pada periode ini.',
   minHeight = 160,
   className,
   bodyClassName,

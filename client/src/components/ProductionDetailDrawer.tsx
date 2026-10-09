@@ -123,7 +123,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
         {/* Focusable so the scrollable body works by keyboard. */}
         <SheetBody className="p-0" role="region" aria-label="Isi detail produksi" tabIndex={0}>
           {isLoading ? (
-            <LoadingState />
+            <LoadingState label="Memuat data produksi…" />
           ) : !run ? (
             <div className="p-6 text-center text-muted-foreground">Data tidak ditemukan.</div>
           ) : (

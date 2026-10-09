@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ConfirmDialog, StatusBadge } from '@/components/shared';
+import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
 import {
   TableRegion,
 } from '@/components/sales-a/overlay-parts';
@@ -141,10 +141,7 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
 
           <SheetBody className="px-0 py-0">
             {isLoading ? (
-              <div role="status" className="flex h-64 items-center justify-center">
-                <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
-                <span className="sr-only">Memuat surat jalan…</span>
-              </div>
+              <LoadingState label="Memuat surat jalan…" />
             ) : !doc ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
                 Surat jalan tidak ditemukan.

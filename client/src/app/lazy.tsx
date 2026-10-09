@@ -17,9 +17,8 @@ type PageComponent<C extends AnyComponent> = ((props: ComponentProps<C>) => Reac
 
 export function PageFallback() {
   return (
-    <div role="status" aria-live="polite" className="min-h-[50vh] flex items-center justify-center">
-      <span className="sr-only">Memuat halaman…</span>
-      <LoadingState />
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <LoadingState label="Memuat halaman…" />
     </div>
   );
 }

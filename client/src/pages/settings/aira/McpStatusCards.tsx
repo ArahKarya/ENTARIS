@@ -72,7 +72,7 @@ export function McpStatusCard() {
       )}
     >
       {!status ? (
-        <LoadingState />
+        <LoadingState label="Memuat status AIRA…" />
       ) : (
         <div className="space-y-5">
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">

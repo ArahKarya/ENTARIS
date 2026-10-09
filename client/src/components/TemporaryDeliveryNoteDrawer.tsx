@@ -112,7 +112,7 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
 
           <SheetBody className="p-0">
             {isLoading ? (
-              <div role="status" aria-label="Memuat surat jalan sementara"><LoadingState /></div>
+              <LoadingState label="Memuat surat jalan sementara…" />
             ) : !note ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Surat jalan sementara tidak ditemukan.</div>
             ) : (

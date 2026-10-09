@@ -7,6 +7,7 @@ import { formatRupiah, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EmptyState, LoadingState } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 interface LedgerDetailDrawerProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ const LedgerDetailDrawer: React.FC<LedgerDetailDrawerProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['ledger-detail', accountId, startDate, endDate],
     queryFn: async () => {
       const params: Record<string, string> = {};
@@ -69,9 +70,16 @@ const LedgerDetailDrawer: React.FC<LedgerDetailDrawerProps> = ({
 
         <SheetBody role="region" aria-label="Isi detail buku besar" tabIndex={0}>
           {isLoading ? (
-            <LoadingState />
+            <LoadingState label="Memuat buku besar…" />
+          ) : isError ? (
+            <EmptyState
+              kind="error"
+              title="Buku besar gagal dimuat"
+              description="Permintaan ke server gagal, jadi transaksi akun ini belum bisa ditampilkan."
+              action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+            />
           ) : !hasEntries ? (
-            <EmptyState title="Tidak ada transaksi pada periode ini" />
+            <EmptyState title="Tidak ada transaksi pada periode ini" description="Akun ini tidak bergerak di rentang tanggal laporan. Ubah periode di halaman laporan untuk melihat transaksi lain." />
           ) : (
             // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width
             <div className="overflow-x-auto rounded-lg border border-border" role="region" aria-label="Transaksi buku besar" tabIndex={0}>

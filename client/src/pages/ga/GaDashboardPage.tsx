@@ -189,7 +189,7 @@ export const GaDashboardPage = () => {
           {!canViewFixedAssets ? (
             <EmptyState compact title="Tidak ada akses" description="Ringkasan ini butuh hak lihat Aset Tetap." />
           ) : loadingCategories ? (
-            <LoadingState size="sm" />
+            <LoadingState size="sm" label="Memuat ringkasan…" />
           ) : categoryQuery.isError ? (
             <EmptyState compact kind="error" />
           ) : sortedCategories.length === 0 ? (
@@ -232,7 +232,7 @@ export const GaDashboardPage = () => {
           {!canViewMaintenance ? (
             <EmptyState compact title="Tidak ada akses" description="Daftar ini butuh hak lihat Pemeliharaan." />
           ) : loadingWorkOrders ? (
-            <LoadingState size="sm" />
+            <LoadingState size="sm" label="Memuat ringkasan…" />
           ) : workOrderQuery.isError ? (
             <EmptyState compact kind="error" />
           ) : woStats.active.length === 0 ? (

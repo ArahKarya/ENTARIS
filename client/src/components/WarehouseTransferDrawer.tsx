@@ -116,7 +116,7 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
 
           <SheetBody className="space-y-6" role="region" aria-label="Isi detail transfer stok" tabIndex={0}>
             {isLoading ? (
-              <LoadingState />
+              <LoadingState label="Memuat transfer gudang…" />
             ) : !doc ? (
               <p className="py-12 text-center text-sm text-muted-foreground">Transfer tidak ditemukan.</p>
             ) : (

@@ -91,7 +91,7 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
       </Callout>
 
       {isLoading ? (
-        <LoadingState />
+        <LoadingState label="Memuat deposit…" />
       ) : availableDeposits.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada deposit aktif untuk supplier ini.</p>
       ) : (

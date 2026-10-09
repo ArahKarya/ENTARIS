@@ -168,7 +168,7 @@ export const BackupTab: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <LoadingState className="pb-5" />
+          <LoadingState className="pb-5" label="Memuat daftar cadangan…" />
         ) : !backups || backups.length === 0 ? (
           <EmptyState compact icon={HardDrive} title="Belum ada file cadangan" className="pb-5" />
         ) : (

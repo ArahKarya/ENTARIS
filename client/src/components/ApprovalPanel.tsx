@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Clock, Check, X, Loader2, Eye, Pencil, FileText } from 'lucide-react';
+import { Clock, Check, X, Eye, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
@@ -8,7 +8,7 @@ import { cap } from '../lib/permissions';
 import { ApprovalDetailDialog } from './approvals/ApprovalDetailDialog';
 import { fmtDate, fmtNum, approvalTypeLabel, isAiToolApproval, isEditApprovalType } from './approvals/approval-utils';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog, StatusBadge } from '@/components/shared';
+import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
 
 export interface ApprovalRequest {
   id: string;
@@ -218,10 +218,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
 
       {/* List */}
       {isLoading ? (
-        <div className="flex justify-center rounded-lg border border-border bg-card py-10 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin" aria-hidden />
-          <span className="sr-only">Memuat pengajuan…</span>
-        </div>
+        <LoadingState className="rounded-lg border border-border bg-card py-10" label="Memuat pengajuan…" />
       ) : requests.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-4 py-10 text-center">
           <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">

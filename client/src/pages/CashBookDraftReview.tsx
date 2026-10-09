@@ -195,7 +195,7 @@ export const CashBookDraftReview = () => {
     setSelected(new Set());
   };
 
-  if (detailQuery.isLoading) return <LoadingState />;
+  if (detailQuery.isLoading) return <LoadingState label="Memuat draf buku kas…" />;
   if (detailQuery.isError || !draft) {
     return (
       <div className="space-y-5 pb-8">

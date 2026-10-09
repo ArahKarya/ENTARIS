@@ -35,7 +35,7 @@ export default function ProductionStatsWidget() {
       onRetry={() => void refetch()}
       isEmpty={!isLoading && !isError && !data}
       emptyIcon={Factory}
-      emptyText="Belum ada data produksi"
+      emptyText="Belum ada produksi yang diposting. Draf produksi belum dihitung sampai diposting."
       minHeight={150}
     >
       <dl className="grid grid-cols-3 gap-3 lg:grid-cols-1">

@@ -138,7 +138,7 @@ export default function AuditLogDetailSheet({ open, log, loading, error, onClose
         </SheetHeader>
         {/* Focusable so the scrollable body works by keyboard (no other focusable content inside). */}
         <SheetBody className="space-y-6" role="region" aria-label="Isi catatan audit" tabIndex={0}>
-          {loading && <LoadingState />}
+          {loading && <LoadingState label="Memuat log audit…" />}
           {error && !log && <p className="text-sm text-danger-text">Catatan audit tidak ditemukan atau gagal dimuat.</p>}
           {log && (
             <>

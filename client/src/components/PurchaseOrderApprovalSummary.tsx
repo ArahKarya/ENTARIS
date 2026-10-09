@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatRupiah } from '@/lib/format';
 import { paymentTermLabel } from '@/lib/purchaseOrderCalc';
+import { LoadingState } from '@/components/shared';
 
 type Num = number | string;
 
@@ -26,7 +26,7 @@ export default function PurchaseOrderApprovalSummary({ poId }: { poId: string })
     queryKey: ['purchase-order-detail', poId],
     queryFn: async () => (await api.get<PoSummary>(`/purchase-orders/${poId}`)).data,
   });
-  if (isLoading) return <div className="flex justify-center py-6"><Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="Memuat PO" /></div>;
+  if (isLoading) return <LoadingState size="sm" className="py-6" label="Memuat PO…" />;
   if (isError || !po) return <p className="text-xs text-muted-foreground">PO tidak dapat dimuat (mungkin sudah dihapus).</p>;
   const t = po.totals;
   return (

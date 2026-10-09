@@ -213,7 +213,7 @@ export default function HealthCheckPage() {
         />
       </section>
 
-      {healthQuery.isLoading && <LoadingState />}
+      {healthQuery.isLoading && <LoadingState label="Memeriksa kesehatan sistem…" />}
       {healthQuery.isError && !data && (
         <EmptyState
           kind="error"

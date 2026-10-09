@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { Save, Loader2, AlertTriangle, Plus, X, ChevronDown, ChevronRight, CheckCircle2, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { ComboboxFilter } from '@/components/shared';
+import { ComboboxFilter, EmptyState, LoadingState } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 interface RoleMeta {
   key: string;
@@ -113,7 +114,7 @@ export const SystemAccountsTab: React.FC = () => {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data, isLoading } = useQuery<SystemAccountsData>({
+  const { data, isLoading, isError, refetch } = useQuery<SystemAccountsData>({
     queryKey: ['system-accounts'],
     queryFn: async () => {
       const res = await api.get('/system-accounts');
@@ -253,10 +254,17 @@ export const SystemAccountsTab: React.FC = () => {
   }, [searchTerm, data]);
 
   if (isLoading) {
+    return <LoadingState label="Memuat akun sistem…" />;
+  }
+
+  if (isError) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="animate-spin text-muted-foreground" size={24} />
-      </div>
+      <EmptyState
+        kind="error"
+        title="Akun sistem gagal dimuat"
+        description="Pemetaan akun tidak ditampilkan karena permintaan ke server gagal. Periksa koneksi lalu coba lagi."
+        action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+      />
     );
   }
 

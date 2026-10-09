@@ -218,7 +218,7 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
 
       {/* Items table */}
       {isLoading ? (
-        <LoadingState />
+        <LoadingState label="Memuat lembar hitung…" />
       ) : (
         <div
           className="overflow-x-auto rounded-lg border border-border bg-card"

@@ -101,7 +101,7 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
             </div>
 
             {isLoading ? (
-              <div role="status" aria-label="Memuat deposit"><LoadingState size="sm" /></div>
+              <LoadingState size="sm" label="Memuat deposit…" />
             ) : availableDeposits.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 Tidak ada deposit aktif untuk pelanggan ini.
