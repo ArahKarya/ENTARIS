@@ -368,7 +368,7 @@ function PaymentRequestFormBody({
                 <Textarea
                   rows={3}
                   maxLength={1000}
-                  placeholder="mis. Kunjungan ke pelanggan PT Sumber Pangan, 3 Oktober"
+                  placeholder="Tujuan dan tanggal kegiatan"
                   value={form.purpose}
                   onChange={(e) => set('purpose', e.target.value)}
                 />

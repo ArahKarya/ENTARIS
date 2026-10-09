@@ -246,7 +246,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Nama Prospek/Customer" required error={nameError}>
                   <Input value={prospectName} onChange={(e) => setProspectName(e.target.value)} maxLength={200}
-                    placeholder="Mis: Pak Budi / PT Sukses Makmur" />
+                    placeholder="Nama perusahaan atau perorangan" />
                 </Field>
                 <Field label="Telepon">
                   <Input type="tel" value={prospectPhone} onChange={(e) => setProspectPhone(e.target.value)}

@@ -94,7 +94,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       const customers = [];
       for (const name of customerNames) {
         const p = await tx.party.create({
-          data: { name, partyType: 'Customer', phone: '08' + Math.floor(1000000000 + Math.random() * 9000000000).toString().slice(0, 10), address: 'Cirebon, Jawa Barat', isDummy: true },
+          data: { name: `[Dummy] ${name}`, partyType: 'Customer', phone: '08' + Math.floor(1000000000 + Math.random() * 9000000000).toString().slice(0, 10), address: 'Cirebon, Jawa Barat', isDummy: true },
         });
         customers.push(p);
         results.parties++;
@@ -103,7 +103,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
       const suppliers = [];
       for (const name of supplierNames) {
         const p = await tx.party.create({
-          data: { name, partyType: 'Supplier', phone: '08' + Math.floor(1000000000 + Math.random() * 9000000000).toString().slice(0, 10), address: 'Cirebon, Jawa Barat', isDummy: true },
+          data: { name: `[Dummy] ${name}`, partyType: 'Supplier', phone: '08' + Math.floor(1000000000 + Math.random() * 9000000000).toString().slice(0, 10), address: 'Cirebon, Jawa Barat', isDummy: true },
         });
         suppliers.push(p);
         results.parties++;

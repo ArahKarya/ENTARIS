@@ -147,7 +147,7 @@ function trendSummary(trend: ReadonlyArray<TrendRow>): string {
   if (trend.length === 0) return 'Tidak ada data.';
   const best = trend.reduce((a, b) => (b.avgOee > a.avgOee ? b : a));
   const worst = trend.reduce((a, b) => (b.avgOee < a.avgOee ? b : a));
-  return `Tren OEE harian selama ${trend.length} hari. Tertinggi ${fmtPct(best.avgOee)} pada ${best.date}, terendah ${fmtPct(worst.avgOee)} pada ${worst.date}. Garis putus-putus di 85% menandai kelas dunia.`;
+  return `Tren OEE harian selama ${trend.length} hari. Tertinggi ${fmtPct(best.avgOee)} pada ${best.date}, terendah ${fmtPct(worst.avgOee)} pada ${worst.date}. Garis putus-putus di 85% menandai patokan kelas dunia (Nakajima, JIPM).`;
 }
 
 function OeeTrendChart({ trend, summary }: { trend: TrendRow[]; summary: OeeSummary }) {
@@ -283,7 +283,7 @@ export default function OeeReport() {
         <div className="flex flex-col gap-3">
           <ReportNotice tone="info">
             <strong>OEE (Overall Equipment Effectiveness)</strong> = Availability × Performance × Quality. Semua angka adalah{' '}
-            <strong>rata-rata</strong> dari nilai per run yang tercatat dalam periode. Kelas dunia sekitar 85%.
+            <strong>rata-rata</strong> dari nilai per run yang tercatat dalam periode. Patokan kelas dunia 85% mengikuti Nakajima (JIPM).
           </ReportNotice>
           <ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />
         </div>
