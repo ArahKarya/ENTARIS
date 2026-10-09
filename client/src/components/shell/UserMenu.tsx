@@ -31,7 +31,7 @@ const contentClass =
 
 const itemClass =
   'relative flex h-9 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-sm text-foreground outline-none transition-colors ' +
-  'data-[highlighted]:bg-accent data-[state=open]:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ' +
+  'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_2px_0_0_var(--primary)] data-[state=open]:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ' +
   '[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground';
 
 const Separator = () => <Menu.Separator className="-mx-1 my-1 h-px bg-border" />;

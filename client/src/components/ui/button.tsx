@@ -31,7 +31,7 @@ const buttonVariants = cva(
         md: 'h-9 px-4 text-sm',
         lg: 'h-10 px-5 text-sm',
         icon: 'size-9',
-        'icon-sm': 'size-8',
+        'icon-sm': 'size-11 sm:size-8',
         /** 44px touch target for mobile toolbars */
         'icon-touch': 'size-11',
         /** @deprecated use `md` */
