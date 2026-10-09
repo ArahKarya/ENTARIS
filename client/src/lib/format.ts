@@ -111,7 +111,7 @@ export function formatPercent(value: NumericInput, options: { decimals?: number 
   return nf({ style: 'percent', minimumFractionDigits: 0, maximumFractionDigits: decimals }).format(n);
 }
 
-// ─── Dates ──────────────────────────────────────────────────────────────────
+// Dates
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 

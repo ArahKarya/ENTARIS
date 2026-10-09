@@ -54,7 +54,7 @@ const S = StyleSheet.create({
   footerText: { fontSize: 7 },
 });
 
-// ─────────────────────────────── Header ───────────────────────────────
+// Header
 
 export interface PdfHeaderProps {
   company: PdfCompany;
@@ -124,7 +124,7 @@ export const PdfHeader: React.FC<PdfHeaderProps> = ({
   );
 };
 
-// ─────────────────────────────── Party ────────────────────────────────
+// Party
 
 export interface PdfPartyBlockProps {
   label: string;
@@ -167,7 +167,7 @@ export const PdfMetaRow: React.FC<{ children: React.ReactNode; gap?: number }> =
   <View style={{ flexDirection: 'row', gap, marginBottom: 12 }}>{children}</View>
 );
 
-// ─────────────────────────────── Table ────────────────────────────────
+// Table
 
 export interface PdfColumn {
   key: string;
@@ -242,7 +242,7 @@ export const PdfTable: React.FC<PdfTableProps> = ({ columns, rows, tone = 'color
   );
 };
 
-// ─────────────────────────────── Totals ───────────────────────────────
+// Totals
 
 export interface PdfTotalRow { label: string; value: string; }
 
@@ -275,7 +275,7 @@ export const PdfTotals: React.FC<PdfTotalsProps> = ({ rows = [], grand, note, wi
   );
 };
 
-// ───────────────────────────── Signatures ─────────────────────────────
+// Signatures
 
 export interface PdfSignature { label: string; name?: string | null; }
 
@@ -308,7 +308,7 @@ export const PdfSection: React.FC<{ title: string; children: React.ReactNode; to
   );
 };
 
-// ─────────────────────────────── Footer ───────────────────────────────
+// Footer
 
 export const CONFIDENTIAL_LINE = 'Dokumen rahasia, hanya untuk pihak yang berkepentingan.';
 

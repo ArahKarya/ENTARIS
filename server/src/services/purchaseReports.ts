@@ -21,7 +21,7 @@ export function poLineUnitValue(it: { estimatedRate: Num; discount?: Num | null;
   return n(it.estimatedRate) * (1 - n(it.discount) / 100) * (1 + n(it.taxPct) / 100);
 }
 
-// ─── PO Outstanding ─────────────────────────────────────────────────────────
+// PO Outstanding
 
 export interface OutstandingPOInput {
   id: string;
@@ -117,7 +117,7 @@ export function buildPoOutstanding(
   };
 }
 
-// ─── Kinerja Pemasok ────────────────────────────────────────────────────────
+// Kinerja Pemasok
 
 export interface PerformancePOInput {
   id: string;

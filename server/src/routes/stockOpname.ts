@@ -249,7 +249,7 @@ router.post('/', async (req: AuthRequest, res) => {
         const journalItems: { accountId: string; debit: number; credit: number; description: string }[] = [];
         const movementIds: { itemId: string; movementId: string }[] = [];
 
-        // ── Revaluasi nilai persediaan ───────────────────────────────────
+        // Revaluasi nilai persediaan
         // Nilai buku persediaan = qty x averageCost. averageCost bersifat
         // GLOBAL per item (bukan per gudang), jadi perubahan cost dijurnal
         // atas SELURUH stok item, memakai qty SEBELUM penyesuaian opname.

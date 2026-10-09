@@ -501,7 +501,7 @@ export async function discardCashBookDraft(tx: Tx, id: string) {
   if (res.count === 0) throw new BusinessError('Hanya draft berstatus Draft yang bisa dibuang.');
 }
 
-// ─── Read model ──────────────────────────────────────────────────────────────
+// Read model
 
 export async function getCashBookDraftDetail(db: Tx | typeof import('../lib/prisma').prisma, id: string) {
   const draft = await db.cashBookDraft.findUnique({ where: { id }, include: { rows: { orderBy: { idx: 'asc' } } } });

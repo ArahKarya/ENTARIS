@@ -4,8 +4,7 @@ import { C, FOOTER_SPACE } from './theme';
 import { pdfDate, pdfDateShort, pdfRp } from './pdfFormat';
 import { PdfFooter, PdfHeader } from './kit';
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Palette
 const S = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
@@ -17,7 +16,7 @@ const S = StyleSheet.create({
     backgroundColor: C.white,
   },
 
-  // ── Report header ──
+  // Report header
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   companyBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   companyLogo: { width: 46, height: 46, objectFit: 'contain' as const },
@@ -29,11 +28,11 @@ const S = StyleSheet.create({
   reportDate: { fontSize: 7.5, color: C.faint, textAlign: 'right', marginTop: 1 },
   divider: { height: 1.5, backgroundColor: C.primary, marginBottom: 14, marginTop: 8 },
 
-  // ── Section header ──
+  // Section header
   sectionHeader: { backgroundColor: C.primaryLt, borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 5, paddingHorizontal: 8, marginBottom: 0 },
   sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
 
-  // ── Data rows ──
+  // Data rows
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
   rowGroup: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.primaryLt },
@@ -53,19 +52,18 @@ const S = StyleSheet.create({
   colTotalWhite: { width: 100, textAlign: 'right', fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
   colGTLabel: { flex: 1, fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
 
-  // ── Summary box ──
+  // Summary box
   summaryBox: {
     marginTop: 12, flexDirection: 'row', justifyContent: 'flex-end',
   },
 
-  // ── Footer ──
+  // Footer
   footer: { position: 'absolute', bottom: 18, left: 36, right: 36 },
   footerLine: { height: 0.5, backgroundColor: C.border, marginBottom: 3 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between' },
   footerText: { fontSize: 7, color: C.faint },
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 /** Rupiah bertanda: nilai negatif tampil "-Rp …" (jangan hilangkan tandanya). */
 function idr(n: number, showSign = false): string {
   const prefix = showSign && n > 0 ? '+' : '';
@@ -76,10 +74,9 @@ const prettyPeriod = (s: string): string =>
   s.replace(/\b(\d{4}-\d{2}-\d{2})\b/g, (m) => pdfDateShort(m));
 const today = (): string => pdfDate(new Date());
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 export interface CompanyInfo { name: string; address?: string | null; taxId?: string | null; logoUrl?: string | null; }
 
-// ── Trial Balance ─────────────────────────────────────────────────────────────
+// Trial Balance
 export interface TrialBalanceRow {
   accountNumber: string; accountName: string;
   debit: number; credit: number;
@@ -129,7 +126,7 @@ export const TrialBalancePDF: React.FC<TrialBalancePDFProps> = ({ company, perio
   );
 };
 
-// ── P&L ───────────────────────────────────────────────────────────────────────
+// P&L
 export interface PLSection { name: string; accountNumber?: string; balance: number; children?: PLSection[]; }
 interface PLPDFProps {
   company: CompanyInfo; period: string;
@@ -189,7 +186,7 @@ function PLRow({ item, depth, alt }: { item: PLSection; depth: number; alt: bool
   );
 }
 
-// ── Balance Sheet ─────────────────────────────────────────────────────────────
+// Balance Sheet
 export interface BSSection { name: string; balance: number; children?: BSSection[]; }
 interface BSPDFProps {
   company: CompanyInfo; asOf: string;
@@ -266,7 +263,7 @@ function BSRow({ item, depth, alt }: { item: BSSection; depth: number; alt: bool
   );
 }
 
-// ── Cash Flow ─────────────────────────────────────────────────────────────────
+// Cash Flow
 interface CFItem { description: string; amount: number; }
 interface CFPDFProps {
   company: CompanyInfo; period: string;
@@ -335,7 +332,7 @@ function CFSection({ title, items, total }: { title: string; items: CFItem[]; to
   );
 }
 
-// ── Aging Analysis ───────────────────────────────────────────────────────────
+// Aging Analysis
 export interface AgingRow {
   name: string;
   current: number;
@@ -393,7 +390,6 @@ export const AgingPDF: React.FC<AgingPDFProps> = ({ company, type, rows, totals 
   );
 };
 
-// ── Shared sub-components ─────────────────────────────────────────────────────
 function ReportHeader({ company, title, period }: { company: CompanyInfo; title: string; period: string }) {
   return <PdfHeader company={company} title={title} dateLine={prettyPeriod(period)} extraLines={[`Dicetak: ${today()}`]} />;
 }

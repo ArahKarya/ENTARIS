@@ -376,7 +376,7 @@ export const GaBuildingPage = () => {
   );
 };
 
-// ─── Building data (1-1, upsert) ──────────────────────────────────────────
+// Building data (1-1, upsert)
 
 function BuildingDataSection({ assetId, canEdit }: { assetId: string; canEdit: boolean }) {
   const queryClient = useQueryClient();

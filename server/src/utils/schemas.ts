@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// ─── Chart of Accounts ────────────────────────────────────────────────────────
+// Chart of Accounts
 const AccountTypeEnum = z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'], {
   message: "Tipe akun harus salah satu dari: ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE",
 });
@@ -19,7 +19,7 @@ export const UpdateAccountSchema = CreateAccountSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
 
-// ─── Journal Entry ────────────────────────────────────────────────────────────
+// Journal Entry
 const JournalItemSchema = z.object({
   accountId: z.string().min(1, 'Akun wajib dipilih.'),
   debit: z.coerce.number().min(0),
@@ -34,7 +34,7 @@ export const CreateJournalSchema = z.object({
   items: z.array(JournalItemSchema).min(1, 'Minimal satu baris jurnal.'),
 });
 
-// ─── Sales Invoice ────────────────────────────────────────────────────────────
+// Sales Invoice
 const InvoiceItemSchema = z.object({
   itemName: z.string().min(1, 'Nama item wajib diisi.'),
   itemType: z.enum(['product', 'service']).optional().default('product'),
@@ -74,7 +74,7 @@ export const CreateSalesInvoiceSchema = z.object({
   allowNegativeStock: z.boolean().optional().default(false),
 });
 
-// ─── Retur Penjualan (Sales Return) ──────────────────────────────────────────
+// Retur Penjualan (Sales Return)
 // Klien hanya mengirim baris invoice yang diretur + qty + flag restock. Harga,
 // cost HPP, dan akun diturunkan server dari baris invoice asal (tidak dipercaya
 // dari klien) untuk mencegah manipulasi nilai.
@@ -94,7 +94,7 @@ export const CreateSalesReturnSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-// ─── Quotation ───────────────────────────────────────────────────────────────
+// Quotation
 // Non-binding offer document. No GL impact until converted to a Sales Invoice.
 // Items mirror InvoiceItemSchema (product/service, qty, rate, discount, tax/pph).
 export const CreateQuotationSchema = z.object({
@@ -170,7 +170,7 @@ export const ConvertQuotationSchema = z.object({
   allowNegativeStock: z.boolean().optional().default(false),
 }).optional();
 
-// ─── Inquiry ────────────────────────────────────────────────────────────────
+// Inquiry
 // Customer/prospect lead. Captured before a Quotation is issued.
 const InquiryItemInputSchema = z.object({
   itemName: z.string().min(1, 'Nama item wajib diisi.'),
@@ -208,7 +208,7 @@ export const InquiryStatusUpdateSchema = z.object({
   lossReason: z.string().max(500).nullable().optional(),
 });
 
-// ─── Purchase Invoice ─────────────────────────────────────────────────────────
+// Purchase Invoice
 // Extends generic InvoiceItemSchema with raw-material weigh & quality fields.
 // `quantity` remains the source of truth for stock movement, but the service
 // layer will set quantity := timbanganDiterima when the latter is provided.
@@ -240,7 +240,7 @@ export const CreatePurchaseInvoiceSchema = z.object({
   potongan: z.coerce.number().min(0).optional().default(0),
 });
 
-// ─── Payment ──────────────────────────────────────────────────────────────────
+// Payment
 const AllocationSchema = z.object({
   invoiceType: z.enum(['SalesInvoice', 'PurchaseInvoice']),
   invoiceId: z.string().min(1),
@@ -272,21 +272,21 @@ export const CreatePaymentSchema = z.object({
   salesOrderId: z.string().uuid().nullable().optional(),
 });
 
-// ─── Vendor Deposit Application ───────────────────────────────────────────────
+// Vendor Deposit Application
 export const ApplyVendorDepositSchema = z.object({
   depositPaymentId: z.string().uuid('ID deposit harus UUID yang valid.'),
   purchaseInvoiceId: z.string().uuid('ID invoice harus UUID yang valid.'),
   amount: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
 });
 
-// ─── Customer Deposit Application ─────────────────────────────────────────────
+// Customer Deposit Application
 export const ApplyCustomerDepositSchema = z.object({
   depositPaymentId: z.string().uuid('ID deposit harus UUID yang valid.'),
   salesInvoiceId: z.string().uuid('ID invoice harus UUID yang valid.'),
   amount: z.coerce.number().positive('Jumlah harus lebih dari 0.'),
 });
 
-// ─── Customer Deposit Refund / Offset ─────────────────────────────────────────
+// Customer Deposit Refund / Offset
 // Menyelesaikan sisa uang muka pelanggan dengan kombinasi:
 //   - offset terhadap piutang (otomatis FIFO ke invoice terlama), dan/atau
 //   - pengembalian kas ke rekening bank/kas.
@@ -307,7 +307,7 @@ export const RefundCustomerDepositSchema = z
     path: ['cashAccountId'],
   });
 
-// ─── Vendor Deposit Refund / Offset ───────────────────────────────────────────
+// Vendor Deposit Refund / Offset
 // Menyelesaikan sisa uang muka vendor (DP belanja yang dikembalikan vendor):
 //   - offset terhadap hutang (otomatis FIFO ke purchase invoice terlama), dan/atau
 //   - pengembalian kas ke rekening bank/kas.
@@ -327,7 +327,7 @@ export const RefundVendorDepositSchema = z
     path: ['cashAccountId'],
   });
 
-// ─── Uang Jaminan Proyek ─────────────────────────────────────────────────────
+// Uang Jaminan Proyek
 export const GUARANTEE_TYPES = ['Penawaran', 'Pelaksanaan', 'Pemeliharaan', 'Lainnya'] as const;
 
 export const CreateProjectGuaranteeSchema = z.object({
@@ -361,7 +361,7 @@ export const SettleProjectGuaranteeSchema = z
     path: ['returnAccountId'],
   });
 
-// ─── Party ────────────────────────────────────────────────────────────────────
+// Party
 export const CreatePartySchema = z.object({
   name: z.string().min(1, 'Nama wajib diisi.'),
   partyType: z.enum(['Customer', 'Supplier', 'Both']),
@@ -376,12 +376,12 @@ export const UpdatePartySchema = CreatePartySchema.partial().extend({
   isActive: z.boolean().optional(),
 });
 
-// ─── Opening Balance ─────────────────────────────────────────────────────────
+// Opening Balance
 export const SetBalanceSchema = z.object({
   balance: z.coerce.number({ error: 'Saldo harus berupa angka.' }),
 });
 
-// ─── Company Settings ─────────────────────────────────────────────────────────
+// Company Settings
 export const UpdateCompanySettingsSchema = z.object({
   companyName: z.string().min(1, 'Nama perusahaan wajib diisi.').optional(),
   address: z.string().nullable().optional(),
@@ -408,14 +408,14 @@ export const UpdateCompanySettingsSchema = z.object({
   }).nullable().optional(),
 });
 
-// ─── Fiscal Year ──────────────────────────────────────────────────────────────
+// Fiscal Year
 export const CreateFiscalYearSchema = z.object({
   name: z.string().min(1, 'Nama tahun fiskal wajib diisi.'),
   startDate: z.string().min(1, 'Tanggal mulai wajib diisi.'),
   endDate: z.string().min(1, 'Tanggal selesai wajib diisi.'),
 });
 
-// ─── Inventory Item ───────────────────────────────────────────────────────────
+// Inventory Item
 export const CreateInventoryItemSchema = z.object({
   code: z.string().min(1, 'Kode item wajib diisi.'),
   name: z.string().min(1, 'Nama item wajib diisi.'),
@@ -430,7 +430,7 @@ export const UpdateInventoryItemSchema = CreateInventoryItemSchema.partial().ext
   isActive: z.boolean().optional(),
 });
 
-// ─── Stock Movement ───────────────────────────────────────────────────────────
+// Stock Movement
 export const CreateStockMovementSchema = z.object({
   itemId: z.string().min(1, 'Item wajib dipilih.'),
   warehouseId: z.string().uuid().nullable().optional(),
@@ -458,7 +458,7 @@ export const UpdateStockMovementSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-// ─── Production Cost Standards (Phase 1 — master rate for cost components) ──
+// Production Cost Standards (Phase 1: master rate for cost components)
 // costSide: 'InputSide' = charged per input qty (e.g. listrik per kg input).
 //           'OutputSide' = charged per main output qty (e.g. kirim per kg output).
 // basis:    'InputQty'  = rate × sum(input qty)
@@ -484,7 +484,7 @@ export const UpdateProductionCostStandardSchema = CreateProductionCostStandardSc
   .partial()
   .extend({ isActive: z.boolean().optional() });
 
-// ─── Production Processes (master traceability list) ─────────────────────────
+// Production Processes (master traceability list)
 export const CreateProductionProcessSchema = z.object({
   name: z.string().min(1, 'Nama proses wajib diisi.').max(100),
   description: z.string().nullable().optional(),
@@ -495,7 +495,7 @@ export const UpdateProductionProcessSchema = CreateProductionProcessSchema
   .partial()
   .extend({ isActive: z.boolean().optional() });
 
-// ─── Machine (master mesin untuk OEE tracking) ───────────────────────────────
+// Machine (master mesin untuk OEE tracking)
 // idealRatePerHour = kapasitas ideal (kg/jam) untuk komponen Performance OEE.
 export const CreateMachineSchema = z.object({
   code: z.string().min(1, 'Kode mesin wajib diisi.').max(50),
@@ -508,7 +508,7 @@ export const CreateMachineSchema = z.object({
 
 export const UpdateMachineSchema = CreateMachineSchema.partial();
 
-// ─── User Management ─────────────────────────────────────────────────────────
+// User Management
 // RBAC dinamis: role = key Role (string). Keberadaan role divalidasi di route
 // users (cek ke tabel roles), bukan enum hardcoded lagi.
 const UserRoleEnum = z.string().min(1, 'Role wajib diisi.');
@@ -562,7 +562,7 @@ export const ChangePasswordSchema = z.object({
     .regex(/[^A-Za-z0-9]/, 'Password harus mengandung karakter spesial.'),
 });
 
-// ─── Recurring Template ─────────────────────────────────────────────────────
+// Recurring Template
 const JournalTemplateItemSchema = z.object({
   accountId: z.string().uuid('Account ID harus UUID yang valid.'),
   partyId: z.string().uuid().nullable().optional(),
@@ -620,7 +620,7 @@ export const UpdateRecurringSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// ─── Production Run ───────────────────────────────────────────────────────────
+// Production Run
 // Cost component line used at production submit time. The client supplies the
 // rate (often prefilled from a master ProductionCostStandard); the server
 // computes qtyBasis + totalAmount based on `basis`.
@@ -692,7 +692,7 @@ export const CreateProductionRunSchema = z.object({
   // Traceability: list of process master ids that this run went through.
   // Optional + order-insensitive (multiselect). Empty array = unspecified.
   processIds: z.array(z.string().uuid()).optional().default([]),
-  // ─── OEE tracking (semua opsional, backward-compatible) ──────────────────
+  // OEE tracking (semua opsional, backward-compatible)
   // B2 multi-mesin: jendela shift standar (planned production time) & istirahat.
   plannedStart: z.coerce.date().nullable().optional(),
   plannedEnd: z.coerce.date().nullable().optional(),
@@ -710,7 +710,7 @@ export const CreateProductionRunSchema = z.object({
   goodQty: z.coerce.number().min(0).nullable().optional(),       // LEGACY — diabaikan
   rejectQty: z.coerce.number().min(0).nullable().optional(),     // LEGACY — diabaikan
   downtimes: z.array(ProductionDowntimeLineSchema).optional().default([]),
-  // ─── LEGACY (single-machine, diabaikan untuk perhitungan B2) ─────────────
+  // LEGACY (single-machine, diabaikan untuk perhitungan B2)
   // Tetap opsional supaya payload lama tidak ditolak. machineId/startAt/endAt
   // tidak lagi dipakai untuk compute OEE.
   machineId: z.string().uuid('Mesin tidak valid.').nullable().optional(),
@@ -748,7 +748,7 @@ export const CreateProductionRunSchema = z.object({
 
 export const UpdateProductionRunSchema = CreateProductionRunSchema;
 
-// ─── Bank Reconciliation ────────────────────────────────────────────────────
+// Bank Reconciliation
 export const CreateReconciliationSchema = z.object({
   accountId: z.string().min(1, 'Akun bank wajib dipilih.'),
   statementDate: z.string().min(1, 'Tanggal statement wajib diisi.'),
@@ -775,7 +775,7 @@ export const UnmatchItemSchema = z.object({
   itemId: z.string().min(1, 'ID item wajib diisi.'),
 });
 
-// ─── Tax Config ──────────────────────────────────────────────────────────────
+// Tax Config
 export const CreateTaxConfigSchema = z.object({
   name: z.string().min(1, 'Nama pajak wajib diisi.'),
   rate: z.coerce.number().min(0, 'Tarif tidak boleh negatif.').max(100, 'Tarif maksimal 100%.'),
@@ -787,7 +787,7 @@ export const UpdateTaxConfigSchema = CreateTaxConfigSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
 
-// ─── Service Item ──────────────────────────────────────────────────────────
+// Service Item
 export const CreateServiceItemSchema = z.object({
   code: z.string().min(1, 'Kode layanan wajib diisi.'),
   name: z.string().min(1, 'Nama layanan wajib diisi.'),
@@ -801,7 +801,7 @@ export const UpdateServiceItemSchema = CreateServiceItemSchema.partial().extend(
   isActive: z.boolean().optional(),
 });
 
-// ─── Stok Opname ──────────────────────────────────────────────────────────────
+// Stok Opname
 const StockOpnameItemSchema = z.object({
   itemId: z.string().uuid('Item ID harus UUID yang valid.'),
   // Catatan: TIDAK divalidasi >=0 di sini. Form opname mengirim SEMUA item
@@ -833,7 +833,7 @@ export const SubmitStockOpnameSchema = z.object({
   items: z.array(StockOpnameItemSchema).min(1, 'Minimal satu item stok opname.'),
 });
 
-// ─── Delivery Order (Surat Jalan) ────────────────────────────────────────────
+// Delivery Order (Surat Jalan)
 // Physical delivery document. Decrements stock without GL impact — multiple
 // DOs are aggregated into a single sales invoice for monthly/weekly billing.
 const DeliveryOrderItemSchema = z.object({
@@ -878,7 +878,7 @@ export const CreateDOFromInvoiceSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-// ─── Goods Receipt (STT / BPB - Bukti Penerimaan Barang) ─────────────────────
+// Goods Receipt (STT / BPB - Bukti Penerimaan Barang)
 // Posting stok masuk dari supplier. lockedUnitCost diisi saat STT submit dan
 // menjadi truth untuk averageCost. Variance ke PI rate posted ke "Selisih
 // Harga Pembelian" saat PI submit nanti.
@@ -931,7 +931,7 @@ export const CreateGRFromPOSchema = z.object({
     .optional(),
 });
 
-// ─── Purchase Order (PO) ─────────────────────────────────────────────────────
+// Purchase Order (PO)
 // PO bisa Umum (partyId null — boleh dipenuhi supplier mana saja) atau Khusus
 // (partyId terikat ke supplier tertentu). Tidak ada GL impact, tidak ada
 // stock impact. Hanya planning document.
@@ -966,7 +966,7 @@ export const ClosePurchaseOrderSchema = z.object({
   reason: z.string().trim().min(5, 'Alasan penutupan minimal 5 karakter.').max(500),
 });
 
-// ─── Revisi Harga Purchase Invoice ───────────────────────────────────────────
+// Revisi Harga Purchase Invoice
 // Supplier mengoreksi harga setelah PI submit (barang bisa sudah diproduksi).
 export const RevisePurchaseInvoiceSchema = z.object({
   lines: z.array(z.object({
@@ -976,7 +976,7 @@ export const RevisePurchaseInvoiceSchema = z.object({
   reason: z.string().min(10, 'Alasan revisi minimal 10 karakter.').max(500),
 });
 
-// ─── Telegram Notifikasi ─────────────────────────────────────────────────────
+// Telegram Notifikasi
 // botToken opsional saat update (kosong/undefined = pertahankan yang tersimpan).
 export const UpdateTelegramConfigSchema = z.object({
   enabled: z.boolean().optional(),
@@ -993,7 +993,7 @@ export const TestTelegramSchema = z.object({
   chatId: z.string().nullable().optional(),
 });
 
-// ─── Pengajuan Pembayaran (Payment Request) ──────────────────────────────────
+// Pengajuan Pembayaran (Payment Request)
 const IsoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD.');
 const optText = (max: number) => z.string().trim().max(max).nullable().optional();
 
@@ -1031,7 +1031,7 @@ export const PaymentRequestInputSchema = z.object({
   lines: z.array(PaymentRequestLineSchema).max(100, 'Maksimal 100 baris rincian.'),
 });
 
-// ── Pertanggungjawaban uang muka / perjalanan dinas (stage 2) ──
+// Pertanggungjawaban uang muka / perjalanan dinas (stage 2)
 export const PaymentRequestSettlementLineSchema = z.object({
   description: z.string().trim().min(1, 'Uraian realisasi wajib diisi.').max(500),
   amount: z.number().positive('Nominal harus lebih dari 0.').max(1e13, 'Nominal terlalu besar.'),
@@ -1096,7 +1096,7 @@ export const PaymentRequestTypeSchema = z.object({
   sortOrder: z.number().int().min(0).max(9999).default(0),
 });
 
-// ─── Tagihan EAM (Pengajuan Pembayaran > Tagihan EAM) ──
+// Tagihan EAM (Pengajuan Pembayaran > Tagihan EAM)
 export const EamPaySchema = z.object({
   method: z.enum(['JOURNAL', 'PURCHASE_INVOICE']),
   accountId: z.string().min(1).optional().nullable(),

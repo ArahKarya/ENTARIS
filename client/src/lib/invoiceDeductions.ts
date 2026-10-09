@@ -1,4 +1,4 @@
-// ─── Invoice deductions derived from payment splits ─────────────────────────
+// Invoice deductions derived from payment splits
 // When a Receive payment is recorded with a split that goes to a non-cash
 // account (e.g. "Beban Komisi", "Potongan Penjualan"), we want to display that
 // split as a "potongan" line on the invoice — without changing GL revenue.

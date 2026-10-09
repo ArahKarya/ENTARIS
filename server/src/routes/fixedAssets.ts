@@ -23,7 +23,7 @@ const FIXED_ASSET_LIST_INCLUDE = {
   user: { select: { fullName: true } },
 } as const;
 
-// ── Schemas ─────────────────────────────────────────────────────────────────
+// Schemas
 const CreateFixedAssetSchema = z.object({
   name: z.string().min(1, 'Nama aset wajib diisi.').max(200),
   category: z.string().min(1, 'Kategori wajib diisi.').max(100),

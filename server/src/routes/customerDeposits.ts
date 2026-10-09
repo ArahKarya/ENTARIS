@@ -488,7 +488,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
       const createdApplications: string[] = [];
       let cashJournalId: string | null = null;
 
-      // ── 1. Offset ke piutang (FIFO oldest-first) ─────────────────────────
+      // 1. Offset ke piutang (FIFO oldest-first)
       if (offsetReq.gt(0)) {
         await tx.$queryRaw`SELECT id FROM sales_invoices WHERE party_id = ${deposit.partyId} AND status IN ('Submitted','PartiallyPaid','Overdue') FOR UPDATE`;
 
@@ -573,7 +573,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
         await recalcPartyOutstanding(tx, deposit.partyId);
       }
 
-      // ── 2. Refund kas ke bank ────────────────────────────────────────────
+      // 2. Refund kas ke bank
       if (cashReq.gt(0)) {
         const cashAccount = await tx.account.findUnique({ where: { id: body.cashAccountId! } });
         if (!cashAccount) throw new BusinessError('Akun kas/bank tidak ditemukan.');

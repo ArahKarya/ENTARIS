@@ -349,7 +349,7 @@ export const Warehouses = () => {
 
 export default Warehouses;
 
-// ─── Modal ───────────────────────────────────────────────────────────────
+// Modal
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;

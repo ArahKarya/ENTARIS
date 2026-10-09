@@ -48,7 +48,7 @@ export interface SubmitProductionRunInput {
   referenceNumber?: string | null;
   allowNegativeStock?: boolean;
   negativeStockReason?: string | null;
-  // ─── OEE tracking (all optional, additive) — B2 multi-machine ─────────────
+  // OEE tracking (all optional, additive): B2 multi-machine
   // Run-level shift window + break (planned production time).
   plannedStart?: Date | string | null;
   plannedEnd?: Date | string | null;
@@ -61,7 +61,7 @@ export interface SubmitProductionRunInput {
   manpowerCount?: number | null;
   // OEE output is DERIVED from inputs/outputs item lines (no manual good/reject).
   downtimes?: Array<{ machineId?: string | null; category: string; reason?: string | null; durationMin: number }>;
-  // ─── LEGACY single-machine fields (ignored for B2 compute, kept nullable) ──
+  // LEGACY single-machine fields (ignored for B2 compute, kept nullable)
   machineId?: string | null;
   startAt?: Date | string | null;
   endAt?: Date | string | null;
@@ -278,7 +278,7 @@ export async function submitProductionRunInTx(
     });
   }
 
-  // ─── Phase 3: pre-compute loaded HPP (informational, no GL impact) ─────────
+  // Phase 3: pre-compute loaded HPP (informational, no GL impact)
   // Cost components are snapshots (rate × qtyBasis based on basis). Resolve
   // qtyBasis BEFORE creating the output stock movements so the loaded HPP can
   // be set as unit_cost_loaded for main outputs at insertion time.
@@ -609,7 +609,7 @@ export async function submitProductionRunInTx(
     });
   }
 
-  // ─── OEE (B2 multi-machine): persist downtime + machine rows, compute ─────
+  // OEE (B2 multi-machine): persist downtime + machine rows, compute
   // Quality/output is DERIVED from the run's item lines (no manual good/reject):
   //   inputQty   = Σ Input quantities
   //   produkQty  = Σ main Output quantities (NOT by-product)

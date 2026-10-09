@@ -12,7 +12,7 @@ import { handleRouteError } from '../../utils/errors';
 
 const router = Router();
 
-// ── Zod schemas ──────────────────────────────────────────────────────
+// Zod schemas
 const BUILDING_TYPES = ['KANTOR', 'GUDANG', 'PABRIK', 'RUMAH', 'MESS', 'RUKO', 'LAINNYA'] as const;
 const BUILDING_OWNERSHIP = ['MILIK_SENDIRI', 'SEWA_MASUK', 'SEWA_KELUAR', 'PINJAM_PAKAI'] as const;
 const LAND_CERT_TYPES = ['HM', 'HGB', 'HGU', 'HP_AKTA', 'GIRIK', 'BELUM_SERTIFIKAT'] as const;
@@ -52,9 +52,7 @@ const BuildingRentalSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // BUILDING DATA (1-1 dengan Asset)
-// ═══════════════════════════════════════════════════════════════════
 
 router.get('/assets/:id', async (req, res) => {
   try {
@@ -105,9 +103,7 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // RENTAL (1-many dengan Asset)
-// ═══════════════════════════════════════════════════════════════════
 
 router.get('/assets/:id/rentals', async (req, res) => {
   try {

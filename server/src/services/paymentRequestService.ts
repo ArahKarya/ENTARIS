@@ -142,7 +142,7 @@ export async function assertDetailAccount(tx: Tx, accountId: string, label: stri
   return acc;
 }
 
-// ─── Draft create / update ───────────────────────────────────────────────────
+// Draft create / update
 
 async function normalizeInput(tx: Tx, input: PaymentRequestInput) {
   const type = await tx.paymentRequestType.findUnique({ where: { id: input.typeId } });
@@ -219,7 +219,7 @@ export async function updatePaymentRequestInTx(tx: Tx, id: string, actor: Actor,
   return tx.paymentRequest.findUniqueOrThrow({ where: { id } });
 }
 
-// ─── Submit / decide / cancel ────────────────────────────────────────────────
+// Submit / decide / cancel
 
 export async function submitPaymentRequestInTx(tx: Tx, id: string, actor: Actor) {
   const pr = await loadRequest(tx, id);
@@ -357,7 +357,7 @@ export async function verifyPaymentRequestAccountsInTx(
   return tx.paymentRequest.findUniqueOrThrow({ where: { id } });
 }
 
-// ─── Pay / cancel payment ────────────────────────────────────────────────────
+// Pay / cancel payment
 
 export async function resolveAdvanceAccountId(tx: Tx): Promise<string | null> {
   const mapping = await tx.systemAccountMapping.findFirst({

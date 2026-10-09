@@ -690,7 +690,7 @@ router.get('/oee', async (req, res) => {
         })
       : [];
 
-    // ─── Summary ─────────────────────────────────────────────────────────
+    // Summary
     const oeeVals = runs.map((r) => toNum(r.oeePct)).filter((v): v is number => v !== null);
     const availVals = runs.map((r) => toNum(r.availabilityPct)).filter((v): v is number => v !== null);
     const perfVals = runs.map((r) => toNum(r.performancePct)).filter((v): v is number => v !== null);
@@ -709,7 +709,7 @@ router.get('/oee', async (req, res) => {
       machinesUsed,
     };
 
-    // ─── Trend (grouped by day, ascending) ───────────────────────────────
+    // Trend (grouped by day, ascending)
     const dayMap = new Map<string, { oee: number[]; avail: number[]; perf: number[]; qual: number[]; runs: number }>();
     for (const r of runs) {
       const day = new Date(r.date).toISOString().split('T')[0];
@@ -732,7 +732,7 @@ router.get('/oee', async (req, res) => {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // ─── Per Machine ─────────────────────────────────────────────────────
+    // Per Machine
     const machineMap = new Map<string, {
       machineId: string; code: string; name: string;
       oee: number[]; avail: number[]; perf: number[]; qual: number[];
@@ -772,7 +772,7 @@ router.get('/oee', async (req, res) => {
       }))
       .sort((a, b) => b.avgOee - a.avgOee);
 
-    // ─── Per Shift ───────────────────────────────────────────────────────
+    // Per Shift
     const shiftMap = new Map<string, { oee: number[]; avail: number[]; perf: number[]; qual: number[]; runs: number }>();
     for (const r of runs) {
       const shift = r.shift && r.shift.trim() ? r.shift : '(Tanpa Shift)';
@@ -795,7 +795,7 @@ router.get('/oee', async (req, res) => {
       }))
       .sort((a, b) => a.shift.localeCompare(b.shift, 'id'));
 
-    // ─── Downtime by Category (Pareto, sorted by totalMin desc) ──────────
+    // Downtime by Category (Pareto, sorted by totalMin desc)
     const dtMap = new Map<string, { totalMin: number; count: number }>();
     for (const d of downtimeRows) {
       const cat = d.category && d.category.trim() ? d.category : 'Lain';

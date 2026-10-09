@@ -44,7 +44,7 @@ import {
 
 const router = Router();
 
-// ── Gambar item (1 foto per item, disimpan di uploads/ga/items) ────────
+// Gambar item (1 foto per item, disimpan di uploads/ga/items)
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
 const ITEM_IMAGES_DIR = path.join(UPLOADS_DIR, 'ga', 'items');
 
@@ -58,7 +58,7 @@ const upload = multer({
 });
 
 
-// ── Schemas (inline — GA-specific, kept out of shared schemas.ts) ──────
+// Schemas (inline: GA-specific, kept out of shared schemas.ts)
 const InventoryItemSchema = z.object({
   sku: z.string().min(1).max(100),
   name: z.string().min(1).max(200),
@@ -86,7 +86,7 @@ function sumStock(stocks: { quantity: Prisma.Decimal }[]): Decimal {
   );
 }
 
-// ── Items ──────────────────────────────────────────────────────────
+// Items
 // GET /api/ga/inventory/items — list with total stock + low-stock flag.
 //
 // Two modes (backward compatible):
@@ -316,7 +316,7 @@ router.delete('/items/:id/image', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Movements ──────────────────────────────────────────────────────
+// Movements
 // GET /api/ga/inventory/movements — list/filter.
 //  • without `page` (legacy — AIRA gi_movements): latest 100, filters
 //    `itemId`, `type`, response = array (unchanged).
@@ -474,7 +474,7 @@ router.post('/movements', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Low stock report ───────────────────────────────────────────────
+// Low stock report
 // GET /api/ga/inventory/low-stock — active items below their minStock.
 router.get('/low-stock', async (_req, res) => {
   try {
@@ -511,7 +511,7 @@ router.get('/low-stock', async (_req, res) => {
   }
 });
 
-// ── Dashboard ──────────────────────────────────────────────────────
+// Dashboard
 // GET /api/ga/inventory/dashboard — ringkasan stok untuk kartu & grafik.
 //   Semua angka dihitung on-the-fly dari GaStockByLocation & GaInventoryMovement
 //   (tidak ada kolom cache), jadi selalu konsisten dengan mutasi.
@@ -651,7 +651,7 @@ router.get('/dashboard', async (_req, res) => {
   }
 });
 
-// ── Tools ──────────────────────────────────────────────────────────
+// Tools
 // GET /api/ga/inventory/export?type=items|movements — unduh CSV.
 router.get('/export', async (req, res) => {
   const type = String(req.query.type || 'items');

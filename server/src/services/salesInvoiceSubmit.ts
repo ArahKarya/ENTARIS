@@ -155,7 +155,7 @@ export async function submitSalesInvoiceInTx(
     });
   }
 
-  // ─── Policy (2026-05): barang keluar HANYA via Surat Jalan ─────────────
+  // Policy (2026-05): barang keluar HANYA via Surat Jalan
   // Setiap line dengan inventoryItemId WAJIB link ke deliveryOrderItemId
   // (line dari DO yg sudah submit). Direct-sale (decrement stok langsung
   // saat invoice di-submit) di-tolak supaya:
@@ -316,7 +316,7 @@ export async function submitSalesInvoiceInTx(
   }
   await recalcPartyOutstanding(tx, body.partyId);
 
-  // ── Inventory deduction + COGS ──
+  // Inventory deduction + COGS
   // Two paths per inventory-linked line:
   //   (a) Direct sale: decrement stock + create stockMovement Out; COGS uses
   //       current averageCost. (Existing behavior.)
@@ -337,7 +337,7 @@ export async function submitSalesInvoiceInTx(
 
     const qty = Number(item.quantity);
 
-    // ── From-DO branch ────────────────────────────────────────────
+    // From-DO branch
     if (item.deliveryOrderItemId) {
       const doItem = await tx.deliveryOrderItem.findUnique({
         where: { id: item.deliveryOrderItemId },
@@ -382,7 +382,7 @@ export async function submitSalesInvoiceInTx(
       continue; // skip the direct-sale path
     }
 
-    // ── Direct-sale path closed (per policy 2026-05) ──────────────────
+    // Direct-sale path closed (per policy 2026-05)
     // Kalau sampai sini line punya inventoryItemId tapi tidak ada
     // deliveryOrderItemId → seharusnya sudah ke-reject di validation awal
     // (orphanInventoryLines guard). Defensive throw kalau bypass.

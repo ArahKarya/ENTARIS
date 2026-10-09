@@ -88,7 +88,7 @@ export async function submitSalesReturnInTx(
     throw new BusinessError('Akun "4.3 Retur Penjualan" tidak ditemukan di bagan akun.');
   }
 
-  // ── Resolve & validate each return line ──
+  // Resolve & validate each return line
   const resolved: Array<{
     salesInvoiceItemId: string;
     inventoryItemId: string | null;
@@ -157,7 +157,7 @@ export async function submitSalesReturnInTx(
     });
   }
 
-  // ── Totals ──
+  // Totals
   const subtotal = resolved.reduce((s, r) => s.plus(new Decimal(r.amount)), new Decimal(0));
   const taxAmount = resolved
     .reduce((s, r) => s.plus(new Decimal(r.amount).mul(new Decimal(r.taxPct).div(100))), new Decimal(0))
@@ -170,14 +170,14 @@ export async function submitSalesReturnInTx(
   if (totalReturnNum < 0) throw new BusinessError('Nilai retur tidak boleh negatif.');
   if (totalReturnNum === 0 && !hasReturnedQty) throw new BusinessError('Pilih minimal satu baris dengan qty > 0.');
 
-  // ── AR vs credit split ──
+  // AR vs credit split
   const outstanding = new Decimal(invoice.outstanding.toString());
   const arReduce = Decimal.min(totalReturn, outstanding).toDecimalPlaces(2);
   const arReduceNum = arReduce.toNumber();
   const creditPortion = totalReturn.minus(arReduce).toDecimalPlaces(2);
   const creditPortionNum = creditPortion.toNumber();
 
-  // ── Create header + items ──
+  // Create header + items
   const returnNumber = await generateDocumentNumber(tx, 'RN', parsedDate, fiscalYear.id);
   const salesReturn = await tx.salesReturn.create({
     data: {
@@ -217,7 +217,7 @@ export async function submitSalesReturnInTx(
     include: { customer: true, items: true },
   });
 
-  // ── Main reversal JE (JV-RN-...) ──
+  // Main reversal JE (JV-RN-...)
   const jeItems: Array<{ accountId: string; debit: number; credit: number; description: string; partyId?: string }> = [
     { accountId: returAccount.id, debit: subtotal.toDecimalPlaces(2).toNumber(), credit: 0, description: `Retur Penjualan: ${returnNumber}` },
   ];
@@ -265,7 +265,7 @@ export async function submitSalesReturnInTx(
   }
   await recalcPartyOutstanding(tx, invoice.partyId);
 
-  // ── Credit portion → CustomerDeposit Payment (no own JE; liability already CR'd) ──
+  // Credit portion → CustomerDeposit Payment (no own JE; liability already CR'd)
   let customerDepositId: string | null = null;
   if (creditPortionNum > 0) {
     const paymentNumber = await generateDocumentNumber(tx, 'PAY', parsedDate, fiscalYear.id);
@@ -295,7 +295,7 @@ export async function submitSalesReturnInTx(
     });
   }
 
-  // ── Stock-in + COGS reversal for restock lines ──
+  // Stock-in + COGS reversal for restock lines
   const createdReturnItems = await tx.salesReturnItem.findMany({ where: { salesReturnId: salesReturn.id } });
   const returnItemByInvLine = new Map(createdReturnItems.map((ri) => [ri.salesInvoiceItemId, ri]));
 

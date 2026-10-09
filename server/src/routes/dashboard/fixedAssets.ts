@@ -19,7 +19,7 @@ router.get('/', async (_req, res) => {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     const yearStart = new Date(now.getFullYear(), 0, 1);
 
-    // ─── 1. Pull all active assets ────────────────────────────────────────
+    // 1. Pull all active assets
     const assets = await prisma.fixedAsset.findMany({
       where: { status: 'Active' },
       select: {
@@ -30,7 +30,7 @@ router.get('/', async (_req, res) => {
       },
     });
 
-    // ─── 2. Summary KPIs ──────────────────────────────────────────────────
+    // 2. Summary KPIs
     const totalCost = assets.reduce((s, a) => s + Number(a.acquisitionCost), 0);
     const totalAccumulated = assets.reduce((s, a) => s + Number(a.accumulatedDepreciation), 0);
     const totalBookValue = assets.reduce((s, a) => s + Number(a.bookValue), 0);
@@ -75,7 +75,7 @@ router.get('/', async (_req, res) => {
       depreciationYTD: Number(ytdAgg._sum.amount ?? 0),
     };
 
-    // ─── 3. Distribusi per kategori ───────────────────────────────────────
+    // 3. Distribusi per kategori
     const byCategoryMap = new Map<string, { count: number; totalCost: number; totalBookValue: number }>();
     for (const a of assets) {
       const entry = byCategoryMap.get(a.category) ?? { count: 0, totalCost: 0, totalBookValue: 0 };
@@ -94,7 +94,7 @@ router.get('/', async (_req, res) => {
       }))
       .sort((a, b) => b.totalBookValue - a.totalBookValue);
 
-    // ─── 4. Top 10 aset by book value ─────────────────────────────────────
+    // 4. Top 10 aset by book value
     const topAssets = [...assets]
       .sort((a, b) => Number(b.bookValue) - Number(a.bookValue))
       .slice(0, 10)
@@ -114,7 +114,7 @@ router.get('/', async (_req, res) => {
         };
       });
 
-    // ─── 5. Depreciation due (bulan ini + upcoming) ───────────────────────
+    // 5. Depreciation due (bulan ini + upcoming)
     const depreciationDue = {
       thisMonthAmount: summary.depreciationThisMonth,
       thisMonthEntries: summary.depreciationThisMonthEntries,

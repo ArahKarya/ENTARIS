@@ -11,7 +11,7 @@ import { upload, parseFile, sanitizeCellValue } from './shared';
 
 const router = Router();
 
-// ─── POST /api/import/parties ────────────────────────────────────────────────
+// POST /api/import/parties
 router.post(
   '/parties',
   upload.single('file'),

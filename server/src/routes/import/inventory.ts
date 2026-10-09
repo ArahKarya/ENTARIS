@@ -12,7 +12,7 @@ import { upload, parseFile, sanitizeCellValue } from './shared';
 
 const router = Router();
 
-// ─── POST /api/import/inventory ──────────────────────────────────────────────
+// POST /api/import/inventory
 router.post(
   '/inventory',
   upload.single('file'),

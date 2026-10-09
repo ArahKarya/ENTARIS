@@ -312,7 +312,7 @@ export async function cancelJournalInTx(tx: Tx, journalEntryId: string) {
   return entry;
 }
 
-// ─── PAJAK / STNK / KIR ──────────────────────────────────────────────
+// PAJAK / STNK / KIR
 
 export async function payVehicleTaxInTx(tx: Tx, args: PayGaBillArgs) {
   const tax = await tx.gaVehicleTax.findUnique({
@@ -425,7 +425,7 @@ export async function cancelVehicleTaxPaymentInTx(tx: Tx, id: string) {
   });
 }
 
-// ─── SERVICE LOG (jalur faktur pembelian; jalur jurnal ada di gaVehicleServiceJournal) ──
+// SERVICE LOG (jalur faktur pembelian; jalur jurnal ada di gaVehicleServiceJournal)
 
 export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
   const log = await tx.gaVehicleServiceLog.findUnique({
@@ -510,7 +510,7 @@ export async function cancelServiceLogInvoiceInTx(tx: Tx, id: string) {
   });
 }
 
-// ─── MATERIAL REQUEST (sparepart) ────────────────────────────────────
+// MATERIAL REQUEST (sparepart)
 
 export async function payMaterialRequestInTx(tx: Tx, args: PayGaBillArgs) {
   const mr = await tx.gaMaterialRequest.findUnique({

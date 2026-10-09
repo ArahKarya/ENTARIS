@@ -25,7 +25,7 @@ import {
 
 const router = Router();
 
-// ── GET /api/health-check — Run all diagnostic checks in parallel ───────────
+// GET /api/health-check: Run all diagnostic checks in parallel
 router.get('/', async (_req, res) => {
   try {
     const checks: CheckResult[] = await Promise.all([
@@ -50,7 +50,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-// ── GET /api/health-check/preview/:check — Preview what fix will change ─────
+// GET /api/health-check/preview/:check: Preview what fix will change
 router.get('/preview/:check', async (req, res) => {
   const check = String(req.params.check ?? '');
 
@@ -78,7 +78,7 @@ router.get('/preview/:check', async (req, res) => {
   }
 });
 
-// ── POST /api/health-check/fix/:check — Auto-fix a specific check ────────────
+// POST /api/health-check/fix/:check: Auto-fix a specific check
 router.post('/fix/:check', async (req: AuthRequest, res) => {
   const check = String(req.params.check ?? '');
   const userId = req.user?.userId;

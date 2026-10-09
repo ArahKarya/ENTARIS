@@ -306,7 +306,7 @@ export const Dashboard = () => {
       {/* Sticky Section Nav */}
       <DashboardSectionNav sections={sections} />
 
-      {/* ─────────── SECTION: OVERVIEW ─────────── */}
+      {/* SECTION: OVERVIEW */}
       <section id="overview" role="tabpanel" aria-labelledby={tabId('overview')} className="space-y-4 scroll-mt-20">
         <SectionHeader icon={LayoutDashboard} title="Ringkasan" subtitle="Angka utama periode terpilih" />
         <KPICards period={period} canFinance={canFinance} canMaintenance={showMaintenance} />
@@ -342,7 +342,7 @@ export const Dashboard = () => {
         </WidgetGrid>
       </section>
 
-      {/* ─────────── SECTION: KEUANGAN ─────────── */}
+      {/* SECTION: KEUANGAN */}
       {showKeuangan && (
         <section id="keuangan" role="tabpanel" aria-labelledby={tabId('keuangan')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Landmark} title="Keuangan" subtitle="Laba, arus kas & rasio" />
@@ -373,7 +373,7 @@ export const Dashboard = () => {
         </section>
       )}
 
-      {/* ─────────── SECTION: SALES ─────────── */}
+      {/* SECTION: SALES */}
       {showSales && (
         <section id="sales" role="tabpanel" aria-labelledby={tabId('sales')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={TrendingUp} title="Sales" subtitle="Pelanggan & aktivitas pembayaran" />
@@ -401,7 +401,7 @@ export const Dashboard = () => {
         </section>
       )}
 
-      {/* ─────────── SECTION: STOK & GUDANG ─────────── */}
+      {/* SECTION: STOK & GUDANG */}
       {showStok && (
         <section id="stok" role="tabpanel" aria-labelledby={tabId('stok')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Package} title="Stok & Gudang" subtitle="Inventori, pergerakan & peringatan stok" />
@@ -441,7 +441,7 @@ export const Dashboard = () => {
         </section>
       )}
 
-      {/* ─────────── SECTION: PRODUKSI ─────────── */}
+      {/* SECTION: PRODUKSI */}
       {showProduksi && (
         <section id="produksi" role="tabpanel" aria-labelledby={tabId('produksi')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Factory} title="Produksi" subtitle="Statistik produksi & yield" />
@@ -471,7 +471,7 @@ export const Dashboard = () => {
         </section>
       )}
 
-      {/* ─────────── SECTION: ASET TETAP ─────────── */}
+      {/* SECTION: ASET TETAP */}
       {showAset && (
         <section id="aset" role="tabpanel" aria-labelledby={tabId('aset')} className="space-y-4 scroll-mt-20">
           <SectionHeader icon={Building2} title="Aset Tetap" subtitle="Nilai aset, distribusi, dan jadwal penyusutan" />

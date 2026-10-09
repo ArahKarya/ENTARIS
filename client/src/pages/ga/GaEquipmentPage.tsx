@@ -325,7 +325,7 @@ export const GaEquipmentPage = () => {
   );
 };
 
-// ─── Equipment data (1-1, upsert) ─────────────────────────────────────────
+// Equipment data (1-1, upsert)
 
 interface EquipmentDataSectionProps {
   assetId: string;

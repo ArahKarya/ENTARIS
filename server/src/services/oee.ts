@@ -133,7 +133,7 @@ export function computeOee(input: ComputeOeeInput): ComputeOeeResult {
   const breakStart = toDate(input.breakStart);
   const breakEnd = toDate(input.breakEnd);
 
-  // ─── Planned production time ─────────────────────────────────────────
+  // Planned production time
   // plannedMin = (plannedEnd − plannedStart) − (breakEnd − breakStart).
   const breakMin =
     breakStart && breakEnd ? minutesBetween(breakStart, breakEnd) : new Decimal(0);
@@ -142,21 +142,21 @@ export function computeOee(input: ComputeOeeInput): ComputeOeeResult {
     new Decimal(0),
   );
 
-  // ─── Derived output (from the run's item lines) ──────────────────────
+  // Derived output (from the run's item lines)
   const inputQty = new Decimal(toNum(input.inputQty));
   const produkQty = new Decimal(toNum(input.produkQty));
   const sampingQty = new Decimal(toNum(input.sampingQty));
   // totalOutput = produk + samping → basis for run-time allocation.
   const totalOutput = produkQty.plus(sampingQty);
 
-  // ─── Run-level total downtime: sum of ALL downtimes ──────────────────
+  // Run-level total downtime: sum of ALL downtimes
   const downtimes = input.downtimes ?? [];
   const totalDowntimeMin = downtimes.reduce(
     (s, d) => s.plus(new Decimal(toNum(d.durationMin))),
     new Decimal(0),
   );
 
-  // ─── Per machine: run minutes ────────────────────────────────────────
+  // Per machine: run minutes
   // runMin_m = max(onMin − breakOverlap − machineDowntime, 0).
   const machineRunMins = input.runMachines.map((m) => {
     const mStart = toDate(m.startAt);
@@ -178,7 +178,7 @@ export function computeOee(input: ComputeOeeInput): ComputeOeeResult {
 
   const totalRunMin = machineRunMins.reduce((s, x) => s.plus(x.runMin), new Decimal(0));
 
-  // ─── Per machine: allocation + A/P/Q/OEE ─────────────────────────────
+  // Per machine: allocation + A/P/Q/OEE
   const machines: ComputeOeeMachineResult[] = machineRunMins.map((x) => {
     const { input: m, runMin, machineDowntimeMin } = x;
 
@@ -229,7 +229,7 @@ export function computeOee(input: ComputeOeeInput): ComputeOeeResult {
     };
   });
 
-  // ─── Run-level (line) aggregate ──────────────────────────────────────
+  // Run-level (line) aggregate
   const n = input.runMachines.length;
 
   // Availability = totalRunMin / (plannedMin × n).
@@ -271,12 +271,10 @@ export function computeOee(input: ComputeOeeInput): ComputeOeeResult {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Persistence helper — shared by submit & edit services. Recreates downtime &
 // ProductionRunMachine rows from the payload, computes OEE per machine + line
 // aggregate, and stores everything. Caller is responsible for deleteMany on
 // edit BEFORE calling this; this only creates + updates.
-// ─────────────────────────────────────────────────────────────────────────────
 
 type Tx = Prisma.TransactionClient;
 

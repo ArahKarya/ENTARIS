@@ -29,7 +29,7 @@ router.get('/branding', async (_req, res) => {
   }
 });
 
-// ─── Public Inquiry submission ──────────────────────────────────────────
+// Public Inquiry submission
 // Self-service inquiry form for prospects/customers. Each submission lands
 // in the Inquiry pipeline as status 'Baru'. Anti-spam: honeypot + tight
 // per-IP rate limit. Add Cloudflare Turnstile later if abuse appears.

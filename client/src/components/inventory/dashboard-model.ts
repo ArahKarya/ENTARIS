@@ -9,7 +9,7 @@
 import type { StatDelta } from '@/components/shared';
 import { formatDateRange, formatNumber, formatPercent, parseDate } from '@/lib/format';
 
-// ─── Period ─────────────────────────────────────────────────────────────────
+// Period
 
 export const PERIOD_PARAM = 'period';
 export const PERIOD_START_PARAM = 'startDate';
@@ -121,7 +121,7 @@ export function previousPeriod(p: Pick<DashboardPeriod, 'startDate' | 'endDate'>
   return { startDate: toIsoDate(from), endDate: toIsoDate(end) };
 }
 
-// ─── KPI deltas ─────────────────────────────────────────────────────────────
+// KPI deltas
 
 /** Count change vs the previous period: "+3" / "-2" / "0". */
 export function countDelta(current: number, previous: number | null | undefined, label = 'vs periode sebelumnya'): StatDelta | undefined {
@@ -150,7 +150,7 @@ export function pointDelta(current: number | null | undefined, previous: number 
 export const formatYield = (pct: number | null | undefined): string =>
   pct === null || pct === undefined ? '-' : formatPercent(pct / 100, { decimals: 1 });
 
-// ─── Inventory: "Perlu tindakan" ────────────────────────────────────────────
+// Inventory: "Perlu tindakan"
 
 export interface AttentionItem {
   id: string;
@@ -183,7 +183,7 @@ export function stockCoverage(currentStock: number | string, minimumStock: numbe
   return Math.max(0, cur / min);
 }
 
-// ─── Production ─────────────────────────────────────────────────────────────
+// Production
 
 export interface ProductionKpiSummary {
   activeCount: number;

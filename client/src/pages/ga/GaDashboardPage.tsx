@@ -140,7 +140,7 @@ export const GaDashboardPage = () => {
         className="pb-0"
       />
 
-      {/* ── Summary cards ───────────────────────────────────────── */}
+      {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={Boxes}
@@ -180,7 +180,7 @@ export const GaDashboardPage = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* ── Fixed assets per category ─────────────────────────────────── */}
+        {/* Fixed assets per category */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">Aset Tetap per Kategori</h2>
@@ -223,7 +223,7 @@ export const GaDashboardPage = () => {
           )}
         </Card>
 
-        {/* ── Active work orders ──────────────────────────────── */}
+        {/* Active work orders */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">Perintah Kerja Aktif</h2>
@@ -270,7 +270,7 @@ export const GaDashboardPage = () => {
         </Card>
       </div>
 
-      {/* ── Quick links ─────────────────────────────────────────── */}
+      {/* Quick links */}
       {quickLinks.length > 0 && (
         <Card className="p-5">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Akses Cepat</h2>

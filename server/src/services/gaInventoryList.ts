@@ -15,7 +15,7 @@ import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';
 
-// ── Stock state ──────────────────────────────────────────────────────────────
+// Stock state
 
 /** out: nothing left (≤ 0) · low: below the minimum · ok: otherwise. */
 export const GA_STOCK_STATES = ['out', 'low', 'ok'] as const;
@@ -28,7 +28,7 @@ export function gaStockState(total: Decimal, min: Decimal): GaStockState {
   return 'ok';
 }
 
-// ── Item filters ─────────────────────────────────────────────────────────────
+// Item filters
 
 export const GA_ITEM_SORT_FIELDS = ['sku', 'name', 'category', 'totalStock', 'minStock'] as const;
 export type GaItemSortField = (typeof GA_ITEM_SORT_FIELDS)[number];
@@ -94,7 +94,7 @@ export function buildGaItemFilter(query: Record<string, unknown>): GaItemFilterR
   };
 }
 
-// ── Item rows ────────────────────────────────────────────────────────────────
+// Item rows
 
 type DecimalLike = Prisma.Decimal | Decimal | number | string;
 const dec = (v: DecimalLike) => new Decimal(v.toString());
@@ -214,7 +214,7 @@ export function summarizeGaItems(items: readonly GaItemComputed[]): GaItemSummar
   return summary;
 }
 
-// ── Movement filters ─────────────────────────────────────────────────────────
+// Movement filters
 
 export const GA_MOVEMENT_TYPES = ['IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'] as const;
 export const GA_MOVEMENT_SORT_FIELDS = ['createdAt', 'quantity'] as const;

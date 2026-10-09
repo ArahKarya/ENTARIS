@@ -22,7 +22,7 @@ export function isEditDocumentType(t: unknown): t is EditDocumentType {
 /** Kunci snapshot di dalam payload tersimpan; dibuang sebelum validasi Zod saat approve. */
 export const BEFORE_KEY = '_before';
 
-// ─── Tipe perbandingan (dikirim ke client apa adanya) ─────────────────────────
+// Tipe perbandingan (dikirim ke client apa adanya)
 
 export type ComparisonValue = number | string | null;
 export interface ComparisonRow {
@@ -43,7 +43,7 @@ export interface ApprovalComparison {
   sections: ComparisonSection[];
 }
 
-// ─── Snapshot ─────────────────────────────────────────────────────────────────
+// Snapshot
 
 interface BeforeLine { itemId: string; itemName: string; quantity: number; byProduct?: boolean }
 export interface ProductionBefore {
@@ -126,7 +126,7 @@ export function splitStoredPayload(payload: unknown): { body: Record<string, unk
   return { body: obj, before };
 }
 
-// ─── Comparison builders (pure) ───────────────────────────────────────────────
+// Comparison builders (pure)
 
 const round = (n: number, d = 3) => Math.round(n * 10 ** d) / 10 ** d;
 const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
@@ -259,7 +259,7 @@ export function buildApprovalComparison(
   return { ...cmp, targetId: request.documentId, targetNumber: request.documentNumber ?? cmp.targetNumber };
 }
 
-// ─── Antrian ──────────────────────────────────────────────────────────────────
+// Antrian
 
 type Db = Prisma.TransactionClient | typeof import('../lib/prisma').prisma;
 

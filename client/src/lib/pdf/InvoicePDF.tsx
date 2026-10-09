@@ -6,11 +6,10 @@ import { C, BADGE, FOOTER_SPACE } from './theme';
 import { pdfDate, pdfNum, pdfRp } from './pdfFormat';
 import { PdfFooter, PdfHeader, PdfSignatureBlock } from './kit';
 
-// ─── Register fonts (Helvetica is built-in — no download needed) ─────────────
+// Register fonts (Helvetica is built-in: no download needed)
 Font.registerHyphenationCallback((word) => [word]);
 
-// ─── Color palette ────────────────────────────────────────────────────────────
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Color palette
 const S = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
@@ -22,7 +21,7 @@ const S = StyleSheet.create({
     backgroundColor: C.white,
   },
 
-  // ── Header ──
+  // Header
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   companyBlock: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
   companyLogo: { width: 56, height: 56, objectFit: 'contain' as const },
@@ -38,11 +37,11 @@ const S = StyleSheet.create({
   },
   statusText: { fontSize: 7, fontFamily: 'Helvetica-Bold', letterSpacing: 0.8 },
 
-  // ── Divider ──
+  // Divider
   divider: { height: 1.5, backgroundColor: C.primary, marginBottom: 16 },
   dividerThin: { height: 0.5, backgroundColor: C.border, marginVertical: 8 },
 
-  // ── Meta grid (date / bill-to) ──
+  // Meta grid (date / bill-to)
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
   metaCol: { width: '48%' },
   metaLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.faint, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
@@ -53,7 +52,7 @@ const S = StyleSheet.create({
   metaItemLabel: { fontSize: 7, color: C.faint, marginBottom: 1 },
   metaItemValue: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
 
-  // ── Items table ──
+  // Items table
   tableContainer: { marginBottom: 16 },
   tableHeader: { flexDirection: 'row', marginBottom: 6, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.primary, paddingVertical: 7, paddingHorizontal: 6 },
   tableHeaderText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
@@ -70,7 +69,7 @@ const S = StyleSheet.create({
   colAmount: { width: 76, textAlign: 'right' },
   tableMono: { fontFamily: 'Helvetica', fontSize: 8 },
 
-  // ── Summary section ──
+  // Summary section
   summaryRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 2 },
   summaryRight: { width: 260, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 6, paddingVertical: 2.5 },
   summaryLabel: { fontSize: 8, color: C.mid },
@@ -80,29 +79,27 @@ const S = StyleSheet.create({
   summaryTotalLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
   summaryTotalValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary, textAlign: 'right', flex: 1 },
 
-  // ── Notes / Terms ──
+  // Notes / Terms
   notesBox: { marginTop: 16, padding: 10, backgroundColor: C.bgLight, borderRadius: 4, borderWidth: 0.5, borderColor: C.border },
   notesLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.faint, letterSpacing: 0.8, marginBottom: 4 },
   notesText: { fontSize: 8, color: C.mid, lineHeight: 1.5 },
 
-  // ── Signature area ──
+  // Signature area
   sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 28 },
   sigBox: { width: '30%', alignItems: 'center' },
   sigLine: { height: 0.5, backgroundColor: C.border, marginTop: 28, marginBottom: 4, width: '100%' },
   sigLabel: { fontSize: 7, color: C.muted, textAlign: 'center' },
   sigName: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.dark, textAlign: 'center' },
 
-  // ── Footer ──
+  // Footer
   footer: { position: 'absolute', bottom: 20, left: 40, right: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerText: { fontSize: 7, color: C.faint },
   footerLine: { height: 0.5, backgroundColor: C.border, marginBottom: 4 },
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const idr = (n: number): string => pdfRp(n);
 const tgl = (d: string | null | undefined): string => pdfDate(d);
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 export interface InvoicePDFItem {
   itemName: string;
   quantity: number | string;
@@ -200,7 +197,7 @@ const STATUS_ID: Record<string, string> = {
   Draft: 'Draf', Submitted: 'Terbit', PartiallyPaid: 'Sebagian Dibayar', Paid: 'Lunas', Overdue: 'Jatuh Tempo', Cancelled: 'Dibatalkan',
 };
 
-// ─── Status color ────────────────────────────────────────────────────────
+// Status color
 function statusStyle(status: string) {
   if (status === 'Paid') return { bg: C.greenLt, text: C.greenDk };
   if (status === 'PartiallyPaid') return { bg: BADGE.yellowLt, text: BADGE.yellowDk };
@@ -209,7 +206,6 @@ function statusStyle(status: string) {
   return { bg: C.primaryLt, text: C.mid }; // Submitted / Draft
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
 const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
   const {
     type, invoiceNumber, date, dueDate, terms, status, notes, customerRefNo,
@@ -259,7 +255,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
     <Document>
       <Page size="A4" style={S.page}>
 
-        {/* ── HEADER ── */}
+        {/* HEADER */}
         <PdfHeader
           company={company}
           title={title}
@@ -269,7 +265,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           statusColor={pill.text}
         />
 
-        {/* ── META (date / party) ── */}
+        {/* META (date / party) */}
         <View style={S.metaRow}>
           {/* Left — party info */}
           <View style={S.metaCol}>
@@ -311,7 +307,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         </View>
 
-        {/* ── ITEMS TABLE ── */}
+        {/* ITEMS TABLE */}
         <View style={S.tableContainer}>
           {/* Table header */}
           <View style={S.tableHeader} fixed minPresenceAhead={44}>
@@ -380,7 +376,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           ))}
         </View>
 
-        {/* ── SUMMARY ── */}
+        {/* SUMMARY */}
         <View style={S.summaryRow}>
           <View style={{ width: 260 }}>
             <View style={[S.summaryRight, { borderTopWidth: 0.5, borderTopColor: C.border }]}>
@@ -422,7 +418,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         </View>
 
-        {/* ── DEDUCTIONS FROM PAYMENT (komisi/potongan from non-cash splits) ── */}
+        {/* DEDUCTIONS FROM PAYMENT (komisi/potongan from non-cash splits) */}
         {(() => {
           if (!payments || payments.length === 0) return null;
           // Aggregate non-cash splits by account
@@ -461,7 +457,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           );
         })()}
 
-        {/* ── PAYMENT STATUS ── */}
+        {/* PAYMENT STATUS */}
         {(() => {
           const numOut = Number(outstanding ?? numGT);
           const numCash = Number(paidFromCash ?? 0);
@@ -502,7 +498,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           );
         })()}
 
-        {/* ── RINCIAN PEMBAYARAN (detail per payment + split) ── */}
+        {/* RINCIAN PEMBAYARAN (detail per payment + split) */}
         {payments && payments.length > 0 && (
           <View style={{ marginTop: 10, padding: 6, borderWidth: 0.5, borderColor: C.border, borderRadius: 3 }}>
             <Text style={{ fontSize: 8, fontWeight: 600, color: C.muted, marginBottom: 4, letterSpacing: 0.5 }}>
@@ -572,7 +568,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         )}
 
-        {/* ── BANK ACCOUNTS (sales only) ── */}
+        {/* BANK ACCOUNTS (sales only) */}
         {bankAccounts && (
           <View style={S.notesBox}>
             <Text style={S.notesLabel}>INFORMASI PEMBAYARAN</Text>
@@ -580,7 +576,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         )}
 
-        {/* ── NOTES ── */}
+        {/* NOTES */}
         {notes && (
           <View style={S.notesBox}>
             <Text style={S.notesLabel}>CATATAN</Text>
@@ -588,14 +584,14 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           </View>
         )}
 
-        {/* ── FOOTER NOTE ── */}
+        {/* FOOTER NOTE */}
         {footerNote && (
           <View style={{ marginTop: 8 }}>
             <Text style={{ fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>{footerNote}</Text>
           </View>
         )}
 
-        {/* ── SIGNATURE ── */}
+        {/* SIGNATURE */}
         {showSignature && <PdfSignatureBlock signatures={sigLabels.map((label) => ({ label }))} />}
 
         <PdfFooter company={company.name} docRef={invoiceNumber} paddingHorizontal={40} />

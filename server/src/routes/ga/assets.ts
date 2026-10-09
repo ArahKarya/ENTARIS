@@ -31,7 +31,7 @@ const router = Router();
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
 const ASSET_PHOTOS_DIR = path.join(UPLOADS_DIR, 'ga', 'assets');
 
-// ─── Validation ────────────────────────────────────────────────────
+// Validation
 // `code` is optional on create (server auto-generates from category+branch)
 // but must be a non-empty string when explicitly provided.
 const AssetSchema = z.object({
@@ -51,7 +51,7 @@ const AssetSchema = z.object({
   customFields: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
-// ─── Category prefix (ported from GA Monitor lib/categories.ts) ────
+// Category prefix (ported from GA Monitor lib/categories.ts)
 const CATEGORY_PREFIX: Record<string, string> = {
   KENDARAAN: 'KND',
   MESIN_PRODUKSI: 'MSN',
@@ -75,7 +75,7 @@ function getCategoryPrefix(code: string): string {
   return cleaned.slice(0, 3) || 'AST';
 }
 
-// ─── Photo upload (memory storage, max 5MB, images only) ───────────
+// Photo upload (memory storage, max 5MB, images only)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -85,7 +85,6 @@ const upload = multer({
   },
 });
 
-// ─── Helpers ───────────────────────────────────────────────────────
 function buildAssetWhere(query: AuthRequest['query']): Prisma.GaAssetWhereInput {
   const where: Prisma.GaAssetWhereInput = {};
   // Support comma-separated multi-category filter (e.g. Gedung & Sewa page
@@ -185,7 +184,7 @@ async function resolvePicNames(picUserIds: Array<string | null>): Promise<Map<st
   return new Map(users.map((u) => [u.id, u.fullName]));
 }
 
-// ─── List ──────────────────────────────────────────────────────────
+// List
 const ASSET_SORT_FIELDS = ['code', 'name', 'status', 'condition', 'acquisitionDate', 'createdAt'] as const;
 
 router.get('/', async (req: AuthRequest, res) => {
@@ -244,7 +243,7 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── Next-code suggestion (must precede /:id) ──────────────────────
+// Next-code suggestion (must precede /:id)
 router.get('/_next-code', async (req: AuthRequest, res) => {
   const categoryId = String(req.query.categoryId ?? '');
   const branchId = String(req.query.branchId ?? '');
@@ -262,7 +261,7 @@ router.get('/_next-code', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── Detail ────────────────────────────────────────────────────────
+// Detail
 router.get('/:id', async (req, res) => {
   try {
     const asset = await prisma.gaAsset.findUnique({
@@ -290,7 +289,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── Create ────────────────────────────────────────────────────────
+// Create
 router.post('/', async (req: AuthRequest, res) => {
   const input = validateBody(AssetSchema, req.body, res);
   if (!input) return;
@@ -338,7 +337,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── Update ────────────────────────────────────────────────────────
+// Update
 router.put('/:id', async (req, res) => {
   const input = validateBody(AssetSchema.partial(), req.body, res);
   if (!input) return;
@@ -369,7 +368,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ─── Bulk update ───────────────────────────────────────────────────
+// Bulk update
 router.patch('/bulk/update', async (req: AuthRequest, res) => {
   const { ids, data } = req.body as { ids?: string[]; data?: Record<string, unknown> };
   if (!Array.isArray(ids) || ids.length === 0) {
@@ -402,7 +401,7 @@ router.patch('/bulk/update', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── Bulk delete ───────────────────────────────────────────────────
+// Bulk delete
 router.post('/bulk/delete', async (req: AuthRequest, res) => {
   const { ids } = req.body as { ids?: string[] };
   if (!Array.isArray(ids) || ids.length === 0) {
@@ -429,7 +428,7 @@ router.post('/bulk/delete', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── PIC condition update ──────────────────────────────────────────
+// PIC condition update
 // Assigned PIC OR any user with ga_assets write permission (enforced by the
 // mount). Since the mount already gates write access, we additionally allow
 // the assigned PIC to update condition even without broader rights.
@@ -461,7 +460,7 @@ router.patch('/:id/condition', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── Photo upload ──────────────────────────────────────────────────
+// Photo upload
 router.post('/:id/photos', upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'File wajib diupload.' });
 
@@ -491,7 +490,7 @@ router.post('/:id/photos', upload.single('photo'), async (req, res) => {
   }
 });
 
-// ─── Photo delete ──────────────────────────────────────────────────
+// Photo delete
 router.delete('/:id/photos/:photoId', async (req, res) => {
   try {
     const photo = await prisma.gaAssetPhoto.findUnique({ where: { id: String(req.params.photoId) } });

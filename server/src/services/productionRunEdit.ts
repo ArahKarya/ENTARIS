@@ -40,7 +40,7 @@ export async function editProductionRunInTx(
   body: SubmitProductionRunInput,
   userId: string,
 ) {
-  // ─ 1. Load existing ───────────────────────────────────────────
+  // 1. Load existing ───────────────────────────────────────────
   const oldRun = await tx.productionRun.findUnique({
     where: { id: runId },
     include: { items: { include: { item: true } } },
@@ -48,7 +48,7 @@ export async function editProductionRunInTx(
   if (!oldRun) throw new BusinessError('Data proses produksi tidak ditemukan.');
   if (oldRun.isCancelled) throw new BusinessError('Proses produksi yang sudah dibatalkan tidak bisa diedit.');
 
-  // ─ 2. Reverse old stock movements ─────────────────────────────
+  // 2. Reverse old stock movements ─────────────────────────────
   const oldMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'ProductionRun', referenceId: runId, isCancelled: false },
     include: { item: true },
@@ -88,20 +88,20 @@ export async function editProductionRunInTx(
     await tx.stockMovement.update({ where: { id: mov.id }, data: { isCancelled: true } });
   }
 
-  // ─ 3. Recompute WAC by REPLAYING remaining active movements ───
+  // 3. Recompute WAC by REPLAYING remaining active movements ───
   // (input items too: re-instating consumed stock changes the base that later
   // inbound movements were blended against). Historical COGS stays untouched.
   for (const itemId of affectedItemIds) {
     await recomputeAverageCostFromReplay(tx, itemId);
   }
 
-  // ─ 4. Cancel ALL active journals for this run (incl. earlier revisions) ─
+  // 4. Cancel ALL active journals for this run (incl. earlier revisions) ─
   const oldJvNumber = `JV-${oldRun.runNumber}`;
   await cancelJournalsByPrefix(tx, oldJvNumber);
   // Balik auto-settle COGS lama sebelum settle ulang dari data baru (hindari numpuk ganda)
   await reverseCogsSettlementsByTrigger(tx, 'ProductionRun', runId);
 
-  // ─ 5. Delete old line items + old cost components (Phase 3) ─────────────
+  // 5. Delete old line items + old cost components (Phase 3) ─────────────
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunCost.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunProcess.deleteMany({ where: { productionRunId: runId } });
@@ -109,7 +109,7 @@ export async function editProductionRunInTx(
   await tx.productionDowntime.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunMachine.deleteMany({ where: { productionRunId: runId } });
 
-  // ─ 6. Re-apply with new data ───────────────────────────────────
+  // 6. Re-apply with new data ───────────────────────────────────
   const txDate = new Date(body.date);
   const fiscalYear = await tx.fiscalYear.findFirst({
     where: { isClosed: false, startDate: { lte: txDate }, endDate: { gte: txDate } },
@@ -260,7 +260,7 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─── Phase 3: pre-compute loaded HPP for the revision ──────────────────────
+  // Phase 3: pre-compute loaded HPP for the revision
   // Mirrors productionRunSubmit. Cost snapshots use the edited inputs/outputs.
   const totalInputQtyDec = body.inputs.reduce(
     (s, i) => s.plus(new Decimal(i.quantity)),
@@ -382,7 +382,7 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─ 7. Build & post revision JE ─────────────────────────────────
+  // 7. Build & post revision JE ─────────────────────────────────
   const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
   const inputNames = body.inputs.map((i) => itemMap.get(i.itemId)?.name || '').join(', ');
   const outputNames = body.outputs.map((o) => itemMap.get(o.itemId)?.name || '').join(', ');
@@ -501,7 +501,7 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─ 8. Recompute balances from authoritative JE sums ────────────
+  // 8. Recompute balances from authoritative JE sums ────────────
   const allRelatedJEItems = await tx.journalItem.findMany({
     where: { journalEntry: { entryNumber: { startsWith: oldJvNumber } } },
     select: { accountId: true },
@@ -511,7 +511,7 @@ export async function editProductionRunInTx(
     await recalculateAccountBalances(tx, affectedAccountIds);
   }
 
-  // ─ Persist new line items ──────────────────────────────────────
+  // Persist new line items ──────────────────────────────────────
   const inputLineItems = body.inputs.map((inp, idx) => {
     const snapshot = batchSnapshots.get(idx)!;
     return {
@@ -562,7 +562,7 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─── OEE (B2 multi-machine): recreate downtime + machine rows, recompute ──
+  // OEE (B2 multi-machine): recreate downtime + machine rows, recompute
   // Quality/output DERIVED from the run's item lines (no manual good/reject).
   // Old rows already cleared in step 5 above.
   const oeeSampingQty = body.outputs

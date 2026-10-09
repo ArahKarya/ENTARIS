@@ -36,12 +36,12 @@ import {
 
 const router = Router();
 
-// ── File storage ───────────────────────────────────────────────────
+// File storage
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
 const DIR = path.join(UPLOADS_DIR, 'ga', 'documents');
 const DIR_REL = path.join('ga', 'documents');
 
-// ── Validation schema (inline — ERP konvensi: Zod di route bila belum
+// Validation schema (inline: ERP konvensi: Zod di route bila belum
 //    ada di utils/schemas.ts). `code` opsional saat create; server
 //    auto-generate dari documentType.code + tahun.
 const DocumentSchema = z.object({
@@ -57,7 +57,7 @@ const DocumentSchema = z.object({
   customFields: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
-// ── Multer (memory storage, max 20 MB, hanya PDF) ──────────────────
+// Multer (memory storage, max 20 MB, hanya PDF)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -66,7 +66,7 @@ const upload = multer({
   },
 });
 
-// ── Document code numbering ────────────────────────────────────────
+// Document code numbering
 // Prefix `{TYPE_CODE}-{YYYY}-` (type code di-sanitize, dipotong 12 char).
 async function resolveDocCodePrefix(
   tx: Prisma.TransactionClient,

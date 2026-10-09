@@ -77,7 +77,7 @@ const fold = (s: string) => s.toLocaleLowerCase('id-ID').normalize('NFD').replac
 
 const SHORTCUT_BY_PATH = new Map(GO_TO_SHORTCUTS.map((s) => [s.path, s.combos[0]]));
 
-// ── Recent pages (per-viewer convenience; storage may be unavailable) ───────
+// Recent pages (per-viewer convenience; storage may be unavailable)
 function readRecent(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');

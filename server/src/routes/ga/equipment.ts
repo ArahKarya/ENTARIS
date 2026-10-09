@@ -14,7 +14,7 @@ import { handleRouteError } from '../../utils/errors';
 
 const router = Router();
 
-// ── Zod schemas ──────────────────────────────────────────────────────
+// Zod schemas
 const WEIGHING_UNITS = ['KG', 'GRAM', 'TON', 'LBS'] as const;
 const CALIB_RESULTS = ['PASS', 'FAIL', 'CONDITIONAL'] as const;
 const CALIB_MODES = ['ON_SITE', 'SHIPPED'] as const;
@@ -44,9 +44,7 @@ const CalibrationLogSchema = z.object({
   workOrderId: z.string().optional().nullable(),
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // EQUIPMENT DATA (1-1 Asset, kategori ALAT_TIMBANG)
-// ═══════════════════════════════════════════════════════════════════
 
 router.get('/assets/:id', async (req, res) => {
   try {
@@ -95,9 +93,7 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // CALIBRATION LOG (1-many)
-// ═══════════════════════════════════════════════════════════════════
 
 router.get('/assets/:id/calibration-logs', async (req, res) => {
   try {

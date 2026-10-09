@@ -48,7 +48,7 @@ interface InvItemOption {
   isActive?: boolean;
 }
 
-// ─── Modal ───────────────────────────────────────────────────────────────
+// Modal
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;

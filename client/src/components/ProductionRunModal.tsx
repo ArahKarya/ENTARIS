@@ -66,7 +66,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const [processIds, setProcessIds] = useState<string[]>([]);
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [negativeStockReason, setNegativeStockReason] = useState('');
-  // ─── OEE capture (B2 multi-machine) ─────────────────────────────────────────
+  // OEE capture (B2 multi-machine)
   const [oeeOpen, setOeeOpen] = useState(false);
   // Shift window (planned production time) + break window.
   const [plannedStart, setPlannedStart] = useState('');
@@ -90,7 +90,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   // Reset form when opened (prefill if editing)
   useEffect(() => {
     if (isOpen) {
-      // ── Resubmit mode: hydrate langsung dari create-body payload ──
+      // Resubmit mode: hydrate langsung dari create-body payload
       if (prefillPayload) {
         const p = prefillPayload;
         setDate(p.date ? new Date(p.date).toISOString().split('T')[0] : today());
@@ -526,7 +526,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
           })),
         hppOverride: hasOverride ? overrideNum : null,
         processIds: processIds,
-        // ─── OEE capture (B2 multi-machine, all optional) ─────────────────
+        // OEE capture (B2 multi-machine, all optional)
         plannedStart: plannedStart ? new Date(plannedStart).toISOString() : null,
         plannedEnd: plannedEnd ? new Date(plannedEnd).toISOString() : null,
         breakStart: breakStart ? new Date(breakStart).toISOString() : null,

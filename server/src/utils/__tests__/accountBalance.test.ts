@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { computeImpact, updateAccountBalance, updateBalancesForItems } from '../accountBalance';
 
-// ─── computeImpact ────────────────────────────────────────────────────────────
+// computeImpact
 
 describe('computeImpact', () => {
   describe('ASSET (debit-normal)', () => {
@@ -58,7 +58,7 @@ describe('computeImpact', () => {
   });
 });
 
-// ─── updateAccountBalance ─────────────────────────────────────────────────────
+// updateAccountBalance
 
 describe('updateAccountBalance', () => {
   const makeTx = (rootType: string) => ({
@@ -98,7 +98,7 @@ describe('updateAccountBalance', () => {
   });
 });
 
-// ─── updateBalancesForItems ───────────────────────────────────────────────────
+// updateBalancesForItems
 
 describe('updateBalancesForItems', () => {
   it('calls updateAccountBalance once per item', async () => {

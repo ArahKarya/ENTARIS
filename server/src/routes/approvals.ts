@@ -9,7 +9,7 @@ import { buildApprovalComparison, isEditDocumentType, findPendingForTarget } fro
 
 const router = Router();
 
-// ── Rules Management (Admin only) ────────────────────────────────────────────
+// Rules Management (Admin only)
 
 // GET /rules — list all approval rules
 router.get('/rules', requireCap('approval.decide'), async (_req, res) => {
@@ -63,7 +63,7 @@ router.delete('/rules/:id', requireCap('approval.decide'), async (req, res) => {
   }
 });
 
-// ── Approval Requests ────────────────────────────────────────────────────────
+// Approval Requests
 
 // GET /requests — list approval requests (pending first)
 router.get('/requests', async (req: AuthRequest, res) => {

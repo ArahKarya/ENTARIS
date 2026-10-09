@@ -109,7 +109,7 @@ export async function submitPurchaseInvoiceInTx(
     }
   }
 
-  // ─── Policy (2026-05): barang masuk HANYA via STT/BPB ─────────────────
+  // Policy (2026-05): barang masuk HANYA via STT/BPB
   // Setiap line dengan inventoryItemId WAJIB link ke goodsReceiptItemId
   // (line dari STT yg sudah submit). Direct-purchase ditutup supaya:
   //   1. Tidak ada dobel-tambah stok antara STT dan invoice.
@@ -425,7 +425,7 @@ export async function submitPurchaseInvoiceInTx(
     });
   }
 
-  // ─── Landed cost: update stockMovement + averageCost per STT-linked item ─
+  // Landed cost: update stockMovement + averageCost per STT-linked item ─
   // Policy 2026-05-20: setelah PI submit, stockMovement.unit_cost +
   // total_value disetel ke effective amount (provisional + landed cost
   // share). inventoryItem.averageCost ikut di-recalc supaya WAC + COGS

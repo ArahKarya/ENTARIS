@@ -824,7 +824,7 @@ model User {
   @@map("users")
 }
 
-// ─── RBAC Dinamis: Role custom + matriks izin (role × modul → view/edit) ─────
+// RBAC Dinamis: Role custom + matriks izin (role × modul → view/edit)
 // Role.key dirujuk oleh User.role (string). Role bawaan isSystem=true (tak bisa
 // dihapus); Admin isSuperAdmin=true (lolos semua cek). Lihat constants/modules.ts.
 model Role {
@@ -1295,7 +1295,7 @@ model ProductionRun {
   referenceId         String?                @map("reference_id")
   referenceNumber     String?                @map("reference_number")
   yieldPct            Decimal?               @map("yield_pct") @db.Decimal(5, 2)
-  // ─── Loaded HPP breakdown (informational, computed at submit) ─────────
+  // Loaded HPP breakdown (informational, computed at submit)
   // totalMaterialCost: sum(input.qty × batchUnitCost) — real from batches
   // totalCostInputSide: sum of input-side cost components (listrik, dll)
   // totalCostOutputSide: sum of output-side cost components (kirim, dll)
@@ -1308,7 +1308,7 @@ model ProductionRun {
   totalByproductValue Decimal?               @map("total_byproduct_value") @db.Decimal(20, 4)
   computedHpp         Decimal?               @map("computed_hpp") @db.Decimal(20, 4)
   hppManualOverride   Boolean                @default(false) @map("hpp_manual_override")
-  // ─── OEE tracking (Overall Equipment Effectiveness) ───────────────────
+  // OEE tracking (Overall Equipment Effectiveness)
   // Semua opsional: run lama / tanpa data OEE tetap valid.
   machineId           String?                @map("machine_id")
   machine             Machine?               @relation("RunMachine", fields: [machineId], references: [id])
@@ -1840,7 +1840,7 @@ model ApprovalRequest {
   @@map("approval_requests")
 }
 
-// ─── COGS Backfill Queue ──────────────────────────────────────────────────────
+// COGS Backfill Queue
 // Tracks pending COGS adjustments for sales invoices posted with negative stock.
 // Settled FIFO when matching inventory replenishes (purchase / production / adjustment).
 model CogsBackfillQueue {
@@ -1887,7 +1887,7 @@ model CogsBackfillSettlement {
   @@map("cogs_backfill_settlements")
 }
 
-// ─── Purchase Order (PO) ────────────────────────────────────────────────────
+// Purchase Order (PO)
 // Pemesanan ke supplier. Tidak ada GL impact, tidak ada stok impact.
 // partyId nullable → "PO Umum" (boleh dipenuhi supplier mana saja). Kalau
 // di-set → "PO Khusus" terikat ke supplier itu.
@@ -1963,7 +1963,7 @@ model PurchaseOrderItem {
   @@map("purchase_order_items")
 }
 
-// ─── Goods Receipt (STT / BPB) ──────────────────────────────────────────────
+// Goods Receipt (STT / BPB)
 // Bukti Penerimaan Barang. Tempat stok physically masuk gudang (bukan lagi
 // di PurchaseInvoice). Bisa standalone tanpa PO. Bisa di-invoice nanti via PI.
 model GoodsReceipt {
@@ -2042,7 +2042,7 @@ model GoodsReceiptItem {
   @@map("goods_receipt_items")
 }
 
-// ─── Retur Penjualan (Sales Return / Credit Note) ──────────────────────────
+// Retur Penjualan (Sales Return / Credit Note)
 // Dokumen retur yang me-refer ke satu SalesInvoice. Submit memposting:
 //   - JE kontra-revenue (DR 4.3 Retur Penjualan + DR PPN Keluaran / CR Piutang
 //     + CR Uang Muka Pelanggan utk sisa kredit)
@@ -2113,7 +2113,7 @@ model SalesReturnItem {
   @@map("sales_return_items")
 }
 
-// ─── Uang Jaminan Proyek (Project Guarantee) ────────────────────────────────
+// Uang Jaminan Proyek (Project Guarantee)
 // Setoran jaminan (tender/pelaksanaan/pemeliharaan) ke pemberi proyek.
 // Setor: DR Uang Jaminan (1.8) / CR Kas-Bank. Settlement (bisa parsial,
 // berulang): DR Kas-Bank (kembali) + DR Beban (hangus) / CR Uang Jaminan.
@@ -2178,7 +2178,7 @@ model ProjectGuaranteeSettlement {
   @@map("project_guarantee_settlements")
 }
 
-// ─── Konfigurasi Notifikasi Telegram (singleton) ───────────────────────────
+// Konfigurasi Notifikasi Telegram (singleton)
 // Diisi lewat UI Settings (Admin). bot_token = secret: write-only dari UI
 // (GET tak pernah mengembalikannya). Pengiriman pesan: services/telegramService.
 model TelegramConfig {
@@ -2200,7 +2200,7 @@ model TelegramConfig {
   @@map("telegram_config")
 }
 
-// ─── State sementara alur "Minta Revisi" via Telegram (2 langkah) ───────────
+// State sementara alur "Minta Revisi" via Telegram (2 langkah)
 // Saat admin tekan tombol Minta Revisi, simpan request yg ditunggu alasannya;
 // balasan teks berikutnya di chat tsb jadi alasan revisi. Lihat telegramService.
 model TelegramPendingRevise {
@@ -2212,14 +2212,12 @@ model TelegramPendingRevise {
   @@map("telegram_pending_revise")
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
 // GENERAL AFFAIRS (GA) — modul aset fisik, dokumen legal, inventaris GA,
 // maintenance/work order, kendaraan, gedung/sewa, equipment/kalibrasi.
 // Di-merge dari aplikasi GA Monitor. Model di-prefix `Ga*` + tabel `ga_*`
 // (hindari bentrok dgn InventoryItem/Warehouse/Notification/AuditLog ERP).
 // Referensi user = scalar FK (tanpa relation) supaya User ERP tak terbebani
 // back-relation. Notifikasi/audit/settings pakai milik ERP.
-// ═══════════════════════════════════════════════════════════════════════════
 
 enum GaAssetStatus {
   ACTIVE
@@ -2978,7 +2976,7 @@ model GaVehicleServiceRequest {
   @@map("ga_vehicle_service_requests")
 }
 
-// ── Fleet management: pajak, asuransi, BBM, inspeksi, insiden kendaraan ────
+// Fleet management: pajak, asuransi, BBM, inspeksi, insiden kendaraan
 // Semua model ini scoped ke GaAsset (kategori Kendaraan) via assetId, sejalan
 // dengan pola GaVehicleData/GaVehicleServiceLog yang sudah ada. Dipisah dari
 // GaVehicleData (1-1) karena masing-masing bersifat 1-many dengan histori
@@ -3147,7 +3145,7 @@ model GaVehicleIncident {
   @@map("ga_vehicle_incidents")
 }
 
-// ── Fleet management: monitoring khusus Ban & Oli ───────────────────────
+// Fleet management: monitoring khusus Ban & Oli
 // Penangkal supir nakal tukar ban -- track nomor seri per posisi.
 // Monitoring oli -- track odometer terkahir vs target odometer berikutnya.
 
@@ -3290,10 +3288,8 @@ model GaCalibrationLog {
   @@map("ga_calibration_logs")
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // AIRA — AI Tool Layer & Tool Router (sisi aplikasi ERP). Tabel Ai* terisolasi,
 // NOL perubahan tabel ERP existing (NFR1). Lihat docs/erd-ai-layer/PRD.
-// ─────────────────────────────────────────────────────────────────────────────
 
 /// Override per-tool dari UI (file registry = default; DB = override editable).
 model AiToolConfig {
@@ -3317,7 +3313,7 @@ model AiSetting {
   @@map("ai_settings")
 }
 
-// ─── Pengajuan Pembayaran (Payment Request) ─────────────────────────────────
+// Pengajuan Pembayaran (Payment Request)
 // Stage 1: pengajuan → atasan → keuangan → (direktur bila ≥ ApprovalRule
 // 'PaymentRequest') → dibayar (JV DR beban / uang muka, CR kas-bank).
 // Stage 2: pertanggungjawaban uang muka / perjalanan dinas (settlement*, travel*).
@@ -3509,7 +3505,7 @@ model PaymentRequestHistory {
   @@map("payment_request_history")
 }
 
-// ─── MCP (AIRA) ──────────────────────────────────────────────────────────────
+// MCP (AIRA)
 /// Token servis per profil engine AIRA untuk endpoint /mcp. Token TIDAK disimpan (hanya sha256);
 /// signingSecretEnc = secret HMAC (AES-256-GCM) untuk memverifikasi actor assertion.
 model McpToken {

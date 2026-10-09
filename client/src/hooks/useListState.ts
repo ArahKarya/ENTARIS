@@ -145,7 +145,7 @@ export function useListState<K extends string = never>(options: UseListStateOpti
     [setSearchParams],
   );
 
-  // ── Search: local input, debounced commit to the URL ─────────────────────
+  // Search: local input, debounced commit to the URL
   const [searchInput, setSearchInput] = useState(search);
   const [syncedSearch, setSyncedSearch] = useState(search);
   // Last value this hook wrote itself; an URL change to anything else
@@ -169,7 +169,6 @@ export function useListState<K extends string = never>(options: UseListStateOpti
     return () => window.clearTimeout(timer);
   }, [searchInput, search, searchDebounceMs, update]);
 
-  // ── Setters ───────────────────────────────────────────────────────────────
   const setPage = useCallback(
     (next: number) => {
       const p = Math.max(1, Math.trunc(next) || 1);
@@ -213,7 +212,7 @@ export function useListState<K extends string = never>(options: UseListStateOpti
     update(patch);
   }, [update, filterKeyList]);
 
-  // ── Derived API params ────────────────────────────────────────────────────
+  // Derived API params
   const filterParams = useMemo(() => {
     const out: Record<string, string> = {};
     if (search) out.search = search;

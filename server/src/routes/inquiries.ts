@@ -23,7 +23,7 @@ import {
 
 const router = Router();
 
-// ─── GET / list ───────────────────────────────────────────────────────────
+// GET / list
 // Query: page, limit (≤500), status, channel, partyId, startDate, endDate
 // (YYYY-MM-DD), search (number / prospect / customer), sort (e.g. "-date").
 // → { data, total, page, limit }
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─── GET /summary ─────────────────────────────────────────────────────────
+// GET /summary
 // KPI counts for the same filters as the list. Declared before /:id.
 router.get('/summary', async (req, res) => {
   try {
@@ -75,7 +75,7 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// ─── GET /stats ───────────────────────────────────────────────────────────
+// GET /stats
 router.get('/stats', async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -100,7 +100,7 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// ─── GET /:id detail ──────────────────────────────────────────────────────
+// GET /:id detail
 router.get('/:id', async (req, res) => {
   try {
     const inquiry = await prisma.inquiry.findUnique({
@@ -119,7 +119,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── POST / create ────────────────────────────────────────────────────────
+// POST / create
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateInquirySchema, req.body, res);
   if (!body) return;
@@ -169,7 +169,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── PUT /:id ─────────────────────────────────────────────────────────────
+// PUT /:id
 router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateInquirySchema, req.body, res);
   if (!body) return;
@@ -219,7 +219,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── DELETE /:id (only Baru/Diproses, NOT after conversion) ───────────────
+// DELETE /:id (only Baru/Diproses, NOT after conversion)
 router.delete('/:id', async (req, res) => {
   try {
     const existing = await prisma.inquiry.findUnique({ where: { id: req.params.id as string } });
@@ -234,7 +234,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ─── PATCH /:id/status ────────────────────────────────────────────────────
+// PATCH /:id/status
 // Allowed: Baru ↔ Diproses, Diproses → Hilang/Ditutup. Dikonversi only via convert flow.
 router.patch('/:id/status', async (req, res) => {
   const body = validateBody(InquiryStatusUpdateSchema, req.body, res);
@@ -265,7 +265,7 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// ─── GET /:id/convert-payload ────────────────────────────────────────────
+// GET /:id/convert-payload
 // Returns prefilled data for QuotationModal. Auto-creates a Customer Party
 // if the inquiry was logged for a prospect (no partyId yet) so the modal
 // can submit immediately.
@@ -328,7 +328,7 @@ router.get('/:id/convert-payload', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/link — attach Quotation after frontend creates it ──────────
+// POST /:id/link: attach Quotation after frontend creates it
 router.post('/:id/link', async (req, res) => {
   const { quotationId } = req.body ?? {};
   if (!quotationId || typeof quotationId !== 'string') {

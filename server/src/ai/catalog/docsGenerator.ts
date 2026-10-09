@@ -48,7 +48,7 @@ export function loadGeneratorInput(): GeneratorInput {
   return { registry: reg, inventory: buildRouteInventory(), guides, denyRules: DENY_RULES };
 }
 
-// ─── Contoh nilai ────────────────────────────────────────────────────────────
+// Contoh nilai
 function sample(p: ToolParam): unknown {
   if (p.enum?.length) return p.enum[0];
   if (p.type.startsWith('array<object')) {
@@ -86,7 +86,6 @@ function exampleResult(t: ToolDef, args: Record<string, unknown>): string {
   return JSON.stringify({ ok: true, kind: 'action', status: 'pending_approval', approvalId: '<id>', confirm: renderConfirm(t.confirm_template, args) }, null, 2);
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
 const esc = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function paramRows(params: ToolParam[], prefix = ''): string[] {

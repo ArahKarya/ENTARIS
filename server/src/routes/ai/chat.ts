@@ -54,7 +54,7 @@ async function agenticEnabled(): Promise<boolean> {
   return !!setting?.agenticEnabled;
 }
 
-// ── GET /health — dipanggil panel (banner offline) dan Pengaturan (baris status) ──
+// GET /health: dipanggil panel (banner offline) dan Pengaturan (baris status)
 router.get('/health', async (req: AuthRequest, res) => {
   const cfg = getEngineConfig();
   const health = await checkHealth(cfg);
@@ -213,7 +213,7 @@ router.get('/attachments/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── POST /stream — satu giliran, SSE ──
+// POST /stream: satu giliran, SSE
 const StreamSchema = z.object({
   input: z.string().default(''),
   session_id: z.string().min(1).max(64).optional(),

@@ -5,7 +5,7 @@ import PDFDownloadButton from '../PDFDownloadButton';
 import ReportTableSkeleton from './ReportTableSkeleton';
 import { useCompanySettings } from '../../contexts/CompanySettingsContext';
 
-/* ─── Date Filters ─────────────────────────────────────────────────────────── */
+// Date Filters
 
 const dateInputClass =
   'text-sm border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring';
@@ -26,8 +26,6 @@ type DateFilter =
     }
   | { mode: 'none' };
 
-/* ─── Helpers ──────────────────────────────────────────────────────────────── */
-
 function formatPeriodLabel(filter?: DateFilter): string {
   if (!filter) return '';
   if (filter.mode === 'range') {
@@ -38,8 +36,6 @@ function formatPeriodLabel(filter?: DateFilter): string {
   }
   return `Per tanggal: ${new Date().toISOString().slice(0, 10)}`;
 }
-
-/* ─── Props ────────────────────────────────────────────────────────────────── */
 
 interface ReportLayoutProps {
   title: string;
@@ -67,7 +63,7 @@ interface ReportLayoutProps {
   children: React.ReactNode;
 }
 
-/* ─── Print Header (only visible during print) ─────────────────────────────── */
+// Print Header (only visible during print)
 
 const PrintHeader: React.FC<{ title: string; periodLabel: string }> = ({ title, periodLabel }) => {
   const company = useCompanySettings();
@@ -97,8 +93,6 @@ const PrintHeader: React.FC<{ title: string; periodLabel: string }> = ({ title, 
     </div>
   );
 };
-
-/* ─── Component ────────────────────────────────────────────────────────────── */
 
 const ReportLayout: React.FC<ReportLayoutProps> = ({
   title,

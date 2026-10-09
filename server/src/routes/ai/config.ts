@@ -20,7 +20,7 @@ router.use((_req, res, next) => {
   next();
 });
 
-// ─── TOOLS ───────────────────────────────────────────────────────────────────
+// TOOLS
 
 // GET /api/ai/config/tools — daftar tool (registry + override) = status efektif
 router.get('/tools', async (_req, res) => {
@@ -78,7 +78,7 @@ router.patch('/tools/:name', requireCap('rbac.manage'), async (req: AuthRequest,
   }
 });
 
-// ─── KILL SWITCH ─────────────────────────────────────────────────────────────
+// KILL SWITCH
 
 // GET /api/ai/config/settings — singleton; buat default jika belum ada.
 router.get('/settings', requireCap('rbac.manage'), async (_req, res) => {

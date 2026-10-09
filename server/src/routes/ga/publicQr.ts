@@ -20,7 +20,7 @@ const router = Router();
 
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
 
-// ─── Public asset info by QR code ──────────────────────────────────
+// Public asset info by QR code
 router.get('/:qrCode', async (req, res) => {
   try {
     const qr = await prisma.gaAssetQr.findUnique({
@@ -64,7 +64,7 @@ router.get('/:qrCode', async (req, res) => {
   }
 });
 
-// ─── Photo proxy: only photos belonging to this QR's asset are served ──
+// Photo proxy: only photos belonging to this QR's asset are served
 router.get('/:qrCode/photos/:photoId.:ext', async (req, res) => {
   try {
     const code = String(req.params.qrCode);

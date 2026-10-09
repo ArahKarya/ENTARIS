@@ -50,7 +50,7 @@ const upload = multer({
   },
 });
 
-// ─── Validation schemas ──────────────────────────────────────────────
+// Validation schemas
 const PRIORITY = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
 
 const MaintenanceScheduleSchema = z
@@ -123,8 +123,6 @@ const PartInputSchema = z.object({
   unitCost: z.number().nonnegative(),
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────
-
 /** Generate next WO code WO-YYYY-NNNN, serialized via a year-scoped advisory lock. */
 async function generateWorkOrderCode(tx: Prisma.TransactionClient): Promise<string> {
   const year = new Date().getFullYear();
@@ -173,9 +171,7 @@ function computeWorkOrderTotalCost(
   return labor + ext + partsTotal;
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // SCHEDULES
-// ═══════════════════════════════════════════════════════════════════
 
 // GET /schedules — list, optional filters assetId/active
 router.get('/schedules', async (req: AuthRequest, res) => {
@@ -249,9 +245,7 @@ router.put('/schedules/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // WORK ORDERS
-// ═══════════════════════════════════════════════════════════════════
 
 // GET /work-orders — list with filters status/priority/type/assetId/assignee
 //

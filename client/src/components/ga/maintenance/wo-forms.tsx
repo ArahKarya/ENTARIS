@@ -35,7 +35,7 @@ const TYPE_OPTIONS = (Object.keys(TYPE_LABELS) as WoType[]).map((t) => ({ value:
 
 const numOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
 
-// ─── Create ──────────────────────────────────────────────────────────────
+// Create
 
 export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill | null; onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -169,7 +169,7 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
   );
 }
 
-// ─── Assign ──────────────────────────────────────────────────────────────
+// Assign
 
 interface UserOption {
   id: string;
@@ -230,7 +230,7 @@ export function AssignModal({
   );
 }
 
-// ─── Complete ────────────────────────────────────────────────────────────
+// Complete
 
 export function CompleteModal({ id, onClose, onDone }: { id: string; onClose: () => void; onDone: () => void }) {
   const [form, setForm] = useState({ resolution: '', laborHours: '', laborCost: '', externalVendor: '', externalCost: '' });
@@ -319,7 +319,7 @@ export function CompleteModal({ id, onClose, onDone }: { id: string; onClose: ()
   );
 }
 
-// ─── Add part ────────────────────────────────────────────────────────────
+// Add part
 
 interface InventoryOption {
   id: string;

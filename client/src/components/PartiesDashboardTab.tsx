@@ -216,8 +216,6 @@ export default function PartiesDashboardTab() {
   );
 }
 
-/* ---------- Sub-components ---------- */
-
 type Tone = 'primary' | 'info' | 'danger' | 'warning' | 'success' | 'neutral';
 
 const TONE_MAP: Record<Tone, { bg: string; text: string }> = {

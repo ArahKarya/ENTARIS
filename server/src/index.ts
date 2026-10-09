@@ -85,10 +85,10 @@ const port = process.env.PORT || 3001;
 // Trust proxy — required when running behind Docker/reverse proxy
 app.set('trust proxy', 1);
 
-// ─── Cookie Parser ────────────────────────────────────────────────────────────
+// Cookie Parser
 app.use(cookieParser());
 
-// ─── Security Headers ─────────────────────────────────────────────────────────
+// Security Headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -108,7 +108,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// ─── CORS ──────────────────────────────────────────────────────────────────────
+// CORS
 const allowedOrigins = (
   process.env.ALLOWED_ORIGINS ||
   'http://localhost:5173,http://localhost:3000'
@@ -153,16 +153,16 @@ app.use(
   })
 );
 
-// ─── MCP (AIRA) ───────────────────────────────────────────────────────────────
+// MCP (AIRA)
 // Endpoint MCP stateless untuk mesin AI (engine AIRA). Auth sendiri (Bearer token MCP + actor
 // assertion), body-limit sendiri → dipasang SEBELUM body parser global & auth /api.
 app.use('/mcp', mcpRouter);
 
-// ─── Body Parsing ──────────────────────────────────────────────────────────────
+// Body Parsing
 // 5mb agar upload logo (base64 ~4MB) bisa masuk sebelum sampai ke /api/settings
 app.use(express.json({ limit: '5mb' }));
 
-// ─── Rate Limiter ──────────────────────────────────────────────────────────────
+// Rate Limiter
 const apiRateLimit = rateLimit({
   windowMs: 60_000,
   max: 300,
@@ -170,13 +170,13 @@ const apiRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// ─── Health Check ──────────────────────────────────────────────────────────────
+// Health Check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
-// ─── Rate-limit ALL /api routes (including /api/auth/*) ────────────────────────
+// Rate-limit ALL /api routes (including /api/auth/*)
 app.use('/api', apiRateLimit);
 
-// ─── Public Routes ─────────────────────────────────────────────────────────────
+// Public Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/ga/public', gaPublicQrRoutes); // GA: QR publik (tanpa auth)
@@ -192,11 +192,11 @@ app.get('/api/version', (_req, res) => {
   res.json({ version: BUILD_VERSION });
 });
 
-// ─── Protected Routes ──────────────────────────────────────────────────────────
+// Protected Routes
 app.use('/api', authMiddleware);
 app.use('/api', auditTrailMiddleware);
 
-// ─── RBAC dinamis: gate per modul di mount ──────────────────────────────────
+// RBAC dinamis: gate per modul di mount
 // requirePerm(module): GET→view, tulis→edit (router transaksional).
 // requireWrite(module): GET terbuka (data referensi), tulis→edit.
 // Mount tanpa gate (dashboard/search/attachments/notifications/users/settings/
@@ -225,7 +225,7 @@ app.use('/api/reconciliation', requirePerm('reconciliation'), reconciliationRout
 app.use('/api/recurring', requirePerm('recurring'), recurringRoutes);
 app.use('/api/vendor-deposits', requirePerm('vendor_deposit'), vendorDepositRoutes);
 app.use('/api/project-guarantees', requirePerm('project_guarantee'), projectGuaranteeRoutes);
-  // ── General Affairs (GA) modules ──────────────────────────────────────
+  // General Affairs (GA) modules
 app.use('/api/ga/master', requirePerm('ga_master'), gaMasterRoutes);
 app.use('/api/ga/assets', requirePerm('ga_assets'), gaAssetsRoutes);
 app.use('/api/ga/documents', requirePerm('ga_documents'), gaDocumentsRoutes);
@@ -276,7 +276,7 @@ app.use('/api/roles', roleRoutes);                   // kelola RBAC — guard re
 app.use('/api/inventory', inventoryRoutes);          // gate per sub-router di inventory/index.ts
 app.use('/api/payment-requests', paymentRequestRoutes);    // semua user login; izin keuangan/direktur dicek per endpoint
 
-// ─── AIRA — AI Tool Layer & Tool Router (Agentic System) ──────────────────────
+// AIRA: AI Tool Layer & Tool Router (Agentic System)
 // config: override tool + kill switch; mcp: token MCP, status, riwayat panggilan → gate
 //         requirePerm('settings') + cap rbac.manage di endpoint sensitif (di file).
 //         Eksekusi tool oleh agen TIDAK lewat /api/ai (lihat /mcp) — jalur /api/ai/router sudah dipensiunkan.
@@ -285,7 +285,7 @@ app.use('/api/ai/mcp', requirePerm('settings'), aiMcpAdminRoutes);
 app.use('/api/ai/chat', aiChatRoutes);          // panel chat: sesi/pesan disimpan Entaris, agen via API engine
 app.use('/api/chat-history', chatHistoryRoutes);  // dipakai tool MCP chat_* (hanya sesi milik aktor)
 
-// ─── Serve Frontend (Production) ──────────────────────────────────────────────
+// Serve Frontend (Production)
 // In production, serve the built React client from ../client/dist.
 //
 // Cache strategy:
@@ -294,7 +294,7 @@ app.use('/api/chat-history', chatHistoryRoutes);  // dipakai tool MCP chat_* (ha
 //                  refresh/buka-tutup tab. Karena index.html merujuk asset
 //                  ber-hash, perubahan apa pun otomatis ter-pull saat HTML
 //                  baru diambil — tidak butuh Ctrl-Shift-R lagi.
-// ─── Serve Uploaded Files (foto WO, item GA, dokumen, dll) ────────────────────
+// Serve Uploaded Files (foto WO, item GA, dokumen, dll)
 // Frontend memanggil path statis /uploads/<...> langsung (bukan lewat API),
 // jadi harus di-serve sebelum SPA fallback catch-all agar tidak balik index.html.
 const uploadsDir = path.resolve(process.env.UPLOADS_DIR || './uploads');
@@ -322,7 +322,7 @@ app.get('*path', (_req, res, next) => {
   });
 });
 
-// ─── Global Error Handler ──────────────────────────────────────────────────────
+// Global Error Handler
 // Always log the full error internally but expose only a generic message to
 // the client. Per-route handlers (handleRouteError / BusinessError) own user-
 // facing messages; this is the fallback for uncaught throws and should never
@@ -338,7 +338,7 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   res.status(status).json({ error: userMessage });
 });
 
-// ─── Process Handlers ──────────────────────────────────────────────────────────
+// Process Handlers
 process.on('unhandledRejection', (reason) => logger.error({ reason }, 'Unhandled rejection'));
 process.on('SIGTERM', () => { logger.info('SIGTERM received, shutting down'); process.exit(0); });
 

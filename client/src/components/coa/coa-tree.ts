@@ -240,7 +240,7 @@ export function flattenVisible(nodes: readonly CoaNode[], isExpanded: (node: Coa
   return out;
 }
 
-// ─── Expanded state ↔ URL (?open=) ─────────────────────────────────────────
+// Expanded state ↔ URL (?open=)
 // absent → default (top-level accounts open) · "*" → all · "" → none
 // otherwise a comma separated list of account numbers.
 
@@ -280,7 +280,7 @@ export function toggleInSet<T>(set: ReadonlySet<T>, value: T, force?: boolean): 
   return next;
 }
 
-// ─── Search highlight ──────────────────────────────────────────────────────
+// Search highlight
 
 export interface TextPart {
   text: string;

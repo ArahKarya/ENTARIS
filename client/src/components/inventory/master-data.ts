@@ -45,7 +45,7 @@ export function parseOptionalNonNegative(raw: string): { value: number | null; e
   return { value: n };
 }
 
-// ─── Cost standard ──────────────────────────────────────────────────────────
+// Cost standard
 
 export interface CostStandardForm {
   name: string;
@@ -61,7 +61,7 @@ export function validateCostStandard(f: CostStandardForm): FormErrors<'name' | '
   return errors;
 }
 
-// ─── Process ────────────────────────────────────────────────────────────────
+// Process
 
 export interface ProcessForm {
   name: string;
@@ -77,7 +77,7 @@ export function validateProcess(f: ProcessForm): FormErrors<'name' | 'sortOrder'
   return errors;
 }
 
-// ─── Machine ────────────────────────────────────────────────────────────────
+// Machine
 
 export interface MachineForm {
   code: string;

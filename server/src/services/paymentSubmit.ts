@@ -105,7 +105,7 @@ export async function submitPaymentInTx(
     },
   });
 
-  // ── VendorDeposit ─────────────────────────────────────────────────────
+  // VendorDeposit
   if (body.paymentType === 'VendorDeposit') {
     if (party.partyType !== 'Supplier' && party.partyType !== 'Both') {
       throw new BusinessError('Uang muka hanya dapat dibuat untuk Supplier.');
@@ -158,7 +158,7 @@ export async function submitPaymentInTx(
     return { payment, party, unallocatedAmount: 0 };
   }
 
-  // ── CustomerDeposit ──────────────────────────────────────────────────
+  // CustomerDeposit
   if (body.paymentType === 'CustomerDeposit') {
     if (party.partyType !== 'Customer' && party.partyType !== 'Both') {
       throw new BusinessError('Uang muka pelanggan hanya dapat dibuat untuk Customer.');
@@ -211,7 +211,7 @@ export async function submitPaymentInTx(
     return { payment, party, unallocatedAmount: 0 };
   }
 
-  // ── VendorRefund / CustomerRefund ─────────────────────────────────────
+  // VendorRefund / CustomerRefund
   if (body.paymentType === 'VendorRefund' || body.paymentType === 'CustomerRefund') {
     const isVendorRefund = body.paymentType === 'VendorRefund';
     if (isVendorRefund && party.partyType !== 'Supplier' && party.partyType !== 'Both') {
@@ -351,7 +351,7 @@ export async function submitPaymentInTx(
     return { payment, party, unallocatedAmount: 0 };
   }
 
-  // ── Receive / Pay ────────────────────────────────────────────────────
+  // Receive / Pay
   const arAccount = await systemAccounts.getAccount('AR');
   const apAccount = await systemAccounts.getAccount('AP');
 

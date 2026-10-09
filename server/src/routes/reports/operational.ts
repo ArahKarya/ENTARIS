@@ -468,7 +468,7 @@ router.get('/daily', async (req, res) => {
       }),
     ]);
 
-    // ── Cash/bank balances ──
+    // Cash/bank balances
     const cashAccountsMapped = await systemAccounts.getAccounts('CASH');
     const cashAccountIds = cashAccountsMapped.map((a) => a.id);
     const cashAccountRows = cashAccountIds.length > 0
@@ -483,7 +483,7 @@ router.get('/daily', async (req, res) => {
       balance: Number(a.balance),
     }));
 
-    // ── 1. Sales summary ──
+    // 1. Sales summary
     const sales = {
       invoices: salesInvoices.map((si) => ({
         invoiceNumber: si.invoiceNumber,
@@ -501,7 +501,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // ── 2. Purchases summary ──
+    // 2. Purchases summary
     const purchases = {
       invoices: purchaseInvoices.map((pi) => ({
         invoiceNumber: pi.invoiceNumber,
@@ -519,7 +519,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // ── 3. Production summary ──
+    // 3. Production summary
     const production = {
       runs: productionRuns.map((pr) => {
         const inputs = pr.items.filter((i) => i.lineType === 'Input');
@@ -544,7 +544,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // ── 4. Finance summary ──
+    // 4. Finance summary
     const paymentsIn = paymentsData.filter((p) => p.paymentType === 'Receive' || p.paymentType === 'CustomerDeposit');
     const paymentsOut = paymentsData.filter((p) => p.paymentType === 'Pay' || p.paymentType === 'VendorDeposit');
     const finance = {
@@ -569,7 +569,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // ── 5. Receivables (aging) ──
+    // 5. Receivables (aging)
     const agingBucket = (dueDate: Date | null, refDate: Date) => {
       if (!dueDate) return 'current';
       const diff = Math.floor((refDate.getTime() - dueDate.getTime()) / 86400000);
@@ -599,7 +599,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // ── 6. Payables (aging) ──
+    // 6. Payables (aging)
     const apBySupplier = new Map<string, { supplierName: string; current: number; d1_30: number; d31_60: number; d61_90: number; d91_plus: number; total: number }>();
     for (const inv of apInvoices) {
       const name = inv.supplier?.name || '—';
@@ -619,7 +619,7 @@ router.get('/daily', async (req, res) => {
       },
     };
 
-    // ── 7. Vendor deposits ──
+    // 7. Vendor deposits
     const vendorDeposits = {
       deposits: vendorDepositPayments.map((p) => {
         const totalApplied = p.depositApplications.reduce((s, a) => s + Number(a.appliedAmount), 0);
@@ -640,7 +640,7 @@ router.get('/daily', async (req, res) => {
     };
     vendorDeposits.summary.totalRemaining = vendorDeposits.deposits.reduce((s, d) => s + d.remaining, 0);
 
-    // ── 8. Kondisi stok (snapshot per gudang as-of akhir tanggal) ──
+    // 8. Kondisi stok (snapshot per gudang as-of akhir tanggal)
     const snapshot = await buildStockSnapshot(dateStr);
     const stock = {
       asOfDate: snapshot.asOfDate,

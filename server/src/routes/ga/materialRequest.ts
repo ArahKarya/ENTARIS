@@ -42,7 +42,7 @@ import {
 
 const router = Router();
 
-// ─── Validation schemas ──────────────────────────────────────────────
+// Validation schemas
 
 const MrItemInputSchema = z.object({
   inventoryItemId: z.string().min(1).optional().nullable(),
@@ -96,8 +96,6 @@ const ReceiveSchema = z.object({
     .nullable(),
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────
-
 /** Generate next MR code MR-YYYY-NNNN, serialized via a year-scoped advisory lock. */
 async function generateMaterialRequestCode(tx: Prisma.TransactionClient): Promise<string> {
   const year = new Date().getFullYear();
@@ -121,9 +119,7 @@ const mrItemInclude = {
   receivedIntoLocation: { select: { id: true, code: true, name: true } },
 } as const;
 
-// ═══════════════════════════════════════════════════════════════════
 // LIST / DETAIL
-// ═══════════════════════════════════════════════════════════════════
 
 // GET /material-requests — list, filters status/workOrderId/mine
 //
@@ -234,9 +230,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // CREATE
-// ═══════════════════════════════════════════════════════════════════
 
 /** Shared MR create logic (dipakai endpoint standalone & dari-WO). */
 async function createMaterialRequest(
@@ -333,9 +327,7 @@ router.post('/from-work-order/:workOrderId', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // EDIT (DRAFT only)
-// ═══════════════════════════════════════════════════════════════════
 
 // PUT /material-requests/:id — edit header + ganti seluruh items (hanya DRAFT)
 router.put('/:id', async (req: AuthRequest, res) => {
@@ -383,9 +375,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // LIFECYCLE
-// ═══════════════════════════════════════════════════════════════════
 
 /** Simple status-transition helper with a BusinessError guard. */
 async function transitionStatus(
@@ -466,9 +456,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // PROCUREMENT (per-item)
-// ═══════════════════════════════════════════════════════════════════
 
 // PATCH /:id/items/:itemId/procurement — update vendor/harga/PO/status (non-stok)
 router.patch('/:id/items/:itemId/procurement', async (req: AuthRequest, res) => {
@@ -502,9 +490,7 @@ router.patch('/:id/items/:itemId/procurement', async (req: AuthRequest, res) => 
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // RECEIVE (kunci) — stok masuk atomik ke GA inventory
-// ═══════════════════════════════════════════════════════════════════
 
 // PATCH /:id/items/:itemId/receive
 // Dalam TRANSAKSI: resolve/buat GaInventoryItem → upsert +qty ke GaStockByLocation

@@ -62,7 +62,7 @@ const settlementEvent = (
   return { ...eventOf(pr, kind, actorId, note, realized), supervisorId: pr.settlementSupervisorId };
 };
 
-// ─── Requester: save draft / submit ──────────────────────────────────────────
+// Requester: save draft / submit
 
 export async function saveSettlementDraftInTx(tx: Tx, id: string, actor: Actor, input: SettlementDraftInput) {
   const pr = await loadRequest(tx, id);
@@ -122,7 +122,7 @@ export async function submitSettlementInTx(tx: Tx, id: string, actor: Actor) {
   return { request: updated, events: [settlementEvent(updated, kind, actor.id)] };
 }
 
-// ─── Supervisor / finance: approve, return ───────────────────────────────────
+// Supervisor / finance: approve, return
 
 /** Supervisor step: approve → Finance. (Finance uses postSettlementInTx.) */
 export async function approveSettlementInTx(tx: Tx, id: string, actor: Actor, note?: string | null) {
@@ -152,7 +152,7 @@ export async function returnSettlementInTx(tx: Tx, id: string, actor: Actor, rea
   return { request: updated, events: [settlementEvent(updated, 'settlement_revision', actor.id, reason.trim())] };
 }
 
-// ─── Finance: preview, post, cancel posting ──────────────────────────────────
+// Finance: preview, post, cancel posting
 
 /** The account the advance was debited to on payment (falls back to the system mapping). */
 async function resolveAdvanceAccount(tx: Tx, journalEntryId: string | null): Promise<string | null> {

@@ -162,7 +162,7 @@ export type GaBill = Awaited<ReturnType<typeof loadGaBills>>[number];
 /** Posted = has a journal or a purchase invoice (same rule the old page used). */
 export const isBillPosted = (b: Pick<GaBill, 'journalEntry' | 'purchaseInvoice'>) => !!b.journalEntry || !!b.purchaseInvoice;
 
-// ─── Paged / filtered list for /api/payment-requests/eam ─────────────────────
+// Paged / filtered list for /api/payment-requests/eam
 
 export const EAM_SORT_FIELDS = ['date', 'amount', 'kind', 'asset'] as const;
 export type EamSortField = (typeof EAM_SORT_FIELDS)[number];
@@ -263,7 +263,7 @@ export function summarizeEam(all: readonly GaBill[], matched: readonly GaBill[])
   return { pendingCount: pending.length, pendingAmount: sum(pending), matchedCount: matched.length, matchedAmount: sum(matched) };
 }
 
-// ─── Posting / cancel dispatchers (shared by both routers) ───────────────────
+// Posting / cancel dispatchers (shared by both routers)
 
 export interface EamPayInput {
   method: 'JOURNAL' | 'PURCHASE_INVOICE';

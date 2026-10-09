@@ -196,7 +196,7 @@ router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, re
         );
       }
 
-      // ── Receive / Pay cancel branch ─────────────────────────────────────
+      // Receive / Pay cancel branch
       // Reverse payment allocations
       const allocations = await tx.paymentAllocation.findMany({
         where: { paymentId: payment.id },

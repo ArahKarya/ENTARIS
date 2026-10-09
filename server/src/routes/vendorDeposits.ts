@@ -493,7 +493,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
       const createdApplications: string[] = [];
       let cashJournalId: string | null = null;
 
-      // ── 1. Offset ke hutang (FIFO oldest-first) ───────────────────────────
+      // 1. Offset ke hutang (FIFO oldest-first)
       if (offsetReq.gt(0)) {
         await tx.$queryRaw`SELECT id FROM purchase_invoices WHERE party_id = ${deposit.partyId} AND status IN ('Submitted','PartiallyPaid','Overdue') FOR UPDATE`;
 
@@ -578,7 +578,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
         await recalcPartyOutstanding(tx, deposit.partyId);
       }
 
-      // ── 2. Refund kas dari vendor ─────────────────────────────────────────
+      // 2. Refund kas dari vendor
       // Vendor mengembalikan kas DP ke rekening kita: DR Bank/Kas / CR Uang Muka Pembelian.
       if (cashReq.gt(0)) {
         const cashAccount = await tx.account.findUnique({ where: { id: body.cashAccountId! } });

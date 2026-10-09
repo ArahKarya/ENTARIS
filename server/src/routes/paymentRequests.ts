@@ -487,7 +487,7 @@ router.post('/:id/cancel-payment', async (req: AuthRequest, res) => {
   });
 });
 
-// ─── Pertanggungjawaban (settlement) ─────────────────────────────────────────
+// Pertanggungjawaban (settlement)
 
 // PUT /:id/settlement — requester saves the realization lines (status unchanged).
 router.put('/:id/settlement', async (req: AuthRequest, res) => {
@@ -568,7 +568,7 @@ router.post('/:id/settlement/cancel-posting', async (req: AuthRequest, res) => {
   });
 });
 
-// ─── Attachments (requester, while DRAFT / REVISION; settlement scope while OPEN / REVISION) ──
+// Attachments (requester, while DRAFT / REVISION; settlement scope while OPEN / REVISION)
 
 const scopeOf = (v: unknown): 'REQUEST' | 'SETTLEMENT' => (firstString(v) === 'settlement' ? 'SETTLEMENT' : 'REQUEST');
 

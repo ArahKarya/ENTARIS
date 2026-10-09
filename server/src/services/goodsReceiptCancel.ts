@@ -70,7 +70,7 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // ── Guard C2: block if any inbound batch from this STT has been consumed ──
+  // Guard C2: block if any inbound batch from this STT has been consumed
   // Outbound movements (sale/production/transfer) link back to the inbound
   // batch via sourceMovementId. If a consumer exists, the batch's cost basis
   // is already referenced downstream — cancelling would orphan it.
@@ -94,7 +94,7 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // ── Guard C1: don't drive stock negative when reversing an inbound ──
+  // Guard C1: don't drive stock negative when reversing an inbound
   // (the received goods may already have been sold/consumed). Admin override
   // logs a warning instead of throwing.
   for (const grItem of stt.items) {

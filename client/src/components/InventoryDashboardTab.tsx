@@ -228,7 +228,7 @@ export default function InventoryDashboardTab() {
   );
 }
 
-// ─── Perlu tindakan ─────────────────────────────────────────────────────────
+// Perlu tindakan
 
 type ItemsQuery = ReturnType<typeof useAttentionItems>;
 
@@ -392,7 +392,7 @@ function AttentionPanel({
   );
 }
 
-// ─── Nilai stok ─────────────────────────────────────────────────────────────
+// Nilai stok
 
 function StockValuePanel({
   valueBy,
@@ -481,7 +481,7 @@ function StockValuePanel({
   );
 }
 
-// ─── Gerakan terbaru ────────────────────────────────────────────────────────
+// Gerakan terbaru
 
 function RecentMovementsPanel({
   rangeLabel,
