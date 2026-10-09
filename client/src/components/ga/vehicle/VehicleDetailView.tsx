@@ -54,7 +54,7 @@ export function VehicleDetailView({ assetId, section, onSectionChange, onBack, b
   const row = rowQuery.data ?? null;
   const asset = assetQuery.data;
 
-  if (rowQuery.isLoading) return <LoadingState />;
+  if (rowQuery.isLoading) return <LoadingState label="Memuat data kendaraan…" />;
   if (rowQuery.isError || !row) {
     return (
       <div className="space-y-5 pb-8">

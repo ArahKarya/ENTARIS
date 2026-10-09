@@ -85,7 +85,7 @@ const InquiryDetailDrawer: React.FC<Props> = ({ inquiryId, onClose, onEdit }) =>
 
           <SheetBody className="grid content-start gap-4">
             {isLoading || !q ? (
-              <div role="status" aria-label="Memuat inquiry"><LoadingState /></div>
+              <LoadingState label="Memuat inquiry…" />
             ) : (
               <>
                 <dl className="grid gap-2 rounded-lg bg-muted/40 p-3 text-xs">

@@ -489,7 +489,7 @@ export const PaymentRequests = () => {
 
       <TabsContent value={tab} className="mt-0 space-y-5">
       {isEam ? (
-        <Suspense fallback={<LoadingState />}>
+        <Suspense fallback={<LoadingState label="Memuat daftar…" />}>
           <EamBillsTab />
         </Suspense>
       ) : (

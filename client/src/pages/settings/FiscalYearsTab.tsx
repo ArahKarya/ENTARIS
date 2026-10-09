@@ -109,7 +109,7 @@ export const FiscalYearsTab: React.FC = () => {
         )}
       >
         {isLoading ? (
-          <LoadingState />
+          <LoadingState label="Memuat tahun buku…" />
         ) : !years || years.length === 0 ? (
           <EmptyState compact icon={Calendar} title="Belum ada tahun buku" description="Buat tahun buku pertama untuk mulai mencatat periode akuntansi." />
         ) : (

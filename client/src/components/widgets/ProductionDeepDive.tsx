@@ -62,7 +62,7 @@ const fmtShortDate = (d: string) => new Date(d).toLocaleDateString('id-ID', { da
 function TopItemList({ title, hint, items, icon, tone }: { title: string; hint: string; items: TopItem[]; icon: typeof Factory; tone: string }) {
   const max = items.length > 0 ? Math.max(...items.map((i) => i.quantity)) : 1;
   return (
-    <WidgetCard title={title} description={hint} icon={icon} isEmpty={items.length === 0} emptyText="Belum ada data" minHeight={90}>
+    <WidgetCard title={title} description={hint} icon={icon} isEmpty={items.length === 0} emptyText="Tidak ada data pada periode ini. Ubah rentang tanggal di atas." minHeight={90}>
       <ul className="space-y-2">
         {items.map((it) => (
           <li key={it.id}>

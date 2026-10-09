@@ -163,7 +163,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
     return (
       <div className="space-y-5 pb-8">
         <PageHeader title="Pencocokan Rekonsiliasi" breadcrumbs={crumbs} actions={backButton} />
-        <LoadingState />
+        <LoadingState label="Memuat rekonsiliasi…" />
       </div>
     );
   }

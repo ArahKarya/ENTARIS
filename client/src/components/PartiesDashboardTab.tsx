@@ -5,7 +5,8 @@ import api from '@/lib/api';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LoadingState } from '@/components/shared';
+import { EmptyState, LoadingState } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 interface AgingBucket {
   current: number;
@@ -101,21 +102,30 @@ function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
           </ul>
         </>
       ) : (
-        <p className="text-xs italic text-muted-foreground">Tidak ada data</p>
+        <p className="text-xs text-muted-foreground">Tidak ada saldo terbuka saat ini.</p>
       )}
     </div>
   );
 }
 
 export default function PartiesDashboardTab() {
-  const { data, isLoading } = useQuery<DashboardData>({
+  const { data, isLoading, isError, refetch } = useQuery<DashboardData>({
     queryKey: ['parties-dashboard'],
     queryFn: () => api.get('/parties/dashboard').then(r => r.data),
   });
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <LoadingState label="Memuat ringkasan mitra…" />;
 
-  if (!data) return null;
+  if (isError || !data) {
+    return (
+      <EmptyState
+        kind="error"
+        title="Ringkasan mitra gagal dimuat"
+        description="Permintaan ke server gagal. Periksa koneksi lalu coba lagi."
+        action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+      />
+    );
+  }
 
   const { summary } = data;
 
@@ -240,7 +250,7 @@ function TopList({ title, icon, items, barColor }: { title: string; icon: React.
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs italic text-muted-foreground">Tidak ada data</p>
+        <p className="text-xs text-muted-foreground">Tidak ada saldo terbuka saat ini.</p>
       ) : (
         <ol className="space-y-2.5">
           {items.map((item, i) => {

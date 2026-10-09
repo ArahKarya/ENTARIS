@@ -53,7 +53,7 @@ export function ReportDataTable<T>({
   afterRow,
   rowClassName,
   footer,
-  emptyText = 'Tidak ada data',
+  emptyText = 'Tidak ada baris pada periode ini.',
   variant = 'card',
   maxHeightClass = 'max-h-[70vh]',
   className,

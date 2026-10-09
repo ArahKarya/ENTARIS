@@ -132,7 +132,7 @@ export const PaymentRequestForm = () => {
   const { id } = useParams<{ id: string }>();
   const metaQuery = useQuery(metaQueryOptions);
   const detailQuery = useQuery(detailQueryOptions(id));
-  if ((id && detailQuery.isLoading) || metaQuery.isLoading) return <LoadingState />;
+  if ((id && detailQuery.isLoading) || metaQuery.isLoading) return <LoadingState label="Memuat formulir…" />;
   return <PaymentRequestFormBody key={id ?? 'new'} id={id} initialDetail={detailQuery.data} initialMeta={metaQuery.data} />;
 };
 

@@ -134,7 +134,7 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
           <SheetBody className="space-y-3 bg-muted/40">
             {isLoading ? (
               <div role="status" aria-label="Memuat dokumen">
-                <LoadingState />
+                <LoadingState label="Memuat dokumen aset…" />
               </div>
             ) : documents.length === 0 ? (
               <div className="py-16 text-center">

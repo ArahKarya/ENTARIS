@@ -15,7 +15,7 @@ export function EmptyRow({ colSpan, children, className }: EmptyRowProps) {
         colSpan={colSpan}
         className={cn('h-24 text-center text-sm text-muted-foreground', className)}
       >
-        {children ?? 'Belum ada data.'}
+        {children ?? 'Belum ada data yang tercatat.'}
       </TableCell>
     </TableRow>
   );

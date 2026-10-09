@@ -152,7 +152,7 @@ export const PaymentRequestDetailPage = () => {
     onError: (e) => toast.error(apiError(e, 'Gagal menyimpan akun biaya.')),
   });
 
-  if (detailQuery.isLoading) return <LoadingState />;
+  if (detailQuery.isLoading) return <LoadingState label="Memuat pengajuan…" />;
   if (!pr) {
     return (
       <EmptyState

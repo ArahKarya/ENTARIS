@@ -7,7 +7,7 @@ import api from '@/lib/api';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ConfirmDialog, StatusBadge } from '@/components/shared';
+import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
 import { cn } from '@/lib/utils';
 import {
   TableRegion,
@@ -139,10 +139,7 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
 
           <SheetBody className="space-y-4">
             {isLoading || !q ? (
-              <div role="status" className="py-16 text-center text-muted-foreground">
-                <Loader2 className="mx-auto size-6 animate-spin" aria-hidden />
-                <span className="sr-only">Memuat penawaran…</span>
-              </div>
+              <LoadingState label="Memuat penawaran…" />
             ) : (
               <>
                 <div className="space-y-2 rounded-lg bg-muted/40 p-3">

@@ -274,7 +274,7 @@ export function McpTokensCard() {
       actions={canEdit && <Button type="button" size="sm" onClick={() => setCreating(true)}><Plus aria-hidden />Buat token</Button>}
     >
       {isLoading ? (
-        <LoadingState />
+        <LoadingState label="Memuat token MCP…" />
       ) : error ? (
         <p role="alert" className="text-sm text-danger-text">{apiError(error, 'Gagal memuat token.')}</p>
       ) : !tokens || tokens.length === 0 ? (

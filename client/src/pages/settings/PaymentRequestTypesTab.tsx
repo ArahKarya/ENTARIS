@@ -165,7 +165,7 @@ export function PaymentRequestTypesTab() {
         contentClassName="px-0 pb-0"
       >
         {typesQuery.isLoading ? (
-          <LoadingState className="pb-5" />
+          <LoadingState className="pb-5" label="Memuat jenis pengajuan…" />
         ) : types.length === 0 ? (
           <EmptyState compact icon={HandCoins} title="Belum ada jenis pengajuan" className="pb-5" />
         ) : (

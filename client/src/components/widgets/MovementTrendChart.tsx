@@ -54,7 +54,7 @@ export default function MovementTrendChart() {
       onRetry={() => void refetch()}
       isEmpty={!!data && rows.length === 0}
       emptyIcon={BarChart3}
-      emptyText="Belum ada data pergerakan"
+      emptyText="Tidak ada pergerakan stok dalam 6 bulan terakhir."
       minHeight={290}
     >
       <ChartFrame

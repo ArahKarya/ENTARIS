@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Pencil, Send, Ban, Truck, Loader2, CheckCircle2, Download } from 'lucide-react';
+import { Pencil, Send, Ban, Truck, CheckCircle2, Download } from 'lucide-react';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ConfirmDialog, DateInput, Field, StatusBadge } from '@/components/shared';
+import { ConfirmDialog, DateInput, Field, LoadingState, StatusBadge } from '@/components/shared';
 import {
   FormError,
   TableRegion,
@@ -281,10 +281,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
           <SheetBody>
             {isLoading ? (
-              <div role="status" className="p-6 text-center text-muted-foreground">
-                <Loader2 size={20} className="inline animate-spin" aria-hidden />
-                <span className="sr-only">Memuat sales order…</span>
-              </div>
+              <LoadingState label="Memuat sales order…" />
             ) : !so ? (
               <div className="p-6 text-center text-muted-foreground">SO tidak ditemukan.</div>
             ) : (

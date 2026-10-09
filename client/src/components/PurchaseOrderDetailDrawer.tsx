@@ -254,7 +254,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
         }
       >
         {isLoading ? (
-          <LoadingState />
+          <LoadingState label="Memuat pesanan pembelian…" />
         ) : !doc ? (
           <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">PO tidak ditemukan.</div>
         ) : (

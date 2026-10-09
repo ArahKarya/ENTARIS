@@ -29,7 +29,7 @@ export default function TopCustomers() {
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={Trophy}
-      emptyText="Belum ada data penjualan"
+      emptyText="Belum ada faktur penjualan yang diposting. Pelanggan teratas muncul setelah faktur pertama diposting."
     >
       <ol className="space-y-2.5">
         {(data ?? []).map((c) => (

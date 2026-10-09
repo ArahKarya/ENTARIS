@@ -59,7 +59,7 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
       <div className="space-y-5 pb-8">
         <div className="sm:hidden">{breadcrumb}</div>
         <PageHeader title="Memuat stok opname…" breadcrumb={breadcrumb} />
-        <LoadingState />
+        <LoadingState label="Memuat stok opname…" />
       </div>
     );
   }

@@ -28,7 +28,7 @@ export default function CategoryDistribution() {
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={Layers}
-      emptyText="Belum ada data kategori"
+      emptyText="Belum ada item persediaan yang berkategori. Isi kategori saat menambah item."
       minHeight={260}
     >
       <ScrollRegion label="Distribusi stok per kategori" className="max-h-72 overflow-y-auto">

@@ -143,7 +143,7 @@ export const TaxConfigTab: React.FC = () => {
         contentClassName="px-0 pb-0"
       >
         {isLoading ? (
-          <LoadingState className="pb-5" />
+          <LoadingState className="pb-5" label="Memuat konfigurasi pajak…" />
         ) : !configs || configs.length === 0 ? (
           <EmptyState compact icon={Receipt} title="Belum ada konfigurasi pajak" className="pb-5" />
         ) : (

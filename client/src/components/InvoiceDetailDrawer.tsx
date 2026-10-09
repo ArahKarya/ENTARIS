@@ -9,7 +9,7 @@ import { formatRupiah } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { ConfirmDialog } from '@/components/shared';
+import { ConfirmDialog, LoadingState } from '@/components/shared';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
 import { mergeInvoicePdfWithAttachments } from '../lib/pdf/mergePdfWithAttachments';
 import type { AttachmentRef } from '../lib/pdf/mergePdfWithAttachments';
@@ -433,10 +433,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
 
           <SheetBody className="px-0 py-0">
             {isLoading ? (
-              <div role="status" className="flex h-64 items-center justify-center">
-                <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
-                <span className="sr-only">Memuat invoice…</span>
-              </div>
+              <LoadingState label="Memuat invoice…" />
             ) : !invoice ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
                 Invoice tidak ditemukan.

@@ -131,7 +131,7 @@ export const RolePermissionsTab: React.FC = () => {
     createMut.mutate();
   };
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <LoadingState label="Memuat hak akses…" />;
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">

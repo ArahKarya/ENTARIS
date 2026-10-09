@@ -110,7 +110,7 @@ export const NotificationsTab: React.FC = () => {
     onError: (e: any) => toast.error(e.response?.data?.error || 'Tes gagal.'),
   });
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <LoadingState label="Memuat pengaturan notifikasi…" />;
 
   const tokenError = form.botToken.trim() && !TOKEN_RE.test(form.botToken.trim())
     ? 'Format token tidak dikenali (contoh: 123456789:ABC-DEF…).'

@@ -64,7 +64,7 @@ export const PaymentRequestSettlementPage = () => {
     queryFn: async () => (await api.get<PaymentRequestDetail>(`${PR_ENDPOINT}/${id}`)).data,
     enabled: !!id,
   });
-  if (detailQuery.isLoading || !detailQuery.data) return <LoadingState />;
+  if (detailQuery.isLoading || !detailQuery.data) return <LoadingState label="Memuat pengajuan…" />;
   return <SettlementBody key={id} pr={detailQuery.data} />;
 };
 
