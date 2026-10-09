@@ -8,7 +8,7 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 
 const router = Router();
 
-// ─── Tax Config CRUD ─────────────────────────────────────────────────────────
+// Tax Config CRUD
 
 // GET /api/tax/config — list all tax configs
 router.get('/config', async (_req, res) => {
@@ -22,7 +22,7 @@ router.get('/config', async (_req, res) => {
   }
 });
 
-// POST /api/tax/config — create tax config (Admin only)
+// POST /api/tax/config (requires settings edit permission)
 router.post('/config', async (req, res) => {
   const body = validateBody(CreateTaxConfigSchema, req.body, res);
   if (!body) return;
@@ -79,7 +79,7 @@ router.delete('/config/:id', requireCap('doc.cancel'), async (req, res) => {
   }
 });
 
-// ─── Tax Report ──────────────────────────────────────────────────────────────
+// Tax Report
 
 // GET /api/tax/report — tax summary grouped by month
 router.get('/report', async (req, res) => {

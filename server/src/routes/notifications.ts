@@ -141,9 +141,8 @@ router.patch('/read-all', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/notifications/check — Admin: trigger notification checks manually.
-// Logika dipindah ke notificationService.runNotificationChecks (dipakai juga
-// oleh cron harian).
+// POST /api/notifications/check: run notification checks manually (requires audit permission).
+// Logic lives in notificationService.runNotificationChecks (shared with the daily cron).
 router.post('/check', requirePerm('audit'), async (_req: AuthRequest, res) => {
   try {
     const { created } = await runNotificationChecks();

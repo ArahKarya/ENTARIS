@@ -16,25 +16,9 @@ export interface CreateDOFromInvoiceInput {
 }
 
 /**
- * Create a Surat Jalan from an existing sales invoice.
- *
- * Used when staff entered the invoice first (direct-sale path, stock already
- * decremented + COGS journal already posted) and the physical delivery
- * paperwork comes later. Re-running the regular DO submit would double-out
- * stock, so this service explicitly skips inventory mutation.
- *
- * Behavior:
- *   - validates invoice exists, not cancelled, has no DO linked yet
- *   - creates a DeliveryOrder header in Submitted status, linked to the
- *     invoice (invoiceId/invoicedAt set immediately)
- *   - for each inventory line on the invoice, creates a DeliveryOrderItem
- *     whose stockMovementId points at the SM the invoice already wrote
- *     (so the audit trail "this DO ships goods recorded as out by SM-XXX")
- *   - back-links each invoice line to its new DO item (delivery_order_item_id)
- *   - service / non-inventory lines on the invoice are skipped silently —
- *     a Surat Jalan only carries physical goods
- *
- * No stock decrement, no new stockMovements, no GL impact.
+ * Create a Surat Jalan for an invoice that already moved stock and posted COGS (direct sale).
+ * DO items point at the invoice's existing stock movements; non-inventory lines are skipped.
+ * No stock change, no new movements, no GL impact (a normal DO submit would double the stock out).
  */
 export async function createDeliveryOrderFromInvoiceInTx(
   tx: Tx,

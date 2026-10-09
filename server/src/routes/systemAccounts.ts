@@ -61,7 +61,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   res.json({ mappings: grouped, roles });
 });
 
-// PUT /api/system-accounts — update mappings (Admin only)
+// PUT /api/system-accounts: update mappings (requires settings edit permission)
 const updateSchema = z.object({
   mappings: z.array(
     z.object({

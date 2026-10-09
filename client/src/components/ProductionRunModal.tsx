@@ -39,13 +39,11 @@ interface Props {
   onClose: () => void;
   items: any[];
   editRun?: any | null;
-  // Resubmit mode: hydrate dari create-body payload (bukan run-record) +
-  // submit ke endpoint resubmit alih-alih create.
+  // Resubmit mode: hydrate from the create-body payload and submit to the resubmit endpoint.
   prefillPayload?: any | null;
   resubmitRequestId?: string | null;
-  // Draft mode: edit a saved draft (prefillPayload = draft.payload). Saving
-  // updates the draft (PUT) — it never posts. Without `draft` (and without
-  // editRun / resubmit) saving creates a new draft.
+  // Draft mode: saving updates the draft (PUT) and never posts. With no draft,
+  // editRun or resubmit, saving creates a new draft.
   draft?: { id: string; draftNumber: string; lastError?: string | null } | null;
 }
 
@@ -66,7 +64,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const [processIds, setProcessIds] = useState<string[]>([]);
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [negativeStockReason, setNegativeStockReason] = useState('');
-  // ─── OEE capture (B2 multi-machine) ─────────────────────────────────────────
+  // OEE capture (multi-machine)
   const [oeeOpen, setOeeOpen] = useState(false);
   // Shift window (planned production time) + break window.
   const [plannedStart, setPlannedStart] = useState('');
@@ -90,7 +88,6 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   // Reset form when opened (prefill if editing)
   useEffect(() => {
     if (isOpen) {
-      // ── Resubmit mode: hydrate langsung dari create-body payload ──
       if (prefillPayload) {
         const p = prefillPayload;
         setDate(p.date ? new Date(p.date).toISOString().split('T')[0] : today());
@@ -176,7 +173,6 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
         setInputs([{ itemId: '', quantity: '', sourceMovementId: '', batchUnitCost: '' }]);
         setOutputs([{ itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
       }
-      // Phase 3: load existing cost components when editing
       if (editRun && Array.isArray(editRun.runCosts)) {
         setCosts(editRun.runCosts.map((c: any) => ({
           standardId: c.standardId ?? '',
@@ -194,7 +190,6 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
           ? String(Number(editRun.computedHpp))
           : '',
       );
-      // Process selections
       if (editRun && Array.isArray(editRun.runProcesses)) {
         setProcessIds(
           editRun.runProcesses
@@ -204,7 +199,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       } else {
         setProcessIds([]);
       }
-      // OEE capture prefill (edit) / reset (create) — B2 multi-machine.
+      // OEE capture: prefill on edit, reset on create.
       const runYmd = editRun?.date
         ? new Date(editRun.date).toISOString().split('T')[0]!
         : today();
@@ -275,13 +270,12 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     [items],
   );
 
-  // OEE live preview (B2 multi-machine); cosmetic, the server re-computes on submit.
+  // OEE preview is cosmetic; the server re-computes on submit.
   const oeePreview = useMemo(
     () => computeOeePreview({ plannedStart, plannedEnd, breakStart, breakEnd, runMachines, downtimes, inputs, outputs, machineById }),
     [plannedStart, plannedEnd, breakStart, breakEnd, runMachines, downtimes, inputs, outputs, machineById],
   );
 
-  // Helpers
   const getItemById = (id: string) => items.find(i => i.id === id);
 
   const updateInput = (idx: number, field: keyof LineItem, value: string) => {
@@ -308,9 +302,8 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const updateOutput = (idx: number, field: string, value: string | boolean) => {
     setOutputs(prev => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row));
   };
-  // Bagi Batch Otomatis (FIFO): pecah baris idx menjadi N baris per batch.
-  // Sisa yang tak tertampung batch → baris tanpa batch (fallback WAC, valid
-  // di server) + warning. Batch yang sudah dipakai baris lain tidak dialokasi ulang.
+  // FIFO auto-split: one row per batch; any shortfall becomes a no-batch row (WAC
+  // fallback, valid on the server). Batches claimed by other rows are not reused.
   const splitInputRow = async (idx: number) => {
     const row = inputs[idx];
     const qty = parseFloat(row.quantity) || 0;
@@ -351,8 +344,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const addOutput = () => setOutputs(prev => [...prev, { itemId: '', quantity: '', unitPrice: '', isByProduct: false }]);
   const removeOutput = (idx: number) => setOutputs(prev => prev.filter((_, i) => i !== idx));
 
-  // OEE: machine helpers (B2 multi-machine). New rows default their window to
-  // the shift window so staff only edit when a machine ran a different span.
+  // New machine rows default to the shift window; staff edit only when a machine ran a different span.
   const addMachine = () => setRunMachines(prev => [
     ...prev,
     { machineId: '', startAt: plannedStart, endAt: plannedEnd },
@@ -361,13 +353,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
   const updateMachine = (idx: number, patch: Partial<MachineLine>) =>
     setRunMachines(prev => prev.map((row, i) => i === idx ? { ...row, ...patch } : row));
 
-  // OEE: downtime helpers
   const addDowntime = () => setDowntimes(prev => [...prev, { machineId: '', category: 'Breakdown', durationMin: '', reason: '' }]);
   const removeDowntime = (idx: number) => setDowntimes(prev => prev.filter((_, i) => i !== idx));
   const updateDowntime = (idx: number, patch: Partial<DowntimeLine>) =>
     setDowntimes(prev => prev.map((row, i) => i === idx ? { ...row, ...patch } : row));
 
-  // Phase 3: cost component helpers
   const addCost = (side: 'InputSide' | 'OutputSide') => {
     setCosts(prev => [
       ...prev,
@@ -401,7 +391,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     });
   };
 
-  // Yield calculation: total main output / total input
+  // Yield = main output / total input (by-products excluded).
   const totalInputQty = inputs.reduce((s, r) => s + (parseFloat(r.quantity) || 0), 0);
   const totalMainOutputQty = outputs
     .filter(o => !o.isByProduct)
@@ -410,13 +400,11 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     ? ((totalMainOutputQty / totalInputQty) * 100).toFixed(1)
     : null;
 
-  // Phase 3: live HPP computation for preview. Mirrors server logic so user
-  // sees the loaded HPP before submitting. Server re-computes authoritatively.
+  // Live HPP preview mirrors the server logic; the server re-computes authoritatively.
   const totalMaterialCostPreview = inputs.reduce((s, r) => {
     const qty = parseFloat(r.quantity) || 0;
     let unitCost = parseFloat(r.batchUnitCost) || 0;
     if (!r.batchUnitCost) {
-      // Fallback to WAC if no batch picked
       const item = getItemById(r.itemId);
       unitCost = item ? Number(item.averageCost) : 0;
     }
@@ -467,7 +455,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     const validOutputs = outputs.filter(o => o.itemId && o.quantity && parseFloat(o.quantity) > 0);
     if (validInputs.length === 0) errs.push('Minimal satu item input.');
     if (validOutputs.length === 0) errs.push('Minimal satu item output.');
-    // Byproducts require explicit NRV. Main outputs may omit unitPrice — the
+    // By-products require an explicit NRV. Main outputs may omit unitPrice; the
     // server back-fills it from loaded HPP.
     validOutputs.forEach((o, i) => {
       if (o.isByProduct && (!o.unitPrice || parseFloat(o.unitPrice) < 0)) {
@@ -477,11 +465,9 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     if (allowNegativeStock && negativeStockReason.trim().length < 10) {
       errs.push('Alasan bypass stok minus wajib diisi (minimal 10 karakter).');
     }
-    // OEE: shift window — if both set, end must be after start.
     if (plannedStart && plannedEnd && new Date(plannedEnd).getTime() <= new Date(plannedStart).getTime()) {
       errs.push('Jam selesai shift harus setelah jam mulai shift.');
     }
-    // OEE: each machine row with both times — end must be after start.
     runMachines.forEach((m, i) => {
       if (m.startAt && m.endAt && new Date(m.endAt).getTime() <= new Date(m.startAt).getTime()) {
         errs.push(`Mesin baris ke-${i + 1}: jam selesai harus setelah jam mulai.`);
@@ -526,7 +512,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
           })),
         hppOverride: hasOverride ? overrideNum : null,
         processIds: processIds,
-        // ─── OEE capture (B2 multi-machine, all optional) ─────────────────
+        // OEE capture (all optional)
         plannedStart: plannedStart ? new Date(plannedStart).toISOString() : null,
         plannedEnd: plannedEnd ? new Date(plannedEnd).toISOString() : null,
         breakStart: breakStart ? new Date(breakStart).toISOString() : null,
@@ -534,8 +520,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
         shift: shift || null,
         shiftLead: shiftLead.trim() || null,
         manpowerCount: manpowerCount.trim() ? parseInt(manpowerCount, 10) : null,
-        // OEE Quality/output is DERIVED server-side from inputs/outputs lines.
-        // We no longer send goodQty/rejectQty.
+        // OEE quality is derived server-side from the input/output lines.
         runMachines: runMachines
           .filter(m => m.machineId)
           .map(m => ({
@@ -581,7 +566,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
         toast.success(`Draft ${draftSaved.draft?.draftNumber ?? ''} tersimpan. Belum memengaruhi stok, jurnal, atau HPP sampai diposting.`);
         for (const w of draftSaved.warnings ?? []) toast.warning(w);
       } else if (editPending) {
-        // Perubahan BELUM diterapkan — hanya diantrekan; tidak ada update optimistis.
+        // The edit is only queued for approval, so no optimistic update.
         toast.success('Perubahan dikirim untuk persetujuan');
       } else if (resubmitted) {
         toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');

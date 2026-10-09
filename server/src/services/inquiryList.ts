@@ -1,9 +1,4 @@
-/**
- * Query building + aggregation for the inquiry list
- * (GET /api/inquiries and GET /api/inquiries/summary).
- * Both endpoints share `buildInquiryWhere`, so the KPI cards always describe
- * exactly the rows the list shows.
- */
+/** Inquiry list and summary share `buildInquiryWhere`, so KPI cards match the list rows. */
 import { InquiryChannel, InquiryStatus, Prisma } from '@prisma/client';
 import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';
 

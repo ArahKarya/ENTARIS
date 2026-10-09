@@ -142,7 +142,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/sales-returns — create (approval-gated for non-Admin)
+// POST /api/sales-returns: create (approval-gated for roles without approval.bypass)
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateSalesReturnSchema, req.body, res);
   if (!body) return;
@@ -180,7 +180,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/sales-returns/:id/cancel — Admin only
+// POST /api/sales-returns/:id/cancel (requires the doc.cancel capability)
 router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(

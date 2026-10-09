@@ -19,21 +19,14 @@ export interface SubmitStockTransferInput {
     itemId: string;
     quantity: number;
     description?: string | null;
-    // Phase 5: optional batch picker. When set, the source-warehouse
-    // TransferOut SM links back to this inbound batch + the line gets the
-    // unitCost locked to it.
+    // Optional batch picker: the TransferOut links to this inbound batch and locks its unitCost.
     sourceMovementId?: string | null;
   }>;
 }
 
 /**
- * Submit a stock transfer:
- *   - validate both warehouses exist & active
- *   - validate stock availability at source warehouse per-item
- *   - decrement source / increment destination in inventory_stocks
- *   - create paired StockMovement rows: TransferOut at source, TransferIn at
- *     destination (no GL impact — same account, net zero)
- *   - inventory_items.current_stock (total across warehouses) is unchanged
+ * Submit a stock transfer: paired TransferOut/TransferIn movements with no GL impact (same
+ * account, net zero); inventory_items.current_stock (total across warehouses) is unchanged.
  */
 export async function submitStockTransferInTx(
   tx: Tx,
@@ -101,8 +94,7 @@ export async function submitStockTransferInTx(
     const item = await tx.inventoryItem.findUnique({ where: { id: it.itemId } });
     if (!item) throw new BusinessError('Item tidak ditemukan.');
     const qty = it.quantity;
-    // Phase 5: when a batch is picked, lock unitCost to the batch's stored
-    // cost so per-batch consumption ledger remains internally consistent.
+    // A picked batch locks unitCost to its stored cost so the batch consumption ledger stays consistent.
     let unitCost = Number(item.averageCost);
     if (it.sourceMovementId) {
       const batch = await tx.stockMovement.findUnique({
@@ -141,7 +133,7 @@ export async function submitStockTransferInTx(
         quantity: qty,
         unitCost,
         totalValue,
-        // Phase 5: batch back-link for batch consumption ledger
+        // Batch back-link for the batch consumption ledger
         sourceMovementId: it.sourceMovementId || null,
         notes: `Transfer ke ${toWh.name}`,
         referenceType: 'StockTransfer',
@@ -176,12 +168,7 @@ export async function submitStockTransferInTx(
   return transfer;
 }
 
-/**
- * Reverse a submitted stock transfer:
- *   - source += qty, destination -= qty (inventory_stocks)
- *   - mark paired stockMovements isCancelled
- *   - flip transfer status to Cancelled
- */
+/** Reverse a submitted stock transfer: restore both warehouses and cancel the paired movements. */
 export async function cancelStockTransferInTx(
   tx: Tx,
   transferId: string,

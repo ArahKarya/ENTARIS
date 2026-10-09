@@ -1,7 +1,4 @@
-/**
- * In-page detail of one stock opname session (/stock-opname?opname=<id>).
- * Read-only view + PDF + cancel (same endpoint and confirmation as before).
- */
+/** Read-only detail of one stock opname session, with PDF and cancel. */
 import { useQuery } from '@tanstack/react-query';
 import { XCircle } from 'lucide-react';
 import api from '@/lib/api';

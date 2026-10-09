@@ -8,7 +8,7 @@
 //
 // GL (on pay): DR beban per baris (or DR Uang Muka Karyawan for CASH_ADVANCE /
 // TRAVEL) / CR kas-bank. Cancel payment voids that journal.
-// Stage 2: pertanggungjawaban uang muka (/:id/settlement/*) — requester submits
+// Settlement (/:id/settlement/*): requester submits
 // realization lines, supervisor approves, Finance verifies accounts and posts
 // DR beban / CR Uang Muka Karyawan (+ kas-bank for sisa / kurang bayar).
 import { Router, type Response } from 'express';
@@ -487,7 +487,7 @@ router.post('/:id/cancel-payment', async (req: AuthRequest, res) => {
   });
 });
 
-// ─── Pertanggungjawaban (settlement) ─────────────────────────────────────────
+// Pertanggungjawaban (settlement)
 
 // PUT /:id/settlement — requester saves the realization lines (status unchanged).
 router.put('/:id/settlement', async (req: AuthRequest, res) => {
@@ -568,7 +568,7 @@ router.post('/:id/settlement/cancel-posting', async (req: AuthRequest, res) => {
   });
 });
 
-// ─── Attachments (requester, while DRAFT / REVISION; settlement scope while OPEN / REVISION) ──
+// Attachments (requester, while DRAFT / REVISION; settlement scope while OPEN / REVISION)
 
 const scopeOf = (v: unknown): 'REQUEST' | 'SETTLEMENT' => (firstString(v) === 'settlement' ? 'SETTLEMENT' : 'REQUEST');
 

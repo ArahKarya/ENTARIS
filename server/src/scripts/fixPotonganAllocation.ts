@@ -1,15 +1,5 @@
-// One-shot migration: redistribute invoice-level potongan/biayaLain from
-// generic 1.4.0 Persediaan Umum back to the linked items of each purchase invoice.
-// Previously potongan was posted as negative DR to 1.4.0, leaving linked items
-// over-stated and 1.4.0 potentially negative. This correction:
-//   1. For each non-cancelled PI with (biayaLain - potongan) != 0 and linked items
-//   2. Compute pool = biayaLain - potongan (can be negative)
-//   3. Allocate share = pool * (item.amount / linkedSubtotal) to each linked item
-//   4. Create correction JE:
-//        DR 1.4.0 = -pool  (reverse the original misallocation)
-//        CR [item acct] = |share| distributed   (reduce inventory value when pool<0)
-//      or symmetric if pool > 0.
-//   5. Update stock_movements.totalValue & unitCost for audit trail.
+// One-shot fix: per non-cancelled PI, pool = biayaLain - potongan (may be negative) is moved from 1.4.0 to linked items
+// pro rata by amount. Correction JE: DR 1.4.0 -pool / CR item accounts (mirrored when pool > 0); stock_movements updated.
 
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';
@@ -204,7 +194,6 @@ async function main() {
           })),
         });
 
-        // Update account balances
         for (const l of lines) {
           await updateAccountBalance(tx, l.accountId, l.debit, l.credit);
         }

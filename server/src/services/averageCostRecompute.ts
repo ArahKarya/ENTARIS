@@ -8,15 +8,9 @@ type Tx = Prisma.TransactionClient;
 const STOCK_TOLERANCE = new Decimal('0.001');
 
 /**
- * Re-derive an item's averageCost by replaying all its remaining
- * (non-cancelled) stock movements in processing order, and persist it.
- * Historical COGS/journals are untouched; only inventory_items.average_cost
- * changes. An item without costed inbound keeps its last known average.
- *
- * Skipped (stored average kept, warning logged) when the item's stock is not
- * explained by its movements.
- *
- * Call AFTER the movements were cancelled/edited inside the same transaction.
+ * Re-derive averageCost by replaying the item's active movements; historical COGS/journals stay.
+ * Skipped (warning logged) when movements don't explain the stock. Call after the movements were
+ * cancelled/edited in the same transaction.
  */
 export async function recomputeAverageCostFromReplay(tx: Tx, itemId: string): Promise<number> {
   const item = await tx.inventoryItem.findUnique({

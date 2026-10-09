@@ -1,13 +1,8 @@
 /**
- * Route registry: the single source of truth for every protected page in
- * App.tsx. Sidebar, Topbar breadcrumbs, document title and the command palette
- * all read from here, so a page has one label everywhere.
- *
- * - URLs are unchanged (labels only). App.tsx still owns <Route> elements.
- * - `module` mirrors the RBAC module used by <PermRoute> and the old sidebar:
- *   an item shows when the user can 'view' that module; no module = always.
- * - Pages that are not in the sidebar (`nav: false`) name a `parent`; their
- *   active nav item and breadcrumb trail come from that parent.
+ * Route registry: single source of page labels for the sidebar, breadcrumbs, document title
+ * and command palette. App.tsx still owns the <Route> elements.
+ * - `module` is the RBAC module checked by <PermRoute>: the item shows with 'view'; no module = always.
+ * - Pages with `nav: false` name a `parent` that supplies their active nav item and breadcrumb.
  */
 import type { ComponentType } from 'react';
 import {
@@ -133,7 +128,7 @@ export const NAV_SECTIONS: readonly NavSectionMeta[] = [
 const r = (entry: RouteEntry): RouteEntry => entry;
 
 export const ROUTES: readonly RouteEntry[] = [
-  // ── Top-level ──────────────────────────────────────────────────────────
+  // Top-level
   r({ path: '/', label: 'Dasbor', section: null, icon: LayoutDashboard, keywords: ['dashboard', 'beranda', 'home', 'ringkasan'] }),
   r({ path: '/aira', label: 'Asisten AIRA', section: null, icon: AiraIcon, keywords: ['aira', 'ai', 'agen', 'tanya', 'chat', 'asisten'] }),
   // Every logged-in user files payment requests (no module gate); finance tabs are gated in the page.
@@ -144,7 +139,7 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/payment-requests/:id/settlement', label: 'Pertanggungjawaban Uang Muka', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['pertanggungjawaban', 'laporan uang muka', 'settlement'] }),
   r({ path: '/notifications', label: 'Notifikasi', section: null, icon: Bell, nav: false, keywords: ['pemberitahuan', 'notification', 'peringatan'] }),
 
-  // ── Penjualan ──────────────────────────────────────────────────────────
+  // Penjualan
   r({ path: '/inquiries', label: 'Pertanyaan Pelanggan', section: 'sales', icon: Inbox, module: 'quotation', keywords: ['inquiry', 'permintaan', 'tanya harga', 'prospek'] }),
   r({ path: '/quotations', label: 'Penawaran', section: 'sales', icon: FileSignature, module: 'quotation', keywords: ['quotation', 'sq', 'penawaran harga'] }),
   r({ path: '/sales-orders', label: 'Pesanan Penjualan', shortLabel: 'SO', section: 'sales', icon: ClipboardList, module: 'sales_order', keywords: ['so', 'sales order', 'pesanan'] }),
@@ -153,13 +148,13 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/sales-returns', label: 'Retur Penjualan', section: 'sales', icon: Undo2, module: 'sales_return', keywords: ['retur', 'sales return', 'pengembalian'] }),
   r({ path: '/customer-deposits', label: 'Uang Muka Pelanggan', section: 'sales', icon: Wallet, module: 'customer_deposit', keywords: ['dp', 'deposit pelanggan', 'down payment', 'customer deposit'] }),
 
-  // ── Pembelian ──────────────────────────────────────────────────────────
+  // Pembelian
   r({ path: '/purchase-orders', label: 'Pesanan Pembelian', shortLabel: 'PO', section: 'purchasing', icon: ClipboardList, module: 'purchase_order', keywords: ['po', 'purchase order'] }),
   r({ path: '/goods-receipts', label: 'Penerimaan Barang', shortLabel: 'STT', section: 'purchasing', icon: PackageCheck, module: 'goods_receipt', keywords: ['bpb', 'stt', 'goods receipt', 'terima barang'] }),
   r({ path: '/purchase', label: 'Faktur Pembelian', section: 'purchasing', icon: ReceiptText, module: 'purchase_invoice', keywords: ['invoice pembelian', 'purchase invoice', 'tagihan vendor', 'hutang'] }),
   r({ path: '/vendor-deposits', label: 'Uang Muka Vendor', section: 'purchasing', icon: Wallet2, module: 'vendor_deposit', keywords: ['dp vendor', 'deposit vendor', 'vendor deposit'] }),
 
-  // ── Kas & Bank ─────────────────────────────────────────────────────────
+  // Kas & Bank
   r({ path: '/payments', label: 'Transaksi Kas & Bank', section: 'cash', icon: CreditCard, module: 'payment', keywords: ['pembayaran', 'payment', 'kas', 'bank', 'penerimaan', 'pengeluaran'] }),
   r({ path: '/cash-book-drafts', label: 'Draft Buku Kas', section: 'cash', icon: NotebookPen, module: 'journal', keywords: ['buku kas', 'nota', 'kas harian', 'petty cash', 'kas kecil', 'struk', 'catatan kas', 'draft kas', 'kasbon', 'dkb', 'foto nota', 'aira'] }),
   r({ path: '/cash-book-drafts/:id', label: 'Tinjau Draft Buku Kas', section: 'cash', icon: NotebookPen, module: 'journal', parent: '/cash-book-drafts', nav: false, keywords: ['tinjau draft kas', 'posting buku kas'] }),
@@ -167,20 +162,20 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/recurring', label: 'Transaksi Berulang', section: 'cash', icon: Repeat, module: 'recurring', keywords: ['recurring', 'berulang', 'rutin'] }),
   r({ path: '/project-guarantees', label: 'Uang Jaminan Proyek', section: 'cash', icon: Landmark, module: 'project_guarantee', keywords: ['jaminan', 'guarantee', 'retensi'] }),
 
-  // ── Persediaan & Produksi ──────────────────────────────────────────────
+  // Persediaan & Produksi
   r({ path: '/inventory', label: 'Stok & Produksi', section: 'inventory', icon: Warehouse, module: 'inventory', keywords: ['stok', 'inventory', 'persediaan', 'produksi', 'barang', 'gudang'] }),
   r({ path: '/warehouse-stock', label: 'Stok per Gudang', section: 'inventory', icon: LayoutDashboard, module: 'inventory', keywords: ['dashboard gudang', 'stok gudang', 'warehouse stock'] }),
   r({ path: '/stock-opname', label: 'Stok Opname', section: 'inventory', icon: ClipboardCheck, module: 'stock_opname', keywords: ['opname', 'hitung fisik', 'stock opname'] }),
   r({ path: '/stock-transfers', label: 'Transfer Stok', section: 'inventory', icon: ArrowLeftRight, module: 'stock_transfer', keywords: ['mutasi', 'pindah gudang', 'stock transfer'] }),
   r({ path: '/warehouses', label: 'Daftar Gudang', section: 'inventory', icon: Building2, module: 'warehouse', keywords: ['gudang', 'warehouse', 'lokasi'] }),
 
-  // ── Akuntansi ──────────────────────────────────────────────────────────
+  // Akuntansi
   r({ path: '/coa', label: 'Bagan Akun', section: 'accounting', icon: Network, module: 'coa', keywords: ['coa', 'chart of accounts', 'akun', 'perkiraan'] }),
   r({ path: '/gl', label: 'Jurnal Umum', section: 'accounting', icon: BookOpen, module: 'journal', keywords: ['buku besar', 'general ledger', 'gl', 'jurnal', 'journal'] }),
   r({ path: '/fixed-assets', label: 'Aset Tetap', section: 'accounting', icon: Building, module: 'fixed_assets', keywords: ['fixed asset', 'penyusutan', 'depresiasi'] }),
   r({ path: '/approvals', label: 'Persetujuan', section: 'accounting', icon: ShieldCheck, module: 'approvals', keywords: ['approval', 'otorisasi', 'setuju'] }),
 
-  // ── Aset & Pemeliharaan (GA/EAM) ───────────────────────────────────────
+  // Aset & Pemeliharaan (GA/EAM)
   r({ path: '/ga', label: 'Ringkasan', section: 'assets', icon: Gauge, module: 'ga_assets', keywords: ['dasbor aset', 'dashboard aset', 'ringkasan aset', 'ringkasan pemeliharaan', 'eam', 'ga', 'overview'] }),
   r({ path: '/ga/assets', label: 'Daftar Aset', section: 'assets', icon: Boxes, module: 'ga_assets', keywords: ['aset', 'asset', 'ga', 'eam'] }),
   r({ path: '/ga/vehicle', label: 'Kendaraan', section: 'assets', icon: Car, module: 'ga_vehicle', keywords: ['armada', 'vehicle', 'mobil', 'truk'] }),
@@ -193,7 +188,7 @@ export const ROUTES: readonly RouteEntry[] = [
   r({ path: '/ga/documents', label: 'Dokumen & Sertifikat', section: 'assets', icon: FileText, module: 'ga_documents', keywords: ['dokumen', 'sertifikat', 'izin', 'legalitas'] }),
   r({ path: '/ga/master', label: 'Data Induk Aset', section: 'assets', icon: FolderCog, module: 'ga_master', keywords: ['master data ga', 'kategori aset', 'lokasi'] }),
 
-  // ── Laporan ────────────────────────────────────────────────────────────
+  // Laporan
   r({ path: '/reports', label: 'Semua Laporan', section: 'reports', icon: FileBarChart, module: 'reports', keywords: ['laporan', 'report', 'laporan keuangan'] }),
   ...(
     [
@@ -219,10 +214,10 @@ export const ROUTES: readonly RouteEntry[] = [
     r({ path, label, section: 'reports', icon: FileBarChart, module: 'reports', parent: '/reports', nav: false, keywords: [...keywords] }),
   ),
 
-  // ── Data Induk ─────────────────────────────────────────────────────────
+  // Data Induk
   r({ path: '/parties', label: 'Pelanggan & Vendor', section: 'master', icon: Users, module: 'parties', keywords: ['mitra', 'customer', 'supplier', 'pemasok', 'kontak', 'party'] }),
 
-  // ── Sistem ─────────────────────────────────────────────────────────────
+  // Sistem
   r({ path: '/settings', label: 'Pengaturan', section: 'system', icon: Settings, module: 'settings', keywords: ['settings', 'konfigurasi', 'perusahaan'] }),
   r({ path: '/users', label: 'Manajemen Pengguna', section: 'system', icon: Shield, module: 'users', keywords: ['user', 'pengguna', 'akun', 'peran', 'role'] }),
   r({ path: '/audit', label: 'Jejak Audit', section: 'system', icon: ScrollText, module: 'audit', keywords: ['audit trail', 'log', 'riwayat'] }),

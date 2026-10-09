@@ -1,9 +1,6 @@
 /**
- * "Surat Jalan Sementara" (SJS) tab of /delivery-orders — list kit (pattern:
- * pages/SalesInvoices.tsx). Server-side paging/sort/filter on
- * GET /temporary-delivery-notes. The reminder banner comes from
- * GET /temporary-delivery-notes/summary (global, not filtered), loaded by the
- * page so the tab can show the open count too.
+ * Temporary delivery notes (SJS) tab of /delivery-orders. The reminder banner uses the global,
+ * unfiltered /summary, loaded by the page so the tab can show the open count too.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';

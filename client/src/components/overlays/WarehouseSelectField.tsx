@@ -1,8 +1,6 @@
 /**
- * Warehouse dropdown for dialogs. Same data and auto-default behaviour as the
- * legacy WarehousePicker (query key `warehouses-active`), but built on the
- * Radix Select so it works inside a modal dialog (the legacy picker portals
- * its menu outside the dialog's focus scope).
+ * Warehouse dropdown for dialogs, on Radix Select because WarehousePicker portals
+ * its menu outside the dialog's focus scope.
  */
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';

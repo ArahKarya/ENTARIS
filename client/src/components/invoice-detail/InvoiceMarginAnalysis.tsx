@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- API payloads are untyped (same as the legacy drawer) */
 /**
- * Phase 6 margin analysis (sales only): material WAC vs loaded HPP margin,
- * shown when at least one line has unitCostLoaded from a Phase 5 batch pick.
+ * Sales margin analysis (material WAC vs loaded HPP), shown when at least one
+ * line has unitCostLoaded from a batch pick.
  */
 import { cn } from '@/lib/utils';
 import { formatRupiah } from '@/lib/format';

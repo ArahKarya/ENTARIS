@@ -17,22 +17,9 @@ import { logger } from '../lib/logger';
 type Tx = Prisma.TransactionClient;
 
 /**
- * Edit a production run: cancel-but-keep-record then re-apply with a
- * revision JE (JV-{runNumber}-R{n}).
- *
- * Steps:
- *   1. Load existing run (reject if cancelled — edits start fresh from submit
- *      or a non-cancelled state)
- *   2. Reverse every active stockMovement (item-total + per-warehouse), mark
- *      isCancelled=true
- *   3. Recompute averageCost for output items from remaining active In moves
- *   4. Cancel every JE sharing the JV-{runNumber} prefix
- *   5. Delete old ProductionRunItems
- *   6. Apply new inputs/outputs (mirrors submitProductionRunInTx)
- *   7. Post new JE as JV-{runNumber}-R{count_of_cancelled+1}
- *   8. Recalculate affected account balances from JE sums to prevent drift
- *
- * Returns the updated run with line items + nested item info.
+ * Edit a production run: reverse its movements and JEs (record kept), re-apply the
+ * new data and post a revision JE JV-{runNumber}-R{n}. Cancelled runs are rejected;
+ * affected balances are recalculated from JE sums afterwards to prevent drift.
  */
 export async function editProductionRunInTx(
   tx: Tx,
@@ -40,7 +27,6 @@ export async function editProductionRunInTx(
   body: SubmitProductionRunInput,
   userId: string,
 ) {
-  // ─ 1. Load existing ───────────────────────────────────────────
   const oldRun = await tx.productionRun.findUnique({
     where: { id: runId },
     include: { items: { include: { item: true } } },
@@ -48,7 +34,6 @@ export async function editProductionRunInTx(
   if (!oldRun) throw new BusinessError('Data proses produksi tidak ditemukan.');
   if (oldRun.isCancelled) throw new BusinessError('Proses produksi yang sudah dibatalkan tidak bisa diedit.');
 
-  // ─ 2. Reverse old stock movements ─────────────────────────────
   const oldMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'ProductionRun', referenceId: runId, isCancelled: false },
     include: { item: true },
@@ -88,20 +73,18 @@ export async function editProductionRunInTx(
     await tx.stockMovement.update({ where: { id: mov.id }, data: { isCancelled: true } });
   }
 
-  // ─ 3. Recompute WAC by REPLAYING remaining active movements ───
-  // (input items too: re-instating consumed stock changes the base that later
-  // inbound movements were blended against). Historical COGS stays untouched.
+  // Recompute WAC by replaying the remaining active movements, input items too: restored
+  // stock changes the base later inbound moves were blended against. Historical COGS stays.
   for (const itemId of affectedItemIds) {
     await recomputeAverageCostFromReplay(tx, itemId);
   }
 
-  // ─ 4. Cancel ALL active journals for this run (incl. earlier revisions) ─
+  // Cancel all active journals for this run, including earlier revisions.
   const oldJvNumber = `JV-${oldRun.runNumber}`;
   await cancelJournalsByPrefix(tx, oldJvNumber);
   // Balik auto-settle COGS lama sebelum settle ulang dari data baru (hindari numpuk ganda)
   await reverseCogsSettlementsByTrigger(tx, 'ProductionRun', runId);
 
-  // ─ 5. Delete old line items + old cost components (Phase 3) ─────────────
   await tx.productionRunItem.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunCost.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunProcess.deleteMany({ where: { productionRunId: runId } });
@@ -109,7 +92,6 @@ export async function editProductionRunInTx(
   await tx.productionDowntime.deleteMany({ where: { productionRunId: runId } });
   await tx.productionRunMachine.deleteMany({ where: { productionRunId: runId } });
 
-  // ─ 6. Re-apply with new data ───────────────────────────────────
   const txDate = new Date(body.date);
   const fiscalYear = await tx.fiscalYear.findFirst({
     where: { isClosed: false, startDate: { lte: txDate }, endDate: { gte: txDate } },
@@ -168,8 +150,8 @@ export async function editProductionRunInTx(
       referenceId: body.referenceId || null,
       referenceNumber: body.referenceNumber || null,
       yieldPct: yieldPct !== null ? yieldPct : null,
-      // OEE capture fields (additive) — B2 multi-machine. Cleared when omitted.
-      // Legacy single machineId/startAt/endAt kept for backward compat only.
+      // OEE capture fields, cleared when omitted. Single machineId/startAt/endAt are
+      // kept for backward compat only.
       machineId: body.machineId ?? null,
       shift: body.shift ?? null,
       shiftLead: body.shiftLead ?? null,
@@ -180,8 +162,8 @@ export async function editProductionRunInTx(
       plannedEnd: body.plannedEnd ? new Date(body.plannedEnd) : null,
       breakStart: body.breakStart ? new Date(body.breakStart) : null,
       breakEnd: body.breakEnd ? new Date(body.breakEnd) : null,
-      // good_qty/reject_qty columns are LEGACY (unused). OEE Quality/output is
-      // now derived from the run's item lines — see persistOeeInTx below.
+      // good_qty/reject_qty columns are unused; OEE quality/output is derived from
+      // the run's item lines (persistOeeInTx).
       fiscalYearId: fiscalYear.id,
     },
   });
@@ -193,7 +175,7 @@ export async function editProductionRunInTx(
     );
   }
 
-  // Phase 2: batch validation + cost snapshot (mirrors submit service).
+  // Batch validation + cost snapshot (mirrors the submit service).
   const batchSnapshots = new Map<number, { sourceMovementId: string | null; batchUnitCost: number | null }>();
   for (let i = 0; i < body.inputs.length; i++) {
     const input = body.inputs[i]!;
@@ -260,8 +242,7 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─── Phase 3: pre-compute loaded HPP for the revision ──────────────────────
-  // Mirrors productionRunSubmit. Cost snapshots use the edited inputs/outputs.
+  // Pre-compute loaded HPP like productionRunSubmit, using the edited inputs/outputs.
   const totalInputQtyDec = body.inputs.reduce(
     (s, i) => s.plus(new Decimal(i.quantity)),
     new Decimal(0),
@@ -303,9 +284,8 @@ export async function editProductionRunInTx(
       .plus(totalCostInputSide)
       .plus(totalCostOutputSide)
       .minus(totalByproductValue);
-    // Guard H1 (samakan dgn productionRunSubmit): kalau NRV by-product melebihi
-    // total biaya, numerator negatif → HPP negatif akan merusak WAC/GL output
-    // utama. Clamp ke 0 + warn; operator harus review NRV by-product.
+    // By-product NRV above total cost would give a negative HPP and corrupt main-output
+    // WAC/GL: clamp to 0 and warn (same as productionRunSubmit).
     if (numerator.lt(0)) {
       logger.warn(
         {
@@ -382,7 +362,6 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─ 7. Build & post revision JE ─────────────────────────────────
   const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
   const inputNames = body.inputs.map((i) => itemMap.get(i.itemId)?.name || '').join(', ');
   const outputNames = body.outputs.map((o) => itemMap.get(o.itemId)?.name || '').join(', ');
@@ -501,7 +480,7 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─ 8. Recompute balances from authoritative JE sums ────────────
+  // Recompute balances from authoritative JE sums.
   const allRelatedJEItems = await tx.journalItem.findMany({
     where: { journalEntry: { entryNumber: { startsWith: oldJvNumber } } },
     select: { accountId: true },
@@ -511,7 +490,6 @@ export async function editProductionRunInTx(
     await recalculateAccountBalances(tx, affectedAccountIds);
   }
 
-  // ─ Persist new line items ──────────────────────────────────────
   const inputLineItems = body.inputs.map((inp, idx) => {
     const snapshot = batchSnapshots.get(idx)!;
     return {
@@ -545,7 +523,7 @@ export async function editProductionRunInTx(
   });
   await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
 
-  // Phase 3: persist cost component snapshots + HPP breakdown on the run.
+  // Persist cost component snapshots + HPP breakdown on the run.
   if (resolvedCosts.length > 0) {
     await tx.productionRunCost.createMany({
       data: resolvedCosts.map((c) => ({
@@ -562,9 +540,8 @@ export async function editProductionRunInTx(
     });
   }
 
-  // ─── OEE (B2 multi-machine): recreate downtime + machine rows, recompute ──
-  // Quality/output DERIVED from the run's item lines (no manual good/reject).
-  // Old rows already cleared in step 5 above.
+  // OEE: recreate downtime + machine rows (old ones cleared above); quality/output is
+  // derived from the run's item lines, no manual good/reject.
   const oeeSampingQty = body.outputs
     .filter((o) => o.isByProduct)
     .reduce((s, o) => s + o.quantity, 0);

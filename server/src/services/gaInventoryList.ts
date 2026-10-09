@@ -1,21 +1,12 @@
 /**
- * Query building, stock state and aggregation for the GA office inventory
- * list (GET /api/ga/inventory/items?paginated=1, GET /api/ga/inventory/items/summary)
- * and the paged movement list (GET /api/ga/inventory/movements?page=…).
- *
- * GA inventory is a small catalogue whose stock is the sum of per-location
- * rows, so the item list loads the matching items with their stock rows,
- * derives totals here, filters on the stock state, sorts and slices in memory.
- * The list and the KPI cards share `buildGaItemFilter`, so they always
- * describe the same rows.
- *
- * Read-only: nothing here writes stock or movements.
+ * GA office inventory and movement lists. Item stock is the sum of per-location rows, so stock-state
+ * filtering, sorting and paging happen in memory; list and KPI cards share `buildGaItemFilter`.
  */
 import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';
 
-// ── Stock state ──────────────────────────────────────────────────────────────
+// Stock state
 
 /** out: nothing left (≤ 0) · low: below the minimum · ok: otherwise. */
 export const GA_STOCK_STATES = ['out', 'low', 'ok'] as const;
@@ -28,7 +19,7 @@ export function gaStockState(total: Decimal, min: Decimal): GaStockState {
   return 'ok';
 }
 
-// ── Item filters ─────────────────────────────────────────────────────────────
+// Item filters
 
 export const GA_ITEM_SORT_FIELDS = ['sku', 'name', 'category', 'totalStock', 'minStock'] as const;
 export type GaItemSortField = (typeof GA_ITEM_SORT_FIELDS)[number];
@@ -94,7 +85,7 @@ export function buildGaItemFilter(query: Record<string, unknown>): GaItemFilterR
   };
 }
 
-// ── Item rows ────────────────────────────────────────────────────────────────
+// Item rows
 
 type DecimalLike = Prisma.Decimal | Decimal | number | string;
 const dec = (v: DecimalLike) => new Decimal(v.toString());
@@ -214,7 +205,7 @@ export function summarizeGaItems(items: readonly GaItemComputed[]): GaItemSummar
   return summary;
 }
 
-// ── Movement filters ─────────────────────────────────────────────────────────
+// Movement filters
 
 export const GA_MOVEMENT_TYPES = ['IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'] as const;
 export const GA_MOVEMENT_SORT_FIELDS = ['createdAt', 'quantity'] as const;

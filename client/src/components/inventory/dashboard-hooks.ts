@@ -14,7 +14,7 @@ import {
   type PeriodPreset,
 } from './dashboard-model';
 
-// ─── Period ─────────────────────────────────────────────────────────────────
+// Period
 
 export function useDashboardPeriod(): {
   period: DashboardPeriod;

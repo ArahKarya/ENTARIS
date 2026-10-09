@@ -57,13 +57,8 @@ function stepMatches(step: ParsedStep, e: KeyboardEvent): boolean {
 const MODIFIER_KEYS = new Set(['shift', 'control', 'meta', 'alt']);
 
 /**
- * Bind one or more key combos on window. The callback receives the combo that
- * fired.
- *
- * - Modifier combos (mod+k) fire everywhere, including inside inputs.
- * - Plain keys and sequences (?, g d) are ignored while typing in a field or
- *   while a dialog/popover is open.
- * - The latest callback is always used; it does not need to be memoised.
+ * Modifier combos (mod+k) fire everywhere, including inputs; plain keys and sequences are ignored
+ * while typing or while a dialog/popover is open. The callback need not be memoised.
  */
 export function useHotkey(
   combo: KeyCombo | readonly KeyCombo[],

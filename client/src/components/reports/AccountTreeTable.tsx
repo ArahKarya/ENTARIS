@@ -28,7 +28,7 @@ interface TreeTableProps {
   onAccountClick?: (accountId: string, accountName: string) => void;
 }
 
-/* ─── Recursive Row ────────────────────────────────────────────────────────── */
+// Recursive Row
 
 const AccountTreeRow: React.FC<{
   account: AccountNode;
@@ -139,8 +139,6 @@ const AccountTreeRow: React.FC<{
     </>
   );
 };
-
-/* ─── Main Component ───────────────────────────────────────────────────────── */
 
 const AccountTreeTable: React.FC<TreeTableProps> = ({
   data,

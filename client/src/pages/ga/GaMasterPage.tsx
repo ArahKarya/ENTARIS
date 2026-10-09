@@ -1,10 +1,4 @@
-/**
- * Data Induk Aset (/ga/master) — GA master data: asset categories, branches,
- * cost centers, locations, document types and inventory categories. One tab
- * per entity (?tab=<entity>), each following the master-data pattern
- * (components/inventory/master-data-kit). Writes need can('ga_master','edit')
- * (server: requirePerm('ga_master') → edit for writes).
- */
+/** GA master data (/ga/master), one tab per entity. Writes need ga_master edit. */
 import { useSearchParams } from 'react-router-dom';
 import { can } from '@/lib/permissions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

@@ -1,16 +1,7 @@
 /**
- * Query building and expiry state for the GA document list
- * (GET /api/ga/documents?page=… and GET /api/ga/documents/summary).
- *
- * Expiry state (`expiryState`) — documents still in force only:
- *   expired   status EXPIRED, or ACTIVE with an expiry date before today
- *   expiring  ACTIVE, expiry date today … today + 30 days ("segera kedaluwarsa")
- *   valid     ACTIVE, no expiry date or later than that window ("berlaku")
- *   null      REVOKED / ARCHIVED (no longer tracked)
- * "Today" is the calendar day in the business time zone (listQuery), so a
- * document stored at UTC midnight of its expiry date stays valid that day.
- *
- * Read-only: nothing here writes documents or files.
+ * GA document list. expiryState: expired (EXPIRED, or ACTIVE past expiry), expiring (ACTIVE,
+ * today..+30 days), valid (ACTIVE otherwise), null (REVOKED/ARCHIVED). "Today" is the business-TZ
+ * day, so a document expiring at UTC midnight stays valid that day.
  */
 import { Prisma } from '@prisma/client';
 import { businessUtcOffset, firstString, localDayRange, type SortSpec } from '../utils/listQuery';

@@ -180,10 +180,8 @@ router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, re
 
       const numAmount = new Decimal(payment.amount.toString());
 
-      // VendorDeposit / CustomerDeposit harus dibatalkan via endpoint khusus
-      // (PATCH /vendor-deposits/:id/cancel atau PATCH /customer-deposits/:id/cancel).
-      // Branch ini sebelumnya menyebabkan double-cancel & GL drift bila dipanggil
-      // bersamaan dengan endpoint khusus.
+      // Deposits must be cancelled via their own endpoints (vendor-deposits / customer-deposits
+      // PATCH /:id/cancel); cancelling here too causes a double cancel and GL drift.
       if (payment.paymentType === 'VendorDeposit') {
         throw new BusinessError('Gunakan endpoint Uang Muka Vendor untuk membatalkan deposit.');
       }
@@ -196,7 +194,7 @@ router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, re
         );
       }
 
-      // ── Receive / Pay cancel branch ─────────────────────────────────────
+      // Receive / Pay cancel branch
       // Reverse payment allocations
       const allocations = await tx.paymentAllocation.findMany({
         where: { paymentId: payment.id },

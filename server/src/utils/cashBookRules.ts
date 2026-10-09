@@ -45,7 +45,7 @@ export function coerceTxnType(type: TxnType, direction: Direction): TxnType {
   return txnTypeFits(type, direction) ? type : defaultTxnType(direction);
 }
 
-// ─── Money / dates / text ────────────────────────────────────────────────────
+// Money / dates / text
 
 export const roundMoney = (v: Decimal.Value): Decimal => new Decimal(v).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
@@ -157,7 +157,7 @@ export const clampConfidence = (v: unknown): number => {
   return Math.round(Math.min(1, Math.max(0, n)) * 1000) / 1000;
 };
 
-// ─── Row input ───────────────────────────────────────────────────────────────
+// Row input
 
 export interface RawRowInput {
   date?: unknown;
@@ -231,7 +231,7 @@ export function checkRowCount(existing: number, adding: number): string | null {
   return null;
 }
 
-// ─── Learned maps ────────────────────────────────────────────────────────────
+// Learned maps
 
 export interface LearnedMapEntry {
   pattern: string;
@@ -275,7 +275,7 @@ export function matchLearned(description: string, direction: Direction, maps: re
   return best?.map ?? null;
 }
 
-// ─── Classification ──────────────────────────────────────────────────────────
+// Classification
 
 export interface ClassifyInput {
   direction: Direction;
@@ -316,7 +316,7 @@ export function classifyRow(input: ClassifyInput): ClassifyResult {
   if (typeof engine.reason === 'string' && engine.reason.trim()) reasons.push(engine.reason.trim().slice(0, 200));
   let confidence = clampConfidence(engine.confidence);
 
-  // 1. txnType — direction is authoritative, never the engine's type.
+  // The cash direction decides txnType, never the engine's type.
   let engineType: TxnType | null = null;
   if (isTxnType(engine.txnType)) engineType = engine.txnType;
   else if (engine.txnType !== undefined && engine.txnType !== null && engine.txnType !== '') {
@@ -341,7 +341,6 @@ export function classifyRow(input: ClassifyInput): ClassifyResult {
     reasons.push(engine.accountProblem);
   }
 
-  // 2. account
   let accountId: string | null = null;
   let source: ClassifySource = 'none';
   if (isAdvanceType(txnType)) {
@@ -385,7 +384,7 @@ export function classifyRow(input: ClassifyInput): ClassifyResult {
   return { txnType, accountId, confidence, needsReview, reason: mergeReasons(reasons), source, contradiction };
 }
 
-// ─── Editing (Draft only) ────────────────────────────────────────────────────
+// Editing (Draft only)
 
 export interface EditState {
   direction: Direction;
@@ -420,7 +419,7 @@ export function applyRowEdit(current: EditState, patch: EditPatch, advanceAccoun
   return { ok: true, value: { direction, txnType, accountId } };
 }
 
-// ─── Journal ─────────────────────────────────────────────────────────────────
+// Journal
 
 export interface JournalLineDraft {
   accountId: string;
@@ -466,7 +465,7 @@ export function buildRowJournalLines(
   return { ok: true, value: lines };
 }
 
-// ─── Totals / balance check ──────────────────────────────────────────────────
+// Totals / balance check
 
 export interface TotalsRow {
   amount: Decimal.Value;

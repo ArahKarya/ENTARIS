@@ -1,11 +1,6 @@
 /**
- * Query building for GA material requests, GET /api/ga/material-requests.
- *
- * The endpoint historically returned a bare array (raw filters status /
- * workOrderId / mine, newest first). That legacy mode is kept byte-for-byte;
- * the paged mode — `{ data, total, page, limit }` with search, asset and
- * request-date filters plus a whitelisted sort — applies only when `page` is
- * sent. GET /summary counts the same filters per status.
+ * GA material request list. Without `page` it returns the bare array (status/workOrderId/mine,
+ * newest first); with `page` it returns `{ data, total, page, limit }`. /summary uses the same filters.
  */
 import { Prisma } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';

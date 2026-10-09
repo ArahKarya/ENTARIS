@@ -52,10 +52,8 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 /**
- * First-run setup for admins. Shown only to users who can edit settings, and
- * only while the company has no `onboardedAt`. Finishing or skipping stores the
- * timestamp on the server, so it never reappears on another browser and never
- * blocks non-admins. `localStorage.onboardingDone === 'true'` still suppresses it.
+ * First-run setup, shown only to users with settings edit while the company has no
+ * `onboardedAt` (set server-side on finish or skip). `localStorage.onboardingDone` still suppresses it.
  */
 const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
   const company = useCompanySettings() as OnboardingCompany | null;

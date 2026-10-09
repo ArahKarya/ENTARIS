@@ -1,8 +1,5 @@
-// GA Equipment (Alat Timbang) — data alat (1-1 per asset) dan calibration log
-// (1-many). Membuat calibration log otomatis menyinkronkan EquipmentData
-// (lastCalibratedAt + nextCalibrationDue dari validUntil).
-// Di-mount di /api/ga/equipment dengan requirePerm('ga_equipment').
-// Auth + RBAC ditangani di mount (index.ts), bukan di file ini.
+// GA equipment (scales): equipment data (1-1 per asset) and calibration log, mounted with requirePerm('ga_equipment') in index.ts.
+// Creating a calibration log syncs lastCalibratedAt and nextCalibrationDue (from validUntil) on the equipment data.
 
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
@@ -14,7 +11,7 @@ import { handleRouteError } from '../../utils/errors';
 
 const router = Router();
 
-// ── Zod schemas ──────────────────────────────────────────────────────
+// Zod schemas
 const WEIGHING_UNITS = ['KG', 'GRAM', 'TON', 'LBS'] as const;
 const CALIB_RESULTS = ['PASS', 'FAIL', 'CONDITIONAL'] as const;
 const CALIB_MODES = ['ON_SITE', 'SHIPPED'] as const;
@@ -44,9 +41,7 @@ const CalibrationLogSchema = z.object({
   workOrderId: z.string().optional().nullable(),
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// EQUIPMENT DATA (1-1 Asset, kategori ALAT_TIMBANG)
-// ═══════════════════════════════════════════════════════════════════
+// Equipment data (1-1 with Asset, category ALAT_TIMBANG)
 
 router.get('/assets/:id', async (req, res) => {
   try {
@@ -95,9 +90,7 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// CALIBRATION LOG (1-many)
-// ═══════════════════════════════════════════════════════════════════
+// Calibration log (1-many)
 
 router.get('/assets/:id/calibration-logs', async (req, res) => {
   try {

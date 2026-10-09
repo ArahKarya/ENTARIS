@@ -33,8 +33,8 @@ export interface SubmitSalesInvoiceInput {
     // (DO already did it); COGS uses the unitCost locked on the DO's
     // stockMovement (not the current averageCost).
     deliveryOrderItemId?: string | null;
-    // Phase 5: batch picker. When set, stock-out + sales line + COGS calc
-    // all lock to the unitCost of the linked inbound batch (vs WAC fallback).
+    // Batch picker: stock-out, sales line and COGS lock to the linked inbound batch's unitCost
+    // instead of WAC.
     sourceMovementId?: string | null;
   }>;
   dueDate?: string | null;
@@ -50,20 +50,8 @@ export interface SubmitSalesInvoiceInput {
 }
 
 /**
- * Submit a sales invoice + post every downstream side-effect:
- *   - validate party, stock availability (per-item, aggregated)
- *   - compute line amounts, PPN, PPh, grandTotal in Decimal
- *   - create salesInvoice + line items
- *   - build multi-account revenue JE (one CR per revenue account, plus
- *     optional TAX_OUTPUT and PPh DR), 1 AR DR
- *   - post ALE rows + update account balances
- *   - recalc party outstanding
- *   - for inventory-linked lines: deduct stock (item-total + per-warehouse),
- *     create stockMovement, queue COGS backfill on negative stock
- *   - post separate COGS JE
- *
- * Caller wraps in $transaction. Throws BusinessError on validation failures
- * (caller maps to 4xx). Returns the created invoice with customer + items.
+ * Submit a sales invoice: revenue JE (one CR per revenue account, optional TAX_OUTPUT CR and
+ * PPh DR, one AR DR) plus a separate COGS JE. Caller wraps in $transaction; BusinessError maps to 4xx.
  */
 export async function submitSalesInvoiceInTx(
   tx: Tx,
@@ -115,7 +103,7 @@ export async function submitSalesInvoiceInTx(
     rate: number; discount: number; amount: number; taxPct: number; pphPct: number;
     accountId: string; description: string | null;
     deliveryOrderItemId: string | null;
-    sourceMovementId: string | null;  // Phase 5: batch picker
+    sourceMovementId: string | null;  // batch picker
   }> = [];
 
   for (const item of body.items) {
@@ -155,14 +143,8 @@ export async function submitSalesInvoiceInTx(
     });
   }
 
-  // ─── Policy (2026-05): barang keluar HANYA via Surat Jalan ─────────────
-  // Setiap line dengan inventoryItemId WAJIB link ke deliveryOrderItemId
-  // (line dari DO yg sudah submit). Direct-sale (decrement stok langsung
-  // saat invoice di-submit) di-tolak supaya:
-  //   1. Tidak ada double-pengurangan stok antara DO dan invoice.
-  //   2. Audit fisik gampang: arus barang murni via DO; invoice = tagihan.
-  //   3. Mendukung kasus invoice dibuat setelah barang sudah dikirim.
-  // Service items dan lini akun bebas (tanpa inventoryItemId) tetap bisa.
+  // Goods leave only via Surat Jalan: every line with inventoryItemId must link to a submitted
+  // deliveryOrderItemId (no double stock-out). Service / free-account lines need no link.
   const orphanInventoryLines = resolvedItems.filter(
     (it) => it.inventoryItemId && !it.deliveryOrderItemId,
   );
@@ -316,13 +298,8 @@ export async function submitSalesInvoiceInTx(
   }
   await recalcPartyOutstanding(tx, body.partyId);
 
-  // ── Inventory deduction + COGS ──
-  // Two paths per inventory-linked line:
-  //   (a) Direct sale: decrement stock + create stockMovement Out; COGS uses
-  //       current averageCost. (Existing behavior.)
-  //   (b) From-DO: stock-out already happened at DO submit. We just need to
-  //       compute COGS using the unitCost LOCKED on the DO's stockMovement,
-  //       which represents the actual cost of the goods physically delivered.
+  // COGS: stock-out already happened at DO submit, so COGS uses the unitCost locked on the
+  // DO's stockMovement (the cost of the goods actually delivered).
   let totalCogs = new Decimal(0);
   const cogsByAccount = new Map<string, { amount: number; names: string[] }>();
   // Collect DO ids touched by this invoice so we can mark them as Invoiced
@@ -337,7 +314,7 @@ export async function submitSalesInvoiceInTx(
 
     const qty = Number(item.quantity);
 
-    // ── From-DO branch ────────────────────────────────────────────
+    // From-DO branch
     if (item.deliveryOrderItemId) {
       const doItem = await tx.deliveryOrderItem.findUnique({
         where: { id: item.deliveryOrderItemId },
@@ -356,9 +333,7 @@ export async function submitSalesInvoiceInTx(
           `Surat Jalan ${doItem.deliveryOrder.doNumber} sudah ada di invoice lain.`,
         );
       }
-      // Locked unitCost from the DO stockMovement is the truth for COGS here.
-      // Fallback to averageCost only if the DO had no inventory link (shouldn't
-      // happen for an inventory-linked invoice line, but defensive).
+      // averageCost is only a defensive fallback when the DO line has no stock movement.
       const cogsUnitCost = doItem.stockMovement
         ? Number(doItem.stockMovement.unitCost)
         : Math.max(0, Number(inventoryItem.averageCost));
@@ -382,10 +357,7 @@ export async function submitSalesInvoiceInTx(
       continue; // skip the direct-sale path
     }
 
-    // ── Direct-sale path closed (per policy 2026-05) ──────────────────
-    // Kalau sampai sini line punya inventoryItemId tapi tidak ada
-    // deliveryOrderItemId → seharusnya sudah ke-reject di validation awal
-    // (orphanInventoryLines guard). Defensive throw kalau bypass.
+    // Direct sale is closed; orphan inventory lines are rejected earlier, this throw is defensive.
     throw new BusinessError(
       `Item "${inventoryItem.name}" harus di-kirim via Surat Jalan terlebih dahulu. ` +
       `Direct-sale dari invoice sudah ditutup.`,

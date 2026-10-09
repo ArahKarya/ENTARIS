@@ -26,12 +26,8 @@ import {
 
 const router = Router();
 
-// GET /api/inventory/movements
-// Query: page, limit (≤200), itemId, warehouseId, movementType, status
-// (active | cancelled), startDate/endDate (YYYY-MM-DD, business-day range),
-// search, sort (date | movementNumber | item | quantity | totalValue, "-" =
-// desc). Without `sort` the historic order (movement number desc) is kept.
-// → { data, total, page, limit }
+// GET /api/inventory/movements: paged list (limit <= 200), business-day date range.
+// Without `sort` the order is movement number desc.
 router.get('/', async (req, res) => {
   try {
     const query = req.query as Record<string, unknown>;
@@ -90,7 +86,6 @@ router.post('/', async (req: AuthRequest, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Get active fiscal year for this transaction date
       const txDate = new Date(body.date);
       const fiscalYear = await tx.fiscalYear.findFirst({
         where: {
@@ -101,12 +96,11 @@ router.post('/', async (req: AuthRequest, res) => {
       });
       if (!fiscalYear) throw new BusinessError('Tidak ada tahun fiskal aktif untuk tanggal transaksi ini.');
 
-      // 2. Get item
       const item = await tx.inventoryItem.findUnique({ where: { id: body.itemId } });
       if (!item) throw new BusinessError('Item stok tidak ditemukan.');
       if (!item.isActive) throw new BusinessError('Item stok tidak aktif.');
 
-      // 2b. Resolve warehouse — explicit from body OR default warehouse.
+      // Warehouse from the body, else the default warehouse.
       let warehouseId: string | null = body.warehouseId || null;
       if (!warehouseId) {
         const defaultWh = await tx.warehouse.findFirst({ where: { isDefault: true, isActive: true } });
@@ -118,8 +112,7 @@ router.post('/', async (req: AuthRequest, res) => {
       const isOut = body.movementType === 'Out' || body.movementType === 'AdjustmentOut';
       const isIn = body.movementType === 'In' || body.movementType === 'AdjustmentIn';
 
-      // 3. Validate stock availability per WAREHOUSE (only for regular Out).
-      // Per-warehouse balance is the source of truth now.
+      // Stock check is per warehouse (the source of truth) and only for regular Out.
       const stockRow = await tx.inventoryStock.findUnique({
         where: { itemId_warehouseId: { itemId: item.id, warehouseId } },
       });
@@ -131,15 +124,14 @@ router.post('/', async (req: AuthRequest, res) => {
         );
       }
 
-      // 4. Generate movement number
       const movementDate = new Date(body.date);
       const movementNumber = await generateDocumentNumber(tx, 'SM', movementDate, fiscalYear.id);
 
-      // 5. Calculate total value (Decimal — avoid float tail in GL amounts)
+      // Decimal math avoids float tails in GL amounts.
       const unitCost = body.unitCost ?? 0;
       const totalValue = new Decimal(qty).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
 
-      // 6. Update inventory_stocks (per-warehouse) AND inventory_items.current_stock (total denorm).
+      // Keep inventory_stocks (per warehouse) and the denormalized inventory_items.current_stock in sync.
       const stockDelta = isIn ? qty : -qty;
       await tx.inventoryStock.upsert({
         where: { itemId_warehouseId: { itemId: item.id, warehouseId } },
@@ -155,7 +147,7 @@ router.post('/', async (req: AuthRequest, res) => {
         data: updateData,
       });
 
-      // 7. GL posting — always post if totalValue > 0
+      // Always post to the GL when totalValue > 0.
       // Auto-resolve offsetAccountId: use provided value, or fall back to item's inventory account
       let resolvedOffsetAccountId = body.offsetAccountId || null;
       let journalEntryId: string | null = null;
@@ -244,14 +236,12 @@ router.post('/', async (req: AuthRequest, res) => {
           ],
         });
 
-        // Update account balances
         await updateAccountBalance(tx, debitAccountId, totalValue, 0);
         await updateAccountBalance(tx, creditAccountId, 0, totalValue);
 
         journalEntryId = je.id;
       }
 
-      // 8. Create movement record
       const movement = await tx.stockMovement.create({
         data: {
           movementNumber,
@@ -267,9 +257,7 @@ router.post('/', async (req: AuthRequest, res) => {
           referenceId: body.referenceId || null,
           referenceNumber: body.referenceNumber || null,
           offsetAccountId: resolvedOffsetAccountId || body.offsetAccountId || null,
-          // Phase 5: for outbound adjustment movements, optionally link to a
-          // specific inbound batch so the batch consumption ledger stays
-          // accurate.
+          // Outbound adjustments may link to an inbound batch so batch consumption stays accurate.
           sourceMovementId:
             (body.movementType === 'Out' || body.movementType === 'AdjustmentOut') && body.sourceMovementId
               ? body.sourceMovementId
@@ -283,7 +271,7 @@ router.post('/', async (req: AuthRequest, res) => {
         },
       });
 
-      // 9. Auto-settle pending COGS backfill on stock-in
+      // Stock-in auto-settles pending COGS backfill.
       if (isIn) {
         await settleCogsBackfillForItem(tx, {
           itemId: item.id,
@@ -331,7 +319,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Load existing movement
       const oldMov = await tx.stockMovement.findUnique({
         where: { id },
         include: { item: true },
@@ -339,8 +326,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
       if (!oldMov) throw new BusinessError('Gerakan stok tidak ditemukan.');
       if (oldMov.isCancelled) throw new BusinessError('Gerakan stok sudah dibatalkan, tidak bisa diedit.');
 
-      // Reject if movement is linked to GoodsReceipt (STT): jurnal STT tak tertaut ke movement,
-      // edit per-baris meninggalkan jurnal yatim → wajib lewat halaman STT.
+      // STT-linked movements must be edited from the STT page: a per-line edit would orphan the STT journal.
       if (oldMov.referenceType === 'GoodsReceipt') {
         throw new BusinessError('Gerakan stok dari STT tidak dapat diedit per baris. Batalkan atau revisi STT dari halaman STT.');
       }
@@ -350,7 +336,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
         throw new BusinessError('Gerakan stok dari proses produksi tidak dapat diedit secara langsung.');
       }
 
-      // 2. Reverse old stock impact
       const oldIsIn = oldMov.movementType === 'In' || oldMov.movementType === 'AdjustmentIn';
       const oldQty = Number(oldMov.quantity);
       const oldReverseDelta = oldIsIn ? -oldQty : oldQty;
@@ -367,7 +352,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
       });
       await adjustWarehouseStock(tx, oldMov.itemId, oldMov.warehouseId, oldReverseDelta);
 
-      // 3. Reverse old GL entries if exist
       const oldAffectedAccountIds: string[] = [];
       if (oldMov.journalEntryId) {
         const oldJe = await tx.journalEntry.findUnique({
@@ -387,7 +371,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
         }
       }
 
-      // 4. Apply new stock impact
       const newIsIn = body.movementType === 'In' || body.movementType === 'AdjustmentIn';
       const newQty = body.quantity;
 
@@ -409,7 +392,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
       // Reuse the same warehouse the movement was originally posted to.
       await adjustWarehouseStock(tx, oldMov.itemId, oldMov.warehouseId, newStockDelta);
 
-      // 5. Create new GL entries if needed
       const newUnitCost = body.unitCost ?? 0;
       const newTotalValue = new Decimal(newQty).mul(new Decimal(newUnitCost)).toDecimalPlaces(2).toNumber();
       let newJournalEntryId: string | null = null;
@@ -496,7 +478,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
         await recalculateAccountBalances(tx, [...new Set(oldAffectedAccountIds)]);
       }
 
-      // 6. Update the movement record
       const updated = await tx.stockMovement.update({
         where: { id },
         data: {
@@ -516,8 +497,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
         },
       });
 
-      // 6b. Edit mengubah qty/biaya movement masuk → auto-settle COGS lama (kalau ada)
-      // jadi basi. Balik dulu, lalu settle ulang dari nilai baru bila masih stok-masuk.
+      // Editing an inbound movement makes its COGS auto-settle stale: reverse it, then re-settle if still stock-in.
       await reverseCogsSettlementsByTrigger(tx, "StockMovement", oldMov.id);
       if (newIsIn && newQty > 0) {
         await settleCogsBackfillForItem(tx, {
@@ -531,9 +511,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
         });
       }
 
-      // 7. Recompute averageCost (H3). The POST path blends WAC on receipt; an
-      // edit changes type/qty/cost of an existing movement, so WAC is re-derived
-      // by REPLAYING all remaining active movements in processing order.
+      // An edit can change type/qty/cost, so WAC is re-derived by replaying all active movements in order.
       await recomputeAverageCostFromReplay(tx, oldMov.itemId);
 
       return updated;

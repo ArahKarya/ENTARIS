@@ -1,19 +1,7 @@
 /**
- * Query building, usage state and aggregation for the vendor deposit list
- * (GET /api/vendor-deposits?page=… and GET /api/vendor-deposits/summary).
- *
- * Mirrors services/customerDepositList: a deposit's usage ("Aktif" /
- * "Terpakai Sebagian" / "Terpakai") depends on amounts computed from its
- * applications to purchase invoices and its cash refunds, so it cannot be a
- * plain Prisma filter. The paged list loads a light projection of every
- * deposit matching the DB-level filters, derives the figures here, filters by
- * usage state, sorts and slices — and only then loads full rows for the page.
- * The summary uses the same projection, so KPIs always describe the list.
- *
- * The amount arithmetic and badge rules are shared with customer deposits
- * (depositFigures / deriveDepositState) so both lists behave identically.
- *
- * Read-only: nothing here touches GL entries or the vendor depositBalance cache.
+ * Vendor deposit list and summary (GET /api/vendor-deposits), mirroring customerDepositList.
+ * Usage state derives from applications and refunds, so it cannot be a Prisma filter: a light
+ * projection is derived, filtered, sorted and sliced here before full rows load. Read-only.
  */
 import { DocumentStatus, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

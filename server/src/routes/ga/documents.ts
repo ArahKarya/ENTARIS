@@ -1,14 +1,5 @@
-// GA Legal Documents & Certificates.
-// Dokumen legal/sertifikat dengan versioning (upload PDF per versi) dan
-// tracking masa berlaku (expiry). Di-mount di /api/ga/documents dengan
-// requirePerm('ga_documents') oleh routes/ga/index.ts.
-//
-// Ported dari ga-monitor (server/src/routes/documents.ts), diadaptasi ke
-// konvensi ERP. Fitur OCR di luar scope — sengaja tidak diport.
-//
-// Versi baru = max(versionNo) + 1 per dokumen (constraint @@unique
-// documentId+versionNo). File disimpan ke disk (UPLOADS_DIR/ga/documents),
-// hanya filePath relatif + fileSize yang dicatat di GaDocumentVersion.
+// GA legal documents and certificates with versioned PDF uploads and expiry tracking, mounted with requirePerm('ga_documents') in index.ts.
+// New version = max(versionNo) + 1 per document (unique documentId+versionNo); files live on disk, only the relative path is stored.
 
 import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
@@ -36,12 +27,12 @@ import {
 
 const router = Router();
 
-// ── File storage ───────────────────────────────────────────────────
+// File storage
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
 const DIR = path.join(UPLOADS_DIR, 'ga', 'documents');
 const DIR_REL = path.join('ga', 'documents');
 
-// ── Validation schema (inline — ERP konvensi: Zod di route bila belum
+// Validation schema (inline: ERP konvensi: Zod di route bila belum
 //    ada di utils/schemas.ts). `code` opsional saat create; server
 //    auto-generate dari documentType.code + tahun.
 const DocumentSchema = z.object({
@@ -57,7 +48,7 @@ const DocumentSchema = z.object({
   customFields: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
-// ── Multer (memory storage, max 20 MB, hanya PDF) ──────────────────
+// Multer (memory storage, max 20 MB, hanya PDF)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -66,7 +57,7 @@ const upload = multer({
   },
 });
 
-// ── Document code numbering ────────────────────────────────────────
+// Document code numbering
 // Prefix `{TYPE_CODE}-{YYYY}-` (type code di-sanitize, dipotong 12 char).
 async function resolveDocCodePrefix(
   tx: Prisma.TransactionClient,
@@ -107,15 +98,8 @@ async function nextDocCodeInTx(
   return `${prefix}${String(next).padStart(4, '0')}`;
 }
 
-// GET /api/ga/documents — list + filter.
-//  • without `page` (legacy — asset documents drawer, AIRA gd_list /
-//    gd_expiring): array, filters typeId, assetId, status, q, plus
-//    expiring-soon (expiringDays → window dari sekarang). Unchanged.
-//  • with `page` (Dokumen & Sertifikat list): `{ data, total, page, limit }`
-//    (limit ≤200, default 25), same row shape + `expiryState`
-//    (expired | expiring | valid | null); filters `typeId`, `assetId`,
-//    `status`, `expiry` (expired | expiring | valid), `search`, `sort`
-//    (expiryDate | code | title | effectiveDate). Invalid filters → 400.
+// GET /api/ga/documents: without `page` returns an array (asset drawer and AIRA tools depend on it);
+// with `page` returns `{ data, total, page, limit }` (limit <= 200) plus `expiryState`. Invalid filters -> 400.
 router.get('/', async (req, res) => {
   try {
     if (req.query.page !== undefined) return await listDocumentsPaged(req.query as Record<string, unknown>, res);

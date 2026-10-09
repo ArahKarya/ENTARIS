@@ -1,15 +1,6 @@
 /**
- * Query building for GA work orders, GET /api/ga/maintenance/work-orders.
- *
- * The endpoint historically returned a bare array of every matching work
- * order (raw filters status / priority / type / assetId / assignedToId /
- * mine). That legacy mode is kept byte-for-byte for the dashboard and AIRA;
- * the paged mode — `{ data, total, page, limit }` with search, due-state and
- * report-date filters plus a whitelisted sort — applies only when `page` is
- * sent (same convention as services/fixedAssetList). The KPI endpoint
- * (GET /work-orders/summary) reuses the same filters.
- *
- * Read-only: lifecycle transitions, parts and cost posting live in the route.
+ * GA work order list. Without `page` it returns the bare array (used by the dashboard and AIRA);
+ * with `page` it returns `{ data, total, page, limit }`. /work-orders/summary uses the same filters.
  */
 import { Prisma } from '@prisma/client';
 import { businessUtcOffset, firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';

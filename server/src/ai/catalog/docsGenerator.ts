@@ -48,7 +48,7 @@ export function loadGeneratorInput(): GeneratorInput {
   return { registry: reg, inventory: buildRouteInventory(), guides, denyRules: DENY_RULES };
 }
 
-// ─── Contoh nilai ────────────────────────────────────────────────────────────
+// Contoh nilai
 function sample(p: ToolParam): unknown {
   if (p.enum?.length) return p.enum[0];
   if (p.type.startsWith('array<object')) {
@@ -86,7 +86,6 @@ function exampleResult(t: ToolDef, args: Record<string, unknown>): string {
   return JSON.stringify({ ok: true, kind: 'action', status: 'pending_approval', approvalId: '<id>', confirm: renderConfirm(t.confirm_template, args) }, null, 2);
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
 const esc = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function paramRows(params: ToolParam[], prefix = ''): string[] {
@@ -191,7 +190,7 @@ export function generateDocs(input: GeneratorInput): Record<string, string> {
     out[`${ts}.md`] = `${L.join('\n').replace(/\n{3,}/g, '\n\n')}\n`;
   }
 
-  // INDEX
+  // Index page
   const rt = countBy(tools, (t) => t.risk);
   const I = [
     '# Indeks Katalog Tool AIRA/MCP',
@@ -218,7 +217,7 @@ export function generateDocs(input: GeneratorInput): Record<string, string> {
   ];
   out['INDEX.md'] = `${I.join('\n')}\n`;
 
-  // DENYLIST
+  // Denylist page
   const D = [
     '# Denylist — Endpoint yang TIDAK BOLEH menjadi Tool',
     '',
@@ -235,7 +234,7 @@ export function generateDocs(input: GeneratorInput): Record<string, string> {
   ];
   out['DENYLIST.md'] = `${D.join('\n')}\n`;
 
-  // README
+  // README page
   const readme = guides['_README.md'] ?? '# Katalog Tool AIRA/MCP\n';
   out['README.md'] = `${readme.replace('{{COUNTS}}', `**${tools.length}** tool dalam **${TOOLSETS.length}** toolset (read ${rt.read ?? 0}, write ${rt.write ?? 0}, critical ${rt.critical ?? 0}); ${inventory.length} route API terinventaris.`).trimEnd()}\n`;
 

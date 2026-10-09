@@ -17,13 +17,8 @@ interface CancelOptions {
 }
 
 /**
- * Cancel a production run and reverse every downstream effect:
- *   - reverse stock movements (item-total + per-warehouse), mark them cancelled
- *   - recompute averageCost for each output item from remaining active In movements
- *   - cancel all related journal entries (including any revisions sharing the
- *     same JV- prefix) + ALE rows
- *   - recalculate affected account balances from JE sums (prevents drift)
- *   - mark the run as cancelled
+ * Cancel a production run: reverse its stock movements, recompute output WAC from the remaining
+ * In movements, cancel every JE sharing its JV- prefix (incl. revisions) and recalc balances from JE sums.
  */
 export async function cancelProductionRunInTx(
   tx: Tx,

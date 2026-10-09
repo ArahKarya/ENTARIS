@@ -1,9 +1,6 @@
 /**
- * Work Order tab of the Pemeliharaan page — server-paged list built on the
- * Phase 3 list kit (see pages/SalesInvoices.tsx):
- *   GET /ga/maintenance/work-orders?page=… → { data, total, page, limit }
- *   GET /ga/maintenance/work-orders/summary (same filters) → KPI cards
- * Rows open the detail sheet (the page owns ?wo=<id>).
+ * Server-paged work order list; KPI cards use the same filters. Rows open the
+ * detail sheet (the page owns ?wo=<id>).
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

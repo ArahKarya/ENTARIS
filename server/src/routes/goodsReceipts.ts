@@ -17,7 +17,7 @@ import {
 
 const router = Router();
 
-// ─── GET / list ───────────────────────────────────────────────────────────
+// GET / list
 // Query: page, limit (≤200), status (see services/goodsReceiptList), partyId,
 // startDate, endDate (YYYY-MM-DD), search (STT / supplier / no. mobil / PO),
 // includeLegacy, sort (e.g. "-date"). → { data, total, page, limit }
@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─── GET /pending — for PI modal to pick STT not yet invoiced ──────────────
+// GET /pending: for PI modal to pick STT not yet invoiced
 router.get('/pending', async (req, res) => {
   try {
     const { partyId } = req.query;
@@ -80,7 +80,7 @@ router.get('/pending', async (req, res) => {
   }
 });
 
-// ─── GET /:id detail ──────────────────────────────────────────────────────
+// GET /:id detail
 router.get('/:id', async (req, res) => {
   try {
     const gr = await prisma.goodsReceipt.findUnique({
@@ -107,7 +107,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── POST / submit ────────────────────────────────────────────────────────
+// POST / submit
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateGoodsReceiptSchema, req.body, res);
   if (!body) return;
@@ -124,7 +124,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/cancel ─────────────────────────────────────────────────────
+// POST /:id/cancel
 router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const allowNegativeStock = req.body?.allowNegativeStock === true;

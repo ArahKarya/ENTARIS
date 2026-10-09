@@ -1,31 +1,8 @@
 /**
- * useListState — URL-synced state for server-paginated list pages.
- *
- * Everything that defines "what the list shows" lives in the URL search params,
- * so back/forward works and links can be shared:
- *
- *   ?page=2&size=50&q=beras&sort=-date&status=Paid&startDate=2026-01-01
- *
- *   page   1-based page (omitted when 1)
- *   size   page size, one of pageSizeOptions (omitted when default, 25)
- *   q      search text, committed 300 ms after the last keystroke
- *   sort   "field" ascending or "-field" descending (omitted when default)
- *   <key>  one param per filter key you declare (status, partyId, …)
- *
- * Changing search, a filter, the sort or the page size resets page to 1.
- * Search typing replaces the history entry; other changes push a new one.
- * Params you do not declare (e.g. deep-link flags) are left untouched.
- *
- * Usage (see pages/SalesInvoices.tsx for the full reference page):
- *
- *   const list = useListState({ filters: ['status', 'partyId', 'startDate', 'endDate'] });
- *   const { data } = useQuery({
- *     queryKey: ['sales-invoices', 'list', list.params],
- *     queryFn: () => api.get('/sales/invoices', { params: list.params }).then((r) => r.data),
- *     placeholderData: keepPreviousData,
- *   });
- *   // list.params → { page, limit, search?, sort?, status?, … } (empty values dropped)
- *   // list.filterParams → same without page/limit/sort, for /summary or export
+ * URL-synced list state: page (1-based), size (default 25), q (committed 300 ms after typing),
+ * sort ("field" or "-field") and one param per declared filter; defaults are omitted from the URL.
+ * Changing search, a filter, sort or size resets page to 1; typing replaces the history entry.
+ * Undeclared params are left untouched. `filterParams` drops page/limit/sort for /summary or export.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -145,7 +122,7 @@ export function useListState<K extends string = never>(options: UseListStateOpti
     [setSearchParams],
   );
 
-  // ── Search: local input, debounced commit to the URL ─────────────────────
+  // Search: local input, debounced commit to the URL
   const [searchInput, setSearchInput] = useState(search);
   const [syncedSearch, setSyncedSearch] = useState(search);
   // Last value this hook wrote itself; an URL change to anything else
@@ -169,7 +146,6 @@ export function useListState<K extends string = never>(options: UseListStateOpti
     return () => window.clearTimeout(timer);
   }, [searchInput, search, searchDebounceMs, update]);
 
-  // ── Setters ───────────────────────────────────────────────────────────────
   const setPage = useCallback(
     (next: number) => {
       const p = Math.max(1, Math.trunc(next) || 1);
@@ -213,7 +189,7 @@ export function useListState<K extends string = never>(options: UseListStateOpti
     update(patch);
   }, [update, filterKeyList]);
 
-  // ── Derived API params ────────────────────────────────────────────────────
+  // Derived API params
   const filterParams = useMemo(() => {
     const out: Record<string, string> = {};
     if (search) out.search = search;

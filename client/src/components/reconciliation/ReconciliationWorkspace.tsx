@@ -1,9 +1,6 @@
 /**
- * Matching workspace for one bank reconciliation session (book ledger entries
- * vs bank statement lines). Specialised screen: the matching flow (pair the
- * clicked ledger entry with the first unmatched statement line), unmatching,
- * adding statement lines and completing are unchanged — only the presentation
- * uses the design tokens and semantic, keyboard-reachable tables.
+ * Matching workspace for one bank reconciliation session. Clicking a ledger entry
+ * pairs it with the first unmatched statement line.
  */
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -198,7 +195,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
   const editable = isDraft && canEdit;
 
   const matchEntry = (entryId: string) => {
-    // Pair with the first unmatched statement line (unchanged behaviour).
+    // Pair with the first unmatched statement line.
     const unmatched = items.find((i) => !i.isMatched);
     if (unmatched) {
       matchMutation.mutate({ itemId: unmatched.id, ledgerEntryId: entryId });

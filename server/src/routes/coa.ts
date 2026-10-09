@@ -70,7 +70,7 @@ router.get('/flat', async (req, res) => {
   }
 });
 
-// POST /api/coa — create new account (Admin only)
+// POST /api/coa: create account (requires coa edit permission)
 router.post('/', async (req, res) => {
   const body = validateBody(CreateAccountSchema, req.body, res);
   if (!body) return;
@@ -99,7 +99,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/coa/:id — update account (Admin only)
+// PUT /api/coa/:id: update account (requires coa edit permission)
 router.put('/:id', async (req, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateAccountSchema, req.body, res);
@@ -150,7 +150,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/coa/:id/balance — set opening balance (Admin only)
+// PATCH /api/coa/:id/balance: set opening balance (requires coa edit permission)
 router.patch('/:id/balance', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const body = validateBody(SetBalanceSchema, req.body, res);
@@ -224,18 +224,17 @@ router.patch('/:id/balance', async (req: AuthRequest, res) => {
   }
 });
 
-// DELETE /api/coa/:id — delete account with safety checks (Admin only)
+// DELETE /api/coa/:id: requires coa edit permission and the doc.cancel capability
 router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
   const id = req.params.id as string;
 
   try {
-    // 1. Check no child accounts
     const childCount = await prisma.account.count({ where: { parentId: id } });
     if (childCount > 0) {
       return res.status(400).json({ error: 'Tidak dapat menghapus akun yang masih memiliki sub-akun. Hapus sub-akun terlebih dahulu.' });
     }
 
-    // 2. Check not used as a system account (role mapping)
+    // Accounts mapped as system accounts cannot be deleted.
     const sysMappings = await prisma.systemAccountMapping.findMany({ where: { accountId: id }, select: { role: true } });
     if (sysMappings.length > 0) {
       const roles = sysMappings.map((m) => m.role).join(', ');
@@ -244,7 +243,6 @@ router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
       });
     }
 
-    // 3. Check not linked to inventory items / service items
     const [itemCount, serviceCount] = await Promise.all([
       prisma.inventoryItem.count({ where: { accountId: id } }),
       prisma.serviceItem.count({ where: { accountId: id } }),
@@ -258,13 +256,11 @@ router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
       });
     }
 
-    // 4. Check no ledger entries (posted transactions)
     const ledgerCount = await prisma.accountingLedgerEntry.count({ where: { accountId: id, isCancelled: false } });
     if (ledgerCount > 0) {
       return res.status(400).json({ error: 'Tidak dapat menghapus akun yang sudah memiliki transaksi.' });
     }
 
-    // 5. Check zero balance
     const account = await prisma.account.findUnique({ where: { id }, select: { balance: true, name: true } });
     if (!account) return res.status(404).json({ error: 'Akun tidak ditemukan.' });
     if (Number(account.balance) !== 0) {

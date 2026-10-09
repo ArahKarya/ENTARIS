@@ -1,9 +1,5 @@
-// Inventaris route API (STATIS) — memetakan SEMUA endpoint Express beserta guard mount-nya.
-//
-// Kenapa statis: server/src/index.ts memanggil app.listen() + scheduler + Prisma saat di-import,
-// sehingga router stack tidak bisa ditelusuri secara dinamis tanpa efek samping. Maka kita parse
-// AST (TypeScript compiler API): mount di index.ts → file router → router.METHOD(...) / router.use(...).
-// Tidak butuh server hidup maupun DB. Dipakai script CLI & test drift guard.
+// Static inventory of every Express endpoint and its mount guard, parsed from the AST because
+// importing index.ts starts the server, scheduler and Prisma. Needs no running server or DB.
 
 import fs from 'node:fs';
 import path from 'node:path';

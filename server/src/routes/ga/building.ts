@@ -1,6 +1,4 @@
-// GA Building — data bangunan (1-1 per asset) dan rental (1-many).
-// Di-mount di /api/ga/building dengan requirePerm('ga_building').
-// Auth + RBAC ditangani di mount (index.ts), bukan di file ini.
+// GA building data (1-1 per asset) and rentals, mounted with requirePerm('ga_building') in index.ts.
 
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
@@ -12,7 +10,7 @@ import { handleRouteError } from '../../utils/errors';
 
 const router = Router();
 
-// ── Zod schemas ──────────────────────────────────────────────────────
+// Zod schemas
 const BUILDING_TYPES = ['KANTOR', 'GUDANG', 'PABRIK', 'RUMAH', 'MESS', 'RUKO', 'LAINNYA'] as const;
 const BUILDING_OWNERSHIP = ['MILIK_SENDIRI', 'SEWA_MASUK', 'SEWA_KELUAR', 'PINJAM_PAKAI'] as const;
 const LAND_CERT_TYPES = ['HM', 'HGB', 'HGU', 'HP_AKTA', 'GIRIK', 'BELUM_SERTIFIKAT'] as const;
@@ -52,9 +50,7 @@ const BuildingRentalSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// BUILDING DATA (1-1 dengan Asset)
-// ═══════════════════════════════════════════════════════════════════
+// Building data (1-1 with Asset)
 
 router.get('/assets/:id', async (req, res) => {
   try {
@@ -105,9 +101,7 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// RENTAL (1-many dengan Asset)
-// ═══════════════════════════════════════════════════════════════════
+// Rental (1-many with Asset)
 
 router.get('/assets/:id/rentals', async (req, res) => {
   try {

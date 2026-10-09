@@ -1,11 +1,4 @@
-/**
- * Notifikasi (/notifications) — list-kit page (see pages/SalesInvoices.tsx).
- *
- * URL: ?q= (title/message) &isRead=true|false &type=<notification type> &page/size.
- * Data: GET /notifications in paged mode ({ data, total, page, limit, unreadCount })
- * and GET /notifications/types for the type filter. The topbar bell keeps
- * using the legacy unpaged call.
- */
+/** Notifications (/notifications), paged; the topbar bell still uses the unpaged call. */
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

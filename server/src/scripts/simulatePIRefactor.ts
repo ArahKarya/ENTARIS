@@ -22,7 +22,7 @@ async function main() {
   console.log(`Item      : ${invItem.name} (akun ${invItem.accountId ?? 'default'})`);
   console.log(`Fiscal Yr : ${fy.name}\n`);
 
-  // ─── Simulasi 3 baris ───
+  // Simulasi 3 baris
   const items = [
     {
       itemName: invItem.name,
@@ -72,7 +72,7 @@ async function main() {
   console.log(`  Header potongan  : ${headerPotongan.toFixed(2)}  (cache = SUM items.potonganItem)`);
   console.log(`  Grand Total      : ${grandTotal.toFixed(2)}\n`);
 
-  // ─── Sanity asserts ───
+  // Sanity asserts
   // Line 1: 1000×6500=6,500,000; pph 0.5%=32,500; pot 50,000 → 6,417,500
   const ok1 = calcs[0].hargaAkhir.toNumber() === 6_417_500;
   // Line 2: 1500×7000=10,500,000; pph 0.5%=52,500; pot 30,000 → 10,417,500
@@ -88,7 +88,7 @@ async function main() {
   console.log(`  ✓ Items total = 16,835,000     : ${ok3 ? 'PASS' : 'FAIL'}`);
   console.log(`  ✓ Header potongan = 80,000     : ${ok4 ? 'PASS' : 'FAIL'}`);
 
-  // ─── DB write (rolled back) ───
+  // DB write (rolled back)
   console.log('\n─── DB INTEGRATION (rolled back) ───');
   await prisma
     .$transaction(async (tx) => {

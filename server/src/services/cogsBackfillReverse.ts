@@ -8,17 +8,9 @@ type Tx = Prisma.TransactionClient;
 const NEAR_ZERO_QTY = 0.0005;
 
 /**
- * Balik semua auto-settle COGS backfill yang dipicu oleh satu dokumen stok-masuk
- * (ProductionRun / PurchaseInvoice / StockMovement). Dipanggil saat dokumen
- * pemicu dibatalkan atau diedit (sebelum dibuat ulang).
- *
- * Yang dikembalikan:
- *   - JV auto-settle (JV-YYYYMM-nnnn, narasi "Auto-settle COGS ...") → Cancelled + ALE
- *   - qtyPending/status antrean (cogs_backfill_queue) → seperti sebelum settle
- *   (averageCost item dihitung ulang oleh pemanggil dari movement aktif, bukan di sini)
- *   - catatan cogs_backfill_settlements → dihapus
- *
- * Aman dipanggil kalau tidak ada settlement (return 0 tanpa tulis DB).
+ * Reverse every COGS backfill auto-settle triggered by one stock-in document (on cancel or before
+ * re-create on edit): cancels the auto-settle JVs + ALE, restores queue qtyPending/status, deletes
+ * the settlement rows. No-op without settlements.
  */
 export async function reverseCogsSettlementsByTrigger(
   tx: Tx,
@@ -32,7 +24,7 @@ export async function reverseCogsSettlementsByTrigger(
   });
   if (settlements.length === 0) return { reversed: 0, journalsCancelled: 0 };
 
-  // 1) Batalkan JV auto-settle (satu JV bisa dipakai banyak settlement per batch)
+  // One auto-settle JV can cover many settlements in a batch.
   const jeIds = [...new Set(settlements.map((s) => s.journalEntryId).filter((x): x is string => !!x))];
   const affectedAccountIds = new Set<string>();
   let journalsCancelled = 0;
@@ -45,7 +37,6 @@ export async function reverseCogsSettlementsByTrigger(
     journalsCancelled++;
   }
 
-  // 2) Kembalikan antrean (qtyPending + status)
   for (const s of settlements) {
     const q = s.queue;
     const restoredPending = new Decimal(q.qtyPending.toString()).plus(s.qtySettled.toString());
@@ -62,14 +53,12 @@ export async function reverseCogsSettlementsByTrigger(
     });
   }
 
-  // 3) Hapus catatan settlement (setelah antrean dikembalikan)
+  // Delete settlements only after the queue is restored.
   await tx.cogsBackfillSettlement.deleteMany({ where: { id: { in: settlements.map((s) => s.id) } } });
 
-  // 4) averageCost TIDAK dibalik secara aritmetika di sini: nilai persediaan sudah berubah sejak
-  //    settle, sehingga pembalikan bisa meleset/terpotong ke 0. Pemanggil yang memang mengubah
-  //    stok (cancel/edit PR) sudah menghitung ulang averageCost dari movement masuk aktif.
+  // averageCost is not reversed arithmetically (inventory value moved since settle and could clip to 0);
+  // callers that change stock recompute it from active inbound movements.
 
-  // 5) Hitung ulang cache saldo akun terdampak dari ledger
   if (affectedAccountIds.size > 0) await recalculateAccountBalances(tx, [...affectedAccountIds]);
 
   logger.info(

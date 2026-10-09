@@ -42,10 +42,7 @@ function toDelta(cur: number | undefined, prev: number | undefined, enabled: boo
   return d ? { value: d.text, direction: d.direction, label: 'vs periode sebelumnya' } : undefined;
 }
 
-/**
- * Executive KPI strip. Same endpoints/params as before (metrics, charts, stock-alerts);
- * the previous-period delta re-uses them with the comparison window (no new endpoints).
- */
+/** Executive KPI strip; the previous-period delta reuses the same endpoints with the comparison window. */
 /** Desktop columns that leave no hole in the last row for a given tile count. */
 const LG_COLS: Record<number, string> = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 9: 'lg:grid-cols-3' };
 const gridClass = (count: number) =>

@@ -47,10 +47,8 @@ export async function adjustWarehouseStock(
  * Returns a Map keyed by `${itemId}::${warehouseId}` -> current stock number.
  * Missing inventory_stocks rows are reported as 0 (no row == never stocked).
  *
- * This is the read-side counterpart of `adjustWarehouseStock` and the ONLY
- * correct basis for "is there enough stock" checks: `inventory_items.
- * currentStock` is a denormalized total across every warehouse and will
- * happily pass a check for a warehouse that is actually empty.
+ * Use this, not `inventory_items.currentStock` (a total across warehouses), for
+ * "is there enough stock" checks.
  */
 export async function getWarehouseStockMap(
   tx: Tx,

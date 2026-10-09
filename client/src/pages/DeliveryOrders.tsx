@@ -1,9 +1,6 @@
 /**
- * Surat Jalan (/delivery-orders): one page, two tabs.
- *  • Surat Jalan Resmi (DO — memotong stok, lalu diinvoice)       ?tab omitted
- *  • Surat Jalan Sementara (SJS — tanpa stok/GL, ditautkan ke DO) ?tab=sjs
- * The tab lives in the URL; switching tabs drops the other tab's list params
- * (search/filters/page/sort) because both lists share the same param names.
+ * Delivery orders: official DO (cuts stock, then invoiced; no ?tab) and temporary SJS (no stock/GL,
+ * linked to a DO; ?tab=sjs). Switching tabs drops list params because both lists share param names.
  */
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

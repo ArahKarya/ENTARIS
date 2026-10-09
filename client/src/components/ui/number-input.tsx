@@ -2,15 +2,8 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * NumberInput — drop-in pengganti <input type="number"> yang AMAN.
- *
- * Menonaktifkan perilaku bawaan yang berbahaya untuk field nominal/uang:
- * - scroll roda mouse tidak lagi mengubah nilai (field di-blur saat di-scroll)
- * - tombol panah Atas/Bawah tidak lagi menaikkan/menurunkan nilai
- * - spinner visual disembunyikan
- *
- * Pemakaian sama seperti <input> biasa; type dipaksa "number".
- * Untuk field baru, gunakan komponen ini alih-alih <input type="number">.
+ * Drop-in replacement for <input type="number"> for amount fields: wheel scroll
+ * and Up/Down arrows no longer change the value, and the spinner is hidden.
  */
 export const NumberInput = React.forwardRef<
   HTMLInputElement,

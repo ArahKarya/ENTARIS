@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react';
 
-/**
- * Returns `value` debounced by `delay` ms. Useful for search inputs so the
- * filtering work doesn't re-run on every keystroke.
- *
- * Usage:
- *   const debouncedSearch = useDebounce(searchTerm, 200);
- *   const filtered = useMemo(() => list.filter(...), [list, debouncedSearch]);
- */
+/** Returns `value` debounced by `delay` ms, e.g. so search filtering does not run on every keystroke. */
 export function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
   useEffect(() => {

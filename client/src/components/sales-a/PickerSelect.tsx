@@ -1,8 +1,6 @@
 /**
- * Searchable single select for the Penjualan dialogs/sheets. Drop-in for the
- * legacy SearchableSelect (same props), but built on the shared ComboboxFilter
- * (Radix Popover + cmdk) because the legacy menu is portalled outside a modal
- * dialog's focus scope and cannot be clicked there.
+ * Drop-in for SearchableSelect inside dialogs: its menu portals outside the modal
+ * focus scope and cannot be clicked there, so this uses ComboboxFilter.
  */
 import { ComboboxFilter } from '@/components/shared';
 

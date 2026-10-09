@@ -58,7 +58,7 @@ export interface ToolDef {
   requiresCapability?: string;
   confirm_template?: string; // wajib utk write/critical
 
-  // ── Tambahan Stage 0 (katalog lengkap; semua OPSIONAL → kompatibel mundur) ──
+  // Full-catalog fields, all optional for backward compatibility.
   /** Pengelompokan fungsional katalog (lihat TOOLSETS). */
   toolset?: Toolset;
   /** true = tool write yang hanya membuat DRAFT / pengajuan pending (tidak posting GL/stok sendiri). */

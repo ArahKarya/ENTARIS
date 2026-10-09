@@ -18,7 +18,7 @@ const router = Router();
 router.use(dummyDataRouter);
 
 // GET /api/settings/runtime — runtime info (platform, domain, versions).
-// Restricted to Admin/Accountant because nodeVersion + hostname + memory size
+// Requires settings view permission: nodeVersion, hostname and memory size
 // are useful reconnaissance signals to anyone with read access to the system.
 router.get('/runtime', requirePerm('settings'), async (req, res) => {
   try {
@@ -80,7 +80,7 @@ router.get('/company', async (req, res) => {
   }
 });
 
-// PUT /api/settings/company (Admin only)
+// PUT /api/settings/company (requires settings edit permission)
 router.put('/company', requirePerm('settings'), async (req, res) => {
   const rawBody = req.body;
   const mergedBody = {
@@ -131,10 +131,9 @@ router.put('/company', requirePerm('settings'), async (req, res) => {
   }
 });
 
-// POST /api/settings/company/onboarding — tandai penyiapan awal selesai/dilewati.
-// Admin only (izin 'settings' edit, POST → edit). Idempoten: timestamp pertama
-// dipertahankan. Respons sengaja ringkas (bukan seluruh record) supaya audit
-// log tidak ikut menyimpan logo base64.
+// POST /api/settings/company/onboarding: mark initial setup done or skipped.
+// Requires settings edit permission. Idempotent: the first timestamp is kept.
+// Minimal response so the audit log does not store the base64 logo.
 router.post('/company/onboarding', requirePerm('settings'), async (_req, res) => {
   try {
     const existing = await prisma.companySettings.findFirst({

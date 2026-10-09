@@ -1,13 +1,5 @@
-// EAM bill queue ("Tagihan EAM" in Pengajuan Pembayaran, formerly /ga/finance).
-//
-// One loader merges the three EAM sources into a common bill shape; the
-// posting / cancel dispatchers wrap the proven gaFinance service functions so
-// the /api/payment-requests/eam routes keep a single source of posting truth
-// (no duplicated GL logic).
-//
-// Sources: VEHICLE_TAX (approved tax, IN_PROCESS), SERVICE_LOG (source='EAM'
-// only — source='IMPORT' is already in the GL and would double post),
-// MATERIAL_REQUEST (APPROVED/FULFILLED spare-part MRs).
+// EAM bill queue: merges VEHICLE_TAX, SERVICE_LOG and MATERIAL_REQUEST into one bill shape; posting
+// goes only through gaFinance. SERVICE_LOG source='IMPORT' is excluded (already in the GL).
 import Decimal from 'decimal.js';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
@@ -35,11 +27,8 @@ export async function loadGaBills(kind: string, includePaid: boolean) {
   const [taxes, logs, mrs] = await Promise.all([
     wants('VEHICLE_TAX')
       ? prisma.gaVehicleTax.findMany({
-          // Antrian pajak TIDAK boleh bergantung pada string status saja:
-          // edit data aset di EAM bisa menimpa status kembali ke ACTIVE
-          // (default schema) sehingga tagihan hilang dari antrian.
-          // Sumber kebenaran = belum terjurnal & berasal dari pengajuan
-          // yang sudah di-approve (atau sudah ditandai IN_PROCESS).
+          // Do not rely on status alone: an EAM asset edit can reset it to ACTIVE. The source of
+          // truth is "not journaled yet and from an approved request (or IN_PROCESS)".
           where: includePaid
             ? {
                 OR: [
@@ -159,10 +148,10 @@ export async function loadGaBills(kind: string, includePaid: boolean) {
 
 export type GaBill = Awaited<ReturnType<typeof loadGaBills>>[number];
 
-/** Posted = has a journal or a purchase invoice (same rule the old page used). */
+/** Posted = has a journal or a purchase invoice. */
 export const isBillPosted = (b: Pick<GaBill, 'journalEntry' | 'purchaseInvoice'>) => !!b.journalEntry || !!b.purchaseInvoice;
 
-// ─── Paged / filtered list for /api/payment-requests/eam ─────────────────────
+// Paged / filtered list for /api/payment-requests/eam
 
 export const EAM_SORT_FIELDS = ['date', 'amount', 'kind', 'asset'] as const;
 export type EamSortField = (typeof EAM_SORT_FIELDS)[number];
@@ -263,7 +252,7 @@ export function summarizeEam(all: readonly GaBill[], matched: readonly GaBill[])
   return { pendingCount: pending.length, pendingAmount: sum(pending), matchedCount: matched.length, matchedAmount: sum(matched) };
 }
 
-// ─── Posting / cancel dispatchers (shared by both routers) ───────────────────
+// Posting / cancel dispatchers (shared by both routers)
 
 export interface EamPayInput {
   method: 'JOURNAL' | 'PURCHASE_INVOICE';

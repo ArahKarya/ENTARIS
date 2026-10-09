@@ -2,18 +2,8 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { RefreshCcw } from 'lucide-react';
 
-// Polls /api/version dan memicu reload-toast saat server build version berubah.
-// Tujuan: setiap deploy baru otomatis nge-prompt user yang sedang login untuk
-// muat ulang, supaya bundle/asset terbaru langsung dipakai tanpa Ctrl-Shift-R.
-//
-// Strategi:
-//   - Saat mount pertama, fetch versi server lalu simpan sebagai baseline.
-//   - Polling setiap 2 menit; juga trigger sekali setiap tab kembali ke fokus
-//     (visibilitychange) supaya update langsung kedeteksi saat user balik
-//     ke aplikasi setelah lama idle.
-//   - Bila version berbeda dari baseline → tampilkan toast persistent dengan
-//     tombol "Muat Ulang". Toast hanya muncul sekali (alreadyPromptedRef).
-//   - Network/fetch error diam — bukan kondisi yg perlu ganggu user.
+// Polls /api/version (and on tab refocus) and shows a one-time reload toast when
+// the server build differs from the first-seen baseline. Fetch errors stay silent.
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 menit
 const VERSION_ENDPOINT = '/api/version';

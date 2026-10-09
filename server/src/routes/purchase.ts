@@ -122,8 +122,7 @@ router.get('/:id', async (req, res) => {
         supplier: true,
         items: {
           include: {
-            // Surface STT/BPB asal per baris — supaya dari PI bisa langsung
-            // tahu barang ini diterima lewat STT nomor berapa (bug fix 2026-05).
+            // Source STT/BPB per line, so the PI shows which receipt each item came from.
             goodsReceiptItem: {
               select: {
                 id: true,
@@ -175,7 +174,7 @@ router.post('/', async (req: AuthRequest, res) => {
   if (!body) return;
 
   try {
-    // Approval gate: non-Admin → masuk antrian, dokumen baru dibuat saat approve.
+    // Approval gate: roles without approval.bypass are queued; the document is created on approve.
     if (await needsApproval(req.user!.role)) {
       // Payload submit TIDAK menyimpan it.amount (server yang hitung) — hitung
       // grand total di sini via computePurchaseItem agar antrian approval,

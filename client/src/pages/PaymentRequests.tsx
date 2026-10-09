@@ -1,18 +1,7 @@
 /**
- * Pengajuan Pembayaran (/payment-requests) — every logged-in user files
- * reimbursements, vendor payments, cash advances, travel and other payment
- * requests here instead of a personal Excel sheet + email.
- *
- * Tabs (?tab=, kept in the URL next to the list-kit params):
- *   mine       Pengajuan Saya           — own requests (everyone)
- *   approvals  Perlu Persetujuan        — waiting for MY decision (supervisor / finance / director)
- *   payable    Siap Dibayar             — APPROVED, finance only
- *   advances   Belum Dipertanggungjawabkan — open employee advances (own; all for finance / "Semua"),
- *              with age in days, overdue highlight, per-employee totals and Excel export
- *   eam        Tagihan EAM              — finance only: EAM bills (vehicle tax / service / spare parts) to post;
- *              lazy-loaded components/payment-requests/eam/EamBillsTab.tsx
- *   all        Semua                    — payment_request view only
- * Built on the list kit (see pages/SalesInvoices.tsx for the reference pattern).
+ * Payment requests (/payment-requests), filed by every logged-in user. Tabs: mine (everyone),
+ * approvals (my pending decisions), payable and eam (finance only), advances (own; all for finance),
+ * all (payment_request view only).
  */
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';

@@ -77,7 +77,7 @@ const fold = (s: string) => s.toLocaleLowerCase('id-ID').normalize('NFD').replac
 
 const SHORTCUT_BY_PATH = new Map(GO_TO_SHORTCUTS.map((s) => [s.path, s.combos[0]]));
 
-// ── Recent pages (per-viewer convenience; storage may be unavailable) ───────
+// Recent pages (per-viewer convenience; storage may be unavailable)
 function readRecent(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
@@ -106,13 +106,8 @@ function useTrackRecentPages() {
 }
 
 /**
- * Global command palette (⌘K / Ctrl+K): pages from the route registry
- * (filtered by the same RBAC check as the sidebar), records from /api/search,
- * theme actions and a hand-off to AIRA. Built on Radix Dialog (focus trap,
- * Esc, focus return) and cmdk (combobox/listbox semantics, arrow keys, Enter).
- *
- * Also mounts the `g <key>` go-to shortcuts, since it is always mounted inside
- * the router alongside the layout.
+ * Global command palette (⌘K / Ctrl+K). Pages use the same RBAC filter as the
+ * sidebar. Also mounts the `g <key>` shortcuts since it is always inside the router.
  */
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   useTrackRecentPages();

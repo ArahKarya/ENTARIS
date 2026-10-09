@@ -124,7 +124,7 @@ export interface ParsedImportRow {
 
 export type ParseImportResult = { ok: true; rows: ParsedImportRow[] } | { ok: false; error: string };
 
-/** Parses an import CSV and validates each row (same rules as before). */
+/** Parses an import CSV and validates each row. */
 export function parseFixedAssetImport(text: string, coa: readonly CoaOption[]): ParseImportResult {
   const clean = text.replace(/^\uFEFF/, '').trim();
   const lines = clean.split(/\r?\n/).filter((l) => l.trim());

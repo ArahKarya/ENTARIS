@@ -33,13 +33,13 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'cogs-backfill', name: 'COGS Pending Settle', description: 'Sales stok minus yang menunggu auto-koreksi COGS', icon: AlertTriangle, enabled: true },
   { id: 'maintenance', name: 'Pemeliharaan', description: 'Ringkasan terlambat, perlu perhatian, dan daftar pemeliharaan/masa berlaku mendatang (jadwal, work order, kendaraan, dokumen)', icon: Wrench, enabled: true },
   { id: 'upcoming-due', name: 'Segera Jatuh Tempo', description: 'Faktur penjualan/pembelian yang jatuh tempo dalam 14 hari', icon: CalendarClock, enabled: true },
-  // ─── Aset Tetap ───
+  // Aset Tetap
   { id: 'fixed-assets-kpi', name: 'KPI Aset Tetap', description: 'Total aset, harga perolehan, akumulasi penyusutan, nilai buku', icon: Building2, enabled: true },
   { id: 'fixed-assets-by-category', name: 'Aset per Kategori', description: 'Distribusi nilai buku aset tetap per kategori (pie chart)', icon: PieChart, enabled: true },
   { id: 'depreciation-due', name: 'Penyusutan Mendatang', description: 'Jadwal depresiasi bulan ini + 5 entry upcoming', icon: CalendarClock, enabled: true },
   { id: 'top-assets', name: 'Top 10 Aset', description: 'Aset tetap dengan nilai buku tertinggi', icon: Trophy, enabled: true },
-  // ─── Sales lanjutan ───
+  // Sales lanjutan
   { id: 'profitability-per-sku', name: 'Profitabilitas per SKU', description: 'Top 10 SKU dengan margin material vs loaded HPP', icon: Calculator, enabled: true },
-  // ─── Produksi lanjutan ───
+  // Produksi lanjutan
   { id: 'production-deep-dive', name: 'Production Deep Dive', description: 'KPI run + tren yield + top input/output + best/worst + loaded HPP', icon: Factory, enabled: true },
 ];

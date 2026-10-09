@@ -2,11 +2,8 @@ import { cn } from '@/lib/utils';
 import type { RouteIconProps } from '@/app/routes';
 
 /**
- * AIRA "Lipat Δ" mark (docs/brand/aira) as inline SVG with a lucide-like API
- * (size + className), so it stays crisp at 16px. Light theme uses the colour
- * mark; dark theme switches to the negative variant (light crossbar, white
- * right leg) through the theme class, no JS.
- * Decorative: the visible label next to it carries the name.
+ * AIRA mark as inline SVG with a lucide-like API. Dark theme switches to the
+ * negative variant via the theme class. Decorative: the adjacent label carries the name.
  */
 export function AiraIcon({ size = 16, className, tone = 'auto' }: RouteIconProps & { tone?: 'auto' | 'negative' }) {
   const negative = tone === 'negative';

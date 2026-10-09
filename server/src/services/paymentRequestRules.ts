@@ -81,7 +81,7 @@ export interface PrRef {
 export const SELF_APPROVAL_ERROR = 'Anda tidak dapat memproses pengajuan Anda sendiri.';
 export const STALE_STATUS_ERROR = 'Status pengajuan sudah berubah. Muat ulang halaman lalu coba lagi.';
 
-// ─── Submit ──────────────────────────────────────────────────────────────────
+// Submit
 
 export interface SupervisorRef {
   id: string;
@@ -123,7 +123,7 @@ export function checkSubmittable(
   return ok;
 }
 
-// ─── Approval steps ──────────────────────────────────────────────────────────
+// Approval steps
 
 export type ApprovalStep = 'SUPERVISOR' | 'FINANCE' | 'DIRECTOR';
 
@@ -185,7 +185,7 @@ export function checkReason(reason: string | null | undefined): Check {
   return reason && reason.trim().length >= 3 ? ok : fail('Alasan wajib diisi (minimal 3 karakter).');
 }
 
-// ─── Cancel / pay ────────────────────────────────────────────────────────────
+// Cancel / pay
 
 export function checkRequesterCancel(pr: Pick<PrRef, 'status' | 'requesterId'>, actorId: string): Check {
   if (pr.requesterId !== actorId) return fail('Hanya pengaju yang dapat membatalkan pengajuan ini.');
@@ -218,7 +218,7 @@ export function checkCancelPayment(pr: Pick<PrRef, 'status' | 'settlementStatus'
   return checkAdvanceFreeOfSettlement(pr.settlementStatus);
 }
 
-// ─── Amounts & journal ───────────────────────────────────────────────────────
+// Amounts & journal
 
 export function computeTotal(lines: ReadonlyArray<{ amount: Decimal.Value }>): Decimal {
   return lines
@@ -294,7 +294,7 @@ export function buildPaymentJournalLines(input: {
   return { ok: true, lines, total: total.toNumber() };
 }
 
-// ─── Visibility ──────────────────────────────────────────────────────────────
+// Visibility
 
 export const PR_SCOPES = ['mine', 'approvals', 'payable', 'advances', 'all'] as const;
 export type PrScope = (typeof PR_SCOPES)[number];

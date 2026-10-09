@@ -1,12 +1,12 @@
 /**
- * REPORT KIT — building blocks for financial/operational report pages.
+ * Report kit: building blocks for financial and operational report pages.
  *
  * Anatomy of a report page (see pages/reports/TrialBalance.tsx, ProfitLoss.tsx,
  * BalanceSheet.tsx for complete examples):
  *
  *   const { startDate, endDate, setRange, list } = useReportRange();   // URL-synced (?startDate&endDate)
  *   // as-of reports: const { date, setDate } = useReportAsOf();        // URL-synced (?date)
- *   const { data, isLoading, isError, refetch } = useQuery({ ...same queryKey/queryFn as before });
+ *   const { data, isLoading, isError, refetch } = useQuery({ queryKey, queryFn });
  *
  *   <ReportPage                                  // H1 == registry label, description, "Dicetak pada" meta
  *     title="Laba Rugi" description="..."

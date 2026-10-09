@@ -1,9 +1,6 @@
 /**
- * Single-select for forms. Short lists use the Radix Select; long lists
- * (or `searchable`) use a Popover + cmdk combobox. Both live inside Radix
- * layers, so they work inside Dialog / Sheet (the legacy portal-to-body
- * SearchableSelect does not). An empty-string option is supported via
- * `emptyLabel`.
+ * Single-select for forms: Radix Select for short lists, cmdk combobox for long or
+ * `searchable` ones. Works inside Dialog/Sheet, unlike SearchableSelect.
  */
 import { useId, useState } from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';

@@ -81,9 +81,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoices' : 'purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoice-detail' : 'purchase-invoice-detail', invoiceId] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
-      // Cancel sales invoice melepas DO link (invoiceCancellation.ts:113-116)
-      // sehingga DO yg dulu di-link masuk lagi ke pending list — invalidate
-      // cache supaya modal invoice baru langsung lihat DO yg ter-release.
+      // Cancelling a sales invoice releases its DO link, so refresh the pending DO list.
       if (isSales) {
         queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
         queryClient.invalidateQueries({ queryKey: ['delivery-orders-pending'] });

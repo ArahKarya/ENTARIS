@@ -1,9 +1,6 @@
-// Primitif kripto MCP: token servis (hanya sha256 yang disimpan), signing secret
-// (AES-256-GCM at-rest, perlu didekripsi untuk memverifikasi HMAC), dan HMAC assertion.
-//
-// Kunci enkripsi diturunkan (HKDF-SHA256) dari env MCP_SECRET_KEY; bila kosong memakai
-// JWT_SECRET. Memutar JWT_SECRET tanpa MCP_SECRET_KEY membuat secret lama tak terbaca →
-// operator harus rotate-secret tiap token. Set MCP_SECRET_KEY terpisah agar rotasi JWT aman.
+// MCP crypto: service tokens (only sha256 stored), signing secrets (AES-256-GCM at rest) and
+// assertion HMAC. The key is HKDF-derived from MCP_SECRET_KEY, else JWT_SECRET: rotating
+// JWT_SECRET without MCP_SECRET_KEY makes stored secrets unreadable (rotate every token).
 
 import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import { SECRET_PREFIX, TOKEN_PREFIX } from './constants';

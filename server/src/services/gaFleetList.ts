@@ -1,23 +1,7 @@
 /**
- * Fleet list for the Kendaraan page (GET /api/ga/vehicle/fleet).
- *
- * One row per vehicle asset with its identity (plate, brand, driver,
- * odometer) and the due state of every recurring obligation: annual tax,
- * 5-yearly STNK, KIR, insurance and the periodic inspection. Fleets are small
- * (tens to a few hundred vehicles), so the handler loads the light projection
- * of every vehicle once and filters, sorts and pages it here in memory; the
- * response keeps the shared list contract { data, total, page, limit }.
- *
- * Due rules (business day, same window as the project-guarantee list):
- *   overdue  → due date before today
- *   dueSoon  → due today or within DUE_SOON_DAYS days
- *   ok       → later
- *   null     → no active record of that kind
- * Per tax TYPE the latest ACTIVE record is the current coverage (older ACTIVE
- * rows of the same type are history); a document group (e.g. annual tax =
- * STNK_TAHUNAN + PAJAK_KENDARAAN) takes the worst state of its types.
- *
- * Read-only: nothing here writes data or touches GL entries.
+ * Fleet list, filtered and paged in memory (fleets are small). Due state per obligation:
+ * overdue (before today), dueSoon (within DUE_SOON_DAYS), ok, null (no active record).
+ * Per tax type the latest ACTIVE record is current; a document group takes its worst state.
  */
 import { firstString, parseSort, type ListPaging, type SortSpec } from '../utils/listQuery';
 import type { DueBoundaries } from './projectGuaranteeList';

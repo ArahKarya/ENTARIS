@@ -1,8 +1,4 @@
-/**
- * Detail dialog for one approval request (Persetujuan). Shows the submitted
- * payload (PI / production run / DO / PO) with supporting context and the
- * decision actions. Extracted from ApprovalPanel; behaviour is unchanged.
- */
+/** Detail dialog for one approval request: submitted payload, supporting context and decision actions. */
 import PurchaseOrderApprovalSummary from '../PurchaseOrderApprovalSummary';
 import { ThreeWayMatchPreview } from '../purchase/ThreeWayMatchPanel';
 import AttachmentPreview from '../AttachmentPreview';

@@ -18,11 +18,8 @@ export interface SubmitProductionRunInput {
   // location. Otherwise resolveWarehouseId falls back to the default. One of
   // the two must resolve, else the service throws.
   warehouseId?: string | null;
-  // Phase 2: inputs may carry batch tracking — sourceMovementId links to the
-  // inbound StockMovement (batch) picked by staff; batchUnitCost is captured
-  // at pick time so production cost is locked even if WAC changes later.
-  // Both fields are optional; legacy callers without these fields fall back
-  // to WAC-based costing.
+  // Optional batch tracking: sourceMovementId is the picked inbound batch and batchUnitCost
+  // locks its cost at pick time. Without them, costing falls back to WAC.
   inputs: Array<{
     itemId: string;
     quantity: number;
@@ -30,7 +27,7 @@ export interface SubmitProductionRunInput {
     batchUnitCost?: number | null;
   }>;
   outputs: Array<{ itemId: string; quantity: number; unitPrice?: number | null; isByProduct?: boolean }>;
-  // Phase 3: cost components + HPP loading
+  // Cost components + HPP loading
   costs?: Array<{
     standardId?: string | null;
     description: string;
@@ -48,8 +45,7 @@ export interface SubmitProductionRunInput {
   referenceNumber?: string | null;
   allowNegativeStock?: boolean;
   negativeStockReason?: string | null;
-  // ─── OEE tracking (all optional, additive) — B2 multi-machine ─────────────
-  // Run-level shift window + break (planned production time).
+  // OEE tracking (all optional): run-level shift window + break (planned production time).
   plannedStart?: Date | string | null;
   plannedEnd?: Date | string | null;
   breakStart?: Date | string | null;
@@ -59,31 +55,18 @@ export interface SubmitProductionRunInput {
   shift?: string | null;
   shiftLead?: string | null;
   manpowerCount?: number | null;
-  // OEE output is DERIVED from inputs/outputs item lines (no manual good/reject).
+  // OEE output is derived from the input/output item lines (no manual good/reject).
   downtimes?: Array<{ machineId?: string | null; category: string; reason?: string | null; durationMin: number }>;
-  // ─── LEGACY single-machine fields (ignored for B2 compute, kept nullable) ──
+  // Single-machine fields, ignored by the multi-machine OEE compute (kept nullable).
   machineId?: string | null;
   startAt?: Date | string | null;
   endAt?: Date | string | null;
 }
 
 /**
- * Submit a production run + post downstream side-effects:
- *   - pre-fetch all input/output inventory items in one query
- *   - validate input availability (stock guard, allowNegativeStock override)
- *   - validate outputs (active + main outputs require unit_price > 0 so the
- *     full value is booked to inventory GL)
- *   - reduce input stock + create StockMovement Out per input
- *   - increase output stock + create StockMovement In per output, recompute
- *     averageCost via calcWeightedAverage
- *   - settle pending COGS backfill on each output (negative-stock sales from
- *     before this production can now be costed)
- *   - post production JE: CR per input account, DR per output account,
- *     balance via HPP Beras (5.1) — gain or loss on conversion
- *   - persist ProductionRunItems for audit trail
- *
- * Uses the default warehouse for both consumption and yield. Returns the
- * created run with line items + nested item info.
+ * Submit a production run: stock out per input, stock in per output with WAC recalc, settle
+ * pending COGS backfill on outputs (earlier negative-stock sales), and post the production JE:
+ * CR per input account, DR per output account, balanced via HPP accounts (see below).
  */
 export async function submitProductionRunInTx(
   tx: Tx,
@@ -152,9 +135,8 @@ export async function submitProductionRunInTx(
       referenceId: body.referenceId || null,
       referenceNumber: body.referenceNumber || null,
       yieldPct: yieldPct !== null ? yieldPct : null,
-      // OEE capture fields (all optional/additive) — B2 multi-machine.
-      // Legacy single machineId/startAt/endAt persisted for backward compat but
-      // not used in the B2 OEE compute below.
+      // OEE capture fields (optional). Single machineId/startAt/endAt are persisted for
+      // backward compat but not used in the OEE compute below.
       machineId: body.machineId ?? null,
       shift: body.shift ?? null,
       shiftLead: body.shiftLead ?? null,
@@ -165,19 +147,15 @@ export async function submitProductionRunInTx(
       plannedEnd: body.plannedEnd ? new Date(body.plannedEnd) : null,
       breakStart: body.breakStart ? new Date(body.breakStart) : null,
       breakEnd: body.breakEnd ? new Date(body.breakEnd) : null,
-      // good_qty/reject_qty columns are LEGACY (unused). OEE Quality/output is
-      // now derived from the run's item lines — see persistOeeInTx below.
+      // good_qty/reject_qty columns are unused; OEE quality/output is derived from
+      // the run's item lines (persistOeeInTx).
       fiscalYearId: fiscalYear.id,
       createdById: userId,
     },
   });
 
-  // Production runs need a specific warehouse so inventory_stocks stays in
-  // sync with the denormalized inventory_items.currentStock. Silent-null path
-  // historically caused drift (e.g. one item showed total != SUM(per-warehouse)
-  // when production was posted while no default existed). Prefer the explicit
-  // body.warehouseId from the UI picker; fall back to default warehouse for
-  // legacy callers; otherwise force the user to pick.
+  // A warehouse is required so inventory_stocks stays in sync with inventory_items.currentStock
+  // (a null warehouse causes drift). Use body.warehouseId, else the default, else reject.
   const productionWarehouseId = await resolveWarehouseId(tx, body.warehouseId);
   if (!productionWarehouseId) {
     throw new BusinessError(
@@ -185,11 +163,8 @@ export async function submitProductionRunInTx(
     );
   }
 
-  // Phase 2: validate batch references before committing side effects.
-  // sourceMovementId, when provided, must reference a non-cancelled inbound
-  // movement of the same item. We do NOT enforce per-batch remaining qty here
-  // (race-prone in concurrent submits); the UI batch picker filters by
-  // available qty and the global currentStock guard above handles total stock.
+  // sourceMovementId must be a non-cancelled inbound movement of the same item. Per-batch
+  // remaining qty is not enforced (race-prone); the currentStock guard covers total stock.
   const batchSnapshots = new Map<number, { sourceMovementId: string | null; batchUnitCost: number | null }>();
   for (let i = 0; i < body.inputs.length; i++) {
     const input = body.inputs[i]!;
@@ -264,9 +239,7 @@ export async function submitProductionRunInTx(
         quantity: input.quantity,
         unitCost: inputUnitCost,
         totalValue: inputTotalValue,
-        // Phase 5: universal batch back-link, so /items/:id/batches can sum
-        // all outbound consumption regardless of source (production / sales /
-        // transfer / adjustment).
+        // Batch back-link so /items/:id/batches can sum consumption from every source.
         sourceMovementId: snapshot.sourceMovementId,
         referenceType: 'ProductionRun',
         referenceId: run.id,
@@ -278,10 +251,8 @@ export async function submitProductionRunInTx(
     });
   }
 
-  // ─── Phase 3: pre-compute loaded HPP (informational, no GL impact) ─────────
-  // Cost components are snapshots (rate × qtyBasis based on basis). Resolve
-  // qtyBasis BEFORE creating the output stock movements so the loaded HPP can
-  // be set as unit_cost_loaded for main outputs at insertion time.
+  // Loaded HPP (informational, no GL impact). Resolve qtyBasis before creating output
+  // movements so unit_cost_loaded can be set on main outputs at insert time.
   const totalInputQtyDec = body.inputs.reduce(
     (s, i) => s.plus(new Decimal(i.quantity)),
     new Decimal(0),
@@ -314,9 +285,8 @@ export async function submitProductionRunInTx(
       new Decimal(0),
     );
 
-  // Loaded HPP per Kg of main output. When override supplied (≥0), use it
-  // verbatim; otherwise auto-compute. NaN-safe: returns null when no main
-  // output qty (defensive — schema requires at least one output).
+  // Loaded HPP per kg of main output: override (>= 0) verbatim, else computed; null when
+  // there is no main output qty.
   let computedHpp: Decimal | null = null;
   const hppOverridden = body.hppOverride != null && body.hppOverride >= 0;
   if (hppOverridden) {
@@ -326,10 +296,8 @@ export async function submitProductionRunInTx(
       .plus(totalCostInputSide)
       .plus(totalCostOutputSide)
       .minus(totalByproductValue);
-    // Guard H1: if by-product NRV exceeds total cost, the numerator goes
-    // negative → HPP would be negative, which corrupts WAC/GL for the main
-    // output. Clamp to 0 (main output effectively free) and warn — the
-    // operator should review by-product NRV which is likely overstated.
+    // By-product NRV above total cost would give a negative HPP and corrupt main-output
+    // WAC/GL: clamp to 0 and warn (the by-product NRV is likely overstated).
     if (numerator.lt(0)) {
       logger.warn(
         {
@@ -349,9 +317,8 @@ export async function submitProductionRunInTx(
 
   // Outputs: stock-in + StockMovement In + WAC recalc + COGS backfill settlement
   let totalOutputValue = new Decimal(0);
-  // Main outputs may omit unitPrice — when so, back-fill it with the loaded
-  // HPP we just computed so WAC + GL posting stay balanced. Byproducts
-  // always carry their explicit NRV via output.unitPrice.
+  // Main outputs without unitPrice are back-filled with the loaded HPP so WAC and GL stay
+  // balanced; by-products always carry an explicit NRV.
   const computedHppNum = computedHpp ? computedHpp.toNumber() : 0;
   for (const output of body.outputs) {
     const outputItem = await tx.inventoryItem.findUnique({ where: { id: output.itemId } });
@@ -374,10 +341,8 @@ export async function submitProductionRunInTx(
     const totalValue = new Decimal(output.quantity).mul(new Decimal(unitCost)).toDecimalPlaces(2).toNumber();
     totalOutputValue = totalOutputValue.plus(new Decimal(totalValue));
 
-    // Loaded HPP per Kg: main outputs share the computedHpp; byproducts carry
-    // their unitPrice (NRV) which is also what was used to deduct from the
-    // main HPP. This way unit_cost_loaded is internally consistent across the
-    // run and downstream margin reports can read it directly.
+    // Main outputs share computedHpp; by-products use their NRV (the amount deducted from
+    // main HPP), so unit_cost_loaded is consistent for margin reports.
     const unitCostLoaded = output.isByProduct
       ? unitCost
       : (computedHpp ? computedHpp.toNumber() : null);
@@ -470,14 +435,8 @@ export async function submitProductionRunInTx(
     });
   }
 
-  // Balance the JE.
-  // Selisih nilai output − input:
-  //   • porsi s.d. total biaya konversi (tarif estimasi) → CR 5.12 "Biaya Konversi
-  //     Dibebankan ke Persediaan" (keputusan 27-09-2026, PSAK 14: biaya konversi masuk
-  //     persediaan, lawannya dipisah dari HPP Beras supaya 5.1 murni HPP penjualan);
-  //   • sisa (mis. NRV produk samping > biaya bahan pada barang titipan pelanggan, HPP di-clamp 0)
-  //     tetap → CR 5.1 HPP Beras (keputusan Jul-2026, alur lama dipertahankan);
-  //   • rugi produksi (diff < 0) tetap → DR 5.1.
+  // Output minus input value: up to total conversion cost goes to CR 5.12 (conversion cost
+  // absorbed into inventory, PSAK 14); any remainder to CR 5.1; a production loss to DR 5.1.
   const diff = totalOutputCost.minus(totalInputCost).toDecimalPlaces(2).toNumber();
   if (Math.abs(diff) > 0) {
     const hppBerasAccount = await tx.account.findFirst({ where: { accountNumber: '5.1' } });
@@ -592,7 +551,7 @@ export async function submitProductionRunInTx(
   });
   await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
 
-  // Phase 3: persist cost component snapshots + HPP breakdown on the run.
+  // Persist cost component snapshots + HPP breakdown on the run.
   if (resolvedCosts.length > 0) {
     await tx.productionRunCost.createMany({
       data: resolvedCosts.map((c) => ({
@@ -609,12 +568,8 @@ export async function submitProductionRunInTx(
     });
   }
 
-  // ─── OEE (B2 multi-machine): persist downtime + machine rows, compute ─────
-  // Quality/output is DERIVED from the run's item lines (no manual good/reject):
-  //   inputQty   = Σ Input quantities
-  //   produkQty  = Σ main Output quantities (NOT by-product)
-  //   sampingQty = Σ ByProduct quantities
-  // Additive — runs without machines/time yield null metrics.
+  // OEE: persist downtime + machine rows. Quality/output comes from item lines: inputQty = sum
+  // of inputs, produkQty = main outputs only, sampingQty = by-products. No machines/time = null.
   const oeeSampingQty = body.outputs
     .filter((o) => o.isByProduct)
     .reduce((s, o) => s + o.quantity, 0);

@@ -277,9 +277,8 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   const allRowsValid = items.every(
     (i) => i.itemName.trim().length > 0 && i.rate !== 0 && i.timbanganDiterima > 0,
   );
-  // Policy (2026-05): inventory item HARUS via STT/BPB (mirror dari sales).
-  // Direct-purchase ditutup di backend, cegah submit dari client supaya
-  // staff dapat guidance jelas sebelum dilempar error.
+  // Inventory items must come in via STT/BPB; the backend rejects direct purchases,
+  // so block submit here with clear guidance.
   const orphanInventoryLines = items.filter(
     (i) => i.itemType === 'material' && i.inventoryItemId && !i.goodsReceiptItemId,
   );
@@ -558,7 +557,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
           </dl>
         </div>
 
-        {/* Policy 2026-05: barang masuk HANYA via STT/BPB */}
+        {/* Inventory items must come in via STT/BPB */}
         {hasOrphanInventory && (
           <Callout tone="danger">
             <p className="font-medium">Bahan baku harus via STT / BPB</p>

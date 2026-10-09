@@ -6,30 +6,15 @@ import { updateBalancesForItems, recalcPartyOutstanding } from '../utils/account
 import { BusinessError } from '../utils/errors';
 
 /**
- * Jembatan keuangan modul GA/EAM → ERP.
- *
- * Konteks: EAM (HRGA) yang mengajukan & menyetujui kebutuhan lapangan
- *   - Pajak/STNK/KIR kendaraan  (ga_vehicle_taxes, status IN_PROCESS)
- *   - Service kendaraan          (ga_vehicle_service_logs, source='EAM')
- *   - Material Request sparepart (ga_material_requests, status APPROVED/FULFILLED)
- * Akuntan yang membayar & memilih COA di ERP. Dua jalur pembayaran:
- *
- *   A. JURNAL LANGSUNG (dibayar tunai/transfer saat itu juga)
- *        DR  <akun beban>            (6.17 pajak kendaraan / 6.7 pemeliharaan)
- *        CR  <akun kas/bank>         (1.1.1 dst)
- *
- *   B. FAKTUR PEMBELIAN (ditagih vendor, dibayar belakangan)
- *        DR  <akun beban>
- *        CR  2.1.1 Hutang Usaha      (outstanding masuk aging vendor)
- *      Pelunasan menyusul lewat modul Pembayaran ERP yang sudah ada.
- *
- * Aturan anti-dobel: tiap dokumen GA maksimal punya SATU jurnal
- * (unique index journal_entry_id). Batalkan dulu sebelum posting ulang.
+ * GA/EAM bill posting (vehicle tax, EAM service logs, spare-part MRs). Two paths:
+ *   Journal (paid now):          DR expense / CR cash-bank
+ *   Purchase invoice (billed):   DR expense / CR 2.1.1 Hutang Usaha, settled via Payments
+ * Each GA document has at most one journal (unique journal_entry_id); cancel before re-posting.
  */
 
 type Tx = Prisma.TransactionClient;
 
-export const ACC_VEHICLE_TAX = '6.41'; // Beban Pajak & Perizinan Kendaraan (STNK/KIR/pajak kendaraan). CATATAN: 6.17 = Beban PPh, BUKAN pajak kendaraan. Historis pra-Agu2026 masuk 6.7 Pemeliharaan.
+export const ACC_VEHICLE_TAX = '6.41'; // Vehicle tax & licensing expense. 6.17 is income tax expense, not vehicle tax; entries before Aug 2026 sit in 6.7.
 export const ACC_VEHICLE_MAINTENANCE = '6.7'; // Beban Pemeliharaan Kendaraan
 export const ACC_AP = '2.1.1'; // Hutang Usaha
 export const ACC_CASH_FALLBACK = '1.1.1';
@@ -160,11 +145,8 @@ async function createSimpleJournal(
 }
 
 /**
- * Bikin Faktur Pembelian jasa/beban (non-inventori) + JE-nya.
- *
- * Sengaja TIDAK memakai submitPurchaseInvoiceInTx: jalur itu memaksa
- * DR Persediaan (barang masuk WAJIB lewat STT), sedangkan tagihan GA adalah
- * BEBAN langsung (pajak/servis/sparepart pakai-habis), bukan stok gudang ERP.
+ * Non-inventory expense purchase invoice + JE. Deliberately not submitPurchaseInvoiceInTx,
+ * which forces DR Persediaan; GA bills are direct expenses, not warehouse stock.
  */
 async function createExpensePurchaseInvoice(
   tx: Tx,
@@ -312,7 +294,7 @@ export async function cancelJournalInTx(tx: Tx, journalEntryId: string) {
   return entry;
 }
 
-// ─── PAJAK / STNK / KIR ──────────────────────────────────────────────
+// Vehicle tax / STNK / KIR
 
 export async function payVehicleTaxInTx(tx: Tx, args: PayGaBillArgs) {
   const tax = await tx.gaVehicleTax.findUnique({
@@ -425,7 +407,7 @@ export async function cancelVehicleTaxPaymentInTx(tx: Tx, id: string) {
   });
 }
 
-// ─── SERVICE LOG (jalur faktur pembelian; jalur jurnal ada di gaVehicleServiceJournal) ──
+// Service log (purchase invoice path; the journal path is in gaVehicleServiceJournal)
 
 export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
   const log = await tx.gaVehicleServiceLog.findUnique({
@@ -510,7 +492,7 @@ export async function cancelServiceLogInvoiceInTx(tx: Tx, id: string) {
   });
 }
 
-// ─── MATERIAL REQUEST (sparepart) ────────────────────────────────────
+// Material request (spare parts)
 
 export async function payMaterialRequestInTx(tx: Tx, args: PayGaBillArgs) {
   const mr = await tx.gaMaterialRequest.findUnique({

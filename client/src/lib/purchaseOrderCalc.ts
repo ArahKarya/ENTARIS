@@ -1,10 +1,6 @@
 /**
- * Purchase Order totals — mirrors server/src/services/purchaseOrderCalc.ts
- * (which reuses the purchase-invoice line rules) so the modal shows what the
- * server will persist:
- *   gross = qty × rate; net = gross × (1 − disc%); PPN = net × taxPct%;
- *   amount = net + PPN; grand total = Σ amount + other costs.
- * Every step rounds half-up to 2 decimals, like decimal.js ROUND_HALF_UP.
+ * Mirrors server/src/services/purchaseOrderCalc.ts: net = qty × rate × (1 − disc%); amount = net + net × taxPct%;
+ * grand total = Σ amount + other costs. Every step rounds half-up to 2 decimals (decimal.js ROUND_HALF_UP).
  */
 
 /** Half-up rounding to 2 dp without binary float drift (33.335 → 33.34). */

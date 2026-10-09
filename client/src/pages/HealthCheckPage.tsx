@@ -1,10 +1,6 @@
 /**
- * Pemeriksaan Sistem (/health-check) — data integrity checks.
- *
- * GET /health-check runs every check; "Perbaiki" previews what a fix will
- * change (GET /health-check/preview/:key) inside a ConfirmDialog and only then
- * POSTs /health-check/fix/:key. Fixes mutate ledger data, so they are shown
- * only with audit:edit (the server gates the POST the same way).
+ * Data integrity checks (/health-check). A fix is previewed before it is POSTed; fixes mutate
+ * ledger data, so they are shown only with audit:edit (the server gates the POST the same way).
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

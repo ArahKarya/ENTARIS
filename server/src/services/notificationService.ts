@@ -1,10 +1,5 @@
-// Notification helpers + scheduled checks.
-//
-// Prinsip: pembuatan notifikasi TIDAK BOLEH menggagalkan operasi bisnis.
-// Semua fungsi di sini di-guard try/catch dan mengembalikan jumlah yang dibuat
-// (0 saat gagal) — TIDAK PERNAH throw. Panggil SETELAH transaksi bisnis commit,
-// pakai `prisma` standalone (bukan tx dokumen) supaya kegagalan notifikasi tak
-// me-rollback dokumen.
+// Notifications must never fail a business operation: every function catches and returns the
+// created count (0 on failure). Call after the business transaction commits, with standalone `prisma`.
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
@@ -42,14 +37,8 @@ export async function notifyUsers(db: Db, input: NotifyInput, opts?: NotifyOpts)
         metadata: input.metadata ?? {},
       })),
     });
-    // Echo Telegram. notifyRole set skipTelegram (ia kirim ke GRUP sendiri).
-    //  - Tipe broadcast (jatuh tempo, stok rendah) → GRUP (pertahankan perilaku
-    //    lama: ditujukan ke admin/accountant sbg pengumuman).
-    //  - Tipe personal (mis. keputusan approval ke pengaju) → JAPRI ke user
-    //    yang sudah menautkan Telegram.
-    // Telegram: utamakan JAPRI ke tiap penerima yang sudah menautkan akun.
-    // Grup hanya MIRROR opsional utk tipe broadcast (jika Chat ID grup diisi —
-    // pushTelegram otomatis no-op bila grup kosong). Jadi grup tidak wajib.
+    // Telegram echo: direct message to each recipient with a linked account; broadcast types are
+    // optionally mirrored to the group (no-op without a group chat ID). notifyRole sets skipTelegram.
     if (!opts?.skipTelegram) {
       void (async () => {
         try {
@@ -125,9 +114,8 @@ export async function notifyAdmins(
 }
 
 /**
- * Cek terjadwal: invoice jatuh tempo (sales+purchase) + stok rendah.
- * Dedup terhadap notifikasi sejenis dalam 24 jam terakhir (via metadata).
- * Dipakai oleh cron harian DAN endpoint POST /notifications/check (Admin).
+ * Scheduled checks (overdue invoices, low stock, guarantees, late POs), deduplicated against the
+ * last 24 hours via metadata. Used by the daily cron and POST /notifications/check.
  */
 export async function runNotificationChecks(): Promise<{ created: number }> {
   const now = new Date();
@@ -142,7 +130,6 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
 
   let created = 0;
 
-  // 1. Overdue sales invoices
   const overdueSales = await prisma.salesInvoice.findMany({
     where: { status: { notIn: ['Paid', 'Cancelled', 'Draft'] }, dueDate: { lt: now } },
     include: { customer: { select: { name: true } } },
@@ -167,7 +154,6 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
     });
   }
 
-  // 2. Overdue purchase invoices
   const overduePurchase = await prisma.purchaseInvoice.findMany({
     where: { status: { notIn: ['Paid', 'Cancelled', 'Draft'] }, dueDate: { lt: now } },
     include: { supplier: { select: { name: true } } },
@@ -183,7 +169,6 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
     });
   }
 
-  // 3. Low stock items
   const lowItems = await prisma.$queryRaw<any[]>`
     SELECT id, code, name, unit, current_stock AS "currentStock", minimum_stock AS "minimumStock"
     FROM inventory_items
@@ -207,7 +192,7 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
     });
   }
 
-  // 4. Uang jaminan proyek mendekati / melewati jatuh tempo pengembalian
+  // Project guarantees near or past their return due date.
   const dueSoon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const dueGuarantees = await prisma.projectGuarantee.findMany({
     where: { status: 'Disetor', expectedReturnDate: { not: null, lte: dueSoon } },
@@ -244,8 +229,7 @@ export async function runNotificationChecks(): Promise<{ created: number }> {
     });
   }
 
-  // 5. PO terlambat: Submitted, belum ditutup, target terima < hari ini (WIB),
-  //    belum diterima penuh. Dedup 24 jam per PO seperti tipe lain.
+  // Late POs: Submitted, not closed, target date before today (WIB), not fully received.
   created += await notifyOverduePurchaseOrders(userIds, now, oneDayAgo);
 
   return { created };

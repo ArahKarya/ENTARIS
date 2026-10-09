@@ -8,7 +8,7 @@ import { hasCap } from '../services/permissionService';
 
 const router = Router();
 
-// ─── Multer config (memory storage, max 5MB per file) ────────────────────────
+// Multer config (memory storage, max 5MB per file)
 const ALLOWED_MIME = ATTACHMENT_MIME;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES = 5;
@@ -26,7 +26,7 @@ const upload = multer({
 });
 
 
-// ─── POST /api/attachments/upload ────────────────────────────────────────────
+// POST /api/attachments/upload
 router.post(
   '/upload',
   upload.array('files', MAX_FILES),
@@ -147,7 +147,7 @@ router.post(
   },
 );
 
-// ─── GET /api/attachments/file/:id — serve file (auth-gated) ─────────────────
+// GET /api/attachments/file/:id: serve file (auth-gated)
 // NOTE: Must be registered BEFORE the /:referenceType/:referenceId route below,
 // otherwise Express matches /:referenceType/:referenceId first (with type='file').
 router.get('/file/:id', async (req: AuthRequest, res: Response) => {
@@ -192,7 +192,7 @@ router.get('/file/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── GET /api/attachments/invoice/:type/:id/related ─────────────────────────
+// GET /api/attachments/invoice/:type/:id/related
 // Returns all attachments related to an invoice:
 // - the invoice's own attachments (source: 'invoice')
 // - attachments from every payment that has an active allocation to this invoice
@@ -283,7 +283,7 @@ router.get('/invoice/:type/:id/related', async (req: AuthRequest, res: Response)
   }
 });
 
-// ─── GET /api/attachments/:referenceType/:referenceId ────────────────────────
+// GET /api/attachments/:referenceType/:referenceId
 router.get('/:referenceType/:referenceId', async (req: AuthRequest, res: Response) => {
   try {
     const referenceType = req.params.referenceType as string;
@@ -302,7 +302,7 @@ router.get('/:referenceType/:referenceId', async (req: AuthRequest, res: Respons
   }
 });
 
-// ─── DELETE /api/attachments/:id ─────────────────────────────────────────────
+// DELETE /api/attachments/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
@@ -331,7 +331,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── POST /api/attachments/counts — batch count for list indicators ──────────
+// POST /api/attachments/counts: batch count for list indicators
 router.post('/counts', async (req: AuthRequest, res: Response) => {
   try {
     const { referenceType, referenceIds } = req.body;

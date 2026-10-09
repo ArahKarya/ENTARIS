@@ -1,9 +1,6 @@
 /**
- * Retur Penjualan (/sales-returns) — server-paginated list built on the
- * Phase 3 list kit (see pages/SalesInvoices.tsx for the reference pattern).
- *
- * No KPI cards: the page never had any. Returns have no detail view yet, so
- * rows are not clickable; the source invoice number opens the invoice drawer.
+ * Sales returns (/sales-returns). Returns have no detail view yet, so rows are not clickable;
+ * the source invoice number opens the invoice drawer.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

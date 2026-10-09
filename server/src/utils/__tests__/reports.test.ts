@@ -65,8 +65,6 @@ function getBSBalance(
   return balance;
 }
 
-// ─── fixtures ─────────────────────────────────────────────────────────────────
-
 const revenueGroup: AccountRow = {
   id: 'rev-group', parentId: null, rootType: 'REVENUE', isGroup: true,
   accountNumber: '4', name: 'Pendapatan',
@@ -93,7 +91,7 @@ const cashAccount: AccountRow = {
   accountNumber: '1.1.1', name: 'Kas',
 };
 
-// ─── P&L getBalance tests ─────────────────────────────────────────────────────
+// P&L getBalance tests
 
 describe('getBalance (P&L) — REVENUE leaf account', () => {
   it('returns credit - debit for REVENUE', () => {
@@ -161,7 +159,7 @@ describe('getBalance (P&L) — deep nesting (3 levels)', () => {
   });
 });
 
-// ─── Balance Sheet getBalance tests ──────────────────────────────────────────
+// Balance Sheet getBalance tests
 
 describe('getBalance (Balance Sheet) — ASSET leaf account', () => {
   it('returns debit - credit for ASSET', () => {
@@ -181,7 +179,7 @@ describe('getBalance (Balance Sheet) — account not in summaryMap returns 0', (
   });
 });
 
-// ─── Map build correctness ────────────────────────────────────────────────────
+// Map build correctness
 
 describe('buildMaps', () => {
   it('accountById contains all accounts by id', () => {

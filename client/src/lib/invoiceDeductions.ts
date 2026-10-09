@@ -1,11 +1,5 @@
-// ─── Invoice deductions derived from payment splits ─────────────────────────
-// When a Receive payment is recorded with a split that goes to a non-cash
-// account (e.g. "Beban Komisi", "Potongan Penjualan"), we want to display that
-// split as a "potongan" line on the invoice — without changing GL revenue.
-//
-// This module computes those deductions on the fly from the invoice's
-// paymentAllocations payload (see GET /api/sales/invoices/:id which already
-// includes payment.splits with account info).
+// Receive-payment splits to non-cash accounts (e.g. Beban Komisi) are shown as "potongan" lines
+// on the invoice without changing GL revenue; derived from paymentAllocations[].payment.splits.
 
 export interface DeductionLine {
   /** Stable key for React lists. */
@@ -46,13 +40,7 @@ interface PaymentAllocationLike {
   } | null;
 }
 
-/**
- * A split is treated as a deduction (potongan) when its account is NOT a cash/
- * bank account. Cash/bank accounts in this app live under `1.1.x`. Anything
- * else (expense, equity, etc.) means the staff allocated part of the receivable
- * to something other than cash — that's the "potongan" customer effectively
- * granted (or commission paid out of the proceeds).
- */
+/** A split is a deduction when its account is not cash/bank (cash/bank accounts live under `1.1.x`). */
 function isCashAccount(accountNumber: string | undefined | null): boolean {
   return !!accountNumber && accountNumber.startsWith('1.1');
 }

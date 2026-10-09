@@ -38,9 +38,7 @@ export interface SubmitPaymentInput {
 }
 
 /**
- * Submit a payment + post all downstream side-effects.
- *
- * 6 branches by paymentType:
+ * Submit a payment. Journal by paymentType:
  *   - VendorDeposit:   DR Uang Muka Vendor / CR Kas (or Ekuitas if opening)
  *   - CustomerDeposit: DR Kas / CR Uang Muka Pelanggan (or Ekuitas if opening)
  *   - VendorRefund:    DR Bank / CR Hutang Usaha — supplier returns money;
@@ -50,9 +48,7 @@ export interface SubmitPaymentInput {
  *                      to oldest open sales invoices
  *   - Pay:             DR Hutang Usaha / CR Kas (multi-split) — auto-allocate
  *                      to oldest open purchase invoices
- *
- * Returns the created payment + the unallocated remainder (for Receive/Pay
- * only — overpayments get logged + reduce opening balance if any).
+ * Receive/Pay return the unallocated remainder (overpayment is logged and reduces opening balance).
  */
 export async function submitPaymentInTx(
   tx: Tx,
@@ -105,7 +101,7 @@ export async function submitPaymentInTx(
     },
   });
 
-  // ── VendorDeposit ─────────────────────────────────────────────────────
+  // VendorDeposit
   if (body.paymentType === 'VendorDeposit') {
     if (party.partyType !== 'Supplier' && party.partyType !== 'Both') {
       throw new BusinessError('Uang muka hanya dapat dibuat untuk Supplier.');
@@ -158,7 +154,7 @@ export async function submitPaymentInTx(
     return { payment, party, unallocatedAmount: 0 };
   }
 
-  // ── CustomerDeposit ──────────────────────────────────────────────────
+  // CustomerDeposit
   if (body.paymentType === 'CustomerDeposit') {
     if (party.partyType !== 'Customer' && party.partyType !== 'Both') {
       throw new BusinessError('Uang muka pelanggan hanya dapat dibuat untuk Customer.');
@@ -211,7 +207,7 @@ export async function submitPaymentInTx(
     return { payment, party, unallocatedAmount: 0 };
   }
 
-  // ── VendorRefund / CustomerRefund ─────────────────────────────────────
+  // VendorRefund / CustomerRefund
   if (body.paymentType === 'VendorRefund' || body.paymentType === 'CustomerRefund') {
     const isVendorRefund = body.paymentType === 'VendorRefund';
     if (isVendorRefund && party.partyType !== 'Supplier' && party.partyType !== 'Both') {
@@ -351,7 +347,7 @@ export async function submitPaymentInTx(
     return { payment, party, unallocatedAmount: 0 };
   }
 
-  // ── Receive / Pay ────────────────────────────────────────────────────
+  // Receive / Pay
   const arAccount = await systemAccounts.getAccount('AR');
   const apAccount = await systemAccounts.getAccount('AP');
 

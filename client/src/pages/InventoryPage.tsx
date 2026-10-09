@@ -1,15 +1,7 @@
 /**
- * Stok & Produksi (/inventory) — one page, tabs stored in the URL:
- *  • Dashboard                       ?tab omitted
- *  • Master Item                     ?tab=items
- *  • Gerakan Stok                    ?tab=movements   (?itemId=… from "Riwayat gerakan")
- *  • Proses Produksi                 ?tab=production&view=data|approval|costStandards|processes|machines
- *                                    (view omitted = production dashboard)
- *  • Layanan                         ?tab=services
- * List tabs follow the list kit (see pages/SalesInvoices.tsx) and live in
- * components/inventory/. Switching tab/view drops the list params because all
- * lists share the same param names. Modals stay here (page header actions and
- * cross-tab flows open them); their own restyling is Phase 4.
+ * Stock and production (/inventory); tabs live in ?tab= (and ?view= for production).
+ * Switching tab/view drops list params because all lists share param names. Modals stay here
+ * because header actions and cross-tab flows open them.
  */
 import { useCallback, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';

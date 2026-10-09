@@ -1,15 +1,7 @@
 /**
- * Pemeliharaan (/ga/maintenance) — GA/EAM maintenance hub, three tabs kept in
- * the URL (same pattern as pages/PurchaseInvoices.tsx):
- *  • Work Order        ?tab omitted   — server-paged WO list + KPI summary
- *  • Jadwal Preventif  ?tab=schedules — interval-based next-due tracking
- *  • Pengajuan         ?tab=requests  — vehicle service / tax request inbox
- * The WO detail sheet is deep-linked as ?wo=<id> (any tab). Switching tabs
- * drops the list params of the previous tab.
- *
- * Permissions: view gated by the route (ga_maintenance); writes by
- * can('ga_maintenance','edit'); the Pengajuan tab needs ga_vehicle (server
- * gate on /ga/vehicle/*); MR creation from a WO needs ga_material_request edit.
+ * Maintenance hub (/ga/maintenance): work orders, preventive schedules, service/tax requests.
+ * ?wo=<id> opens a WO on any tab. Writes need ga_maintenance edit; the requests tab needs
+ * ga_vehicle; creating an MR from a WO needs ga_material_request edit.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

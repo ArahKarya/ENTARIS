@@ -5,7 +5,7 @@
 import { parseDate } from '@/lib/format';
 import type { StatusTone } from '@/lib/status';
 
-// ─── Asset register ─────────────────────────────────────────────────────────
+// Asset register
 
 export type AssetStatus = 'ACTIVE' | 'IN_REPAIR' | 'RETIRED' | 'LOST';
 export type AssetCondition = 'GOOD' | 'FAIR' | 'POOR' | 'BROKEN';
@@ -81,7 +81,7 @@ export function toAssetListParams(params: Record<string, string | number>): Reco
   };
 }
 
-// ─── Date states (rental expiry, calibration due) ───────────────────────────
+// Date states (rental expiry, calibration due)
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -166,7 +166,7 @@ export function nearestActiveRental<T extends { status: string; tanggalAkhir: st
   return best;
 }
 
-// ─── Building & equipment enums ─────────────────────────────────────────────
+// Building & equipment enums
 
 export const BUILDING_TYPE_OPTIONS = [
   { value: 'KANTOR', label: 'Kantor' },

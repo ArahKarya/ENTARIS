@@ -1,19 +1,5 @@
-// GA Maintenance — preventive schedules + corrective/preventive work orders.
-//
-// Ported from GA Monitor (server/src/routes/maintenance.ts). Mounted under
-// /api/ga/maintenance with requirePerm('ga_maintenance') by routes/ga/index.ts.
-//
-// Domain:
-//   - Maintenance schedules: preventive intervals (days/hours/km) with next-due
-//     tracking; rolled forward when a linked WO is completed.
-//   - Work orders: lifecycle OPEN → ASSIGNED → IN_PROGRESS → DONE → CLOSED,
-//     plus CANCELLED. Photos (multer, BEFORE/AFTER) and parts (consume GA
-//     inventory inside a tx, creating a GaInventoryMovement type OUT and
-//     decrementing GaStockByLocation atomically).
-//
-// ERP conventions: inline Zod schemas (single-file port), validateBody +
-// handleRouteError + BusinessError, prisma.ga* accessors, req.user!.userId.
-// No auth middleware here — index.ts attaches auth + requirePerm.
+// GA maintenance: preventive schedules and work orders, mounted with requirePerm('ga_maintenance') in index.ts.
+// Completing a linked WO rolls the schedule forward; WO parts consume GA inventory atomically (OUT movement) in a transaction.
 
 import { Router, type Response } from 'express';
 import crypto from 'crypto';
@@ -50,7 +36,7 @@ const upload = multer({
   },
 });
 
-// ─── Validation schemas ──────────────────────────────────────────────
+// Validation schemas
 const PRIORITY = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
 
 const MaintenanceScheduleSchema = z
@@ -123,8 +109,6 @@ const PartInputSchema = z.object({
   unitCost: z.number().nonnegative(),
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────
-
 /** Generate next WO code WO-YYYY-NNNN, serialized via a year-scoped advisory lock. */
 async function generateWorkOrderCode(tx: Prisma.TransactionClient): Promise<string> {
   const year = new Date().getFullYear();
@@ -173,9 +157,7 @@ function computeWorkOrderTotalCost(
   return labor + ext + partsTotal;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SCHEDULES
-// ═══════════════════════════════════════════════════════════════════
+// Schedules
 
 // GET /schedules — list, optional filters assetId/active
 router.get('/schedules', async (req: AuthRequest, res) => {
@@ -249,21 +231,10 @@ router.put('/schedules/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// WORK ORDERS
-// ═══════════════════════════════════════════════════════════════════
+// Work orders
 
-// GET /work-orders — list with filters status/priority/type/assetId/assignee
-//
-// Two modes (backward compatible):
-//  • without `page` (legacy — GA dashboard, AIRA gm_wo_list): bare array of
-//    every matching WO, raw filters, ordered status/priority/createdAt.
-//  • with `page` (Pemeliharaan page): `page`, `limit` (≤200), `status`
-//    (enum or ACTIVE), `priority`, `type`, `assetId`, `mine`, `due`
-//    (overdue | dueSoon), `startDate`/`endDate` (report date), `search`,
-//    `sort` (code | reportedAt | dueAt | priority | status, "-" = desc)
-//    → `{ data, total, page, limit }`; rows also carry `assignee`
-//    `{ id, fullName }`. Invalid filters → 400.
+// GET /work-orders: without `page` a bare array of every match (GA dashboard and AIRA gm_wo_list depend on it);
+// with `page` returns `{ data, total, page, limit }` (limit <= 200) with `assignee`. Invalid filters -> 400.
 router.get('/work-orders', async (req: AuthRequest, res) => {
   try {
     if (req.query.page !== undefined) return await listWorkOrdersPaged(req, res);
@@ -565,11 +536,8 @@ router.patch('/work-orders/:id/complete', async (req: AuthRequest, res) => {
 });
 
 // PATCH /work-orders/:id/close — DONE → CLOSED
-// Sekaligus auto-mirror biaya WO ke GaVehicleServiceLog (satu-satu via
-// workOrderId unik) supaya ringkasan biaya kendaraan (tab Data & Driver EAM)
-// tidak "hilang" walau WO sudah closed tanpa staff mengisi form Service
-// manual. Biaya = laborCost + externalCost; kalau keduanya 0/null, log tetap
-// dibuat (biaya null) sebagai jejak histori servis.
+// Also mirrors the WO cost (laborCost + externalCost) into GaVehicleServiceLog, one per unique workOrderId,
+// so vehicle cost totals include it; the log is created even when the cost is null, as service history.
 router.patch('/work-orders/:id/close', async (req: AuthRequest, res) => {
   try {
     const wo = await prisma.gaWorkOrder.findUnique({

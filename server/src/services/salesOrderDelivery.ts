@@ -4,14 +4,9 @@ import Decimal from 'decimal.js';
 type Tx = Prisma.TransactionClient;
 
 /**
- * Re-link any DO lines of a delivery order back to their SO item.
- *
- * When a DO is linked to a Sales Order at the header level, every line that
- * shares the SO item's inventory item must also carry `salesOrderItemId` —
- * otherwise the line is invisible to delivered-qty accounting and the SO
- * under-counts what was actually shipped. Editing a DO drops & recreates its
- * lines (losing the link), so this restores it. Lines already linked, or
- * without an inventory item, are left untouched.
+ * Re-link DO lines to their SO item. Lines of an SO-linked DO need `salesOrderItemId` or the SO
+ * under-counts delivered qty; editing a DO recreates its lines and loses the link.
+ * Lines already linked or without an inventory item are left untouched.
  */
 export async function relinkDoItemsToSOInTx(tx: Tx, doId: string): Promise<void> {
   const doRec = await tx.deliveryOrder.findUnique({
@@ -38,17 +33,9 @@ export async function relinkDoItemsToSOInTx(tx: Tx, doId: string): Promise<void>
 }
 
 /**
- * Recompute `deliveredQty` for every item of a Sales Order from the single
- * source of truth: the sum of quantities across all non-cancelled delivery
- * order lines linked to that SO item. Then re-derive the SO status.
- *
- * This replaces the fragile increment/decrement model. Increments leak
- * whenever a DO line is linked outside `generate-do`, and decrements leak
- * when a linked DO is edited (lines are deleted & recreated). Deriving from
- * the actual DO lines makes the SO always mirror real surat-jalan numbers —
- * including legitimate over-delivery (deliveredQty > quantity).
- *
- * Cancelled / Draft SOs keep their status; only deliveredQty is refreshed.
+ * Recompute each SO item's `deliveredQty` as the sum of its non-cancelled DO lines (over-delivery
+ * allowed), then re-derive the SO status. Increment/decrement bookkeeping leaks when DO lines are
+ * linked outside generate-do or recreated on edit. Cancelled/Draft SOs only get deliveredQty refreshed.
  */
 export async function recomputeDeliveredQtyInTx(tx: Tx, soId: string): Promise<void> {
   const so = await tx.salesOrder.findUnique({

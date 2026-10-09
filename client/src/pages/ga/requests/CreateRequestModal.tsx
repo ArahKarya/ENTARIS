@@ -30,10 +30,7 @@ import {
 type Mode = 'SERVICE' | 'TAX';
 
 
-/**
- * Modal pengajuan terpusat. User pilih kendaraan lewat dropdown (Opsi A),
- * tak perlu masuk ke halaman kendaraan dulu.
- */
+/** Central request modal: the vehicle is picked from a dropdown, no need to open the vehicle page. */
 export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () => void }) {
   const queryClient = useQueryClient();
   const isService = mode === 'SERVICE';

@@ -1,13 +1,6 @@
 /**
- * Query building for the audit trail (GET /api/audit-logs, /summary, /facets).
- *
- * Backward compatible with the legacy endpoint: userId (exact), action (exact),
- * entityType (case-insensitive contains), page/limit (default 50, max 200) and
- * newest-first ordering are unchanged. New: `search` (entity id contains) and
- * `sort`. Dates use the business-day range (localDayRange) like every list.
- *
- * Values are returned as stored: secrets are redacted when the log is written
- * (middleware/auditTrail → utils/redact), never re-hydrated here.
+ * Audit trail queries. userId/action are exact, entityType is case-insensitive contains,
+ * page/limit default 50 (max 200), newest first. Secrets are redacted at write time, not here.
  */
 import type { Prisma } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, parseSort, type SortSpec } from '../utils/listQuery';

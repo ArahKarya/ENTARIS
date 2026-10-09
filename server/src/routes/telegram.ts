@@ -10,7 +10,7 @@ import { logger } from '../lib/logger';
 const router = Router();
 const SLUG = 'default';
 
-// GET /api/telegram/config — Admin. Token TIDAK pernah dikembalikan (hasToken saja).
+// GET /api/telegram/config (settings permission). The token is never returned, only hasToken.
 router.get('/config', async (_req: AuthRequest, res) => {
   try {
     const cfg = await prisma.telegramConfig.findUnique({ where: { slug: SLUG } });
@@ -28,7 +28,7 @@ router.get('/config', async (_req: AuthRequest, res) => {
   }
 });
 
-// PUT /api/telegram/config — Admin. botToken hanya di-update bila dikirim non-kosong.
+// PUT /api/telegram/config (settings permission). botToken is only updated when sent non-empty.
 router.put('/config', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateTelegramConfigSchema, req.body, res);
   if (!body) return;
@@ -59,8 +59,8 @@ router.put('/config', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/telegram/test — Admin. Kirim pesan uji (token/chatId dari body bila
-// ada — untuk menguji nilai yang baru diketik — else pakai yang tersimpan).
+// POST /api/telegram/test (settings permission). Uses token/chatId from the body when
+// present (to test freshly typed values), else the stored ones.
 router.post('/test', async (req: AuthRequest, res) => {
   const body = validateBody(TestTelegramSchema, req.body, res);
   if (!body) return;

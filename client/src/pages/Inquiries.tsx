@@ -1,9 +1,4 @@
-/**
- * Pertanyaan Pelanggan (/inquiries) — list kit page (see pages/SalesInvoices.tsx
- * for the reference pattern). Server-paginated list + KPI summary endpoint
- * with the same filters; detail, edit, status changes and "jadikan penawaran"
- * stay in InquiryDetailDrawer / InquiryModal.
- */
+/** Customer inquiries (/inquiries); detail, edit, status changes and conversion live in InquiryDetailDrawer / InquiryModal. */
 import { useId, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';

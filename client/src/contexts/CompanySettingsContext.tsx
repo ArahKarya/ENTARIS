@@ -33,7 +33,7 @@ export const CompanySettingsProvider: React.FC<{ children: React.ReactNode }> = 
     retry: false,
   });
 
-  // ── Favicon ──────────────────────────────────────────────────────────────
+  // Favicon
   // The tab title is owned by MainLayout (route registry + companyName), so it
   // is not set here: setting it twice made the label flicker or get overwritten.
   const hasCompanyData = Boolean(data);

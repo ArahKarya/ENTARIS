@@ -1,11 +1,6 @@
 /**
- * Penerimaan Barang (/goods-receipts, STT/BPB) — list kit page (pattern:
- * pages/SalesInvoices.tsx). Server-side paging/sort/filter on
- * GET /goods-receipts. No KPI cards: this list never had any.
- *
- * Billing state is derived (status Submitted ± purchase-invoice link):
- * "Belum Ditagih" / "Sudah Ditagih", and customer-owned goods ("Titipan")
- * that are never invoiced. The server filter understands the same values.
+ * Goods receipts (/goods-receipts, STT/BPB). Billing state is derived (Submitted ± purchase-invoice
+ * link); customer-owned goods ("Titipan") are never invoiced. The server filter uses the same values.
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';

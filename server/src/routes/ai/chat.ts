@@ -1,6 +1,6 @@
-// Panel chat AIRA (tahap 3): Entaris menyimpan sesi & pesan sendiri (per user) dan memanggil agen
-// pemilik lewat API HTTP kompatibel-OpenAI (lihat docs/ai-tools/PANEL-CHAT.md). Setiap query dibatasi
-// userId pemilik (sesi orang lain = 404). Isi pesan tidak pernah ditulis ke log server (hanya id/panjang).
+// AIRA chat panel: Entaris stores sessions and messages per user and calls the agent over an
+// OpenAI-compatible API (docs/ai-tools/PANEL-CHAT.md). Every query is scoped to the owner
+// (other sessions = 404); message content is never logged, only ids and lengths.
 //
 //   GET    /api/ai/chat/health                  status engine (online/offline + latensi)
 //   GET    /api/ai/chat/sessions                daftar sesi (q, status, page, limit)
@@ -54,7 +54,7 @@ async function agenticEnabled(): Promise<boolean> {
   return !!setting?.agenticEnabled;
 }
 
-// ── GET /health — dipanggil panel (banner offline) dan Pengaturan (baris status) ──
+// GET /health: dipanggil panel (banner offline) dan Pengaturan (baris status)
 router.get('/health', async (req: AuthRequest, res) => {
   const cfg = getEngineConfig();
   const health = await checkHealth(cfg);
@@ -213,7 +213,7 @@ router.get('/attachments/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── POST /stream — satu giliran, SSE ──
+// POST /stream: satu giliran, SSE
 const StreamSchema = z.object({
   input: z.string().default(''),
   session_id: z.string().min(1).max(64).optional(),

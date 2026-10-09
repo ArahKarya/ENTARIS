@@ -98,12 +98,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     enabled: isOpen,
   });
 
-  // Source payment list — only for Refund types. Combines TWO kinds of source:
-  //   1. Direct payments (Pay / Receive) — over-payment refund flow via /payments
-  //   2. Deposits (VendorDeposit / CustomerDeposit) — uang muka refund flow via
-  //      /vendor-deposits/:id/refund or /customer-deposits/:id/refund (cash leg).
-  // Each row carries a `kind` discriminator + remaining balance so the UI can
-  // route the submit to the correct endpoint and validate amount.
+  // Refund sources: direct payments (refunded via /payments) and deposits (refunded
+  // via the deposit refund endpoint). `kind` routes the submit; balance caps the amount.
   const { data: sourcePayments } = useQuery({
     queryKey: ['payments-source-for-refund', partyId, paymentType],
     queryFn: async () => {
@@ -172,11 +168,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
-      // Refund of a vendor/customer deposit goes through the dedicated
-      // /vendor-deposits/:id/refund (or /customer-deposits/:id/refund) endpoint
-      // — that's the canonical path that decrements depositBalance, posts the
-      // bank/deposit JV, and tracks refundedAmount. /payments would create the
-      // wrong journal for this flow.
+      // Deposit refunds must use the deposit refund endpoint (it decrements
+      // depositBalance and posts the right JV); /payments would post the wrong journal.
       if (data.__depositRefund) {
         const path = data.__depositRefund.path;
         return api.post(path, {

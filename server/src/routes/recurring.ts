@@ -12,7 +12,7 @@ import { logger } from '../lib/logger';
 
 const router = Router();
 
-// ─── Helper: Calculate next run date ────────────────────────────────────────
+// Helper: Calculate next run date
 function calculateNextRunDate(frequency: string, fromDate: Date, dayOfMonth?: number | null): Date {
   const next = new Date(fromDate);
   switch (frequency) {
@@ -45,7 +45,7 @@ function calculateNextRunDate(frequency: string, fromDate: Date, dayOfMonth?: nu
   return next;
 }
 
-// ─── Helper: Execute a template ─────────────────────────────────────────────
+// Helper: Execute a template
 async function executeTemplate(
   template: any,
   userId: string,
@@ -225,7 +225,7 @@ router.post('/:id/execute', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/recurring/run-due — Admin: execute all due templates
+// POST /api/recurring/run-due: execute all due templates (requires the doc.cancel capability)
 router.post('/run-due', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const now = new Date();

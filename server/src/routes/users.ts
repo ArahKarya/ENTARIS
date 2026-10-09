@@ -13,7 +13,7 @@ import { buildUserOrderBy, buildUserWhere, summarizeUsers } from '../services/us
 
 const router = Router();
 
-// GET /api/users — list users (Admin only).
+// GET /api/users (requires users view permission).
 // Legacy contract kept: ?page&limit(default 50, max 200)&search → { data, total, page, limit }.
 // New optional params: role, status (active|inactive), sort (see services/userList).
 router.get('/', requirePerm('users'), async (req, res) => {
@@ -56,7 +56,7 @@ router.get('/', requirePerm('users'), async (req, res) => {
   }
 });
 
-// GET /api/users/summary — KPI counts with the same filters as the list (Admin only)
+// GET /api/users/summary: KPI counts with the same filters as the list (requires users view permission)
 router.get('/summary', requirePerm('users'), async (req, res) => {
   try {
     const built = buildUserWhere(req.query);
@@ -79,7 +79,7 @@ async function checkSupervisor(supervisorId: string | null | undefined, userId?:
   return sup ? null : 'Atasan langsung tidak ditemukan.';
 }
 
-// POST /api/users — create new user (Admin only)
+// POST /api/users (requires users edit permission)
 router.post('/', requirePerm('users'), async (req, res) => {
   const body = validateBody(CreateUserSchema, req.body, res);
   if (!body) return;
@@ -184,7 +184,7 @@ router.put('/me/password', async (req: AuthRequest, res) => {
   }
 });
 
-// PUT /api/users/:id — update user (Admin only)
+// PUT /api/users/:id (requires users edit permission)
 router.put('/:id', requirePerm('users'), async (req, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateUserSchema, req.body, res);
@@ -263,7 +263,7 @@ router.put('/:id', requirePerm('users'), async (req, res) => {
   }
 });
 
-// PATCH /api/users/:id/toggle — toggle isActive (Admin only)
+// PATCH /api/users/:id/toggle: toggle isActive (requires users edit permission)
 router.patch('/:id/toggle', requirePerm('users'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
@@ -299,7 +299,7 @@ router.patch('/:id/toggle', requirePerm('users'), async (req: AuthRequest, res) 
   }
 });
 
-// POST /api/users/:id/telegram-link — generate kode tautan + deep link (Admin)
+// POST /api/users/:id/telegram-link: generate a link code and deep link (requires users edit permission)
 router.post('/:id/telegram-link', requirePerm('users'), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
@@ -319,7 +319,7 @@ router.post('/:id/telegram-link', requirePerm('users'), async (req: AuthRequest,
   }
 });
 
-// POST /api/users/:id/telegram-test — kirim japri uji ke user (Admin)
+// POST /api/users/:id/telegram-test: send a test direct message (requires users edit permission)
 router.post('/:id/telegram-test', requirePerm('users'), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
@@ -336,7 +336,7 @@ router.post('/:id/telegram-test', requirePerm('users'), async (req: AuthRequest,
   }
 });
 
-// DELETE /api/users/:id/telegram — putuskan tautan (Admin)
+// DELETE /api/users/:id/telegram: unlink (requires users edit permission)
 router.delete('/:id/telegram', requirePerm('users'), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;

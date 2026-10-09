@@ -5,10 +5,8 @@ import api from '../../lib/api';
 import type { CostStandard, MachineOption } from './run-form-utils';
 
 export function useRunFormLookups(isOpen: boolean, warehouseId: string) {
-  // Phase 3: load master cost standards for the picker.
-  // Phase 3b: scope by warehouseId — staff hanya lihat standar yg match dengan
-  // gudang produksi terpilih atau yg berlaku semua (warehouseId null). Saat
-  // warehouse belum dipilih, list disembunyikan untuk menghindari false picks.
+  // Cost standards for the selected warehouse plus global ones (warehouseId null);
+  // hidden until a warehouse is picked to avoid wrong picks.
   const { data: standardsData } = useQuery({
     queryKey: ['production-cost-standards', 'active', warehouseId],
     queryFn: () => api

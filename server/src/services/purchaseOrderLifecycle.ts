@@ -1,22 +1,15 @@
 /**
- * Pure lifecycle rules for Purchase Orders (no DB access).
- *
- * Design (stage 2): status-based pending state, NOT the payload-held gate used
- * for PI/Produksi. A PO has no GL/stock effect, so it is safe to persist it as
- * `Draft` immediately; while an approval is pending it stays `Draft` with
- * `approvalStatus = 'Pending'` and the ApprovalRequest points at it via
- * documentId (payload null). Approve → `Submitted` ("Dipesan"); reject /
- * minta-revisi → stays `Draft` with `approvalStatus = 'Rejected'` + note.
+ * Pure lifecycle rules for Purchase Orders (no DB access). Unlike the payload-held gate of
+ * PI/Produksi, a PO (no GL/stock effect) is saved as `Draft` at once; a pending approval keeps it
+ * `Draft` with approvalStatus 'Pending' (ApprovalRequest.documentId set, payload null).
  *
  *   Draft ──Ajukan──► (rule matches) Draft+Pending ──approve──► Submitted
  *     ▲                     │ reject/revise
  *     └──── Draft+Rejected ◄┘
  *   Draft ──Ajukan──► (no rule) Submitted
  *
- * PO number is assigned at creation (also for drafts) — it keeps the column
- * NOT NULL/unique and lets a draft be referenced in the approval queue;
- * deleting a draft may leave a numbering gap, or the number is reissued if
- * it was the latest (acceptable: PO has no GL, a deleted draft was never sent).
+ * The PO number is assigned at creation, drafts included (NOT NULL/unique column); deleting a
+ * draft may leave a numbering gap, which is acceptable since a PO has no GL.
  */
 import type { RuleResult } from './purchaseOrderRules';
 

@@ -1,25 +1,10 @@
-// Purchase invoice line-level calculation helpers.
-//
-// Rice-mill raw material pricing flow per item:
-//   timbanganTruk  (informational, NOT used for calc)
-//   refaksi        (kg deducted for moisture/dirt)
-//   timbanganDiterima = the weight the company actually pays for
-//                      (source of truth; mirrored into `quantity`)
-//   rate           = price per kg
-//   ppnPct / pphPct = per-item tax percentages (manual)
-//   potonganItem   = per-item deduction amount (IDR, not percent)
-//
-// Final amount (stored as `amount` and used everywhere downstream):
-//   subtotal   = quantity × rate × (1 - discount/100)
-//   ppnAmount  = subtotal × ppnPct / 100
-//   pphAmount  = subtotal × pphPct / 100
-//   hargaAkhir = subtotal + ppnAmount − pphAmount − potonganItem
-//
-// Design decision (confirmed with user):
-//   * PPN/PPh amounts are folded into `amount` — NOT posted as separate GL lines.
-//   * WAC / unit cost for stock valuation includes everything (PPN, PPh, potongan,
-//     landed cost share) → "harga include semua".
-//   * Header `potongan` becomes a derived cache: SUM(items.potonganItem).
+// Purchase invoice line calculations (rice-mill raw material pricing).
+// timbanganTruk is informational only; timbanganDiterima (after refaksi) is the paid weight and is
+// mirrored into `quantity`. ppnPct/pphPct are manual per item; potonganItem is IDR, not percent.
+//   subtotal = quantity x rate x (1 - discount/100)
+//   hargaAkhir (`amount`) = subtotal + subtotal x ppnPct/100 - subtotal x pphPct/100 - potonganItem
+// PPN/PPh are folded into `amount`, not separate GL lines; stock unit cost includes everything
+// (taxes, potongan, landed cost share). Header `potongan` caches SUM(items.potonganItem).
 
 import Decimal from 'decimal.js';
 

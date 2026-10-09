@@ -1,13 +1,5 @@
-// Registry runtime AIRA Tool Router (sisi aplikasi ERP).
-//
-// Tanggung jawab:
-//  1. Memuat file aira-tool-router.json saat start.
-//  2. Memvalidasi tiap entri (aturan BRD AIRA §8.9). Entri rusak di-skip + di-log.
-//  3. Menyediakan lookup tool by-name + daftar tool yang valid.
-//  4. Menggabung dengan override DB (AiToolConfig) → status efektif.
-//
-// File JSON = default & struktur (versioned di git). DB = override editable dari UI.
-// Status efektif = merge(registry, override).
+// AIRA tool registry runtime: loads aira-tool-router.json at startup, validates each entry (BRD
+// AIRA §8.9; invalid entries are skipped and logged), and merges DB overrides (AiToolConfig).
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

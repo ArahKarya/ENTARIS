@@ -1,5 +1,5 @@
 /**
- * DASHBOARD KIT — shells for dashboard widgets.
+ * Dashboard kit: shells for dashboard widgets.
  *  <WidgetCard title href isLoading isError onRetry isEmpty>…</WidgetCard>   loading/error/empty handled
  *  <ChartFrame summary legend table height>{recharts chart (accessibilityLayer off)}</ChartFrame>
  *  chart-theme: CHART_COLORS / AXIS_TICK / GRID_STROKE / TOOLTIP_STYLE tokens.

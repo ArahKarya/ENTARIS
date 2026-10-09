@@ -7,16 +7,9 @@ import { systemAccounts } from './systemAccounts';
 type Tx = Prisma.TransactionClient;
 
 /**
- * Cancel a sales invoice + reverse every side-effect it created:
- *   - flip JE (and COGS JE) to Cancelled, mark ALE rows cancelled
- *   - reverse balances on every JE item account (preserves per-item COGS
- *     sub-accounts that the original posting touched)
- *   - decrement (cancel) every linked stock movement, restore item.currentStock
- *     and the per-warehouse inventory_stocks row
- *   - recompute party outstanding from invoice sums
- *
- * Caller is responsible for opening the $transaction. Returns the cancelled
- * invoice ID + new status.
+ * Cancel a sales invoice: cancel its JE and COGS JE (balances reversed per JE item account, so
+ * per-item COGS sub-accounts are restored), reverse its own stock movements, recompute party
+ * outstanding. Caller owns the transaction.
  */
 export async function cancelSalesInvoiceInTx(
   tx: Tx,
@@ -86,10 +79,7 @@ export async function cancelSalesInvoiceInTx(
     }
   }
 
-  // Reverse stock movements created BY this invoice (direct-sale path).
-  // From-DO lines don't create their own stockMovement here — those belong
-  // to the DO (referenceType='DeliveryOrder') and stay valid because the
-  // goods physically left the warehouse regardless of billing.
+  // Only direct-sale movements are reversed; from-DO movements belong to the DO and stay valid.
   const stockMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'SalesInvoice', referenceId: invoice.id, isCancelled: false },
   });
@@ -117,11 +107,8 @@ export async function cancelSalesInvoiceInTx(
     data: { invoiceId: null, invoicedAt: null },
   });
 
-  // Clear DO link di sales_invoice_items karena kolom
-  // delivery_order_item_id punya @unique constraint. Tanpa ini, invoice
-  // baru yg coba bind DO yg sama akan ditolak Prisma "data duplikat
-  // terdeteksi" meskipun invoice lama statusnya sudah Cancelled. Tetap
-  // simpan baris-nya untuk audit trail — cuma FK ke DO yg di-null-kan.
+  // delivery_order_item_id is @unique: null it so a new invoice can bind the same DO.
+  // Lines are kept for the audit trail.
   await tx.salesInvoiceItem.updateMany({
     where: { salesInvoiceId: invoice.id, deliveryOrderItemId: { not: null } },
     data: { deliveryOrderItemId: null },
@@ -192,9 +179,7 @@ export async function cancelPurchaseInvoiceInTx(
 
   await recalcPartyOutstanding(tx, invoice.partyId);
 
-  // Reverse stock movements yang DIBUAT BY this PI (referenceType=PurchaseInvoice).
-  // For STT-linked lines, ada NO PI-owned movement (stok dari STT), jadi loop ini
-  // hanya menyentuh baris standalone/legacy.
+  // Only PI-owned movements (standalone/legacy lines) are reversed; STT-linked stock belongs to the STT.
   const stockMovements = await tx.stockMovement.findMany({
     where: { referenceType: 'PurchaseInvoice', referenceId: invoice.id, isCancelled: false },
   });
@@ -215,19 +200,15 @@ export async function cancelPurchaseInvoiceInTx(
     });
   }
 
-  // Balik auto-settle COGS backfill yang dipicu PI ini
   await reverseCogsSettlementsByTrigger(tx, 'PurchaseInvoice', invoice.id);
 
-  // Release linked STT(s) back to "available for invoicing" state. STT items
-  // dan stockMovements milik STT tidak disentuh (goods physically diterima).
+  // Release linked STTs for invoicing; their items and stock movements stay untouched.
   await tx.goodsReceipt.updateMany({
     where: { invoiceId: invoice.id },
     data: { invoiceId: null, invoicedAt: null },
   });
 
-  // Clear STT link di purchase_invoice_items — kolom goods_receipt_item_id
-  // punya @unique. Tanpa null-kan, invoice baru yg coba bind STT yg sama
-  // akan ditolak "data duplikat terdeteksi" (mirror dari sales fix).
+  // goods_receipt_item_id is @unique: null it so a new invoice can bind the same STT.
   await tx.purchaseInvoiceItem.updateMany({
     where: { purchaseInvoiceId: invoice.id, goodsReceiptItemId: { not: null } },
     data: { goodsReceiptItemId: null },

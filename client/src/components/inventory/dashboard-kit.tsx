@@ -90,7 +90,7 @@ export function PeriodToolbar({ period, onPresetChange, onRangeChange, children,
   );
 }
 
-// ─── Panel ──────────────────────────────────────────────────────────────────
+// Panel
 
 interface PanelProps {
   title: ReactNode;
@@ -189,7 +189,7 @@ export function PanelState({
   return <>{children}</>;
 }
 
-// ─── Charts ─────────────────────────────────────────────────────────────────
+// Charts
 
 interface TooltipRow {
   label: ReactNode;

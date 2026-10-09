@@ -1,8 +1,4 @@
-/**
- * Form building blocks for the fleet modals: a Radix dialog shell (Phase 4
- * anatomy: pinned header, scrolling body, pinned footer) and labelled native
- * controls styled with the design tokens.
- */
+/** Fleet modal building blocks: dialog shell and labelled native controls. */
 import { useId, type FormEvent, type ReactNode } from 'react';
 import { Save, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -1,26 +1,6 @@
-// GA Material Request (MR) — rantai pengadaan sparepart internal EAM (OPSI A).
-//
-// Mounted under /api/ga/material-requests with requirePerm('ga_material_request')
-// by index.ts. Alur: DRAFT → SUBMITTED → APPROVED → (procurement per-item) →
-// RECEIVE (stok masuk atomik) → FULFILLED. Bisa lahir dari Work Order atau standalone.
-//
-// PRINSIP: sparepart maintenance dicatat sederhana (vendor, harga, status) TANPA
-// double-entry GL / PurchaseOrder resmi (itu OPSI B). Kolom forward-compat
-// (purchaseOrderId, glAccountId) disediakan nullable tapi belum dipakai.
-//
-// ERP conventions: inline Zod schemas, validateBody + handleRouteError +
-// BusinessError, prisma.ga* accessors, req.user!.userId. Auth + requirePerm
-// dilampirkan di index.ts (bukan di sini).
-//
-// DESAIN AUTO-CREATE ITEM SAAT RECEIVE (dipilih paling aman):
-//   GaInventoryItem punya categoryId NOT NULL (FK). Jadi RECEIVE TIDAK
-//   membuat item inventory secara implisit dari itemName saja. Aturan:
-//     - Jika MR item sudah punya inventoryItemId → langsung dipakai.
-//     - Jika belum, body receive WAJIB salah satu dari:
-//         (a) inventoryItemId  → link ke item GA inventory yang sudah ada, ATAU
-//         (b) newItem { sku, categoryId }  → buat GaInventoryItem baru
-//             (name/uom diambil dari MR item) lalu link.
-//   Ini mencegah item stok "yatim" tanpa kategori dan menjaga integritas GA inventory.
+// GA Material Request (MR): internal sparepart procurement for EAM, mounted with requirePerm('ga_material_request') in index.ts.
+// Flow: DRAFT -> SUBMITTED -> APPROVED -> per-item procurement -> RECEIVE (atomic stock in) -> FULFILLED. No GL posting or PurchaseOrder.
+// RECEIVE never creates an inventory item from itemName alone (categoryId is NOT NULL): the body must give inventoryItemId or newItem { sku, categoryId }.
 
 import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
@@ -42,7 +22,7 @@ import {
 
 const router = Router();
 
-// ─── Validation schemas ──────────────────────────────────────────────
+// Validation schemas
 
 const MrItemInputSchema = z.object({
   inventoryItemId: z.string().min(1).optional().nullable(),
@@ -96,8 +76,6 @@ const ReceiveSchema = z.object({
     .nullable(),
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────
-
 /** Generate next MR code MR-YYYY-NNNN, serialized via a year-scoped advisory lock. */
 async function generateMaterialRequestCode(tx: Prisma.TransactionClient): Promise<string> {
   const year = new Date().getFullYear();
@@ -121,18 +99,10 @@ const mrItemInclude = {
   receivedIntoLocation: { select: { id: true, code: true, name: true } },
 } as const;
 
-// ═══════════════════════════════════════════════════════════════════
-// LIST / DETAIL
-// ═══════════════════════════════════════════════════════════════════
+// List and detail
 
-// GET /material-requests — list, filters status/workOrderId/mine
-//
-// Two modes (backward compatible):
-//  • without `page` (legacy callers): bare array, raw filters, newest first.
-//  • with `page` (Permintaan Barang page): `page`, `limit` (≤200), `status`,
-//    `workOrderId`, `assetId`, `mine`, `startDate`/`endDate` (request date),
-//    `search`, `sort` (code | requestedAt | status) → `{ data, total, page,
-//    limit }`; rows also carry `requester` `{ id, fullName }`.
+// GET /material-requests: without `page` returns a bare array (legacy callers);
+// with `page` returns `{ data, total, page, limit }` (limit <= 200) with filters, search and sort.
 router.get('/', async (req: AuthRequest, res) => {
   try {
     if (req.query.page !== undefined) return await listMaterialRequestsPaged(req, res);
@@ -234,9 +204,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// CREATE
-// ═══════════════════════════════════════════════════════════════════
+// Create
 
 /** Shared MR create logic (dipakai endpoint standalone & dari-WO). */
 async function createMaterialRequest(
@@ -333,9 +301,7 @@ router.post('/from-work-order/:workOrderId', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// EDIT (DRAFT only)
-// ═══════════════════════════════════════════════════════════════════
+// Edit (DRAFT only)
 
 // PUT /material-requests/:id — edit header + ganti seluruh items (hanya DRAFT)
 router.put('/:id', async (req: AuthRequest, res) => {
@@ -383,9 +349,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// LIFECYCLE
-// ═══════════════════════════════════════════════════════════════════
+// Lifecycle
 
 /** Simple status-transition helper with a BusinessError guard. */
 async function transitionStatus(
@@ -466,9 +430,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// PROCUREMENT (per-item)
-// ═══════════════════════════════════════════════════════════════════
+// Procurement (per item)
 
 // PATCH /:id/items/:itemId/procurement — update vendor/harga/PO/status (non-stok)
 router.patch('/:id/items/:itemId/procurement', async (req: AuthRequest, res) => {
@@ -502,14 +464,11 @@ router.patch('/:id/items/:itemId/procurement', async (req: AuthRequest, res) => 
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// RECEIVE (kunci) — stok masuk atomik ke GA inventory
-// ═══════════════════════════════════════════════════════════════════
+// Receive: atomic stock in to GA inventory
 
 // PATCH /:id/items/:itemId/receive
-// Dalam TRANSAKSI: resolve/buat GaInventoryItem → upsert +qty ke GaStockByLocation
-// (atomic ON CONFLICT) → GaInventoryMovement type IN referenceNo=MR_<code> →
-// set item RECEIVED. Saat semua item RECEIVED/CANCELLED → MR.status FULFILLED.
+// One transaction: resolve or create the item, atomic upsert into GaStockByLocation, IN movement (referenceNo MR_<code>).
+// The MR becomes FULFILLED once every item is RECEIVED or CANCELLED.
 router.patch('/:id/items/:itemId/receive', async (req: AuthRequest, res) => {
   const input = validateBody(ReceiveSchema, req.body, res);
   if (!input) return;

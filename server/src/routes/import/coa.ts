@@ -11,7 +11,7 @@ import { upload, parseFile, sanitizeCellValue } from './shared';
 
 const router = Router();
 
-// ─── POST /api/import/coa ────────────────────────────────────────────────────
+// POST /api/import/coa
 router.post(
   '/coa',
   upload.single('file'),

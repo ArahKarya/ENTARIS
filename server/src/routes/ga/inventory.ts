@@ -1,17 +1,5 @@
-// GA Inventory — General Affairs' OWN sparepart/consumable stock.
-// SEPARATE domain from the ERP's accounting inventory (Persediaan / stock GL):
-// no journal entries, no account balances, just physical stock per location.
-//
-// Ported from ga-monitor (server/src/routes/inventory.ts). Mounted under
-// /api/ga/inventory with requirePerm('ga_inventory') by routes/ga/index.ts —
-// so NO auth/permission middleware inside this file.
-//
-// Domain:
-//   - GaInventoryItem: catalogue (sku/name/category/uom/minStock).
-//   - GaStockByLocation: per-location quantity (@@unique itemId+locationId).
-//   - GaInventoryMovement: IN/OUT/TRANSFER/ADJUSTMENT — each movement updates
-//     per-location stock atomically inside a prisma.$transaction.
-//   - Low-stock: total stock across locations vs item.minStock.
+// GA's own sparepart/consumable stock, separate from the accounting inventory: no journals or account balances.
+// Mounted with requirePerm('ga_inventory') in index.ts. Every movement updates per-location stock atomically in a transaction.
 
 import { Router, type Response } from 'express';
 import { Prisma } from '@prisma/client';
@@ -44,7 +32,7 @@ import {
 
 const router = Router();
 
-// ── Gambar item (1 foto per item, disimpan di uploads/ga/items) ────────
+// Gambar item (1 foto per item, disimpan di uploads/ga/items)
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || './uploads');
 const ITEM_IMAGES_DIR = path.join(UPLOADS_DIR, 'ga', 'items');
 
@@ -58,7 +46,7 @@ const upload = multer({
 });
 
 
-// ── Schemas (inline — GA-specific, kept out of shared schemas.ts) ──────
+// Schemas (inline: GA-specific, kept out of shared schemas.ts)
 const InventoryItemSchema = z.object({
   sku: z.string().min(1).max(100),
   name: z.string().min(1).max(200),
@@ -86,18 +74,9 @@ function sumStock(stocks: { quantity: Prisma.Decimal }[]): Decimal {
   );
 }
 
-// ── Items ──────────────────────────────────────────────────────────
-// GET /api/ga/inventory/items — list with total stock + low-stock flag.
-//
-// Two modes (backward compatible):
-//  • default (legacy — material requests, maintenance parts picker, AIRA
-//    gi_items): array of items, filters `categoryId`, `q`, `page`/`limit`
-//    (≤500, default 200), ordered by SKU — unchanged.
-//  • `paginated=1` (Inventaris Kantor list): `{ data, total, page, limit }`
-//    with the same row shape; filters `search` (or `q`), `categoryId`,
-//    `locationId` (rows then also carry `locationStock`), `isActive`,
-//    `stockStatus` (out | low | ok) and `sort` (sku | name | category |
-//    totalStock | minStock, "-" = desc). Invalid filters → 400.
+// Items
+// GET /api/ga/inventory/items: by default an array ordered by SKU (limit <= 500; pickers and AIRA tools depend on it);
+// `paginated=1` returns `{ data, total, page, limit }`, with `locationStock` when locationId is set. Invalid filters -> 400.
 router.get('/items', async (req: AuthRequest, res) => {
   try {
     if (req.query.paginated === '1') return await listItemsPaged(req.query as Record<string, unknown>, res);
@@ -316,15 +295,9 @@ router.delete('/items/:id/image', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Movements ──────────────────────────────────────────────────────
-// GET /api/ga/inventory/movements — list/filter.
-//  • without `page` (legacy — AIRA gi_movements): latest 100, filters
-//    `itemId`, `type`, response = array (unchanged).
-//  • with `page` (Inventaris Kantor → Pergerakan): `{ data, total, page, limit }`
-//    (limit ≤200, default 25), same row shape; filters `type`, `itemId`,
-//    `locationId` (either side), `startDate`/`endDate` (YYYY-MM-DD, business
-//    time zone), `search` (item SKU/name, reference, notes), `sort`
-//    (createdAt | quantity). Invalid filters → 400.
+// Movements
+// GET /api/ga/inventory/movements: without `page` the latest 100 as an array (AIRA gi_movements);
+// with `page` returns `{ data, total, page, limit }` (limit <= 200, business time zone dates). Invalid filters -> 400.
 router.get('/movements', async (req: AuthRequest, res) => {
   try {
     if (req.query.page !== undefined) return await listMovementsPaged(req.query as Record<string, unknown>, res);
@@ -377,11 +350,8 @@ async function listMovementsPaged(query: Record<string, unknown>, res: Response)
   return res.json({ data, total, page, limit });
 }
 
-// POST /api/ga/inventory/movements — record movement + update stock in a tx.
-//   IN          : increment toLocation (upsert).
-//   OUT         : decrement fromLocation (guard not negative).
-//   TRANSFER    : decrement fromLocation, increment toLocation.
-//   ADJUSTMENT  : delta applied to toLocation (mirrors GA source semantics).
+// POST /api/ga/inventory/movements: IN adds to toLocation, OUT takes from fromLocation (never below zero),
+// TRANSFER does both, ADJUSTMENT applies a delta to toLocation.
 router.post('/movements', async (req: AuthRequest, res) => {
   const input = validateBody(MovementSchema, req.body, res);
   if (!input) return;
@@ -474,7 +444,7 @@ router.post('/movements', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Low stock report ───────────────────────────────────────────────
+// Low stock report
 // GET /api/ga/inventory/low-stock — active items below their minStock.
 router.get('/low-stock', async (_req, res) => {
   try {
@@ -511,7 +481,7 @@ router.get('/low-stock', async (_req, res) => {
   }
 });
 
-// ── Dashboard ──────────────────────────────────────────────────────
+// Dashboard
 // GET /api/ga/inventory/dashboard — ringkasan stok untuk kartu & grafik.
 //   Semua angka dihitung on-the-fly dari GaStockByLocation & GaInventoryMovement
 //   (tidak ada kolom cache), jadi selalu konsisten dengan mutasi.
@@ -651,7 +621,7 @@ router.get('/dashboard', async (_req, res) => {
   }
 });
 
-// ── Tools ──────────────────────────────────────────────────────────
+// Tools
 // GET /api/ga/inventory/export?type=items|movements — unduh CSV.
 router.get('/export', async (req, res) => {
   const type = String(req.query.type || 'items');

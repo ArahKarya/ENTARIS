@@ -1,10 +1,6 @@
 /**
- * Pengaturan → AIRA (MCP).
- *
- * Entaris adalah server MCP untuk mesin AI (engine AIRA). Tab ini hanya memuat: status + kill switch,
- * info endpoint (URL, header Authorization, health check siap-salin), manajemen token MCP, dan riwayat panggilan.
- * Channel/whitelist, token servis lama, daftar tool & Test Tool sudah dipensiunkan
- * (registrasi pengguna AIRA ada di Manajemen Pengguna).
+ * Settings → AIRA (MCP): status and kill switch, endpoint info, MCP tokens and call history.
+ * AIRA user registration lives in User Management.
  */
 import React from 'react';
 import { McpStatusCard, McpEndpointCard } from './aira/McpStatusCards';

@@ -1,14 +1,7 @@
 /**
- * List helpers for the stock item master, GET /api/inventory/items and
- * GET /api/inventory/items/summary.
- *
- * The item list is filtered/sorted in memory: with `warehouseId` the stock
- * figure is the per-warehouse balance (inventory_stocks), which Prisma cannot
- * sort or filter on through the item relation. Item masters are small.
- *
- * Legacy callers (pickers, Aira) send none of `sort`, `stockStatus` or
- * `category`; the route keeps its historic behaviour for them (see
- * `usesListMode`). The list page always sends `sort`.
+ * Stock item list, filtered and sorted in memory: with `warehouseId` stock is the per-warehouse
+ * balance, which Prisma cannot sort on. Callers sending none of sort/stockStatus/category (pickers,
+ * AIRA) get the plain behaviour (see `usesListMode`).
  */
 import { firstString, type SortSpec } from '../utils/listQuery';
 

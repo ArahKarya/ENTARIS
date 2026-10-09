@@ -1,15 +1,7 @@
 /**
- * Design token bersama untuk SEMUA generator PDF (ERP + EAM).
- *
- * @react-pdf/renderer merender di luar DOM sehingga TIDAK bisa membaca
- * CSS variable Tailwind (`--primary: oklch(...)`) di index.css. Karena itu
- * nilai warna tema di-mirror manual di sini — SATU tempat, bukan hardcode
- * tersebar di tiap file PDF seperti sebelumnya.
- *
- * CATATAN WARNA: judul/garis memakai navy Entaris (BRAND.navy); isi tetap
- * hitam/abu supaya ramah cetak. Dokumen carbonless memakai CARBON (hitam-putih).
- *
- * Kalau tema UI berubah, ubah HANYA berkas ini.
+ * Shared design tokens for every PDF generator. @react-pdf renders outside the DOM and cannot
+ * read the Tailwind CSS variables, so theme colors are mirrored here: update this file when the UI theme changes.
+ * Titles/rules use BRAND.navy, body text stays black/grey for printing; carbonless documents use CARBON.
  */
 
 /** Warna brand Entaris (docs/brand/entaris/README.md) — navy untuk judul/garis, biru untuk aksen. */

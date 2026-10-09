@@ -1,13 +1,5 @@
-// Approval gate: tahan dokumen tertentu sampai disetujui Admin/manajer.
-//
-// Kebijakan (2026-06-02, dikonfirmasi user):
-//   - Berlaku untuk SEMUA role KECUALI Admin.
-//   - Efek dokumen (GL/stok/WAC) terjadi SETELAH approve, bukan sebelum.
-//     Maka dokumen TIDAK dibuat saat submit — payload disimpan di
-//     ApprovalRequest, lalu dieksekusi via submit asli saat approve.
-//
-// Document type yang di-gate: 'PurchaseInvoice', 'ProductionRun', 'SalesReturn',
-// 'DeliveryOrder' (pembuatan) + 'ProductionRunEdit', 'PurchaseInvoiceRevisePrice' (mutasi).
+// Approval gate for roles without the `approval.bypass` capability. Effects (GL/stock/WAC)
+// happen only on approve: the payload is stored in ApprovalRequest and submitted then.
 
 import type { Prisma } from '@prisma/client';
 import { hasCap } from './permissionService';
@@ -38,12 +30,7 @@ export async function needsApproval(roleKey: string): Promise<boolean> {
   return !(await hasCap(roleKey, 'approval.bypass'));
 }
 
-/**
- * Link ke halaman approval di aplikasi (utk disisipkan ke notifikasi).
- * Sumber: env APP_BASE_URL (mis. https://entaris.example.com). Bila tidak
- * di-set → null (notifikasi tetap terkirim tanpa link). Telegram meng-auto-link
- * URL polos sehingga bisa langsung diklik.
- */
+/** Approvals page URL for notifications, from APP_BASE_URL; null when unset (notification goes out without a link). */
 export function approvalsLink(requestId?: string): string | null {
   const base = (process.env.APP_BASE_URL ?? '').replace(/\/+$/, '');
   if (!base) return null;

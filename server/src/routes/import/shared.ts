@@ -17,7 +17,7 @@ export const upload = multer({
   },
 });
 
-// ─── Helper: Sanitize cell value to prevent formula injection ────────────────
+// Helper: Sanitize cell value to prevent formula injection
 export function sanitizeCellValue(value: unknown): string {
   const str = String(value ?? '').trim();
   if (/^[=+\-@\t\r]/.test(str)) {
@@ -26,7 +26,7 @@ export function sanitizeCellValue(value: unknown): string {
   return str;
 }
 
-// ─── Helper: Parse uploaded file to array of objects ─────────────────────────
+// Helper: Parse uploaded file to array of objects
 export async function parseFile(buffer: Buffer, filename: string): Promise<Record<string, string>[]> {
   const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
 

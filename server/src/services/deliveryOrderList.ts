@@ -1,12 +1,6 @@
 /**
- * Query building for the delivery order (Surat Jalan resmi) list,
- * GET /api/delivery-orders.
- *
- * DocumentStatus is Draft/Submitted/Cancelled — "Invoiced" is a derived state
- * (status=Submitted + invoiceId set). The `status` filter therefore accepts:
- *   Submitted → posted, not invoiced yet
- *   Invoiced  → posted and already billed
- *   Cancelled, Draft
+ * Delivery order list. "Invoiced" is derived (Submitted + invoiceId set), so the `status` filter
+ * accepts Submitted (not invoiced yet), Invoiced, Cancelled and Draft.
  */
 import { Prisma } from '@prisma/client';
 import { firstString, parseDateParam, type SortSpec, localDayRange } from '../utils/listQuery';

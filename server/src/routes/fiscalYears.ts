@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/fiscal-years (Admin only)
+// POST /api/fiscal-years (requires settings edit permission)
 router.post('/', async (req, res) => {
   const body = validateBody(CreateFiscalYearSchema, req.body, res);
   if (!body) return;
@@ -56,7 +56,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/fiscal-years/:id/close — close fiscal year (Admin only)
+// POST /api/fiscal-years/:id/close: requires settings edit permission and the doc.cancel capability
 router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const id = req.params.id as string;
 
@@ -66,7 +66,6 @@ router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res
       if (!year) throw new BusinessError('Tahun buku tidak ditemukan.');
       if (year.isClosed) throw new BusinessError('Tahun buku sudah ditutup.');
 
-      // 1. Calculate net profit for the year
       const [revAgg, expAgg] = await Promise.all([
         tx.accountingLedgerEntry.aggregate({
           where: { fiscalYearId: id, isCancelled: false, account: { rootType: 'REVENUE' as any } },
@@ -86,7 +85,7 @@ router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res
       const currentProfitAcc = await systemAccounts.getAccount('CURRENT_PROFIT');
 
       if (profit !== 0) {
-        // 2. Transfer profit/loss to Retained Earnings
+        // Transfer profit/loss to Retained Earnings.
         const closeEntry = await tx.journalEntry.create({
           data: {
             entryNumber: `CLOSE-${year.name}`,
@@ -144,7 +143,7 @@ router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res
         await updateAccountBalance(tx, retainedEarningsAcc.id, profit < 0 ? Math.abs(profit) : 0, profit > 0 ? profit : 0);
       }
 
-      // 3. Decrement Revenue/Expense balances by only this FY's contribution
+      // Decrement Revenue/Expense balances by this FY's contribution only.
       const fyAccountSums = await tx.accountingLedgerEntry.groupBy({
         by: ['accountId'],
         where: {
@@ -178,7 +177,6 @@ router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res
         }
       }
 
-      // 4. Mark fiscal year as closed
       return tx.fiscalYear.update({
         where: { id },
         data: { isClosed: true, closedAt: new Date(), closedBy: req.user!.userId },
@@ -191,7 +189,7 @@ router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res
   }
 });
 
-// POST /api/fiscal-years/:id/reopen — reopen a closed fiscal year (Admin only)
+// POST /api/fiscal-years/:id/reopen: requires settings edit permission and the doc.cancel capability
 router.post('/:id/reopen', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   const fyId = req.params.id as string;
 
@@ -201,7 +199,7 @@ router.post('/:id/reopen', requireCap('doc.cancel'), async (req: AuthRequest, re
       if (!year) throw new BusinessError('Tahun buku tidak ditemukan.');
       if (!year.isClosed) throw new BusinessError('Tahun buku belum ditutup.');
 
-      // 1. Find and reverse the closing journal entry (CLOSE-{name})
+      // Reverse the closing journal entry (CLOSE-{name}).
       const closeEntryNumber = `CLOSE-${year.name}`;
       const closeEntry = await tx.journalEntry.findFirst({
         where: { entryNumber: closeEntryNumber, fiscalYearId: fyId },
@@ -215,11 +213,9 @@ router.post('/:id/reopen', requireCap('doc.cancel'), async (req: AuthRequest, re
         });
 
         for (const entry of closeLedgerEntries) {
-          // Reverse the balance impact
           await updateAccountBalance(tx, entry.accountId, Number(entry.credit), Number(entry.debit));
         }
 
-        // Delete the closing ledger entries
         await tx.accountingLedgerEntry.deleteMany({
           where: { referenceType: 'JournalEntry', referenceId: closeEntry.id, fiscalYearId: fyId },
         });
@@ -228,7 +224,6 @@ router.post('/:id/reopen', requireCap('doc.cancel'), async (req: AuthRequest, re
         await tx.journalEntry.delete({ where: { id: closeEntry.id } });
       }
 
-      // 2. Restore Revenue/Expense account balances
       const fyAccountSums = await tx.accountingLedgerEntry.groupBy({
         by: ['accountId'],
         where: {
@@ -262,7 +257,6 @@ router.post('/:id/reopen', requireCap('doc.cancel'), async (req: AuthRequest, re
         }
       }
 
-      // 3. Mark fiscal year as open
       return tx.fiscalYear.update({
         where: { id: fyId },
         data: { isClosed: false, closedAt: null, closedBy: null },

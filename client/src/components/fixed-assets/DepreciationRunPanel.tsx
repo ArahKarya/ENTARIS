@@ -1,10 +1,6 @@
 /**
- * "Posting Penyusutan" tab: monthly depreciation run.
- *
- * Same flow as the former modal: pick a month (default: the previous, already
- * closed month) → dry-run preview (POST /fixed-assets/depreciate-bulk with
- * dryRun) → post. Posting creates one journal per asset and is always
- * confirmed in a dialog first.
+ * Monthly depreciation run: pick a month (default: the previous one), dry-run
+ * preview, then post. Posting creates one journal per asset after a confirm dialog.
  */
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

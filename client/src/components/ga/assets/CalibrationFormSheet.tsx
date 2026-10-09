@@ -1,7 +1,6 @@
 /**
- * New calibration log for an equipment asset:
- * POST /ga/equipment/assets/:id/calibration-logs (same payload as before; the
- * server syncs lastCalibratedAt / nextCalibrationDue from it).
+ * New calibration log for an equipment asset; the server syncs
+ * lastCalibratedAt / nextCalibrationDue from it.
  */
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';

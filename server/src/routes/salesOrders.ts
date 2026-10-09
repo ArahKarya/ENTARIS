@@ -29,7 +29,6 @@ const router = Router();
 // Akses modul 'sales_order' di-enforce di mount (index.ts).
 // Bypass stok minus = capability 'inventory.negative_stock'.
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
 function computeTotals(input: {
   items: { quantity: number; rate: number; discount: number; amount: number }[];
   potongan: number;
@@ -50,7 +49,7 @@ function computeTotals(input: {
 // recomputeDeliveredQtyInTx (services/salesOrderDelivery) — the single source
 // of truth shared by generate-do, DO edit, and DO cancel.
 
-// ─── GET / list ────────────────────────────────────────────────────────────
+// GET / list
 // Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
 // search (SO number / customer name / customer ref), sort (e.g. "-date").
 // → { data, total, page, limit }
@@ -84,7 +83,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─── GET /summary ──────────────────────────────────────────────────────────
+// GET /summary
 // KPI totals for the same filters as the list. Declared before /:id.
 router.get('/summary', async (req, res) => {
   try {
@@ -102,7 +101,7 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// ─── GET /:id detail ───────────────────────────────────────────────────────
+// GET /:id detail
 router.get('/:id', async (req, res) => {
   try {
     const so = await prisma.salesOrder.findUnique({
@@ -159,7 +158,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── POST / create ─────────────────────────────────────────────────────────
+// POST / create
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateSalesOrderSchema, req.body, res);
   if (!body) return;
@@ -215,7 +214,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── PUT /:id edit ─────────────────────────────────────────────────────────
+// PUT /:id edit
 router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateSalesOrderSchema, req.body, res);
   if (!body) return;
@@ -270,7 +269,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/submit ──────────────────────────────────────────────────────
+// POST /:id/submit
 router.post('/:id/submit', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -289,7 +288,7 @@ router.post('/:id/submit', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/cancel ──────────────────────────────────────────────────────
+// POST /:id/cancel
 router.post('/:id/cancel', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -313,7 +312,7 @@ router.post('/:id/cancel', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/generate-do — generate DeliveryOrder dari SO ────────────────
+// POST /:id/generate-do: generate DeliveryOrder dari SO
 router.post('/:id/generate-do', async (req: AuthRequest, res) => {
   const body = validateBody(GenerateDOFromSOSchema, req.body, res);
   if (!body) return;

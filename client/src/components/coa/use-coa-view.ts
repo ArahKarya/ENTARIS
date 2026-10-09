@@ -37,7 +37,7 @@ export function useCoaView(tree: readonly CoaNode[]) {
     [tree, list.search, rootType, nonZeroOnly],
   );
 
-  // ── Expanded state (URL) for the unfiltered tree ──────────────────────────
+  // Expanded state (URL) for the unfiltered tree
   const openRaw = searchParams.get(OPEN_PARAM);
   const expanded = useMemo(() => parseExpanded(openRaw, tree), [openRaw, tree]);
   const writeExpanded = useCallback(
@@ -55,7 +55,7 @@ export function useCoaView(tree: readonly CoaNode[]) {
     [setSearchParams, tree],
   );
 
-  // ── Local collapsed set while filtering ───────────────────────────────────
+  // Local collapsed set while filtering
   const [collapsed, setCollapsed] = useState<{ key: string; ids: Set<string> }>({ key: filterKey, ids: new Set() });
   const collapsedIds = useMemo(
     () => (collapsed.key === filterKey ? collapsed.ids : new Set<string>()),

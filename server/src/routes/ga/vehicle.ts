@@ -1,6 +1,5 @@
-// GA Vehicle — data kendaraan (1-1 per asset), service log, dan service request
-// dengan flow approval. Di-mount di /api/ga/vehicle dengan requirePerm('ga_vehicle').
-// Auth + RBAC ditangani di mount (index.ts), bukan di file ini.
+// GA vehicles: vehicle data (1-1 per asset), service log and service requests with approval.
+// Mounted with requirePerm('ga_vehicle') in index.ts.
 
 import { Router } from 'express';
 import crypto from 'crypto';
@@ -41,7 +40,7 @@ const inspectionPhotoUpload = multer({
   },
 });
 
-// ── Zod schemas ──────────────────────────────────────────────────────
+// Zod schemas
 const VEHICLE_FUEL_TYPES = [
   'BENSIN', 'SOLAR', 'PERTAMAX', 'PERTALITE', 'DEX', 'LPG', 'LISTRIK', 'HYBRID', 'LAINNYA',
 ] as const;
@@ -91,7 +90,7 @@ const RejectServiceRequestSchema = z.object({
   reason: z.string().min(1, 'Alasan wajib diisi.').max(500),
 });
 
-// ── Fleet management schemas ─────────────────────────────────────────
+// Fleet management schemas
 const VEHICLE_TAX_TYPES = ['STNK_TAHUNAN', 'STNK_5_TAHUNAN', 'KIR', 'PAJAK_KENDARAAN'] as const;
 const VEHICLE_TAX_STATUSES = ['ACTIVE', 'EXPIRED', 'IN_PROCESS'] as const;
 const VEHICLE_INSURANCE_TYPES = ['ALL_RISK', 'TLO', 'KECELAKAAN_DIRI', 'LAINNYA'] as const;
@@ -148,7 +147,7 @@ const VehicleFuelLogSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// ── Inspeksi berkala: checklist detail per kategori ──────────────────
+// Inspeksi berkala: checklist detail per kategori
 // Struktur baru = kategori + sub-item. Key sub-item tetap flat di JSON
 // `checklist` (Record<string, 'OK'|'PERLU_PERHATIAN'|'RUSAK'>) supaya data
 // inspeksi LAMA (12 checkpoint datar) tetap terbaca tanpa migrasi data.
@@ -263,7 +262,7 @@ const VehicleIncidentSchema = z.object({
   insuranceClaimNo: z.string().max(100).optional().nullable(),
 });
 
-// ── Tire & Oil schemas ──
+// Tire & Oil schemas
 const TIRE_POSITIONS = [
   'DEPAN_KIRI', 'DEPAN_KANAN', 'BELAKANG_KIRI', 'BELAKANG_KANAN',
   'BELAKANG_KIRI_DALAM', 'BELAKANG_KIRI_LUAR', 'BELAKANG_KANAN_DALAM', 'BELAKANG_KANAN_LUAR', 'CADANGAN',
@@ -291,9 +290,7 @@ const VehicleOilLogSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// VEHICLE DATA (1-to-1 dengan Asset, scoped via /assets/:id)
-// ═══════════════════════════════════════════════════════════════════
+// Vehicle data (1-1 with Asset, scoped via /assets/:id)
 
 router.get('/assets/:id', async (req, res) => {
   try {
@@ -339,9 +336,7 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// SERVICE LOG (1-to-many, scoped via /assets/:id/services)
-// ═══════════════════════════════════════════════════════════════════
+// Service log (1-many, scoped via /assets/:id/services)
 
 router.get('/assets/:id/services', async (req, res) => {
   try {
@@ -513,11 +508,9 @@ router.delete('/assets/:id/services/:sid', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// SERVICE REQUEST (Pengajuan service dengan flow approval)
-// ═══════════════════════════════════════════════════════════════════
+// Service requests with an approval flow
 
-// ─── Auto Work Order dari pengajuan servis ───────────────────────────
+// Auto Work Order dari pengajuan servis
 /** Generate next WO code WO-YYYY-NNNN (advisory lock sama dgn maintenance.ts). */
 async function generateWorkOrderCodeTx(tx: Prisma.TransactionClient): Promise<string> {
   const year = new Date().getFullYear();
@@ -752,11 +745,7 @@ router.patch('/service-requests/:id/cancel', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// DRIVER ASSIGNMENT (pakai GaAsset.picUserId yang sudah ada -- scoped
-// ke sini karena 'siapa driver kendaraan ini' adalah konsep vehicle,
-// meskipun field-nya generic di GaAsset)
-// ═══════════════════════════════════════════════════════════════════
+// Driver assignment: stored in the generic GaAsset.picUserId, exposed here because the driver is a vehicle concept.
 
 router.patch('/assets/:id/driver', async (req: AuthRequest, res) => {
   const input = validateBody(DriverAssignSchema, req.body, res);
@@ -780,9 +769,7 @@ router.patch('/assets/:id/driver', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// PAJAK / STNK / KIR (1-to-many, histori per tahun)
-// ═══════════════════════════════════════════════════════════════════
+// Tax, STNK and KIR records (1-many, history per year)
 
 router.get('/assets/:id/taxes', async (req, res) => {
   try {
@@ -879,10 +866,8 @@ router.delete('/assets/:id/taxes/:tid', async (req, res) => {
 });
 
 
-// ═══════════════════════════════════════════════════════════════════
-// TAX REQUEST (Pengajuan pajak/STNK/KIR dengan flow approval)
+// Tax/STNK/KIR requests with an approval flow
 // Approve => otomatis membuat record GaVehicleTax status IN_PROCESS.
-// ═══════════════════════════════════════════════════════════════════
 
 router.post('/assets/:id/tax-requests', async (req: AuthRequest, res) => {
   const input = validateBody(VehicleTaxRequestSchema, req.body, res);
@@ -1035,9 +1020,7 @@ router.patch('/tax-requests/:id/cancel', async (req: AuthRequest, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// ASURANSI (1-to-many, histori polis)
-// ═══════════════════════════════════════════════════════════════════
+// Insurance (1-many, policy history)
 
 router.get('/assets/:id/insurances', async (req, res) => {
   try {
@@ -1110,9 +1093,7 @@ router.delete('/assets/:id/insurances/:iid', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// LOG BBM (1-to-many, per pengisian)
-// ═══════════════════════════════════════════════════════════════════
+// Fuel log (1-many, one row per refill)
 
 router.get('/assets/:id/fuel-logs', async (req, res) => {
   try {
@@ -1169,9 +1150,7 @@ router.delete('/assets/:id/fuel-logs/:fid', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// INSPEKSI BERKALA (checklist ban/rem/oli/dll, beda dari service log)
-// ═══════════════════════════════════════════════════════════════════
+// Periodic inspections (tire/brake/oil checklist, separate from the service log)
 
 router.get('/inspection-checkpoints', async (_req, res) => {
   return res.json(VEHICLE_INSPECTION_CHECKPOINTS);
@@ -1251,7 +1230,7 @@ router.delete('/assets/:id/inspections/:iid', async (req, res) => {
   }
 });
 
-// ── Foto bukti inspeksi (1 foto per kategori checklist) ──────────────
+// Foto bukti inspeksi (1 foto per kategori checklist)
 router.post('/assets/:id/inspections/:iid/photos', inspectionPhotoUpload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'File wajib diupload.' });
   const category = String(req.body.category ?? '').trim();
@@ -1331,9 +1310,7 @@ router.delete('/assets/:id/inspections/:iid/photos/:pid', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// INSIDEN / KECELAKAAN
-// ═══════════════════════════════════════════════════════════════════
+// Incidents and accidents
 
 router.get('/assets/:id/incidents', async (req, res) => {
   try {
@@ -1403,13 +1380,7 @@ router.delete('/assets/:id/incidents/:iid', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// DASHBOARD ARMADA — ringkasan lintas-kendaraan (bukan per-asset)
-// ═══════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════
-// BAN / TIRE (Master ban per posisi, penangkal tukar ban)
-// ═══════════════════════════════════════════════════════════════════
+// Tires: master per wheel position, guards against tire swapping
 
 router.get('/assets/:id/tires', async (req, res) => {
   try {
@@ -1514,9 +1485,7 @@ router.delete('/assets/:id/tires/:tid', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// OLI / OIL LOG (Ganti oli berkala + monitor odometer target)
-// ═══════════════════════════════════════════════════════════════════
+// Oil log: periodic oil changes and target odometer
 
 router.get('/assets/:id/oil-logs', async (req, res) => {
   try {
@@ -1569,12 +1538,9 @@ router.delete('/assets/:id/oil-logs/:oid', async (req, res) => {
   }
 });
 
-// ── Fleet list (Kendaraan page) ──────────────────────────────────────
-// GET /fleet?page=&limit=&search=&id=&status=&due=overdue|dueSoon|attention
-//            &doc=tax|stnk|kir|insurance|inspection&sort=-nextDue&categoryKind=vehicle
-// → { data: FleetRow[], total, page, limit }. Vehicles = assets in the
-// categories resolved for categoryKind (default vehicle). Rows carry the due
-// state per obligation (services/gaFleetList). Batch queries only (no N+1).
+// Fleet list (Kendaraan page)
+// GET /fleet: paged FleetRow list for assets in the categoryKind categories (default vehicle),
+// with due state per obligation (services/gaFleetList). Batch queries only, no N+1.
 router.get('/fleet', async (req: AuthRequest, res) => {
   try {
     const kind = parseCategoryKind(req.query.categoryKind ?? 'vehicle');
@@ -1714,11 +1680,9 @@ router.get('/fleet-summary', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Report Kendaraan — analisis komprehensif ─────────────────────────
-// Agregat cost breakdown + compliance + condition. Semua read-only dari
-// tabel existing (tidak ada migrasi). Query di-batch via Promise.all agar
-// tidak N+1; fleet-report memakai agregasi in-memory dari satu batch query
-// per tabel sehingga jumlah query tetap konstan berapa pun jumlah kendaraan.
+// Vehicle report
+// Read-only cost, compliance and condition aggregates. fleet-report aggregates in memory from one batch
+// query per table, so the query count stays constant regardless of fleet size.
 
 type ReportPeriod = { from: Date; to: Date; months: number };
 
@@ -1842,7 +1806,7 @@ router.get('/assets/:id/report', async (req: AuthRequest, res) => {
       }),
     ]);
 
-    // ── TCO breakdown periode ──
+    // TCO breakdown periode
     const breakdown = emptyBreakdown();
     const trendRows: { month: string; category: CostCategory; amount: number }[] = [];
 
@@ -1880,7 +1844,7 @@ router.get('/assets/:id/report', async (req: AuthRequest, res) => {
 
     const totalCost = COST_CATEGORIES.reduce((sum, k) => sum + breakdown[k], 0);
 
-    // ── Cost per KM: pakai rentang odometer dari log service/fuel/oil dalam periode ──
+    // Cost per KM: pakai rentang odometer dari log service/fuel/oil dalam periode
     const odometers = [
       ...services.map((s) => s.odometer),
       ...fuels.map((f) => f.odometer),
@@ -1890,7 +1854,7 @@ router.get('/assets/:id/report', async (req: AuthRequest, res) => {
     const distanceKm = odoMin != null && odoMax != null && odoMax > odoMin ? odoMax - odoMin : null;
     const totalLiters = fuels.reduce((sum, f) => sum + dec(f.liters), 0);
 
-    // ── Compliance ──
+    // Compliance
     const activeTaxes = taxes.filter((t) => t.status === 'ACTIVE');
     const activeInsurances = insurances.filter((i) => i.status === 'ACTIVE');
     const openIncidents = incidents.filter((i) => i.status === 'DILAPORKAN' || i.status === 'DALAM_PROSES');
@@ -1926,7 +1890,7 @@ router.get('/assets/:id/report', async (req: AuthRequest, res) => {
         openIncidents.length,
     };
 
-    // ── Kondisi ──
+    // Kondisi
     const odometerTerakhir = asset.vehicleData?.odometerTerakhir ?? null;
     const oilRemainingKm =
       lastOil && odometerTerakhir != null ? lastOil.nextOdometerDue - odometerTerakhir : null;
@@ -2119,7 +2083,7 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
       bump(r.assetId, 'incident', r.actualCost != null ? dec(r.actualCost) : dec(r.estimatedCost), r.tanggal);
     }
 
-    // ── Work Order (jasa + sparepart) ──
+    // Work Order (jasa + sparepart)
     // CATATAN: di deployment ini, biaya sparepart/jasa WO dibayar lewat Material Request (MR)
     // status PAID. Jadi SATU kategori 'workorder' saja = labor + vendor eksternal
     // + parts gudang + MR PAID, supaya tidak dobel hitung.

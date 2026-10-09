@@ -130,7 +130,7 @@ async function editMessageText(botToken: string, chatId: string | number, messag
   } catch { /* never throw */ }
 }
 
-/** Inline keyboard utk japri approval_pending (hanya di DM admin). */
+/** Inline keyboard for approval_pending DMs to users with capability approval.decide. */
 function approvalKeyboard(requestId: string): unknown {
   return {
     inline_keyboard: [
@@ -171,9 +171,9 @@ export async function pushTelegramToUser(input: {
   type: string;
   title: string;
   message: string;
-  // Bila diisi & type=approval_pending → pesan disertai tombol aksi (DM admin).
+  // With type=approval_pending, the message carries action buttons.
   requestId?: string;
-  // Bila true, sertakan tombol approval. Dipakai utk membatasi tombol hanya ke admin.
+  // Caller sets this only for users with capability approval.decide.
   withApprovalButtons?: boolean;
 }): Promise<void> {
   try {
@@ -230,8 +230,8 @@ export async function getBotUsername(): Promise<string | null> {
 
 /**
  * Tangani penekanan tombol approval (apv:<action>:<reqId>).
- * Keamanan: penekan WAJIB user Admin aktif yang tertaut (telegramChatId = from.id).
- * Never-throw.
+ * Security: the presser must be an active linked user (telegramChatId = from.id) with
+ * capability approval.decide. Never throws.
  */
 async function handleApprovalCallback(botToken: string, cb: any): Promise<void> {
   try {
@@ -250,14 +250,14 @@ async function handleApprovalCallback(botToken: string, cb: any): Promise<void> 
     const action = parts[1] as 'approve' | 'reject' | 'revise';
     const requestId = parts.slice(2).join(':');
 
-    // Verifikasi penekan = Admin aktif yang tertaut.
+    // The presser is identified by the linked telegramChatId.
     const user = fromId != null
       ? await prisma.user.findFirst({
           where: { telegramChatId: String(fromId) },
           select: { id: true, role: true, isActive: true, fullName: true },
         })
       : null;
-    // Hanya user aktif dgn capability 'approval.decide' (default Admin/super) yang boleh.
+    // Requires an active user with capability approval.decide.
     if (!user || !user.isActive || !(await hasCap(user.role, 'approval.decide'))) {
       void answerCallbackQuery(botToken, cbId, 'Anda tidak berwenang menyetujui pengajuan.');
       return;
@@ -358,7 +358,7 @@ export async function pollTelegramUpdates(): Promise<void> {
     for (const upd of data.result) {
       if (typeof upd.update_id === 'number' && upd.update_id > maxId) maxId = upd.update_id;
 
-      // 1) Tombol approval (callback_query) — hanya admin tertaut yang boleh.
+      // Approval button (callback_query); authorization is checked in handleApprovalCallback.
       if (upd.callback_query) {
         await handleApprovalCallback(cfg.botToken, upd.callback_query);
         continue;
@@ -369,7 +369,7 @@ export async function pollTelegramUpdates(): Promise<void> {
       const chatId = msg?.chat?.id;
       if (!text || chatId == null) continue;
 
-      // 2) Penautan akun: /start <kode>
+      // Account linking: /start <code>
       const m = text.match(/^\/start\s+(\S+)/);
       if (m) {
         const code = m[1];
@@ -383,7 +383,7 @@ export async function pollTelegramUpdates(): Promise<void> {
         continue;
       }
 
-      // 3) Balasan alasan revisi (langkah-2 dari tombol Minta Revisi).
+      // Revision reason reply (second step of the Minta Revisi button).
       await handleRevisionReply(cfg.botToken, String(chatId), text);
     }
     if (maxId > 0) {

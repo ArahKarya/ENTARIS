@@ -13,7 +13,7 @@ export const MOVEMENT_FILTER_KEYS = ['itemId', 'warehouseId', 'movementType', 's
 export const PRODUCTION_FILTER_KEYS = ['status', 'startDate', 'endDate'] as const;
 export const SERVICE_FILTER_KEYS = ['isActive'] as const;
 
-// ─── Items ──────────────────────────────────────────────────────────────────
+// Items
 
 export type ItemStockStatus = 'out' | 'low' | 'ok';
 
@@ -70,7 +70,7 @@ export function toItemExportRows(items: readonly InventoryItemRow[]): Record<str
   }));
 }
 
-// ─── Stock movements ────────────────────────────────────────────────────────
+// Stock movements
 
 export type MovementType = 'In' | 'Out' | 'AdjustmentIn' | 'AdjustmentOut' | 'TransferIn' | 'TransferOut';
 
@@ -159,7 +159,7 @@ export function movementCancelBlock(m: Pick<StockMovementRow, 'referenceType' | 
   return null;
 }
 
-// ─── Production runs ────────────────────────────────────────────────────────
+// Production runs
 
 export interface ProductionRunLine {
   id: string;
@@ -230,7 +230,7 @@ export function splitRunLines(run: Pick<ProductionRunRow, 'items'>): { inputs: P
   };
 }
 
-// ─── Service items ──────────────────────────────────────────────────────────
+// Service items
 
 export interface ServiceItemRow {
   id: string;

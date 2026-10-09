@@ -112,7 +112,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EQUITY' as const,
   },
 
-  // ── Pajak ──────────────────────────────────────
+  // Pajak
   TAX_INPUT: {
     key: 'TAX_INPUT',
     label: 'PPN Masukan',
@@ -138,7 +138,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Diskon & Retur ─────────────────────────────
+  // Diskon & Retur
   SALES_DISCOUNT: {
     key: 'SALES_DISCOUNT',
     label: 'Diskon Penjualan',
@@ -156,7 +156,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'REVENUE' as const,
   },
 
-  // ── Pengiriman ─────────────────────────────────
+  // Pengiriman
   SHIPPING_EXPENSE: {
     key: 'SHIPPING_EXPENSE',
     label: 'Beban Pengiriman',
@@ -166,7 +166,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Aset Tetap & Depresiasi ────────────────────
+  // Aset Tetap & Depresiasi
   FIXED_ASSET: {
     key: 'FIXED_ASSET',
     label: 'Aset Tetap',
@@ -192,7 +192,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Biaya Bank & Bunga ─────────────────────────
+  // Biaya Bank & Bunga
   BANK_CHARGE: {
     key: 'BANK_CHARGE',
     label: 'Beban Administrasi Bank',
@@ -218,7 +218,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'REVENUE' as const,
   },
 
-  // ── Selisih Kurs ───────────────────────────────
+  // Selisih Kurs
   FX_GAIN_LOSS: {
     key: 'FX_GAIN_LOSS',
     label: 'Laba/Rugi Selisih Kurs',
@@ -236,7 +236,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Piutang Tak Tertagih ───────────────────────
+  // Piutang Tak Tertagih
   BAD_DEBT_EXPENSE: {
     key: 'BAD_DEBT_EXPENSE',
     label: 'Beban Piutang Tak Tertagih',
@@ -254,7 +254,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'ASSET' as const,
   },
 
-  // ── Akrual & Dibayar Dimuka ────────────────────
+  // Akrual & Dibayar Dimuka
   PREPAID_EXPENSE: {
     key: 'PREPAID_EXPENSE',
     label: 'Biaya Dibayar Dimuka',
@@ -272,7 +272,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'LIABILITY' as const,
   },
 
-  // ── Ekuitas Tambahan ───────────────────────────
+  // Ekuitas Tambahan
   OWNER_DRAWING: {
     key: 'OWNER_DRAWING',
     label: 'Prive / Penarikan Pemilik',
@@ -282,7 +282,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EQUITY' as const,
   },
 
-  // ── Pendapatan & Beban Lain-lain ───────────────
+  // Pendapatan & Beban Lain-lain
   OTHER_INCOME: {
     key: 'OTHER_INCOME',
     label: 'Pendapatan Lain-lain',
@@ -300,7 +300,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Biaya Konversi Produksi ──────────────────────
+  // Biaya Konversi Produksi
   PRODUCTION_CONVERSION: {
     key: 'PRODUCTION_CONVERSION',
     label: 'Biaya Konversi Produksi',
@@ -310,7 +310,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Selisih Persediaan ──────────────────────────
+  // Selisih Persediaan
   INVENTORY_VARIANCE: {
     key: 'INVENTORY_VARIANCE',
     label: 'Selisih Persediaan',
@@ -320,7 +320,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Pembulatan ─────────────────────────────────
+  // Pembulatan
   ROUNDING_ACCOUNT: {
     key: 'ROUNDING_ACCOUNT',
     label: 'Pembulatan / Selisih',
@@ -330,7 +330,7 @@ export const SYSTEM_ACCOUNT_ROLES = {
     expectedRootType: 'EXPENSE' as const,
   },
 
-  // ── Pembelian (STT/PI flow) ────────────────────
+  // Pembelian (STT/PI flow)
   ACCRUED_PAYABLE: {
     key: 'ACCRUED_PAYABLE',
     label: 'Hutang Belum Tagih',

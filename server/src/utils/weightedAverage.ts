@@ -23,12 +23,8 @@ export function calcWeightedAverage(
   const iQty = new Decimal(inQty.toString());
   const iCost = new Decimal(inUnitCost.toString());
 
-  // Guard: if current stock is negative or zero (oversold), WAC formula
-  // produces absurd values (sometimes negative, sometimes inflated). The
-  // sensible fallback is to anchor the average to the incoming cost itself —
-  // treat the inbound as the new reference price since the previous "stock"
-  // was already invalid. Otherwise small inbound qty + huge negative balance
-  // can push avg cost to millions, corrupting downstream COGS.
+  // With zero or negative stock the WAC formula gives absurd values that corrupt COGS,
+  // so anchor the average to the incoming unit cost.
   if (cQty.lte(0)) {
     return iCost.toDecimalPlaces(2).toNumber();
   }

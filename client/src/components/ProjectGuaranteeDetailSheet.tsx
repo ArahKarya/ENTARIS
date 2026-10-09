@@ -1,9 +1,6 @@
 /**
- * Detail drawer for one project guarantee (Uang Jaminan Proyek): document
- * fields, settled amounts and the settlement history. Renders from the list
- * row (the list endpoint already carries settlements with account names), so
- * it needs no extra request. Write actions are passed in by the page, which
- * owns the permission checks and the confirmations.
+ * Project guarantee detail, rendered from the list row (no extra request). The
+ * page owns write actions, permission checks and confirmations.
  */
 import type { ReactNode } from 'react';
 import { Undo2, XCircle } from 'lucide-react';

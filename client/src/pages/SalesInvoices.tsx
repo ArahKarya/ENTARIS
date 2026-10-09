@@ -1,17 +1,6 @@
 /**
- * Faktur Penjualan (/sales) — REFERENCE list page for the Phase 3 list kit.
- *
- * Pattern to copy for other list pages:
- *  1. useListState({ filters }) → URL-synced page/size/search/sort/filters.
- *  2. useQuery(['<key>', 'list', list.params]) with keepPreviousData → GET list
- *     endpoint ({ data, total, page, limit }).
- *  3. useQuery(['<key>', 'summary', list.filterParams]) → KPI endpoint with the
- *     same filters (never compute KPIs from the visible page).
- *  4. <PageHeader> (H1 = route registry label) → KPI <StatCard>s →
- *     <FilterBar list={list}> → <DataTable {...listTableProps(list, total)}>.
- *  5. Columns: document number as <DocumentLink>, amounts with meta.align
- *     'right' + formatRupiah(x, { symbol: false }) under an "(Rp)" header,
- *     <StatusBadge docType>, <RowActions> last, secondary columns hideBelow.
+ * Sales invoices (/sales): the reference list page other list pages copy.
+ * KPIs come from the summary endpoint with the same filters, never from the visible page.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

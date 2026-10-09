@@ -1,13 +1,6 @@
 /**
- * Pelanggan & Vendor (/parties) — list-kit page (see pages/SalesInvoices.tsx).
- *
- * Tabs live in the URL and are not list filters (Reset keeps the tab):
- *   Semua            ?type omitted
- *   Pelanggan        ?type=Customer  (includes "Pelanggan & Vendor")
- *   Vendor           ?type=Supplier  (includes "Pelanggan & Vendor")
- *   Analisis         ?view=analysis  (aging / top balances dashboard)
- * List filters: q (name/email/phone/NPWP), isActive, hasOutstanding, sort.
- * Data: GET /parties (list mode) + GET /parties/summary with the same filters.
+ * Customers and vendors (/parties). Tabs (?type=Customer|Supplier, ?view=analysis) are not list
+ * filters, so Reset keeps them; both type tabs include parties that are customer and vendor.
  */
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';

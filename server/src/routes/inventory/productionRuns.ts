@@ -24,12 +24,8 @@ import {
 
 const router = Router();
 
-// GET /api/inventory/production-runs
-// Query: page, limit (≤200), status (active | cancelled), machineId,
-// startDate/endDate (YYYY-MM-DD, business-day range), search (run/reference
-// no., notes, item name/code), sort (date | runNumber | yieldPct, "-" = desc).
-// Without `sort` the historic order (date desc) is kept.
-// → { data, total, page, limit }
+// GET /api/inventory/production-runs: paged list (limit <= 200), business-day date range.
+// Without `sort` the order is date desc.
 router.get('/', async (req, res) => {
   try {
     const query = req.query as Record<string, unknown>;
@@ -68,9 +64,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/inventory/production-runs/summary — KPI totals (run counts, input /
-// main output / by-product qty and overall yield of non-cancelled runs) for the
-// same filters as the list. Same RBAC as the list. Declared before /:id.
+// GET /api/inventory/production-runs/summary: KPI totals for the list filters. Declared before /:id.
 router.get('/summary', async (req, res) => {
   try {
     const filter = buildProductionRunWhere(req.query as Record<string, unknown>);
@@ -132,8 +126,7 @@ router.get('/:id', async (req, res) => {
           include: { process: { select: { id: true, name: true } } },
           orderBy: { process: { sortOrder: 'asc' } },
         },
-        // OEE: legacy single-machine master (backward compat) + B2 multi-machine
-        // rows (per-machine A/P/Q/OEE) + downtime breakdown for the detail drawer.
+        // OEE: single-machine master plus per-machine rows and downtime for the detail drawer.
         machine: { select: { id: true, code: true, name: true, unit: true, idealRatePerHour: true } },
         runMachines: {
           include: {
@@ -150,11 +143,7 @@ router.get('/:id', async (req, res) => {
     });
     if (!run) return res.status(404).json({ error: 'Data proses produksi tidak ditemukan.' });
 
-    // Fetch related journal entry for GL info.
-    // Editing a posted PR creates revision journals (JV-<runNumber>-R1, -R2, …)
-    // sharing the same prefix; the original JV-<runNumber> becomes Cancelled.
-    // Show the newest ACTIVE (non-Cancelled) journal by that prefix so the UI
-    // reflects the current GL state instead of always the first-ever posting.
+    // Edits create revision journals JV-<runNumber>-R<n> and cancel the previous one; show the newest active journal.
     const jvPrefix = `JV-${run.runNumber}`;
     const journal = await prisma.journalEntry.findFirst({
       where: { entryNumber: { startsWith: jvPrefix }, status: { not: 'Cancelled' } },
@@ -199,10 +188,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/inventory/production-runs — input produksi selalu disimpan sebagai
-// DRAFT (tanpa efek stok/GL/HPP/OEE). Posting terpisah: POST /drafts/:id/post
-// (routes/inventory/productionRunDrafts.ts → services/productionRunDraft.ts).
-// Validasi payload sama persis seperti sebelumnya. → 201 { draft, warnings }
+// POST /api/inventory/production-runs: always saves a draft with no stock/GL/HPP/OEE effect; posting is POST /drafts/:id/post.
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateProductionRunSchema, req.body, res);
   if (!body) return;
@@ -222,10 +208,8 @@ router.post('/', async (req: AuthRequest, res) => {
 });
 
 
-// PUT /api/inventory/production-runs/:id — Edit (cancel old + recreate with same runNumber)
-// PUT /api/inventory/production-runs/:id — Edit (cancel old + recreate with
-// same runNumber, JE revisioned as JV-{runNo}-R{n}). Heavy logic lives in
-// services/productionRunEdit.ts.
+// PUT /api/inventory/production-runs/:id: cancel and recreate with the same runNumber, JE revisioned as JV-{runNo}-R{n}
+// (services/productionRunEdit.ts).
 router.put('/:id', async (req: AuthRequest, res) => {
   const id = req.params.id as string;
   const body = validateBody(UpdateProductionRunSchema, req.body, res);

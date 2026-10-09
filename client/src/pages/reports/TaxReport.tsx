@@ -51,7 +51,7 @@ const COLUMNS = [
 const EMPTY_TOTALS = { ppnKeluaran: 0, ppnMasukan: 0, pph: 0, net: 0 };
 
 const TaxReport: React.FC = () => {
-  // Default = tahun berjalan sampai hari ini (sama seperti sebelumnya).
+  // Default: current year to date.
   const today = new Date();
   const { startDate, endDate, setRange } = useReportRange({
     startDate: format(today, 'yyyy-01-01'),

@@ -1,26 +1,10 @@
 /**
- * Cash & bank ledger ("Transaksi Kas & Bank", GET /api/payments/ledger and
- * GET /api/payments/ledger/summary).
- *
- * One row per cash movement, combining two sources server-side so the list can
- * be paginated, sorted and filtered as a whole:
- *   • payment — every Payment (all six paymentTypes, any status).
- *   • journal — every journal line on a cash/bank account (non-group account
- *     whose number starts with "1.1") of a journal entry that is not cancelled,
- *     not numbered "JV-PAY…" and not linked to a Payment (those are already
- *     represented by the payment row).
- * This is the same row set the page used to build client-side from
- * GET /payments + GET /payments/cash-journals (which stay unchanged for other
- * callers), minus their 50/100-row caps.
- *
- * Direction: payment types Receive / CustomerDeposit / VendorRefund bring money
- * in, the others take it out; a journal debit on a cash account is money in, a
- * credit is money out. Journal kind: "Transfer" (pinbuk) when the same entry
- * also has a cash line on the opposite side, otherwise "Expense" (credit) or
- * "JournalIn" (debit).
- *
- * Read-only: nothing here touches GL entries, balances or allocations.
- * All SQL goes through Prisma.sql parameters; ORDER BY comes from a whitelist.
+ * Cash & bank ledger (GET /api/payments/ledger[/summary]): one row per cash movement, merged
+ * server-side so it pages as a whole. Sources: every Payment, plus each journal line on a non-group
+ * 1.1 account of a non-cancelled entry that is not "JV-PAY…" and not linked to a Payment.
+ * Money in: Receive / CustomerDeposit / VendorRefund payments and cash debits; the rest is out.
+ * Journal kind: "Transfer" (pinbuk) when the entry has a cash line on the other side, else
+ * "Expense" (credit) or "JournalIn" (debit). Read-only; SQL parameterized, ORDER BY whitelisted.
  */
 import { DocumentStatus, Prisma, PaymentType } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';

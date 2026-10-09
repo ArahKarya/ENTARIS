@@ -1,7 +1,7 @@
 import type { ProductionRunPDFProps } from '../../lib/pdf/ProductionRunPDF';
 import type { useCompanyPDF } from '../../lib/pdf/useCompanyPDF';
 
-// ─── Helper: map run + company → PDF props ────────────────────────────────
+// Helper: map run + company → PDF props
 export function buildPdfProps(run: any, company: ReturnType<typeof useCompanyPDF>): ProductionRunPDFProps {
   const allItems: any[] = run.items ?? [];
   const mapItem = (line: any) => {

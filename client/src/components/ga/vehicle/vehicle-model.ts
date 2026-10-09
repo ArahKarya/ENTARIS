@@ -5,7 +5,7 @@
 import { parseDate } from '@/lib/format';
 import { DEFAULT_SECTION, VEHICLE_SECTIONS, type VehicleSection } from './constants';
 
-// ─── Fleet list rows (GET /ga/vehicle/fleet) ────────────────────────────────
+// Fleet list rows (GET /ga/vehicle/fleet)
 
 export type DueState = 'overdue' | 'dueSoon' | 'ok';
 export const FLEET_DOCS = ['tax', 'stnk', 'kir', 'insurance', 'inspection'] as const;
@@ -73,7 +73,7 @@ export function attentionItems(row: Pick<FleetRow, 'due'>): Array<{ doc: FleetDo
 /** Display name of a vehicle: plate first, else the asset code. */
 export const vehicleTitle = (v: { noPlat?: string | null; code: string }): string => v.noPlat || v.code;
 
-// ─── Due state for per-record tables ────────────────────────────────────────
+// Due state for per-record tables
 
 export const DUE_SOON_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -106,7 +106,7 @@ export function daysUntil(date: string | Date | null | undefined, today: Date = 
   return Math.round((startOfDay(d).getTime() - startOfDay(today).getTime()) / DAY_MS);
 }
 
-// ─── Service costs ──────────────────────────────────────────────────────────
+// Service costs
 
 export type ServiceBucket = 'oli' | 'ban' | 'rem' | 'elektrikal' | 'ac' | 'service' | 'lainnya';
 
@@ -179,7 +179,7 @@ export function filterServiceLogs<T extends ServiceLogLike>(logs: readonly T[], 
     .sort((a, b) => String(b?.tanggal ?? '').localeCompare(String(a?.tanggal ?? '')));
 }
 
-// ─── Oil life ───────────────────────────────────────────────────────────────
+// Oil life
 
 export interface OilLife {
   remainingKm: number;
@@ -195,7 +195,7 @@ export function oilLife(lastChangeOdo: number, nextDueOdo: number, currentOdo: n
   return { remainingKm, pct, overdue: remainingKm < 0 };
 }
 
-// ─── Forms / URL ────────────────────────────────────────────────────────────
+// Forms / URL
 
 /** '' → null; non-numeric → null. */
 export function numOrNull(v: string | null | undefined): number | null {

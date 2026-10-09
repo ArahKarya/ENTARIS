@@ -70,7 +70,7 @@ d('PI from STT — Phase 3 flow', () => {
           },
         });
 
-        // 1) Submit STT @ provisional cost 10_000
+        // STT at provisional cost 10_000
         const stt = await submitGoodsReceiptInTx(
           tx,
           {
@@ -91,7 +91,7 @@ d('PI from STT — Phase 3 flow', () => {
         const stockBefore = Number((await tx.inventoryItem.findUnique({ where: { id: item.id } }))!.currentStock);
         expect(stockBefore).toBe(100); // STT did the stock-in
 
-        // 2) Submit PI from STT @ actual 11_000 (variance +100k = 100 × 1000)
+        // PI from STT at actual 11_000 (variance +100k = 100 × 1000)
         const pi = await submitPurchaseInvoiceInTx(
           tx,
           {

@@ -1,14 +1,6 @@
 /**
- * Inventaris Kantor (/ga/inventory) — General Affairs' own ATK / sparepart /
- * consumable stock per location, separate from the accounting inventory (no
- * GL). One page, tabs stored in the URL:
- *  • Dashboard stok       ?tab omitted
- *  • Item                 ?tab=items        (list kit, KPIs from /items/summary)
- *  • Pergerakan           ?tab=movements    (paged movement log)
- *  • Opname & Ekspor      ?tab=tools        (quick stock count, CSV export)
- * Tabs live in components/ga/inventory/ and follow pages/SalesInvoices.tsx.
- * Switching tab drops the list params because the lists share param names.
- * Write actions need `ga_inventory` edit permission (same gate as the server).
+ * GA office stock per location (/ga/inventory), separate from accounting inventory (no GL).
+ * Switching tab drops list params because the lists share param names. Writes need ga_inventory edit.
  */
 import { useCallback, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';

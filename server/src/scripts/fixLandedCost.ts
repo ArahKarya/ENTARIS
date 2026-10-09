@@ -1,8 +1,5 @@
-// One-shot migration: redistribute landed cost for existing purchase invoices
-// that have non-linked items (jasa, rental, komisi, resiko). Creates correction
-// journal entry DR item-specific inventory / CR generic 1.4.0, and updates
-// stock_movements unitCost/totalValue accordingly. Does NOT recompute WAC
-// (historical production runs may already depend on old averageCost).
+// One-shot fix: moves landed cost of non-linked PI items (jasa, rental, komisi, resiko) to the item inventory accounts
+// (correction JE DR item inventory / CR 1.4.0) and updates stock_movements. WAC is not recomputed: past runs depend on it.
 
 import Decimal from 'decimal.js';
 import { prisma } from '../lib/prisma';

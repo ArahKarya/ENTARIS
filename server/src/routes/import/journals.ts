@@ -10,7 +10,7 @@ import { upload, parseFile, sanitizeCellValue } from './shared';
 
 const router = Router();
 
-// ─── POST /api/import/journals ───────────────────────────────────────────────
+// POST /api/import/journals
 router.post(
   '/journals',
   upload.single('file'),

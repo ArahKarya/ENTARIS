@@ -1,7 +1,6 @@
 /**
- * Import fixed assets from CSV: pick a file → client-side validation preview →
- * POST /fixed-assets/import (bulk create + schedules; no opening-balance
- * journal, same as before). Import is blocked while any row has an error.
+ * Import fixed assets from CSV (bulk create plus schedules, no opening-balance
+ * journal). Import is blocked while any row has an error.
  */
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

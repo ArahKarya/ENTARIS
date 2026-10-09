@@ -6,12 +6,8 @@ import { Prisma } from '@prisma/client';
  *
  * Format: {prefix}-YYYYMM-XXXX  e.g. SI-202603-0001
  *
- * Strategy: MAX(existing number) + 1 within the (prefix, yearMonth) series.
- * NOTE: previously this used COUNT(rows in month) + 1, which desyncs from the
- * actual last-used number whenever documents are deleted or their dates are
- * moved across months — count drops below max, so the next generated number
- * collides with an existing one and the @unique constraint throws P2002
- * ("Data duplikat terdeteksi"). MAX+1 is immune to deletions and backdating.
+ * Uses MAX(existing number) + 1 within the (prefix, yearMonth) series, not a row
+ * count, so deleted or backdated documents cannot cause @unique (P2002) collisions.
  */
 export async function generateDocumentNumber(
   tx: Prisma.TransactionClient,
@@ -111,14 +107,8 @@ export async function generateDocumentNumber(
     if (!Number.isNaN(parsed)) lastSeq = parsed;
   }
 
-  // Journal-number collision guard.
-  // Most journal-backed documents derive their JV entryNumber deterministically
-  // as `JV-<documentNumber>` (see purchaseInvoiceSubmit, salesInvoiceSubmit,
-  // productionRunSubmit, goodsReceiptSubmit, salesReturnSubmit, gaFinance).
-  // If a document row is deleted but its journal survives (orphan JV), MAX+1 on
-  // the document table hands out a number whose JV already exists, and the
-  // journalEntry.entryNumber @unique constraint throws P2002 at submit time.
-  // Skip forward past any sequence whose derived JV names are already taken.
+  // Most documents name their journal `JV-<documentNumber>`, so an orphan JV left by a
+  // deleted document would hit P2002 at submit. Skip sequences whose JV name is taken.
   const derivesJournal = prefix !== 'JV' && prefix !== 'OB' && prefix !== 'DPR' && prefix !== 'DKB';
   let seq = lastSeq + 1;
   if (derivesJournal) {

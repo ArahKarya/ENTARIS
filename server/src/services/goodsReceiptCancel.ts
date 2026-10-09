@@ -8,29 +8,15 @@ import { recomputeAverageCostFromReplay } from './averageCostRecompute';
 type Tx = Prisma.TransactionClient;
 
 interface CancelOptions {
-  /** When true, skip the "stock cukup untuk dibalikin" guard. Admin override. */
+  /** Skip the "enough stock to reverse" guard (the route requires a negativeStockReason). */
   allowNegativeStock?: boolean;
   negativeStockReason?: string | null;
 }
 
 /**
- * Cancel a Bukti Penerimaan Barang (STT).
- *
- * Behavior:
- *   - Reject if STT already cancelled.
- *   - Reject if STT is backfilled (legacy) — those records mirror old PI flow;
- *     to undo, cancel the PI itself.
- *   - Reject if STT has a linked PI that is already Paid.
- *   - If STT has linked PI that is NOT paid: caller must cancel PI first.
- *     We don't auto-cancel here because PI cancel may have side effects
- *     (payment unallocation) the caller wants to be explicit about. Throw a
- *     clear error.
- *   - Reverse stock movements: mark is_cancelled, decrement currentStock +
- *     per-warehouse stock.
- *   - Cancel JV (DR Hutang Belum Tagih / CR Persediaan — i.e. flip original
- *     DR/CR with a new "JV-{stt}-CXL" entry. Original JV status → Cancelled.)
- *   - Decrement PO item qtyReceived if STT was linked to PO.
- *   - Mark STT cancelledAt + status Cancelled.
+ * Cancel an STT. Rejected for legacy backfill STTs (cancel the PI instead) and when a linked PI
+ * exists (cancel it first; not auto-cancelled because of payment side effects). Reverses stock,
+ * posts a flipped JV (DR Hutang Belum Tagih / CR Persediaan) and decrements PO qtyReceived.
  */
 export async function cancelGoodsReceiptInTx(
   tx: Tx,
@@ -70,10 +56,8 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // ── Guard C2: block if any inbound batch from this STT has been consumed ──
-  // Outbound movements (sale/production/transfer) link back to the inbound
-  // batch via sourceMovementId. If a consumer exists, the batch's cost basis
-  // is already referenced downstream — cancelling would orphan it.
+  // Block when an outbound movement already consumes one of these batches (sourceMovementId);
+  // cancelling would orphan its cost basis.
   const batchMovementIds = stt.items
     .map((it) => it.stockMovement?.id)
     .filter((id): id is string => !!id);
@@ -94,9 +78,7 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // ── Guard C1: don't drive stock negative when reversing an inbound ──
-  // (the received goods may already have been sold/consumed). Admin override
-  // logs a warning instead of throwing.
+  // Don't drive stock negative on reversal; allowNegativeStock logs a warning instead of throwing.
   for (const grItem of stt.items) {
     const sm = grItem.stockMovement;
     if (!sm || sm.isCancelled) continue;
@@ -120,7 +102,6 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // Reverse each stock movement
   const affectedItemIds = new Set<string>();
   for (const grItem of stt.items) {
     const sm = grItem.stockMovement;
@@ -136,11 +117,9 @@ export async function cancelGoodsReceiptInTx(
       where: { id: grItem.inventoryItemId },
       data: { currentStock: { decrement: qty }, updatedAt: new Date() },
     });
-    // Decrement per-warehouse stock
     await adjustWarehouseStock(tx, grItem.inventoryItemId, grItem.warehouseId, -qty);
     affectedItemIds.add(grItem.inventoryItemId);
 
-    // Decrement PO item qtyReceived if linked
     if (grItem.purchaseOrderItemId) {
       await tx.purchaseOrderItem.update({
         where: { id: grItem.purchaseOrderItemId },
@@ -149,20 +128,17 @@ export async function cancelGoodsReceiptInTx(
     }
   }
 
-  // Recompute averageCost for each affected item by REPLAYING its remaining
-  // active movements (the cancelled receipt no longer contributes).
-  // STT barang titipan: skip — submit-nya tidak menyentuh WAC.
+  // Recompute averageCost by replaying remaining active movements.
+  // Customer-owned STTs are skipped: their submit never touched WAC.
   for (const itemId of stt.isCustomerOwned ? [] : affectedItemIds) {
     await recomputeAverageCostFromReplay(tx, itemId);
   }
 
-  // Cancel JV: find original JV, post reverse JV, mark original Cancelled
   const originalJv = await tx.journalEntry.findUnique({
     where: { entryNumber: `JV-${stt.sttNumber}` },
     include: { items: true },
   });
   if (originalJv && originalJv.status === 'Submitted') {
-    // Reverse JV
     const reverseItems = originalJv.items.map((it) => ({
       accountId: it.accountId,
       partyId: it.partyId,
@@ -202,7 +178,6 @@ export async function cancelGoodsReceiptInTx(
       await updateAccountBalance(tx, it.accountId, it.debit, it.credit);
     }
 
-    // Mark original Cancelled
     await tx.journalEntry.update({
       where: { id: originalJv.id },
       data: { status: 'Cancelled', cancelledAt: new Date() },

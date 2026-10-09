@@ -180,12 +180,8 @@ router.post('/', async (req: AuthRequest, res) => {
           ? (perWarehouseStock.get(input.itemId) ?? 0)
           : Number(item.currentStock);
         const actualStock = input.actualStock;
-        // Guard nilai negatif HANYA jika user benar-benar mengubah angka ini
-        // (actualStock berbeda dari systemStock). Item yang tidak disentuh
-        // (actualStock === systemStock lama, termasuk sudah minus historis)
-        // tetap boleh lolos — form opname selalu kirim semua item untuk audit
-        // trail, jadi item minus historis di gudang lain tak boleh memblokir
-        // submit opname pada item yang memang sedang dihitung.
+        // Reject negatives only when the user changed this count: the form sends every item,
+        // so untouched items that are already negative historically must not block submit.
         const diffFromSystem = new Decimal(actualStock).minus(new Decimal(systemStock)).toDecimalPlaces(3).toNumber();
         if (actualStock < 0 && diffFromSystem !== 0) {
           throw new BusinessError(`Stok aktual "${item.name}" tidak boleh negatif.`);
@@ -249,11 +245,8 @@ router.post('/', async (req: AuthRequest, res) => {
         const journalItems: { accountId: string; debit: number; credit: number; description: string }[] = [];
         const movementIds: { itemId: string; movementId: string }[] = [];
 
-        // ── Revaluasi nilai persediaan ───────────────────────────────────
-        // Nilai buku persediaan = qty x averageCost. averageCost bersifat
-        // GLOBAL per item (bukan per gudang), jadi perubahan cost dijurnal
-        // atas SELURUH stok item, memakai qty SEBELUM penyesuaian opname.
-        // Selisih qty di bawah lalu dinilai memakai cost yang baru.
+        // Inventory revaluation: averageCost is global per item, so a cost change is journaled
+        // on the item's whole stock at pre-adjustment qty; the qty variance below uses the new cost.
         for (const rev of revaluations) {
           const item = itemMap.get(rev.itemId)!;
           const qtyBefore = new Decimal(Number(item.currentStock));

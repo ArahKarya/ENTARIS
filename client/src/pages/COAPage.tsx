@@ -1,12 +1,6 @@
 /**
- * Bagan Akun (/coa) — Chart of Accounts as an accessible treegrid.
- *
- * GET /coa returns the whole hierarchy (~100 accounts), so search, root-type
- * and "bersaldo" filters run in memory and are URL-synced (q, root, saldo);
- * the expanded state lives in ?open= (see components/coa/use-coa-view.ts).
- * Group rows show subtotals computed from their descendants. Accounts mapped
- * in Pengaturan → Akun Sistem (GET /system-accounts) carry a lock badge and
- * cannot be deleted (the server rejects it too).
+ * Chart of Accounts treegrid (/coa). GET /coa returns the whole hierarchy, so filters run in memory.
+ * Accounts mapped as system accounts show a lock badge and cannot be deleted (server enforces it too).
  */
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

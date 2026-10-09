@@ -26,7 +26,7 @@ const router = Router();
 // Akses modul 'delivery_order' di-enforce di mount (index.ts). Cancel = capability
 // 'doc.cancel'; bypass stok minus = capability 'inventory.negative_stock'.
 
-// ─── GET / list ───────────────────────────────────────────────────────────
+// GET / list
 // Query: page, limit (≤200), status (Submitted | Invoiced | Cancelled | Draft —
 // see services/deliveryOrderList), partyId, startDate, endDate (YYYY-MM-DD),
 // search (DO number / customer name / no. mobil), sort (e.g. "-date").
@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─── GET /pending ─────────────────────────────────────────────────────────
+// GET /pending
 // Used by the invoice modal to pick DOs that still need billing.
 router.get('/pending', async (req, res) => {
   try {
@@ -90,7 +90,7 @@ router.get('/pending', async (req, res) => {
   }
 });
 
-// ─── GET /:id detail ──────────────────────────────────────────────────────
+// GET /:id detail
 router.get('/:id', async (req, res) => {
   try {
     const deliveryOrder = await prisma.deliveryOrder.findUnique({
@@ -117,7 +117,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── POST / submit ────────────────────────────────────────────────────────
+// POST / submit
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateDeliveryOrderSchema, req.body, res);
   if (!body) return;
@@ -163,7 +163,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /from-invoice/:invoiceId — retroactive DO ────────────────────────
+// POST /from-invoice/:invoiceId: retroactive DO
 // Used when an invoice was entered first (direct-sale) and the physical DO
 // paperwork comes later. No stock movements; links to invoice's existing SM.
 router.post('/from-invoice/:invoiceId', async (req: AuthRequest, res) => {
@@ -189,7 +189,7 @@ router.post('/from-invoice/:invoiceId', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── PATCH /:id edit header ───────────────────────────────────────────────
+// PATCH /:id edit header
 // Only header fields (notes, nomorMobil, driverName, recipientName) — quantities
 // and items can't change once stock has moved. Status must still be Submitted.
 router.patch('/:id', async (req: AuthRequest, res) => {
@@ -218,7 +218,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── PUT /:id full edit — reverse old movements, re-apply new items ────────
+// PUT /:id full edit: reverse old movements, re-apply new items
 // Allowed only when DO is Submitted and not yet linked to an invoice.
 // doNumber is preserved.
 router.put('/:id', async (req: AuthRequest, res) => {
@@ -239,7 +239,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/cancel — Admin only ────────────────────────────────────────
+// POST /:id/cancel (requires the doc.cancel capability)
 router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(

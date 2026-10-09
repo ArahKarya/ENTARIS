@@ -26,9 +26,7 @@ import {
 
 const router = Router();
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface ResolvedItem {
   itemType: string;
@@ -90,12 +88,10 @@ function computeTotals(items: ResolvedItem[], potongan: number, biayaLain: numbe
   return { subtotal: subtotal.toNumber(), taxAmount: taxAmount.toNumber(), pphAmount: pphAmount.toNumber(), grandTotal: grandTotal.toNumber() };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET / — list with pagination + filter
 // Query: page, limit (≤500), status, partyId, startDate, endDate (YYYY-MM-DD),
 // search (number / customer), sort (e.g. "-date", "validUntil").
 // → { data, total, page, limit }
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const query = req.query as Record<string, unknown>;
@@ -126,9 +122,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /summary — KPI totals for the same filters as the list. Before /:id.
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/summary', async (req, res) => {
   try {
     const filter = buildQuotationWhere(req.query as Record<string, unknown>);
@@ -150,9 +144,7 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /stats — conversion-rate summary
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/stats', async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -185,9 +177,7 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /:id — detail
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
   try {
     const quotation = await prisma.quotation.findUnique({
@@ -211,9 +201,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST / — create draft
-// ─────────────────────────────────────────────────────────────────────────────
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreateQuotationSchema, req.body, res);
   if (!body) return;
@@ -260,9 +248,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PUT /:id — edit (Draft only)
-// ─────────────────────────────────────────────────────────────────────────────
 router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(UpdateQuotationSchema, req.body, res);
   if (!body) return;
@@ -310,9 +296,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DELETE /:id — only Draft can be hard-deleted
-// ─────────────────────────────────────────────────────────────────────────────
 router.delete('/:id', async (req, res) => {
   try {
     const existing = await prisma.quotation.findUnique({ where: { id: req.params.id as string } });
@@ -327,9 +311,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/send — Draft → Sent
-// ─────────────────────────────────────────────────────────────────────────────
 router.patch('/:id/send', async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -349,9 +331,7 @@ router.patch('/:id/send', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/accept — Sent → Accepted
-// ─────────────────────────────────────────────────────────────────────────────
 router.patch('/:id/accept', async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -370,9 +350,7 @@ router.patch('/:id/accept', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PATCH /:id/reject — Sent → Rejected
-// ─────────────────────────────────────────────────────────────────────────────
 router.patch('/:id/reject', async (req, res) => {
   const body = validateBody(RejectQuotationSchema, req.body, res);
   if (!body) return;
@@ -392,9 +370,7 @@ router.patch('/:id/reject', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PATCH /:id/cancel — any → Cancelled (Admin only, blocked if converted)
-// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /:id/cancel: any status to Cancelled, blocked if converted (requires the doc.cancel capability)
 router.patch('/:id/cancel', requireCap('doc.cancel'), async (req, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -415,12 +391,10 @@ router.patch('/:id/cancel', requireCap('doc.cancel'), async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /:id/convert-payload — return prefill data for the sales-invoice modal
 // Frontend uses this to open SalesInvoiceModal with the quotation's items,
 // then POSTs to /api/sales/invoices which already handles GL posting.
 // After the invoice is created, call POST /:id/link to attach it.
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/:id/convert-payload', async (req, res) => {
   try {
     const q = await prisma.quotation.findUnique({
@@ -473,12 +447,10 @@ router.get('/:id/convert-payload', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /:id/link — attach a freshly-created Sales Invoice to this quotation
 // Called by the frontend after POST /api/sales/invoices succeeds. Splitting
 // invoice creation (which posts GL via existing logic) from quotation linking
 // keeps GL posting logic single-sourced in routes/sales.ts.
-// ─────────────────────────────────────────────────────────────────────────────
 router.post('/:id/link', async (req, res) => {
   const { salesInvoiceId } = req.body ?? {};
   if (!salesInvoiceId || typeof salesInvoiceId !== 'string') {

@@ -1,13 +1,7 @@
 /**
- * Query building for the user list (GET /api/users) and its KPI summary
- * (GET /api/users/summary).
- *
- * Backward compatible with the legacy endpoint: without the new params
- * (role, status, sort) the where clause and ordering are exactly what the
- * old route produced (search on fullName/email/username, newest first).
- *
- * The select never includes passwordHash; telegramChatId is reduced to a
- * boolean by the route before it leaves the server.
+ * Query building for GET /api/users and /api/users/summary. Without role/status/sort the result
+ * matches the legacy endpoint (search on fullName/email/username, newest first).
+ * Never selects passwordHash; the route reduces telegramChatId to a boolean.
  */
 import type { Prisma } from '@prisma/client';
 import { firstString, parseSort, type SortSpec } from '../utils/listQuery';

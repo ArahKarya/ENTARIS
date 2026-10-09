@@ -1,7 +1,6 @@
-// AIRA config route — override per-tool + kill switch. Gate mount: requirePerm('settings')
-// (di index.ts) — GET butuh view, tulis butuh edit. Endpoint sensitif tambah requireCap('rbac.manage').
-// Token MCP, status & riwayat panggilan ada di routes/ai/mcp.ts. Whitelist channel/modul,
-// service token & sinkronisasi tool-router (kontrak layanan lama) sudah dipensiunkan.
+// AIRA config: per-tool overrides and kill switch. Mounted behind requirePerm('settings')
+// (GET = view, writes = edit); sensitive endpoints also require rbac.manage.
+// MCP tokens, status and call history live in routes/ai/mcp.ts.
 
 import { Router } from 'express';
 import { z } from 'zod';
@@ -14,13 +13,13 @@ import type { ToolTier } from '../../ai/types';
 
 const router = Router();
 
-// Config responses are admin-only; keep them out of browser/proxy caches.
+// Config responses are sensitive; keep them out of browser/proxy caches.
 router.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
 
-// ─── TOOLS ───────────────────────────────────────────────────────────────────
+// Tools
 
 // GET /api/ai/config/tools — daftar tool (registry + override) = status efektif
 router.get('/tools', async (_req, res) => {
@@ -78,7 +77,7 @@ router.patch('/tools/:name', requireCap('rbac.manage'), async (req: AuthRequest,
   }
 });
 
-// ─── KILL SWITCH ─────────────────────────────────────────────────────────────
+// Kill switch
 
 // GET /api/ai/config/settings — singleton; buat default jika belum ada.
 router.get('/settings', requireCap('rbac.manage'), async (_req, res) => {

@@ -23,7 +23,7 @@ const FIXED_ASSET_LIST_INCLUDE = {
   user: { select: { fullName: true } },
 } as const;
 
-// ── Schemas ─────────────────────────────────────────────────────────────────
+// Schemas
 const CreateFixedAssetSchema = z.object({
   name: z.string().min(1, 'Nama aset wajib diisi.').max(200),
   category: z.string().min(1, 'Kategori wajib diisi.').max(100),
@@ -65,10 +65,8 @@ const UpdateFixedAssetSchema = z.object({
   description: z.string().max(500).nullable().optional(),
 });
 
-// Bulk-create endpoint untuk fitur Import CSV. Sengaja minimalis: create
-// asset + auto-generate depreciation schedule (default Phase 1 behavior).
-// TIDAK auto-post opening balance JE — itu keputusan manual (dicatat
-// terpisah lewat jurnal) supaya tidak terkontaminasi.
+// Bulk-create for CSV import: creates the asset and its depreciation schedule.
+// Does NOT post an opening balance JE; that is recorded manually via a journal.
 const BulkCreateAssetSchema = z.object({
   assets: z.array(z.object({
     name: z.string().min(1).max(200),
@@ -335,9 +333,8 @@ router.post('/:id/depreciate', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /depreciate-bulk — post seluruh entry depresiasi yg jatuh di
-// bulan tertentu, untuk semua aset Active yg belum ter-post. Idempotent
-// di level entry (entries yg sudah is_posted di-skip).
+// POST /depreciate-bulk: post every unposted depreciation entry of a month for all Active
+// assets; idempotent per entry (posted entries are skipped).
 //
 // Body:
 //   { month?: 'YYYY-MM' (default: bulan berjalan), dryRun?: boolean }

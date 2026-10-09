@@ -6,7 +6,7 @@ import { logger } from '../../lib/logger';
 
 const router = Router();
 
-// ─── GET /api/import/template/:type ─────────────────────────────────────────
+// GET /api/import/template/:type
 // Download current data as editable Excel template for re-upload
 router.get(
   '/template/:type',

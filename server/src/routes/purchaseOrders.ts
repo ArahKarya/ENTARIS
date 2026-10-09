@@ -27,9 +27,7 @@ import {
 
 const router = Router();
 
-// PO: Admin + Accountant only (sesuai keputusan Phase 1)
-
-// ─── GET / list ───────────────────────────────────────────────────────────
+// GET / list
 // Query: page, limit (≤200), status, partyId, startDate, endDate (YYYY-MM-DD),
 // search (PO number / supplier name), receipt (unreceived|partial|full|closed),
 // open=1 (Submitted & not closed — STT picker), due=overdue, sort (e.g. "-date").
@@ -76,7 +74,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─── GET /:id detail ──────────────────────────────────────────────────────
+// GET /:id detail
 router.get('/:id', async (req, res) => {
   try {
     const po = await prisma.purchaseOrder.findUnique({
@@ -134,7 +132,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── POST / submit ────────────────────────────────────────────────────────
+// POST / submit
 router.post('/', async (req: AuthRequest, res) => {
   const body = validateBody(CreatePurchaseOrderSchema, req.body, res);
   if (!body) return;
@@ -151,7 +149,7 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/submit ("Ajukan" a draft) ─────────────────────────────────
+// POST /:id/submit ("Ajukan" a draft)
 // Matching ApprovalRule (PurchaseOrder, grandTotal ≥ minAmount) → stays Draft
 // with approvalStatus Pending + ApprovalRequest; otherwise → Submitted.
 router.post('/:id/submit', async (req: AuthRequest, res) => {
@@ -167,7 +165,7 @@ router.post('/:id/submit', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── DELETE /:id (draft only) ─────────────────────────────────────────────
+// DELETE /:id (draft only)
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction((tx) => deletePurchaseOrderDraftInTx(tx, req.params.id as string));
@@ -178,7 +176,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/cancel ─────────────────────────────────────────────────────
+// POST /:id/cancel
 router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(
@@ -192,7 +190,7 @@ router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, re
   }
 });
 
-// ─── PUT /:id edit ────────────────────────────────────────────────────────
+// PUT /:id edit
 // Only while the PO is open and nothing has been received against it.
 router.put('/:id', async (req: AuthRequest, res) => {
   const body = validateBody(CreatePurchaseOrderSchema, req.body, res);
@@ -210,7 +208,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ─── POST /:id/close (short-close) ────────────────────────────────────────
+// POST /:id/close (short-close)
 // Same gate as cancel. Status stays Submitted; closedAt marks remaining qty
 // as no longer expected.
 router.post('/:id/close', requireCap('doc.cancel'), async (req: AuthRequest, res) => {

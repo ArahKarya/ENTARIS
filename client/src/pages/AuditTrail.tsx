@@ -1,11 +1,6 @@
 /**
- * Jejak Audit (/audit) — list kit page (see pages/SalesInvoices.tsx).
- *
- * GET /audit-logs (page, limit, userId, action, entityType, startDate, endDate,
- * search = entity id, sort) + /summary (counts per action, same filters) +
- * /facets (filter options). ?log=<id> opens the detail sheet with a readable
- * before/after diff. Values are shown exactly as stored: the server redacts
- * secrets when the log is written.
+ * Audit trail (/audit). `search` matches the entity id; ?log=<id> opens the before/after diff.
+ * Values are shown as stored: the server redacts secrets when the log is written.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

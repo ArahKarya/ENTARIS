@@ -4,21 +4,12 @@ import { calcWeightedAverage } from './weightedAverage';
 /**
  * Weighted-average-cost (WAC) REPLAY.
  *
- * The incremental paths (STT submit, production output, manual In/AdjustmentIn,
- * import) all apply, at the moment the movement is created:
+ * A blend cannot be undone, so after a cancel/edit the average is re-derived by
+ * replaying ALL remaining movements in original order (createdAt, then id) with the
+ * same rules as `calcWeightedAverage`. Averaging inbounds in one shot is wrong: it
+ * ignores stock consumed in between and negative-stock windows.
  *
- *   newAvg = (stockBefore x avgBefore + qty x unitCost) / (stockBefore + qty)
- *
- * via `calcWeightedAverage` (stockBefore <= 0 anchors the avg to unitCost).
- * Outbound movements never change the average, only the running stock base.
- *
- * When a movement is cancelled/edited we cannot "undo" a blend, so the average
- * must be re-derived by replaying ALL remaining movements of the item in the
- * order they were originally processed (createdAt, then id) with exactly the
- * same rules. Averaging all inbound movements in one shot is WRONG: it ignores
- * the stock consumed in between and negative-stock windows.
- *
- * Rules (faithful to the majority business paths):
+ * Rules:
  *  - cancelled movements are skipped;
  *  - In / AdjustmentIn with unitCost > 0 -> WAC blend, then stock += qty;
  *  - In / AdjustmentIn with unitCost <= 0 -> stock += qty, avg untouched

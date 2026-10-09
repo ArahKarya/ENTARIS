@@ -119,7 +119,7 @@ export function initialSettlementStatus(kind: string, requiresSettlement: boolea
   return (kind === 'CASH_ADVANCE' || kind === 'TRAVEL') && requiresSettlement ? 'OPEN' : null;
 }
 
-// ─── Journal ─────────────────────────────────────────────────────────────────
+// Journal
 
 export interface SettlementLineInput {
   description: string;
@@ -249,7 +249,7 @@ export function buildSettlementJournalLines(
   return { ok: true, lines, preview };
 }
 
-// ─── Aging ───────────────────────────────────────────────────────────────────
+// Aging
 
 const DAY_MS = 86_400_000;
 

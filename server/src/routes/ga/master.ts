@@ -1,9 +1,5 @@
-// GA master data CRUD — ported from GA Monitor (server/src/routes/master.ts).
-// Entities: branches, cost centers, asset categories, document types,
-// inventory categories, locations.
-//
-// Mounted by index.ts under /api/ga/master with requirePerm (GET=view,
-// writes=edit), so NO auth middleware inside this file.
+// GA master data CRUD (branches, cost centers, categories, document types, locations).
+// Mounted with requirePerm('ga_master') in index.ts (GET = view, writes = edit).
 
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
@@ -16,7 +12,7 @@ import { logger } from '../../lib/logger';
 
 const router = Router();
 
-// ── Zod schemas (mirrors GA utils/schemas.ts) ──────────────────────
+// Zod schemas (mirrors GA utils/schemas.ts)
 const CodeNameSchema = z.object({
   code: z.string().min(1, 'Kode wajib diisi.').max(50),
   name: z.string().min(1, 'Nama wajib diisi.').max(200),
@@ -53,7 +49,7 @@ function asJson(value: unknown): Prisma.InputJsonValue | undefined {
   return (value as Prisma.InputJsonValue | undefined) ?? undefined;
 }
 
-// ── Branches ───────────────────────────────────────────────────────
+// Branches
 router.get('/branches', async (_req, res) => {
   try {
     const data = await prisma.gaBranch.findMany({ orderBy: { code: 'asc' } });
@@ -100,7 +96,7 @@ router.delete('/branches/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Cost Centers ───────────────────────────────────────────────────
+// Cost Centers
 router.get('/cost-centers', async (_req, res) => {
   try {
     const data = await prisma.gaCostCenter.findMany({
@@ -150,7 +146,7 @@ router.delete('/cost-centers/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Asset Categories ───────────────────────────────────────────────
+// Asset Categories
 router.get('/asset-categories', async (_req, res) => {
   try {
     const data = await prisma.gaAssetCategory.findMany({ orderBy: { code: 'asc' } });
@@ -211,7 +207,7 @@ router.delete('/asset-categories/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Document Types ─────────────────────────────────────────────────
+// Document Types
 router.get('/document-types', async (_req, res) => {
   try {
     const data = await prisma.gaDocumentType.findMany({ orderBy: { code: 'asc' } });
@@ -272,7 +268,7 @@ router.delete('/document-types/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Inventory Categories ───────────────────────────────────────────
+// Inventory Categories
 router.get('/inventory-categories', async (_req, res) => {
   try {
     const data = await prisma.gaInventoryCategory.findMany({ orderBy: { code: 'asc' } });
@@ -319,7 +315,7 @@ router.delete('/inventory-categories/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// ── Locations ──────────────────────────────────────────────────────
+// Locations
 router.get('/locations', async (_req, res) => {
   try {
     const data = await prisma.gaLocation.findMany({

@@ -9,7 +9,7 @@ import { buildApprovalComparison, isEditDocumentType, findPendingForTarget } fro
 
 const router = Router();
 
-// ── Rules Management (Admin only) ────────────────────────────────────────────
+// Approval rules (each route requires the approval.decide capability)
 
 // GET /rules — list all approval rules
 router.get('/rules', requireCap('approval.decide'), async (_req, res) => {
@@ -63,7 +63,7 @@ router.delete('/rules/:id', requireCap('approval.decide'), async (req, res) => {
   }
 });
 
-// ── Approval Requests ────────────────────────────────────────────────────────
+// Approval Requests
 
 // GET /requests — list approval requests (pending first)
 router.get('/requests', async (req: AuthRequest, res) => {
@@ -71,8 +71,7 @@ router.get('/requests', async (req: AuthRequest, res) => {
     const { status } = req.query;
     const where: any = {};
     if (status) where.status = status;
-    // Non-Admin hanya lihat request yang mereka ajukan sendiri (transparansi
-    // status); Admin lihat semua antrian untuk di-review.
+    // Without approval.view_all, users only see their own requests.
     if (!(await hasCap(req.user!.role, 'approval.view_all'))) where.requestedBy = req.user!.userId;
 
     const requests = await prisma.approvalRequest.findMany({
@@ -92,8 +91,8 @@ router.get('/requests', async (req: AuthRequest, res) => {
   }
 });
 
-// GET /requests/:id — satu pengajuan (utk deep-link dari notifikasi). Admin lihat
-// semua; non-Admin hanya pengajuannya sendiri.
+// GET /requests/:id: one request (notification deep link). Users without
+// approval.view_all only see their own.
 router.get('/requests/:id', async (req: AuthRequest, res) => {
   try {
     const request = await prisma.approvalRequest.findUnique({
@@ -289,7 +288,7 @@ router.post('/requests/:id/reject', requireCap('approval.decide'), async (req: A
   res.json(result);
 });
 
-// POST /requests/:id/request-revision — Admin minta staff perbaiki pengajuan.
+// POST /requests/:id/request-revision: approver asks the requester to fix the request.
 // Status → NeedsRevision (reversible), wajib alasan. Dokumen TIDAK dibuat.
 router.post('/requests/:id/request-revision', requireCap('approval.decide'), async (req: AuthRequest, res) => {
   const result = await decideApproval({

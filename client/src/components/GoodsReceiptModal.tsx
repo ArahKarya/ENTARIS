@@ -118,9 +118,8 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
   const [pendingPOLines, setPendingPOLines] = useState<{ poNumber: string; lines: GRItem[] } | null>(null);
 
   /**
-   * Picking a PO in the form loads its outstanding lines (remaining qty, item,
-   * unit, destination warehouse) — the same prefill as "Buat STT dari PO" —
-   * so the receipt is linked to the PO lines and their qtyReceived moves.
+   * Picking a PO loads its outstanding lines so the receipt links to the PO
+   * lines and updates their qtyReceived.
    */
   const handlePickPO = async (id: string) => {
     setPurchaseOrderId(id);
@@ -179,7 +178,6 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
   const { data: openPOs } = useQuery({
     queryKey: ['purchase-orders-open', partyId],
     queryFn: async () => {
-      // Phase 4 will implement /purchase-orders. For now empty.
       try {
         // open=1 leaves out short-closed POs ("Tutup PO"); closedAt check is a fallback.
         const res = await api.get('/purchase-orders?status=Submitted&open=1&limit=100');

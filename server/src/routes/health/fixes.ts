@@ -120,9 +120,7 @@ export async function previewOrphanAle(): Promise<{ description: string; count: 
   };
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// FIX FUNCTIONS
-// ══════════════════════════════════════════════════════════════════════════════
+// Fix functions
 
 /**
  * Fix ALE sync: delete all JournalEntry ALEs and recreate from JournalItems.

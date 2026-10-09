@@ -1,19 +1,9 @@
 import { useEffect } from 'react';
 
 /**
- * Jaring pengaman GLOBAL untuk semua <input type="number">.
- *
- * Masalah default HTML: saat sebuah field number sedang FOKUS, scroll roda mouse
- * dan tombol panah Atas/Bawah diam-diam mengubah nilainya. Ini menyebabkan bug
- * seperti 21.000.000 tiba-tiba tersimpan jadi 21.999.999 karena staff tak sengaja
- * scroll di atas field. Hook ini menonaktifkan perilaku tersebut secara global.
- *
- * - wheel: jika field number sedang fokus, cegah perubahan nilai (blur field),
- *   TAPI halaman tetap bisa di-scroll normal saat field tidak fokus.
- * - keydown ArrowUp/ArrowDown: cegah increment/decrement tak sengaja.
- *
- * Panggil SEKALI di App root. Otomatis melindungi semua field number,
- * yang sudah ada maupun yang dibuat kemudian.
+ * Global guard for every <input type="number">: a focused field silently changes value on
+ * mouse wheel or ArrowUp/Down, so wheel blurs it (page still scrolls) and arrow keys are blocked.
+ * Call once at the App root; it covers fields created later too.
  */
 export function useNumberInputGuard(): void {
   useEffect(() => {

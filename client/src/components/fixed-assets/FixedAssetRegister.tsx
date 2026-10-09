@@ -1,11 +1,6 @@
 /**
- * "Daftar Aset" tab of /fixed-assets — server-paginated register built on the
- * Phase 3 list kit (see pages/SalesInvoices.tsx for the reference pattern).
- *
- * List: GET /fixed-assets?page=… ({ data, total, page, limit }).
- * KPI cards: GET /fixed-assets/summary/by-category — the existing endpoint,
- * which covers every ACTIVE asset (the same totals the page showed before);
- * they intentionally do not follow the list filters.
+ * Server-paginated fixed asset register. KPI cards cover every active asset
+ * and intentionally ignore the list filters.
  */
 import { useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
