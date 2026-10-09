@@ -97,7 +97,7 @@ export const PaymentRequestDetailPage = () => {
     return (accountsQuery.data ?? []).filter((a) => a.accountType === 'ASSET' && (mapped.has(a.id) || a.accountNumber.startsWith('1.1')));
   }, [accountsQuery.data, systemQuery.data]);
   const advance = systemQuery.data?.mappings.EMPLOYEE_ADVANCE?.[0];
-  const advanceLabel = advance ? `${advance.accountNumber} — ${advance.accountName}` : 'Uang Muka Karyawan (akun sistem belum dipetakan)';
+  const advanceLabel = advance ? `${advance.accountNumber} · ${advance.accountName}` : 'Uang Muka Karyawan (akun sistem belum dipetakan)';
 
   const refresh = () => {
     setAccountEdits({});
@@ -349,7 +349,7 @@ export const PaymentRequestDetailPage = () => {
                       ) : (
                         !advanceKind && (
                           <p className="text-xs text-muted-foreground">
-                            Akun: {l.expenseAccount ? `${l.expenseAccount.accountNumber} — ${l.expenseAccount.name}` : 'belum diisi Keuangan'}
+                            Akun: {l.expenseAccount ? `${l.expenseAccount.accountNumber} · ${l.expenseAccount.name}` : 'belum diisi Keuangan'}
                           </p>
                         )
                       )}
@@ -418,7 +418,7 @@ export const PaymentRequestDetailPage = () => {
               <CardContent>
                 <dl className="space-y-2.5">
                   <InfoRow label="Tanggal bayar">{pr.paymentDate ? formatDate(pr.paymentDate) : '-'}</InfoRow>
-                  <InfoRow label="Sumber dana">{pr.cashAccount ? `${pr.cashAccount.accountNumber} — ${pr.cashAccount.name}` : '-'}</InfoRow>
+                  <InfoRow label="Sumber dana">{pr.cashAccount ? `${pr.cashAccount.accountNumber} · ${pr.cashAccount.name}` : '-'}</InfoRow>
                   <InfoRow label="Referensi">{pr.paymentReference ?? '-'}</InfoRow>
                   <InfoRow label="Dibayar oleh">{pr.paidBy?.fullName ?? '-'}</InfoRow>
                   {pr.journalEntry && (
@@ -468,7 +468,7 @@ export const PaymentRequestDetailPage = () => {
         loading={busy}
         onConfirm={() => act.mutateAsync({ kind: 'approve' })}
       >
-        <Field label={actions?.step === 'FINANCE' ? 'Catatan Keuangan' : 'Catatan'} hint="Opsional — terlihat oleh pengaju dan di riwayat.">
+        <Field label={actions?.step === 'FINANCE' ? 'Catatan Keuangan' : 'Catatan'} hint="Opsional. Terlihat oleh pengaju dan di riwayat.">
           <Textarea rows={2} maxLength={1000} value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
         </Field>
       </ConfirmDialog>

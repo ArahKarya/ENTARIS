@@ -120,7 +120,7 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
           company={company}
           title="REPORT KENDARAAN"
           number={asset.noPlat ?? asset.code}
-          dateLine={`Periode: ${dt(period.from)} — ${dt(period.to)}`}
+          dateLine={`Periode: ${dt(period.from)} s.d. ${dt(period.to)}`}
         />
 
         {/* Ringkasan */}
@@ -293,7 +293,7 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
         <Text style={S.noteText}>
           Inspeksi terakhir:{' '}
           {condition.lastInspection
-            ? `${dt(condition.lastInspection.tanggal)} — hasil ${lbl(condition.lastInspection.overallResult)}${
+            ? `${dt(condition.lastInspection.tanggal)}, hasil ${lbl(condition.lastInspection.overallResult)}${
                 condition.lastInspection.odometer != null ? ` pada ${num(condition.lastInspection.odometer)} km` : ''
               }${condition.lastInspection.notes ? `. ${condition.lastInspection.notes}` : ''}`
             : 'belum ada catatan.'}
@@ -305,7 +305,7 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
                 condition.lastOil.brand ? ` (${condition.lastOil.brand})` : ''
               }. Jadwal berikutnya ${num(condition.lastOil.nextOdometerDue)} km${
                 condition.lastOil.remainingKm != null ? `, sisa ${num(condition.lastOil.remainingKm)} km` : ''
-              }${condition.lastOil.isDue ? ' — SUDAH JATUH TEMPO.' : '.'}`
+              }${condition.lastOil.isDue ? '. SUDAH JATUH TEMPO.' : '.'}`
             : 'belum ada log.'}
         </Text>
 

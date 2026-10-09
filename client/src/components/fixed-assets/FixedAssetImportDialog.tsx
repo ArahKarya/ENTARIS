@@ -155,7 +155,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                     <span className="ml-2 text-danger-text">({formatNumber(errorRows.length)} error)</span>
                   )}
                   {rows.length > MAX_ROWS && (
-                    <span className="ml-2 text-danger-text">— melebihi batas {formatNumber(MAX_ROWS)} baris</span>
+                    <span className="ml-2 text-danger-text">(melebihi batas {formatNumber(MAX_ROWS)} baris)</span>
                   )}
                 </p>
                 <Button variant="link" size="sm" onClick={() => { setRows(null); setError(null); }}>

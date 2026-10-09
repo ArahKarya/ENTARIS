@@ -82,7 +82,7 @@ function UploadForm({
       <DialogHeader>
         <DialogTitle>Unggah Versi Baru</DialogTitle>
         <DialogDescription>
-          <span className="num font-mono">{doc.code}</span> — {doc.title}
+          <span className="num font-mono">{doc.code}</span> · {doc.title}
         </DialogDescription>
       </DialogHeader>
       <Field label="File PDF" required error={error} hint={file ? `${file.name} · ${formatFileSize(file.size)}` : 'PDF, maks 20 MB.'}>

@@ -161,7 +161,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
     () =>
       (inventoryItems ?? []).map((inv: any) => ({
         value: inv.id,
-        label: `${inv.code} — ${inv.name}`,
+        label: `${inv.code} · ${inv.name}`,
       })),
     [inventoryItems],
   );
@@ -170,7 +170,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
     () =>
       (serviceItems ?? []).map((svc: any) => ({
         value: svc.id,
-        label: `${svc.code} — ${svc.name}`,
+        label: `${svc.code} · ${svc.name}`,
       })),
     [serviceItems],
   );

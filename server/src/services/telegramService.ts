@@ -294,7 +294,7 @@ async function handleApprovalCallback(botToken: string, cb: any): Promise<void> 
 
     const statusLine =
       result.status === 'Approved'
-        ? `✅ <b>Disetujui</b> oleh ${escapeHtml(user.fullName)}${result.docNumber ? ` — dokumen ${escapeHtml(result.docNumber)} dibuat` : ''}`
+        ? `✅ <b>Disetujui</b> oleh ${escapeHtml(user.fullName)}${result.docNumber ? `, dokumen ${escapeHtml(result.docNumber)} dibuat` : ''}`
         : `❌ <b>Ditolak</b> oleh ${escapeHtml(user.fullName)}`;
     void answerCallbackQuery(botToken, cbId, result.status === 'Approved' ? 'Disetujui.' : 'Ditolak.');
     if (chatId != null && messageId != null) {

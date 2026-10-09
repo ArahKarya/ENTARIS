@@ -53,7 +53,7 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
     staleTime: 60_000,
   });
   const cashOptions = useMemo(
-    () => (accountsQuery.data?.cashAccounts ?? []).map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })),
+    () => (accountsQuery.data?.cashAccounts ?? []).map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
     [accountsQuery.data],
   );
 

@@ -44,7 +44,7 @@ export function InvoiceRevisePriceDialog({
           <FormDialogHeader>
             <DialogTitle>Revisi Harga Invoice</DialogTitle>
             <DialogDescription>
-              {invoice.invoiceNumber} — {invoice.supplier?.name}
+              {invoice.invoiceNumber} · {invoice.supplier?.name}
             </DialogDescription>
           </FormDialogHeader>
 

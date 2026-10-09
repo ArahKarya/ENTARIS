@@ -110,7 +110,7 @@ export async function cancelGoodsReceiptInTx(
       if (!opts.allowNegativeStock) {
         throw new BusinessError(
           `Tidak dapat membatalkan STT ${stt.sttNumber}: stok '${grItem.inventoryItem?.name ?? grItem.inventoryItemId}' tidak mencukupi untuk pembalikan (tersedia ${available}, perlu ${qty}). ` +
-            'Barang sudah keluar (terjual/produksi) — batalkan transaksi tersebut dulu.',
+            'Barang sudah keluar (terjual/produksi). Batalkan transaksi tersebut dulu.',
         );
       }
       logger.warn(

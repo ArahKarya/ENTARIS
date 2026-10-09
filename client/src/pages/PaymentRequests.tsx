@@ -282,7 +282,7 @@ export const PaymentRequests = () => {
           return (
             <span className={late ? 'num font-semibold text-danger' : 'num text-foreground'}>
               {formatNumber(age)} hari
-              {late && <span className="sr-only"> — melewati batas {overdueDays} hari</span>}
+              {late && <span className="sr-only">, melewati batas {overdueDays} hari</span>}
             </span>
           );
         },
@@ -438,7 +438,7 @@ export const PaymentRequests = () => {
   };
 
   const emptyByTab: Record<PrScope, { title: string; description: string }> = {
-    mine: { title: 'Belum ada pengajuan', description: 'Ajukan reimbursement, uang muka, atau pembayaran vendor — tidak perlu lagi lewat email dan Excel.' },
+    mine: { title: 'Belum ada pengajuan', description: 'Ajukan reimbursement, uang muka, atau pembayaran vendor. Tidak perlu lagi lewat email dan Excel.' },
     approvals: { title: 'Tidak ada yang menunggu persetujuan Anda', description: 'Pengajuan yang perlu Anda setujui akan muncul di sini.' },
     payable: { title: 'Belum ada pengajuan siap dibayar', description: 'Pengajuan yang sudah disetujui lengkap akan muncul di sini.' },
     advances: { title: 'Tidak ada uang muka yang belum dipertanggungjawabkan', description: 'Uang muka dan perjalanan dinas yang sudah dibayar dan belum diselesaikan muncul di sini.' },
@@ -449,7 +449,7 @@ export const PaymentRequests = () => {
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="space-y-5 pb-8">
       <PageHeader
         title="Pengajuan Pembayaran"
-        description="Reimbursement, uang muka, perjalanan dinas, dan pembayaran vendor — diajukan, disetujui, dan dibayar di satu tempat."
+        description="Reimbursement, uang muka, perjalanan dinas, dan pembayaran vendor: diajukan, disetujui, dan dibayar di satu tempat."
         actions={
           <>
             {!isEam && (
@@ -548,7 +548,7 @@ export const PaymentRequests = () => {
                       <td className="num px-3 py-2 text-right font-medium text-foreground">{money(e.amount)}</td>
                       <td className={`num px-3 py-2 text-right ${e.overdueCount > 0 ? 'font-semibold text-danger' : 'text-muted-foreground'}`}>
                         {formatNumber(e.oldestDays)} hari
-                        {e.overdueCount > 0 && <span className="sr-only"> — melewati batas</span>}
+                        {e.overdueCount > 0 && <span className="sr-only">, melewati batas</span>}
                       </td>
                     </tr>
                   ))}

@@ -109,7 +109,7 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
     <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
       <DialogContent size="md">
         <DialogHeader>
-          <DialogTitle>QR Aset — {asset.code}</DialogTitle>
+          <DialogTitle>QR Aset {asset.code}</DialogTitle>
           <DialogDescription>{asset.name}. Pindai untuk melihat info aset.</DialogDescription>
         </DialogHeader>
 

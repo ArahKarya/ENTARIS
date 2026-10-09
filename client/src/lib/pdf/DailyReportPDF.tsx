@@ -205,7 +205,7 @@ export const DailyReportPDF: React.FC<DailyReportPDFProps> = ({ company, date, d
               <View key={wi} wrap={false}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.bgLight, paddingVertical: 3, paddingHorizontal: 6, marginTop: 6 }}>
                   <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.dark }}>
-                    {w.code} — {w.name}{w.isDefault ? ' (default)' : ''} · {w.itemCount} item
+                    {w.code} · {w.name}{w.isDefault ? ' (default)' : ''} · {w.itemCount} item
                   </Text>
                   <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.dark }}>{idr(w.totalValue)}</Text>
                 </View>

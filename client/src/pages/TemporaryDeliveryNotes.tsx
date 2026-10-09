@@ -70,8 +70,8 @@ export function SjsReminder({ summary }: { summary: SjsSummary | undefined }) {
         jalan resmi)
         {late && (
           <>
-            {' '}
-            — <b className="num">{formatNumber(summary.overdue)}</b> sudah lebih dari {SJS_REMINDER_DAYS} hari
+            ,{' '}
+            <b className="num">{formatNumber(summary.overdue)}</b> sudah lebih dari {SJS_REMINDER_DAYS} hari
           </>
         )}
         .

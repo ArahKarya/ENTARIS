@@ -106,7 +106,7 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
                 </Detail>
                 <Detail label="Cabang">{asset.branch ? `${asset.branch.name} (${asset.branch.code})` : '-'}</Detail>
                 <Detail label="Lokasi">{asset.location || '-'}</Detail>
-                <Detail label="Cost center">{asset.costCenter ? `${asset.costCenter.code} — ${asset.costCenter.name}` : '-'}</Detail>
+                <Detail label="Cost center">{asset.costCenter ? `${asset.costCenter.code} · ${asset.costCenter.name}` : '-'}</Detail>
                 <Detail label="Penanggung jawab">{asset.pic?.fullName ?? '-'}</Detail>
                 <Detail label="No. seri">{asset.serialNumber ? <span className="font-mono">{asset.serialNumber}</span> : '-'}</Detail>
                 <Detail label="Tanggal perolehan">

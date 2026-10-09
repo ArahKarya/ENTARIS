@@ -26,7 +26,7 @@ export function PickerSelect({
   options,
   value,
   onChange,
-  placeholder = '— Pilih —',
+  placeholder = 'Pilih',
   disabled,
   className,
   'aria-label': ariaLabel,

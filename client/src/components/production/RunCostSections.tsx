@@ -57,7 +57,7 @@ export function RunCostSection({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>— Manual (free input) —</SelectItem>
+                        <SelectItem value={NONE}>Manual (free input)</SelectItem>
                         {available.map((s) => (
                           <SelectItem key={s.id} value={s.id}>
                             {s.name} (default Rp {Number(s.defaultRate)})
@@ -243,7 +243,7 @@ export function RunProcessPicker({ processes, selectedIds, onToggle }: ProcessPi
         })}
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">
-        Klik untuk pilih/batal. Hanya untuk catatan traceability — tidak posting GL, tidak pengaruhi HPP. Master diatur di tab{' '}
+        Klik untuk pilih/batal. Hanya untuk catatan traceability. Tidak posting GL, tidak pengaruhi HPP. Master diatur di tab{' '}
         <span className="font-semibold">Master Proses</span>.
       </p>
     </section>

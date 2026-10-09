@@ -349,7 +349,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
               {canSubmit
                 ? `Total: ${formatRupiah(grandTotal)}`
                 : hasOrphanInventory
-                  ? 'Bahan baku harus via STT — lihat peringatan di atas.'
+                  ? 'Bahan baku harus via STT. Lihat peringatan di atas.'
                   : 'Lengkapi supplier & minimal 1 item'}
             </p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
@@ -369,7 +369,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
               <OptionPicker
                 value={partyId}
                 onChange={setPartyId}
-                placeholder="— Pilih Supplier —"
+                placeholder="Pilih Supplier"
                 options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
               />
             </Field>
@@ -398,7 +398,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                       }
                     }}
                   />
-                  Buat dari STT / BPB (Bukti Penerimaan Barang) — bisa pilih lebih dari 1
+                  Buat dari STT / BPB (Bukti Penerimaan Barang), bisa pilih lebih dari 1
                 </label>
                 {fromSTTMode && (
                   <div className="mt-2 space-y-1">
@@ -570,7 +570,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
               {orphanInventoryLines.map((l) => (
                 <li key={l.id}>
                   <span className="font-medium">{l.itemName}</span>
-                  <span> — belum link ke STT</span>
+                  <span>: belum link ke STT</span>
                 </li>
               ))}
             </ul>

@@ -241,7 +241,7 @@ describe('previewSettlementInTx', () => {
     const p = await previewSettlementInTx(asTx(tx), 'pr-1', {});
     expect(p).toMatchObject({ mode: 'RETURN', realized: 700000, advance: 1_000_000, cashRequired: true });
     expect(p.problems.join(' ')).toMatch(/kas\/bank/);
-    expect(p.lines.find((l) => l.accountId === 'acc-adv')?.accountLabel).toBe('1.5.6 — Uang Muka Karyawan');
+    expect(p.lines.find((l) => l.accountId === 'acc-adv')?.accountLabel).toBe('1.5.6 · Uang Muka Karyawan');
     expect(tx.journalEntry.create).not.toHaveBeenCalled();
     expect(tx.paymentRequest.updateMany).not.toHaveBeenCalled();
   });

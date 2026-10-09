@@ -146,7 +146,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
 
   const label = (list: FlatAccount[], id: string) => {
     const a = list.find((x) => x.id === id);
-    return a ? `${a.accountNumber} — ${a.name}` : null;
+    return a ? `${a.accountNumber} · ${a.name}` : null;
   };
   const value = formatRupiah(Number(amount) || 0);
   const meta = bill ? KIND_META[bill.kind] : null;
@@ -278,7 +278,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
                     account:
                       method === 'JOURNAL'
                         ? label(cashAccounts, creditAccountId) ?? '(pilih kas/bank)'
-                        : '2.1.1 — Hutang Usaha',
+                        : '2.1.1 · Hutang Usaha',
                     amount: value,
                   },
                 ]}

@@ -100,7 +100,7 @@ export function GaInventoryTools({ canEdit, hasLocations, onOpname }: GaInventor
             dari mutasi. Tidak bisa diketik manual di form item.
           </li>
           <li>
-            <strong className="font-medium text-foreground">Stok minimum</strong> hanya ambang peringatan — mengisinya tidak
+            <strong className="font-medium text-foreground">Stok minimum</strong> hanya ambang peringatan, mengisinya tidak
             menambah stok.
           </li>
           <li>
@@ -108,7 +108,7 @@ export function GaInventoryTools({ canEdit, hasLocations, onOpname }: GaInventor
             tipe Masuk.
           </li>
           <li>
-            Inventaris kantor <strong className="font-medium text-foreground">tidak</strong> membuat jurnal/GL — terpisah
+            Inventaris kantor <strong className="font-medium text-foreground">tidak</strong> membuat jurnal/GL, terpisah
             dari persediaan akuntansi.
           </li>
         </ul>

@@ -401,7 +401,7 @@ function EquipmentDataSection({ assetId, canEdit, query }: EquipmentDataSectionP
       ) : (
         <div className="space-y-4">
           {!query.data && (
-            <p className="text-sm text-muted-foreground">Data peralatan belum diisi{canEdit ? ' — lengkapi lalu simpan.' : '.'}</p>
+            <p className="text-sm text-muted-foreground">Data peralatan belum diisi{canEdit ? '. Lengkapi lalu simpan.' : '.'}</p>
           )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Kapasitas maks">

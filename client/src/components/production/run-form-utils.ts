@@ -178,7 +178,7 @@ export function computeOeePreview({
     const machine = machineById.get(m.machineId);
     return {
       machineId: m.machineId,
-      label: machine ? `${machine.code} — ${machine.name}` : '(mesin?)',
+      label: machine ? `${machine.code} · ${machine.name}` : '(mesin?)',
       runMin: m.runMin,
       allocatedQty,
       availabilityPct,

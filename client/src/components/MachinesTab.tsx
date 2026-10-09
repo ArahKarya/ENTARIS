@@ -265,7 +265,7 @@ export default function MachinesTab() {
         (Overall Equipment Effectiveness) saat produksi dicatat.
         {missingRate > 0 && (
           <span className="mt-1 block font-medium text-warning-text">
-            {formatNumber(missingRate)} mesin aktif belum punya kapasitas ideal — Performance OEE-nya tidak terhitung.
+            {formatNumber(missingRate)} mesin aktif belum punya kapasitas ideal. Performance OEE-nya tidak terhitung.
           </span>
         )}
       </InfoNote>
@@ -333,7 +333,7 @@ export default function MachinesTab() {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
         title="Hapus mesin?"
-        description={`Hapus mesin "${deleteTarget?.name ?? ''}"? Mesin yang sudah dipakai di produksi tidak bisa dihapus — nonaktifkan saja agar histori OEE tetap utuh.`}
+        description={`Hapus mesin "${deleteTarget?.name ?? ''}"? Mesin yang sudah dipakai di produksi tidak bisa dihapus. Nonaktifkan saja agar histori OEE tetap utuh.`}
         confirmLabel="Ya, hapus"
         onConfirm={handleDelete}
       />

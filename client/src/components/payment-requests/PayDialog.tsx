@@ -49,7 +49,7 @@ export function PayDialog({ request, cashAccounts, advanceAccountLabel, onClose,
       const byAccount = new Map<string, { label: string; amount: number }>();
       for (const l of request.lines) {
         const key = l.expenseAccount?.id ?? 'missing';
-        const label = l.expenseAccount ? `${l.expenseAccount.accountNumber} — ${l.expenseAccount.name}` : 'Akun biaya belum diisi';
+        const label = l.expenseAccount ? `${l.expenseAccount.accountNumber} · ${l.expenseAccount.name}` : 'Akun biaya belum diisi';
         const cur = byAccount.get(key) ?? { label, amount: 0 };
         byAccount.set(key, { label, amount: cur.amount + (toNumber(l.amount) ?? 0) });
       }
@@ -57,7 +57,7 @@ export function PayDialog({ request, cashAccounts, advanceAccountLabel, onClose,
     }
     return [
       ...debits,
-      { side: 'CR', account: cash ? `${cash.accountNumber} — ${cash.name}` : 'Akun kas/bank (pilih di atas)', amount: formatMoney(total) },
+      { side: 'CR', account: cash ? `${cash.accountNumber} · ${cash.name}` : 'Akun kas/bank (pilih di atas)', amount: formatMoney(total) },
     ];
   }, [request, cash, total, advanceAccountLabel]);
 

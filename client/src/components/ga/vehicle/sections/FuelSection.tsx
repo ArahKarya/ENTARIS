@@ -144,7 +144,7 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
         title="Hapus Log BBM"
-        description={`Hapus log BBM "${deleteTarget ? `${formatDate(deleteTarget.tanggal)} — ${formatNumber(deleteTarget.liters, { maxDecimals: 2 })} L` : ''}"?`}
+        description={`Hapus log BBM "${deleteTarget ? `${formatDate(deleteTarget.tanggal)} · ${formatNumber(deleteTarget.liters, { maxDecimals: 2 })} L` : ''}"?`}
         confirmLabel="Ya, Hapus"
         tone="danger"
         loading={deleteMut.isPending}

@@ -23,7 +23,7 @@ interface AccountPickerProps {
 /** Searchable chart-of-accounts picker for forms ("1.6.3 — Kendaraan"). */
 export function AccountPicker({ accounts, placeholder = 'Pilih akun…', ...props }: AccountPickerProps) {
   const options = useMemo(
-    () => accounts.map((a) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
+    () => accounts.map((a) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
     [accounts],
   );
   return (

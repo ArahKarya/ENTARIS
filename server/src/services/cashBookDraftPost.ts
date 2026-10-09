@@ -92,7 +92,7 @@ async function postInTx(tx: Tx, id: string, userId: string, partial: boolean): P
   const failed: PostFailure[] = [];
   const valid: Array<{ row: (typeof todo)[number]; lines: JournalLineDraft[]; narration: string; fiscalYearId: string }> = [];
   for (const row of todo) {
-    const narration = `Buku Kas ${draft.draftNumber} #${row.idx} — ${row.description}`.slice(0, 250);
+    const narration = `Buku Kas ${draft.draftNumber} #${row.idx}: ${row.description}`.slice(0, 250);
     const acc = row.accountId ? accMap.get(row.accountId) : undefined;
     if (row.accountId && (!acc || acc.isGroup || !acc.isActive)) {
       failed.push({ idx: row.idx, error: 'Akun lawan tidak valid (tidak ditemukan, akun grup, atau tidak aktif).' });

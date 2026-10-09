@@ -178,7 +178,7 @@ export async function submitSalesInvoiceInTx(
       .join(', ');
     throw new BusinessError(
       `Item inventori "${names}" tidak bisa di-invoice langsung. ` +
-      `Buat Surat Jalan (Delivery Order) terlebih dahulu — invoice hanya bisa di-generate dari DO yang sudah submit. ` +
+      `Buat Surat Jalan (Delivery Order) terlebih dahulu. Invoice hanya bisa di-generate dari DO yang sudah submit. ` +
       `Stok keluar lewat DO, bukan invoice.`,
     );
   }
@@ -348,7 +348,7 @@ export async function submitSalesInvoiceInTx(
       }
       if (doItem.deliveryOrder.status === 'Cancelled') {
         throw new BusinessError(
-          `Surat Jalan ${doItem.deliveryOrder.doNumber} sudah dibatalkan — tidak bisa di-invoice.`,
+          `Surat Jalan ${doItem.deliveryOrder.doNumber} sudah dibatalkan dan tidak bisa di-invoice.`,
         );
       }
       if (doItem.deliveryOrder.invoiceId && doItem.deliveryOrder.invoiceId !== invoice.id) {

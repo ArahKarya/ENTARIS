@@ -151,9 +151,9 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
         type: 'approval_approved',
         title: 'Pengajuan Anda disetujui',
         message: createdDoc && isEditDocumentType(request.documentType)
-          ? `Pengajuan disetujui — perubahan pada ${createdDoc.number} telah diterapkan.`
+          ? `Pengajuan disetujui. Perubahan pada ${createdDoc.number} telah diterapkan.`
           : createdDoc
-          ? `Pengajuan disetujui — dokumen ${createdDoc.number} telah dibuat.`
+          ? `Pengajuan disetujui. Dokumen ${createdDoc.number} telah dibuat.`
           : 'Pengajuan Anda telah disetujui.',
         metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType, documentId: createdDoc?.id },
       });
@@ -191,7 +191,7 @@ export async function decideApproval(input: DecideApprovalInput): Promise<Decide
         type: 'approval_rejected',
         title: 'Pengajuan ditolak',
         message: draftReturned
-          ? `Pengajuan ${action === 'revise' ? 'perlu revisi' : 'ditolak'}: ${note || '-'}. Draft dikembalikan — perbaiki lalu posting ulang.`
+          ? `Pengajuan ${action === 'revise' ? 'perlu revisi' : 'ditolak'}: ${note || '-'}. Draft dikembalikan. Perbaiki lalu posting ulang.`
           : `Pengajuan ditolak: ${note || '-'}`,
         metadata: { kind: 'approval', requestId: request.id, documentType: request.documentType },
       });

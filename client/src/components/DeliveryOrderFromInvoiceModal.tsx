@@ -96,14 +96,14 @@ const DeliveryOrderFromInvoiceModal: React.FC<Props> = ({
               Buat Surat Jalan
             </DialogTitle>
             <DialogDescription>
-              Untuk invoice <span className="font-mono">{invoiceNumber}</span> — {customerName}
+              Untuk invoice <span className="font-mono">{invoiceNumber}</span> ({customerName})
             </DialogDescription>
           </FormDialogHeader>
 
           <FormDialogBody>
             <p className="rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2 text-xs text-warning-text">
               Stok sudah dikurangi sejak invoice di-submit. Surat Jalan ini hanya untuk
-              dokumen pengiriman fisik & cetakan supir — tidak menyentuh stok lagi.
+              dokumen pengiriman fisik & cetakan supir, tidak menyentuh stok lagi.
             </p>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

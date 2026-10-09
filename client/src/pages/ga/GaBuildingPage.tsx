@@ -478,7 +478,7 @@ function BuildingDataSection({ assetId, canEdit }: { assetId: string; canEdit: b
         <div className="space-y-5">
           {!dataQuery.data && (
             <p className="text-sm text-muted-foreground">
-              Data bangunan belum diisi{canEdit ? ' — lengkapi lalu simpan.' : '.'}
+              Data bangunan belum diisi{canEdit ? '. Lengkapi lalu simpan.' : '.'}
             </p>
           )}
           <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

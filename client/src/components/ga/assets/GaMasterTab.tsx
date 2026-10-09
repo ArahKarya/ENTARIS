@@ -228,7 +228,7 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
         title={`Hapus ${entity.noun}?`}
-        description={`Hapus "${deleteTarget?.name ?? ''}"? Data yang sudah dipakai aset atau dokumen tidak bisa dihapus${entity.hasActive ? ' — nonaktifkan saja' : ''}.`}
+        description={`Hapus "${deleteTarget?.name ?? ''}"? Data yang sudah dipakai aset atau dokumen tidak bisa dihapus${entity.hasActive ? '. Nonaktifkan saja' : ''}.`}
         confirmLabel="Ya, hapus"
         onConfirm={handleDelete}
       />
@@ -331,7 +331,7 @@ function MasterFormSheet({
       open
       onOpenChange={(open) => !open && onClose()}
       title={isEdit ? `Edit ${entity.noun}` : `${entity.label} baru`}
-      description={isEdit ? `${row.code} — ${row.name}` : entity.info}
+      description={isEdit ? `${row.code} · ${row.name}` : entity.info}
       error={serverError}
       saving={saving}
       submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan'}

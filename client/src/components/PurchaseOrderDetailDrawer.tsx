@@ -142,7 +142,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
     mutationFn: async () => (await api.post(`/purchase-orders/${poId}/submit`)).data,
     onSuccess: (po: { approvalRequestId?: string | null }) => {
       refresh();
-      toast.success(po?.approvalRequestId ? 'PO diajukan — menunggu persetujuan.' : 'PO dipesan.');
+      toast.success(po?.approvalRequestId ? 'PO diajukan dan menunggu persetujuan.' : 'PO dipesan.');
     },
     onError: (err: { response?: { data?: { error?: string } } }) =>
       toast.error(err.response?.data?.error || 'Gagal mengajukan PO.'),
@@ -270,7 +270,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                     {doc.supplier.phone && <p className="mt-0.5 text-xs text-muted-foreground">{doc.supplier.phone}</p>}
                   </>
                 ) : (
-                  <p className="text-sm italic text-primary">PO Umum — boleh dipenuhi supplier apa saja</p>
+                  <p className="text-sm italic text-primary">PO Umum: boleh dipenuhi supplier apa saja</p>
                 )}
               </section>
               <section>
@@ -304,7 +304,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                 <h3 className={sectionTitle}>
                   <Warehouse className="size-3" aria-hidden /> Gudang Tujuan
                 </h3>
-                <p className="text-sm text-foreground">{doc.warehouse ? `${doc.warehouse.code} — ${doc.warehouse.name}` : '—'}</p>
+                <p className="text-sm text-foreground">{doc.warehouse ? `${doc.warehouse.code} · ${doc.warehouse.name}` : '—'}</p>
               </section>
               <section>
                 <h3 className={sectionTitle}>No. Penawaran Pemasok</h3>
@@ -319,7 +319,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                 </h3>
                 {displayStatus === 'PendingApproval' && (
                   <Callout tone="warning" className="mb-2 py-2 text-xs">
-                    Menunggu persetujuan — PO belum dikirim ke supplier dan belum bisa dipakai untuk STT.
+                    Menunggu persetujuan. PO belum dikirim ke supplier dan belum bisa dipakai untuk STT.
                   </Callout>
                 )}
                 {doc.approvalStatus === 'Rejected' && (
@@ -429,7 +429,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
 
             {doc.closedAt && status !== 'Cancelled' && (
               <Callout tone="neutral" icon={<Ban className="mt-0.5 size-4 shrink-0" aria-hidden />}>
-                PO ditutup pada {formatDate(doc.closedAt)} — sisa qty tidak lagi diharapkan.
+                PO ditutup pada {formatDate(doc.closedAt)}. Sisa qty tidak lagi diharapkan.
                 {doc.closeReason && <> Alasan: {doc.closeReason}</>}
               </Callout>
             )}

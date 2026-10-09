@@ -176,7 +176,7 @@ export const SystemAccountsTab: React.FC = () => {
           // Role dikosongkan → minta backend lepas. Role wajib tidak boleh dikosongkan.
           const meta = getRoleMeta(role);
           if (meta?.required) {
-            throw new Error(`Role "${meta.label}" wajib — pilih akun lain, tidak boleh dikosongkan.`);
+            throw new Error(`Role "${meta.label}" wajib. Pilih akun lain, tidak boleh dikosongkan.`);
           }
           clearRoles.push(role);
         } else {

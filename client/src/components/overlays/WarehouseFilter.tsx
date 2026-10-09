@@ -38,7 +38,7 @@ export function WarehouseFilter({
     staleTime: 5 * 60 * 1000,
   });
   const options = useMemo(
-    () => (data ?? []).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` })),
+    () => (data ?? []).map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` })),
     [data],
   );
   return (

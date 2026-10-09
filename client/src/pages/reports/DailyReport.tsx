@@ -43,7 +43,7 @@ const DailyReport = () => {
   return (
     <ReportPage
       title="Laporan Harian"
-      description={`Ringkasan aktivitas bisnis — ${formattedDate}`}
+      description={`Ringkasan aktivitas bisnis pada ${formattedDate}`}
       period={periodLabel(date)}
       actions={
         <ExportMenu

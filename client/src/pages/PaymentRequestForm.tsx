@@ -373,7 +373,7 @@ function PaymentRequestFormBody({
                   onChange={(e) => set('purpose', e.target.value)}
                 />
               </Field>
-              <Field label="Dibutuhkan tanggal" hint="Opsional — kapan dana dibutuhkan.">
+              <Field label="Dibutuhkan tanggal" hint="Opsional: kapan dana dibutuhkan.">
                 {(control) => <DateInput id={control.id} value={form.neededBy} onChange={(v) => set('neededBy', v)} />}
               </Field>
               <Field label="Departemen / bagian" hint="Opsional.">
@@ -389,7 +389,7 @@ function PaymentRequestFormBody({
               <CardTitle>{isTravel ? 'Rencana biaya perjalanan' : 'Rincian biaya'}</CardTitle>
               <CardDescription>
                 {isTravel
-                  ? 'Perkiraan biaya per kategori — dipakai sebagai pembanding saat pertanggungjawaban. Akun biaya dipilih Keuangan.'
+                  ? 'Perkiraan biaya per kategori, dipakai sebagai pembanding saat pertanggungjawaban. Akun biaya dipilih Keuangan.'
                   : 'Akun biaya dipilih oleh Keuangan saat verifikasi.'}
               </CardDescription>
             </CardHeader>

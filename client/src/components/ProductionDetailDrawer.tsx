@@ -278,7 +278,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                             {runMachineList.map((rm: any) => (
                               <tr key={rm.id} className="border-t border-border text-foreground">
                                 <td className="py-2 px-2 whitespace-nowrap">
-                                  {rm.machine ? `${rm.machine.code} — ${rm.machine.name}` : '—'}
+                                  {rm.machine ? `${rm.machine.code} · ${rm.machine.name}` : '—'}
                                 </td>
                                 <td className="py-2 px-1 whitespace-nowrap text-muted-foreground">{fmtDateTime(rm.startAt)}</td>
                                 <td className="py-2 px-1 whitespace-nowrap text-muted-foreground">{fmtDateTime(rm.endAt)}</td>
@@ -608,7 +608,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     </div>
                   )}
                   <p className="text-[10px] text-info-text pt-1">
-                    Laporan manajemen — hanya pembelian bahan baku (angka real), tanpa biaya estimasi & produk samping. Tidak diposting ke GL.
+                    Laporan manajemen: hanya pembelian bahan baku (angka real), tanpa biaya estimasi & produk samping. Tidak diposting ke GL.
                   </p>
                 </div>
               )}

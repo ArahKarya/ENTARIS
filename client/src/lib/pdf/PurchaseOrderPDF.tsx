@@ -68,7 +68,7 @@ const COLUMNS: PdfColumn[] = [
 ];
 
 const STATUS_MARK: Record<string, string> = {
-  Draft: 'DRAF — BELUM DIPESAN',
+  Draft: 'DRAF: BELUM DIPESAN',
   PendingApproval: 'MENUNGGU PERSETUJUAN',
   Cancelled: 'DIBATALKAN',
 };
@@ -145,7 +145,7 @@ const PurchaseOrderPDF: React.FC<PurchaseOrderPDFProps> = ({ po, company }) => {
           <View style={{ flex: 1 }}>
             <PdfMetaField
               label="Kirim ke Gudang"
-              value={po.warehouse ? [po.warehouse.code, po.warehouse.name].filter(Boolean).join(' — ') : null}
+              value={po.warehouse ? [po.warehouse.code, po.warehouse.name].filter(Boolean).join(' · ') : null}
             />
             <PdfMetaField label="No. Penawaran Pemasok" value={po.supplierQuoteRef} />
           </View>

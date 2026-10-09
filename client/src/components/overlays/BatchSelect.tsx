@@ -97,10 +97,10 @@ export function BatchSelect({ itemId, warehouseId, value, onChange, label, disab
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>— Pakai WAC (tidak pilih batch) —</SelectItem>
+          <SelectItem value={NONE}>Pakai WAC (tidak pilih batch)</SelectItem>
           {batches.map((b) => (
             <SelectItem key={b.id} value={b.id}>
-              {fmtDate(b.date)} — {fmtNum(b.qtyAvailable)} Kg tersedia (@ Rp {fmtRupiah(b.unitCost)}/Kg) — {b.sourceRef ?? b.movementNumber}
+              {fmtDate(b.date)} · {fmtNum(b.qtyAvailable)} Kg tersedia (@ Rp {fmtRupiah(b.unitCost)}/Kg) · {b.sourceRef ?? b.movementNumber}
             </SelectItem>
           ))}
         </SelectContent>

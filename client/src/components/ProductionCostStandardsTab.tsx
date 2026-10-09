@@ -205,7 +205,7 @@ export default function ProductionCostStandardsTab() {
           const s = row.original;
           return (
             <div className="min-w-0 text-xs">
-              <p className="truncate text-foreground">{s.warehouse ? `${s.warehouse.code} — ${s.warehouse.name}` : 'Semua gudang'}</p>
+              <p className="truncate text-foreground">{s.warehouse ? `${s.warehouse.code} · ${s.warehouse.name}` : 'Semua gudang'}</p>
               <p className="truncate text-muted-foreground">{s.item ? s.item.name : 'Semua item'}</p>
             </div>
           );
@@ -218,7 +218,7 @@ export default function ProductionCostStandardsTab() {
         cell: ({ row }) => {
           const a = row.original.costAccount;
           return a ? (
-            <span className="block truncate" title={`${a.accountNumber} — ${a.name}`}>
+            <span className="block truncate" title={`${a.accountNumber} · ${a.name}`}>
               <span className="num font-mono">{a.accountNumber}</span> <span className="text-muted-foreground">{a.name}</span>
             </span>
           ) : (
@@ -265,8 +265,8 @@ export default function ProductionCostStandardsTab() {
   return (
     <div className="space-y-4">
       <InfoNote>
-        Tarif acuan untuk menghitung HPP per kg pada proses produksi. <strong className="font-medium text-foreground">Tidak memposting jurnal</strong> —
-        biaya riil (listrik, gaji, dll.) tetap masuk laba rugi lewat tagihan/jurnal. Mengubah master tidak mengubah HPP
+        Tarif acuan untuk menghitung HPP per kg pada proses produksi. <strong className="font-medium text-foreground">Tidak memposting jurnal</strong>.
+        Biaya riil (listrik, gaji, dll.) tetap masuk laba rugi lewat tagihan/jurnal. Mengubah master tidak mengubah HPP
         produksi yang sudah tercatat.
       </InfoNote>
 
@@ -402,7 +402,7 @@ function CostStandardFormSheet({
   const accounts = useOptions('accounts-flat-for-cost-standard', '/coa', (arr) =>
     arr
       .filter((a) => !a.isGroup)
-      .map((a) => ({ value: String(a.id), label: `${a.accountNumber} — ${a.name}` })),
+      .map((a) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` })),
   );
   const items = useOptions('inventory-items-for-cost-standards', '/inventory/items?limit=200', (arr) =>
     arr
@@ -410,7 +410,7 @@ function CostStandardFormSheet({
       .map((i) => ({ value: String(i.id), label: String(i.name), hint: `${i.code} · ${i.unit}` })),
   );
   const warehouses = useOptions('warehouses-for-cost-standards', '/warehouses', (arr) =>
-    arr.filter((w) => w.isActive !== false).map((w) => ({ value: String(w.id), label: `${w.code} — ${w.name}` })),
+    arr.filter((w) => w.isActive !== false).map((w) => ({ value: String(w.id), label: `${w.code} · ${w.name}` })),
   );
 
   // Pair the basis with the side unless the user picked a fixed rate.

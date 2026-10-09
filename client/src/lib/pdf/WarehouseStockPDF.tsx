@@ -140,7 +140,7 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
             <View key={w.code} style={S.warehouseBlock} wrap>
               <View style={S.warehouseHeader} wrap={false}>
                 <Text style={S.warehouseTitle}>
-                  {w.code} — {w.name}{w.isDefault ? '  (default)' : ''}
+                  {w.code} · {w.name}{w.isDefault ? '  (default)' : ''}
                 </Text>
                 <Text style={S.warehouseMeta}>
                   {w.items.length} item{w.location ? ` • ${w.location}` : ''}

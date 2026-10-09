@@ -69,7 +69,7 @@ export function checkPurchaseOrderEditableLifecycle(po: PoLifecycleLike): RuleRe
 /** Cancel ("Batalkan") applies to ordered POs only; drafts are deleted instead. */
 export function checkPurchaseOrderCancellable(po: PoLifecycleLike): RuleResult {
   if (po.status === 'Cancelled') return { ok: false, error: 'PO sudah dibatalkan.' };
-  if (po.status === 'Draft') return { ok: false, error: 'PO Draf tidak dibatalkan — hapus draf.' };
+  if (po.status === 'Draft') return { ok: false, error: 'PO Draf tidak dibatalkan. Hapus draf.' };
   return { ok: true };
 }
 
@@ -96,7 +96,7 @@ export function matchesApprovalRule(rules: ApprovalRuleLike[], grandTotal: numbe
 }
 
 export const PO_INCREASE_NEEDS_APPROVAL_ERROR =
-  'Kenaikan nilai PO melebihi batas persetujuan — ajukan ulang (batalkan PO ini dan buat PO baru, atau turunkan nilainya).';
+  'Kenaikan nilai PO melebihi batas persetujuan. Ajukan ulang (batalkan PO ini dan buat PO baru, atau turunkan nilainya).';
 
 /**
  * Editing an ordered (Submitted) PO must not bypass approval: raising the

@@ -25,4 +25,4 @@ export function useGaAssetOptions() {
 }
 
 export const assetOptions = (assets: AssetOption[] | undefined) =>
-  (assets ?? []).map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }));
+  (assets ?? []).map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` }));

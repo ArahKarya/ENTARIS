@@ -111,7 +111,7 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                   <StatusBadge status={mr.status} docType="ga_material_request" />
                 </div>
                 <SheetDescription>
-                  {mr.asset ? `${mr.asset.code} — ${mr.asset.name}` : mr.machineTarget || 'Tanpa aset spesifik'} ·{' '}
+                  {mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : mr.machineTarget || 'Tanpa aset spesifik'} ·{' '}
                   {formatNumber(mr.items.length)} barang
                 </SheetDescription>
               </>
@@ -146,7 +146,7 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Detail label="Diminta">{formatDate(mr.requestedAt)}</Detail>
                   <Detail label="Pemohon">{requesterName || '-'}</Detail>
-                  <Detail label="Aset">{mr.asset ? `${mr.asset.code} — ${mr.asset.name}` : '-'}</Detail>
+                  <Detail label="Aset">{mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : '-'}</Detail>
                   <Detail label="Mesin / target">{mr.machineTarget || '-'}</Detail>
                   {mr.approvedAt && <Detail label="Disetujui">{formatDate(mr.approvedAt)}</Detail>}
                   {mr.rejectedAt && <Detail label="Ditolak">{formatDate(mr.rejectedAt)}</Detail>}
@@ -193,7 +193,7 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                     >
                       <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                       <span className="min-w-0">
-                        Dari work order <span className="num font-mono font-medium text-primary">{mr.workOrder.code}</span> —{' '}
+                        Dari work order <span className="num font-mono font-medium text-primary">{mr.workOrder.code}</span>:{' '}
                         {mr.workOrder.title}
                       </span>
                     </Link>
@@ -478,7 +478,7 @@ function ReceiveModal({
 
   return (
     <FormModal
-      title={`Terima Barang — ${item.itemName}`}
+      title={`Terima Barang: ${item.itemName}`}
       description="Stok GA bertambah di lokasi tujuan."
       onClose={onClose}
       onSubmit={submit}
@@ -490,10 +490,10 @@ function ReceiveModal({
           <NumberInput min={0} step="any" value={receivedQty} onChange={(e) => setReceivedQty(e.target.value)} />
         </Field>
         <ComboboxField label="Lokasi gudang tujuan" required error={err('location')}
-  options={locations.map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
+  options={locations.map((l) => ({ value: l.id, label: `${l.code} · ${l.name}` }))}
   value={locationId}
   onChange={setLocationId}
-  placeholder="— Pilih lokasi —"
+  placeholder="Pilih lokasi"
 />
       </div>
 
@@ -514,10 +514,10 @@ function ReceiveModal({
           </div>
           {mode === 'existing' ? (
             <ComboboxField label="Item inventaris" required error={err('existing')}
-  options={invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }))}
+  options={invItems.map((x) => ({ value: x.id, label: `${x.sku} · ${x.name}` }))}
   value={existingItemId}
   onChange={setExistingItemId}
-  placeholder="— Pilih item —"
+  placeholder="Pilih item"
 />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -525,10 +525,10 @@ function ReceiveModal({
                 <Input value={newSku} onChange={(e) => setNewSku(e.target.value)} />
               </Field>
               <ComboboxField label="Kategori" required error={err('category')}
-  options={categories.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }))}
+  options={categories.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` }))}
   value={categoryId}
   onChange={setCategoryId}
-  placeholder="— Pilih kategori —"
+  placeholder="Pilih kategori"
 />
             </div>
           )}

@@ -135,7 +135,7 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
           <OptionPicker
             value={partyId}
             onChange={setPartyId}
-            placeholder="— Pilih Supplier —"
+            placeholder="Pilih Supplier"
             options={(suppliers ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
           />
         </Field>
@@ -189,8 +189,8 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
             <OptionPicker
               value={accountId}
               onChange={setAccountId}
-              placeholder="— Pilih Akun —"
-              options={(cashAccounts ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} — ${a.name}` }))}
+              placeholder="Pilih Akun"
+              options={(cashAccounts ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` }))}
             />
           </Field>
         )}

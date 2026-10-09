@@ -115,11 +115,11 @@ export function CreateMrModal({
     mutation.mutate();
   };
 
-  const invOptions = invItems.map((x) => ({ value: x.id, label: `${x.sku} — ${x.name}` }));
+  const invOptions = invItems.map((x) => ({ value: x.id, label: `${x.sku} · ${x.name}` }));
 
   return (
     <FormModal
-      title={woContext ? `Minta Sparepart — WO ${woContext.woCode}` : 'Buat Permintaan Barang'}
+      title={woContext ? `Minta Sparepart untuk WO ${woContext.woCode}` : 'Buat Permintaan Barang'}
       description="Permintaan disimpan sebagai Draf; ajukan dari detail MR untuk persetujuan."
       size="lg"
       onClose={onClose}
@@ -129,10 +129,10 @@ export function CreateMrModal({
     >
       {!woContext && (
         <ComboboxField label="Aset tujuan" hint="Opsional"
-  options={assets.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))}
+  options={assets.map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` }))}
   value={assetId}
   onChange={setAssetId}
-  placeholder={loadingAssets ? 'Memuat…' : '— Tanpa aset spesifik —'}
+  placeholder={loadingAssets ? 'Memuat…' : 'Tanpa aset spesifik'}
 />
       )}
       <Field label="Mesin / target" hint="Opsional">
@@ -174,7 +174,7 @@ export function CreateMrModal({
   options={invOptions}
   value={it.inventoryItemId ?? ''}
   onChange={(v) => pickInventoryItem(idx, v)}
-  placeholder="— Barang baru / teks bebas —"
+  placeholder="Barang baru / teks bebas"
 />
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Nama barang" required className="col-span-2">

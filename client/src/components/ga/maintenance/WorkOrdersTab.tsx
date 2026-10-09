@@ -401,7 +401,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
         title="Batalkan work order?"
-        description={cancelTarget ? `${cancelTarget.code} — ${cancelTarget.title}. WO yang dibatalkan tidak bisa dikembalikan.` : undefined}
+        description={cancelTarget ? `${cancelTarget.code} · ${cancelTarget.title}. WO yang dibatalkan tidak bisa dikembalikan.` : undefined}
         confirmLabel="Batalkan WO"
         requireReason={{ label: 'Alasan pembatalan', minLength: 1 }}
         loading={cancelMutation.isPending}

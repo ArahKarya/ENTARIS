@@ -310,7 +310,7 @@ export const PdfSection: React.FC<{ title: string; children: React.ReactNode; to
 
 // ─────────────────────────────── Footer ───────────────────────────────
 
-export const CONFIDENTIAL_LINE = 'Dokumen rahasia — hanya untuk pihak yang berkepentingan.';
+export const CONFIDENTIAL_LINE = 'Dokumen rahasia, hanya untuk pihak yang berkepentingan.';
 
 export interface PdfFooterProps {
   company: string;
@@ -332,7 +332,7 @@ export const PdfFooter: React.FC<PdfFooterProps> = ({
     <View fixed style={[S.footerWrap, { left: paddingHorizontal, right: paddingHorizontal }]}>
       <View style={{ height: 0.6, backgroundColor: tone === 'mono' ? CARBON.grey : p.hair }} />
       <View style={S.footerRow}>
-        <Text style={[S.footerText, { color: p.soft }]}>{[company, docRef].filter(Boolean).join(' — ')}</Text>
+        <Text style={[S.footerText, { color: p.soft }]}>{[company, docRef].filter(Boolean).join(' · ')}</Text>
         <Text
           style={[S.footerText, { color: p.ink, fontFamily: F.bold }]}
           render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} dari ${totalPages}`}

@@ -84,7 +84,7 @@ function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = []): Un
     urgensi: r.urgensi,
     jenis: SERVICE_TYPE_LABELS[r.jenisService] ?? r.jenisService,
     keterangan: r.deskripsi,
-    assetLabel: r.asset ? `${r.asset.code} — ${r.asset.name}` : '-',
+    assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '-',
     nominal: null,
     createdAt: r.createdAt,
     tindakLanjut: r.workOrder ? `WO ${r.workOrder.code}` : r.rejectedReason ? `Ditolak: ${r.rejectedReason}` : null,
@@ -96,7 +96,7 @@ function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = []): Un
     urgensi: r.urgensi,
     jenis: `${TAX_TYPE_LABELS[r.type] ?? r.type} ${r.periodYear}`,
     keterangan: r.deskripsi || `Jatuh tempo ${formatDate(r.dueDate)}`,
-    assetLabel: r.asset ? `${r.asset.code} — ${r.asset.name}` : '-',
+    assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '-',
     nominal: r.estimatedAmount != null ? Number(r.estimatedAmount) : null,
     createdAt: r.createdAt,
     tindakLanjut: r.tax ? `Pajak ${r.tax.periodYear} (${r.tax.status})` : r.rejectedReason ? `Ditolak: ${r.rejectedReason}` : null,
@@ -368,7 +368,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
         onOpenChange={(open) => !open && setRejectTarget(null)}
         tone="danger"
         title="Tolak pengajuan?"
-        description={rejectTarget ? `${rejectTarget.jenis} — ${rejectTarget.assetLabel}` : undefined}
+        description={rejectTarget ? `${rejectTarget.jenis} · ${rejectTarget.assetLabel}` : undefined}
         confirmLabel="Tolak"
         requireReason={{ label: 'Alasan penolakan', minLength: 1 }}
         onConfirm={(reason) => (rejectTarget && reason ? reject.mutateAsync({ row: rejectTarget, reason }) : undefined)}
@@ -379,7 +379,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
         title="Batalkan pengajuan?"
-        description={cancelTarget ? `${cancelTarget.jenis} — ${cancelTarget.assetLabel}` : undefined}
+        description={cancelTarget ? `${cancelTarget.jenis} · ${cancelTarget.assetLabel}` : undefined}
         confirmLabel="Batalkan pengajuan"
         cancelLabel="Kembali"
         onConfirm={() => (cancelTarget ? cancel.mutateAsync(cancelTarget) : undefined)}

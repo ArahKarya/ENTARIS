@@ -296,7 +296,7 @@ function DetailContent({
                       <span className="text-foreground">
                         {d.category}
                         {d.machineId ? ` • ${machineMap[d.machineId] ?? 'mesin'}` : ''}
-                        {d.reason ? ` — ${d.reason}` : ''}
+                        {d.reason ? `: ${d.reason}` : ''}
                       </span>
                       <span className="font-mono tabular-nums text-muted-foreground">{fmtNum(Number(d.durationMin ?? 0))} mnt</span>
                     </div>

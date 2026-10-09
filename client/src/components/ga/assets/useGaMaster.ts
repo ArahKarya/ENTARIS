@@ -34,5 +34,5 @@ export function useGaMaster<T extends GaMasterOption = GaMasterOption>(path: GaM
 export function masterOptions(rows: readonly GaMasterOption[] | undefined, keepId?: string | null) {
   return (rows ?? [])
     .filter((r) => r.isActive !== false || r.id === keepId)
-    .map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }));
+    .map((r) => ({ value: r.id, label: `${r.code} · ${r.name}` }));
 }

@@ -29,10 +29,10 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.18.0',
     date: '2026-07-31',
-    title: 'Inspeksi Berkala Kendaraan — Komprehensif',
+    title: 'Inspeksi Berkala Kendaraan: Komprehensif',
     changes: [
       'Checklist inspeksi diperluas dari 12 item datar jadi 33 sub-item terkelompok dalam 6 kategori (Mesin & Cairan, Kelistrikan, Rem & Kemudi, Ban & Roda, Keselamatan, Lain-lain) dengan tampilan accordion per kategori',
-      'Foto bukti visual per kategori inspeksi (opsional, maks 5 MB/foto) — tersimpan & tampil di riwayat inspeksi',
+      'Foto bukti visual per kategori inspeksi (opsional, maks 5 MB/foto), tersimpan & tampil di riwayat inspeksi',
       'Nama inspektor tercatat: pilih dari daftar user atau ketik manual untuk inspektor di luar sistem',
       'Level BBM saat inspeksi (Kosong / Seperempat / Setengah / Tiga Perempat / Penuh)',
       'Jadwal inspeksi berikutnya dihitung otomatis (default 30 hari, interval bisa diubah) + reminder status TERLAMBAT/segera jatuh tempo, pola sama dengan pajak & asuransi',
@@ -43,14 +43,14 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.17.0',
     date: '2026-07-28',
-    title: 'EAM (Enterprise Asset Management) — Aplikasi Terintegrasi Satu Repo',
+    title: 'EAM (Enterprise Asset Management): Aplikasi Terintegrasi Satu Repo',
     changes: [
-      'Modul EAM kini punya frontend standalone (client-eam/) di subdomain EAM tersendiri — bukan repo terpisah, tetap satu monorepo, satu backend/API, satu database',
+      'Modul EAM kini punya frontend standalone (client-eam/) di subdomain EAM tersendiri (bukan repo terpisah, tetap satu monorepo, satu backend/API, satu database)',
       'Login SSO: satu akun ERP dipakai untuk EAM lewat shared-cookie cross-subdomain, tidak perlu login ulang',
       'Tampilan login EAM dibedakan dari ERP (palet hijau tosca/emerald, ikon & copy khusus aset/maintenance) supaya tidak tertukar oleh pengguna',
       'Dashboard ringkas EAM: total aset, nilai buku (NBV), work order aktif/overdue, breakdown per kategori aset, quick links ke semua modul',
       'Filter otomatis per modul (mis. klik Kendaraan hanya tampilkan kategori Kendaraan) via parameter categoryId multi-value di endpoint aset (backward-compatible, tidak mengubah endpoint lama)',
-      'Modul GA (General Affairs) di ERP utama tetap aktif dan terhubung real-time ke EAM — data & aksi tersinkron dua arah lewat API yang sama',
+      'Modul GA (General Affairs) di ERP utama tetap aktif dan terhubung real-time ke EAM: data & aksi tersinkron dua arah lewat API yang sama',
     ],
   },
   {
@@ -58,7 +58,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-21',
     title: 'Fix: Surat Jalan lama tak muncul + filter "Sudah Diinvoice" kosong',
     changes: [
-      'Daftar Surat Jalan dulu hanya memuat 200 terbaru lalu disaring di browser — surat jalan lama (>200) tidak muncul sama sekali. Kini filter, pencarian, dan halaman diproses di server sehingga semua data terjangkau',
+      'Daftar Surat Jalan dulu hanya memuat 200 terbaru lalu disaring di browser. Surat jalan lama (>200) tidak muncul sama sekali. Kini filter, pencarian, dan halaman diproses di server sehingga semua data terjangkau',
       'Tab "Sudah Diinvoice" sebelumnya selalu kosong (membandingkan status turunan dengan enum mentah). Sekarang menampilkan surat jalan yang sudah ditagih dengan benar',
     ],
   },
@@ -67,7 +67,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-16',
     title: 'Fix: dropdown akun kas/bank kosong saat Terima Uang Muka di SO',
     changes: [
-      'Form "Terima Uang Muka" di detail SO: dropdown Kas/Bank tidak muncul karena salah ambil data (endpoint tree). Diperbaiki memakai /coa/flat seperti modul lain — akun 1.1.x kini tampil',
+      'Form "Terima Uang Muka" di detail SO: dropdown Kas/Bank tidak muncul karena salah ambil data (endpoint tree). Diperbaiki memakai /coa/flat seperti modul lain. Akun 1.1.x kini tampil',
     ],
   },
   {
@@ -75,31 +75,31 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-15',
     title: 'Surat Jalan boleh melebihi qty SO (over-delivery)',
     changes: [
-      'Generate Surat Jalan dari SO tidak lagi memblokir qty yang melebihi sisa pesanan — staff bisa kirim lebih dari qty SO (tercatat sebagai "+X lebih" di SO)',
+      'Generate Surat Jalan dari SO tidak lagi memblokir qty yang melebihi sisa pesanan. Staff bisa kirim lebih dari qty SO (tercatat sebagai "+X lebih" di SO)',
       'Form "Tarik dari SO" kini menampilkan semua baris (termasuk yang sudah terkirim penuh, prefill 0) sehingga bisa dipakai untuk kirim tambahan',
     ],
   },
   {
     version: '3.16.6',
     date: '2026-06-15',
-    title: 'SO — qty terkirim selalu ikut angka real Surat Jalan',
+    title: 'SO: qty terkirim selalu ikut angka real Surat Jalan',
     changes: [
-      'delivered_qty SO kini di-recompute dari total Surat Jalan aktif yang ter-link (sumber kebenaran), bukan akumulasi increment yang bisa bolong — kelebihan kirim (+X lebih) tampil benar',
+      'delivered_qty SO kini di-recompute dari total Surat Jalan aktif yang ter-link (sumber kebenaran), bukan akumulasi increment yang bisa bolong. Kelebihan kirim (+X lebih) tampil benar',
       'Edit Surat Jalan tidak lagi memutus kaitan ke SO: baris otomatis di-link ulang & SO dihitung ulang. Cancel SJ juga memakai recompute yang sama',
     ],
   },
   {
     version: '3.16.5',
     date: '2026-06-15',
-    title: 'SO — Download PDF gabung lampiran (PNG/PDF)',
+    title: 'SO: Download PDF gabung lampiran (PNG/PDF)',
     changes: [
-      'Tombol Download PDF di detail SO kini menggabungkan file lampiran SO (foto/PDF) ke dalam satu file PDF — nama file "<SO>_with_lampiran.pdf". Tanpa lampiran tetap unduh PDF SO biasa',
+      'Tombol Download PDF di detail SO kini menggabungkan file lampiran SO (foto/PDF) ke dalam satu file PDF. Nama file "<SO>_with_lampiran.pdf". Tanpa lampiran tetap unduh PDF SO biasa',
     ],
   },
   {
     version: '3.16.4',
     date: '2026-06-14',
-    title: 'SO — Download PDF (lengkap dengan pengiriman & invoice)',
+    title: 'SO: Download PDF (lengkap dengan pengiriman & invoice)',
     changes: [
       'Tombol "Download PDF" di detail SO: cetak pesanan penjualan berisi item, ringkasan uang muka, daftar Surat Jalan terkait, dan Invoice terkait dalam satu dokumen',
     ],
@@ -107,27 +107,27 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.16.3',
     date: '2026-06-14',
-    title: 'SO — rincian uang muka (Diterima · Terpakai · Sisa)',
+    title: 'SO: rincian uang muka (Diterima · Terpakai · Sisa)',
     changes: [
-      'Panel uang muka di detail SO kini menampilkan DP Terpakai (sudah di-apply ke invoice) & Sisa Uang Muka — sebelumnya hanya total diterima sehingga seolah tak berkurang',
+      'Panel uang muka di detail SO kini menampilkan DP Terpakai (sudah di-apply ke invoice) & Sisa Uang Muka. Sebelumnya hanya total diterima sehingga seolah tak berkurang',
       'Plus baris Grand Total & Sisa Tagihan dipisah agar jelas',
     ],
   },
   {
     version: '3.16.2',
     date: '2026-06-12',
-    title: 'SO — tampilkan kelebihan kirim (lebih dari pesanan)',
+    title: 'SO: tampilkan kelebihan kirim (lebih dari pesanan)',
     changes: [
-      'Detail SO: kolom Sisa kini menampilkan "+X lebih" (biru) bila terkirim melebihi qty pesanan — sebelumnya hanya centang hijau (kelebihan tersembunyi)',
+      'Detail SO: kolom Sisa kini menampilkan "+X lebih" (biru) bila terkirim melebihi qty pesanan. Sebelumnya hanya centang hijau (kelebihan tersembunyi)',
     ],
   },
   {
     version: '3.16.1',
     date: '2026-06-12',
-    title: 'Surat Jalan — Tarik dari SO (kurangi SO otomatis)',
+    title: 'Surat Jalan: Tarik dari SO (kurangi SO otomatis)',
     changes: [
       'Form Surat Jalan kini punya dropdown "Tarik dari Pesanan Penjualan (opsional)": pilih SO → baris terisi dari sisa belum-terkirim',
-      'Surat Jalan yang ditarik dari SO otomatis menambah qty terkirim & memperbarui status SO (Sebagian Terkirim/Selesai) — lewat alur generate-do yang sudah ada',
+      'Surat Jalan yang ditarik dari SO otomatis menambah qty terkirim & memperbarui status SO (Sebagian Terkirim/Selesai), lewat alur generate-do yang sudah ada',
       'Tanpa pilih SO: tetap surat jalan bebas seperti biasa (tidak terkait SO)',
     ],
   },
@@ -136,7 +136,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-12',
     title: 'Surat Jalan Stok Minus via Approval (bukan Admin-only)',
     changes: [
-      'Staff bisa tetap membuat Surat Jalan saat stok minus (barang dikirim sambil produksi berjalan) — masuk antrian approval, bukan diblok',
+      'Staff bisa tetap membuat Surat Jalan saat stok minus (barang dikirim sambil produksi berjalan), masuk antrian approval, bukan diblok',
       'Manajer menyetujui di tab Approval (detail SJ + alasan stok minus tampil); Surat Jalan baru dibuat setelah disetujui',
       'Pemegang hak "Bypass stok minus" tetap bisa langsung tanpa approval',
     ],
@@ -144,7 +144,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.15.7',
     date: '2026-06-12',
-    title: 'Surat Jalan — stok yang ditampilkan per gudang terpilih',
+    title: 'Surat Jalan: stok yang ditampilkan per gudang terpilih',
     changes: [
       'Picker stok di Surat Jalan kini menampilkan & memvalidasi stok GUDANG yang dipilih per baris (bukan total semua gudang)',
       'Tiap baris menampilkan "Stok di gudang ini: X"; peringatan kekurangan menyebut nama gudang',
@@ -153,7 +153,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.15.6',
     date: '2026-06-12',
-    title: 'Welcome Page — Revamp Premium Minimal',
+    title: 'Welcome Page: Revamp Premium Minimal',
     changes: [
       'Desain ulang /welcome bergaya premium minimal (navy elegan, tipografi tegas, gerak ditahan)',
       'Visual hero diganti mockup dashboard ERP (UI tiruan: sidebar, KPI, grafik arus kas, status dokumen)',
@@ -163,7 +163,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.15.5',
     date: '2026-06-10',
-    title: 'EAM — penyelarasan prefix kode kategori aset',
+    title: 'EAM: penyelarasan prefix kode kategori aset',
     changes: [
       'Penomoran kode aset memakai prefix yang konsisten per kategori (KND, MSN, BLD, TNH, ALT, IT, FRN, GDG, EQP); kategori warisan Aset Tetap ikut diselaraskan',
     ],
@@ -171,7 +171,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.15.4',
     date: '2026-06-10',
-    title: 'Data Produksi — filter pencarian',
+    title: 'Data Produksi: filter pencarian',
     changes: [
       'Kotak pencarian di tab Data Produksi: cari cepat berdasarkan no. produksi, referensi, nama item (input/output), atau catatan',
     ],
@@ -179,15 +179,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.15.3',
     date: '2026-06-09',
-    title: 'EAM — posisi grup di menu utama dirapikan',
+    title: 'EAM: posisi grup di menu utama dirapikan',
     changes: [
-      'Grup EAM — Manajemen Aset dipindah ke antara Akuntansi dan Laporan (tidak lagi nyangkut di bawah Sistem); konsisten di menu & matriks Hak Akses',
+      'Grup EAM · Manajemen Aset dipindah ke antara Akuntansi dan Laporan (tidak lagi nyangkut di bawah Sistem); konsisten di menu & matriks Hak Akses',
     ],
   },
   {
     version: '3.15.2',
     date: '2026-06-09',
-    title: 'EAM — urutan menu dirapikan',
+    title: 'EAM: urutan menu dirapikan',
     changes: [
       'Urutan modul EAM: Aset → Kendaraan → Gedung → Equipment → Maintenance/WO → Inventaris → Dokumen → Master Data (alur logis: master aset, spesialisasi, operasional, pendukung, konfigurasi)',
     ],
@@ -195,20 +195,20 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.15.1',
     date: '2026-06-09',
-    title: 'EAM — Manajemen Aset (rename GA + satukan Aset Tetap)',
+    title: 'EAM · Manajemen Aset (rename GA + satukan Aset Tetap)',
     changes: [
-      'Grup menu General Affairs diganti menjadi EAM — Manajemen Aset',
+      'Grup menu General Affairs diganti menjadi EAM · Manajemen Aset',
       'Aset Tetap (akuntansi) kini menyatu dengan aset EAM: setiap aset tetap punya master aset EAM yang sama (ditandai badge "Aset Tetap")',
-      'Penyusutan & jurnal aset tetap tetap berjalan apa adanya — hanya ditautkan, tidak diubah',
+      'Penyusutan & jurnal aset tetap tetap berjalan apa adanya, hanya ditautkan, tidak diubah',
     ],
   },
   {
     version: '3.15.0',
     date: '2026-06-09',
-    title: 'Modul General Affairs (GA) — Merge GA Monitor jadi 1 Aplikasi',
+    title: 'Modul General Affairs (GA): Merge GA Monitor jadi 1 Aplikasi',
     changes: [
       'Grup menu baru General Affairs: Aset Fisik, Dokumen & Sertifikat, Inventaris GA, Maintenance/Work Order, Kendaraan, Gedung & Sewa, Equipment & Kalibrasi, Master Data GA',
-      'GA Monitor di-merge ke dalam ERP — satu aplikasi, satu login, satu database (tabel ga_*)',
+      'GA Monitor di-merge ke dalam ERP: satu aplikasi, satu login, satu database (tabel ga_*)',
       'Hak akses GA diatur via Pengaturan → Hak Akses (8 modul ga_*); QR aset publik tetap bisa diakses tanpa login',
     ],
   },
@@ -244,7 +244,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     title: 'Fix: Grand Total Pengajuan Pembelian Rp 0 di Notif & Daftar Approval',
     changes: [
-      'Nilai pengajuan Invoice Pembelian kini terhitung benar saat dibuat — sebelumnya Rp 0 di notifikasi Telegram & daftar approval (hanya muncul di detail) karena payload pengajuan tidak menyimpan amount per baris',
+      'Nilai pengajuan Invoice Pembelian kini terhitung benar saat dibuat. Sebelumnya Rp 0 di notifikasi Telegram & daftar approval (hanya muncul di detail) karena payload pengajuan tidak menyimpan amount per baris',
     ],
   },
   {
@@ -252,7 +252,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     title: 'Branding: Ganti Sisa Tulisan "Keuangan" Jadi ERP',
     changes: [
-      'Judul tab browser, subtitle halaman login, layar onboarding, dan sidebar kini memakai nama produk — bukan "Keuangan" (sisa branding lama)',
+      'Judul tab browser, subtitle halaman login, layar onboarding, dan sidebar kini memakai nama produk, bukan "Keuangan" (sisa branding lama)',
       'Istilah akuntansi tetap apa adanya (Laporan Keuangan, Rasio Keuangan, dll)',
     ],
   },
@@ -261,7 +261,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     title: 'Fix: Batch yang Sudah Dipilih Tidak Muncul Lagi di Baris Lain',
     changes: [
-      'Pemilih batch (Transfer Stok, Proses Produksi, Invoice Penjualan): batch yang sudah dipilih di baris lain otomatis disembunyikan dari dropdown baris berikutnya — cegah alokasi dobel',
+      'Pemilih batch (Transfer Stok, Proses Produksi, Invoice Penjualan): batch yang sudah dipilih di baris lain otomatis disembunyikan dari dropdown baris berikutnya. Cegah alokasi dobel',
       'Pengingat: untuk transfer/produksi jumlah besar yang tersebar di banyak batch, pakai tombol "Bagi Batch" agar terpecah otomatis (FIFO) tanpa input baris satu per satu',
     ],
   },
@@ -270,13 +270,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     title: 'Fix: Total per Baris di Detail Approval Pembelian Tampil Rp 0',
     changes: [
-      'Detail pengajuan Invoice Pembelian: total harga akhir per baris item kini terhitung benar (qty × harga − diskon + PPN − PPh) — sebelumnya selalu Rp 0 karena payload pengajuan tidak menyimpan nilai amount',
+      'Detail pengajuan Invoice Pembelian: total harga akhir per baris item kini terhitung benar (qty × harga − diskon + PPN − PPh). Sebelumnya selalu Rp 0 karena payload pengajuan tidak menyimpan nilai amount',
     ],
   },
   {
     version: '3.13.0',
     date: '2026-06-07',
-    title: 'Bagi Batch Otomatis (FIFO) — Produksi & Transfer Stok',
+    title: 'Bagi Batch Otomatis (FIFO): Produksi & Transfer Stok',
     changes: [
       'Tombol "Bagi Batch" di baris input Proses Produksi & Transfer Stok: isi total qty, sistem memecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)',
       'Tidak perlu lagi input manual satu baris per batch (mis. transfer 9.950 kg yang tersebar di belasan batch)',
@@ -288,7 +288,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-07',
     title: 'Fix: Dropdown Standar Biaya Produksi Tidak Terlihat',
     changes: [
-      'Dropdown pemilih standar biaya di form Proses Produksi terjepit sampai lebar 0 oleh dropdown basis (regresi sweep dropdown custom) — kini tampil normal',
+      'Dropdown pemilih standar biaya di form Proses Produksi terjepit sampai lebar 0 oleh dropdown basis (regresi sweep dropdown custom). Kini tampil normal',
       'Baris "Tambah Biaya" kembali bisa memilih master standar biaya per gudang',
     ],
   },
@@ -298,7 +298,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Fix: Pihak "Pelanggan & Vendor" Muncul di Dropdown Kedua Sisi',
     changes: [
       'Pihak bertipe "Both" (Pelanggan & Vendor) kini ikut tampil saat memilih Supplier (STT, PO, Invoice Pembelian, Uang Muka Vendor) maupun Pelanggan (SO, Invoice Penjualan, dll)',
-      'Sebelumnya pihak Both tidak muncul di dropdown mana pun — mis. konsumen repros yang juga supplier di STT titipan',
+      'Sebelumnya pihak Both tidak muncul di dropdown mana pun, mis. konsumen repros yang juga supplier di STT titipan',
     ],
   },
   {
@@ -307,18 +307,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'STT Barang Titipan Pelanggan (Jasa Repros/Maklon)',
     changes: [
       'Ceklis "Barang Titipan Pelanggan" di form STT: terima barang milik pelanggan untuk diproses ulang (rice-to-rice)',
-      'Guardrail otomatis: hanya kuantitas yang dicatat — tanpa nilai persediaan/hutang, rata-rata harga item tidak terganggu',
-      'STT titipan tidak muncul di pilihan Invoice Pembelian dan diblok bila dipaksa di-invoice — tagih jasanya lewat Invoice Penjualan (baris jasa)',
+      'Guardrail otomatis: hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang, rata-rata harga item tidak terganggu',
+      'STT titipan tidak muncul di pilihan Invoice Pembelian dan diblok bila dipaksa di-invoice. Tagih jasanya lewat Invoice Penjualan (baris jasa)',
       'Badge "Titipan" di daftar & detail STT',
     ],
   },
   {
     version: '3.12.0',
     date: '2026-06-07',
-    title: 'Uang Jaminan Proyek — Setor, Kembalikan/Hangus, Reminder Jatuh Tempo',
+    title: 'Uang Jaminan Proyek: Setor, Kembalikan/Hangus, Reminder Jatuh Tempo',
     changes: [
       'Modul baru Bank & Kas → Uang Jaminan Proyek: catat setoran jaminan tender/pelaksanaan/pemeliharaan ke pemberi proyek',
-      'Jurnal otomatis: setor (DR Uang Jaminan 1.8 / CR Kas-Bank), settlement kembali dan/atau hangus jadi beban — bisa parsial & berulang',
+      'Jurnal otomatis: setor (DR Uang Jaminan 1.8 / CR Kas-Bank), settlement kembali dan/atau hangus jadi beban. Bisa parsial & berulang',
       'Status otomatis Disetor → Selesai; pembatalan setoran/settlement me-reverse jurnal (hak khusus Batalkan Dokumen)',
       'Reminder otomatis H-7 & saat lewat jatuh tempo pengembalian via notifikasi in-app + Telegram',
       'Akun aset 1.8 Uang Jaminan Proyek dibuat otomatis; bisa diganti di Pengaturan → Akun Sistem',
@@ -327,12 +327,12 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.11.0',
     date: '2026-06-05',
-    title: 'Role & Hak Akses Dinamis (RBAC) — Buat Role Custom + Matriks Izin',
+    title: 'Role & Hak Akses Dinamis (RBAC): Buat Role Custom + Matriks Izin',
     changes: [
       'Admin dapat membuat/menghapus role sendiri (mis. Kasir, Auditor, Staf Pembelian) lewat Pengaturan → Hak Akses',
       'Matriks izin per modul (Lihat/Edit) yang bisa diatur tiap role tanpa ubah kode; menu & akses mengikuti izin otomatis',
       'Hak khusus terpisah: setujui pengajuan, lewati approval, batalkan/finalisasi dokumen, bypass stok minus, kelola hak akses',
-      'Role bawaan (Admin/Akuntan/Staff Produksi/Viewer) tetap dengan akses yang sama persis — tanpa perubahan bagi pengguna lama',
+      'Role bawaan (Admin/Akuntan/Staff Produksi/Viewer) tetap dengan akses yang sama persis, tanpa perubahan bagi pengguna lama',
       'Pemilihan role saat buat/edit user kini mengikuti daftar role yang ada (dinamis)',
     ],
   },
@@ -341,7 +341,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-05',
     title: 'Approval Langsung dari Telegram (Setuju / Tolak / Minta Revisi)',
     changes: [
-      'Manajer dapat menyetujui, menolak, atau meminta revisi pengajuan langsung dari tombol di japri Telegram — tanpa buka aplikasi',
+      'Manajer dapat menyetujui, menolak, atau meminta revisi pengajuan langsung dari tombol di japri Telegram, tanpa buka aplikasi',
       'Minta Revisi: bot meminta admin membalas dengan alasan, lalu pengaju otomatis diberi tahu',
       'Pesan pengajuan kini lebih informatif: jenis dokumen, nilai, dan nama pengaju',
       'Setiap notifikasi pengajuan menyertakan link "Buka & proses" yang langsung membuka detail pengajuan tsb di aplikasi (deep-link)',
@@ -382,7 +382,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-04',
     title: 'Tombol Buat Invoice Langsung dari Surat Jalan',
     changes: [
-      'Di detail Surat Jalan, tombol "Buat Invoice" kini langsung membuka form Invoice Penjualan yang sudah terisi dari Surat Jalan itu (pelanggan, item, harga, No. PO/SO) — tinggal cek & simpan',
+      'Di detail Surat Jalan, tombol "Buat Invoice" kini langsung membuka form Invoice Penjualan yang sudah terisi dari Surat Jalan itu (pelanggan, item, harga, No. PO/SO). Tinggal cek & simpan',
       'Sebelumnya hanya menampilkan petunjuk untuk buka menu manual',
     ],
   },
@@ -419,7 +419,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-03',
     title: 'Lampiran (Attachment) di Pesanan (SO)',
     changes: [
-      'Pesanan (SO) kini bisa dilampiri file (PO pelanggan, kontrak, bukti) di drawer detail — sama seperti Surat Jalan & invoice',
+      'Pesanan (SO) kini bisa dilampiri file (PO pelanggan, kontrak, bukti) di drawer detail, sama seperti Surat Jalan & invoice',
       'Surat Jalan sudah mendukung lampiran sebelumnya (tetap)',
     ],
   },
@@ -428,7 +428,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-03',
     title: 'Optimasi Tampilan Mobile / PWA',
     changes: [
-      'Angka di kartu (mis. nilai Rupiah) tidak lagi terpotong di HP — kini turun baris utuh, bukan dipotong "..."',
+      'Angka di kartu (mis. nilai Rupiah) tidak lagi terpotong di HP. Kini turun baris utuh, bukan dipotong "..."',
       'Form/modal (uang muka, penerimaan, pelanggan, surat jalan, pembayaran, dll) menumpuk rapi 1 kolom di HP (sebelumnya 2-3 kolom sempit)',
       'Tabel retur penjualan & detail buku besar bisa di-scroll horizontal di HP (tidak terpotong)',
       'Tampilan desktop tidak berubah',
@@ -510,7 +510,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.6.2',
     date: '2026-06-02',
-    title: 'Notifikasi Aktif — Approval & Cek Terjadwal',
+    title: 'Notifikasi Aktif: Approval & Cek Terjadwal',
     changes: [
       'Notifikasi approval otomatis: staff ajukan → Admin diberitahu; disetujui/ditolak/minta-edit → staff pengaju diberitahu',
       'Cek terjadwal harian (07:00) otomatis kirim notifikasi invoice jatuh tempo + stok rendah (sebelumnya tidak pernah jalan)',
@@ -543,7 +543,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     title: 'Detail Pengajuan Data Produksi (Approval)',
     changes: [
-      'Tombol "Detail" di tiap antrian approval produksi — buka modal berisi rincian lengkap: info shift, bahan baku (input), hasil produksi (output + by-product), dan komponen biaya',
+      'Tombol "Detail" di tiap antrian approval produksi. Buka modal berisi rincian lengkap: info shift, bahan baku (input), hasil produksi (output + by-product), dan komponen biaya',
       'Nama item ditampilkan (bukan ID), sehingga manajer bisa double-check sebelum menyetujui',
       'Admin bisa Setuju/Tolak langsung dari modal detail',
     ],
@@ -564,7 +564,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Approval Manajer untuk Invoice Pembelian & Data Produksi',
     changes: [
       'Invoice Pembelian & Data Produksi yang diinput oleh non-Admin (StaffProduksi/Accountant) kini MENUNGGU persetujuan Admin sebelum diproses',
-      'Dokumen baru dibuat HANYA setelah disetujui — sebelum approve, GL/stok/HPP belum bergerak (data laporan tidak terkontaminasi input yang belum dicek)',
+      'Dokumen baru dibuat HANYA setelah disetujui. Sebelum approve, GL/stok/HPP belum bergerak (data laporan tidak terkontaminasi input yang belum dicek)',
       'Halaman Sistem → Approval: lihat antrian, buka detail input (item/qty/harga), Setujui atau Tolak. Reject = dibuang tanpa jejak GL',
       'Admin input langsung jadi tanpa approval; staff bisa lihat status pengajuan mereka sendiri',
     ],
@@ -574,7 +574,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-01',
     title: 'Fitur Revisi Harga Invoice Pembelian',
     changes: [
-      'Tombol "Revisi Harga" di detail Invoice Pembelian (Admin/Accountant) — untuk kasus supplier koreksi harga setelah PI submit, bahkan setelah barang diproduksi/dijual',
+      'Tombol "Revisi Harga" di detail Invoice Pembelian (Admin/Accountant), untuk kasus supplier koreksi harga setelah PI submit, bahkan setelah barang diproduksi/dijual',
       'Selisih dipecah otomatis: porsi barang masih di stok → sesuaikan Persediaan + harga rata-rata (WAC); porsi sudah keluar → akun 5.11 Selisih Harga Pembelian',
       'Hutang ke supplier ikut disesuaikan; jurnal selisih diposting otomatis & tercatat di audit. Bisa untuk PI Submitted maupun Paid',
     ],
@@ -598,16 +598,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-01',
     title: 'Stok Per Tanggal + Kondisi Stok di Laporan Harian',
     changes: [
-      'Dashboard Stok per Gudang: tambah filter tanggal — unduh PDF posisi stok TERAKHIR per tanggal tertentu (bukan hanya stok hari ini)',
+      'Dashboard Stok per Gudang: tambah filter tanggal: unduh PDF posisi stok TERAKHIR per tanggal tertentu (bukan hanya stok hari ini)',
       'Posisi stok direkonstruksi tepat dari riwayat pergerakan stok (kuantitas eksak; nilai pakai avg cost terkini sebagai estimasi)',
-      'Laporan Harian: tambah section "Kondisi Stok" — posisi stok per gudang pada akhir tanggal laporan (qty, avg cost, nilai), tampil di layar & PDF',
+      'Laporan Harian: tambah section "Kondisi Stok": posisi stok per gudang pada akhir tanggal laporan (qty, avg cost, nilai), tampil di layar & PDF',
       'Section Produksi di Laporan Harian tetap (input/output/yield per run)',
     ],
   },
   {
     version: '3.4.4',
     date: '2026-05-31',
-    title: 'Halaman Login Diperbarui — Tampilan Lebih Hidup',
+    title: 'Halaman Login Diperbarui: Tampilan Lebih Hidup',
     changes: [
       'Halaman login dirombak: panel kiri dengan gradient bergerak (emerald-teal-amber), floating icon ERP, particle drift, dan animasi sonar pada logo',
       'Stats animasi (Akun COA, Modul, Role) + feature pills (Audit RBAC, Multi-gudang, Loaded HPP)',
@@ -628,9 +628,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.4.2',
     date: '2026-05-31',
-    title: 'Fix UX Buat Surat Jalan dari SO — Qty Tidak Auto-Penuh',
+    title: 'Fix UX Buat Surat Jalan dari SO: Qty Tidak Auto-Penuh',
     changes: [
-      'Saat Buat Surat Jalan dari Pesanan (SO), kolom Qty Kirim sekarang KOSONG (default) — user tinggal ketik berapa yg mau dikirim (mis. 10 ton). Sebelumnya auto-terisi penuh (mis. 209 ton) jadi sulit kirim sebagian',
+      'Saat Buat Surat Jalan dari Pesanan (SO), kolom Qty Kirim sekarang KOSONG (default). User tinggal ketik berapa yg mau dikirim (mis. 10 ton). Sebelumnya auto-terisi penuh (mis. 209 ton) jadi sulit kirim sebagian',
       'Placeholder menampilkan sisa maksimal yg boleh dikirim per item ("maks X")',
     ],
   },
@@ -639,7 +639,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-26',
     title: 'StaffProduksi Akses Penuh Pesanan (SO)',
     changes: [
-      'Role StaffProduksi sekarang punya akses penuh modul Pesanan (Sales Order): lihat, buat, edit, submit, generate Surat Jalan, cancel — sama seperti Admin/Accountant',
+      'Role StaffProduksi sekarang punya akses penuh modul Pesanan (Sales Order): lihat, buat, edit, submit, generate Surat Jalan, cancel (sama seperti Admin/Accountant)',
       'Sebelumnya hanya bisa lihat sidebar Surat Jalan; sekarang Pesanan (SO) juga muncul di sidebar mereka',
       'Mendukung alur fisik: staff pabrik bisa langsung input pesanan customer + siapkan/kirim barang tanpa nunggu staff keuangan',
       'Plus: rekonsiliasi uang muka pelanggan (GL-neutral, fix tampilan saldo phantom)',
@@ -648,7 +648,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.4.0',
     date: '2026-05-26',
-    title: 'OEE Tracking Produksi — Mesin, Shift, Downtime',
+    title: 'OEE Tracking Produksi: Mesin, Shift, Downtime',
     changes: [
       'Master Mesin: tab baru di Stok untuk daftar mesin produksi + kapasitas ideal (CRUD via /api/inventory/machines)',
       'Data Produksi & OEE di modal Proses Produksi: jendela shift (start/stop), pilih mesin (multi-mesin), catat downtime per mesin dengan alasan',
@@ -663,9 +663,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-26',
     title: 'Uang Muka (DP) Ter-link ke Pesanan (SO)',
     changes: [
-      'Pembayaran uang muka (CustomerDeposit) sekarang bisa ditag ke Sales Order tertentu — dulu pool per-customer, tidak tahu DP untuk pesanan mana',
+      'Pembayaran uang muka (CustomerDeposit) sekarang bisa ditag ke Sales Order tertentu. Dulu pool per-customer, tidak tahu DP untuk pesanan mana',
       'Panel "Uang Muka (DP)" di detail Pesanan: DP diterima / Grand Total / Sisa / % dari total + daftar pembayaran DP',
-      'Tombol "Terima Uang Muka" langsung dari layar Pesanan — pilih tanggal, jumlah, akun kas/bank. JE otomatis: DR Kas/Bank / CR 2.1.2 Uang Muka Penjualan',
+      'Tombol "Terima Uang Muka" langsung dari layar Pesanan: pilih tanggal, jumlah, akun kas/bank. JE otomatis: DR Kas/Bank / CR 2.1.2 Uang Muka Penjualan',
       'Alur lengkap: PO customer → SO → terima DP (ter-link SO) → kirim (DO) → invoice → apply DP → lunas',
       'Plus: link manual Surat Jalan ke Sales Order terkait (data fix); fix Admin bypass stok minus tembus cek per-gudang (v3.2.8)',
     ],
@@ -675,8 +675,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-25',
     title: 'Fix: Admin Bypass Stok Minus di Surat Jalan Tembus Sampai Tuntas',
     changes: [
-      'Bug fix: Admin centang "Izinkan stok minus" di Surat Jalan tapi tetap ditolak. Penyebab: ada 2 lapis cek stok — cek agregat (respect bypass) + cek per-gudang (hard block, lupa di-update saat fitur bypass ditambah v3.2.1)',
-      'Sekarang cek per-gudang juga menghormati allowNegativeStock — bypass Admin benar-benar tembus sampai stok ter-decrement',
+      'Bug fix: Admin centang "Izinkan stok minus" di Surat Jalan tapi tetap ditolak. Penyebab: ada 2 lapis cek stok: cek agregat (respect bypass) + cek per-gudang (hard block, lupa di-update saat fitur bypass ditambah v3.2.1)',
+      'Sekarang cek per-gudang juga menghormati allowNegativeStock. Bypass Admin benar-benar tembus sampai stok ter-decrement',
       'Edit Surat Jalan & Produksi tidak terdampak (hanya satu lapis cek, sudah benar)',
     ],
   },
@@ -687,20 +687,20 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       'Bug fix: detail Invoice Pembelian sekarang tampilkan STT/BPB asal barang. Sebelumnya link cuma satu arah (dari STT tahu PI nomor berapa, tapi dari PI tidak tahu STT)',
       'Badge STT hijau per baris item (mirip badge Surat Jalan di sales)',
-      'Banner ringkasan "Barang diterima dari STT/BPB" di atas daftar barang — list semua STT yang dipakai PI ini',
+      'Banner ringkasan "Barang diterima dari STT/BPB" di atas daftar barang: list semua STT yang dipakai PI ini',
       'Backend: endpoint GET /purchase/invoices/:id include goodsReceiptItem → goodsReceipt (sttNumber + date)',
     ],
   },
   {
     version: '3.2.6',
     date: '2026-05-24',
-    title: 'Lampiran di Surat Jalan & STT/BPB — Bukti Jembatan Timbang',
+    title: 'Lampiran di Surat Jalan & STT/BPB: Bukti Jembatan Timbang',
     changes: [
-      'Tambah section "Lampiran" di drawer Surat Jalan dan STT/BPB — upload foto/PDF bukti jembatan timbang, foto kendaraan, dll',
+      'Tambah section "Lampiran" di drawer Surat Jalan dan STT/BPB: upload foto/PDF bukti jembatan timbang, foto kendaraan, dll',
       'Format didukung: JPG, PNG, WebP, PDF (max 5 MB/file, max 10 file per dokumen)',
       'StaffProduksi bisa upload (mereka yang fisik handle dokumen di gudang); semua role bisa view & download',
       'Backend: extend referenceType allowed = delivery_order, goods_receipt + validasi referensi exist',
-      'Plus link invoice penjualan lama ke Surat Jalan terkait sebagai data fix retroaktif — cancel SM duplikat dari direct-sale lama',
+      'Plus link invoice penjualan lama ke Surat Jalan terkait sebagai data fix retroaktif. Cancel SM duplikat dari direct-sale lama',
     ],
   },
   {
@@ -711,14 +711,14 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Widget baru di Dashboard section Sales: list semua DO status Submitted yang belum di-invoice, sort umur lama → baru',
       'Badge umur: ≥10 hari merah (kritis), ≥5 hari amber (warning), <5 hari netral. Banner amber muncul kalau ada DO ≥ 5 hari',
       'Auto-refresh 60 detik. Klik baris navigate ke halaman Surat Jalan',
-      'Mencegah kasus Surat Jalan yang nyangkut berhari-hari tanpa diinvoice — sekarang langsung kelihatan di Dashboard',
+      'Mencegah kasus Surat Jalan yang nyangkut berhari-hari tanpa diinvoice. Sekarang langsung kelihatan di Dashboard',
       'Endpoint backend GET /api/dashboard/pending-do (limit 50, sort oldest first)',
     ],
   },
   {
     version: '3.2.4',
     date: '2026-05-24',
-    title: 'Buku Besar — Default Filter Bulan Berjalan',
+    title: 'Buku Besar: Default Filter Bulan Berjalan',
     changes: [
       'Bug fix lanjutan: Buku Besar tanpa filter date tampilkan SEMUA periode → JV bulan ini bisa tenggelam di halaman dalam (real case JV 4 Mei ada di baris ke-1.335, halaman ke-27 dari 30 kalau pakai 50/halaman). User wajar menganggap "tidak ada"',
       'Sekarang default Buku Besar otomatis filter ke bulan berjalan saat dibuka. User langsung lihat data bulan ini, baris paling baru di atas',
@@ -728,9 +728,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '3.2.3',
     date: '2026-05-24',
-    title: 'Fix Search Buku Besar — Cari Lewat Nama Akun + Line Description',
+    title: 'Fix Search Buku Besar: Cari Lewat Nama Akun + Line Description',
     changes: [
-      'Bug fix: search di Buku Besar dulu hanya match nomor jurnal & narration header — tidak match nama akun atau description per-baris. Akibat: cari "Piutang Karyawan" tidak ketemu JV "Terima Pembayaran Kasbon Karyawan" yang punya baris ke akun 1.2.2 Piutang Karyawan',
+      'Bug fix: search di Buku Besar dulu hanya match nomor jurnal & narration header. Tidak match nama akun atau description per-baris. Akibat: cari "Piutang Karyawan" tidak ketemu JV "Terima Pembayaran Kasbon Karyawan" yang punya baris ke akun 1.2.2 Piutang Karyawan',
       'Sekarang search Buku Besar match juga ke: nama akun di baris JE, nomor akun (mis. "1.2.2"), dan description per-baris (mis. "Kasbon Karyawan")',
       'Hasil: search "piutang karyawan" di Buku Besar tampilkan JV-202605-0225 (4 Mei) seperti yang muncul di Laporan Buku Besar',
     ],
@@ -742,7 +742,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       'Icon aplikasi (browser tab + mobile/PWA) di-redesign: monogram huruf putih bold di rounded square steel blue dengan aksen golden dot',
       'Vector-based dari SVG master tunggal → generate semua ukuran (16, 32, 64, 180, 192, 512). Konsisten di favicon, Apple Touch, Android PWA',
-      'Logo perusahaan (untuk invoice, dokumen, surat jalan) tidak berubah — tetap pakai logo perusahaan yang lama. Icon aplikasi ini terpisah, khusus identitas digital app',
+      'Logo perusahaan (untuk invoice, dokumen, surat jalan) tidak berubah. Tetap pakai logo perusahaan yang lama. Icon aplikasi ini terpisah, khusus identitas digital app',
       'Theme color updated: #1e40af → #2c4d78 (selaras dengan icon background)',
     ],
   },
@@ -751,11 +751,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-22',
     title: 'Admin Override "Izinkan Stok Minus" + Audit Trail',
     changes: [
-      'Admin role bisa bypass validasi stok minus di Surat Jalan & Produksi — wajib isi alasan minimal 10 karakter, audit log otomatis dicatat ke logger + server',
+      'Admin role bisa bypass validasi stok minus di Surat Jalan & Produksi. Wajib isi alasan minimal 10 karakter, audit log otomatis dicatat ke logger + server',
       'Checkbox "Izinkan stok minus" + textarea alasan hanya tampil untuk role Admin. StaffProduksi / Accountant / Viewer tetap kena strict block',
       'Use case: produksi 50 ton sedang berjalan, barang fisik mau dikirim duluan; Admin bypass dengan alasan, lalu input produksi belakangan',
       'WAC formula sudah safe (sejak 3.1.2 anchor ke inCost saat stok ≤ 0), jadi bypass tidak corrupt avg cost lagi',
-      'Widget Dashboard baru "Stok Minus Aktif" di section Stok — list item dengan stok < 0 (item-level atau per-gudang), age terakhir movement, indikator untuk monitor bypass',
+      'Widget Dashboard baru "Stok Minus Aktif" di section Stok: list item dengan stok < 0 (item-level atau per-gudang), age terakhir movement, indikator untuk monitor bypass',
       'Server enforce role: kalau non-Admin coba pass allowNegativeStock=true → HTTP 403 "Hanya Admin yang dapat bypass validasi stok"',
     ],
   },
@@ -764,7 +764,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-22',
     title: 'Modul Pesanan Penjualan (Sales Order)',
     changes: [
-      'Modul baru "Pesanan (SO)" untuk komitmen jual sebelum Surat Jalan + Invoice. Cocok untuk skema "invoice dulu, kirim barang nanti" — customer punya komitmen tertulis sebelum barang siap kirim',
+      'Modul baru "Pesanan (SO)" untuk komitmen jual sebelum Surat Jalan + Invoice. Cocok untuk skema "invoice dulu, kirim barang nanti". Customer punya komitmen tertulis sebelum barang siap kirim',
       'Flow: Penawaran (opsional) → Sales Order → Surat Jalan → Invoice. SO submit TIDAK gerakkan stok, TIDAK posting JE (murni komitmen)',
       'Status SO: Draft, Disubmit, Sebagian Terkirim, Selesai Dikirim, Dibatalkan. Auto-update status sesuai partial delivery',
       'Generate Surat Jalan dari SO: pilih item + qty + gudang, sistem track delivered_qty per baris',
@@ -779,10 +779,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Strict Mode: Stok Tidak Boleh Minus (Hapus Bypass)',
     changes: [
       'Stok minus DILARANG di semua jalan transaksi: Surat Jalan, Produksi (submit/edit/cancel), Stock Transfer, Inventory Movement. Submit ditolak dengan pesan "Stok tidak cukup, buat penerimaan/transfer dulu"',
-      'Flag bypass "Izinkan stok minus" di Surat Jalan dan Produksi dihapus dari UI. Tidak ada lagi cara override — kalau stok kurang, harus produksi/transfer/penerimaan dulu',
+      'Flag bypass "Izinkan stok minus" di Surat Jalan dan Produksi dihapus dari UI. Tidak ada lagi cara override. Kalau stok kurang, harus produksi/transfer/penerimaan dulu',
       'Mencegah corruption WAC (weighted average cost) yang dulu terjadi saat stok negatif × harga inbound = avg cost absurd (jutaan/Kg)',
       'Stock Transfer sudah punya validasi per-warehouse (tidak diubah)',
-      'Cancel/edit production yang reverse In (output) juga divalidasi: kalau output sudah dipakai produksi/sales lain, cancel ditolak — batalkan transaksi hilir dulu',
+      'Cancel/edit production yang reverse In (output) juga divalidasi: kalau output sudah dipakai produksi/sales lain, cancel ditolak. Batalkan transaksi hilir dulu',
     ],
   },
   {
@@ -790,9 +790,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-22',
     title: 'Fix WAC Korup Saat Stok Negatif + Block Oversold di Surat Jalan',
     changes: [
-      'Bug fix kritis: rumus WAC (weighted average cost) sekarang aman saat stok negatif — sebelumnya menghasilkan harga modal absurd (jutaan/Kg) yang ter-lock ke Surat Jalan berikutnya dan menyebabkan COGS booking lebih besar dari penjualan',
+      'Bug fix kritis: rumus WAC (weighted average cost) sekarang aman saat stok negatif. Sebelumnya menghasilkan harga modal absurd (jutaan/Kg) yang ter-lock ke Surat Jalan berikutnya dan menyebabkan COGS booking lebih besar dari penjualan',
       'Block oversold di Surat Jalan: tidak bisa lagi kirim qty > stok gudang. Sistem akan tolak dengan pesan "Stok kurang, tersedia X Kg, diminta Y Kg" dan minta produksi/transfer/penerimaan dulu',
-      'Dashboard "Nilai Persediaan" hapus clamp Math.max(0,...) — kalau saldo persediaan negatif tampil apa adanya supaya pemilik tahu ada anomali (bukan disembunyikan jadi 0)',
+      'Dashboard "Nilai Persediaan" hapus clamp Math.max(0,...). Kalau saldo persediaan negatif tampil apa adanya supaya pemilik tahu ada anomali (bukan disembunyikan jadi 0)',
       'Reset stok + modal per gudang hasil rekonsiliasi fisik: item di-update via dokumen penyesuaian stok, selisih dibukukan ke akun Pembulatan & Selisih sehingga saldo persediaan kembali wajar',
     ],
   },
@@ -801,7 +801,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-05-20',
     title: 'Landed Cost Pembelian (Material + Refaksi → Persediaan)',
     changes: [
-      'Selisih harga PI ↔ STT tidak lagi posting ke akun "Selisih Harga Pembelian" (5.11) — sekarang masuk langsung ke Persediaan sebagai landed cost adjustment (sesuai prinsip akuntansi: biaya tambahan yg attributable ke barang dibebankan ke nilai stok)',
+      'Selisih harga PI ↔ STT tidak lagi posting ke akun "Selisih Harga Pembelian" (5.11). Sekarang masuk langsung ke Persediaan sebagai landed cost adjustment (sesuai prinsip akuntansi: biaya tambahan yg attributable ke barang dibebankan ke nilai stok)',
       'Rumus harga akhir per Kg saat ada refaksi: total invoice PI ÷ qty STT (qty fisik). Contoh: 10.000 Kg fisik, PI total Rp 80.000.000 → harga modal Rp 8.000/Kg (bukan harga provisional)',
       'StockMovement dari STT otomatis ter-update unit_cost + total_value setelah PI submit, sehingga batch picker produksi & sales menunjukkan harga modal aktual (bukan provisional)',
       'InventoryItem.averageCost ter-recalculate proporsional dengan stok yg masih ada saat PI submit',
@@ -815,22 +815,22 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       'Modul Produksi (6 phase): batch picker bahan baku, komponen biaya produksi (listrik/buruh/dll) sebagai standar, auto-calc HPP loaded (material + cost components − NRV by-product), traceability proses (Drying/Huller/Polishing), PDF surat produksi, dan laporan Profitability per SKU (Material vs Loaded margin)',
       'Master Standar Biaya Produksi per gudang: cost rate bisa di-scope per gudang (mis. listrik mesin tertentu hanya muncul di gudang yang memakainya)',
-      'Batch picker universal: production input, sales (default WAC, opsional pick batch), transfer antar gudang, stock adjustment Out. Bukan cuma WAC — bisa specific identification per batch',
+      'Batch picker universal: production input, sales (default WAC, opsional pick batch), transfer antar gudang, stock adjustment Out. Bukan cuma WAC, bisa specific identification per batch',
       'Cap batch availability: FIFO auto-absorb konsumsi legacy outbound, jadi list batch di picker tidak overshoot stok gudang sebenarnya',
       'Dashboard enrichment: section baru "Aset" (KPI nilai aset, distribusi per kategori, jadwal penyusutan, top 10 aset), widget Profitability per SKU di Sales, dan Production Deep Dive (KPI run, yield trend, top input/output, best/worst yield, loaded HPP breakdown) di Produksi',
       'Aset Tetap lengkap: import aset via script, opening balance JE (harga perolehan + akumulasi penyusutan + ekuitas saldo awal), bulk depreciation posting per bulan (1 klik untuk semua aset, bukan klik per aset), confirm dialog single posting, edit metadata aset, export/import CSV',
       'Dashboard menampilkan total aset, akumulasi penyusutan, dan nilai buku per kategori (Tanah/Bangunan/Peralatan/Mesin)',
       'Buku Besar: pagination footer dengan tombol First/Prev/Next/Last + selector per-halaman (25/50/100/200) + indikator "X–Y dari Z jurnal", server-side filter (search + hideCancelled) supaya konsisten antar halaman',
-      'Master Proses Produksi: daftar proses (Drying, Huller, Polishing, dll) yang dipilih saat input produksi sebagai traceability — tidak posting GL, hanya catatan',
+      'Master Proses Produksi: daftar proses (Drying, Huller, Polishing, dll) yang dipilih saat input produksi sebagai traceability, tidak posting GL, hanya catatan',
       'Stok keluar wajib via Surat Jalan: invoice penjualan dengan item inventory HARUS link ke DO yg sudah submit. Direct-sale ditutup supaya tidak ada dobel-pengurangan stok antara DO dan invoice',
       'Stok masuk wajib via STT/BPB: invoice pembelian dengan item inventory HARUS link ke STT yg sudah submit. Direct-purchase ditutup. Service items tetap bisa langsung',
-      'Fix bug "data duplikat terdeteksi" saat reuse DO/STT setelah invoice di-cancel — backend clear FK ke DO/STT di sales_invoice_items / purchase_invoice_items saat cancel',
-      'Fix bug DO pending tidak refresh setelah cancel invoice — frontend invalidate cache delivery-orders, stock-movements, journals, payments, dashboard',
+      'Fix bug "data duplikat terdeteksi" saat reuse DO/STT setelah invoice di-cancel. Backend clear FK ke DO/STT di sales_invoice_items / purchase_invoice_items saat cancel',
+      'Fix bug DO pending tidak refresh setelah cancel invoice. Frontend invalidate cache delivery-orders, stock-movements, journals, payments, dashboard',
       'Fix UI list pelanggan/vendor: nama panjang dan label "Pelanggan/Vendor" tabrakan/overlay (h3 inline-flex → flex)',
       'VersionWatcher: setiap deploy baru otomatis kasih toast "Versi terbaru tersedia → Muat Ulang" ke user yang sedang login, tidak perlu Ctrl-Shift-R manual',
       'Cache strategy: index.html no-store, /assets/* immutable 1 tahun (Vite content-hash), /api/version endpoint untuk polling',
       'Production runs: NRV by-product, validasi konsistensi batch ↔ item, sourceMovementId di stock movements (batch back-link), unit_cost_loaded snapshot di sales_invoice_items untuk loaded margin',
-      'Production cost standards: cegah double-entry — standar yg sudah dipakai di baris lain disembunyikan di dropdown baris berikutnya',
+      'Production cost standards: cegah double-entry: standar yg sudah dipakai di baris lain disembunyikan di dropdown baris berikutnya',
       'HPP main output produksi optional: auto-fill dari computed HPP loaded kalau staff biarkan kosong',
       'PDF Production Run: layout A4 dengan header company, input/output/byproduct dengan batch ref, table komponen biaya, HPP loaded breakdown, signature 3 kolom',
     ],
@@ -841,16 +841,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Rebrand Produk, Pipeline Inquiry → Penawaran → Invoice, Public Form',
     changes: [
       'Rebrand: nama dan domain aplikasi diperbarui',
-      'Modul Inquiry: catat pertanyaan calon customer (prospect) sebelum penawaran resmi — workflow Baru → Diproses → Dikonversi/Hilang/Ditutup, multi-channel tracking (WA/Telp/Email/Walk-in/Referral)',
+      'Modul Inquiry: catat pertanyaan calon customer (prospect) sebelum penawaran resmi. Workflow Baru → Diproses → Dikonversi/Hilang/Ditutup, multi-channel tracking (WA/Telp/Email/Walk-in/Referral)',
       'Public Inquiry Form: halaman /tanya untuk customer isi sendiri, terintegrasi auto ke pipeline. Anti-spam: honeypot + rate limit',
       'QR Code Generator: generate QR di header Inquiry untuk dibagikan via WA/IG bio/cetak brosur, dengan tracking sumber',
       'Modul Penawaran (Quotations): full lifecycle Draft → Sent → Accepted/Rejected/Expired, conversion ke Sales Invoice, PDF export, Excel export',
       'Auto-expire Penawaran: sweeper otomatis tiap jam mark Sent yang lewat validUntil jadi Expired + notifikasi 3 hari sebelum expiry',
       'Sidebar Modular: 9 modul (Penjualan, Pembelian, Stok & Produksi, Bank & Kas, Akuntansi, Laporan, Master Data, Sistem) dengan submenu collapse/expand, persist state',
-      'Theme Toggle: dipindahkan dari sidebar ke header (samping Search) — Light/Dark/System cycle',
+      'Theme Toggle: dipindahkan dari sidebar ke header (samping Search), Light/Dark/System cycle',
       'Excel Export per-item Invoice Penjualan & Pembelian (sebelumnya per-invoice saja)',
-      'No. Referensi PO/Penawaran di Sales Invoice (customerRefNo) — tampil di drawer & PDF',
-      'Total Qty di Invoice Modal & Drawer — agregat per unit (Kg / Sak / Pcs)',
+      'No. Referensi PO/Penawaran di Sales Invoice (customerRefNo), tampil di drawer & PDF',
+      'Total Qty di Invoice Modal & Drawer: agregat per unit (Kg / Sak / Pcs)',
       'Vendor Deposit Refund: endpoint baru /vendor-deposits/:id/refund untuk offset hutang FIFO + refund kas',
       'Industrial Professional theme: OKLCH steel blue, Inter + Plus Jakarta Sans, dark mode improvements',
       'Composite indexes ALE & stock_movements (perf)',
@@ -920,7 +920,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Konfigurasi Akun Sistem & Perbaikan COA',
     changes: [
       'Fitur Akun Sistem: konfigurasi mapping akun COA untuk auto GL posting via Pengaturan > Akun Sistem',
-      'Akun sistem (AR, AP, Kas, Penjualan, dll) sekarang bisa diganti tanpa ubah kode — mendukung berbagai jenis industri',
+      'Akun sistem (AR, AP, Kas, Penjualan, dll) sekarang bisa diganti tanpa ubah kode, mendukung berbagai jenis industri',
       'Multi-akun untuk Kas & Bank: tambah/hapus akun bank fleksibel',
       'Validasi startup: warning otomatis jika mapping akun belum lengkap',
       'Perbaikan COA: akun 7 dipisah menjadi 7 (Pendapatan Diluar Usaha) dan 8 (Beban Diluar Usaha)',
@@ -982,7 +982,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Role StaffProduksi & Stok Otomatis',
     changes: [
       'Tambah role StaffProduksi untuk akses gudang & pembelian',
-      'Link item invoice ke inventory — stok & COA otomatis sinkron',
+      'Link item invoice ke inventory: stok & COA otomatis sinkron',
       'Rekonsiliasi & transaksi berulang dibatasi dari Viewer',
       'Perbaikan aksesibilitas toggle dashboard',
     ],
@@ -996,7 +996,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Tambah print header otomatis: nama perusahaan, judul laporan, periode',
       'Favicon tab browser otomatis menggunakan logo perusahaan dari pengaturan',
       'Title tab browser dinamis sesuai nama perusahaan',
-      'Fitur cek pembaruan sekarang berfungsi — bandingkan versi dari GitHub',
+      'Fitur cek pembaruan sekarang berfungsi: bandingkan versi dari GitHub',
       'Tampilkan changelog perubahan baru saat pembaruan tersedia',
     ],
   },
@@ -1005,7 +1005,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-03-20',
     title: 'Redesign Invoice & Set Saldo Awal',
     changes: [
-      'Redesign halaman Invoice Penjualan & Pembelian — summary cards, filter, pagination',
+      'Redesign halaman Invoice Penjualan & Pembelian: summary cards, filter, pagination',
       'Tambah detail drawer invoice: klik row untuk lihat detail, riwayat pembayaran, progress',
       'Tambah fitur Set Saldo Awal di Bagan Akun (COA)',
       'Fix feedback hapus mitra (toast soft-delete vs hard-delete)',
@@ -1017,7 +1017,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-03-19',
     title: 'Fix Party & Error Handling',
     changes: [
-      'Fix edit & delete mitra (party) — hardening error handling semua route',
+      'Fix edit & delete mitra (party): hardening error handling semua route',
       'Standarisasi BusinessError + handleRouteError di seluruh backend',
     ],
   },

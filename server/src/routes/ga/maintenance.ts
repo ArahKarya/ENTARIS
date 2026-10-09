@@ -744,7 +744,7 @@ router.post('/work-orders/:id/parts', async (req: AuthRequest, res) => {
           ? new Decimal(updated[0].quantity.toString())
           : new Decimal(0);
         if (newQty.lessThan(0)) {
-          warning = `Stok tidak cukup untuk item ${input.inventoryItemId} (sisa ${newQty.toString()}). Diizinkan — stok negatif.`;
+          warning = `Stok tidak cukup untuk item ${input.inventoryItemId} (sisa ${newQty.toString()}). Tetap diizinkan (stok negatif).`;
           logger.warn({ workOrderId: wo.id, itemId: input.inventoryItemId, newQty: newQty.toString() }, 'WO part consumed below zero stock');
         }
 

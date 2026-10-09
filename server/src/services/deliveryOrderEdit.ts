@@ -44,7 +44,7 @@ export async function editDeliveryOrderInTx(
   });
   if (!oldDo) throw new BusinessError('Surat jalan tidak ditemukan.');
   if (oldDo.status === 'Cancelled') {
-    throw new BusinessError('Surat jalan sudah dibatalkan — tidak bisa diedit.');
+    throw new BusinessError('Surat jalan sudah dibatalkan dan tidak bisa diedit.');
   }
   if (oldDo.invoiceId) {
     throw new BusinessError(

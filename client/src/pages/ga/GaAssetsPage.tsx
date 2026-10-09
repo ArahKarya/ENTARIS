@@ -354,7 +354,7 @@ export const GaAssetsPage = () => {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
         title="Hapus aset?"
-        description={`Hapus aset ${deleteTarget?.code ?? ''} — ${deleteTarget?.name ?? ''}? Foto dan QR-nya ikut terhapus. Tindakan ini tidak dapat dibatalkan.`}
+        description={`Hapus aset ${deleteTarget?.code ?? ''} · ${deleteTarget?.name ?? ''}? Foto dan QR-nya ikut terhapus. Tindakan ini tidak dapat dibatalkan.`}
         confirmLabel="Ya, hapus"
         loading={deleteMutation.isPending}
         onConfirm={async () => {

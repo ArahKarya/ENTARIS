@@ -70,7 +70,7 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
     [parties],
   );
   const inventoryOptions = useMemo<ComboboxOption[]>(
-    () => (inventoryItems ?? []).map((i: any) => ({ value: i.id, label: `${i.code} — ${i.name}` })),
+    () => (inventoryItems ?? []).map((i: any) => ({ value: i.id, label: `${i.code} · ${i.name}` })),
     [inventoryItems],
   );
 

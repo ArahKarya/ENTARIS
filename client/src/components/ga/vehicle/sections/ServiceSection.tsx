@@ -367,7 +367,7 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
         open={deleteLog !== null}
         onOpenChange={(o) => !o && setDeleteLog(null)}
         title="Hapus Service Log"
-        description={`Hapus service log "${deleteLog ? `${formatDate(deleteLog.tanggal)} — ${deleteLog.deskripsi}` : ''}"?`}
+        description={`Hapus service log "${deleteLog ? `${formatDate(deleteLog.tanggal)} · ${deleteLog.deskripsi}` : ''}"?`}
         confirmLabel="Ya, Hapus"
         tone="danger"
         loading={deleteMut.isPending}

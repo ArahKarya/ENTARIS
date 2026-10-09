@@ -206,10 +206,10 @@ export function previewSettlementJournal(input: {
   if (settled.gt(0)) lines.push(advanceLine(settled, input.narration));
   if (mode === 'RETURN') {
     const rest = advance.minus(realized);
-    lines.push({ side: 'DR', accountId: input.cashAccountId, amount: rest.toNumber(), description: `Pengembalian sisa uang muka — ${input.narration}`.slice(0, 250) });
-    lines.push(advanceLine(rest, `Sisa uang muka dikembalikan — ${input.narration}`.slice(0, 250)));
+    lines.push({ side: 'DR', accountId: input.cashAccountId, amount: rest.toNumber(), description: `Pengembalian sisa uang muka: ${input.narration}`.slice(0, 250) });
+    lines.push(advanceLine(rest, `Sisa uang muka dikembalikan: ${input.narration}`.slice(0, 250)));
   } else if (mode === 'REIMBURSE') {
-    lines.push({ side: 'CR', accountId: input.cashAccountId, amount: diff.toNumber(), description: `Kekurangan dibayar ke pengaju — ${input.narration}`.slice(0, 250) });
+    lines.push({ side: 'CR', accountId: input.cashAccountId, amount: diff.toNumber(), description: `Kekurangan dibayar ke pengaju: ${input.narration}`.slice(0, 250) });
   }
 
   const expenseIds = [...byAccount.values()].map((v) => v.accountId);

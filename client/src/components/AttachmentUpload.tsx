@@ -114,7 +114,7 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
           </span>
         )}
         <span className="mt-1 block text-xs text-muted-foreground">
-          JPG, PNG, PDF — maks 5MB, maks 5 file
+          JPG, PNG, PDF (maks 5MB, maks 5 file)
         </span>
       </button>
       <input

@@ -115,7 +115,7 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
         >
           <OverlayHeader>
             <DialogTitle>Refund / Offset Uang Muka</DialogTitle>
-            <DialogDescription>{deposit?.paymentNumber} — {deposit?.party?.name}</DialogDescription>
+            <DialogDescription>{deposit?.paymentNumber} · {deposit?.party?.name}</DialogDescription>
           </OverlayHeader>
 
           <OverlayBody>
@@ -156,10 +156,10 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
                 <Field label="Akun kas/bank" required>
                   {(control) => (
                     <Select value={cashAccountId} onValueChange={setCashAccountId}>
-                      <SelectTrigger {...control}><SelectValue placeholder="— Pilih akun kas/bank —" /></SelectTrigger>
+                      <SelectTrigger {...control}><SelectValue placeholder="Pilih akun kas/bank" /></SelectTrigger>
                       <SelectContent>
                         {(cashAccounts || []).map((a: any) => (
-                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} · {a.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

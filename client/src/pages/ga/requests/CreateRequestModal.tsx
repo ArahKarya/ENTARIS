@@ -62,7 +62,7 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
 
   const assetOptions = assets.map((a) => ({
     value: a.id,
-    label: a.vehicleData?.noPlat ? `${a.vehicleData.noPlat} — ${a.name} (${a.code})` : `${a.code} — ${a.name}`,
+    label: a.vehicleData?.noPlat ? `${a.vehicleData.noPlat} · ${a.name} (${a.code})` : `${a.code} · ${a.name}`,
   }));
 
   const mutation = useMutation({
@@ -125,7 +125,7 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
                 options={assetOptions}
                 value={assetId}
                 onChange={setAssetId}
-                placeholder={loadingAssets ? 'Memuat…' : '— Pilih kendaraan —'}
+                placeholder={loadingAssets ? 'Memuat…' : 'Pilih kendaraan'}
           />
 
           {isService ? (

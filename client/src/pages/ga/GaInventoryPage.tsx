@@ -122,7 +122,7 @@ export const GaInventoryPage = () => {
         >
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
           <p>
-            Belum ada <strong>lokasi gudang</strong>. Stok tidak bisa dicatat sampai lokasi dibuat — tambahkan minimal satu
+            Belum ada <strong>lokasi gudang</strong>. Stok tidak bisa dicatat sampai lokasi dibuat. Tambahkan minimal satu
             lokasi di{' '}
             {canOpenMaster ? (
               <Link to="/ga/master" className="font-medium underline underline-offset-2">

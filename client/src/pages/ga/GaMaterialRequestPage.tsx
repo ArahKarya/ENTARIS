@@ -183,7 +183,7 @@ export function GaMaterialRequestPage() {
     <div className="space-y-5 pb-8">
       <PageHeader
         title="Permintaan Barang"
-        description="Permintaan barang & pengadaan sparepart pemeliharaan — dari permintaan sampai barang masuk stok."
+        description="Permintaan barang & pengadaan sparepart pemeliharaan, dari permintaan sampai barang masuk stok."
         actions={
           canEdit && (
             <Button onClick={() => setIsCreateOpen(true)}>

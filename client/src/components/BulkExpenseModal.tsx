@@ -122,14 +122,14 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
       .flatMap((t) =>
         groups[t].map((a: any) => ({
           value: a.id,
-          label: `${a.accountNumber} — ${a.name}`,
+          label: `${a.accountNumber} · ${a.name}`,
           group: ACCOUNT_TYPE_LABELS[t] ?? t,
         }))
       );
   }, [allAccounts]);
 
   const cashOptions = useMemo((): SelectOption[] =>
-    cashAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} — ${a.name}` })),
+    cashAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
     [cashAccounts],
   );
 
@@ -184,7 +184,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
         const debitLabel = debitAcc ? `${debitAcc.accountNumber} ${debitAcc.name}` : '';
         const cashLabel = cashAcc ? `${cashAcc.accountNumber} ${cashAcc.name}` : '';
         const amount = Number(row.amount) || 0;
-        const narration = `[${batchNote}] ${row.description} — ${debitLabel} dari ${cashLabel}`;
+        const narration = `[${batchNote}] ${row.description} (${debitLabel} dari ${cashLabel})`;
 
         const res = await api.post('/journals', {
           date,
@@ -336,7 +336,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
             options={cashOptions}
             value={cashAccountId}
             onChange={setCashAccountId}
-            placeholder="— Pilih Akun Kas/Bank —"
+            placeholder="Pilih Akun Kas/Bank"
             disabled={headerLocked}
           />
         </Field>
@@ -382,7 +382,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                   options={debitOptions}
                   value={row.debitAccountId}
                   onChange={(v) => updateRow(row.tempId, { debitAccountId: v })}
-                  placeholder="— Pilih Akun —"
+                  placeholder="Pilih Akun"
                   disabled={locked}
                 />
               </div>
@@ -393,7 +393,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                   value={row.description}
                   onChange={(e) => updateRow(row.tempId, { description: e.target.value })}
                   disabled={locked}
-                  placeholder={`Baris #${n} — contoh: Beli ATK`}
+                  placeholder={`Baris #${n}, contoh: Beli ATK`}
                 />
               </div>
               <div className="flex flex-col gap-1 md:col-span-2">
@@ -403,8 +403,8 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                   options={partyOptions}
                   value={row.partyId}
                   onChange={(v) => updateRow(row.tempId, { partyId: v })}
-                  placeholder="— Tidak ada —"
-                  emptyLabel="— Tidak ada —"
+                  placeholder="Tidak ada"
+                  emptyLabel="Tidak ada"
                   disabled={locked}
                 />
               </div>

@@ -157,7 +157,7 @@ export default function ProductionProcessesTab() {
     <div className="space-y-4">
       <InfoNote>
         Daftar proses yang dipilih staf saat mencatat produksi (mis. Drying, Huller, Polishing, Packing). Hanya untuk
-        ketertelusuran — tidak ada biaya atau gerakan stok yang terkait ke proses.
+        ketertelusuran. Tidak ada biaya atau gerakan stok yang terkait ke proses.
       </InfoNote>
 
       <MasterToolbar
@@ -283,7 +283,7 @@ function ProcessFormSheet({
       open
       onOpenChange={(open) => !open && onClose()}
       title={isEdit ? 'Edit proses produksi' : 'Proses produksi baru'}
-      description="Master ketertelusuran — tidak memposting jurnal atau stok."
+      description="Master ketertelusuran. Tidak memposting jurnal atau stok."
       error={serverError}
       saving={saving}
       submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan proses'}

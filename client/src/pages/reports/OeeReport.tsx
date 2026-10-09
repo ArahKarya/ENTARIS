@@ -193,7 +193,7 @@ function OeeTrendChart({ trend, summary }: { trend: TrendRow[]; summary: OeeSumm
           <Tooltip
             contentStyle={CHART_TOOLTIP_STYLE}
             formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
-            labelFormatter={(label, payload) => `${label} — ${payload?.[0]?.payload?.runs ?? 0} run`}
+            labelFormatter={(label, payload) => `${label} · ${payload?.[0]?.payload?.runs ?? 0} run`}
           />
           <Line type="monotone" dataKey="avgOee" name="OEE" stroke={OEE_STYLE.color} strokeWidth={OEE_STYLE.width} dot={seriesDot(OEE_STYLE)} isAnimationActive={false} />
           <Line type="monotone" dataKey="avgAvailability" name="Availability" stroke={AVAIL_STYLE.color} strokeWidth={AVAIL_STYLE.width} strokeDasharray={AVAIL_STYLE.dash} dot={seriesDot(AVAIL_STYLE, 3)} isAnimationActive={false} />

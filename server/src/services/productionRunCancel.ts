@@ -53,7 +53,7 @@ export async function cancelProductionRunInTx(
     if (isIn && Number(mov.item.currentStock) < qty) {
       if (!opts.allowNegativeStock) {
         throw new BusinessError(
-          `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya — batalkan transaksi tersebut dulu.`,
+          `Tidak dapat membatalkan: stok '${mov.item.name}' tidak mencukupi untuk pembalikan output (tersedia ${Number(mov.item.currentStock)}, perlu ${qty}). Output sudah dipakai produksi/penjualan berikutnya. Batalkan transaksi tersebut dulu.`,
         );
       }
       logger.warn(

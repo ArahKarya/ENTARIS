@@ -426,7 +426,7 @@ export async function payPaymentRequestInTx(
   assertOk(checkPayable(pr, actor));
   await assertCashAccount(tx, input.cashAccountId);
   const lines = await tx.paymentRequestLine.findMany({ where: { paymentRequestId: id }, orderBy: { lineNo: 'asc' } });
-  const narration = `Pembayaran ${pr.number} — ${pr.purpose}`.slice(0, 250);
+  const narration = `Pembayaran ${pr.number}: ${pr.purpose}`.slice(0, 250);
   const built = buildPaymentJournalLines({
     kind: pr.type.kind,
     lines: lines.map((l) => ({ description: l.description, amount: l.amount.toString(), expenseAccountId: l.expenseAccountId })),

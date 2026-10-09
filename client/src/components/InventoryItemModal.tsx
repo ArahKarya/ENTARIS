@@ -183,10 +183,10 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
                     <SelectValue placeholder="Tidak dipilih" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_ACCOUNT}>— Tidak Dipilih —</SelectItem>
+                    <SelectItem value={NO_ACCOUNT}>Tidak Dipilih</SelectItem>
                     {assetAccounts.map((a: any) => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.accountNumber} — {a.name}
+                        {a.accountNumber} · {a.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

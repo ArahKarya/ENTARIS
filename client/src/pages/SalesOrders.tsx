@@ -194,7 +194,7 @@ export const SalesOrders = () => {
     <div className="space-y-5 pb-8">
       <PageHeader
         title="Pesanan Penjualan"
-        description="Komitmen jual sebelum Surat Jalan dan Faktur — cocok untuk skema “faktur dulu, kirim barang nanti”."
+        description="Komitmen jual sebelum Surat Jalan dan Faktur, cocok untuk skema “faktur dulu, kirim barang nanti”."
         actions={
           <Button onClick={openCreate}>
             <Plus aria-hidden />

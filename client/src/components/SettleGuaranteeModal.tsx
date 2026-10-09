@@ -111,7 +111,7 @@ const SettleGuaranteeModal: React.FC<Props> = ({ isOpen, onClose, guarantee }) =
           <OverlayHeader>
             <DialogTitle>Settlement Uang Jaminan</DialogTitle>
             <DialogDescription>
-              {guarantee?.guaranteeNumber} — {guarantee?.projectName} ({guarantee?.party?.name})
+              {guarantee?.guaranteeNumber} · {guarantee?.projectName} ({guarantee?.party?.name})
             </DialogDescription>
           </OverlayHeader>
 
@@ -137,10 +137,10 @@ const SettleGuaranteeModal: React.FC<Props> = ({ isOpen, onClose, guarantee }) =
                 <Field label="Akun kas/bank tujuan" required>
                   {(control) => (
                     <Select value={returnAccountId} onValueChange={setReturnAccountId}>
-                      <SelectTrigger {...control}><SelectValue placeholder="— Pilih akun kas/bank tujuan —" /></SelectTrigger>
+                      <SelectTrigger {...control}><SelectValue placeholder="Pilih akun kas/bank tujuan" /></SelectTrigger>
                       <SelectContent>
                         {cashAccounts.map((a: any) => (
-                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} · {a.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -164,9 +164,9 @@ const SettleGuaranteeModal: React.FC<Props> = ({ isOpen, onClose, guarantee }) =
                       onValueChange={(v) => setExpenseAccountId(v === NONE_VALUE ? '' : v)}>
                       <SelectTrigger {...control}><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE_VALUE}>— Default: Beban Lain-lain —</SelectItem>
+                        <SelectItem value={NONE_VALUE}>Default: Beban Lain-lain</SelectItem>
                         {expenseAccounts.map((a: any) => (
-                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} — {a.name}</SelectItem>
+                          <SelectItem key={a.id} value={a.id}>{a.accountNumber} · {a.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

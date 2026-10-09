@@ -237,7 +237,7 @@ export async function submitPaymentInTx(
       partyId: body.partyId,
       debit: isVendorRefund ? 0 : numAmount,
       credit: isVendorRefund ? numAmount : 0,
-      description: `Refund ${isVendorRefund ? 'Vendor' : 'Pelanggan'}: ${paymentNumber} — restore ${isVendorRefund ? 'hutang' : 'piutang'}`,
+      description: `Refund ${isVendorRefund ? 'Vendor' : 'Pelanggan'}: ${paymentNumber} (restore ${isVendorRefund ? 'hutang' : 'piutang'})`,
     };
 
     const jvNumber = `JV-${paymentNumber}`;
@@ -389,7 +389,7 @@ export async function submitPaymentInTx(
     partyId: body.paymentType === 'Pay' ? body.partyId : null,
     debit: body.paymentType === 'Receive' ? sp.amount : 0,
     credit: body.paymentType === 'Receive' ? 0 : sp.amount,
-    description: `Pembayaran: ${paymentNumber}${sp.notes ? ` — ${sp.notes}` : ''}`,
+    description: `Pembayaran: ${paymentNumber}${sp.notes ? ` (${sp.notes})` : ''}`,
   }));
   const arApItem = body.paymentType === 'Receive'
     ? {

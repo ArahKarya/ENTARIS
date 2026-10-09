@@ -195,7 +195,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
   const supplierOptions: SelectOption[] = (parties ?? []).map((p: any) => ({ value: p.id, label: p.name }));
 
   const poOptions: SelectOption[] = [
-    { value: '', label: '— Tanpa PO (Standalone) —' },
+    { value: '', label: 'Tanpa PO (Standalone)' },
     ...((openPOs ?? []).map((po: any) => ({
       value: po.id,
       label: `${po.poNumber}${po.partyId ? '' : ' (PO Umum)'}`,
@@ -204,7 +204,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
 
   const itemOptions = (inventoryItems ?? []).map((i: any) => ({
     value: i.id,
-    label: `${i.code} — ${i.name}`,
+    label: `${i.code} · ${i.name}`,
     meta: { unit: i.unit, avgCost: Number(i.averageCost ?? 0), name: i.name },
   }));
 
@@ -291,7 +291,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
       open
       onClose={onClose}
       title="Buat BPB / Surat Tanda Terima"
-      description="Penerimaan barang dari supplier — stok masuk + accrual hutang"
+      description="Penerimaan barang dari supplier: stok masuk + accrual hutang"
       size="doc"
       className="lg:max-w-5xl"
       busy={mutation.isPending}
@@ -303,7 +303,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
           <DateInput value={date} onChange={setDate} />
         </Field>
         <Field label="Supplier" required className="sm:col-span-2">
-          <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="— Pilih Supplier —" />
+          <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
         </Field>
       </div>
 
@@ -321,7 +321,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         <span>
           <span className="text-sm font-medium text-info-text">Barang Titipan Pelanggan (Jasa Repros)</span>
           <span className="mt-0.5 block text-xs text-info-text">
-            Barang milik pelanggan untuk diproses ulang — hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang,
+            Barang milik pelanggan untuk diproses ulang. Hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang,
             dan tidak bisa dijadikan Invoice Pembelian. Tagih jasanya lewat Invoice Penjualan (baris jasa).
           </span>
         </span>
@@ -330,13 +330,13 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="PO (opsional)">
           {isCustomerOwned ? (
-            <Input value="— Tidak berlaku untuk barang titipan —" disabled readOnly />
+            <Input value="Tidak berlaku untuk barang titipan" disabled readOnly />
           ) : (
             <OptionPicker
               options={poOptions}
               value={purchaseOrderId}
               onChange={(v) => void handlePickPO(v)}
-              placeholder={loadingPO ? 'Memuat baris PO…' : '— Tanpa PO —'}
+              placeholder={loadingPO ? 'Memuat baris PO…' : 'Tanpa PO'}
             />
           )}
         </Field>

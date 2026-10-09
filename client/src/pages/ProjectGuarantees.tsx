@@ -424,7 +424,7 @@ export const ProjectGuarantees = () => {
             ? (s: GuaranteeSettlementRow) =>
                 setCancelSettlementTarget({
                   id: s.id,
-                  label: `${formatDate(s.date)} — ${formatRupiah((toNumber(s.returnAmount) ?? 0) + (toNumber(s.forfeitAmount) ?? 0))}`,
+                  label: `${formatDate(s.date)} · ${formatRupiah((toNumber(s.returnAmount) ?? 0) + (toNumber(s.forfeitAmount) ?? 0))}`,
                 })
             : undefined
         }

@@ -142,7 +142,7 @@ export function StockSection({ data }: { data: NonNullable<DailyData['stock']> }
             <div key={w.code}>
               <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3">
                 <h3 className="text-xs font-semibold text-foreground">
-                  {w.code} — {w.name}
+                  {w.code} · {w.name}
                   {w.isDefault ? ' (default)' : ''}
                   <span className="font-normal text-muted-foreground"> · {w.itemCount} item</span>
                 </h3>

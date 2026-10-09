@@ -160,7 +160,7 @@ export function intervalLabel(s: Pick<ScheduleRow, 'intervalDays' | 'intervalHou
 export const toDateInput = (v: string | null | undefined): string => (v ? new Date(v).toISOString().slice(0, 10) : '');
 
 export const assetLabel = (a: { code?: string; name?: string } | null | undefined): string =>
-  a ? [a.code, a.name].filter(Boolean).join(' — ') || '-' : '-';
+  a ? [a.code, a.name].filter(Boolean).join(' · ') || '-' : '-';
 
 /** Which lifecycle actions a work order allows (server rules in routes/ga/maintenance.ts). */
 export function woActions(status: WoStatus) {

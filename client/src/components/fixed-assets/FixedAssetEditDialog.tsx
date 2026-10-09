@@ -94,7 +94,7 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
               <Info className="mt-px size-4 shrink-0" aria-hidden />
               <p>
                 Hanya nama, kategori, dan keterangan yang bisa diubah. Untuk koreksi nominal (harga perolehan, masa
-                manfaat, akun GL), lepas aset lama lalu buat aset baru — supaya jurnal terkait tetap konsisten.
+                manfaat, akun GL), lepas aset lama lalu buat aset baru supaya jurnal terkait tetap konsisten.
               </p>
             </div>
           </div>

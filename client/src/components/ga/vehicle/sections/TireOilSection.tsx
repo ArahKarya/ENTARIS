@@ -403,7 +403,7 @@ export function TireOilSection({ assetId, canEdit, odometer }: TireOilSectionPro
         open={deleteOil !== null}
         onOpenChange={(o) => !o && setDeleteOil(null)}
         title="Hapus Log Oli"
-        description={`Hapus log ganti oli "${deleteOil ? `${formatDate(deleteOil.tanggal)} — Odo ${formatNumber(deleteOil.odometer)}` : ''}"?`}
+        description={`Hapus log ganti oli "${deleteOil ? `${formatDate(deleteOil.tanggal)} · Odo ${formatNumber(deleteOil.odometer)}` : ''}"?`}
         confirmLabel="Ya, Hapus"
         tone="danger"
         loading={deleteOilMut.isPending}
