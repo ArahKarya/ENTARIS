@@ -4,12 +4,12 @@ import { FIT_ITEMS, WHY_ROWS } from "./homeContent";
 
 const pad = (n: number): string => String(n).padStart(2, "0");
 
-/** #kenapa-entaris — problem → solution rows from the product README. */
+/** #kenapa-entaris: problem and solution rows from the product README. */
 export function WhySection() {
   return (
     <section id="kenapa-entaris" className="home-why" aria-labelledby="kenapa-heading">
       <div className="home-section-head">
-        <SectionEyebrow name="Kenapa Entaris" context="Masalah → solusi" />
+        <SectionEyebrow name="Kenapa Entaris" context="Masalah dan solusinya" />
         <h2 id="kenapa-heading" className="home-section-title">
           Mudah dipasang, cepat dipakai, kuat untuk bertumbuh
         </h2>
@@ -40,7 +40,7 @@ export function WhySection() {
   );
 }
 
-/** #cocok-untuk — who Entaris is built for. */
+/** #cocok-untuk: who Entaris is built for. */
 export function FitSection() {
   return (
     <section id="cocok-untuk" className="home-fit" aria-labelledby="cocok-heading">

@@ -3,7 +3,7 @@ import { AiraEyebrow } from "./AiraEyebrow";
 import { AiraIcon, type AiraIconName } from "./AiraIcon";
 
 /*
- * #analitik — AIRA as an analyst. Every capability below maps to read-only tools declared in
+ * #analitik: AIRA as an analyst. Every capability below maps to read-only tools declared in
  * server/src/ai/aira-tool-router.json (rpt_profit_loss, rpt_dash_financial_ratios,
  * rpt_profitability_sku, inv_dash_movement_trend, prod_dash_yield_trend, rpt_export, …).
  * No forecasting or root-cause detection is claimed: the router has neither; AIRA fetches period
@@ -98,11 +98,11 @@ export function AiraAnalytics() {
         <AiraEyebrow name="Analitik" context="Analisis dari buku besar" />
         <div>
           <div className="tacet-proto-copy">
-            <h2>Bukan cuma angka — AIRA merangkum apa yang berubah.</h2>
+            <h2>AIRA merangkum apa yang berubah dan kenapa perlu diperhatikan.</h2>
             <p>
-              AIRA membaca laporan yang sama dengan modul Laporan — laba rugi, neraca, arus kas, umur piutang, HPP — lalu membandingkan periode,
-              menunjukkan pos yang paling berubah, dan merangkum angka yang perlu perhatian. Tanpa ekspor ke spreadsheet, tanpa menunggu laporan
-              disusun manual.
+              AIRA membaca laporan yang sama dengan modul Laporan (laba rugi, neraca, arus kas, umur piutang, HPP), lalu membandingkan periode,
+              menunjukkan pos yang paling berubah, dan merangkum angka yang perlu perhatian. Laporannya tidak perlu diekspor ke spreadsheet
+              atau disusun manual dulu.
             </p>
           </div>
           <div className="aira-analytics__grid">
@@ -125,7 +125,7 @@ export function AiraAnalytics() {
           </div>
           <p className="aira-analytics__note">
             <AiraIcon name="user-shield" />
-            Analisis hanya membaca data — tidak ada yang berubah di pembukuan. Akses laporan diatur admin per peran, jadi setiap pengguna hanya
+            Analisis hanya membaca data, jadi tidak ada yang berubah di pembukuan. Akses laporan diatur admin per peran, jadi setiap pengguna hanya
             melihat angka yang memang boleh ia lihat.
           </p>
         </div>

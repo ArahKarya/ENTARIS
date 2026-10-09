@@ -4,7 +4,7 @@ import { DocsPortal } from "@/components/docs/DocsPortal";
 import "./docs.css";
 
 export const metadata: Metadata = {
-  title: "Dokumentasi & Setup ERP Entaris — Panduan Lengkap Seluruh Modul",
+  title: "Dokumentasi dan panduan setup Entaris",
   description:
     "Panduan instalasi mandiri Entaris dari awal menggunakan Docker Compose dan dokumentasi fungsi teknis seluruh modul ERP: Akuntansi PSAK, Penjualan, Pembelian, Kas Bank, Produksi BOM WAC, EAM Aset, hingga agen AI AIRA (386 tools MCP).",
   keywords: [

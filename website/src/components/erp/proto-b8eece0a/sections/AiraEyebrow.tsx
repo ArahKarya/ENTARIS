@@ -3,7 +3,7 @@ type AiraEyebrowProps = {
   context: string;
 };
 
-/** `.proto-section-eyebrow--underline` — the design system's section eyebrow. */
+/** `.proto-section-eyebrow--underline`: the design system's section eyebrow. */
 export function AiraEyebrow({ name, context }: AiraEyebrowProps) {
   return (
     <div className="proto-section-eyebrow proto-section-eyebrow--underline">

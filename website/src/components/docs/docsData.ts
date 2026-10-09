@@ -57,7 +57,7 @@ export const DOC_COLLECTIONS: DocCollection[] = [
         readTime: "4 mnt baca",
         badge: "Paling Populer",
         content: {
-          lead: "Entaris dirancang untuk berjalan secara mandiri (self-hosted) di infrastruktur milik Anda sendiri—baik itu VPS cloud, server on-premise kantor, maupun mini-PC seperti Raspberry Pi 5. Seluruh layanan dipaketkan dalam Docker Compose sehingga Anda tidak perlu menginstal Node.js atau PostgreSQL secara manual di host server.",
+          lead: "Entaris dirancang untuk berjalan secara mandiri (self-hosted) di infrastruktur milik Anda sendiri, baik itu VPS cloud, server on-premise kantor, maupun mini-PC seperti Raspberry Pi 5. Seluruh layanan dipaketkan dalam Docker Compose sehingga Anda tidak perlu menginstal Node.js atau PostgreSQL secara manual di host server.",
           sections: [
             {
               heading: "Prasyarat Sistem",
@@ -270,7 +270,7 @@ TELEGRAM_BOT_USERNAME=entaris_notif_bot`,
     id: "akuntansi",
     name: "Akuntansi & Finansial",
     icon: "book",
-    tagline: "Pembukuan double-entry murni standar PSAK yang selalu seimbang",
+    tagline: "Pembukuan double-entry standar PSAK yang selalu seimbang",
     description: "Bagan akun hierarkis, buku besar real-time, 26 akun sistem otomatis, jurnal voucher, dan tutup buku tahun fiskal.",
     articles: [
       {
@@ -315,7 +315,7 @@ TELEGRAM_BOT_USERNAME=entaris_notif_bot`,
         summary: "Pencatatan berpasangan murni, penelusuran audit trail hingga dokumen sumber, dan voucher jurnal manual.",
         readTime: "4 mnt baca",
         content: {
-          lead: "Setiap transaksi di Entaris—baik faktur penjualan, penerimaan kas, barang masuk, maupun proses konversi produksi—langsung memicu ayat jurnal berpasangan di Buku Besar umum.",
+          lead: "Setiap transaksi di Entaris (faktur penjualan, penerimaan kas, barang masuk, maupun konversi produksi) langsung memicu ayat jurnal berpasangan di Buku Besar umum.",
           sections: [
             {
               heading: "Prinsip Double-Entry 'Always Balanced'",
@@ -639,12 +639,12 @@ TELEGRAM_BOT_USERNAME=entaris_notif_bot`,
     id: "laporan-pajak",
     name: "Laporan Finansial & Pajak",
     icon: "file-text",
-    tagline: "10 laporan PSAK audit-ready dan rekap PPN bulanan untuk SPT Masa",
+    tagline: "10 laporan PSAK siap audit dan rekap PPN bulanan untuk SPT Masa",
     description: "Neraca, laba rugi komparatif, arus kas langsung, buku besar pembantu, rekap PPN masukan/keluaran, dan ekspor PDF/Excel.",
     articles: [
       {
         id: "sepuluh-laporan-psak",
-        title: "10 Laporan Finansial Standar PSAK",
+        title: "10 Laporan Keuangan Standar PSAK",
         summary: "Laporan komparatif audit-ready dengan kemampuan drill-down ke voucher transaksi asal.",
         readTime: "4 mnt baca",
         content: {

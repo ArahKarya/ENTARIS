@@ -6,7 +6,7 @@ import { DemoForm } from "@/components/pages/demo/DemoForm";
 import "./demo.css";
 
 export const metadata: Metadata = {
-  title: "Minta demo — lihat Entaris berjalan di bisnis Anda",
+  title: "Minta demo: lihat Entaris berjalan di bisnis Anda",
   description: "Isi data singkat, lalu lanjutkan lewat WhatsApp atau email. Kami siapkan demo dengan contoh yang mirip bisnis Anda.",
 };
 
@@ -18,7 +18,7 @@ export default function Page() {
           <PageHero
             eyebrow={{ name: "Minta demo" }}
             lines={["Lihat Entaris berjalan", "di bisnis Anda."]}
-            lead="Isi data singkat di bawah. Tim kami menyiapkan demo dengan contoh yang mirip bisnis Anda, lalu menghubungi Anda lewat email atau WhatsApp — sesuai pilihan Anda."
+            lead="Isi data singkat di bawah. Tim kami menyiapkan demo dengan contoh yang mirip bisnis Anda, lalu menghubungi Anda lewat email atau WhatsApp, sesuai pilihan Anda."
             compact
           />
         }

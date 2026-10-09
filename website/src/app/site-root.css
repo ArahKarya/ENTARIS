@@ -8,7 +8,7 @@ html:has(#erp-root) {
 }
 
 /* The source resets <body> margin through Tailwind preflight's `*` rule, which the scoper turns
-   into `.erp-root *` — so the document body is reset here. */
+   into `.erp-root *`: so the document body is reset here. */
 body:has(#erp-root) {
   margin: 0;
 }

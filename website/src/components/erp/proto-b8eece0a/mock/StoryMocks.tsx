@@ -69,8 +69,8 @@ function InvoiceMock() {
         <MockTable
           head={["Akun", "Debit", "Kredit"]}
           rows={[
-            ["1.2.1 Piutang Usaha", "Rp 12.500.000", "—"],
-            ["4.1 Penjualan", "—", "Rp 12.500.000"],
+            ["1.2.1 Piutang Usaha", "Rp 12.500.000", ""],
+            ["4.1 Penjualan", "", "Rp 12.500.000"],
           ]}
           foot={["Total", "Rp 12.500.000", "Rp 12.500.000"]}
         />

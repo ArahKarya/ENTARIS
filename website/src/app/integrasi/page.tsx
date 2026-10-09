@@ -7,7 +7,7 @@ import { PageFrame } from "@/components/pages/PageFrame";
 import { PageHero } from "@/components/pages/PageHero";
 
 export const metadata: Metadata = {
-  title: "Integrasi — terhubung dengan alat yang sudah Anda pakai",
+  title: "Integrasi: terhubung dengan alat yang sudah Anda pakai",
   description:
     "Entaris bertukar data dengan bank, laporan pajak, Telegram, dan spreadsheet yang sudah Anda pakai, dan bisa dihubungkan ke sistem lain sesuai kebutuhan.",
 };
@@ -26,7 +26,7 @@ const AVAILABLE_ROWS = [
 ] as const;
 
 const CUSTOM_ROWS = [
-  ["Modul custom bisnis", "Operasional unik", "Modul spesifik perusahaan Anda dibangun di atas Entaris; otomatis terhubung ke buku besar dan dikenali oleh AIRA lewat protokol MCP tanpa melatih model dari awal."],
+  ["Modul custom bisnis", "Operasional unik", "Modul spesifik perusahaan Anda dibangun di atas Entaris; otomatis terhubung ke buku besar dan masuk ke katalog tugas AIRA tanpa melatih AI dari awal."],
   ["e-Faktur / Coretax", "Pajak", "Faktur pajak disiapkan dari invoice penjualan."],
   ["Mesin & sensor pabrik", "Produksi", "Timbangan, PLC, atau sistem monitoring terhubung; hasil produksi dan rendemen tercatat otomatis per batch."],
   ["Sistem eksternal", "Kasir, marketplace, atau sistem internal", "Data bertukar dengan Entaris tanpa input ulang."],
@@ -40,7 +40,7 @@ export default function Page() {
           <PageHero
             eyebrow={{ name: "Integrasi & Kustomisasi" }}
             lines={["Terhubung dan berkembang", "sesuai proses bisnis Anda."]}
-            lead="Entaris bertukar data dengan bank, pajak, Telegram, dan spreadsheet — serta dirancang fleksibel untuk penambahan modul custom sendiri seiring pertumbuhan bisnis Anda."
+            lead="Entaris bertukar data dengan bank, pajak, Telegram, dan spreadsheet. Saat bisnis Anda tumbuh, modul custom bisa ditambahkan sendiri."
             primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
             compact
           />

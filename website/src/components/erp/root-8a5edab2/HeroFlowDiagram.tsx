@@ -18,28 +18,28 @@ export type FlowData = {
 };
 
 export const HUMAN_FLOW: FlowData = {
-  eyebrow: { name: "Procure-to-Pay", context: "Alur Operasional ERP" },
-  headerContext: "otorisasi berjenjang",
-  caption: "4 peran bawaan (Admin, Keuangan, Operasional, Auditor) · Jejak audit di setiap mutasi · Double-entry seimbang (PSAK)",
+  eyebrow: { name: "Alur pembelian", context: "dari pengajuan sampai jurnal" },
+  headerContext: "persetujuan berjenjang",
+  caption: "Empat peran bawaan (Admin, Accountant, Staf Produksi, Viewer) · Jejak audit di setiap perubahan · Debit dan kredit seimbang sesuai PSAK",
   steps: [
     { id: "req", name: "Pengajuan", detail: "PR-2026-0041", sub: "Kebutuhan operasional", kind: "document" },
-    { id: "gate", name: "Approval Gate", detail: "Plafon wewenang", sub: "Otorisasi berjenjang", kind: "gate" },
-    { id: "po", name: "Order Beli (PO)", detail: "PO-2026-0118", sub: "Vendor resmi", kind: "order" },
-    { id: "recv", name: "Terima Fisik", detail: "STT fisik · Stok WAC", sub: "Akrual Hutang (2.1.5)", kind: "match" },
-    { id: "pay", name: "Faktur & Jurnal", detail: "3-Way Match · PI", sub: "Debit/Kredit seimbang", kind: "gate" },
+    { id: "gate", name: "Persetujuan", detail: "Sesuai batas wewenang", sub: "Berjenjang per peran", kind: "gate" },
+    { id: "po", name: "Order beli", detail: "PO-2026-0118", sub: "Dikirim ke pemasok", kind: "order" },
+    { id: "recv", name: "Barang diterima", detail: "Stok bertambah", sub: "Utang dicatat otomatis", kind: "match" },
+    { id: "pay", name: "Faktur & jurnal", detail: "Dicocokkan dengan PO", sub: "Debit dan kredit seimbang", kind: "gate" },
   ],
 };
 
 export const AGENT_FLOW: FlowData = {
-  eyebrow: { name: "Jalur Eksekusi AIRA", context: "Headless MCP" },
-  headerContext: "satu servis per panggilan",
-  caption: "Streamable HTTP /mcp · Ratusan tool bisnis aktif · Mutasi finansial wajib disetujui manusia (audit_trail.via = 'mcp')",
+  eyebrow: { name: "Cara AIRA bekerja", context: "dari pesan sampai jurnal" },
+  headerContext: "setiap langkah tercatat",
+  caption: "Ratusan tugas bisnis siap dipakai · Perubahan keuangan wajib disetujui manusia · Setiap langkah tercatat atas nama Anda",
   steps: [
-    { id: "prompt", name: "Instruksi Alami", detail: "Chat & PWA HP", sub: "Tanpa input teknis", kind: "prompt" },
-    { id: "auth", name: "Actor Token", detail: "HMAC-SHA256", sub: "X-Entaris-Actor (120s)", kind: "gateway" },
-    { id: "rbac", name: "Cek Hak Akses", detail: "Hak setara staf", sub: "Anti-bypass gate (RBAC)", kind: "permission" },
-    { id: "tool", name: "Katalog Tool MCP", detail: "POST /mcp", sub: "Draf otomatis aman", kind: "service" },
-    { id: "audit", name: "Approval & GL", detail: "ApprovalRequest", sub: "Jurnal terposting permanen", kind: "record" },
+    { id: "prompt", name: "Permintaan Anda", detail: "Lewat chat atau HP", sub: "Bahasa sehari-hari", kind: "prompt" },
+    { id: "auth", name: "Identitas dicek", detail: "Atas nama Anda", sub: "Izin singkat, sekali pakai", kind: "gateway" },
+    { id: "rbac", name: "Cek hak akses", detail: "Setara hak staf", sub: "Tidak bisa melangkahi peran", kind: "permission" },
+    { id: "tool", name: "Tugas dijalankan", detail: "Dari katalog tugas bisnis", sub: "Hasilnya berupa draf", kind: "service" },
+    { id: "audit", name: "Persetujuan & jurnal", detail: "Menunggu persetujuan", sub: "Lalu tercatat di buku besar", kind: "record" },
   ],
 };
 
@@ -227,7 +227,7 @@ export function HeroFlowDiagram({
           className="hero-flow__viewport"
           tabIndex={0}
           role="region"
-          aria-label={`Diagram alur proses ${kind}`}
+          aria-label={kind === "human" ? "Diagram alur pembelian" : "Diagram cara AIRA bekerja"}
         >
           <ol ref={listRef} className="hero-flow__steps">
             {data.steps.map((item, idx) => {
@@ -275,8 +275,8 @@ export function HeroFlowDiagram({
             className="hero-flow__toggle"
             onClick={onTogglePause}
             aria-pressed={isPaused}
-            aria-label={isPaused ? "Lanjutkan diagram" : "Jeda diagram"}
-            title={isPaused ? "Lanjutkan animasi alur" : "Jeda animasi alur"}
+            aria-label={isPaused ? "Lanjutkan animasi hero" : "Jeda animasi hero"}
+            title={isPaused ? "Lanjutkan animasi judul dan diagram" : "Jeda animasi judul dan diagram"}
           >
             <svg viewBox="0 0 16 16" aria-hidden="true" width={14} height={14}>
               <path

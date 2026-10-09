@@ -54,10 +54,10 @@ function toFeaturedModule(category: ModuleCategory, m: { name: string; desc: str
     categorySlug: category.slug,
     color: category.color,
     desc: m.desc,
-    tags: [category.label, "Buku Besar", "Audit Trail", "Hak Akses RBAC"],
-    flow: ["Inisiasi Dokumen", "Validasi Wewenang", "Persetujuan", "Posting GL"],
-    glImpact: `Posting otomatis sesuai standar PSAK. Setiap mutasi terekam dengan jejak audit before/after.`,
-    roles: "Admin, Operasional, Keuangan, Auditor",
+    tags: [category.label, "Buku Besar", "Jejak Audit", "Hak Akses per Peran"],
+    flow: ["Dokumen dibuat", "Cek wewenang", "Persetujuan", "Tercatat di buku besar"],
+    glImpact: `Jurnal tercatat otomatis di buku besar sesuai standar PSAK. Setiap perubahan terekam di jejak audit beserta nilai sebelum dan sesudahnya.`,
+    roles: "Admin, Accountant, Staf Produksi, Viewer (peran bisa ditambah)",
     airaCapability: `AIRA dapat membaca data transaksi di modul ini, menganalisis laporan, dan membuat draf otomatis untuk diperiksa tim Anda.`,
   };
 }
@@ -234,8 +234,8 @@ export function HomeCatalog() {
             Satu sistem, satu buku besar
           </h2>
           <p className="home-section-lead">
-            Semua modul terintegrasi pada satu basis data dengan posting otomatis ke buku besar — angka di dashboard dan
-            laporan selalu konsisten dengan transaksi sumbernya. Klik modul mana saja untuk melihat alur kerja dan perlakuan PSAK-nya.
+            Semua modul memakai data yang sama dan otomatis mencatat jurnal ke buku besar, jadi angka di dashboard dan
+            laporan selalu cocok dengan transaksi sumbernya. Klik modul mana saja untuk melihat alur kerja dan perlakuan PSAK-nya.
           </p>
         </div>
 

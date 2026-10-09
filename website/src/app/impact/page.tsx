@@ -10,8 +10,8 @@ import { ImpactCompanies, ImpactQuotes } from "@/components/pages/impact/ImpactS
 import "./impact.css";
 
 export const metadata: Metadata = {
-  title: "Impact — contoh industri dan cerita pengguna Entaris",
-  description: "Lihat bagaimana UKM, distributor, pabrik, dan kantor akuntan memakai Entaris — dan apa kata mereka.",
+  title: "Impact: contoh industri dan cerita pengguna Entaris",
+  description: "Lihat bagaimana UKM, distributor, pabrik, dan kantor akuntan memakai Entaris, dan apa kata mereka.",
 };
 
 const NAV_LINKS = [
@@ -27,7 +27,7 @@ export default function Page() {
         banner={
           IMPACT_IS_PLACEHOLDER ? (
             <p className="pg-notice" role="note">
-              Contoh tampilan — nama perusahaan, logo, angka, dan kutipan di halaman ini masih data sementara.
+              Contoh tampilan: nama perusahaan, logo, angka, dan kutipan di halaman ini masih data sementara.
             </p>
           ) : null
         }
@@ -36,8 +36,12 @@ export default function Page() {
         hero={
           <PageHero
             eyebrow={{ name: "Impact" }}
-            lines={["Dipakai bisnis nyata,", "dari gudang sampai pabrik."]}
-            lead="Entaris berjalan di UKM, distributor, pabrik, dan kantor akuntan. Lihat bagaimana mereka memakainya — dan apa kata mereka."
+            lines={IMPACT_IS_PLACEHOLDER ? ["Gambaran Entaris,", "dari gudang sampai pabrik."] : ["Dipakai bisnis nyata,", "dari gudang sampai pabrik."]}
+            lead={
+              IMPACT_IS_PLACEHOLDER
+                ? "Contoh cara Entaris dipakai di UKM, distributor, pabrik, dan kantor akuntan. Cerita pengguna asli menyusul setelah mereka mengizinkan."
+                : "Entaris berjalan di UKM, distributor, pabrik, dan kantor akuntan. Lihat bagaimana mereka memakainya dan apa kata mereka."
+            }
             primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
           />
         }

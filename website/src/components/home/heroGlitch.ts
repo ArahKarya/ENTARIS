@@ -83,13 +83,16 @@ function measureFit(headline: HTMLElement, target: string): string {
 
 type ScrambleController = { settle: () => void };
 
+/** Handle returned by startGlitch: `stop` tears everything down, `setPaused` holds the rotation (user pause button). */
+export type GlitchController = { stop: () => void; setPaused: (paused: boolean) => void };
+
 /** Port of glitch.js init(): owns all timers/listeners and reports rendering through `update`. */
 export function startGlitch(
   hero: HTMLElement,
   headlines: HTMLElement[],
   panels: readonly GlitchPanel[],
   update: (index: number, patch: Partial<GlitchView>) => void,
-): () => void {
+): GlitchController {
   const timers = new Set<number>();
   const intervals = new Set<number>();
   const cleanups: Array<() => void> = [];
@@ -226,8 +229,9 @@ export function startGlitch(
     cleanups.forEach((fn) => fn());
   };
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return teardown;
-  if (!items.some((item) => item.words.length > 1)) return teardown;
+  const still: GlitchController = { stop: teardown, setPaused: () => {} };
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return still;
+  if (!items.some((item) => item.words.length > 1)) return still;
 
   const maxLength = Math.max(...items.map((item) => item.words.length));
   let current = 0;
@@ -320,5 +324,8 @@ export function startGlitch(
   handleVisibility();
   scheduleNext();
 
-  return teardown;
+  return {
+    stop: teardown,
+    setPaused: (paused) => (paused ? requestPause("user") : resume("user")),
+  };
 }

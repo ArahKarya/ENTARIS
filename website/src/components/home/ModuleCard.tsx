@@ -11,8 +11,7 @@ type ModuleCardProps = {
 };
 
 /**
- * Gallery card without photography: a tinted category color, a subtle CSS pattern and a large
- * category glyph. Cards are interactive, opening module details when clicked.
+ * Gallery card without photography: a solid category color and a large category glyph. Cards are interactive, opening module details when clicked.
  */
 export function ModuleCard({ category, name, desc, index, onClick }: ModuleCardProps) {
   const style = {
@@ -41,7 +40,6 @@ export function ModuleCard({ category, name, desc, index, onClick }: ModuleCardP
       }
     >
       <div className="home-module-card__tint absolute inset-0 pointer-events-none" aria-hidden="true" />
-      <div className={`absolute inset-0 pointer-events-none ${category.pattern}`} aria-hidden="true" />
       <Icon name={category.icon} className="home-module-card__glyph" />
       <div className="catalog-card__rest-copy">
         <span className="catalog-card-category-pill catalog-card-category-pill--rest home-module-card__pill">{category.label}</span>

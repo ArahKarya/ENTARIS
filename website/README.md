@@ -1,6 +1,6 @@
 # Website Entaris
 
-Website pemasaran Entaris — *Agentic Reasoning System* (PT Arah Karya Sinergi). Ditujukan untuk calon customer:
+Website pemasaran Entaris: *Agentic Reasoning System* (PT Arah Karya Sinergi). Ditujukan untuk calon customer:
 jangan menampilkan istilah teknis (Docker, database, port, stack, nama protokol keamanan) di halaman. Aplikasi Next.js 16
 mandiri, terpisah dari aplikasi ERP (`client/`, `server/`).
 
@@ -10,9 +10,9 @@ mandiri, terpisah dari aplikasi ERP (`client/`, `server/`).
 | `/integrasi` | Integrasi | Yang sudah tersedia (bank, pajak, spreadsheet, Telegram, aplikasi aset) dan yang dibangun sesuai kebutuhan |
 | `/aira` | AIRA | Agen AI: tanya data, analitik, draf & persetujuan, keamanan |
 | `/migrasi` | Migrasi | Pindah ke Entaris cukup lewat chat dengan AIRA |
-| `/impact` | Impact | Contoh industri, perusahaan pengguna, kutipan — **masih data dummy**, lihat bawah |
+| `/impact` | Impact | Contoh industri, perusahaan pengguna, kutipan: **masih data dummy**, lihat bawah |
 | `/minta-demo` | tombol *Minta demo* | Formulir data awal, lalu lanjut via WhatsApp atau email |
-| `/keamanan`, `/self-hosted` | — | Dialihkan ke bagian Keamanan & Data di halaman Kapabilitas (`/#keamanan-data`) |
+| `/keamanan`, `/self-hosted` | (tidak di menu) | Dialihkan ke bagian Keamanan & Data di halaman Kapabilitas (`/#keamanan-data`) |
 
 ## Menjalankan
 
@@ -30,18 +30,18 @@ Build produksi memakai `output: "standalone"` (`npm run build && node .next/stan
 
 Sistem desain diporting dari situs ERP•AI (erpai.studio):
 
-- `src/app/site.css` — CSS hasil kompilasi, di-scope ke `.erp-root`. **Jangan diedit manual.**
-- `src/app/entaris-theme.css` — memetakan token dasar (beige/ink/oranye) ke palet Entaris
+- `src/app/site.css`: CSS hasil kompilasi, di-scope ke `.erp-root`. **Jangan diedit manual.**
+- `src/app/entaris-theme.css`: memetakan token dasar (beige/ink/oranye) ke palet Entaris
   (navy `#1B2B48`, biru `#3D8BE0`; lihat `docs/brand/entaris/README.md`). Layer `entaris` dideklarasikan
   terakhir sehingga menang atas semua layer `site.css`.
-- `src/app/site-chrome.css` + `src/components/site/` — nav, footer, logo, tombol milik Entaris.
-- `src/components/erp/` — section yang diporting lalu ditulis ulang dengan konten Entaris.
+- `src/app/site-chrome.css` + `src/components/site/`: nav, footer, logo, tombol milik Entaris.
+- `src/components/erp/`: section yang diporting lalu ditulis ulang dengan konten Entaris.
   Markup mempertahankan nama class asli agar gaya dari `site.css` tetap berlaku.
 - Aset (font, gambar) di `public/assets/`, logo Entaris di `public/brand/`.
 
-`scripts/fix-color-mix.mjs` mengubah `color-mix(in oklch …)` menjadi `in oklab` — token `site.css` dihitung Chrome sebagai
-`lab()`, dan warna netral yang dikonversi ke oklch mendapat hue `none` yang dirender sebagai pink. Jalankan ulang
-skrip ini setiap kali `site.css` diregenerasi.
+Campuran warna ditulis `color-mix(in oklab, …)`, bukan `in oklch`: token `site.css` dihitung Chrome sebagai `lab()`, dan
+warna netral yang dikonversi ke oklch mendapat hue `none` yang dirender sebagai pink. Kalau `site.css` diregenerasi,
+periksa dan ganti `in oklch` di sana dengan tangan.
 
 CSS tambahan per halaman ditulis di dalam `@layer entaris { … }` dengan selector diawali `.erp-root`.
 

@@ -12,7 +12,7 @@ const SIDE_ITEMS: readonly SideItem[] = [
   { label: "Inventori", icon: "box" },
   { label: "Keuangan", icon: "report-money" },
   { label: "Approval", icon: "circle-check" },
-  { label: "AIRA", icon: "sparkles", active: true },
+  { label: "AIRA", icon: "send", active: true },
 ];
 
 const FOLLOW_UPS: readonly string[] = ["Rinci per invoice", "Bandingkan dengan bulan lalu"];

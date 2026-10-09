@@ -89,6 +89,6 @@ export function whatsappHref(values: DemoValues): string {
 }
 
 export function emailHref(values: DemoValues): string {
-  const subject = `Permintaan demo Entaris — ${clean(values.company)}`;
+  const subject = `Permintaan demo Entaris: ${clean(values.company)}`;
   return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(buildSummary(values))}`;
 }

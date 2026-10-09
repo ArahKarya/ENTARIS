@@ -36,7 +36,7 @@
 
     /* Accent: Entaris blue replaces the orange accent everywhere it is referenced. */
     --tacet-orange: oklch(62% 0.15 254); /* #3D8BE0 */
-    --tacet-orange-on-light: oklch(52% 0.15 257); /* #2F6FC4 — AA on white */
+    --tacet-orange-on-light: oklch(52% 0.15 257); /* #2F6FC4: AA on white */
     --gold: oklch(70% 0.09 248); /* light blue family instead of warm gold */
     --gold-on-light: oklch(46% 0.12 258); /* #2E5CA8 */
 
@@ -45,6 +45,8 @@
     --entaris-blue-mid: #2e5ca8;
     --entaris-blue-light: #9cc9f5;
     --entaris-blue-dark: #2f6fc4;
+    /* Keyboard focus ring: 4.9:1 on white; swapped for the light blue on dark surfaces. */
+    --entaris-focus: #2f6fc4;
   }
 }
 
@@ -70,6 +72,7 @@
   .erp-root.dark {
     --tacet-orange-on-light: var(--entaris-blue-light);
     --gold-on-light: var(--entaris-blue-light);
+    --entaris-focus: var(--entaris-blue-light);
   }
 }
 
@@ -142,5 +145,32 @@
   .erp-root,
   html:has(.erp-root) {
     --footer-main-seam-shadow: 0 1.25rem 3rem rgb(27 43 72 / 16%);
+  }
+}
+
+/*
+ * Identity motif: the "Anyaman ∇" triangle from the logo marks every section eyebrow, replacing
+ * the generic rail inherited from the ported design system. The mark is the logo itself, so it
+ * keeps the three blues; the negative version is used on dark surfaces.
+ */
+@layer entaris {
+  .erp-root .proto-section-eyebrow .proto-section-eyebrow__rail {
+    display: none;
+  }
+  .erp-root .proto-section-eyebrow__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .erp-root .proto-section-eyebrow__name::before {
+    content: "";
+    flex: none;
+    width: 0.8rem;
+    height: 0.8rem;
+    background: url("/brand/entaris-mark.svg") center / contain no-repeat;
+  }
+  .erp-root.dark .proto-section-eyebrow__name::before,
+  .erp-root .proto-section-eyebrow--cta .proto-section-eyebrow__name::before {
+    background-image: url("/brand/entaris-mark-negative.svg");
   }
 }

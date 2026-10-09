@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ENTARIS DOCUMENTATION PORTAL (Claude Support Aesthetic)
+   ENTARIS DOCUMENTATION PORTAL
    Light ivory/clean paper background, crisp borders, refined typography.
    ========================================================================== */
 
@@ -12,7 +12,7 @@
   --doc-border-strong: #d3cfc7;
   --doc-text-main: #141a24;
   --doc-text-muted: #5e6878;
-  --doc-text-subtle: #8994a5;
+  --doc-text-subtle: #667185; /* 4.5:1 or better on every docs surface */
   --doc-navy: #1b2b48;
   --doc-blue: #2f6fc4;
   --doc-blue-light: #ebf3fc;
@@ -30,7 +30,8 @@
   background-color: var(--doc-bg);
   color: var(--doc-text-main);
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Same type families as the marketing pages so the portal reads as part of one site. */
+  font-family: "Supreme", system-ui, sans-serif;
   line-height: 1.6;
 }
 
@@ -60,9 +61,13 @@
 
 .doc-header__mobile-toggle {
   display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   background: none;
   border: 1px solid var(--doc-border);
-  padding: 0.4rem;
+  padding: 0;
   border-radius: var(--doc-radius-sm);
   color: var(--doc-navy);
   cursor: pointer;
@@ -97,15 +102,13 @@
 }
 
 .doc-header__brand-badge {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--doc-blue, #2f6fc4);
+  color: #2a63b0;
   background-color: var(--doc-blue-light, #ebf3fc);
   border: 1px solid var(--doc-blue-border, #bfdbfe);
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 6px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -250,8 +253,6 @@
   justify-content: space-between;
   font-size: 0.78rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--doc-text-subtle);
   padding: 0 0.5rem;
 }
@@ -260,7 +261,7 @@
   background-color: var(--doc-surface-muted);
   border: 1px solid var(--doc-border);
   padding: 0.15rem 0.45rem;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 0.7rem;
   color: var(--doc-text-muted);
 }
@@ -338,7 +339,7 @@
   color: var(--doc-text-subtle);
   background-color: var(--doc-surface-muted);
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .doc-sidebar__caret {
@@ -544,7 +545,7 @@
 }
 
 .doc-hub__title {
-  font-family: Georgia, "Newsreader", "Charter", serif;
+  font-family: "Cooper Hewitt ERP", system-ui, sans-serif;
   font-size: 2.75rem;
   font-weight: 500;
   color: var(--doc-navy);
@@ -581,7 +582,7 @@
   background-color: var(--doc-surface-muted);
   border: 1px solid var(--doc-border);
   padding: 0.25rem 0.65rem;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .doc-hub__badge-verified {
@@ -591,7 +592,7 @@
   background-color: #ecfdf5;
   border: 1px solid #a7f3d0;
   padding: 0.25rem 0.65rem;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .doc-hub__section {
@@ -773,7 +774,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  border-radius: 6px;
   display: inline-block;
 }
 
@@ -795,7 +796,7 @@
 }
 
 .doc-article__title {
-  font-family: Georgia, "Newsreader", "Charter", serif;
+  font-family: "Cooper Hewitt ERP", system-ui, sans-serif;
   font-size: 2.5rem;
   font-weight: 500;
   color: var(--doc-navy);
@@ -943,6 +944,7 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  min-height: 44px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
@@ -1240,13 +1242,14 @@
   white-space: nowrap;
 }
 
+/* WhatsApp green darkened so white text reaches 5.4:1 (the brand #25d366 gives 1.98:1). */
 .doc-btn--whatsapp {
-  background-color: #25d366;
+  background-color: #0f7a40;
   color: #ffffff;
 }
 
 .doc-btn--whatsapp:hover {
-  background-color: #20bd5a;
+  background-color: #0b6634;
 }
 
 .doc-btn--outline {
@@ -1343,8 +1346,6 @@
 .doc-search-modal__empty-heading {
   font-size: 0.8rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--doc-text-subtle);
   margin: 0 0 0.85rem;
 }
@@ -1358,7 +1359,7 @@
 .doc-search-chip {
   background-color: var(--doc-surface-muted);
   border: 1px solid var(--doc-border);
-  border-radius: 999px;
+  border-radius: 6px;
   padding: 0.4rem 0.85rem;
   font-size: 0.825rem;
   font-weight: 500;
@@ -1434,7 +1435,6 @@
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--doc-blue);
-  text-transform: uppercase;
 }
 
 .doc-search-result-item__time {
@@ -1500,6 +1500,11 @@
 }
 
 @media (max-width: 860px) {
+  .doc-header {
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+  }
+
   .doc-header__mobile-toggle {
     display: flex;
   }
@@ -1561,5 +1566,60 @@
 
   .doc-pagination__btn--next {
     text-align: left;
+  }
+}
+
+/* Phones: the header keeps logo, menu and demo button on one row; long tables and code scroll
+   inside their own box instead of widening the page. */
+@media (max-width: 560px) {
+  .doc-header__brand-badge {
+    display: none;
+  }
+
+  .doc-header__cta-btn {
+    padding: 0.45rem 0.75rem;
+  }
+
+  .doc-main {
+    padding-inline: 1rem;
+  }
+
+  .doc-table-wrap,
+  .doc-code-block,
+  .doc-cmd-block {
+    max-width: 100%;
+  }
+}
+
+/* Keyboard focus and touch targets across the portal. */
+.doc-portal :is(a, button, [tabindex="0"]):focus-visible {
+  outline: 3px solid #2f6fc4;
+  outline-offset: 2px;
+}
+
+.doc-sidebar__sublink,
+.doc-breadcrumb__link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.doc-breadcrumb__link {
+  display: inline-flex;
+}
+
+/* Narrowest phones: the demo button moves out of the header (it stays in the help banner below),
+   and the help banner buttons wrap instead of pushing the page sideways. */
+@media (max-width: 400px) {
+  .doc-header__cta-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .doc-feedback-banner__actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
   }
 }

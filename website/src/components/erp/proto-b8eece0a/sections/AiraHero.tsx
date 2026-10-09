@@ -18,8 +18,8 @@ export function AiraHero() {
         </div>
         <div className="tacet-proto-hero__summary">
           <p className="tacet-proto-hero__lede">
-            AIRA bekerja di atas data transaksi yang sama dengan modul lain di Entaris — bukan salinan. Ia menjawab pertanyaan, menganalisis
-            laporan, dan mengerjakan tugas sampai jadi draf. Siap diakses di mana saja, bahkan dalam genggaman smartphone Anda — dengan setiap perubahan pembukuan tetap menunggu persetujuan manusia.
+            AIRA bekerja di atas data transaksi yang sama dengan modul lain di Entaris. Ia menjawab pertanyaan, menganalisis
+            laporan, dan mengerjakan tugas sampai jadi draf, juga dari ponsel Anda. Setiap perubahan pembukuan tetap menunggu persetujuan manusia.
           </p>
           <div className="aira-hero__actions">
             <Link href={DEMO_HREF} className="ent-btn ent-btn--solid aira-hero__btn">

@@ -13,8 +13,7 @@
     font-size: clamp(1.875rem, 4.4vw, 3.25rem);
     font-weight: 900;
     letter-spacing: -0.02em;
-    line-height: 0.98;
-    text-transform: uppercase;
+    line-height: 1.08;
     text-wrap: balance;
   }
 
@@ -71,11 +70,10 @@
 
   .erp-root .home-module-row__count {
     color: var(--text-m);
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: var(--text-label, 0.6875rem);
     font-weight: 650;
     letter-spacing: var(--tracking-label, 0.18em);
-    text-transform: uppercase;
     white-space: nowrap;
   }
 
@@ -111,20 +109,22 @@
     color: #fff;
   }
 
+  /* Darkens toward the text corner only, so white copy keeps at least 4.5:1 on every category color. */
   .erp-root .home-module-card__tint {
     z-index: 0;
-    background:
-      radial-gradient(120% 90% at 100% 0%, rgb(255 255 255 / 16%), transparent 60%),
-      linear-gradient(160deg, transparent 30%, rgb(0 0 0 / 34%) 100%);
+    background: linear-gradient(160deg, transparent 30%, rgb(0 0 0 / 34%) 100%);
   }
 
-  .erp-root .home-module-card .pat-lines,
-  .erp-root .home-module-card .pat-dots,
-  .erp-root .home-module-card .pat-mesh,
-  .erp-root .home-module-card .pat-diag {
-    z-index: 1;
-    color: #fff;
-    opacity: 0.07;
+  .erp-root .home-module-card:hover {
+    filter: none;
+    transform: none;
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / 45%);
+  }
+
+  .erp-root .home-module-card:focus-visible {
+    outline: 3px solid var(--entaris-focus);
+    outline-offset: 3px;
+    z-index: 6;
   }
 
   .erp-root .home-module-card__glyph {
@@ -147,8 +147,8 @@
   }
 
   .erp-root .home-module-card .home-module-card__pill {
-    border: 1px solid rgb(255 255 255 / 28%);
-    background: rgb(255 255 255 / 14%);
+    border: 1px solid rgb(255 255 255 / 40%);
+    background: rgb(0 0 0 / 22%);
     color: #fff;
   }
 
@@ -157,7 +157,7 @@
   }
 
   .erp-root .home-module-card .catalog-card__desc {
-    color: rgb(255 255 255 / 84%);
+    color: #fff;
   }
 
   /* -- Kenapa Entaris ----------------------------------------------------------------------- */
@@ -221,7 +221,6 @@
     font-size: clamp(1rem, 1.5vw, 1.25rem);
     font-weight: 900;
     line-height: 1.1;
-    text-transform: uppercase;
   }
 
   .erp-root .home-why__solution {
@@ -297,7 +296,6 @@
     font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
     font-weight: 900;
     line-height: 1.1;
-    text-transform: uppercase;
   }
 
   .erp-root .home-fit__icon {
@@ -457,10 +455,8 @@
   .erp-root .home-pillars__kicker {
     margin: 0.5rem 0 0;
     color: var(--entaris-blue-light);
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: 0.75rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
   }
   .erp-root .home-pillars__lead-title {
     max-width: 18ch;
@@ -564,7 +560,7 @@
     }
   }
 
-  /* ---------- Mobile & PWA showcase banner (Prominent Grand Display) ---------- */
+  /* ---------- Mobile showcase banner ---------- */
   .erp-root .home-mobile-banner {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
@@ -575,19 +571,25 @@
     border: 1px solid var(--border);
     border-radius: 1.25rem;
     background: color-mix(in oklab, var(--background) 95%, var(--entaris-blue));
-    box-shadow: 0 20px 50px -15px rgba(27, 43, 72, 0.14);
   }
   .erp-root .home-mobile-banner__media {
+    position: relative;
     overflow: hidden;
     border-radius: 1rem;
     border: 1px solid color-mix(in oklab, var(--border) 80%, var(--entaris-blue));
-    box-shadow: 0 24px 60px -16px rgba(27, 43, 72, 0.28);
     width: 100%;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
-  .erp-root .home-mobile-banner__media:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 30px 70px -18px rgba(27, 43, 72, 0.35);
+  /* The phone screen is a mock (invented vendor and amounts), so it is labelled as such (R-38). */
+  .erp-root .home-mobile-banner__note {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.375rem;
+    background: rgba(15, 23, 38, 0.82);
+    color: #fff;
+    font-size: 0.75rem;
+    line-height: 1.3;
   }
   .erp-root .home-mobile-banner__img {
     display: block;
@@ -597,16 +599,10 @@
     object-fit: cover;
   }
   .erp-root .home-mobile-banner__badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 2rem;
-    background: color-mix(in oklab, var(--entaris-blue) 12%, transparent);
-    color: var(--entaris-blue-dark);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    margin: 0;
+    color: var(--text-m);
+    font-size: 0.875rem;
+    font-weight: 600;
   }
   .erp-root .home-mobile-banner__title {
     margin: 0.85rem 0 0.75rem;
@@ -1032,9 +1028,9 @@
     transition: color 0.35s ease, text-shadow 0.35s ease;
   }
 
+  /* Active step: the label keeps the theme ink (4.5:1+); the accent stays on the icon outline. */
   .erp-root .hero-flow__step.is-current strong {
-    color: var(--hero-accent);
-    text-shadow: 0 0 14px color-mix(in oklab, var(--hero-accent), transparent 50%);
+    color: var(--foreground);
   }
 
   .erp-root .hero-flow__detail {
@@ -1694,18 +1690,6 @@
     border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
     color: #cbd5e1 !important;
   }
-  .erp-root .hero-catalog__ribbon-code {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.2rem 0.55rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: #f8fafc;
-    font-weight: 600;
-  }
 
   /* ---------- Desktop Viewport Fitting: 100% Above the Fold (No Clipping at 100% Zoom) ---------- */
   @media (min-width: 64.01rem) {
@@ -1875,20 +1859,16 @@
       padding-inline: var(--tacet-section-pad-x, clamp(1.25rem, 3vw, 2.5rem)) !important;
     }
 
-    .erp-root .hero-catalog__ribbon-code {
-      font-size: clamp(0.64rem, 1vh, 0.7rem) !important;
-      padding: 0.15rem 0.45rem !important;
-    }
   }
 
-  /* ---------- ERP.AI Concepts: Featured Most-Started Carousel ---------- */
-  .erp-root .featured-netflix-section {
+  /* ---------- Featured modules carousel ---------- */
+  .erp-root .featured-section {
     padding: clamp(3rem, 5vw, 4.5rem) 0 clamp(2rem, 3vw, 3rem);
     background: color-mix(in oklab, var(--background) 96%, var(--foreground));
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
-  .erp-root .featured-netflix-header {
+  .erp-root .featured-header {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
@@ -1896,67 +1876,51 @@
     padding-inline: var(--tacet-section-pad-x, 1.5rem);
     margin-bottom: 1.5rem;
   }
-  .erp-root .featured-netflix-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.25rem 0.6rem;
-    background: color-mix(in oklab, var(--entaris-blue, #3d8be0) 12%, transparent);
-    color: var(--entaris-blue, #3d8be0);
-    border-radius: 9999px;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
+  .erp-root .featured-kicker {
+    margin: 0 0 0.5rem;
+    color: var(--text-m);
+    font-size: 0.875rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.65rem;
   }
-  .erp-root .featured-netflix-badge__dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-  .erp-root .featured-netflix-title {
+  .erp-root .featured-title {
     font-family: var(--font-heading);
     font-size: clamp(1.4rem, 2.5vw, 2.2rem);
     font-weight: 800;
     line-height: 1.1;
-    text-transform: uppercase;
     color: var(--foreground);
     margin: 0;
   }
-  .erp-root .featured-netflix-lead {
+  .erp-root .featured-lead {
     font-family: var(--font-body);
     font-size: 0.93rem;
     color: var(--text-m);
     max-width: 52ch;
     margin: 0.5rem 0 0;
   }
-  .erp-root .featured-netflix-nav {
+  .erp-root .featured-nav {
     display: flex;
     gap: 0.5rem;
   }
-  .erp-root .featured-netflix-arrow {
+  .erp-root .featured-arrow {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--foreground);
     cursor: pointer;
     transition: all 0.15s ease;
   }
-  .erp-root .featured-netflix-arrow:hover {
+  .erp-root .featured-arrow:hover {
     background: var(--foreground);
     color: var(--background);
     border-color: var(--foreground);
   }
 
-  .erp-root .featured-netflix-track {
+  .erp-root .featured-track {
     display: flex;
     gap: 1.25rem;
     padding-inline: var(--tacet-section-pad-x, 1.5rem);
@@ -1965,7 +1929,7 @@
     scrollbar-width: thin;
     padding-bottom: 1rem;
   }
-  .erp-root .featured-netflix-card {
+  .erp-root .featured-card {
     flex: 0 0 clamp(280px, 32vw, 360px);
     scroll-snap-align: start;
     display: flex;
@@ -1976,39 +1940,33 @@
     border-top: 3px solid var(--card-accent, var(--entaris-blue));
     border-radius: 10px;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: border-color 0.2s ease;
     text-align: left;
   }
-  .erp-root .featured-netflix-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.12);
+  .erp-root .featured-card:hover {
     border-color: color-mix(in oklab, var(--card-accent) 60%, var(--border));
   }
-  .erp-root .featured-netflix-card__top {
+  .erp-root .featured-card:focus-visible {
+    outline: 3px solid var(--entaris-focus);
+    outline-offset: 3px;
+  }
+  .erp-root .featured-card__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.85rem;
   }
-  .erp-root .featured-netflix-card__pill {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+  /* Category label: text stays on the theme foreground so it holds contrast in both themes;
+     the accent only tints the background. */
+  .erp-root .featured-card__pill {
+    font-size: 0.75rem;
+    font-weight: 600;
     padding: 0.2rem 0.5rem;
-    background: color-mix(in oklab, var(--card-accent) 12%, transparent);
-    color: var(--card-accent);
+    background: color-mix(in oklab, var(--card-accent) 14%, transparent);
+    color: var(--foreground);
     border-radius: 4px;
   }
-  .erp-root .featured-netflix-card__number {
-    font-family: var(--font-mono);
-    font-size: 1.15rem;
-    font-weight: 800;
-    opacity: 0.25;
-    color: var(--foreground);
-  }
-  .erp-root .featured-netflix-card__name {
+  .erp-root .featured-card__name {
     font-family: var(--font-heading);
     font-size: 1.15rem;
     font-weight: 700;
@@ -2016,7 +1974,7 @@
     margin: 0 0 0.5rem;
     line-height: 1.3;
   }
-  .erp-root .featured-netflix-card__desc {
+  .erp-root .featured-card__desc {
     font-family: var(--font-body);
     font-size: 0.875rem;
     color: var(--text-m);
@@ -2024,13 +1982,13 @@
     margin: 0 0 1rem;
     flex: 1;
   }
-  .erp-root .featured-netflix-card__tags {
+  .erp-root .featured-card__tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
     margin-bottom: 1.25rem;
   }
-  .erp-root .featured-netflix-tag {
+  .erp-root .featured-tag {
     font-family: var(--font-body);
     font-size: 0.72rem;
     padding: 0.2rem 0.5rem;
@@ -2039,21 +1997,22 @@
     border-radius: 4px;
     color: var(--foreground);
   }
-  .erp-root .featured-netflix-card__footer {
+  .erp-root .featured-card__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding-top: 0.75rem;
     border-top: 1px solid var(--border);
   }
-  .erp-root .featured-netflix-card__cta {
+  .erp-root .featured-card__cta {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--card-accent);
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   /* ---------- ERP.AI Concepts: Search Bar & Quick Tags ---------- */
@@ -2091,8 +2050,12 @@
   }
   .erp-root .catalog-search-clear {
     position: absolute;
-    right: 0.85rem;
-    padding: 0.3rem;
+    right: 0.25rem;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
     background: transparent;
     border: 0;
     color: var(--text-m);
@@ -2112,10 +2075,13 @@
     margin-right: 0.25rem;
   }
   .erp-root .catalog-quick-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     font-family: var(--font-body);
-    font-size: 0.75rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 9999px;
+    font-size: 0.8125rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--foreground);
@@ -2192,10 +2158,9 @@
     gap: 0.65rem;
   }
   .module-modal-pill {
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: 0.7rem;
     font-weight: 700;
-    text-transform: uppercase;
     padding: 0.2rem 0.55rem;
     border-radius: 4px;
     background: color-mix(in oklab, var(--modal-accent) 15%, transparent);
@@ -2279,11 +2244,9 @@
     overflow-y: auto;
   }
   .module-modal-section-title {
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: 0.78rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     color: var(--text-m);
     margin: 0 0 1rem;
   }
@@ -2431,3 +2394,29 @@
   }
 }
 
+
+/* Audit 001 follow-up: touch targets, label contrast and focus for the hero and catalog. */
+@layer entaris {
+  /* The pause button holds every hero animation (headline rotation and both diagrams). */
+  .erp-root .hero-flow__toggle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+  .erp-root .hero-flow__toggle:focus-visible,
+  .erp-root .hero-catalog__cta:focus-visible,
+  .erp-root .hero-flow__step button:focus-visible,
+  .erp-root .catalog-quick-tag:focus-visible,
+  .erp-root .featured-arrow:focus-visible {
+    outline: 3px solid var(--entaris-focus);
+    outline-offset: 2px;
+  }
+  .erp-root:not(.dark) .hero-flow__detail small {
+    font-size: 0.66rem;
+    color: #334155;
+  }
+  .erp-root.dark .hero-flow__detail small {
+    font-size: 0.66rem;
+    color: #cbd5e1;
+  }
+}

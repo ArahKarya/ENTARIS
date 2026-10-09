@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /*
- * Port of observer.js — "Single IntersectionObserver for all scroll-triggered behaviors".
+ * Port of observer.js: "Single IntersectionObserver for all scroll-triggered behaviors".
  *
  * USAGE (page builders): keep the draft markup verbatim, give the page's <main> (or any
  * wrapper) a ref and call the hook from the page's client component:
@@ -14,7 +14,7 @@ import { useEffect } from "react";
  *
  * The drafts were captured after observer.js ran, so they already carry the end-state
  * `observed` class (and the --stagger-index inline vars). On mount the hook strips `observed`
- * from every `[data-observe]` element inside the scope (the pre-script state — the CSS keeps
+ * from every `[data-observe]` element inside the scope (the pre-script state: the CSS keeps
  * that state fully readable, `.observed` only plays the entrance animation) and then re-adds
  * it one-shot when each element crosses the same threshold the source uses. It is fine to also
  * delete `observed` from the JSX; the hook works either way.

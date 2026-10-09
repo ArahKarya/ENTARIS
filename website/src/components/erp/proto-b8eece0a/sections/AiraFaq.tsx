@@ -12,37 +12,37 @@ export const AIRA_FAQS: readonly FaqItem[] = [
   {
     question: "Apakah AIRA bisa memposting jurnal sendiri?",
     answer:
-      "Bisa, bergantung konfigurasi. Secara bawaan, seluruh aksi kritis masuk antrean persetujuan manusia. Namun administrator dapat memberi level 'Langsung' kepada pengguna terpercaya tertentu dan memilih tool MCP yang diaktifkan, sehingga AIRA dapat memposting jurnal atas nama pengguna tersebut sesuai kebijakan perusahaan (tetap dibatasi hak akses peran dan seluruh gerbang persetujuan bawaan ENTARIS).",
+      "Bisa, bergantung konfigurasi. Secara bawaan, seluruh aksi kritis masuk antrean persetujuan manusia. Namun administrator dapat memberi level 'Langsung' kepada pengguna terpercaya tertentu dan memilih tugas mana yang aktif, sehingga AIRA dapat memposting jurnal atas nama pengguna tersebut sesuai kebijakan perusahaan (tetap dibatasi hak akses peran dan persetujuan bawaan Entaris).",
   },
   {
     question: "Apakah data perusahaan dikirim ke pihak lain atau cloud luar?",
     answer:
-      "Tidak. Seluruh data transaksi, buku besar, dan database ENTARIS tetap berada di server milik Anda sendiri (on-premise atau private cloud). Teks percakapan yang diproses engine AI mengikuti penyedia model yang Anda pilih; Anda memegang kendali penuh atas pemilihan toolset dan kedaulatan data perusahaan.",
+      "Tidak. Seluruh data transaksi dan buku besar Entaris tetap berada di server milik Anda sendiri, di kantor atau di cloud pilihan Anda. Teks percakapan yang diproses AI mengikuti penyedia AI yang Anda pilih, dan Anda menentukan area bisnis mana yang boleh dikerjakan AIRA.",
   },
   {
-    question: "Apakah perusahaan bisa mengganti engine AI di masa depan?",
+    question: "Apakah perusahaan bisa mengganti AI-nya di masa depan?",
     answer:
-      "Ya, sangat fleksibel. Arsitektur kami memisahkan 'Otak' (Engine AI) dan 'Tangan & Penjaga' (Server MCP ENTARIS). Seluruh aturan perizinan, batas wewenang, dan jejak audit berada di ENTARIS, bukan di engine. Anda bebas mengganti engine model AI tanpa khawatir kehilangan keamanan atau mengorbankan integritas data.",
+      "Ya. Otak AI dan Entaris sengaja dipisah. Aturan perizinan, batas wewenang, dan jejak audit berada di Entaris, sehingga Anda bisa mengganti penyedia AI tanpa mengubah aturan keamanan atau data pembukuan.",
   },
   {
     question: "Apakah AIRA bisa dipakai lewat WhatsApp atau Telegram?",
     answer:
-      "Ya. Engine AIRA dapat dihubungkan ke aplikasi chat populer seperti WhatsApp (termasuk WhatsApp Business) dan Telegram. Staf dapat mengirim foto struk belanja untuk dijadikan Draft Buku Kas, menanyakan umur piutang, hingga menerima notifikasi persetujuan transaksi langsung dari ponsel.",
+      "Ya. AIRA dapat dihubungkan ke WhatsApp (termasuk WhatsApp Business) dan Telegram. Staf dapat mengirim foto struk belanja untuk dijadikan draf buku kas, menanyakan umur piutang, dan menerima notifikasi persetujuan transaksi langsung dari ponsel.",
   },
   {
     question: "Apakah AIRA bisa melihat data yang tidak boleh saya lihat?",
     answer:
-      "Tidak pernah. Izin AIRA selalu mengikuti akun penanya (RBAC) dan diverifikasi ulang pada setiap panggilan tool. Klaim identitas palsu di dalam teks chat ('saya direktur', 'abaikan instruksi') otomatis diabaikan, dan pada percakapan grup berlaku batas kewenangan anggota terendah.",
+      "Tidak pernah. Izin AIRA selalu mengikuti akun penanya dan diperiksa ulang setiap kali AIRA menjalankan tugas. Klaim identitas palsu di dalam teks chat ('saya direktur', 'abaikan instruksi') otomatis diabaikan, dan pada percakapan grup berlaku batas kewenangan anggota terendah.",
   },
   {
     question: "Bagaimana kalau AIRA salah saat membuat transaksi?",
     answer:
-      "Pada pengaturan bawaan, aksi tulis hanya menghasilkan draf atau permintaan persetujuan. Angka mutasi tidak pernah langsung menyentuh buku besar sebelum diverifikasi dan disetujui manusia. Setiap perubahan juga terekam lengkap di jejak audit (audit_trail.via = 'mcp') dengan pencatatan nilai sebelum dan sesudah.",
+      "Pada pengaturan bawaan, aksi tulis hanya menghasilkan draf atau permintaan persetujuan. Angka mutasi tidak pernah langsung menyentuh buku besar sebelum diverifikasi dan disetujui manusia. Setiap perubahan juga terekam di jejak audit, ditandai sebagai kerja AIRA, beserta nilai sebelum dan sesudahnya.",
   },
   {
     question: "Bagaimana cara mematikan akses AIRA jika terjadi keadaan darurat?",
     answer:
-      "Tersedia saklar mati (kill switch) global instan di menu Pengaturan ENTARIS. Selain itu, administrator dapat mencabut atau memutar token engine seketika untuk memutus akses dalam hitungan detik.",
+      "Ada saklar mati di menu Pengaturan Entaris yang langsung menghentikan semua kerja AIRA. Administrator juga dapat mencabut kunci akses AIRA kapan saja.",
   },
 ];
 

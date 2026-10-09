@@ -9,10 +9,10 @@ import { AiraMark } from "@/components/site/AiraLogo";
 import { AGENT_PANEL, HUMAN_PANEL } from "@/components/home/homeContent";
 import { HeroFlowDiagram, useHeroFlowClock } from "./HeroFlowDiagram";
 import { getHeadlineLineRanges, initialView, startGlitch } from "@/components/home/heroGlitch";
-import type { GlitchView } from "@/components/home/heroGlitch";
+import type { GlitchController, GlitchView } from "@/components/home/heroGlitch";
 
 /*
- * header#home-top — the two-panel hero: the human layer (the ERP modules your team uses) and
+ * header#home-top: the two-panel hero: the human layer (the ERP modules your team uses) and
  * the agent layer (AIRA). Headlines scramble between a few words on the same beat.
  */
 
@@ -54,7 +54,7 @@ export function HeroCatalog() {
   const humanHeadlineRef = useRef<HTMLHeadingElement>(null);
   const agentHeadlineRef = useRef<HTMLHeadingElement>(null);
   const [views, setViews] = useState<GlitchView[]>(() => PANELS.map(initialView));
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const glitchRef = useRef<GlitchController | null>(null);
   const flowClock = useHeroFlowClock();
 
   useEffect(() => {
@@ -65,18 +65,18 @@ export function HeroCatalog() {
     const update = (index: number, patch: Partial<GlitchView>) => {
       setViews((prev) => prev.map((view, i) => (i === index ? { ...view, ...patch } : view)));
     };
-    return startGlitch(hero, [human, agent], PANELS, update);
+    const controller = startGlitch(hero, [human, agent], PANELS, update);
+    glitchRef.current = controller;
+    return () => {
+      glitchRef.current = null;
+      controller.stop();
+    };
   }, []);
 
-  const handleCopyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText("curl -fsSL https://entaris.id/mcp | bash");
-      setCopiedPrompt(true);
-      setTimeout(() => setCopiedPrompt(false), 2400);
-    } catch {
-      // fallback
-    }
-  };
+  // One pause button (in the diagrams) holds every hero animation, headline rotation included.
+  useEffect(() => {
+    glitchRef.current?.setPaused(flowClock.isPaused);
+  }, [flowClock.isPaused]);
 
   const [human, agent] = views;
 
@@ -104,7 +104,6 @@ export function HeroCatalog() {
               </Link>
               <a href="#modul" className="hero-catalog__cta hero-catalog__cta--ghost">
                 <span>Jelajahi modul</span>
-                <Icon name="arrowRight" style={{ width: 14, height: 14 }} />
               </a>
             </div>
             <HeroFlowDiagram
@@ -116,7 +115,7 @@ export function HeroCatalog() {
               onTogglePause={flowClock.togglePause}
             />
             <div className="hero-catalog__bottom-ribbon hero-catalog__bottom-ribbon--human">
-              <span>Pilih modul → Pasang di server Anda → Langsung siap pakai. Onboarding & setup dibantu.</span>
+              <span>Pilih modul, pasang di server Anda, langsung dipakai. Onboarding dan setup kami bantu.</span>
             </div>
           </div>
         </section>
@@ -136,20 +135,11 @@ export function HeroCatalog() {
             </div>
             <div className="hero-catalog__cta-row hero-catalog__cta-row--agent">
               <Link href="/aira" className="hero-catalog__cta hero-catalog__cta--primary">
-                <span className="hero-catalog__cta-group">
-                  <span>Kenali AIRA</span>
-                  <Icon name="arrowRight" style={ARROW_STYLE} />
-                </span>
+                <span>Kenali AIRA</span>
               </Link>
-              <button
-                type="button"
-                className="hero-catalog__cta hero-catalog__cta--ghost"
-                onClick={handleCopyPrompt}
-                title="Salin perintah instalasi MCP AIRA"
-              >
-                <Icon name="copy" style={{ width: 14, height: 14 }} />
-                <span>{copiedPrompt ? "Tersalin ✓" : "Salin prompt"}</span>
-              </button>
+              <Link href="/aira#contoh" className="hero-catalog__cta hero-catalog__cta--ghost">
+                <span>Lihat contoh tugas</span>
+              </Link>
             </div>
             <HeroFlowDiagram
               kind="agent"
@@ -160,8 +150,7 @@ export function HeroCatalog() {
               onTogglePause={flowClock.togglePause}
             />
             <div className="hero-catalog__bottom-ribbon hero-catalog__bottom-ribbon--agent">
-              <code className="hero-catalog__ribbon-code">curl entaris.id/mcp</code>
-              <span>→ Pasang ke agen AI Anda. AIRA siap jalankan tugas bisnis.</span>
+              <span>Tanya, analisis, susun draf. Setiap perubahan pembukuan menunggu persetujuan Anda.</span>
             </div>
           </div>
         </section>
