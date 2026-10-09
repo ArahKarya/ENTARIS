@@ -7,24 +7,7 @@
 import { useId, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import {
-  CheckCircle2,
-  Eye,
-  FileSignature,
-  Globe,
-  Inbox,
-  Mail,
-  MapPin,
-  MessageCircle,
-  Pencil,
-  Percent,
-  Phone,
-  Plus,
-  QrCode,
-  Share2,
-  Sparkles,
-  type LucideIcon,
-} from 'lucide-react';
+import { CheckCircle2, Eye, FileSignature, Globe, Inbox, Mail, MapPin, MessageCircle, Pencil, Percent, Phone, Plus, QrCode, Share2, type LucideIcon } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatPercent } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
@@ -316,7 +299,7 @@ export const Inquiries = () => {
         />
         <StatCard
           label="Baru"
-          icon={Sparkles}
+          icon={Inbox}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.newCount) : '-'}
           hint="belum ditindaklanjuti"

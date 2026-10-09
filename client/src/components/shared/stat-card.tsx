@@ -74,13 +74,11 @@ export function StatCard({
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="min-w-0 truncate text-sm font-medium text-muted-foreground">
           {label ?? title}
         </p>
         {Icon && (
-          <span className="hidden size-8 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground sm:flex">
-            <Icon className="size-4" strokeWidth={1.75} aria-hidden />
-          </span>
+          <Icon className="mt-0.5 hidden size-4 shrink-0 text-muted-foreground sm:block" strokeWidth={1.75} aria-hidden />
         )}
       </div>
       {loading ? (

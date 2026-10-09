@@ -1,5 +1,5 @@
 import { Children, lazy, Suspense, useState, useCallback, useMemo, useEffect } from 'react';
-import { Settings2, LayoutDashboard, DollarSign, TrendingUp, Package, Factory, Building2 } from 'lucide-react';
+import { Settings2, LayoutDashboard, TrendingUp, Package, Factory, Building2, Landmark } from 'lucide-react';
 import { PageHeader } from '../components/shared';
 import { Button } from '../components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -118,11 +118,9 @@ interface SectionHeaderProps {
 function SectionHeader({ icon: Icon, title, subtitle }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-3 pt-2 pb-1">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
-        <Icon size={16} aria-hidden />
-      </span>
+      <Icon size={16} className="shrink-0 text-muted-foreground" aria-hidden />
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">{title}</h2>
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <div className="ml-2 h-px flex-1 bg-border" aria-hidden />
@@ -261,8 +259,8 @@ export const Dashboard = () => {
   const showAset = canFinance && anyEnabled(ASET_WIDGETS);
 
   const sections: SectionDef[] = useMemo(() => {
-    const list: SectionDef[] = [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }];
-    if (showKeuangan) list.push({ id: 'keuangan', label: 'Keuangan', icon: DollarSign });
+    const list: SectionDef[] = [{ id: 'overview', label: 'Ringkasan', icon: LayoutDashboard }];
+    if (showKeuangan) list.push({ id: 'keuangan', label: 'Keuangan', icon: Landmark });
     if (showSales) list.push({ id: 'sales', label: 'Sales', icon: TrendingUp });
     if (showStok) list.push({ id: 'stok', label: 'Stok', icon: Package });
     if (showProduksi) list.push({ id: 'produksi', label: 'Produksi', icon: Factory });
@@ -310,7 +308,7 @@ export const Dashboard = () => {
 
       {/* ─────────── SECTION: OVERVIEW ─────────── */}
       <section id="overview" role="tabpanel" aria-labelledby={tabId('overview')} className="space-y-4 scroll-mt-20">
-        <SectionHeader icon={LayoutDashboard} title="Overview" subtitle="Ringkasan performa utama" />
+        <SectionHeader icon={LayoutDashboard} title="Ringkasan" subtitle="Angka utama periode terpilih" />
         <KPICards period={period} canFinance={canFinance} canMaintenance={showMaintenance} />
         {(showRevenue || showAttention) && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -347,7 +345,7 @@ export const Dashboard = () => {
       {/* ─────────── SECTION: KEUANGAN ─────────── */}
       {showKeuangan && (
         <section id="keuangan" role="tabpanel" aria-labelledby={tabId('keuangan')} className="space-y-4 scroll-mt-20">
-          <SectionHeader icon={DollarSign} title="Keuangan" subtitle="Laba, arus kas & rasio" />
+          <SectionHeader icon={Landmark} title="Keuangan" subtitle="Laba, arus kas & rasio" />
 
           <WidgetGrid>
             {isEnabled('monthly-profit') && (

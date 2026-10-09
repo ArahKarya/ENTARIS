@@ -1,5 +1,6 @@
 /** Ringkasan pengajuan dari agen AIRA (documentType `ai_tool:<nama>`): apa yang diminta, siapa, lewat mana. */
-import { Bot } from 'lucide-react';
+import {  } from 'lucide-react';
+import { AiraIcon } from '@/components/shell/AiraIcon';
 
 interface AiToolPayload {
   tool?: string;
@@ -19,7 +20,7 @@ export function AiToolApprovalSummary({ payload, status }: { payload: Record<str
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-2 rounded-lg border border-border bg-muted px-3 py-2.5">
-        <Bot className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+        <AiraIcon size={16} className="mt-0.5" />
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-foreground">{p.confirm || p.tool || 'Permintaan AIRA'}</p>
           <p className="text-xs text-muted-foreground">

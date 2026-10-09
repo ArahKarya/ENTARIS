@@ -20,7 +20,7 @@ export default function CategoryDistribution() {
 
   return (
     <WidgetCard
-      title="Distribusi Kategori"
+      title="Kategori dengan stok terbanyak"
       description="Total kuantitas stok per kategori"
       icon={Layers}
       isLoading={isLoading}

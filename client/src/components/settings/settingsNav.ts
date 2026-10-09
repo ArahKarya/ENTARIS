@@ -1,7 +1,8 @@
 import {
-  Building2, Calendar, Receipt, Shield, KeyRound, Send, HardDrive, Bot, Palette, Info, HandCoins,
-  type LucideIcon,
+  Building2, Calendar, Receipt, Shield, KeyRound, Send, HardDrive, Palette, Info, HandCoins,
 } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { AiraIcon } from '@/components/shell/AiraIcon';
 
 export type SettingsTabId =
   | 'company' | 'fiscal' | 'tax' | 'accounts' | 'payment-request-types' | 'roles'
@@ -11,7 +12,7 @@ export interface SettingsNavItem {
   id: SettingsTabId;
   label: string;
   description: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
   /** Only shown to users with the rbac.manage capability. */
   rbacOnly?: boolean;
 }
@@ -43,7 +44,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { id: 'notifications', label: 'Notifikasi', icon: Send, description: 'Kirim notifikasi sistem ke Telegram.' },
       { id: 'backup', label: 'Cadangan & Pemulihan', icon: HardDrive, description: 'Buat, unduh, unggah, dan pulihkan cadangan database.' },
-      { id: 'agentic', label: 'AIRA (MCP)', icon: Bot, rbacOnly: true, description: 'Status AIRA, token MCP untuk engine AIRA, dan riwayat panggilan tool.' },
+      { id: 'agentic', label: 'AIRA (MCP)', icon: AiraIcon, rbacOnly: true, description: 'Status AIRA, token MCP untuk engine AIRA, dan riwayat panggilan tool.' },
       { id: 'appearance', label: 'Tampilan', icon: Palette, description: 'Tema terang, gelap, atau mengikuti sistem.' },
       { id: 'about', label: 'Tentang', icon: Info, description: 'Versi aplikasi, pembaruan, dan riwayat perubahan.' },
     ],

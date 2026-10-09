@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, HandCoins, Package, PackageX, Receipt, TrendingDown, TrendingUp, Wallet, Wrench } from 'lucide-react';
+import { HandCoins, Package, PackageX, Receipt, TrendingUp, Wallet, Wrench, Scale, ReceiptText } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
 import { StatCard, type StatDelta } from '../shared/stat-card';
@@ -156,7 +156,7 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
       <StatCard
         label="Laba Bersih"
         {...money(m?.netProfit)}
-        icon={CreditCard}
+        icon={Scale}
         loading={loadingFin}
         hint="pada periode terpilih"
         delta={toDelta(m?.netProfit, prevMetrics.data?.netProfit, !!prev)}
@@ -164,7 +164,7 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
       />
       <StatCard label="Kas & Bank" {...money(m?.cashBalance)} icon={Wallet} loading={loadingFin} hint="saldo saat ini" href="/payments" />
       <StatCard label="Piutang Usaha" {...money(m?.accountsReceivable)} icon={Receipt} loading={loadingFin} hint="saldo saat ini" href="/reports/aging-ar" />
-      <StatCard label="Hutang Usaha" {...money(m?.accountsPayable)} icon={TrendingDown} loading={loadingFin} hint="saldo saat ini" href="/reports/aging-ap" />
+      <StatCard label="Hutang Usaha" {...money(m?.accountsPayable)} icon={ReceiptText} loading={loadingFin} hint="saldo saat ini" href="/reports/aging-ap" />
       {stockTile}
       <StatCard label="Nilai Persediaan" {...money(m?.inventoryValue)} icon={Package} loading={loadingFin} hint="saldo saat ini" href="/inventory" />
       <StatCard label="Deposit Supplier" {...money(m?.vendorDeposit)} icon={HandCoins} loading={loadingFin} hint="saldo saat ini" href="/vendor-deposits" />

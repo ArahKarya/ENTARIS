@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, BookOpen, Check, CircleDollarSign, ClipboardCheck, Pencil, RotateCcw, Save, Send, Undo2, X } from 'lucide-react';
+import { Ban, BookOpen, Check, ClipboardCheck, Pencil, RotateCcw, Save, Send, Undo2, X, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatDateTime, toNumber } from '@/lib/format';
@@ -212,7 +212,7 @@ export const PaymentRequestDetailPage = () => {
       )}
       {actions?.pay && (
         <Button onClick={() => setPaying(true)} disabled={missingAccounts || accountsDirty} title={missingAccounts ? 'Lengkapi akun biaya per baris dulu' : undefined}>
-          <CircleDollarSign aria-hidden />
+          <Banknote aria-hidden />
           Bayar
         </Button>
       )}
