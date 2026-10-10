@@ -364,7 +364,7 @@ export const SystemAccountsTab: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn(
-                  'text-xs font-medium px-2 py-0.5 rounded-full',
+                  'text-xs font-medium px-2 py-0.5 rounded-sm',
                   groupStatus.configured === groupStatus.total
                     ? 'bg-success-subtle text-success-text'
                     : groupStatus.configured > 0

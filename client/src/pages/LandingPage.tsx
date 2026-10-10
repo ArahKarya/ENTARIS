@@ -205,7 +205,7 @@ export default function LandingPage() {
             </h2>
             <ul className="mt-3 flex flex-wrap items-center justify-center gap-2">
               {SECTORS.map((s) => (
-                <li key={s} className="rounded-full border border-border px-3 py-1 text-sm font-medium text-foreground-secondary">{s}</li>
+                <li key={s} className="rounded-md border border-border px-3 py-1 text-sm font-medium text-foreground-secondary">{s}</li>
               ))}
             </ul>
           </div>

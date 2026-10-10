@@ -67,7 +67,7 @@ export function CoaToolbar({ view, counts, total, disabled }: CoaToolbarProps) {
               aria-pressed={active}
               onClick={() => view.setRootType(chip.value)}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors',
+                'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 active
                   ? 'border-primary bg-primary-subtle text-primary-subtle-foreground'

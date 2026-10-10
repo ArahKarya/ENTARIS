@@ -226,7 +226,6 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
                   size="sm"
                   variant={urgensi === u ? 'primary' : 'secondary'}
                   aria-pressed={urgensi === u}
-                  className="rounded-full"
                   onClick={() => setUrgensi(u)}
                 >
                   {URGENSI_LABELS[u]}
