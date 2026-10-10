@@ -321,7 +321,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     await deleteAttachment(attachment.filePath);
     await prisma.transactionAttachment.delete({ where: { id } });
 
-    return res.json({ message: 'Lampiran berhasil dihapus.' });
+    return res.json({ message: 'Lampiran dihapus.' });
   } catch (error) {
     return handleRouteError(res, error, 'DELETE /attachments/:id', 'Gagal menghapus lampiran.');
   }

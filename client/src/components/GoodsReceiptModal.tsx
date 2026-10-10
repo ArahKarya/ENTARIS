@@ -282,7 +282,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
       open
       onClose={onClose}
       title="Buat BPB / Surat Tanda Terima"
-      description="Penerimaan barang dari supplier: stok masuk + accrual hutang"
+      description="Penerimaan barang dari supplier: stok bertambah dan hutang dicatat."
       size="doc"
       className="lg:max-w-5xl"
       busy={mutation.isPending}

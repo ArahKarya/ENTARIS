@@ -245,7 +245,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
       });
     }, { timeout: 15000 });
 
-    return res.json({ message: 'Uang muka pelanggan berhasil dibatalkan.' });
+    return res.json({ message: 'Uang muka pelanggan dibatalkan.' });
   } catch (error: any) {
     return handleRouteError(res, error, 'PATCH /customer-deposits/:id/cancel', 'Gagal membatalkan uang muka pelanggan.');
   }
@@ -616,7 +616,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
       }
 
       return {
-        message: 'Uang muka berhasil diselesaikan.',
+        message: 'Uang muka diselesaikan.',
         offsetApplied: offsetReq.toNumber(),
         cashRefunded: cashReq.toNumber(),
         applications: createdApplications,

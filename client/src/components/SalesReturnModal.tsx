@@ -131,7 +131,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
       queryClient.invalidateQueries({ queryKey: ['sales-returns'] });
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
       if (res?.pendingApproval) toast.success('Retur diajukan, menunggu persetujuan manajer.');
-      else toast.success('Retur penjualan berhasil dibuat.');
+      else toast.success('Retur penjualan dibuat.');
       onClose();
     },
     onError: (err: any) => {

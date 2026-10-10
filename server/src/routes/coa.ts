@@ -268,7 +268,7 @@ router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
     }
 
     await prisma.account.delete({ where: { id } });
-    return res.json({ message: 'Akun berhasil dihapus.' });
+    return res.json({ message: 'Akun dihapus.' });
   } catch (error: any) {
     logger.error({ error }, 'DELETE /coa/:id error');
     if (error.code === 'P2025') return res.status(404).json({ error: 'Akun tidak ditemukan.' });

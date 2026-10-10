@@ -313,7 +313,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await prisma.stockMovement.deleteMany({ where: { itemId: id as string } });
     await prisma.inventoryItem.delete({ where: { id: id as string } });
 
-    return res.json({ message: 'Item stok berhasil dihapus.' });
+    return res.json({ message: 'Item stok dihapus.' });
   } catch (error: any) {
     if (error.code === 'P2025') return res.status(404).json({ error: 'Item stok tidak ditemukan.' });
     logger.error({ error }, 'DELETE /inventory/items/:id error');

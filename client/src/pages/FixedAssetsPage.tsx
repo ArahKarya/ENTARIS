@@ -107,7 +107,7 @@ export default function FixedAssetsPage() {
     mutationFn: async ({ assetId: id, entryId }: { assetId: string; entryId: string }) =>
       (await api.post(`${FIXED_ASSET_ENDPOINT}/${id}/depreciate`, { entryId })).data,
     onSuccess: () => {
-      toast.success('Depresiasi berhasil diposting');
+      toast.success('Depresiasi diposting.');
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
@@ -119,7 +119,7 @@ export default function FixedAssetsPage() {
     mutationFn: async ({ id, disposalDate }: { id: string; disposalDate: string }) =>
       (await api.post(`${FIXED_ASSET_ENDPOINT}/${id}/dispose`, { disposalDate, disposalAmount: 0 })).data,
     onSuccess: () => {
-      toast.success('Aset berhasil dilepas');
+      toast.success('Aset dilepas.');
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
@@ -138,7 +138,7 @@ export default function FixedAssetsPage() {
       }
       downloadCsv(toFixedAssetCsv(rows), `fixed-assets-${new Date().toISOString().substring(0, 10)}.csv`);
       if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} aset pertama. Persempit filter.`);
-      else toast.success(`${formatNumber(rows.length)} aset di-export`);
+      else toast.success(`${formatNumber(rows.length)} aset diekspor.`);
     } catch {
       toast.error('Gagal mengekspor aset. Coba lagi.');
     } finally {

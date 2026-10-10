@@ -69,7 +69,7 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
   const mutation = useMutation({
     mutationFn: (body: any) => api.post(`/customer-deposits/${deposit!.id}/refund`, body),
     onSuccess: () => {
-      toast.success('Uang muka berhasil diselesaikan.');
+      toast.success('Uang muka diselesaikan.');
       queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       queryClient.invalidateQueries({ queryKey: ['journals'] });

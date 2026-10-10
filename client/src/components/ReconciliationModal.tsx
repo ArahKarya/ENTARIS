@@ -76,7 +76,7 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliations'] });
-      toast.success('Rekonsiliasi berhasil dibuat.');
+      toast.success('Rekonsiliasi dibuat.');
       resetForm();
       onClose();
     },

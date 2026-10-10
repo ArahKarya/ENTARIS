@@ -57,7 +57,7 @@ export function RunCostSection({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>Manual (free input)</SelectItem>
+                        <SelectItem value={NONE}>Isi manual</SelectItem>
                         {available.map((s) => (
                           <SelectItem key={s.id} value={s.id}>
                             {s.name} (default Rp {Number(s.defaultRate)})
@@ -109,7 +109,7 @@ export function RunCostSection({
       )}
       {!hasMoreStandards && standards.length > 0 && rows.length > 0 && (
         <p className="mt-1.5 text-xs text-muted-foreground">
-          Semua master standar di sisi ini sudah dipakai. Tambah baris berikutnya hanya bisa pakai mode manual (free input).
+          Semua master standar di sisi ini sudah dipakai. Tambah baris berikutnya hanya bisa diisi manual.
         </p>
       )}
     </section>

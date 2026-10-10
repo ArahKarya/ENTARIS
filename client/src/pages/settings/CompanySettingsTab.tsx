@@ -141,7 +141,7 @@ export const CompanySettingsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['company-settings-pdf'] });
       setIsDirty(false);
       setSubmitted(false);
-      toast.success('Pengaturan berhasil disimpan.');
+      toast.success('Pengaturan disimpan.');
     },
     onError: () => toast.error('Gagal menyimpan pengaturan.'),
   });

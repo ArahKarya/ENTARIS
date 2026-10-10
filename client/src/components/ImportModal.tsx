@@ -108,7 +108,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
       setResult(data);
       setStep('result');
       config.queryKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
-      if (data.success > 0) toast.success(`${data.success} data berhasil diimport.`);
+      if (data.success > 0) toast.success(`${data.success} data diimpor.`);
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error || 'Gagal mengimport data.');

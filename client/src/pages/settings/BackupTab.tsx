@@ -33,7 +33,7 @@ export const BackupTab: React.FC = () => {
     mutationFn: async () => api.post('/settings/generate-dummy'),
     onSuccess: (res) => {
       const r = res.data.results;
-      toast.success(`Data dummy dibuat: ${r.parties} mitra, ${r.salesInvoices} SI, ${r.purchaseInvoices} PI, ${r.journals} jurnal, ${r.inventoryItems} item`);
+      toast.success(`Data dummy dibuat: ${r.parties} mitra, ${r.salesInvoices} SI, ${r.purchaseInvoices} PI, ${r.journals} jurnal, ${r.inventoryItems} item.`);
       queryClient.invalidateQueries();
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat data dummy.'),
@@ -43,7 +43,7 @@ export const BackupTab: React.FC = () => {
     mutationFn: async () => api.post('/settings/delete-dummy'),
     onSuccess: (res) => {
       const r = res.data.results;
-      toast.success(`Data dummy dihapus: ${r.parties} mitra, ${r.salesInvoices} SI, ${r.purchaseInvoices} PI, ${r.inventoryItems} item`);
+      toast.success(`Data dummy dihapus: ${r.parties} mitra, ${r.salesInvoices} SI, ${r.purchaseInvoices} PI, ${r.inventoryItems} item.`);
       queryClient.invalidateQueries();
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menghapus data dummy.'),
@@ -52,7 +52,7 @@ export const BackupTab: React.FC = () => {
   const resetMutation = useMutation({
     mutationFn: async () => api.post('/settings/reset-data', { confirmation: 'RESET' }),
     onSuccess: () => {
-      toast.success('Data berhasil direset. Login ulang...');
+      toast.success('Data direset. Silakan login ulang.');
       localStorage.removeItem('user');
       localStorage.removeItem('onboardingDone');
       localStorage.removeItem('widgetPrefs');
@@ -70,7 +70,7 @@ export const BackupTab: React.FC = () => {
     mutationFn: async () => api.post('/backup/create'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['backups'] });
-      toast.success('Backup berhasil dibuat.');
+      toast.success('Backup dibuat.');
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat backup.'),
   });
@@ -78,7 +78,7 @@ export const BackupTab: React.FC = () => {
   const restoreMutation = useMutation({
     mutationFn: async (filename: string) => api.post('/backup/restore', { filename }),
     onSuccess: () => {
-      toast.success('Restore berhasil. Silakan refresh halaman.');
+      toast.success('Backup dipulihkan. Silakan muat ulang halaman.');
       setConfirmRestore(null);
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal restore backup.'),
@@ -92,7 +92,7 @@ export const BackupTab: React.FC = () => {
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['backups'] });
-      toast.success(res.data.message || 'File backup berhasil diupload.');
+      toast.success(res.data.message || 'File backup diunggah.');
       if (fileInputRef.current) fileInputRef.current.value = '';
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal mengupload file backup.'),

@@ -243,8 +243,8 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       } else {
         toast.success(
           isEdit
-            ? `${editDO!.doNumber} berhasil diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.`
-            : 'Surat jalan berhasil dibuat. Stok dikeluarkan dari gudang.',
+            ? `${editDO!.doNumber} diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.`
+            : 'Surat jalan dibuat. Stok dikeluarkan dari gudang.',
         );
       }
       queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });

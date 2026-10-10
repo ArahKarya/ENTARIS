@@ -83,7 +83,7 @@ export const COAPage = () => {
     try {
       await api.delete(`/coa/${deleteTarget.id}`);
       queryClient.invalidateQueries({ queryKey: ['coa'] });
-      toast.success(`Akun "${deleteTarget.name}" berhasil dihapus.`);
+      toast.success(`Akun "${deleteTarget.name}" dihapus.`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal menghapus akun.'));
     }

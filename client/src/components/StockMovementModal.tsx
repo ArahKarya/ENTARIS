@@ -119,7 +119,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
     mutationFn: (data: any) => api.post('/inventory/movements', data),
     onSuccess: () => {
       invalidateAll();
-      toast.success('Gerakan stok berhasil dicatat.');
+      toast.success('Gerakan stok dicatat.');
       onClose();
     },
     onError: (err: any) => {
@@ -133,7 +133,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
     mutationFn: (data: any) => api.put(`/inventory/movements/${editMovement?.id}`, data),
     onSuccess: () => {
       invalidateAll();
-      toast.success('Gerakan stok berhasil diperbarui.');
+      toast.success('Gerakan stok diperbarui.');
       onClose();
     },
     onError: (err: any) => {

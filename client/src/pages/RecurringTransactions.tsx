@@ -85,7 +85,7 @@ export const RecurringTransactions = () => {
     mutationFn: (id: string) => api.post(`/recurring/${id}/execute`),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-      if (res.data.success) toast.success('Template berhasil dieksekusi.');
+      if (res.data.success) toast.success('Template dijalankan.');
       else toast.error(res.data.error || 'Gagal mengeksekusi template.');
     },
     onError: (e) => toast.error(errorMessage(e, 'Gagal mengeksekusi template.')),

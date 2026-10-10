@@ -60,7 +60,7 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
         })
       ).data,
     onSuccess: () => {
-      toast.success('Aset diperbarui');
+      toast.success('Aset diperbarui.');
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });

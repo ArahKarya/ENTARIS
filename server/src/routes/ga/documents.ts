@@ -293,7 +293,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await prisma.gaDocument.delete({ where: { id: String(req.params.id) } });
-    return res.json({ message: 'Dokumen berhasil dihapus.' });
+    return res.json({ message: 'Dokumen dihapus.' });
   } catch (error) {
     return handleRouteError(res, error, 'DELETE /ga/documents/:id', 'Gagal menghapus dokumen.');
   }

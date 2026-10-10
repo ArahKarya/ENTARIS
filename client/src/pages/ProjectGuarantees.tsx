@@ -450,7 +450,7 @@ export const ProjectGuarantees = () => {
         open={cancelSettlementTarget !== null}
         onOpenChange={(open) => !open && setCancelSettlementTarget(null)}
         title="Batalkan Settlement"
-        description={`Batalkan settlement ${cancelSettlementTarget?.label ?? ''}? Jurnal settlement di-reverse dan sisa jaminan kembali bertambah.`}
+        description={`Batalkan settlement ${cancelSettlementTarget?.label ?? ''}? Jurnal settlement dibalik dan sisa jaminan kembali bertambah.`}
         confirmLabel="Ya, Batalkan"
         tone="danger"
         loading={cancelSettlementMutation.isPending}

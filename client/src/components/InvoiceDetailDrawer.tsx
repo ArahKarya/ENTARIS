@@ -98,7 +98,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       // Allocations released → refresh payment list & customer/vendor deposits
       queryClient.invalidateQueries({ queryKey: ['payments'] });
-      toast.success('Invoice berhasil dibatalkan.');
+      toast.success('Invoice dibatalkan.');
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan invoice.'),
   });
@@ -113,7 +113,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoices' : 'purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: [isSales ? 'customer-deposits' : 'vendor-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
-      toast.success('Alokasi uang muka berhasil dibatalkan.');
+      toast.success('Alokasi uang muka dibatalkan.');
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan alokasi uang muka.'),
   });
@@ -124,7 +124,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoice-detail' : 'purchase-invoice-detail', invoiceId] });
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoices' : 'purchase-invoices'] });
-      toast.success('Invoice berhasil diperbarui.');
+      toast.success('Invoice diperbarui.');
       setIsEditing(false);
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal memperbarui invoice.'),
@@ -138,7 +138,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         // Belum diterapkan: hanya diantrekan → tanpa update optimistis.
         queryClient.invalidateQueries({ queryKey: ['approval-pending', 'PurchaseInvoiceRevisePrice', invoiceId] });
         queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
-        toast.success('Perubahan dikirim untuk persetujuan');
+        toast.success('Perubahan dikirim untuk persetujuan.');
         setReviseOpen(false);
         setReviseRates({});
         setReviseReason('');
@@ -148,7 +148,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success('Harga invoice berhasil direvisi. Jurnal selisih sudah diposting.');
+      toast.success('Harga invoice direvisi. Jurnal selisih sudah diposting.');
       setReviseOpen(false);
       setReviseRates({});
       setReviseReason('');
@@ -198,7 +198,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice-attachments', attachmentRefType, invoiceId] });
-      toast.success('Lampiran berhasil diupload.');
+      toast.success('Lampiran diunggah.');
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal upload lampiran.'),
   });
@@ -636,7 +636,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         onOpenChange={setConfirmCancel}
         tone="danger"
         title="Batalkan Invoice"
-        description="Yakin ingin membatalkan invoice ini? Semua jurnal GL, stok, dan saldo akan di-reverse. Invoice yang sudah ada pembayaran atau alokasi uang muka harus dibatalkan terlebih dahulu."
+        description="Yakin ingin membatalkan invoice ini? Semua jurnal, stok, dan saldo terkait akan dibalik. Invoice yang sudah ada pembayaran atau alokasi uang muka harus dibatalkan terlebih dahulu."
         confirmLabel="Batalkan Invoice"
         loading={cancelMutation.isPending}
         onConfirm={() => cancelMutation.mutateAsync()}

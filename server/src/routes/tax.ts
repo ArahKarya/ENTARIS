@@ -73,7 +73,7 @@ router.delete('/config/:id', requireCap('doc.cancel'), async (req, res) => {
       where: { id },
       data: { isActive: false },
     });
-    return res.json({ message: 'Konfigurasi pajak berhasil dinonaktifkan.' });
+    return res.json({ message: 'Konfigurasi pajak dinonaktifkan.' });
   } catch (error) {
     return handleRouteError(res, error, 'DELETE /tax/config/:id', 'Gagal menghapus konfigurasi pajak.');
   }

@@ -255,7 +255,7 @@ router.post('/run-due', requireCap('doc.cancel'), async (req: AuthRequest, res) 
 
     const successCount = results.filter((r) => r.success).length;
     return res.json({
-      message: `${successCount}/${dueTemplates.length} template berhasil dieksekusi.`,
+      message: `${successCount}/${dueTemplates.length} template dijalankan.`,
       results,
     });
   } catch (error) {

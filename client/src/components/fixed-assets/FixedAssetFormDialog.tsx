@@ -111,7 +111,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
         })
       ).data,
     onSuccess: () => {
-      toast.success('Aset tetap berhasil dibuat');
+      toast.success('Aset tetap dibuat.');
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['ga-assets'] });

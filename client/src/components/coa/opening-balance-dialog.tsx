@@ -64,7 +64,7 @@ function BalanceForm({
     onSettled: () => onPendingChange(false),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coa'] });
-      toast.success('Saldo awal berhasil diatur.');
+      toast.success('Saldo awal diatur.');
       onClose();
     },
     onError: (e) => setError(apiErrorMessage(e, 'Gagal mengatur saldo awal.')),

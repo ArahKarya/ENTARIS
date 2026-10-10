@@ -49,7 +49,7 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
 
   const sendMut = useMutation({
     mutationFn: () => api.patch(`/quotations/${quotationId}/send`),
-    onSuccess: () => { toast.success('Penawaran berhasil dikirim.'); invalidate(); },
+    onSuccess: () => { toast.success('Penawaran dikirim.'); invalidate(); },
     onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal mengirim.'),
   });
   const acceptMut = useMutation({
@@ -112,7 +112,7 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
       return invoice;
     },
     onSuccess: (invoice) => {
-      toast.success(`Sales Invoice ${invoice.invoiceNumber} berhasil dibuat.`);
+      toast.success(`Sales Invoice ${invoice.invoiceNumber} dibuat.`);
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });

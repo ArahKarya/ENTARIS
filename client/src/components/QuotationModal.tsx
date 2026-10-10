@@ -178,7 +178,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
       return res.data;
     },
     onSuccess: async (data) => {
-      toast.success(isEdit ? 'Penawaran berhasil diperbarui.' : 'Penawaran berhasil dibuat.');
+      toast.success(isEdit ? 'Penawaran diperbarui.' : 'Penawaran dibuat.');
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       if (!isEdit && onCreated) {
         try { await onCreated(data); } catch { /* caller handles its own toast */ }

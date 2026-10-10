@@ -72,7 +72,7 @@ export const TaxConfigTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tax-configs'] });
       setIsModalOpen(false);
       resetForm();
-      toast.success('Konfigurasi pajak berhasil dibuat.');
+      toast.success('Konfigurasi pajak dibuat.');
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat konfigurasi pajak.'),
   });
@@ -83,7 +83,7 @@ export const TaxConfigTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tax-configs'] });
       setIsModalOpen(false);
       resetForm();
-      toast.success('Konfigurasi pajak berhasil diperbarui.');
+      toast.success('Konfigurasi pajak diperbarui.');
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal memperbarui konfigurasi pajak.'),
   });

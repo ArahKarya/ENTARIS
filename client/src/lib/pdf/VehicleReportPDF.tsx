@@ -305,7 +305,7 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
                 condition.lastOil.brand ? ` (${condition.lastOil.brand})` : ''
               }. Jadwal berikutnya ${num(condition.lastOil.nextOdometerDue)} km${
                 condition.lastOil.remainingKm != null ? `, sisa ${num(condition.lastOil.remainingKm)} km` : ''
-              }${condition.lastOil.isDue ? '. SUDAH JATUH TEMPO.' : '.'}`
+              }${condition.lastOil.isDue ? '. Sudah jatuh tempo.' : '.'}`
             : 'belum ada log.'}
         </Text>
 

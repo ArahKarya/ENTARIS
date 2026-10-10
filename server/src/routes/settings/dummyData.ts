@@ -607,7 +607,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
     }, { timeout: 120000 });
 
     logger.info({ results }, 'Dummy data generated');
-    return res.json({ message: 'Data dummy berhasil dibuat.', results });
+    return res.json({ message: 'Data dummy dibuat.', results });
   } catch (error) {
     logger.error({ error }, 'POST /settings/generate-dummy error');
     return res.status(500).json({ error: 'Gagal membuat data dummy.' });
@@ -771,7 +771,7 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
     }, { timeout: 120000 });
 
     logger.info({ results }, 'Dummy data deleted');
-    return res.json({ message: 'Data dummy berhasil dihapus.', results });
+    return res.json({ message: 'Data dummy dihapus.', results });
   } catch (error) {
     logger.error({ error }, 'POST /settings/delete-dummy error');
     return res.status(500).json({ error: 'Gagal menghapus data dummy.' });
@@ -838,11 +838,11 @@ router.post('/reset-data', requirePerm('settings'), async (req, res) => {
       });
     } catch (seedError) {
       logger.error({ error: seedError }, 'Seed failed after reset');
-      return res.status(500).json({ error: 'Data berhasil dihapus, tapi gagal re-seed. Silakan restart server.' });
+      return res.status(500).json({ error: 'Data dihapus, tetapi data awal gagal diisi ulang. Silakan mulai ulang server.' });
     }
 
     logger.info('Database reset and re-seeded successfully');
-    return res.json({ message: 'Data berhasil direset. Silakan login ulang.' });
+    return res.json({ message: 'Data direset. Silakan masuk ulang.' });
   } catch (error) {
     logger.error({ error }, 'POST /settings/reset-data error');
     return res.status(500).json({ error: 'Gagal mereset data.' });

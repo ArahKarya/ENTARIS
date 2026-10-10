@@ -291,7 +291,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
       });
     }, { timeout: 15000 });
 
-    return res.json({ message: 'Jurnal berhasil dibatalkan.' });
+    return res.json({ message: 'Jurnal dibatalkan.' });
   } catch (error: any) {
     return handleRouteError(res, error, 'PATCH /journals/:id/cancel', 'Gagal membatalkan jurnal.');
   }

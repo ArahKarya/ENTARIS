@@ -178,7 +178,7 @@ router.put('/me/password', async (req: AuthRequest, res) => {
       });
     }
 
-    return res.json({ message: 'Password berhasil diubah.' });
+    return res.json({ message: 'Password diubah.' });
   } catch (error) {
     return handleRouteError(res, error, 'PUT /users/me/password', 'Gagal mengubah password.');
   }

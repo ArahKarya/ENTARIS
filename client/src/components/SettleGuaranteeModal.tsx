@@ -68,7 +68,7 @@ const SettleGuaranteeModal: React.FC<Props> = ({ isOpen, onClose, guarantee }) =
   const mutation = useMutation({
     mutationFn: (body: any) => api.post(`/project-guarantees/${guarantee!.id}/settle`, body),
     onSuccess: () => {
-      toast.success('Settlement uang jaminan berhasil disimpan.');
+      toast.success('Settlement uang jaminan disimpan.');
       queryClient.invalidateQueries({ queryKey: ['project-guarantees'] });
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });

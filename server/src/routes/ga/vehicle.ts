@@ -424,7 +424,7 @@ router.post('/assets/:id/services/:sid/journal', async (req: AuthRequest, res) =
         userId: req.user!.userId,
       });
     }, { timeout: 20000 });
-    return res.status(201).json({ message: `Jurnal ${entry.entryNumber} berhasil dibuat.`, journalEntry: entry });
+    return res.status(201).json({ message: `Jurnal ${entry.entryNumber} dibuat.`, journalEntry: entry });
   } catch (error) {
     return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/services/:sid/journal', 'Gagal posting jurnal.');
   }

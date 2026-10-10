@@ -119,7 +119,7 @@ export const BankReconciliation = () => {
     mutationFn: async (id: string) => api.delete(`${ENDPOINT}/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliations'] });
-      toast.success('Rekonsiliasi berhasil dihapus.');
+      toast.success('Rekonsiliasi dihapus.');
     },
     onError: (e) => toast.error(errorMessage(e, 'Gagal menghapus.')),
   });

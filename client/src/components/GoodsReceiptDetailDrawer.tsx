@@ -49,7 +49,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['goods-receipt-detail', sttId] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success('STT dibatalkan. Stok dikembalikan + JV di-reverse.');
+      toast.success('STT dibatalkan. Stok dikembalikan dan jurnal dibalik.');
     },
     onError: (err: any) => {
       const msg = err.response?.data?.error || 'Gagal membatalkan STT.';
@@ -277,7 +277,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
             </section>
 
             {status === 'Cancelled' && (
-              <Callout tone="danger">STT ini sudah dibatalkan. Stok telah dikembalikan + JV di-reverse.</Callout>
+              <Callout tone="danger">STT ini sudah dibatalkan. Stok sudah dikembalikan dan jurnal dibalik.</Callout>
             )}
 
             {doc.isLegacyBackfill && (
@@ -295,7 +295,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
         onOpenChange={setConfirmCancel}
         tone="danger"
         title="Batalkan STT"
-        description={`Batalkan STT ${doc?.sttNumber ?? ''}? Stok akan dikembalikan + JV di-reverse. Tindakan tercatat di audit trail.`}
+        description={`Batalkan STT ${doc?.sttNumber ?? ''}? Stok akan dikembalikan dan jurnal dibalik. Tindakan tercatat di audit trail.`}
         confirmLabel="Ya, Batalkan"
         onConfirm={() => {
           cancelMutation.mutate(undefined);
@@ -307,7 +307,7 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
         onOpenChange={(o) => !o && setOverrideMessage(null)}
         tone="danger"
         title="Paksa pembatalan STT?"
-        description={`${overrideMessage ?? ''} Untuk MEMAKSA pembatalan (stok bisa jadi minus), isi alasan (min 10 karakter).`}
+        description={`${overrideMessage ?? ''} Untuk memaksa pembatalan (stok bisa jadi minus), isi alasan (min 10 karakter).`}
         confirmLabel="Paksa Batalkan"
         requireReason={{ label: 'Alasan pembatalan paksa', minLength: 10, placeholder: 'Tuliskan alasan (min 10 karakter)…' }}
         onConfirm={(reason) => {

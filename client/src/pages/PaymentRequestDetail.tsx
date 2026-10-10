@@ -127,7 +127,7 @@ export const PaymentRequestDetailPage = () => {
         reject: 'Pengajuan ditolak.',
         return: 'Pengajuan dikembalikan untuk revisi.',
         cancel: 'Pengajuan dibatalkan.',
-        submit: 'Pengajuan berhasil diajukan.',
+        submit: 'Pengajuan diajukan.',
         cancelPayment: 'Pembayaran dibatalkan; jurnal di-void.',
         settleApprove: 'Pertanggungjawaban disetujui; diteruskan ke Keuangan.',
         settleReturn: 'Pertanggungjawaban dikembalikan untuk revisi.',

@@ -286,7 +286,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     await prisma.bankReconciliation.delete({ where: { id } });
-    return res.json({ message: 'Rekonsiliasi berhasil dihapus.' });
+    return res.json({ message: 'Rekonsiliasi dihapus.' });
   } catch (error) {
     return handleRouteError(res, error, 'DELETE /reconciliation/:id', 'Gagal menghapus rekonsiliasi.');
   }

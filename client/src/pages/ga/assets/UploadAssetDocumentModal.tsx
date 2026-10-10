@@ -87,7 +87,7 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
       }
     },
     onSuccess: () => {
-      toast.success('Dokumen dan file berhasil diunggah.');
+      toast.success('Dokumen dan file diunggah.');
       queryClient.invalidateQueries({ queryKey: ['ga-asset-documents', assetId] });
       onClose();
     },

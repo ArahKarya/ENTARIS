@@ -353,7 +353,7 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
       size="doc"
       className="lg:max-w-6xl"
       title={title}
-      description="Pesanan pembelian ke supplier (tidak ada GL/stock impact)"
+      description="Pesanan pembelian ke supplier. Tidak mengubah stok atau jurnal."
       busy={mutation.isPending}
       footer={footer}
     >

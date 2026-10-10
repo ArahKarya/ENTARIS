@@ -267,7 +267,7 @@ export const Payments = () => {
   const cancelPaymentMutation = useMutation({
     mutationFn: (id: string) => api.post(`/payments/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Pembayaran berhasil dibatalkan.');
+      toast.success('Pembayaran dibatalkan.');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['cash-journals'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -651,7 +651,7 @@ export const Payments = () => {
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
         title="Batalkan Transaksi"
-        description={`Batalkan ${cancelTarget?.number}? Alokasi ke faktur, saldo kas/bank, dan jurnal akan otomatis di-reverse. Tindakan tidak dapat dibatalkan.`}
+        description={`Batalkan ${cancelTarget?.number}? Alokasi ke faktur, saldo kas/bank, dan jurnal akan otomatis dibalik. Tindakan tidak dapat dibatalkan.`}
         confirmLabel="Ya, Batalkan"
         tone="danger"
         loading={cancelPaymentMutation.isPending}
