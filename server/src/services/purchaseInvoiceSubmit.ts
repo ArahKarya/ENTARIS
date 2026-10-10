@@ -6,6 +6,7 @@ import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { systemAccounts } from './systemAccounts';
 import { computePurchaseItem, sumPotonganItem } from './purchaseInvoiceCalc';
+import { resolvePurchaseLineType, resolvePurchaseOrderIdFromReceipts } from './purchaseInvoiceLinks';
 import { logger } from '../lib/logger';
 
 type Tx = Prisma.TransactionClient;
@@ -151,10 +152,16 @@ export async function submitPurchaseInvoiceInTx(
     : [];
   const invItemMap = new Map(inventoryItems.map((i) => [i.id, i]));
 
+  // Header PO link from the billed STTs (only when they all share one PO).
+  const linkedReceipts = new Map<string, { purchaseOrderId: string | null }>();
+  for (const gri of sttItemMap.values()) linkedReceipts.set(gri.goodsReceiptId, gri.goodsReceipt);
+  const purchaseOrderId = resolvePurchaseOrderIdFromReceipts([...linkedReceipts.values()]);
+
   const invoice = await tx.purchaseInvoice.create({
     data: {
       invoiceNumber,
       date: parsedDate,
+      purchaseOrderId,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       partyId: body.partyId,
       grandTotal: grandTotalNum,
@@ -174,6 +181,7 @@ export async function submitPurchaseInvoiceInTx(
           const itemAccountId = linkedItem?.accountId || inventoryAccount.id;
           return {
             itemName: item.itemName,
+            itemType: resolvePurchaseLineType(item),
             inventoryItemId: item.inventoryItemId || null,
             warehouseId: item.warehouseId || null,
             quantity: item.effectiveQty.toNumber(),

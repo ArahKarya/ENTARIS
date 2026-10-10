@@ -629,6 +629,8 @@ model PurchaseInvoiceItem {
   id                 String            @id @default(uuid())
   purchaseInvoiceId  String            @map("purchase_invoice_id")
   purchaseInvoice    PurchaseInvoice   @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  // 'product' (goods) | 'service' (jasa/biaya). Column added by loose SQL 2026101800000.
+  itemType           String            @default("product") @map("item_type")
   inventoryItemId    String?           @map("inventory_item_id")
   inventoryItem      InventoryItem?    @relation("PurchaseInvoiceInventory", fields: [inventoryItemId], references: [id])
   warehouseId        String?           @map("warehouse_id")

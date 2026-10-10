@@ -287,6 +287,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
   // Payload builder shared by submit and the live three-way match preview.
   const payloadItems = items.map((i) => ({
     itemName: i.itemName,
+    itemType: i.itemType === 'service' ? 'service' : 'product',
     inventoryItemId: i.inventoryItemId || null,
     warehouseId: i.itemType === 'material' ? (i.warehouseId || null) : null,
     description: i.description || null,

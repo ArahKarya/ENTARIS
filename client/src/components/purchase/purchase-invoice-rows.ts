@@ -10,6 +10,8 @@ type Money = string | number;
 
 export interface PurchaseInvoiceItemRow {
   itemName?: string | null;
+  /** Stored line type ('product' | 'service'); older rows may lack it. */
+  itemType?: string | null;
   inventoryItemId?: string | null;
   warehouseId?: string | null;
   description?: string | null;
@@ -154,7 +156,9 @@ export function toPurchaseInvoicePrefill(
   { keepLinks, newId = () => crypto.randomUUID() }: { keepLinks: boolean; newId?: () => string },
 ): PurchaseInvoicePrefill {
   const items = (source.items ?? []).map((it): PurchaseInvoicePrefillItem => {
-    const isService = !it.inventoryItemId && Number(it.timbanganDiterima ?? 0) === 0;
+    // Stored 'service' type, or the legacy no-weight heuristic for older rows.
+    const isService =
+      !it.inventoryItemId && (it.itemType === 'service' || Number(it.timbanganDiterima ?? 0) === 0);
     const item: PurchaseInvoicePrefillItem = {
       id: newId(),
       itemType: isService ? 'service' : 'material',

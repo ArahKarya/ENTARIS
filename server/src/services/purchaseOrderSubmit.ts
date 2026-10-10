@@ -4,6 +4,7 @@ import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { logger } from '../lib/logger';
 import { checkPurchaseOrderClosable, checkPurchaseOrderEditable } from './purchaseOrderRules';
+import { purchaseInvoicesOfPoWhere } from './purchaseInvoiceLinks';
 import {
   checkPurchaseOrderCancellable,
   checkPurchaseOrderDeletable,
@@ -279,7 +280,8 @@ export async function updatePurchaseOrderInTx(tx: Tx, poId: string, body: Submit
   if (!lifecycle.ok) throw new BusinessError(lifecycle.error);
   const [linkedReceiptCount, linkedInvoiceCount] = await Promise.all([
     tx.goodsReceipt.count({ where: { purchaseOrderId: poId, status: { not: 'Cancelled' } } }),
-    tx.purchaseInvoice.count({ where: { purchaseOrderId: poId, status: { not: 'Cancelled' } } }),
+    // Direct header link or via any STT of this PO.
+    tx.purchaseInvoice.count({ where: purchaseInvoicesOfPoWhere(poId) }),
   ]);
   const check = checkPurchaseOrderEditable({ ...po, linkedReceiptCount, linkedInvoiceCount });
   if (!check.ok) throw new BusinessError(check.error);
