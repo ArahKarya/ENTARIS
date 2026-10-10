@@ -3,6 +3,7 @@
  * URL: ?period=thisMonth (default)|lastMonth|last30|thisQuarter|ytd|custom&startDate&endDate.
  */
 import type { StatDelta } from '@/components/shared';
+import i18n from '@/i18n';
 import { formatDateRange, formatNumber, formatPercent, parseDate } from '@/lib/format';
 
 // Period
@@ -13,14 +14,18 @@ export const PERIOD_END_PARAM = 'endDate';
 
 export type PeriodPreset = 'thisMonth' | 'lastMonth' | 'last30' | 'thisQuarter' | 'ytd' | 'custom';
 
-export const PERIOD_PRESETS: ReadonlyArray<{ value: PeriodPreset; label: string }> = [
-  { value: 'thisMonth', label: 'Bulan ini' },
-  { value: 'lastMonth', label: 'Bulan lalu' },
-  { value: 'last30', label: '30 hari terakhir' },
-  { value: 'thisQuarter', label: 'Kuartal ini' },
-  { value: 'ytd', label: 'Tahun berjalan' },
-  { value: 'custom', label: 'Rentang khusus' },
+/** Preset order; labels are `dashboard:opsPeriod.presets.<value>`, translated via presetLabel() when shown. */
+export const PERIOD_PRESETS: ReadonlyArray<{ value: PeriodPreset }> = [
+  { value: 'thisMonth' },
+  { value: 'lastMonth' },
+  { value: 'last30' },
+  { value: 'thisQuarter' },
+  { value: 'ytd' },
+  { value: 'custom' },
 ];
+
+/** Preset label in the current UI language. */
+export const presetLabel = (preset: PeriodPreset): string => i18n.t(`opsPeriod.presets.${preset}`, { ns: 'dashboard' });
 
 export const DEFAULT_PERIOD: PeriodPreset = 'thisMonth';
 
@@ -95,7 +100,7 @@ export function resolvePeriod(params: PeriodParams, today: Date = new Date()): D
   return {
     preset,
     ...range,
-    label: PERIOD_PRESETS.find((p) => p.value === preset)?.label ?? '',
+    label: presetLabel(preset),
     rangeLabel: formatDateRange(range.startDate, range.endDate),
   };
 }
@@ -120,7 +125,7 @@ export function previousPeriod(p: Pick<DashboardPeriod, 'startDate' | 'endDate'>
 // KPI deltas
 
 /** Count change vs the previous period: "+3" / "-2" / "0". */
-export function countDelta(current: number, previous: number | null | undefined, label = 'vs periode sebelumnya'): StatDelta | undefined {
+export function countDelta(current: number, previous: number | null | undefined, label = i18n.t('opsPeriod.vsPrevious', { ns: 'dashboard' })): StatDelta | undefined {
   if (previous === null || previous === undefined) return undefined;
   if (current === 0 && previous === 0) return undefined;
   const diff = current - previous;
@@ -132,11 +137,15 @@ export function countDelta(current: number, previous: number | null | undefined,
 }
 
 /** Percentage-point change of a percentage KPI (yield): "+1,2 poin". */
-export function pointDelta(current: number | null | undefined, previous: number | null | undefined, label = 'vs periode sebelumnya'): StatDelta | undefined {
+export function pointDelta(
+  current: number | null | undefined,
+  previous: number | null | undefined,
+  label = i18n.t('opsPeriod.vsPrevious', { ns: 'dashboard' }),
+): StatDelta | undefined {
   if (current === null || current === undefined || previous === null || previous === undefined) return undefined;
   const diff = Math.round((current - previous) * 10) / 10;
   return {
-    value: `${diff > 0 ? '+' : ''}${formatNumber(diff, { maxDecimals: 1 })} poin`,
+    value: i18n.t('opsPeriod.points', { ns: 'dashboard', value: `${diff > 0 ? '+' : ''}${formatNumber(diff, { maxDecimals: 1 })}` }),
     direction: diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat',
     label,
   };

@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, PackageX } from 'lucide-react';
 import api from '../../lib/api';
+import i18n from '@/i18n';
 import { formatNumber } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { ScrollRegion } from '../dashboard-kit/ScrollRegion';
@@ -20,12 +22,12 @@ interface NegativeStockItem {
 function daysAgo(iso: string | null): string {
   if (!iso) return '—';
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
-  if (days <= 0) return 'hari ini';
-  if (days === 1) return '1 hari lalu';
-  return `${days} hari lalu`;
+  if (days <= 0) return i18n.t('widgetsShared.today', { ns: 'dashboard' });
+  return i18n.t('widgetsShared.daysAgo', { ns: 'dashboard', count: days });
 }
 
 export default function NegativeStockWidget() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-negative-stock'],
     queryFn: async () => {
@@ -40,22 +42,22 @@ export default function NegativeStockWidget() {
 
   return (
     <WidgetCard
-      title="Stok Minus Aktif"
+      title={t('negativeStock.title')}
       icon={PackageX}
       href="/inventory"
-      hrefLabel="Stok"
-      actions={data ? <Badge variant={count > 0 ? 'danger' : 'success'}>{count} item</Badge> : undefined}
+      hrefLabel={t('negativeStock.stock')}
+      actions={data ? <Badge variant={count > 0 ? 'danger' : 'success'}>{t('widgetsShared.itemCount', { count })}</Badge> : undefined}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && count === 0}
       emptyIcon={CheckCircle2}
-      emptyText="Tidak ada stok minus"
+      emptyText={t('negativeStock.empty')}
     >
       <ReportNotice tone="warning" className="mb-3">
-        Bypass Admin aktif. Pastikan produksi/penerimaan segera diinput supaya stok kembali positif.
+        {t('negativeStock.notice')}
       </ReportNotice>
-      <ScrollRegion label="Daftar stok minus" className="max-h-72 overflow-y-auto">
+      <ScrollRegion label={t('negativeStock.listLabel')} className="max-h-72 overflow-y-auto">
 <ul className="space-y-1.5">
         {items.slice(0, 10).map((it) => (
           <li key={it.id} className="rounded-md border border-border px-3 py-2 text-xs">
@@ -82,7 +84,7 @@ export default function NegativeStockWidget() {
         ))}
       </ul>
 </ScrollRegion>
-      {count > 10 && <p className="mt-2 text-xs text-muted-foreground">+ {count - 10} item lain</p>}
+      {count > 10 && <p className="mt-2 text-xs text-muted-foreground">{t('widgetsShared.moreItems', { count: count - 10 })}</p>}
     </WidgetCard>
   );
 }

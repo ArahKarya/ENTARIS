@@ -1,4 +1,5 @@
 import type { PeriodRange } from '../DashboardPeriodFilter';
+import { formatNumber } from '@/lib/format';
 
 const DAY = 86_400_000;
 
@@ -68,6 +69,6 @@ export function deltaPct(current: number, previous: number): { text: string; dir
   const pct = ((current - previous) / Math.abs(previous)) * 100;
   const rounded = Math.round(pct * 10) / 10;
   if (rounded === 0) return { text: '0%', direction: 'flat' };
-  const text = `${rounded > 0 ? '+' : '-'}${Math.abs(rounded).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`;
+  const text = `${rounded > 0 ? '+' : '-'}${formatNumber(Math.abs(rounded), { maxDecimals: 1 })}%`;
   return { text, direction: rounded > 0 ? 'up' : 'down' };
 }

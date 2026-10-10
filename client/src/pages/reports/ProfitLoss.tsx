@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -21,9 +22,9 @@ import {
   type ReportRow,
 } from '@/components/report-kit';
 
-const COLUMNS = [{ key: 'balance', label: 'Jumlah (Rp)' }];
-
 const ProfitLoss: React.FC = () => {
+  const { t } = useTranslation('reports');
+  const columns = [{ key: 'balance', label: t('reportsShared.amountRp') }];
   // Default = satu bulan penuh (bukan month-to-date) supaya entri akhir-bulan
   // (penyusutan & jurnal penyesuaian tgl 30/31) langsung muncul.
   const { startDate, endDate, setRange } = useReportRange();
@@ -43,10 +44,15 @@ const ProfitLoss: React.FC = () => {
   });
 
   const handleExport = () => {
+    const row = (section: string, name: string, balance: number) => ({
+      [t('balanceSheet.excel.section')]: section,
+      [t('reportsShared.accountName')]: name,
+      [t('reportsShared.balanceRp')]: balance,
+    });
     const flat = [
-      ...(report?.revenue?.flatMap((r: { name: string; balance: number }) => [{ Seksi: 'Pendapatan', 'Nama Akun': r.name, 'Saldo (Rp)': r.balance }]) || []),
-      ...(report?.expense?.flatMap((e: { name: string; balance: number }) => [{ Seksi: 'Beban', 'Nama Akun': e.name, 'Saldo (Rp)': e.balance }]) || []),
-      { Seksi: '---', 'Nama Akun': 'LABA BERSIH', 'Saldo (Rp)': report?.netProfit || 0 },
+      ...(report?.revenue?.map((r: { name: string; balance: number }) => row(t('profitLoss.excel.revenue'), r.name, r.balance)) || []),
+      ...(report?.expense?.map((e: { name: string; balance: number }) => row(t('profitLoss.excel.expense'), e.name, e.balance)) || []),
+      row('---', t('profitLoss.excel.netProfit'), report?.netProfit || 0),
     ];
     return exportToExcel(flat, `Laba-Rugi-${startDate}-sd-${endDate}`);
   };
@@ -64,19 +70,19 @@ const ProfitLoss: React.FC = () => {
     ];
     const netProfit = report?.netProfit || 0;
     return [
-      ...section('rev', 'I. Pendapatan', report?.revenue, 'Tidak ada data pendapatan'),
-      { key: 'rev-total', kind: 'total', label: 'Total Pendapatan', values: [report?.totalRevenue || 0] },
-      ...section('exp', 'II. Beban-Beban', report?.expense, 'Tidak ada data beban'),
-      { key: 'exp-total', kind: 'total', label: 'Total Beban', values: [Math.abs(report?.totalExpense || 0)] },
-      { key: 'net', kind: 'grand', label: 'Laba (Rugi) Bersih', values: [netProfit] },
+      ...section('rev', t('profitLoss.revenueSection'), report?.revenue, t('profitLoss.noRevenue')),
+      { key: 'rev-total', kind: 'total', label: t('profitLoss.totalRevenue'), values: [report?.totalRevenue || 0] },
+      ...section('exp', t('profitLoss.expenseSection'), report?.expense, t('profitLoss.noExpense')),
+      { key: 'exp-total', kind: 'total', label: t('profitLoss.totalExpense'), values: [Math.abs(report?.totalExpense || 0)] },
+      { key: 'net', kind: 'grand', label: t('profitLoss.netRow'), values: [netProfit] },
     ];
-  }, [report]);
+  }, [report, t]);
 
   return (
     <>
       <ReportPage
-        title="Laporan Laba Rugi"
-        description={`Performa finansial ${companySettings?.companyName || 'perusahaan'}`}
+        title={t('profitLoss.title')}
+        description={t('profitLoss.description', { company: companySettings?.companyName || t('profitLoss.companyFallback') })}
         period={periodLabel({ startDate, endDate })}
         actions={
           <ExportMenu
@@ -87,7 +93,7 @@ const ProfitLoss: React.FC = () => {
               render: () => (
                 <ProfitLossPDF
                   company={company}
-                  period={`${startDate} s/d ${endDate}`}
+                  period={t('reportsShared.dateRange', { start: startDate, end: endDate })}
                   revenue={report?.revenue ?? []}
                   expense={report?.expense ?? []}
                   totalRevenue={report?.totalRevenue ?? 0}
@@ -103,19 +109,18 @@ const ProfitLoss: React.FC = () => {
           <ReportSummaryCards
             loading={isLoading}
             items={[
-              { label: 'Total Pendapatan', value: report?.totalRevenue || 0, icon: TrendingUp, tone: 'positive' },
-              { label: 'Total Beban', value: report?.totalExpense || 0, icon: TrendingDown, tone: 'neutral' },
-              { label: 'Laba Bersih', value: report?.netProfit || 0, icon: BarChart3 },
+              { label: t('profitLoss.totalRevenue'), value: report?.totalRevenue || 0, icon: TrendingUp, tone: 'positive' },
+              { label: t('profitLoss.totalExpense'), value: report?.totalExpense || 0, icon: TrendingDown, tone: 'neutral' },
+              { label: t('profitLoss.netProfit'), value: report?.netProfit || 0, icon: BarChart3 },
             ]}
           />
         }
       >
         <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
           <ReportTable
-            caption={`Laporan laba rugi, ${periodLabel({ startDate, endDate })}`}
-            columns={COLUMNS}
-            codeHeader="No. Akun"
-            labelHeader="Uraian"
+            caption={t('profitLoss.caption', { period: periodLabel({ startDate, endDate }) })}
+            columns={columns}
+            codeHeader={t('reportsShared.accountNumber')}
             rows={rows}
           />
         </ReportState>

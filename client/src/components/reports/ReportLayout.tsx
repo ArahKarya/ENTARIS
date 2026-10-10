@@ -1,5 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import { formatDate } from '@/lib/format';
 import { ArrowLeft, Printer, Download } from 'lucide-react';
 import PDFDownloadButton from '../PDFDownloadButton';
 import ReportTableSkeleton from './ReportTableSkeleton';
@@ -29,12 +32,12 @@ type DateFilter =
 function formatPeriodLabel(filter?: DateFilter): string {
   if (!filter) return '';
   if (filter.mode === 'range') {
-    return `Periode: ${filter.startDate} s/d ${filter.endDate}`;
+    return i18n.t('reportLayout.periodRange', { ns: 'reports', start: filter.startDate, end: filter.endDate });
   }
   if (filter.mode === 'single') {
-    return `Per tanggal: ${filter.date}`;
+    return i18n.t('reportLayout.asOf', { ns: 'reports', date: filter.date });
   }
-  return `Per tanggal: ${new Date().toISOString().slice(0, 10)}`;
+  return i18n.t('reportLayout.asOf', { ns: 'reports', date: new Date().toISOString().slice(0, 10) });
 }
 
 interface ReportLayoutProps {
@@ -65,15 +68,12 @@ interface ReportLayoutProps {
 // Print Header (only visible during print)
 
 const PrintHeader: React.FC<{ title: string; periodLabel: string }> = ({ title, periodLabel }) => {
+  const { t } = useTranslation('reports');
   const company = useCompanySettings();
-  const companyName = company?.companyName || 'Perusahaan';
+  const companyName = company?.companyName || t('kit.page.companyFallback');
   const address = company?.address;
   const taxId = company?.taxId;
-  const printDate = new Date().toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  const printDate = formatDate(new Date(), 'long');
 
   return (
     <div className="print-only hidden mb-6">
@@ -86,7 +86,7 @@ const PrintHeader: React.FC<{ title: string; periodLabel: string }> = ({ title, 
         <div className="text-right">
           <h1 className="text-xl font-bold text-foreground">{title.toUpperCase()}</h1>
           <p className="text-sm text-foreground-secondary mt-0.5">{periodLabel}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Dicetak: {printDate}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t('reportLayout.printed', { date: printDate })}</p>
         </div>
       </div>
     </div>
@@ -109,6 +109,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
   extraControls,
   children,
 }) => {
+  const { t } = useTranslation('reports');
   const periodLabel = formatPeriodLabel(dateFilter);
 
   return (
@@ -122,7 +123,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mb-2 no-print"
         data-no-print
       >
-        <ArrowLeft size={14} /> Kembali ke Laporan
+        <ArrowLeft size={14} /> {t('reportLayout.back')}
       </Link>
 
       {/* Header — screen only */}
@@ -136,19 +137,19 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
             onClick={onPrint || (() => window.print())}
             className="inline-flex min-h-9 items-center gap-2 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            <Printer size={14} /> Cetak
+            <Printer size={14} /> {t('kit.export.print')}
           </button>
           {pdfDocument && (
             <PDFDownloadButton
               variant="button"
               fileName={pdfFileName || 'report.pdf'}
-              label="Export PDF"
+              label={t('reportLayout.exportPdf')}
               document={pdfDocument}
             />
           )}
           {onExportExcel && (
             <button onClick={onExportExcel} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-              <Download size={14} /> Export Excel
+              <Download size={14} /> {t('reportLayout.exportExcel')}
             </button>
           )}
         </div>
@@ -157,11 +158,11 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       {/* Date Filter — hidden when printing */}
       {dateFilter && dateFilter.mode === 'range' && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 no-print" data-no-print>
-          <span className="text-xs text-muted-foreground font-medium">Periode:</span>
+          <span className="text-xs text-muted-foreground font-medium">{t('reportLayout.periodLabel')}</span>
           <input
             type="date"
             value={dateFilter.startDate}
-            aria-label="Tanggal mulai"
+            aria-label={t('reportLayout.startDate')}
             onChange={(e) => dateFilter.onStartDateChange(e.target.value)}
             className={dateInputClass}
           />
@@ -169,7 +170,7 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
           <input
             type="date"
             value={dateFilter.endDate}
-            aria-label="Tanggal akhir"
+            aria-label={t('reportLayout.endDate')}
             onChange={(e) => dateFilter.onEndDateChange(e.target.value)}
             className={dateInputClass}
           />
@@ -177,11 +178,11 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       )}
       {dateFilter && dateFilter.mode === 'single' && (
         <div className="flex items-center gap-3 no-print" data-no-print>
-          <span className="text-xs text-muted-foreground font-medium">{dateFilter.label || 'Per tanggal:'}</span>
+          <span className="text-xs text-muted-foreground font-medium">{dateFilter.label || t('reportLayout.asOfLabel')}</span>
           <input
             type="date"
             value={dateFilter.date}
-            aria-label={dateFilter.label || 'Per tanggal'}
+            aria-label={dateFilter.label || t('kit.filters.asOfDate')}
             onChange={(e) => dateFilter.onDateChange(e.target.value)}
             className={dateInputClass}
           />
@@ -201,10 +202,10 @@ const ReportLayout: React.FC<ReportLayoutProps> = ({
       {/* Content — always visible */}
       {isError ? (
         <div className="bg-card border border-danger/30 rounded-xl p-8 text-center">
-          <p className="text-sm text-danger-text mb-3">Gagal memuat laporan.</p>
+          <p className="text-sm text-danger-text mb-3">{t('reportLayout.error')}</p>
           {onRetry && (
             <button onClick={onRetry} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-              Coba Lagi
+              {t('kit.state.retry')}
             </button>
           )}
         </div>

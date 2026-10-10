@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Scale, TriangleAlert } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -15,6 +16,7 @@ interface RatioData {
 }
 
 export default function FinancialRatios() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<RatioData>({
     queryKey: ['financial-ratios'],
     queryFn: async () => (await api.get('/dashboard/financial-ratios')).data,
@@ -30,10 +32,10 @@ export default function FinancialRatios() {
 
   return (
     <WidgetCard
-      title="Rasio Keuangan"
+      title={t('financialRatios.title')}
       icon={Scale}
       href="/reports/balance-sheet"
-      hrefLabel="Neraca"
+      hrefLabel={t('financialRatios.balanceSheet')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
@@ -50,7 +52,7 @@ export default function FinancialRatios() {
                   <span className={cn('flex items-center gap-1.5 num text-sm font-semibold', r.good ? 'text-success-text' : 'text-warning-text')}>
                     <Icon className="size-4" aria-hidden />
                     {r.value}x
-                    <span className="sr-only">{r.good ? ', sehat' : ', perlu perhatian'}</span>
+                    <span className="sr-only">{r.good ? t('financialRatios.healthy') : t('financialRatios.attention')}</span>
                   </span>
                 </li>
               );
@@ -58,9 +60,9 @@ export default function FinancialRatios() {
           </ul>
           <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
             {[
-              ['Total Aset', data.totalAssets],
-              ['Liabilitas', data.totalLiabilities],
-              ['Ekuitas', data.totalEquity],
+              [t('financialRatios.totalAssets'), data.totalAssets],
+              [t('financialRatios.liabilities'), data.totalLiabilities],
+              [t('financialRatios.equity'), data.totalEquity],
             ].map(([k, v]) => (
               <div key={k as string} className="min-w-0">
                 <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</dt>

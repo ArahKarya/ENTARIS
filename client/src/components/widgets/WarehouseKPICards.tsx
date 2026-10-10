@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeftRight, Banknote, CheckCircle, Package } from 'lucide-react';
 import api from '../../lib/api';
 import { formatNumber, formatRupiah } from '@/lib/format';
@@ -14,29 +15,30 @@ interface DashboardMetrics {
 }
 
 export default function WarehouseKPICards() {
+  const { t } = useTranslation('dashboard');
   const { data: m, isLoading, isError, refetch } = useQuery<DashboardMetrics>({
     queryKey: ['warehouse-metrics'],
     queryFn: async () => (await api.get('/inventory/dashboard/metrics')).data,
   });
 
   if (isError) {
-    return <WidgetCard title="Ringkasan Stok" isError onRetry={() => void refetch()} minHeight={96} />;
+    return <WidgetCard title={t('warehouseKpi.title')} isError onRetry={() => void refetch()} minHeight={96} />;
   }
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-      <StatCard label="Total Item" value={formatNumber(m?.totalItems)} icon={Package} loading={isLoading} href="/inventory" />
-      <StatCard label="Item Aktif" value={formatNumber(m?.activeItems)} icon={CheckCircle} loading={isLoading} />
+      <StatCard label={t('warehouseKpi.totalItems')} value={formatNumber(m?.totalItems)} icon={Package} loading={isLoading} href="/inventory" />
+      <StatCard label={t('warehouseKpi.activeItems')} value={formatNumber(m?.activeItems)} icon={CheckCircle} loading={isLoading} />
       <StatCard
-        label="Stok Menipis"
+        label={t('warehouseKpi.lowStock')}
         value={formatNumber(m?.lowStockCount)}
         icon={AlertTriangle}
         loading={isLoading}
-        hint={m ? (m.lowStockCount > 0 ? 'Perlu restock' : 'semua stok aman') : undefined}
+        hint={m ? (m.lowStockCount > 0 ? t('warehouseKpi.needRestock') : t('kpiCards.stockSafe')) : undefined}
       />
-      <StatCard label="Gerakan Bulan Ini" value={formatNumber(m?.movementsThisMonth)} icon={ArrowLeftRight} loading={isLoading} />
+      <StatCard label={t('warehouseKpi.movementsThisMonth')} value={formatNumber(m?.movementsThisMonth)} icon={ArrowLeftRight} loading={isLoading} />
       <StatCard
-        label="Nilai Persediaan"
+        label={t('kpiCards.inventoryValue')}
         value={formatRupiah(m?.inventoryValue, { compact: true })}
         valueTitle={formatRupiah(m?.inventoryValue)}
         icon={Banknote}

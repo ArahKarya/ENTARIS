@@ -3,6 +3,7 @@
  * URL-bound period selector, titled panel, panel states and chart tooltip.
  */
 import { useId, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CalendarRange, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import {
   DEFAULT_PERIOD,
   PERIOD_PRESETS,
+  presetLabel,
   type DashboardPeriod,
   type PeriodPreset,
 } from './dashboard-model';
@@ -27,12 +29,13 @@ interface PeriodToolbarProps {
 
 /** "Periode" select (+ date range when custom) with the resolved range as text. */
 export function PeriodToolbar({ period, onPresetChange, onRangeChange, children, className }: PeriodToolbarProps) {
+  const { t } = useTranslation('dashboard');
   const id = useId();
   const custom = period.preset === 'custom';
   return (
-    <div role="group" aria-label="Periode dashboard" className={cn('flex flex-wrap items-center gap-2', className)}>
+    <div role="group" aria-label={t('opsPeriod.groupLabel')} className={cn('flex flex-wrap items-center gap-2', className)}>
       <label htmlFor={`${id}-preset`} className="sr-only">
-        Periode
+        {t('opsPeriod.period')}
       </label>
       <Select value={period.preset} onValueChange={(v) => onPresetChange(v as PeriodPreset)}>
         <SelectTrigger id={`${id}-preset`} className="w-full sm:w-48">
@@ -44,16 +47,16 @@ export function PeriodToolbar({ period, onPresetChange, onRangeChange, children,
         <SelectContent>
           {PERIOD_PRESETS.map((p) => (
             <SelectItem key={p.value} value={p.value}>
-              {p.label}
+              {presetLabel(p.value)}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       {custom ? (
         <fieldset className="flex w-full items-center gap-1.5 sm:w-auto">
-          <legend className="sr-only">Rentang tanggal</legend>
+          <legend className="sr-only">{t('opsPeriod.dateRange')}</legend>
           <label htmlFor={`${id}-from`} className="sr-only">
-            Dari tanggal
+            {t('periodFilter.from')}
           </label>
           <DateInput
             id={`${id}-from`}
@@ -66,7 +69,7 @@ export function PeriodToolbar({ period, onPresetChange, onRangeChange, children,
             –
           </span>
           <label htmlFor={`${id}-to`} className="sr-only">
-            Sampai tanggal
+            {t('periodFilter.to')}
           </label>
           <DateInput
             id={`${id}-to`}
@@ -82,7 +85,7 @@ export function PeriodToolbar({ period, onPresetChange, onRangeChange, children,
       {period.preset !== DEFAULT_PERIOD && (
         <Button variant="ghost" size="md" onClick={() => onPresetChange(DEFAULT_PERIOD)} className="text-muted-foreground">
           <RotateCcw aria-hidden />
-          Bulan ini
+          {presetLabel(DEFAULT_PERIOD)}
         </Button>
       )}
       {children && <div className="ml-auto flex items-center gap-2">{children}</div>}
@@ -152,15 +155,16 @@ export function PanelState({
   skeleton?: 'rows' | 'chart';
   children: ReactNode;
 }) {
+  const { t } = useTranslation('dashboard');
   if (loading) {
     return skeleton === 'chart' ? (
-      <div aria-busy className="flex h-64 items-end gap-3 px-2 pb-2" role="status" aria-label="Memuat grafik">
+      <div aria-busy className="flex h-64 items-end gap-3 px-2 pb-2" role="status" aria-label={t('opsPeriod.loadingChart')}>
         {[56, 80, 40, 68, 30, 90, 50].map((h, i) => (
           <Skeleton key={i} className="flex-1" style={{ height: `${h}%` }} />
         ))}
       </div>
     ) : (
-      <div aria-busy className="space-y-3" role="status" aria-label="Memuat data">
+      <div aria-busy className="space-y-3" role="status" aria-label={t('opsPeriod.loadingData')}>
         {Array.from({ length: 4 }, (_, i) => (
           <Skeleton key={i} className="h-9 w-full" />
         ))}
@@ -176,7 +180,7 @@ export function PanelState({
           onRetry && (
             <Button variant="outline" size="sm" onClick={onRetry}>
               <RotateCcw aria-hidden />
-              Coba lagi
+              {t('kit.widget.retry')}
             </Button>
           )
         }

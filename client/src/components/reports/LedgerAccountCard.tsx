@@ -1,5 +1,6 @@
 import { memo, useId } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { focusRing } from '@/components/ui/styles';
 import { formatDate, formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ interface Props {
 
 /** One collapsible account block of the general ledger. */
 function LedgerAccountCardBase({ account, expanded, onToggle }: Props) {
+  const { t } = useTranslation('reports');
   const panelId = useId();
   const closingNegative = account.closingBalance < 0;
   return (
@@ -57,10 +59,10 @@ function LedgerAccountCardBase({ account, expanded, onToggle }: Props) {
             {expanded ? <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
             <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{account.accountNumber}</span>
             <span className="text-sm font-semibold">{account.accountName}</span>
-            <span className="text-xs uppercase text-muted-foreground">{account.entries.length} mutasi</span>
+            <span className="text-xs uppercase text-muted-foreground">{t('ledgerAccountCard.entryCount', { count: account.entries.length })}</span>
           </span>
           <span className="ml-7 text-left sm:ml-0 sm:text-right">
-            <span className="block text-xs text-muted-foreground">Saldo Akhir</span>
+            <span className="block text-xs text-muted-foreground">{t('reportsShared.closingBalance')}</span>
             <span className={cn('num text-sm font-medium', closingNegative && 'text-danger-text')}>{balanceText(account.closingBalance)}</span>
           </span>
         </button>
@@ -72,24 +74,24 @@ function LedgerAccountCardBase({ account, expanded, onToggle }: Props) {
           role="region"
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
           tabIndex={0}
-          aria-label={`Mutasi ${account.accountName}`}
+          aria-label={t('ledgerAccountCard.regionLabel', { name: account.accountName })}
           className={cn('max-h-[60vh] overflow-auto border-t border-border', focusRing)}
         >
           <table className="w-full border-collapse text-sm">
-            <caption className="sr-only">Mutasi akun {account.accountNumber} {account.accountName} dengan saldo berjalan</caption>
+            <caption className="sr-only">{t('ledgerAccountCard.caption', { number: account.accountNumber, name: account.accountName })}</caption>
             <thead>
               <tr>
-                <th scope="col" className={cn(TH, 'text-left')}>Tanggal</th>
-                <th scope="col" className={cn(TH, 'text-left')}>Keterangan</th>
-                <th scope="col" className={cn(TH, 'text-right')}>Debit</th>
-                <th scope="col" className={cn(TH, 'text-right')}>Kredit</th>
-                <th scope="col" className={cn(TH, 'text-right')}>Saldo</th>
+                <th scope="col" className={cn(TH, 'text-left')}>{t('reportsShared.date')}</th>
+                <th scope="col" className={cn(TH, 'text-left')}>{t('reportsShared.description')}</th>
+                <th scope="col" className={cn(TH, 'text-right')}>{t('reportsShared.debit')}</th>
+                <th scope="col" className={cn(TH, 'text-right')}>{t('reportsShared.credit')}</th>
+                <th scope="col" className={cn(TH, 'text-right')}>{t('reportsShared.balance')}</th>
               </tr>
             </thead>
             <tbody>
               {account.openingBalance !== 0 && (
                 <tr className="border-b border-border bg-info-subtle">
-                  <th scope="row" colSpan={4} className="px-4 py-2 text-left text-xs font-medium italic text-info-text">Saldo Awal</th>
+                  <th scope="row" colSpan={4} className="px-4 py-2 text-left text-xs font-medium italic text-info-text">{t('reportsShared.openingBalance')}</th>
                   <td className="num px-4 py-2 text-right text-xs font-medium text-info-text">{balanceText(account.openingBalance)}</td>
                 </tr>
               )}
@@ -110,13 +112,13 @@ function LedgerAccountCardBase({ account, expanded, onToggle }: Props) {
               ))}
               {account.entries.length === 0 && (
                 <tr className="border-b border-border">
-                  <td colSpan={5} className="px-4 py-4 text-center text-xs text-muted-foreground">Tidak ada mutasi pada periode ini</td>
+                  <td colSpan={5} className="px-4 py-4 text-center text-xs text-muted-foreground">{t('ledgerAccountCard.noEntries')}</td>
                 </tr>
               )}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border-strong bg-muted font-semibold">
-                <th scope="row" colSpan={2} className="px-4 py-2.5 text-left text-xs">Total Mutasi</th>
+                <th scope="row" colSpan={2} className="px-4 py-2.5 text-left text-xs">{t('ledgerAccountCard.totalEntries')}</th>
                 <td className="num px-4 py-2.5 text-right text-xs">{formatRupiah(account.totalDebit, { symbol: false })}</td>
                 <td className="num px-4 py-2.5 text-right text-xs">{formatRupiah(account.totalCredit, { symbol: false })}</td>
                 <td className={cn('num whitespace-nowrap px-4 py-2.5 text-right text-xs font-bold', closingNegative && 'text-danger-text')}>

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { CalendarClock, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
@@ -16,8 +17,9 @@ interface UpcomingItem {
   daysLeft: number;
 }
 
-/** Invoices (AR/AP) that fall due within the next 14 days: counterpart of "Faktur Jatuh Tempo". */
+/** Invoices (AR/AP) that fall due within the next 14 days: counterpart of "Invoice Jatuh Tempo". */
 export default function UpcomingDueInvoices() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<UpcomingItem[]>({
     queryKey: ['dashboard-upcoming-due'],
     queryFn: async () => (await api.get('/dashboard/upcoming-due')).data,
@@ -25,17 +27,17 @@ export default function UpcomingDueInvoices() {
 
   return (
     <WidgetCard
-      title="Segera Jatuh Tempo"
-      description="Faktur yang jatuh tempo dalam 14 hari"
+      title={t('upcomingDue.title')}
+      description={t('upcomingDue.description')}
       icon={CalendarClock}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={CheckCircle2}
-      emptyText="Tidak ada faktur yang jatuh tempo dalam 14 hari"
+      emptyText={t('upcomingDue.empty')}
     >
-      <ScrollRegion label="Daftar faktur segera jatuh tempo" className="max-h-72 overflow-y-auto">
+      <ScrollRegion label={t('upcomingDue.listLabel')} className="max-h-72 overflow-y-auto">
         <ul className="divide-y divide-border">
           {(data ?? []).map((inv) => (
             <li key={`${inv.type}-${inv.invoiceNumber}`}>
@@ -46,14 +48,14 @@ export default function UpcomingDueInvoices() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-medium text-foreground">{inv.invoiceNumber}</span>
-                    <Badge variant={inv.type === 'sales' ? 'info' : 'neutral'}>{inv.type === 'sales' ? 'Piutang' : 'Utang'}</Badge>
+                    <Badge variant={inv.type === 'sales' ? 'info' : 'neutral'}>{inv.type === 'sales' ? t('overdueInvoices.receivable') : t('overdueInvoices.payable')}</Badge>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{inv.partyName}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="num text-xs font-semibold text-foreground">{formatRupiah(inv.amount)}</p>
                   <p className="num text-xs text-muted-foreground">
-                    {formatDate(inv.dueDate)} · {inv.daysLeft === 0 ? 'hari ini' : `${inv.daysLeft} hari lagi`}
+                    {formatDate(inv.dueDate)} · {inv.daysLeft === 0 ? t('widgetsShared.today') : t('upcomingDue.daysLeft', { count: inv.daysLeft })}
                   </p>
                 </div>
               </Link>

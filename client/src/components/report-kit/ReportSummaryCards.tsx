@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { StatCard } from '@/components/shared';
 import { formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -36,9 +37,10 @@ function toneClass(item: SummaryItem): string {
 }
 
 /** KPI row built from the shared StatCard. Values are full rupiah, negatives in parentheses. */
-export function ReportSummaryCards({ items, loading, label = 'Ringkasan laporan' }: ReportSummaryCardsProps) {
+export function ReportSummaryCards({ items, loading, label }: ReportSummaryCardsProps) {
+  const { t } = useTranslation('reports');
   return (
-    <section aria-label={label} className={cn('grid gap-3', COLS[Math.min(Math.max(items.length, 1), 4)])}>
+    <section aria-label={label ?? t('kit.summaryCards')} className={cn('grid gap-3', COLS[Math.min(Math.max(items.length, 1), 4)])}>
       {items.map((item) => {
         const text = item.formatted ?? formatRupiah(item.value, { negative: 'parens' });
         return (

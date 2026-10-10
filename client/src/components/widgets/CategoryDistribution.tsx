@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Layers } from 'lucide-react';
 import api from '../../lib/api';
 import { formatNumber } from '@/lib/format';
@@ -12,6 +13,7 @@ interface CategoryItem {
 }
 
 export default function CategoryDistribution() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<CategoryItem[]>({
     queryKey: ['warehouse-category-distribution'],
     queryFn: async () => (await api.get('/inventory/dashboard/by-category')).data,
@@ -20,23 +22,23 @@ export default function CategoryDistribution() {
 
   return (
     <WidgetCard
-      title="Kategori dengan stok terbanyak"
-      description="Total kuantitas stok per kategori"
+      title={t('categoryDistribution.title')}
+      description={t('categoryDistribution.description')}
       icon={Layers}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={Layers}
-      emptyText="Belum ada item persediaan yang berkategori. Isi kategori saat menambah item."
+      emptyText={t('categoryDistribution.empty')}
       minHeight={260}
     >
-      <ScrollRegion label="Distribusi stok per kategori" className="max-h-72 overflow-y-auto">
+      <ScrollRegion label={t('categoryDistribution.listLabel')} className="max-h-72 overflow-y-auto">
 <ul className="space-y-3">
         {(data ?? []).map((cat) => (
           <li key={cat.category}>
             <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate text-xs font-medium text-foreground">{cat.category || 'Tanpa Kategori'}</span>
+              <span className="min-w-0 truncate text-xs font-medium text-foreground">{cat.category || t('widgetsShared.noCategory')}</span>
               <span className="num shrink-0 text-xs text-muted-foreground">{formatNumber(cat.totalQuantity)}</span>
             </div>
             <div className="h-2 rounded-sm bg-muted" aria-hidden>

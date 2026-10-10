@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpCircle, Wallet } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -18,6 +19,7 @@ interface CashFlowProps {
 }
 
 export default function CashFlowChart({ startDate, endDate }: CashFlowProps = {}) {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<CashFlowData>({
     queryKey: ['dashboard-cash-flow', startDate, endDate],
     queryFn: async () => (await api.get('/dashboard/cash-flow', { params: { startDate, endDate } })).data,
@@ -25,19 +27,19 @@ export default function CashFlowChart({ startDate, endDate }: CashFlowProps = {}
 
   const rows = data
     ? [
-        { label: 'Kas Masuk', value: data.totalIn, Icon: ArrowDownCircle, tone: 'text-success-text' },
-        { label: 'Kas Keluar', value: data.totalOut, Icon: ArrowUpCircle, tone: 'text-danger-text' },
-        { label: 'Arus Kas Bersih', value: data.net, Icon: Wallet, tone: data.net >= 0 ? 'text-success-text' : 'text-danger-text', strong: true },
+        { label: t('cashFlowChart.in'), value: data.totalIn, Icon: ArrowDownCircle, tone: 'text-success-text' },
+        { label: t('cashFlowChart.out'), value: data.totalOut, Icon: ArrowUpCircle, tone: 'text-danger-text' },
+        { label: t('cashFlowChart.net'), value: data.net, Icon: Wallet, tone: data.net >= 0 ? 'text-success-text' : 'text-danger-text', strong: true },
       ]
     : [];
 
   return (
     <WidgetCard
-      title="Kas masuk vs keluar"
-      description="Pada periode terpilih"
+      title={t('cashFlowChart.title')}
+      description={t('widgetsShared.selectedPeriod')}
       icon={Wallet}
       href="/reports/cash-flow"
-      hrefLabel="Laporan"
+      hrefLabel={t('widgetsShared.report')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}

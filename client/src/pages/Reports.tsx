@@ -1,5 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   Award,
   BarChart3,
@@ -27,15 +29,19 @@ import { focusRing } from '@/components/ui/styles';
 import { Input } from '@/components/ui/input';
 import { EmptyState, PageHeader } from '@/components/shared';
 
+type Hub = (typeof import('@/locales/id/reports.json'))['reportsHub'];
+type DescriptionKey = `reportsHub.descriptions.${keyof Hub['descriptions'] & string}`;
+type GroupKey = `reportsHub.groups.${keyof Hub['groups'] & string}`;
+
 interface ReportEntry {
   path: string;
-  description: string;
+  descriptionKey: DescriptionKey;
   icon: LucideIcon;
 }
 
 interface ReportGroup {
   id: string;
-  title: string;
+  titleKey: GroupKey;
   reports: readonly ReportEntry[];
 }
 
@@ -43,87 +49,94 @@ interface ReportGroup {
 const GROUPS: readonly ReportGroup[] = [
   {
     id: 'keuangan',
-    title: 'Keuangan',
+    titleKey: 'reportsHub.groups.finance',
     reports: [
-      { path: '/reports/daily', icon: CalendarDays, description: 'Ringkasan lengkap aktivitas penjualan, pembelian, produksi, keuangan, piutang, hutang, dan deposit.' },
-      { path: '/reports/trial-balance', icon: ClipboardList, description: 'Verifikasi keseimbangan saldo debit dan kredit per akun.' },
-      { path: '/reports/profit-loss', icon: BarChart3, description: 'Ringkasan pendapatan dan beban untuk menghitung laba bersih.' },
-      { path: '/reports/balance-sheet', icon: Scale, description: 'Posisi keuangan aset, liabilitas, dan ekuitas perusahaan.' },
-      { path: '/reports/cash-flow', icon: Banknote, description: 'Pergerakan kas dari aktivitas operasi, investasi, dan pendanaan.' },
-      { path: '/reports/ledger-book', icon: BookOpen, description: 'Detail mutasi per akun dengan saldo berjalan (debit, kredit, saldo).' },
-      { path: '/reports/tax', icon: Receipt, description: 'Ringkasan PPN Keluaran, PPN Masukan, dan PPh berdasarkan periode.' },
+      { path: '/reports/daily', icon: CalendarDays, descriptionKey: 'reportsHub.descriptions.daily' },
+      { path: '/reports/trial-balance', icon: ClipboardList, descriptionKey: 'reportsHub.descriptions.trialBalance' },
+      { path: '/reports/profit-loss', icon: BarChart3, descriptionKey: 'reportsHub.descriptions.profitLoss' },
+      { path: '/reports/balance-sheet', icon: Scale, descriptionKey: 'reportsHub.descriptions.balanceSheet' },
+      { path: '/reports/cash-flow', icon: Banknote, descriptionKey: 'reportsHub.descriptions.cashFlow' },
+      { path: '/reports/ledger-book', icon: BookOpen, descriptionKey: 'reportsHub.descriptions.ledgerBook' },
+      { path: '/reports/tax', icon: Receipt, descriptionKey: 'reportsHub.descriptions.tax' },
     ],
   },
   {
     id: 'penjualan',
-    title: 'Penjualan & Piutang',
+    titleKey: 'reportsHub.groups.sales',
     reports: [
-      { path: '/reports/aging-ar', icon: Clock, description: 'Analisis umur piutang pelanggan berdasarkan tanggal jatuh tempo.' },
-      { path: '/reports/receivable-schedule', icon: FileText, description: 'Daftar piutang berdasarkan jatuh tempo dan status penagihan.' },
-      { path: '/reports/profitability-per-sku', icon: Package, description: 'Margin side-by-side: Material WAC vs Loaded HPP (sudah include biaya produksi & NRV produk samping).' },
+      { path: '/reports/aging-ar', icon: Clock, descriptionKey: 'reportsHub.descriptions.agingAr' },
+      { path: '/reports/receivable-schedule', icon: FileText, descriptionKey: 'reportsHub.descriptions.receivableSchedule' },
+      { path: '/reports/profitability-per-sku', icon: Package, descriptionKey: 'reportsHub.descriptions.profitabilityPerSku' },
     ],
   },
   {
     id: 'pembelian',
-    title: 'Pembelian & Hutang',
+    titleKey: 'reportsHub.groups.purchasing',
     reports: [
-      { path: '/reports/aging-ap', icon: Clock, description: 'Analisis umur hutang ke vendor berdasarkan tanggal jatuh tempo.' },
-      { path: '/reports/payable-schedule', icon: CreditCard, description: 'Daftar hutang berdasarkan jatuh tempo, status, dan prioritas pembayaran.' },
-      { path: '/reports/po-outstanding', icon: Truck, description: 'Sisa pesanan pembelian yang belum diterima per item, nilai sisa, dan PO terlambat.' },
-      { path: '/reports/supplier-performance', icon: Award, description: 'Ketepatan kirim, lead time, fill rate, dan selisih harga faktur vs PO per pemasok.' },
+      { path: '/reports/aging-ap', icon: Clock, descriptionKey: 'reportsHub.descriptions.agingAp' },
+      { path: '/reports/payable-schedule', icon: CreditCard, descriptionKey: 'reportsHub.descriptions.payableSchedule' },
+      { path: '/reports/po-outstanding', icon: Truck, descriptionKey: 'reportsHub.descriptions.poOutstanding' },
+      { path: '/reports/supplier-performance', icon: Award, descriptionKey: 'reportsHub.descriptions.supplierPerformance' },
     ],
   },
   {
     id: 'produksi',
-    title: 'Produksi & Persediaan',
+    titleKey: 'reportsHub.groups.production',
     reports: [
-      { path: '/reports/hpp', icon: Package, description: 'Analisis Harga Pokok Penjualan per produk, margin, dan profitabilitas.' },
-      { path: '/reports/production-cost-summary', icon: Package, description: 'Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap rendemen dan produk samping.' },
-      { path: '/reports/oee', icon: Gauge, description: 'Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime.' },
+      { path: '/reports/hpp', icon: Package, descriptionKey: 'reportsHub.descriptions.hpp' },
+      { path: '/reports/production-cost-summary', icon: Package, descriptionKey: 'reportsHub.descriptions.productionCostSummary' },
+      { path: '/reports/oee', icon: Gauge, descriptionKey: 'reportsHub.descriptions.oee' },
     ],
   },
 ];
 
 interface Card extends ReportEntry {
   label: string;
+  description: string;
   haystack: string;
 }
 
 /** Cards a user may open, with the registry label and searchable text. */
-function buildGroups(query: string): { group: ReportGroup; cards: Card[] }[] {
+function buildGroups(query: string, t: TFunction<'reports'>): { group: ReportGroup; title: string; cards: Card[] }[] {
   const q = query.trim().toLowerCase();
-  return GROUPS.map((group) => ({
-    group,
-    cards: group.reports.flatMap<Card>((report) => {
-      const route = getRoute(report.path);
-      if (!route) return [];
-      if (route.module && !can(route.module)) return [];
-      const label = route.label;
-      const haystack = [label, report.description, group.title, ...(route.keywords ?? [])].join(' ').toLowerCase();
-      return q && !haystack.includes(q) ? [] : [{ ...report, label, haystack }];
-    }),
-  })).filter((entry) => entry.cards.length > 0);
+  return GROUPS.map((group) => {
+    const title = t(group.titleKey);
+    return {
+      group,
+      title,
+      cards: group.reports.flatMap<Card>((report) => {
+        const route = getRoute(report.path);
+        if (!route) return [];
+        if (route.module && !can(route.module)) return [];
+        const label = route.label;
+        const description = t(report.descriptionKey);
+        const haystack = [label, description, title, ...(route.keywords ?? [])].join(' ').toLowerCase();
+        return q && !haystack.includes(q) ? [] : [{ ...report, label, description, haystack }];
+      }),
+    };
+  }).filter((entry) => entry.cards.length > 0);
 }
 
 const Reports: React.FC = () => {
+  const { t } = useTranslation('reports');
   const [query, setQuery] = useState('');
   const searchId = useId();
-  const groups = useMemo(() => buildGroups(query), [query]);
+  const groups = useMemo(() => buildGroups(query, t), [query, t]);
   const total = groups.reduce((sum, g) => sum + g.cards.length, 0);
 
   return (
     <div className="space-y-6 pb-8">
-      <PageHeader title="Semua Laporan" description="Pilih laporan yang ingin Anda lihat atau cetak." />
+      <PageHeader title={t('reportsHub.title')} description={t('reportsHub.description')} />
 
-      <div role="search" aria-label="Pencarian laporan" className="relative w-full sm:max-w-sm">
-        <label htmlFor={searchId} className="sr-only">Cari laporan</label>
+      <div role="search" aria-label={t('reportsHub.searchLabel')} className="relative w-full sm:max-w-sm">
+        <label htmlFor={searchId} className="sr-only">{t('reportsHub.searchInput')}</label>
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input
           id={searchId}
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari laporan, mis. pajak, piutang, OEE"
+          placeholder={t('reportsHub.searchPlaceholder')}
           autoComplete="off"
           className="pl-9 pr-9 max-sm:h-11 [&::-webkit-search-cancel-button]:hidden"
         />
@@ -131,7 +144,7 @@ const Reports: React.FC = () => {
           <button
             type="button"
             onClick={() => setQuery('')}
-            aria-label="Hapus pencarian"
+            aria-label={t('reportsHub.clearSearch')}
             className={cn('absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground', focusRing)}
           >
             <X className="size-4" aria-hidden />
@@ -139,22 +152,22 @@ const Reports: React.FC = () => {
         )}
       </div>
 
-      <p className="sr-only" role="status">{total} laporan ditemukan</p>
+      <p className="sr-only" role="status">{t('reportsHub.found', { count: total })}</p>
 
       {groups.length === 0 ? (
         <div className="rounded-lg border border-border bg-card">
           <EmptyState
             kind={query ? 'no-results' : 'empty'}
-            title={query ? 'Laporan tidak ditemukan' : 'Belum ada laporan yang dapat diakses'}
-            description={query ? 'Coba kata kunci lain.' : 'Hubungi administrator untuk meminta akses.'}
+            title={query ? t('reportsHub.notFoundTitle') : t('reportsHub.noAccessTitle')}
+            description={query ? t('reportsHub.notFoundDescription') : t('reportsHub.noAccessDescription')}
             compact
           />
         </div>
       ) : (
-        groups.map(({ group, cards }) => (
+        groups.map(({ group, title, cards }) => (
           <section key={group.id} aria-labelledby={`grp-${group.id}`} className="space-y-3">
             <h2 id={`grp-${group.id}`} className="text-sm font-semibold text-muted-foreground">
-              {group.title}
+              {title}
             </h2>
             <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {cards.map((card) => (

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function MonthlyProfitChart({ startDate, endDate }: Props = {}) {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
   const { data, isLoading, isError, refetch } = useQuery<MonthData[]>({
     queryKey: ['monthly-profit', startDate, endDate],
@@ -31,28 +33,28 @@ export default function MonthlyProfitChart({ startDate, endDate }: Props = {}) {
 
   return (
     <WidgetCard
-      title="Tren Laba Bulanan"
-      description="Pendapatan dan beban per bulan"
+      title={t('monthlyProfit.title')}
+      description={t('monthlyProfit.description')}
       icon={BarChart3}
       href="/reports/profit-loss"
-      hrefLabel="Laba rugi"
+      hrefLabel={t('expenseBreakdown.profitLoss')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={rows.length === 0}
-      emptyText="Belum ada data laba pada periode ini"
+      emptyText={t('monthlyProfit.empty')}
       minHeight={290}
     >
       <ChartFrame
-        summary={`Grafik batang pendapatan dan beban per bulan.${last ? ` Laba bulan terakhir (${last.name}) ${formatRupiah(last.profit)}.` : ''}`}
+        summary={last ? t('monthlyProfit.summaryWithLast', { month: last.name, profit: formatRupiah(last.profit) }) : t('monthlyProfit.summary')}
         legend={[
-          { label: 'Pendapatan', color: 'var(--chart-2)' },
-          { label: 'Beban', color: 'var(--chart-4)' },
-          ...(last ? [{ label: `Laba ${last.name}`, color: 'var(--chart-3)', value: formatRupiah(last.profit, { compact: true, negative: 'parens' as const }) }] : []),
+          { label: t('monthlyProfit.revenue'), color: 'var(--chart-2)' },
+          { label: t('monthlyProfit.expense'), color: 'var(--chart-4)' },
+          ...(last ? [{ label: t('monthlyProfit.profitOf', { month: last.name }), color: 'var(--chart-3)', value: formatRupiah(last.profit, { compact: true, negative: 'parens' as const }) }] : []),
         ]}
         table={{
-          caption: 'Pendapatan, beban dan laba per bulan',
-          columns: ['Bulan', 'Pendapatan', 'Beban', 'Laba'],
+          caption: t('monthlyProfit.caption'),
+          columns: [t('monthlyProfit.month'), t('monthlyProfit.revenue'), t('monthlyProfit.expense'), t('monthlyProfit.profit')],
           rows: rows.map((r) => [r.name, formatRupiah(r.revenue), formatRupiah(r.expense), formatRupiah(r.profit, { negative: 'parens' })]),
         }}
       >
@@ -62,8 +64,8 @@ export default function MonthlyProfitChart({ startDate, endDate }: Props = {}) {
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
             <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={compactIdrTick} width={44} />
             <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'var(--muted)' }} formatter={(v) => formatRupiah(Number(v))} />
-            <Bar dataKey="revenue" name="Pendapatan" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
-            <Bar dataKey="expense" name="Beban" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
+            <Bar dataKey="revenue" name={t('monthlyProfit.revenue')} fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
+            <Bar dataKey="expense" name={t('monthlyProfit.expense')} fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
           </BarChart>
         </ResponsiveContainer>
       </ChartFrame>

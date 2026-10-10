@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { ScrollRegion } from './ScrollRegion';
 
@@ -19,12 +20,13 @@ export interface ChartTableProps {
 
 /** Text alternative: collapsed-by-default data table under the chart. */
 export function ChartTable({ caption, columns, rows }: ChartTableProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <details className="mt-3 text-xs">
       <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0">
-        Tabel data
+        {t('kit.dataTable')}
       </summary>
-      <ScrollRegion label={`${caption} (tabel data)`} className="mt-2 max-h-56 overflow-auto border border-border">
+      <ScrollRegion label={t('kit.dataTableOf', { caption })} className="mt-2 max-h-56 overflow-auto border border-border">
         <table className="w-full min-w-max border-collapse text-xs">
           <caption className="sr-only">{caption}</caption>
           <thead className="sticky top-0 bg-muted">

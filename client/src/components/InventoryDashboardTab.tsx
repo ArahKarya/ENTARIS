@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   AlertTriangle,
@@ -32,7 +33,7 @@ import {
   PeriodToolbar,
   SegmentedToggle,
 } from '@/components/inventory/dashboard-kit';
-import { attentionRows, countDelta, previousPeriod, stockCoverage } from '@/components/inventory/dashboard-model';
+import { attentionRows, countDelta, presetLabel, previousPeriod, stockCoverage } from '@/components/inventory/dashboard-model';
 import {
   formatQty,
   isInbound,
@@ -47,10 +48,6 @@ import { useChartAnimation } from '@/contexts/motion-context';
 
 type ValueBy = 'category' | 'warehouse';
 const VALUE_BY_PARAM = 'valueBy';
-const VALUE_BY_OPTIONS: ReadonlyArray<{ value: ValueBy; label: string }> = [
-  { value: 'category', label: 'Kategori' },
-  { value: 'warehouse', label: 'Gudang' },
-];
 const ATTENTION_LIMIT = 8;
 const OTHER_GROUP_KEY = '__other__';
 
@@ -90,6 +87,7 @@ function useAttentionItems(stockStatus: 'out' | 'low') {
 }
 
 export default function InventoryDashboardTab() {
+  const { t } = useTranslation('dashboard');
   const { period, setPreset, setRange } = useDashboardPeriod();
   const [searchParams, setSearchParams] = useSearchParams();
   const valueBy: ValueBy = searchParams.get(VALUE_BY_PARAM) === 'warehouse' ? 'warehouse' : 'category';
@@ -142,55 +140,55 @@ export default function InventoryDashboardTab() {
     <div className="space-y-5">
       <PeriodToolbar period={period} onPresetChange={setPreset} onRangeChange={setRange} />
 
-      <section aria-label="Ringkasan persediaan" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <section aria-label={t('inventoryTab.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard
           className="col-span-2 lg:col-span-1"
-          label="Nilai Persediaan"
+          label={t('kpiCards.inventoryValue')}
           icon={Wallet}
           loading={kpiLoading}
           value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.stockValue) : undefined}
-          hint="stok × harga rata-rata, item aktif"
+          hint={t('inventoryTab.valueHint')}
         />
         <StatCard
-          label="Item Aktif"
+          label={t('warehouseKpi.activeItems')}
           icon={Boxes}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint="item persediaan"
+          hint={t('inventoryTab.activeHint')}
           href={itemsLink({ isActive: 'true' })}
         />
         <StatCard
-          label="Stok Habis"
+          label={t('inventoryTab.outOfStock')}
           icon={PackageX}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.outCount) : '—'}
-          hint="stok nol atau minus"
+          hint={t('inventoryTab.outHint')}
           href={itemsLink({ isActive: 'true', stockStatus: 'out' })}
         />
         <StatCard
-          label="Di Bawah Minimum"
+          label={t('inventoryTab.belowMin')}
           icon={AlertTriangle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.lowCount) : '—'}
-          hint="perlu dipesan ulang"
+          hint={t('inventoryTab.belowMinHint')}
           href={itemsLink({ isActive: 'true', stockStatus: 'low' })}
         />
         <StatCard
-          label="Gerakan Stok"
+          label={t('inventoryTab.movements')}
           icon={ArrowLeftRight}
           loading={!moves && !movementQuery.isError}
           value={movementCount !== null ? formatNumber(movementCount) : '—'}
           delta={movementCount !== null ? countDelta(movementCount, prevMovementCount) : undefined}
-          hint={moves ? `${formatNumber(moves.inCount)} masuk · ${formatNumber(moves.outCount)} keluar` : period.label}
+          hint={moves ? t('inventoryTab.movementsHint', { in: formatNumber(moves.inCount), out: formatNumber(moves.outCount) }) : presetLabel(period.preset)}
           href={movementsLink(periodLinkParams)}
         />
       </section>
       {summaryQuery.isError && (
         <p role="alert" className="text-sm text-danger-text">
-          Ringkasan persediaan gagal dimuat.{' '}
+          {t('inventoryTab.summaryError')}{' '}
           <button type="button" className="font-medium underline" onClick={() => summaryQuery.refetch()}>
-            Coba lagi
+            {t('kit.widget.retry')}
           </button>
         </p>
       )}
@@ -212,7 +210,7 @@ export default function InventoryDashboardTab() {
       </div>
 
       <RecentMovementsPanel
-        rangeLabel={`${period.label} · ${period.rangeLabel}`}
+        rangeLabel={`${presetLabel(period.preset)} · ${period.rangeLabel}`}
         query={recentQuery}
         allHref={movementsLink(periodLinkParams)}
       />
@@ -245,12 +243,13 @@ function AttentionPanel({
   const loading = (outQuery.isLoading || lowQuery.isLoading) && rows.length === 0;
   const error = outQuery.error ?? lowQuery.error;
   const navigate = useNavigate();
+  const { t } = useTranslation('dashboard');
 
   const columns = useMemo<ColumnDef<InventoryItemRow>[]>(
     () => [
       {
         id: 'item',
-        header: 'Item',
+        header: t('widgetsShared.item'),
         meta: { cellClassName: 'min-w-36 max-w-72' },
         cell: ({ row }) => {
           const i = row.original;
@@ -269,7 +268,7 @@ function AttentionPanel({
       },
       {
         id: 'stock',
-        header: 'Stok / Min.',
+        header: t('inventoryTab.stockMin'),
         meta: { align: 'right' },
         cell: ({ row }) => {
           const i = row.original;
@@ -288,7 +287,7 @@ function AttentionPanel({
                 <span
                   className="block h-1 w-20 overflow-hidden rounded-sm bg-muted"
                   role="img"
-                  aria-label={`${formatPercent(Math.min(coverage, 1), { decimals: 0 })} dari stok minimum`}
+                  aria-label={t('inventoryTab.coverage', { pct: formatPercent(Math.min(coverage, 1), { decimals: 0 }) })}
                 >
                   <span
                     className={cn('block h-full rounded-sm', out ? 'bg-danger' : 'bg-warning')}
@@ -302,27 +301,27 @@ function AttentionPanel({
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('widgetsShared.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={itemStockStatus(row.original)} docType="inventory_item" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('inventoryTab.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const i = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${i.code}`}
+              label={t('inventoryTab.actionsFor', { code: i.code })}
               actions={[
                 {
-                  label: 'Lihat item',
+                  label: t('inventoryTab.viewItem'),
                   icon: PackageSearch,
                   onSelect: () => navigate(itemsLink({ q: i.code })),
                 },
                 {
-                  label: 'Riwayat gerakan',
+                  label: t('inventoryTab.movementHistory'),
                   icon: History,
                   onSelect: () => navigate(movementsLink({ itemId: i.id })),
                 },
@@ -332,14 +331,14 @@ function AttentionPanel({
         },
       },
     ],
-    [navigate],
+    [navigate, t],
   );
 
   return (
     <Panel
       className={className}
-      title="Perlu tindakan"
-      description="Item aktif yang stoknya habis atau di bawah minimum."
+      title={t('inventoryTab.attentionTitle')}
+      description={t('inventoryTab.attentionDescription')}
       bodyClassName="p-0"
       action={
         total > 0 ? (
@@ -347,7 +346,7 @@ function AttentionPanel({
             to={itemsLink({ isActive: 'true', stockStatus: (outCount ?? 0) > 0 ? 'out' : 'low' })}
             className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Lihat semua ({formatNumber((outCount ?? 0) + (lowCount ?? 0) || total)})
+            {t('inventoryTab.viewAll', { count: formatNumber((outCount ?? 0) + (lowCount ?? 0) || total) })}
             <ArrowRight className="size-3.5" aria-hidden />
           </Link>
         ) : undefined
@@ -357,13 +356,13 @@ function AttentionPanel({
         <div role="status" className="flex items-center gap-3 px-4 py-6">
           <CheckCircle2 className="size-5 shrink-0 text-success-text" aria-hidden />
           <div>
-            <p className="text-sm font-medium text-foreground">Semua stok aman</p>
-            <p className="text-xs text-muted-foreground">Tidak ada item aktif yang habis atau di bawah minimum.</p>
+            <p className="text-sm font-medium text-foreground">{t('stockAlert.empty')}</p>
+            <p className="text-xs text-muted-foreground">{t('inventoryTab.allSafeDescription')}</p>
           </div>
         </div>
       ) : (
         <DataTable
-          label="Item yang perlu tindakan"
+          label={t('inventoryTab.attentionTableLabel')}
           columns={columns}
           data={rows}
           getRowId={(r) => r.id}
@@ -395,29 +394,37 @@ function StockValuePanel({
   query: ReturnType<typeof useQuery<StockValueBreakdown>>;
   className?: string;
 }) {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
   const data = query.data;
+  const valueByOptions: ReadonlyArray<{ value: ValueBy; label: string }> = [
+    { value: 'category', label: t('widgetsShared.category') },
+    { value: 'warehouse', label: t('inventoryTab.warehouse') },
+  ];
+  const groupTitle = valueBy === 'category' ? t('inventoryTab.valueByCategory') : t('inventoryTab.valueByWarehouse');
   const groups = data?.groups ?? [];
   const chartHeight = Math.max(160, groups.length * 36 + 24);
 
   return (
     <Panel
       className={className}
-      title={`Nilai stok per ${valueBy === 'category' ? 'kategori' : 'gudang'}`}
+      title={groupTitle}
       description={
         data
-          ? `Total ${formatRupiah(data.total)}${valueBy === 'warehouse' ? ' · saldo per gudang' : ''}`
-          : 'Stok × harga rata-rata, item aktif.'
+          ? valueBy === 'warehouse'
+            ? t('inventoryTab.totalPerWarehouse', { total: formatRupiah(data.total) })
+            : t('inventoryTab.total', { total: formatRupiah(data.total) })
+          : t('inventoryTab.valueDescription')
       }
-      action={<SegmentedToggle label="Kelompokkan nilai stok" value={valueBy} options={VALUE_BY_OPTIONS} onChange={onValueByChange} />}
+      action={<SegmentedToggle label={t('inventoryTab.groupToggle')} value={valueBy} options={valueByOptions} onChange={onValueByChange} />}
     >
       <PanelState
         loading={query.isLoading}
         error={query.error}
         onRetry={() => query.refetch()}
         empty={groups.length === 0}
-        emptyTitle="Belum ada nilai stok"
-        emptyDescription="Nilai muncul setelah item memiliki stok dan harga rata-rata."
+        emptyTitle={t('inventoryTab.valueEmptyTitle')}
+        emptyDescription={t('inventoryTab.valueEmptyDescription')}
         skeleton="chart"
       >
         <figure className={cn('m-0', query.isFetching && query.isPlaceholderData && 'opacity-60')}>
@@ -446,9 +453,9 @@ function StockValuePanel({
                       <ChartTooltipBox
                         title={g.label}
                         rows={[
-                          { label: 'Nilai', value: formatRupiah(g.value) },
-                          { label: 'Porsi', value: formatPercent(g.share) },
-                          { label: 'Item berstok', value: formatNumber(g.itemCount) },
+                          { label: t('widgetsShared.value'), value: formatRupiah(g.value) },
+                          { label: t('kit.donut.share'), value: formatPercent(g.share) },
+                          { label: t('inventoryTab.itemsWithStock'), value: formatNumber(g.itemCount) },
                         ]}
                       />
                     );
@@ -463,7 +470,7 @@ function StockValuePanel({
             </ResponsiveContainer>
           </div>
           <figcaption className="sr-only">
-            Nilai stok per {valueBy === 'category' ? 'kategori' : 'gudang'}:{' '}
+            {groupTitle}:{' '}
             {groups.map((g) => `${g.label} ${formatRupiah(g.value)} (${formatPercent(g.share)})`).join('; ')}
           </figcaption>
         </figure>
@@ -483,17 +490,18 @@ function RecentMovementsPanel({
   query: ReturnType<typeof useQuery<Paginated<StockMovementRow>>>;
   allHref: string;
 }) {
+  const { t } = useTranslation('dashboard');
   const columns = useMemo<ColumnDef<StockMovementRow>[]>(
     () => [
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('widgetsShared.date'),
         meta: { hideBelow: 'sm', cellClassName: 'whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => <span className="num">{formatDate(row.original.date)}</span>,
       },
       {
         id: 'number',
-        header: 'No. Gerakan',
+        header: t('inventoryTab.movementNo'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
           const m = row.original;
@@ -511,7 +519,7 @@ function RecentMovementsPanel({
       },
       {
         id: 'item',
-        header: 'Item',
+        header: t('widgetsShared.item'),
         meta: { cellClassName: 'min-w-32 max-w-72' },
         cell: ({ row }) => {
           const m = row.original;
@@ -521,7 +529,7 @@ function RecentMovementsPanel({
                 <Link
                   to={movementsLink({ itemId: m.item.id })}
                   className="line-clamp-1 rounded-sm font-medium text-foreground underline-offset-2 hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  title="Riwayat gerakan item"
+                  title={t('inventoryTab.itemMovementHistory')}
                 >
                   {m.item.name}
                 </Link>
@@ -535,7 +543,7 @@ function RecentMovementsPanel({
       },
       {
         id: 'type',
-        header: 'Tipe',
+        header: t('recentMovements.type'),
         meta: { hideBelow: 'sm', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
           const inbound = isInbound(row.original.movementType);
@@ -550,7 +558,7 @@ function RecentMovementsPanel({
       },
       {
         id: 'quantity',
-        header: 'Kuantitas',
+        header: t('inventoryTab.quantity'),
         meta: { align: 'right' },
         cell: ({ row }) => {
           const m = row.original;
@@ -565,17 +573,17 @@ function RecentMovementsPanel({
       },
       {
         id: 'value',
-        header: 'Nilai',
+        header: t('widgetsShared.value'),
         meta: { align: 'right', hideBelow: 'md' },
         cell: ({ row }) => (row.original.totalValue != null ? formatRupiah(row.original.totalValue) : '—'),
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <Panel
-      title="Gerakan stok terbaru"
+      title={t('inventoryTab.recentTitle')}
       description={rangeLabel}
       bodyClassName="p-0"
       action={
@@ -583,13 +591,13 @@ function RecentMovementsPanel({
           to={allHref}
           className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Semua gerakan
+          {t('inventoryTab.allMovements')}
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       }
     >
       <DataTable
-        label="Gerakan stok terbaru"
+        label={t('inventoryTab.recentTitle')}
         columns={columns}
         data={query.data?.data}
         getRowId={(r) => r.id}
@@ -599,7 +607,7 @@ function RecentMovementsPanel({
         onRetry={() => query.refetch()}
         stickyHeader={false}
         pageSize={8}
-        empty={{ title: 'Belum ada gerakan', description: 'Tidak ada gerakan stok pada periode ini.' }}
+        empty={{ title: t('inventoryTab.recentEmptyTitle'), description: t('inventoryTab.recentEmptyDescription') }}
         className="[&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none"
       />
     </Panel>

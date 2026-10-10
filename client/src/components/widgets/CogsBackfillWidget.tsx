@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Receipt } from 'lucide-react';
 import api from '../../lib/api';
 import { formatNumber, formatRupiah } from '@/lib/format';
@@ -21,6 +22,7 @@ interface BackfillSummary {
 }
 
 export default function CogsBackfillWidget() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<BackfillSummary>({
     queryKey: ['cogs-backfill-summary'],
     queryFn: async () => (await api.get('/cogs-backfill/summary')).data,
@@ -31,32 +33,32 @@ export default function CogsBackfillWidget() {
 
   return (
     <WidgetCard
-      title="COGS Pending Settle"
-      description="Penjualan saat stok minus, otomatis settle saat barang masuk"
+      title={t('cogsBackfill.title')}
+      description={t('cogsBackfill.description')}
       icon={Receipt}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={empty}
       emptyIcon={CheckCircle2}
-      emptyText="Tidak ada COGS pending. Semua penjualan tercover stok."
+      emptyText={t('cogsBackfill.empty')}
       minHeight={110}
     >
       {data && (
         <>
           <dl className="mb-3 grid grid-cols-2 gap-3">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Item Pending</dt>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('cogsBackfill.pendingItems')}</dt>
               <dd className="num text-xl font-semibold text-foreground">{data.pendingCount}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Estimasi Nilai</dt>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('cogsBackfill.estimatedValue')}</dt>
               <dd className="num text-xl font-semibold text-warning-text" title={formatRupiah(data.totalPendingValue)}>
                 {formatRupiah(data.totalPendingValue, { compact: true })}
               </dd>
             </div>
           </dl>
-          <ScrollRegion label="Rincian COGS pending per item" className="max-h-48 overflow-y-auto">
+          <ScrollRegion label={t('cogsBackfill.listLabel')} className="max-h-48 overflow-y-auto">
 <ul className="divide-y divide-border">
             {data.breakdown.slice(0, 8).map((b) => (
               <li key={b.itemId} className="flex items-center justify-between gap-2 py-1.5 text-xs">

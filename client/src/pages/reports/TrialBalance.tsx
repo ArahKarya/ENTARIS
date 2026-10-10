@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -30,12 +31,12 @@ interface TrialBalanceItem {
   balance?: number;
 }
 
-const COLUMNS = [
-  { key: 'debit', label: 'Debit (Rp)' },
-  { key: 'credit', label: 'Kredit (Rp)' },
-];
-
 const TrialBalance: React.FC = () => {
+  const { t } = useTranslation('reports');
+  const columns = [
+    { key: 'debit', label: t('reportsShared.debitRp') },
+    { key: 'credit', label: t('reportsShared.creditRp') },
+  ];
   // Default = satu bulan penuh (bukan month-to-date) supaya entri akhir-bulan
   // seperti penyusutan & jurnal penyesuaian (diposting tgl 30/31) langsung muncul.
   const { startDate, endDate, setRange, list } = useReportRange();
@@ -82,20 +83,20 @@ const TrialBalance: React.FC = () => {
         code: item.accountNumber,
         values: [item.debit > 0 ? item.debit : 0, item.credit > 0 ? item.credit : 0],
         onSelect: () => openLedger(item.id, item.name),
-        selectLabel: `Lihat buku besar ${item.name}`,
+        selectLabel: t('trialBalance.viewLedger', { name: item.name }),
       })),
-    [filtered],
+    [filtered, t],
   );
 
   const handleExport = () =>
     exportToExcel(
       filtered.map((item) => ({
-        'No. Akun': item.accountNumber,
-        'Nama Akun': item.name,
-        Tipe: item.accountType,
-        'Debit (Rp)': item.debit,
-        'Kredit (Rp)': item.credit,
-        'Saldo (Rp)': item.balance,
+        [t('reportsShared.accountNumber')]: item.accountNumber,
+        [t('reportsShared.accountName')]: item.name,
+        [t('trialBalance.excel.type')]: item.accountType,
+        [t('reportsShared.debitRp')]: item.debit,
+        [t('reportsShared.creditRp')]: item.credit,
+        [t('reportsShared.balanceRp')]: item.balance,
       })),
       `Neraca-Saldo-${startDate}-sd-${endDate}`,
     );
@@ -103,8 +104,8 @@ const TrialBalance: React.FC = () => {
   return (
     <>
       <ReportPage
-        title="Neraca Saldo"
-        description="Verifikasi keseimbangan debit-kredit per akun"
+        title={t('trialBalance.title')}
+        description={t('trialBalance.description')}
         period={periodLabel({ startDate, endDate })}
         actions={
           <ExportMenu
@@ -115,7 +116,7 @@ const TrialBalance: React.FC = () => {
               render: () => (
                 <TrialBalancePDF
                   company={company}
-                  period={`${startDate} s/d ${endDate}`}
+                  period={t('reportsShared.dateRange', { start: startDate, end: endDate })}
                   rows={filtered.map((item) => ({
                     accountNumber: item.accountNumber,
                     accountName: item.name,
@@ -134,8 +135,8 @@ const TrialBalance: React.FC = () => {
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                 <Input
                   type="search"
-                  aria-label="Cari akun atau nomor"
-                  placeholder="Cari akun atau nomor..."
+                  aria-label={t('trialBalance.search')}
+                  placeholder={t('trialBalance.searchPlaceholder')}
                   value={list.searchInput}
                   onChange={(e) => list.setSearch(e.target.value)}
                   className="pl-9 max-sm:h-11"
@@ -144,7 +145,7 @@ const TrialBalance: React.FC = () => {
             </ReportFilters>
             {isUnbalanced && (
               <ReportNotice>
-                Neraca tidak seimbang! Selisih: <strong>{formatRupiah(Math.abs(totalDebit - totalCredit))}</strong>
+                {t('trialBalance.unbalanced')} <strong>{formatRupiah(Math.abs(totalDebit - totalCredit))}</strong>
               </ReportNotice>
             )}
           </>
@@ -158,13 +159,13 @@ const TrialBalance: React.FC = () => {
           onRetry={() => refetch()}
         >
           <ReportTable
-            caption={`Neraca saldo per akun, ${periodLabel({ startDate, endDate })}`}
-            columns={COLUMNS}
-            labelHeader="Nama Akun"
-            codeHeader="No. Akun"
+            caption={t('trialBalance.caption', { period: periodLabel({ startDate, endDate }) })}
+            columns={columns}
+            labelHeader={t('reportsShared.accountName')}
+            codeHeader={t('reportsShared.accountNumber')}
             zero="dash"
             rows={rows}
-            footer={[{ key: 'total', kind: 'grand', label: 'Total Saldo', values: [totalDebit, totalCredit] }]}
+            footer={[{ key: 'total', kind: 'grand', label: t('trialBalance.totalRow'), values: [totalDebit, totalCredit] }]}
           />
         </ReportState>
       </ReportPage>

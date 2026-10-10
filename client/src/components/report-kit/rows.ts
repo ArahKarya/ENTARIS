@@ -1,4 +1,5 @@
 /** Pure row model + helpers for ReportTable. */
+import i18n from '@/i18n';
 import { formatRupiah } from '@/lib/format';
 
 export type ReportRowKind = 'item' | 'group' | 'subtotal' | 'total' | 'grand' | 'section' | 'note';
@@ -50,7 +51,7 @@ export function flattenAccountTree(
       level,
       values: [node.balance],
       onSelect: !node.isGroup && onSelect ? () => onSelect(node) : undefined,
-      selectLabel: `Lihat buku besar ${node.name}`,
+      selectLabel: i18n.t('trialBalance.viewLedger', { ns: 'reports', name: node.name }),
     });
     if (hasChildren) out.push(...flattenAccountTree(node.children, { onSelect, level: level + 1 }));
   }

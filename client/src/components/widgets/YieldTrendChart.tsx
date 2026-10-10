@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Minus, Percent, TrendingDown, TrendingUp } from 'lucide-react';
 import api from '../../lib/api';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE } from '../dashboard-kit/chart-theme';
@@ -22,7 +24,9 @@ interface YieldTrendData {
 }
 
 export default function YieldTrendChart() {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
+  const pct2 = (v: number) => formatNumber(v, { decimals: 2 });
   const { data, isLoading, isError, refetch } = useQuery<YieldTrendData>({
     queryKey: ['dashboard-yield-trend'],
     queryFn: async () => (await api.get('/inventory/dashboard/yield-trend')).data,
@@ -33,8 +37,8 @@ export default function YieldTrendChart() {
 
   return (
     <WidgetCard
-      title="Yield Produksi"
-      description="Rata-rata yield per bulan (6 bulan)"
+      title={t('yieldTrend.title')}
+      description={t('yieldTrend.description')}
       icon={Percent}
       isLoading={isLoading}
       isError={isError}
@@ -45,29 +49,29 @@ export default function YieldTrendChart() {
         <>
           <dl className="mb-3 grid grid-cols-3 gap-3">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Bulan Ini</dt>
-              <dd className="num text-lg font-semibold text-foreground">{data.latest.toFixed(2)}%</dd>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('yieldTrend.thisMonth')}</dt>
+              <dd className="num text-lg font-semibold text-foreground">{pct2(data.latest)}%</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Rata-rata</dt>
-              <dd className="num text-lg font-semibold text-foreground">{data.overallAvg.toFixed(2)}%</dd>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('yieldTrend.average')}</dt>
+              <dd className="num text-lg font-semibold text-foreground">{pct2(data.overallAvg)}%</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">vs Bulan Lalu</dt>
+              <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('yieldTrend.vsLastMonth')}</dt>
               <dd className={cn('num flex items-center gap-1 text-lg font-semibold', deltaTone)}>
                 <DeltaIcon className="size-4" aria-hidden />
                 {data.deltaPct > 0 ? '+' : ''}
-                {data.deltaPct.toFixed(1)}%
+                {formatNumber(data.deltaPct, { decimals: 1 })}%
               </dd>
             </div>
           </dl>
           <ChartFrame
             height={190}
-            summary={`Grafik garis yield produksi per bulan, ${data.months.length} bulan. Bulan ini ${data.latest.toFixed(2)} persen, rata-rata ${data.overallAvg.toFixed(2)} persen.`}
+            summary={t('yieldTrend.summary', { count: data.months.length, latest: pct2(data.latest), avg: pct2(data.overallAvg) })}
             table={{
-              caption: 'Yield produksi per bulan',
-              columns: ['Bulan', 'Yield (%)', 'Jumlah run'],
-              rows: data.months.map((m) => [m.label, m.avgYield.toFixed(2), String(m.runCount)]),
+              caption: t('yieldTrend.caption'),
+              columns: [t('monthlyProfit.month'), t('productionDeepDive.yieldPct'), t('productionDeepDive.runCount')],
+              rows: data.months.map((m) => [m.label, pct2(m.avgYield), String(m.runCount)]),
             }}
           >
             <ResponsiveContainer width="100%" height="100%">
@@ -77,15 +81,15 @@ export default function YieldTrendChart() {
                 <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={(v) => [`${Number(v).toFixed(2)}%`, 'Yield']}
-                  labelFormatter={(label, payload) => `${label} - ${payload?.[0]?.payload?.runCount ?? 0} run`}
+                  formatter={(v) => [`${pct2(Number(v))}%`, t('yieldTrend.yield')]}
+                  labelFormatter={(label, payload) => t('yieldTrend.tooltipLabel', { label, count: payload?.[0]?.payload?.runCount ?? 0 })}
                 />
                 {data.overallAvg > 0 && (
                   <ReferenceLine
                     y={data.overallAvg}
                     stroke="var(--muted-foreground)"
                     strokeDasharray="4 4"
-                    label={{ value: `avg ${data.overallAvg.toFixed(1)}%`, position: 'insideTopRight', fontSize: 10, fill: 'var(--muted-foreground)' }}
+                    label={{ value: t('yieldTrend.avgLine', { value: formatNumber(data.overallAvg, { decimals: 1 }) }), position: 'insideTopRight', fontSize: 10, fill: 'var(--muted-foreground)' }}
                   />
                 )}
                 <Line type="monotone" dataKey="avgYield" stroke="var(--chart-2)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--chart-2)' }} activeDot={{ r: 5 }} isAnimationActive={animate} />

@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AlertTriangle, Calculator, ChevronDown, ChevronRight, Factory, Layers, Wallet } from 'lucide-react';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
-import { formatNumber, formatRupiah } from '@/lib/format';
+import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { ComboboxFilter } from '@/components/shared';
 import { focusRing } from '@/components/ui/styles';
@@ -69,31 +71,33 @@ function DiffCell({ gl, raw }: { gl: number; raw: number }) {
 }
 
 function ByproductCell({ kg, flagZero }: { kg: number; flagZero?: boolean }) {
+  const { t } = useTranslation('reports');
   if (flagZero && kg === 0) {
     return (
       <span className="inline-flex items-center justify-end gap-1 font-medium text-warning-text">
         <AlertTriangle className="size-3.5" aria-hidden />
-        0<span className="sr-only"> (tanpa produk samping tercatat)</span>
+        0<span className="sr-only"> {t('productionCostSummary.noByproductSr')}</span>
       </span>
     );
   }
   return <>{fmt0(kg)}</>;
 }
 
-const metricColumns = (): DataColumn<Row>[] => [
-  { key: 'runs', header: 'Run', numeric: true, render: (g) => g.runCount },
-  { key: 'inKg', header: 'Bahan (kg)', numeric: true, render: (g) => fmt0(g.inputKg) },
-  { key: 'inRp', header: 'Nilai Bahan Real', numeric: true, render: (g) => fmt0(g.inputRp) },
-  { key: 'inPer', header: 'Modal Bahan/kg', numeric: true, render: (g) => fmt2(g.inputPerKg) },
-  { key: 'outKg', header: 'Output (kg)', numeric: true, render: (g) => fmt0(g.mainKg) },
-  { key: 'yield', header: 'Rendemen', numeric: true, render: (g) => `${fmt2(g.yieldPct)}%` },
-  { key: 'raw', header: 'Modal Murni/kg', numeric: true, className: cn(RAW_CELL, 'font-bold'), render: (g) => fmt2(g.rawMaterialPerKg) },
-  { key: 'gl', header: 'HPP GL/kg', numeric: true, render: (g) => fmt2(g.glPerKg) },
-  { key: 'diff', header: 'Selisih/kg', numeric: true, render: (g) => <DiffCell gl={g.glPerKg} raw={g.rawMaterialPerKg} /> },
-  { key: 'by', header: 'Produk Samping (kg)', numeric: true, render: (g) => <ByproductCell kg={g.byproductKg} /> },
+const metricColumns = (t: TFunction<'reports'>): DataColumn<Row>[] => [
+  { key: 'runs', header: t('oeeReport.cols.runs'), numeric: true, render: (g) => g.runCount },
+  { key: 'inKg', header: t('productionCostSummary.cols.inputKg'), numeric: true, render: (g) => fmt0(g.inputKg) },
+  { key: 'inRp', header: t('productionCostSummary.cols.inputRp'), numeric: true, render: (g) => fmt0(g.inputRp) },
+  { key: 'inPer', header: t('productionCostSummary.cols.inputPerKg'), numeric: true, render: (g) => fmt2(g.inputPerKg) },
+  { key: 'outKg', header: t('productionCostSummary.cols.outputKg'), numeric: true, render: (g) => fmt0(g.mainKg) },
+  { key: 'yield', header: t('productionCostSummary.cols.yield'), numeric: true, render: (g) => `${fmt2(g.yieldPct)}%` },
+  { key: 'raw', header: t('productionCostSummary.cols.rawPerKg'), numeric: true, className: cn(RAW_CELL, 'font-bold'), render: (g) => fmt2(g.rawMaterialPerKg) },
+  { key: 'gl', header: t('productionCostSummary.cols.glPerKg'), numeric: true, render: (g) => fmt2(g.glPerKg) },
+  { key: 'diff', header: t('productionCostSummary.cols.diffPerKg'), numeric: true, render: (g) => <DiffCell gl={g.glPerKg} raw={g.rawMaterialPerKg} /> },
+  { key: 'by', header: t('productionCostSummary.cols.byproductKg'), numeric: true, render: (g) => <ByproductCell kg={g.byproductKg} /> },
 ];
 
 export default function ProductionCostSummary() {
+  const { t } = useTranslation('reports');
   const now = new Date();
   const { startDate, endDate, setRange } = useReportRange({
     startDate: toIso(new Date(now.getFullYear(), now.getMonth(), 1)),
@@ -134,32 +138,27 @@ export default function ProductionCostSummary() {
 
   const handleExport = async () => {
     if (!data) return;
+    const x = (k: 'type' | 'warehouse' | 'runs' | 'inputKg' | 'inputRp' | 'inputPerKg' | 'outputKg' | 'yield' | 'rawPerKg' | 'glPerKg' | 'diffPerKg' | 'byproductKg' | 'byproductRp' | 'conversionRp') =>
+      t(`productionCostSummary.excel.${k}`);
+    const toRow = (type: string, warehouse: string, g: Row) => ({
+      [x('type')]: type,
+      [x('warehouse')]: warehouse,
+      [x('runs')]: g.runCount,
+      [x('inputKg')]: Math.round(g.inputKg),
+      [x('inputRp')]: Math.round(g.inputRp),
+      [x('inputPerKg')]: +g.inputPerKg.toFixed(2),
+      [x('outputKg')]: Math.round(g.mainKg),
+      [x('yield')]: +g.yieldPct.toFixed(2),
+      [x('rawPerKg')]: +g.rawMaterialPerKg.toFixed(2),
+      [x('glPerKg')]: +g.glPerKg.toFixed(2),
+      [x('diffPerKg')]: +(g.glPerKg - g.rawMaterialPerKg).toFixed(2),
+      [x('byproductKg')]: Math.round(g.byproductKg),
+      [x('byproductRp')]: Math.round(g.byproductRp),
+      [x('conversionRp')]: Math.round(g.conversionCostRp),
+    });
     const rows = [
-      ...data.summary.map((g) => ({
-        Jenis: g.outputName,
-        Gudang: g.warehouseName,
-        'Jml Produksi': g.runCount,
-        'Bahan (kg)': Math.round(g.inputKg),
-        'Nilai Bahan Real (Rp)': Math.round(g.inputRp),
-        'Modal Bahan/kg': +g.inputPerKg.toFixed(2),
-        'Output (kg)': Math.round(g.mainKg),
-        'Rendemen (%)': +g.yieldPct.toFixed(2),
-        'Modal Bahan Baku Murni/kg': +g.rawMaterialPerKg.toFixed(2),
-        'HPP GL/kg': +g.glPerKg.toFixed(2),
-        'Selisih GL − Murni/kg': +(g.glPerKg - g.rawMaterialPerKg).toFixed(2),
-        'Produk Samping (kg)': Math.round(g.byproductKg),
-        'Nilai Produk Samping (Rp)': Math.round(g.byproductRp),
-        'Biaya Konversi Estimasi (Rp)': Math.round(g.conversionCostRp),
-      })),
-      {
-        Jenis: 'TOTAL', Gudang: '', 'Jml Produksi': data.total.runCount,
-        'Bahan (kg)': Math.round(data.total.inputKg), 'Nilai Bahan Real (Rp)': Math.round(data.total.inputRp),
-        'Modal Bahan/kg': +data.total.inputPerKg.toFixed(2), 'Output (kg)': Math.round(data.total.mainKg),
-        'Rendemen (%)': +data.total.yieldPct.toFixed(2), 'Modal Bahan Baku Murni/kg': +data.total.rawMaterialPerKg.toFixed(2),
-        'HPP GL/kg': +data.total.glPerKg.toFixed(2), 'Selisih GL − Murni/kg': +(data.total.glPerKg - data.total.rawMaterialPerKg).toFixed(2),
-        'Produk Samping (kg)': Math.round(data.total.byproductKg), 'Nilai Produk Samping (Rp)': Math.round(data.total.byproductRp),
-        'Biaya Konversi Estimasi (Rp)': Math.round(data.total.conversionCostRp),
-      },
+      ...data.summary.map((g) => toRow(g.outputName, g.warehouseName, g)),
+      toRow(t('reportsShared.totalUpper'), '', data.total),
     ];
     await exportToExcel(rows, `modal-produksi_${startDate}_${endDate}`);
   };
@@ -169,7 +168,7 @@ export default function ProductionCostSummary() {
   const columns: DataColumn<Row>[] = [
     {
       key: 'output',
-      header: 'Jenis Output',
+      header: t('productionCostSummary.cols.output'),
       rowHeader: true,
       render: (g) => {
         const key = groupKey(g);
@@ -179,7 +178,7 @@ export default function ProductionCostSummary() {
             type="button"
             onClick={() => toggle(key)}
             aria-expanded={isOpen}
-            aria-label={`Rincian per nomor produksi, ${g.outputName}, ${g.warehouseName}`}
+            aria-label={t('productionCostSummary.runDetailLabel', { output: g.outputName, warehouse: g.warehouseName })}
             className={cn('-ml-1 inline-flex min-h-8 items-center gap-1 rounded-sm px-1 text-left max-sm:min-h-11', focusRing)}
           >
             {isOpen ? <ChevronDown className="size-4 shrink-0" aria-hidden /> : <ChevronRight className="size-4 shrink-0" aria-hidden />}
@@ -188,8 +187,8 @@ export default function ProductionCostSummary() {
         );
       },
     },
-    { key: 'wh', header: 'Gudang', className: 'whitespace-nowrap text-xs text-muted-foreground', render: (g) => g.warehouseName },
-    ...metricColumns(),
+    { key: 'wh', header: t('poOutstanding.excel.warehouse'), className: 'whitespace-nowrap text-xs text-muted-foreground', render: (g) => g.warehouseName },
+    ...metricColumns(t),
   ];
 
   const renderRuns = (g: Row) => {
@@ -199,7 +198,7 @@ export default function ProductionCostSummary() {
       <tr key={r.runId} className="border-b border-border bg-muted/40 text-xs">
         <th scope="row" className="py-2 pl-8 pr-4 text-left font-mono font-normal max-sm:pr-3">{r.runNumber}</th>
         <td className="px-4 py-2 text-muted-foreground max-sm:px-3">
-          {new Date(r.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+          {formatDate(r.date, 'short')}
         </td>
         <td aria-hidden="true" />
         <td className="num px-4 py-2 text-right max-sm:px-3">{fmt0(r.inputKg)}</td>
@@ -215,63 +214,89 @@ export default function ProductionCostSummary() {
     ));
   };
 
-  const t = data?.total;
-  const total = t && (
+  const tot = data?.total;
+  const total = tot && (
     <tr className={TOTAL_ROW_CLASS}>
-      <th scope="row" className="px-4 py-2.5 text-left max-sm:px-3">TOTAL</th>
+      <th scope="row" className="px-4 py-2.5 text-left max-sm:px-3">{t('reportsShared.totalUpper')}</th>
       <td aria-hidden="true" />
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{t.runCount}</td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.inputKg)}</td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.inputRp)}</td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(t.inputPerKg)}</td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.mainKg)}</td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(t.yieldPct)}%</td>
-      <td className={cn('num px-4 py-2.5 text-right max-sm:px-3', RAW_CELL)}>{fmt2(t.rawMaterialPerKg)}</td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(t.glPerKg)}</td>
-      <td className="px-4 py-2.5 text-right max-sm:px-3"><DiffCell gl={t.glPerKg} raw={t.rawMaterialPerKg} /></td>
-      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(t.byproductKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{tot.runCount}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(tot.inputKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(tot.inputRp)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(tot.inputPerKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(tot.mainKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(tot.yieldPct)}%</td>
+      <td className={cn('num px-4 py-2.5 text-right max-sm:px-3', RAW_CELL)}>{fmt2(tot.rawMaterialPerKg)}</td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt2(tot.glPerKg)}</td>
+      <td className="px-4 py-2.5 text-right max-sm:px-3"><DiffCell gl={tot.glPerKg} raw={tot.rawMaterialPerKg} /></td>
+      <td className="num px-4 py-2.5 text-right max-sm:px-3">{fmt0(tot.byproductKg)}</td>
     </tr>
   );
 
-  const hasRuns = !!t && t.runCount > 0;
+  const hasRuns = !!tot && tot.runCount > 0;
 
   return (
     <ReportPage
-      title="Modal Produksi per Periode"
-      description="Modal bahan baku murni dan HPP GL per kg output, per jenis dan gudang"
+      title={t('productionCostSummary.title')}
+      description={t('productionCostSummary.description')}
       period={periodLabel({ startDate, endDate })}
       actions={<ExportMenu onExcel={handleExport} disabled={isLoading || isError || !data || data.summary.length === 0} />}
       filters={
         <div className="flex flex-col gap-3">
           <ReportNotice tone="info">
-            <p className="font-medium">Dua cara baca modal</p>
+            <p className="font-medium">{t('productionCostSummary.notice.title')}</p>
             <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
-              <li><strong>Modal Bahan Baku Murni/kg</strong> = nilai bahan baku real (pembelian) dibagi kg output utama. Tanpa biaya estimasi dan produk samping. Laporan manajemen, tidak diposting ke GL.</li>
-              <li><strong>HPP GL/kg</strong> = nilai yang diposting ke persediaan = bahan − NRV produk samping + biaya konversi estimasi (sesuai PSAK 14).</li>
-              <li>Selisih bertanda <strong>+</strong> = HPP GL lebih tinggi (biaya estimasi lebih besar dari nilai produk samping); <strong>−</strong> = sebaliknya.</li>
+              <li><Trans t={t} i18nKey="productionCostSummary.notice.raw" components={{ b: <strong /> }} /></li>
+              <li><Trans t={t} i18nKey="productionCostSummary.notice.gl" components={{ b: <strong /> }} /></li>
+              <li><Trans t={t} i18nKey="productionCostSummary.notice.diff" components={{ b: <strong /> }} /></li>
             </ul>
           </ReportNotice>
           <ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange}>
             <ComboboxFilter
-              label="Gudang output"
+              label={t('productionCostSummary.warehouseFilter')}
               value={warehouseId}
               onChange={setWarehouseId}
               options={(warehouses ?? []).map((w) => ({ value: w.id, label: w.name }))}
-              allLabel="Semua gudang"
-              searchPlaceholder="Cari gudang…"
+              allLabel={t('productionCostSummary.allWarehouses')}
+              searchPlaceholder={t('productionCostSummary.searchWarehouse')}
               className="w-full sm:w-56"
             />
           </ReportFilters>
         </div>
       }
       summary={
-        hasRuns && t ? (
+        hasRuns && tot ? (
           <ReportSummaryCards
             items={[
-              { label: 'Produksi', value: t.runCount, formatted: `${t.runCount} run`, icon: Factory, hint: `${fmt0(t.inputKg)} kg bahan → ${fmt0(t.mainKg)} kg` },
-              { label: 'Nilai Bahan Real', value: t.inputRp, icon: Wallet, tone: 'neutral', hint: `${formatRupiah(t.inputPerKg, { decimals: 2 })}/kg bahan` },
-              { label: 'Modal Bahan Baku Murni', value: t.rawMaterialPerKg, formatted: `${formatRupiah(t.rawMaterialPerKg, { decimals: 2 })}/kg`, icon: Layers, tone: 'neutral', hint: `rendemen ${fmt2(t.yieldPct)}% (campuran)` },
-              { label: 'HPP GL', value: t.glPerKg, formatted: `${formatRupiah(t.glPerKg, { decimals: 2 })}/kg`, icon: Calculator, tone: 'neutral', hint: <>selisih <DiffCell gl={t.glPerKg} raw={t.rawMaterialPerKg} />/kg dari modal murni</> },
+              {
+                label: t('productionCostSummary.summary.production'),
+                value: tot.runCount,
+                formatted: t('productionCostSummary.summary.runs', { count: tot.runCount }),
+                icon: Factory,
+                hint: t('productionCostSummary.summary.productionHint', { input: fmt0(tot.inputKg), output: fmt0(tot.mainKg) }),
+              },
+              {
+                label: t('productionCostSummary.cols.inputRp'),
+                value: tot.inputRp,
+                icon: Wallet,
+                tone: 'neutral',
+                hint: t('productionCostSummary.summary.perKgInput', { value: formatRupiah(tot.inputPerKg, { decimals: 2 }) }),
+              },
+              {
+                label: t('productionCostSummary.summary.raw'),
+                value: tot.rawMaterialPerKg,
+                formatted: t('productionCostSummary.summary.perKg', { value: formatRupiah(tot.rawMaterialPerKg, { decimals: 2 }) }),
+                icon: Layers,
+                tone: 'neutral',
+                hint: t('productionCostSummary.summary.yieldHint', { value: fmt2(tot.yieldPct) }),
+              },
+              {
+                label: t('productionCostSummary.summary.gl'),
+                value: tot.glPerKg,
+                formatted: t('productionCostSummary.summary.perKg', { value: formatRupiah(tot.glPerKg, { decimals: 2 }) }),
+                icon: Calculator,
+                tone: 'neutral',
+                hint: <Trans t={t} i18nKey="productionCostSummary.summary.glHint" components={{ diff: <DiffCell gl={tot.glPerKg} raw={tot.rawMaterialPerKg} /> }} />,
+              },
             ]}
           />
         ) : undefined
@@ -279,7 +304,7 @@ export default function ProductionCostSummary() {
     >
       <ReportState isLoading={isLoading} isError={isError} isEmpty={!!data && data.summary.length === 0} onRetry={() => refetch()}>
         <ReportDataTable
-          caption={`Modal produksi per jenis output dan gudang, ${periodLabel({ startDate, endDate })}`}
+          caption={t('productionCostSummary.caption', { period: periodLabel({ startDate, endDate }) })}
           columns={columns}
           rows={data?.summary ?? []}
           getRowKey={groupKey}
@@ -287,8 +312,7 @@ export default function ProductionCostSummary() {
           footer={total}
         />
         <p className="mt-2 text-xs text-muted-foreground">
-          Pilih jenis output untuk melihat rincian per nomor produksi. Ikon peringatan = produksi tanpa produk samping tercatat (periksa input).
-          Total adalah campuran semua jenis/gudang; bandingkan per baris untuk keputusan.
+          {t('productionCostSummary.footnote')}
         </p>
       </ReportState>
     </ReportPage>

@@ -1,3 +1,5 @@
+import { formatRupiah } from '@/lib/format';
+
 /** Token-driven chart styling (light + dark via CSS variables). */
 export const CHART_COLORS = [
   'var(--chart-1)',
@@ -19,14 +21,8 @@ export const TOOLTIP_STYLE = {
   color: 'var(--foreground)',
 } as const;
 
-/** Axis tick for IDR amounts: 0, 5jt, 1,2M … */
+/** Axis tick for IDR amounts: 0, 5 jt, 1,2 M (id) / 0, 5 M, 1.2 B (en). Units follow the UI language. */
 export function compactIdrTick(v: number): string {
   if (v === 0) return '0';
-  const abs = Math.abs(v);
-  const sign = v < 0 ? '-' : '';
-  if (abs >= 1e12) return `${sign}${+(abs / 1e12).toFixed(1)}T`;
-  if (abs >= 1e9) return `${sign}${+(abs / 1e9).toFixed(1)}M`;
-  if (abs >= 1e6) return `${sign}${+(abs / 1e6).toFixed(1)}jt`;
-  if (abs >= 1e3) return `${sign}${Math.round(abs / 1e3)}rb`;
-  return `${sign}${abs}`;
+  return formatRupiah(v, { compact: true, symbol: false });
 }

@@ -5,6 +5,8 @@
  */
 import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AlertTriangle, ClipboardList, Package, Wallet } from 'lucide-react';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -49,12 +51,12 @@ interface OutstandingData {
 
 const qty = (n: number) => formatNumber(n, { maxDecimals: 3 });
 
-const COLUMNS: DataColumn<OutstandingRow>[] = [
-  { key: 'po', header: 'No. PO', rowHeader: true, className: 'whitespace-nowrap font-mono text-xs', render: (r) => r.poNumber },
-  { key: 'supplier', header: 'Pemasok', render: (r) => r.supplierName },
+const columns = (t: TFunction<'reports'>): DataColumn<OutstandingRow>[] => [
+  { key: 'po', header: t('poOutstanding.cols.poNo'), rowHeader: true, className: 'whitespace-nowrap font-mono text-xs', render: (r) => r.poNumber },
+  { key: 'supplier', header: t('dailyReport.cols.supplier'), render: (r) => r.supplierName },
   {
     key: 'item',
-    header: 'Item',
+    header: t('dailyReport.cols.item'),
     render: (r) => (
       <>
         <span>{r.itemName}</span>
@@ -64,25 +66,25 @@ const COLUMNS: DataColumn<OutstandingRow>[] = [
   },
   {
     key: 'eta',
-    header: 'Target Terima',
+    header: t('poOutstanding.cols.eta'),
     className: 'whitespace-nowrap text-xs',
     render: (r) => (
       <>
         {r.expectedDeliveryDate ? formatDate(r.expectedDeliveryDate) : '—'}
         {r.isOverdue && (
           <span className="mt-0.5 flex items-center gap-1 font-medium text-danger-text">
-            <AlertTriangle className="size-3" aria-hidden /> Terlambat {r.daysOverdue} hari
+            <AlertTriangle className="size-3" aria-hidden /> {t('poOutstanding.lateDays', { count: r.daysOverdue })}
           </span>
         )}
       </>
     ),
   },
-  { key: 'ordered', header: 'Dipesan', numeric: true, className: 'whitespace-nowrap', render: (r) => `${qty(r.ordered)} ${r.unit}` },
-  { key: 'received', header: 'Diterima', numeric: true, className: 'whitespace-nowrap', render: (r) => qty(r.received) },
-  { key: 'remaining', header: 'Sisa', numeric: true, className: 'whitespace-nowrap font-medium', render: (r) => qty(r.remaining) },
+  { key: 'ordered', header: t('poOutstanding.cols.ordered'), numeric: true, className: 'whitespace-nowrap', render: (r) => `${qty(r.ordered)} ${r.unit}` },
+  { key: 'received', header: t('poOutstanding.cols.received'), numeric: true, className: 'whitespace-nowrap', render: (r) => qty(r.received) },
+  { key: 'remaining', header: t('poOutstanding.cols.remaining'), numeric: true, className: 'whitespace-nowrap font-medium', render: (r) => qty(r.remaining) },
   {
     key: 'value',
-    header: 'Nilai Sisa (Rp)',
+    header: t('poOutstanding.cols.remainingValueRp'),
     numeric: true,
     className: 'whitespace-nowrap font-medium',
     render: (r) => formatRupiah(r.remainingValue, { symbol: false }),
@@ -90,6 +92,7 @@ const COLUMNS: DataColumn<OutstandingRow>[] = [
 ];
 
 export default function PoOutstanding() {
+  const { t } = useTranslation('reports');
   const overdueId = useId();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -113,19 +116,19 @@ export default function PoOutstanding() {
   const handleExport = () => {
     exportToExcel(
       rows.map((r) => ({
-        'No. PO': r.poNumber,
-        'Tanggal PO': r.date,
-        'Target Terima': r.expectedDeliveryDate ?? '',
-        Pemasok: r.supplierName,
-        Gudang: r.warehouseName ?? '',
-        Item: r.itemName,
-        Satuan: r.unit,
-        'Qty Dipesan': r.ordered,
-        'Qty Diterima': r.received,
-        'Qty Sisa': r.remaining,
-        'Harga Satuan Neto (Rp)': r.unitValue,
-        'Nilai Sisa (Rp)': r.remainingValue,
-        Terlambat: r.isOverdue ? `Ya (${r.daysOverdue} hari)` : 'Tidak',
+        [t('poOutstanding.cols.poNo')]: r.poNumber,
+        [t('poOutstanding.excel.poDate')]: r.date,
+        [t('poOutstanding.cols.eta')]: r.expectedDeliveryDate ?? '',
+        [t('dailyReport.cols.supplier')]: r.supplierName,
+        [t('poOutstanding.excel.warehouse')]: r.warehouseName ?? '',
+        [t('dailyReport.cols.item')]: r.itemName,
+        [t('poOutstanding.excel.unit')]: r.unit,
+        [t('poOutstanding.excel.qtyOrdered')]: r.ordered,
+        [t('poOutstanding.excel.qtyReceived')]: r.received,
+        [t('poOutstanding.excel.qtyRemaining')]: r.remaining,
+        [t('poOutstanding.excel.unitNet')]: r.unitValue,
+        [t('poOutstanding.cols.remainingValueRp')]: r.remainingValue,
+        [t('poOutstanding.excel.late')]: r.isOverdue ? t('poOutstanding.excel.lateYes', { count: r.daysOverdue }) : t('poOutstanding.excel.lateNo'),
       })),
       `PO-Outstanding-${new Date().toISOString().slice(0, 10)}`,
     );
@@ -136,18 +139,25 @@ export default function PoOutstanding() {
 
   return (
     <ReportPage
-      title="PO Outstanding"
-      description="Sisa pesanan pembelian yang belum diterima per item"
-      period={startDate || endDate ? `Tanggal PO ${startDate ? formatDate(startDate) : 'awal'} s/d ${endDate ? formatDate(endDate) : 'akhir'}` : 'Semua tanggal PO'}
+      title={t('poOutstanding.title')}
+      description={t('poOutstanding.description')}
+      period={
+        startDate || endDate
+          ? t('poOutstanding.periodRange', {
+              start: startDate ? formatDate(startDate) : t('poOutstanding.periodStart'),
+              end: endDate ? formatDate(endDate) : t('poOutstanding.periodEnd'),
+            })
+          : t('poOutstanding.periodAll')
+      }
       actions={<ExportMenu onExcel={handleExport} disabled={isLoading || isError} />}
       filters={
         <ReportFilterSection>
           <div className="grid gap-1.5">
-            <Label htmlFor="po-start">Tanggal PO dari</Label>
+            <Label htmlFor="po-start">{t('poOutstanding.fromDate')}</Label>
             <DateInput id="po-start" className="w-40 max-sm:min-w-36" value={startDate} onChange={setStartDate} />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="po-end">Sampai tanggal</Label>
+            <Label htmlFor="po-end">{t('kit.filters.endDate')}</Label>
             <DateInput id="po-end" className="w-40 max-sm:min-w-36" value={endDate} onChange={setEndDate} />
           </div>
           {(startDate || endDate) && (
@@ -159,7 +169,7 @@ export default function PoOutstanding() {
                 setEndDate('');
               }}
             >
-              Hapus tanggal
+              {t('poOutstanding.clearDates')}
             </Button>
           )}
           <PartyFilter partyType="Supplier" value={partyId} onChange={setPartyId} />
@@ -174,11 +184,11 @@ export default function PoOutstanding() {
               checked={overdueOnly}
               onChange={(e) => setOverdueOnly(e.target.checked)}
             />
-            Hanya yang terlambat
+            {t('poOutstanding.overdueOnly')}
           </label>
           {rangeInvalid && (
             <p role="alert" className="basis-full text-xs text-danger-text">
-              Tanggal akhir sebelum tanggal mulai: hasil bisa kosong.
+              {t('poOutstanding.invalidRange')}
             </p>
           )}
         </ReportFilterSection>
@@ -187,11 +197,11 @@ export default function PoOutstanding() {
         <ReportSummaryCards
           loading={isLoading}
           items={[
-            { label: 'Nilai Sisa', value: data?.summary.remainingValue ?? 0, icon: Wallet, tone: 'neutral' },
-            { label: 'PO Terbuka', value: data?.summary.poCount ?? 0, formatted: counts(data?.summary.poCount), icon: ClipboardList },
-            { label: 'Baris Item', value: data?.summary.lineCount ?? 0, formatted: counts(data?.summary.lineCount), icon: Package },
+            { label: t('poOutstanding.summary.remainingValue'), value: data?.summary.remainingValue ?? 0, icon: Wallet, tone: 'neutral' },
+            { label: t('poOutstanding.summary.openPo'), value: data?.summary.poCount ?? 0, formatted: counts(data?.summary.poCount), icon: ClipboardList },
+            { label: t('poOutstanding.summary.lines'), value: data?.summary.lineCount ?? 0, formatted: counts(data?.summary.lineCount), icon: Package },
             {
-              label: 'PO Terlambat',
+              label: t('poOutstanding.summary.latePo'),
               value: data?.summary.overduePoCount ?? 0,
               formatted: counts(data?.summary.overduePoCount),
               icon: AlertTriangle,
@@ -203,10 +213,10 @@ export default function PoOutstanding() {
     >
       <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
         <ReportDataTable
-          caption="PO outstanding per item"
-          columns={COLUMNS}
+          caption={t('poOutstanding.caption')}
+          columns={columns(t)}
           rows={rows}
-          emptyText="Tidak ada PO outstanding untuk filter ini."
+          emptyText={t('poOutstanding.empty')}
           getRowKey={(r) => `${r.poId}-${r.itemId}`}
         />
       </ReportState>

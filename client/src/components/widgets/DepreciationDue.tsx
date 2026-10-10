@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { CalendarClock, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
 import { formatDate, formatRupiah } from '@/lib/format';
@@ -24,6 +25,7 @@ interface ApiResponse {
 }
 
 export default function DepreciationDue() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
     queryKey: ['dashboard-fixed-assets'],
     queryFn: async () => (await api.get('/dashboard/fixed-assets')).data,
@@ -32,11 +34,11 @@ export default function DepreciationDue() {
 
   return (
     <WidgetCard
-      title="Penyusutan Mendatang"
-      description="Jadwal yang belum diposting"
+      title={t('depreciationDue.title')}
+      description={t('depreciationDue.description')}
       icon={CalendarClock}
       href="/fixed-assets"
-      hrefLabel="Aset tetap"
+      hrefLabel={t('depreciationDue.fixedAssets')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
@@ -46,18 +48,18 @@ export default function DepreciationDue() {
         <>
           <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-muted/50 px-3 py-2.5">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Bulan ini</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t('depreciationDue.thisMonth')}</p>
               <p className="num text-base font-semibold text-foreground">{formatRupiah(due.thisMonthAmount)}</p>
             </div>
-            <p className="num text-xs text-muted-foreground">{due.thisMonthEntries} entri</p>
+            <p className="num text-xs text-muted-foreground">{t('depreciationDue.entries', { count: due.thisMonthEntries })}</p>
           </div>
           {due.upcoming.length === 0 ? (
             <div role="status" className="flex flex-col items-center gap-2 py-6 text-center text-muted-foreground">
               <CheckCircle2 className="size-6 opacity-60" aria-hidden />
-              <p className="text-xs">Semua jadwal sudah diposting</p>
+              <p className="text-xs">{t('depreciationDue.allPosted')}</p>
             </div>
           ) : (
-            <ScrollRegion label="Jadwal penyusutan mendatang" className="max-h-48 overflow-y-auto">
+            <ScrollRegion label={t('depreciationDue.listLabel')} className="max-h-48 overflow-y-auto">
 <ul className="divide-y divide-border">
               {due.upcoming.map((e) => (
                 <li key={e.id} className="flex items-center gap-3 py-1.5">

@@ -1,4 +1,5 @@
 import { useId, type ElementType, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface ReportSectionProps {
@@ -46,8 +47,9 @@ export function ReportSection({ title, icon: Icon, count, description, flush, ch
 
 /** Filter strip wrapper for pages that need custom controls instead of <ReportFilters />. */
 export function ReportFilterSection({ children, className }: { children: ReactNode; className?: string }) {
+  const { t } = useTranslation('reports');
   return (
-    <section aria-label="Filter laporan" className={cn('no-print flex flex-wrap items-end gap-3', className)} data-no-print>
+    <section aria-label={t('kit.filters.label')} className={cn('no-print flex flex-wrap items-end gap-3', className)} data-no-print>
       {children}
     </section>
   );
@@ -64,15 +66,16 @@ export interface MetricItem {
 /** Compact non-currency KPI grid (counts, kg, %): label + value + optional hint. */
 export function ReportMetricGrid({
   items,
-  label = 'Ringkasan',
+  label,
   className,
 }: {
   items: ReadonlyArray<MetricItem>;
   label?: string;
   className?: string;
 }) {
+  const { t } = useTranslation('reports');
   return (
-    <dl aria-label={label} className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4', className)}>
+    <dl aria-label={label ?? t('kit.summary')} className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4', className)}>
       {items.map((m) => (
         <div key={m.label} className="min-w-0 rounded-lg border border-border bg-muted/40 px-4 py-3 max-sm:px-3">
           <dt className="text-xs font-medium text-muted-foreground">{m.label}</dt>

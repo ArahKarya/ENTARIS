@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PieChart } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -18,6 +19,7 @@ interface ApiResponse {
 }
 
 export default function FixedAssetsByCategory() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
     queryKey: ['dashboard-fixed-assets'],
     queryFn: async () => (await api.get('/dashboard/fixed-assets')).data,
@@ -27,25 +29,25 @@ export default function FixedAssetsByCategory() {
 
   return (
     <WidgetCard
-      title="Aset per Kategori"
-      description="Distribusi nilai buku"
+      title={t('fixedAssetsByCategory.title')}
+      description={t('fixedAssetsByCategory.description')}
       icon={PieChart}
       href="/fixed-assets"
-      hrefLabel="Aset tetap"
+      hrefLabel={t('depreciationDue.fixedAssets')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && rows.length === 0}
       emptyIcon={PieChart}
-      emptyText="Belum ada aset"
+      emptyText={t('fixedAssetsByCategory.empty')}
       minHeight={290}
     >
       <DonutBreakdown
-        data={rows.map((r) => ({ key: r.category, label: r.category, value: r.totalBookValue, note: `${r.count} aset` }))}
+        data={rows.map((r) => ({ key: r.category, label: r.category, value: r.totalBookValue, note: t('fixedAssetsByCategory.assetCount', { count: r.count }) }))}
         formatValue={(n) => formatRupiah(n, { compact: true })}
-        summary={`Diagram donat nilai buku aset tetap per kategori, total ${formatRupiah(total)}.`}
-        caption="Nilai buku aset per kategori"
-        valueHeader="Nilai buku"
+        summary={t('fixedAssetsByCategory.summary', { total: formatRupiah(total) })}
+        caption={t('fixedAssetsByCategory.caption')}
+        valueHeader={t('fixedAssetsByCategory.bookValue')}
       />
     </WidgetCard>
   );

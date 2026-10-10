@@ -1,8 +1,10 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpCircle, Receipt, Scale } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '@/lib/api';
+import { LOCALE } from '@/lib/format';
 import { exportToExcel } from '@/lib/exportExcel';
 import {
   ExportMenu,
@@ -34,23 +36,22 @@ interface TaxReportData {
   };
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-
+/** "2026-10" -> "Okt 2026" / "Oct 2026" (follows the UI language). */
 const monthLabel = (m: string) => {
-  const [year, month] = m.split('-');
-  return `${MONTHS[parseInt(month, 10) - 1]} ${year}`;
+  const [year, month] = m.split('-').map(Number);
+  return new Intl.DateTimeFormat(LOCALE, { month: 'short', year: 'numeric' }).format(new Date(year, month - 1, 1));
 };
-
-const COLUMNS = [
-  { key: 'ppnKeluaran', label: 'PPN Keluaran' },
-  { key: 'ppnMasukan', label: 'PPN Masukan' },
-  { key: 'net', label: 'Selisih PPN' },
-  { key: 'pph', label: 'PPh' },
-];
 
 const EMPTY_TOTALS = { ppnKeluaran: 0, ppnMasukan: 0, pph: 0, net: 0 };
 
 const TaxReport: React.FC = () => {
+  const { t } = useTranslation('reports');
+  const columns = [
+    { key: 'ppnKeluaran', label: t('taxReport.outputVat') },
+    { key: 'ppnMasukan', label: t('taxReport.inputVat') },
+    { key: 'net', label: t('taxReport.vatDiff') },
+    { key: 'pph', label: t('taxReport.pph') },
+  ];
   // Default: current year to date.
   const today = new Date();
   const { startDate, endDate, setRange } = useReportRange({
@@ -71,23 +72,15 @@ const TaxReport: React.FC = () => {
 
   const handleExport = () => {
     if (!report?.months) return;
+    const row = (label: string, v: Omit<TaxMonth, 'month'>) => ({
+      [t('taxReport.month')]: label,
+      [t('taxReport.excel.outputVat')]: v.ppnKeluaran,
+      [t('taxReport.excel.inputVat')]: v.ppnMasukan,
+      [t('taxReport.excel.vatDiff')]: v.net,
+      [t('taxReport.excel.pph')]: v.pph,
+    });
     exportToExcel(
-      [
-        ...report.months.map((m) => ({
-          Bulan: monthLabel(m.month),
-          'PPN Keluaran (Rp)': m.ppnKeluaran,
-          'PPN Masukan (Rp)': m.ppnMasukan,
-          'Selisih PPN (Rp)': m.net,
-          'PPh (Rp)': m.pph,
-        })),
-        {
-          Bulan: 'TOTAL',
-          'PPN Keluaran (Rp)': totals.ppnKeluaran,
-          'PPN Masukan (Rp)': totals.ppnMasukan,
-          'Selisih PPN (Rp)': totals.net,
-          'PPh (Rp)': totals.pph,
-        },
-      ],
+      [...report.months.map((m) => row(monthLabel(m.month), m)), row(t('reportsShared.totalUpper'), totals)],
       `Laporan-Pajak-${startDate}-sd-${endDate}`,
     );
   };
@@ -102,8 +95,8 @@ const TaxReport: React.FC = () => {
 
   return (
     <ReportPage
-      title="Laporan Pajak"
-      description="Ringkasan PPN dan PPh berdasarkan transaksi invoice"
+      title={t('taxReport.title')}
+      description={t('taxReport.description')}
       period={period}
       actions={<ExportMenu disabled={isLoading || isError} onExcel={handleExport} />}
       filters={<ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />}
@@ -111,22 +104,22 @@ const TaxReport: React.FC = () => {
         <ReportSummaryCards
           loading={isLoading}
           items={[
-            { label: 'PPN Keluaran', value: totals.ppnKeluaran, icon: ArrowUpCircle, tone: 'neutral' },
-            { label: 'PPN Masukan', value: totals.ppnMasukan, icon: ArrowDownCircle, tone: 'neutral' },
-            { label: 'Total PPh', value: totals.pph, icon: Receipt, tone: 'neutral' },
-            { label: 'PPN Kurang/Lebih Bayar', value: totals.net, icon: Scale, tone: 'neutral' },
+            { label: t('taxReport.outputVat'), value: totals.ppnKeluaran, icon: ArrowUpCircle, tone: 'neutral' },
+            { label: t('taxReport.inputVat'), value: totals.ppnMasukan, icon: ArrowDownCircle, tone: 'neutral' },
+            { label: t('taxReport.totalPph'), value: totals.pph, icon: Receipt, tone: 'neutral' },
+            { label: t('taxReport.vatPayable'), value: totals.net, icon: Scale, tone: 'neutral' },
           ]}
         />
       }
     >
       <ReportState isLoading={isLoading} isError={isError} isEmpty={months.length === 0} onRetry={() => refetch()}>
         <ReportTable
-          caption={`Laporan pajak per bulan, ${period}`}
-          columns={COLUMNS}
-          labelHeader="Bulan"
+          caption={t('taxReport.caption', { period })}
+          columns={columns}
+          labelHeader={t('taxReport.month')}
           zero="dash"
           rows={rows}
-          footer={[{ key: 'total', kind: 'total', label: 'Total', values: [totals.ppnKeluaran, totals.ppnMasukan, totals.net, totals.pph] }]}
+          footer={[{ key: 'total', kind: 'total', label: t('reportsShared.total'), values: [totals.ppnKeluaran, totals.ppnMasukan, totals.net, totals.pph] }]}
         />
       </ReportState>
     </ReportPage>

@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Coins, Percent, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import api from '@/lib/api';
 import { formatNumber, formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -37,28 +39,28 @@ interface HppData {
 /** Margin tone: >= 20% good, >= 0 watch, < 0 loss. The icon + sign carry the meaning, colour only reinforces it. */
 const marginTone = (pct: number) => (pct >= 20 ? 'text-success-text' : pct >= 0 ? 'text-warning-text' : 'text-danger-text');
 
-const COLUMNS: DataColumn<HppItem>[] = [
-  { key: 'code', header: 'Kode', render: (r) => r.itemCode, className: 'whitespace-nowrap font-mono text-xs' },
-  { key: 'name', header: 'Produk', rowHeader: true, render: (r) => r.itemName },
+const columns = (t: TFunction<'reports'>): DataColumn<HppItem>[] => [
+  { key: 'code', header: t('hppReport.cols.code'), render: (r) => r.itemCode, className: 'whitespace-nowrap font-mono text-xs' },
+  { key: 'name', header: t('hppReport.cols.product'), rowHeader: true, render: (r) => r.itemName },
   {
     key: 'category',
-    header: 'Kategori',
+    header: t('hppReport.cols.category'),
     hideBelowSm: true,
     render: (r) => <span className="rounded-md bg-neutral-subtle px-2 py-0.5 text-xs text-neutral-text">{r.category}</span>,
   },
-  { key: 'qty', header: 'Qty', numeric: true, render: (r) => formatNumber(r.totalQty) },
-  { key: 'revenue', header: 'Pendapatan', numeric: true, render: (r) => formatRupiah(r.totalRevenue, { symbol: false }) },
-  { key: 'cogs', header: 'HPP', numeric: true, render: (r) => formatRupiah(r.totalCogs, { symbol: false }) },
+  { key: 'qty', header: t('dailyReport.cols.qty'), numeric: true, render: (r) => formatNumber(r.totalQty) },
+  { key: 'revenue', header: t('hppReport.cols.revenue'), numeric: true, render: (r) => formatRupiah(r.totalRevenue, { symbol: false }) },
+  { key: 'cogs', header: t('hppReport.cols.cogs'), numeric: true, render: (r) => formatRupiah(r.totalCogs, { symbol: false }) },
   {
     key: 'margin',
-    header: 'Laba Kotor',
+    header: t('hppReport.grossProfit'),
     numeric: true,
     className: (r) => cn('font-medium', r.grossMargin < 0 && 'text-danger-text'),
     render: (r) => formatRupiah(r.grossMargin, { symbol: false, negative: 'parens' }),
   },
   {
     key: 'pct',
-    header: 'Margin',
+    header: t('hppReport.cols.margin'),
     numeric: true,
     render: (r) => (
       <span className={cn('inline-flex items-center justify-end gap-1', marginTone(r.marginPct))}>
@@ -70,6 +72,7 @@ const COLUMNS: DataColumn<HppItem>[] = [
 ];
 
 export default function HppReport() {
+  const { t } = useTranslation('reports');
   const now = new Date();
   const { startDate, endDate, setRange } = useReportRange({ startDate: `${now.getFullYear()}-01-01`, endDate: toIso(now) });
 
@@ -85,8 +88,8 @@ export default function HppReport() {
 
   return (
     <ReportPage
-      title="HPP per Produk"
-      description="Pendapatan, harga pokok penjualan, dan margin kotor per produk"
+      title={t('hppReport.title')}
+      description={t('hppReport.description')}
       period={periodLabel({ startDate, endDate })}
       actions={<ExportMenu disabled={isLoading || isError} />}
       filters={<ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />}
@@ -94,11 +97,11 @@ export default function HppReport() {
         <ReportSummaryCards
           loading={isLoading}
           items={[
-            { label: 'Total Pendapatan', value: summary?.totalRevenue ?? 0, icon: Wallet, tone: 'neutral' },
-            { label: 'Total HPP', value: summary?.totalCogs ?? 0, icon: Coins, tone: 'neutral' },
-            { label: 'Laba Kotor', value: summary?.grossProfit ?? 0, icon: TrendingUp },
+            { label: t('profitLoss.totalRevenue'), value: summary?.totalRevenue ?? 0, icon: Wallet, tone: 'neutral' },
+            { label: t('hppReport.totalCogs'), value: summary?.totalCogs ?? 0, icon: Coins, tone: 'neutral' },
+            { label: t('hppReport.grossProfit'), value: summary?.grossProfit ?? 0, icon: TrendingUp },
             {
-              label: 'Margin Kotor',
+              label: t('hppReport.grossMargin'),
               value: summary?.grossMarginPct ?? 0,
               formatted: `${summary?.grossMarginPct ?? 0}%`,
               icon: Percent,
@@ -114,8 +117,8 @@ export default function HppReport() {
         onRetry={() => refetch()}
       >
         <ReportDataTable
-          caption={`HPP per produk, ${periodLabel({ startDate, endDate })}`}
-          columns={COLUMNS}
+          caption={t('hppReport.caption', { period: periodLabel({ startDate, endDate }) })}
+          columns={columns(t)}
           rows={data?.items ?? []}
           getRowKey={(r) => r.itemId}
         />

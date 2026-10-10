@@ -1,4 +1,5 @@
 import { Children, lazy, Suspense, useState, useCallback, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Settings2, LayoutDashboard, TrendingUp, Package, Factory, Building2, Landmark } from 'lucide-react';
 import { PageHeader } from '../components/shared';
 import { Button } from '../components/ui/button';
@@ -36,7 +37,7 @@ import { canViewMaintenance } from '../components/widgets/maintenanceData';
 import CogsBackfillWidget from '../components/widgets/CogsBackfillWidget';
 import { WidgetSkeleton } from '../components/dashboard-kit';
 import DashboardSettings from '../components/DashboardSettings';
-import { DEFAULT_WIDGETS, type WidgetConfig } from '../components/dashboardWidgets';
+import { defaultWidgets, type WidgetConfig } from '../components/dashboardWidgets';
 import DashboardSectionNav, { type SectionDef } from '../components/DashboardSectionNav';
 import { tabId } from '../components/dashboardTabId';
 import DashboardPeriodFilter, { type PeriodRange } from '../components/DashboardPeriodFilter';
@@ -129,6 +130,7 @@ function SectionHeader({ icon: Icon, title, subtitle }: SectionHeaderProps) {
 }
 
 export const Dashboard = () => {
+  const { t } = useTranslation('dashboard');
   const company = useCompanySettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [widgetPrefs, setWidgetPrefs] = useState<Record<string, boolean>>(loadWidgetPrefs);
@@ -151,12 +153,12 @@ export const Dashboard = () => {
   const canCogs = useMemo(() => can('journal', 'view'), []);
 
   const availableWidgets = useMemo(
-    () => DEFAULT_WIDGETS.filter(
+    () => defaultWidgets(t).filter(
       (w) => (canFinance || !FINANCE_WIDGET_IDS.has(w.id))
         && (canMaintenance || w.id !== 'maintenance')
         && (canCogs || w.id !== 'cogs-backfill'),
     ),
-    [canFinance, canMaintenance, canCogs]
+    [canFinance, canMaintenance, canCogs, t]
   );
 
   const widgets: WidgetConfig[] = useMemo(
@@ -253,14 +255,14 @@ export const Dashboard = () => {
   const showAset = canFinance && anyEnabled(ASET_WIDGETS);
 
   const sections: SectionDef[] = useMemo(() => {
-    const list: SectionDef[] = [{ id: 'overview', label: 'Ringkasan', icon: LayoutDashboard }];
-    if (showKeuangan) list.push({ id: 'keuangan', label: 'Keuangan', icon: Landmark });
-    if (showSales) list.push({ id: 'sales', label: 'Sales', icon: TrendingUp });
-    if (showStok) list.push({ id: 'stok', label: 'Stok', icon: Package });
-    if (showProduksi) list.push({ id: 'produksi', label: 'Produksi', icon: Factory });
-    if (showAset) list.push({ id: 'aset', label: 'Aset', icon: Building2 });
+    const list: SectionDef[] = [{ id: 'overview', label: t('dashboardPage.nav.overview'), icon: LayoutDashboard }];
+    if (showKeuangan) list.push({ id: 'keuangan', label: t('dashboardPage.nav.finance'), icon: Landmark });
+    if (showSales) list.push({ id: 'sales', label: t('dashboardPage.nav.sales'), icon: TrendingUp });
+    if (showStok) list.push({ id: 'stok', label: t('dashboardPage.nav.stock'), icon: Package });
+    if (showProduksi) list.push({ id: 'produksi', label: t('dashboardPage.nav.production'), icon: Factory });
+    if (showAset) list.push({ id: 'aset', label: t('dashboardPage.nav.assets'), icon: Building2 });
     return list;
-  }, [showKeuangan, showSales, showStok, showProduksi, showAset]);
+  }, [showKeuangan, showSales, showStok, showProduksi, showAset, t]);
 
   const showAttention = isEnabled('attention-list');
   const showMaintenance = canMaintenance && isEnabled('maintenance');
@@ -269,12 +271,12 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
-        title="Dasbor"
+        title={t('dashboardPage.title')}
         icon={LayoutDashboard}
         description={
           isStaffProduksi
-            ? `Ringkasan stok, gudang & produksi ${company?.companyName || 'perusahaan Anda'}`
-            : `Ringkasan kinerja ${company?.companyName || 'perusahaan Anda'}`
+            ? t('dashboardPage.descriptionProduction', { company: company?.companyName || t('dashboardPage.yourCompany') })
+            : t('dashboardPage.description', { company: company?.companyName || t('dashboardPage.yourCompany') })
         }
         className="border-b border-border"
         actions={
@@ -285,8 +287,8 @@ export const Dashboard = () => {
               variant="outline"
               size="icon"
               onClick={() => setSettingsOpen(true)}
-              aria-label="Konfigurasi dasbor"
-              title="Konfigurasi dasbor"
+              aria-label={t('dashboardPage.configure')}
+              title={t('dashboardPage.configure')}
               className="size-11 sm:size-9"
             >
               <Settings2 size={16} aria-hidden />
@@ -302,7 +304,7 @@ export const Dashboard = () => {
 
       {/* SECTION: OVERVIEW */}
       <section id="overview" role="tabpanel" aria-labelledby={tabId('overview')} className="space-y-4 scroll-mt-20">
-        <SectionHeader icon={LayoutDashboard} title="Ringkasan" subtitle="Angka utama periode terpilih" />
+        <SectionHeader icon={LayoutDashboard} title={t('dashboardPage.nav.overview')} subtitle={t('dashboardPage.sections.overview')} />
         <KPICards period={period} canFinance={canFinance} canMaintenance={showMaintenance} />
         {(showRevenue || showAttention) && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -315,7 +317,7 @@ export const Dashboard = () => {
                       loading={trailing.isLoading}
                       isError={trailing.isError}
                       onRetry={() => void trailing.refetch()}
-                      description="6 bulan terakhir hingga akhir periode terpilih"
+                      description={t('dashboardPage.trailingDescription')}
                     />
                   ) : (
                     <RevenueChart data={chartData} loading={isChartsLoading} isError={isChartsError} onRetry={() => void refetchCharts()} />
@@ -339,7 +341,7 @@ export const Dashboard = () => {
       {/* SECTION: KEUANGAN */}
       {showKeuangan && (
         <section id="keuangan" role="tabpanel" aria-labelledby={tabId('keuangan')} className="space-y-4 scroll-mt-20">
-          <SectionHeader icon={Landmark} title="Keuangan" subtitle="Laba, arus kas & rasio" />
+          <SectionHeader icon={Landmark} title={t('dashboardPage.nav.finance')} subtitle={t('dashboardPage.sections.finance')} />
 
           <WidgetGrid>
             {isEnabled('monthly-profit') && (
@@ -370,7 +372,7 @@ export const Dashboard = () => {
       {/* SECTION: SALES */}
       {showSales && (
         <section id="sales" role="tabpanel" aria-labelledby={tabId('sales')} className="space-y-4 scroll-mt-20">
-          <SectionHeader icon={TrendingUp} title="Sales" subtitle="Pelanggan & aktivitas pembayaran" />
+          <SectionHeader icon={TrendingUp} title={t('dashboardPage.nav.sales')} subtitle={t('dashboardPage.sections.sales')} />
 
           <WidgetGrid>
             {isEnabled('top-customers') && <TopCustomers />}
@@ -398,7 +400,7 @@ export const Dashboard = () => {
       {/* SECTION: STOK & GUDANG */}
       {showStok && (
         <section id="stok" role="tabpanel" aria-labelledby={tabId('stok')} className="space-y-4 scroll-mt-20">
-          <SectionHeader icon={Package} title="Stok & Gudang" subtitle="Inventori, pergerakan & peringatan stok" />
+          <SectionHeader icon={Package} title={t('dashboardPage.sections.stockTitle')} subtitle={t('dashboardPage.sections.stock')} />
 
           {isEnabled('warehouse-kpi') && <WarehouseKPICards />}
 
@@ -438,7 +440,7 @@ export const Dashboard = () => {
       {/* SECTION: PRODUKSI */}
       {showProduksi && (
         <section id="produksi" role="tabpanel" aria-labelledby={tabId('produksi')} className="space-y-4 scroll-mt-20">
-          <SectionHeader icon={Factory} title="Produksi" subtitle="Statistik produksi & yield" />
+          <SectionHeader icon={Factory} title={t('dashboardPage.nav.production')} subtitle={t('dashboardPage.sections.production')} />
 
           {(isEnabled('production-stats') || isEnabled('yield-trend')) && (
             <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
@@ -468,7 +470,7 @@ export const Dashboard = () => {
       {/* SECTION: ASET TETAP */}
       {showAset && (
         <section id="aset" role="tabpanel" aria-labelledby={tabId('aset')} className="space-y-4 scroll-mt-20">
-          <SectionHeader icon={Building2} title="Aset Tetap" subtitle="Nilai aset, distribusi, dan jadwal penyusutan" />
+          <SectionHeader icon={Building2} title={t('dashboardPage.sections.assetsTitle')} subtitle={t('dashboardPage.sections.assets')} />
 
           {isEnabled('fixed-assets-kpi') && <FixedAssetsKPI />}
 

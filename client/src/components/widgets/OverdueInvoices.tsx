@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, FileWarning } from 'lucide-react';
 import api from '../../lib/api';
@@ -16,6 +17,7 @@ interface OverdueItem {
 }
 
 export default function OverdueInvoices() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<OverdueItem[]>({
     queryKey: ['dashboard-overdue'],
     queryFn: async () => (await api.get('/dashboard/overdue')).data,
@@ -23,17 +25,17 @@ export default function OverdueInvoices() {
 
   return (
     <WidgetCard
-      title="Faktur Jatuh Tempo"
-      description="Terlama lebih dulu, maksimal 10"
+      title={t('overdueInvoices.title')}
+      description={t('overdueInvoices.description')}
       icon={FileWarning}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={CheckCircle2}
-      emptyText="Tidak ada faktur jatuh tempo"
+      emptyText={t('overdueInvoices.empty')}
     >
-      <ScrollRegion label="Daftar faktur jatuh tempo" className="max-h-72 overflow-y-auto">
+      <ScrollRegion label={t('overdueInvoices.listLabel')} className="max-h-72 overflow-y-auto">
 <ul className="divide-y divide-border">
         {(data ?? []).map((inv, i) => (
           <li key={`${inv.type}-${inv.invoiceNumber}-${i}`}>
@@ -44,13 +46,13 @@ export default function OverdueInvoices() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-medium text-foreground">{inv.invoiceNumber}</span>
-                  <Badge variant={inv.type === 'sales' ? 'info' : 'neutral'}>{inv.type === 'sales' ? 'Piutang' : 'Utang'}</Badge>
+                  <Badge variant={inv.type === 'sales' ? 'info' : 'neutral'}>{inv.type === 'sales' ? t('overdueInvoices.receivable') : t('overdueInvoices.payable')}</Badge>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">{inv.partyName}</p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="num text-xs font-semibold text-danger-text">{formatRupiah(inv.amount)}</p>
-                <p className="num text-xs text-warning-text">{inv.daysOverdue} hari</p>
+                <p className="num text-xs text-warning-text">{t('widgetsShared.days', { count: inv.daysOverdue })}</p>
               </div>
             </Link>
           </li>
