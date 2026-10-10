@@ -207,14 +207,14 @@ export const GaDashboardPage = () => {
                       </span>
                     </div>
                     <div
-                      className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
+                      className="mt-1 h-1.5 overflow-hidden rounded-sm bg-muted"
                       role="progressbar"
                       aria-label={`Porsi nilai buku ${c.category}`}
                       aria-valuenow={Math.round(pct)}
                       aria-valuemin={0}
                       aria-valuemax={100}
                     >
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(2, pct)}%` }} />
+                      <div className="h-full rounded-sm bg-primary" style={{ width: `${Math.max(2, pct)}%` }} />
                     </div>
                   </li>
                 );

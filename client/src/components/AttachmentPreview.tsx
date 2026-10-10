@@ -99,7 +99,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                   <button
                     type="button"
                     onClick={() => setLightboxUrl(fileUrl)}
-                    className="inline-flex size-9 items-center justify-center rounded-full bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex size-9 items-center justify-center rounded-md bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Preview"
                     aria-label={`Preview ${att.fileName}`}
                   >
@@ -109,7 +109,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                 <a
                   href={fileUrl}
                   download={att.fileName}
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex size-9 items-center justify-center rounded-md bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   title="Download"
                   aria-label={`Download ${att.fileName}`}
                   onClick={(e) => e.stopPropagation()}
@@ -120,7 +120,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setDeleteId(att.id); }}
-                    className="inline-flex size-9 items-center justify-center rounded-full bg-card text-danger-text shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex size-9 items-center justify-center rounded-md bg-card text-danger-text shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Hapus"
                     aria-label={`Hapus ${att.fileName}`}
                   >

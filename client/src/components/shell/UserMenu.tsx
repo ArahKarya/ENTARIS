@@ -50,7 +50,7 @@ export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts,
       <Menu.Trigger
         aria-label={`Menu pengguna: ${name}`}
         className={cn(
-          'flex h-9 items-center gap-2 rounded-full pr-1 pl-0.5 transition-colors hover:bg-accent xl:rounded-md xl:pr-2',
+          'flex h-9 items-center gap-2 rounded-md pr-1 pl-0.5 transition-colors hover:bg-accent xl:pr-2',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
           'data-[state=open]:bg-accent',
         )}

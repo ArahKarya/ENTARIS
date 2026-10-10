@@ -75,7 +75,7 @@ export function CoaToolbar({ view, counts, total, disabled }: CoaToolbarProps) {
               )}
             >
               {chip.label}
-              <span className={cn('num rounded-full px-1.5 text-[11px]', active ? 'bg-card/70' : 'bg-muted')}>
+              <span className={cn('num rounded-sm px-1.5 text-[11px]', active ? 'bg-card/70' : 'bg-muted')}>
                 {formatNumber(chip.count)}
               </span>
             </button>

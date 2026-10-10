@@ -222,8 +222,8 @@ function DowntimePareto({ downtime }: { downtime: DowntimeRow[] }) {
               {fmtNum(d.totalMin, 0)} mnt · {d.count}x · kum {d.cumulativePct}%
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-            <div className="h-full rounded-full bg-danger" style={{ width: `${max > 0 ? Math.max(4, (d.totalMin / max) * 100) : 0}%` }} />
+          <div className="h-2 overflow-hidden rounded-sm bg-muted" aria-hidden>
+            <div className="h-full rounded-sm bg-danger" style={{ width: `${max > 0 ? Math.max(4, (d.totalMin / max) * 100) : 0}%` }} />
           </div>
         </li>
       ))}

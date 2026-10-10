@@ -14,7 +14,7 @@ export const GRID_STROKE = 'var(--border)';
 export const TOOLTIP_STYLE = {
   backgroundColor: 'var(--card)',
   border: '1px solid var(--border)',
-  borderRadius: 8,
+  borderRadius: 4,
   fontSize: 12,
   color: 'var(--foreground)',
 } as const;

@@ -27,7 +27,7 @@ export const CHART_TOOLTIP_STYLE = {
   backgroundColor: 'var(--popover)',
   color: 'var(--popover-foreground)',
   border: '1px solid var(--border)',
-  borderRadius: 8,
+  borderRadius: 4,
   fontSize: 12,
 } as const;
 

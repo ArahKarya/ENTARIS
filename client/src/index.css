@@ -105,16 +105,16 @@
 }
 
 @theme {
-  /* Radius scale: sm 4 (badge, checkbox) · md 6 (input, button) · lg 8 (card,
-     popover) · xl 12 (modal, sheet) · full (avatar, pill) */
+  /* Sharp corners per DESIGN.md: xs/sm 2 (badge, checkbox, count) · md and up 4
+     (input, button, card, popover, modal) · full only for avatars and status dots */
   --radius-xs: 0.125rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
-  --radius-4xl: 2rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.25rem;
+  --radius-3xl: 0.25rem;
+  --radius-4xl: 0.25rem;
 }
 
 /* ─── Light theme (default; .light forces it inside a dark subtree) ─────── */
@@ -281,7 +281,7 @@
   --shadow-sm: var(--shadow-1);
   --shadow-md: var(--shadow-2);
 
-  --radius: 0.375rem;
+  --radius: 0.25rem;
 
   /* shadcn aliases → tokens */
   --foreground: var(--text);
@@ -418,7 +418,7 @@
   padding: 0.5rem 1rem;
   background: var(--primary);
   color: var(--primary-foreground);
-  border-radius: 0 0 0.5rem 0;
+  border-radius: 0 0 0.25rem 0;
   font-weight: 600;
 }
 .skip-to-content:focus { left: 0; }

@@ -35,7 +35,7 @@ export function ReportSection({ title, icon: Icon, count, description, flush, ch
           {title}
         </h2>
         {count !== undefined && (
-          <span className="num rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
+          <span className="num rounded-sm bg-muted px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
         )}
       </div>
       {description && <p className={cn('text-xs text-muted-foreground', flush ? 'px-4 pt-3 max-sm:px-3' : 'mb-3')}>{description}</p>}

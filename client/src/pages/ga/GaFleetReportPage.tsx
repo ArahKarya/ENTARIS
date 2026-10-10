@@ -394,8 +394,8 @@ export function GaFleetReportPage() {
                           </Link>
                           <span className="num shrink-0 text-muted-foreground">{formatRupiah(v.totalCost, { compact: true })}</span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-                          <div className="h-full rounded-full" style={{ width: `${(v.totalCost / max) * 100}%`, background: 'var(--chart-2)' }} />
+                        <div className="h-1.5 overflow-hidden rounded-sm bg-muted" aria-hidden>
+                          <div className="h-full rounded-sm" style={{ width: `${(v.totalCost / max) * 100}%`, background: 'var(--chart-2)' }} />
                         </div>
                       </div>
                     </li>

@@ -51,8 +51,8 @@ export default function CashPositionWidget() {
                     </span>
                     <span className="num shrink-0 text-xs font-semibold text-foreground">{formatRupiah(acc.balance, { negative: 'parens' })}</span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-                    <div className="h-full rounded-full bg-chart-3" style={{ width: `${Math.min(100, pct)}%` }} />
+                  <div className="h-1.5 overflow-hidden rounded-sm bg-muted" aria-hidden>
+                    <div className="h-full rounded-sm bg-chart-3" style={{ width: `${Math.min(100, pct)}%` }} />
                   </div>
                 </li>
               );

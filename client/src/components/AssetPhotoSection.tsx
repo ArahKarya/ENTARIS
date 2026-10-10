@@ -104,7 +104,7 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
                       onClick={() => deleteMutation.mutate(ph.id)}
                       title="Hapus foto"
                       aria-label="Hapus foto"
-                      className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-overlay text-white hover:bg-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-md bg-overlay text-white hover:bg-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
                     </button>
@@ -128,7 +128,7 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
                     onClick={() => pickFile(null)}
                     title="Batalkan"
                     aria-label="Batalkan foto"
-                    className="absolute -right-1.5 -top-1.5 rounded-full bg-foreground p-0.5 text-background hover:bg-danger hover:text-danger-foreground"
+                    className="absolute -right-1.5 -top-1.5 rounded-sm bg-foreground p-0.5 text-background hover:bg-danger hover:text-danger-foreground"
                   >
                     <X size={12} aria-hidden />
                   </button>

@@ -356,8 +356,8 @@ function TopProductsPanel({ query }: { query: DashQuery }) {
                 </span>
               </div>
               <div className="mt-1 flex items-center gap-3">
-                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden>
-                  <span className="block h-full rounded-full bg-chart-2" style={{ width: `${Math.max(3, r.share * 100)}%` }} />
+                <span className="h-1.5 flex-1 overflow-hidden rounded-sm bg-muted" aria-hidden>
+                  <span className="block h-full rounded-sm bg-chart-2" style={{ width: `${Math.max(3, r.share * 100)}%` }} />
                 </span>
                 <span className="num w-32 shrink-0 text-right text-xs text-muted-foreground">
                   {r.avgHpp !== null ? `HPP ${formatRupiah(r.avgHpp)}/${r.unit || 'unit'}` : 'HPP belum ada'}

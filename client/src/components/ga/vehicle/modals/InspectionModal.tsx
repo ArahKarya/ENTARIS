@@ -264,7 +264,7 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
                               type="button"
                               onClick={() => pickPhoto(cat.key, null)}
                               aria-label={`Batalkan foto ${cat.label}`}
-                              className="absolute -right-2 -top-2 inline-flex size-6 items-center justify-center rounded-full bg-foreground text-background hover:bg-danger"
+                              className="absolute -right-2 -top-2 inline-flex size-6 items-center justify-center rounded-md bg-foreground text-background hover:bg-danger"
                             >
                               <X className="size-3.5" aria-hidden />
                             </button>
