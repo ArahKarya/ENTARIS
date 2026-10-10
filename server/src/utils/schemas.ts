@@ -939,6 +939,18 @@ export const ClosePurchaseOrderSchema = z.object({
 
 // Revisi Harga Purchase Invoice
 // Supplier mengoreksi harga setelah PI submit (barang bisa sudah diproduksi).
+// Invoice metadata edit (PUT /sales|purchase/invoices/:id).
+// Omitted = keep, null or blank = clear.
+export const UpdateInvoiceMetaSchema = z.object({
+  notes: z.string().max(5000).nullable().optional(),
+  dueDate: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((v) => !v || !Number.isNaN(Date.parse(v)), { message: 'Tanggal jatuh tempo tidak valid.' }),
+  terms: z.string().max(500).nullable().optional(),
+});
+
 export const RevisePurchaseInvoiceSchema = z.object({
   lines: z.array(z.object({
     itemId: z.string().uuid('ID baris tidak valid.'),

@@ -421,7 +421,7 @@ Toolset **master-data** mengelola data induk mitra bisnis: **Pelanggan & Vendor*
 
 ### party_update
 
-**Ringkasan:** Ubah data mitra (nama, tipe, kontak, NPWP, isWapu, isActive). Parsial: hanya field yang dikirim berubah. Perhatian: isWapu/taxId memengaruhi perlakuan pajak faktur berikutnya; isActive=false menyembunyikan dari pilihan transaksi baru.
+**Ringkasan:** Ubah data mitra (nama, tipe, kontak, NPWP, isWapu, isActive). Parsial: hanya field yang dikirim berubah; null atau string kosong menghapus phone/email/address/taxId. Perhatian: isWapu/taxId memengaruhi perlakuan pajak faktur berikutnya; isActive=false menyembunyikan dari pilihan transaksi baru.
 
 - **Risk / tier:** `write` / Draft/Approve
 - **Draft-capable:** tidak (efek langsung)

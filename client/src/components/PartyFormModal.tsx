@@ -110,7 +110,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
   const handleSubmit = () => {
     if (!form.name.trim()) { setError('Nama mitra wajib diisi.'); return; }
     const { npwp, website: _w, contactPerson: _cp, ...rest } = form;
-    mutation.mutate({ ...rest, taxId: npwp || undefined, isWapu: form.isWapu });
+    mutation.mutate({ ...rest, taxId: npwp.trim() || null, isWapu: form.isWapu });
   };
 
   const setBool = (field: 'isWapu', val: boolean) => setForm(prev => ({ ...prev, [field]: val }));

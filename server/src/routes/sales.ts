@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
-import { CreateSalesInvoiceSchema } from '../utils/schemas';
+import { clearable } from '../utils/clearable';
+import { CreateSalesInvoiceSchema, UpdateInvoiceMetaSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
 import { cancelSalesInvoiceInTx } from '../services/invoiceCancellation';
 import { submitSalesInvoiceInTx } from '../services/salesInvoiceSubmit';
@@ -181,16 +182,17 @@ router.post('/', async (req: AuthRequest, res) => {
 
 // PUT /api/sales/invoices/:id — edit invoice (notes, dueDate, terms)
 router.put('/:id', async (req: AuthRequest, res) => {
+  const body = validateBody(UpdateInvoiceMetaSchema, req.body, res);
+  if (!body) return;
   try {
     const invoice = await prisma.salesInvoice.findUnique({ where: { id: req.params.id as string } });
     if (!invoice) return res.status(404).json({ error: 'Invoice tidak ditemukan.' });
     if (invoice.status === 'Cancelled') return res.status(400).json({ error: 'Invoice sudah dibatalkan, tidak bisa diedit.' });
 
-    const { notes, dueDate, terms } = req.body;
     const data: Prisma.SalesInvoiceUpdateInput = {};
-    if (notes !== undefined) data.notes = notes;
-    if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
-    if (terms !== undefined) data.terms = terms || null;
+    if (body.notes !== undefined) data.notes = clearable(body.notes);
+    if (body.dueDate !== undefined) data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+    if (body.terms !== undefined) data.terms = clearable(body.terms);
 
     const updated = await prisma.salesInvoice.update({ where: { id: invoice.id }, data });
     return res.json(updated);

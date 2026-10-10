@@ -101,10 +101,11 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
       code: form.code,
       name: form.name,
       unit: form.unit,
-      category: form.category || undefined,
-      description: form.description || undefined,
+      // null clears the field on edit
+      category: form.category.trim() || null,
+      description: form.description.trim() || null,
       minimumStock: Number(form.minimumStock),
-      accountId: form.accountId || undefined,
+      accountId: form.accountId || null,
     });
   };
 

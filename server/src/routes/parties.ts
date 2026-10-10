@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreatePartySchema, UpdatePartySchema } from '../utils/schemas';
+import { clearable } from '../utils/clearable';
 import { logger } from '../lib/logger';
 import { parseListPaging } from '../utils/listQuery';
 import {
@@ -353,10 +354,10 @@ router.put('/:id', async (req, res) => {
       data: {
         name: body.name,
         partyType: body.partyType,
-        phone: body.phone,
-        email: body.email,
-        address: body.address,
-        taxId: body.taxId,
+        phone: clearable(body.phone),
+        email: clearable(body.email),
+        address: clearable(body.address),
+        taxId: clearable(body.taxId),
         isActive: body.isActive,
         isWapu: body.isWapu,
       },
