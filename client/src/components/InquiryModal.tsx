@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Plus, Trash2 } from 'lucide-react';
 import { ComboboxField } from './overlays/ComboboxField';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { DateInput, Field, type ComboboxOption } from '@/components/shared';
+import { DateInput, Field } from '@/components/shared';
 import { FormError, OverlayBody, OverlayFooter, OverlayHeader } from './sales/dialog-parts-b';
 import { dialogShellClass } from './sales/dialog-classes-b';
 
@@ -63,13 +64,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
 
   const queryClient = useQueryClient();
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null });
 
   // Sync form when modal opens / editTarget changes
   useEffect(() => {
@@ -115,14 +110,10 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editTarget?.id]);
 
-  const partyOptions = useMemo<ComboboxOption[]>(
-    () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
-    [parties],
-  );
 
   const onPickParty = (id: string) => {
     setPartyId(id);
-    const p = parties?.find((x: any) => x.id === id);
+    const p = partyPicker.parties.find((x) => x.id === id);
     if (p) {
       setProspectName(p.name);
       setProspectPhone(p.phone ?? '');
@@ -232,7 +223,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
               <div className="flex flex-col gap-1.5">
                 <ComboboxField
                   label="Pilih dari Pelanggan Existing (opsional)"
-                  options={partyOptions}
+                  {...partyPicker.pickerProps}
                   value={partyId}
                   onChange={onPickParty}
                   placeholder="Cari pelanggan terdaftar..."

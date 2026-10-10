@@ -89,10 +89,8 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
     setForm(prev => ({ ...prev, [field]: val }));
 
   const invalidateAll = () => {
+    // Every party query (pickers, list, by-id) lives under ['parties'].
     queryClient.invalidateQueries({ queryKey: ['parties'] });
-    queryClient.invalidateQueries({ queryKey: ['parties-customers'] });
-    queryClient.invalidateQueries({ queryKey: ['parties-suppliers'] });
-    queryClient.invalidateQueries({ queryKey: ['parties-all'] });
   };
 
   const mutation = useMutation({

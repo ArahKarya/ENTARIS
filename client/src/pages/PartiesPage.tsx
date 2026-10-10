@@ -166,7 +166,6 @@ export const PartiesPage = () => {
     mutationFn: (id: string) => api.delete<{ message?: string; deactivated?: boolean }>(`${ENDPOINT}/${id}`),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['parties'] });
-      queryClient.invalidateQueries({ queryKey: ['parties-all'] });
       if (res.data.deactivated) toast.info(res.data.message || 'Mitra dinonaktifkan karena memiliki transaksi terkait.');
       else toast.success(res.data.message || 'Mitra berhasil dihapus.');
       setDeleteTarget(null);

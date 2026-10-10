@@ -9,6 +9,8 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Field, DateInput } from '@/components/shared';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker } from './purchase-cash/OptionPicker';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
+import type { PartyRecord } from '@/hooks/useSelectedPartyOption';
 import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
@@ -27,6 +29,8 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   EQUITY: 'Ekuitas',
   REVENUE: 'Pendapatan',
 };
+
+const partyWithTypeOption = (p: PartyRecord) => ({ value: p.id, label: `${p.name}${p.partyType ? ` (${p.partyType})` : ''}` });
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
   const today = new Date().toISOString().split('T')[0];
@@ -107,19 +111,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
   );
 
   // Parties (optional — all types)
-  const { data: parties } = useQuery({
-    queryKey: ['parties-all'],
-    queryFn: async () => {
-      const res = await api.get('/parties');
-      return res.data.data ?? res.data;
-    },
-    enabled: isOpen,
-  });
+  const partyPicker = usePartyPicker({ selectedId: partyId || null, enabled: isOpen, toOption: partyWithTypeOption });
 
-  const partyOptions = useMemo((): SelectOption[] =>
-    (parties ?? []).map((p: any) => ({ value: p.id, label: `${p.name}${p.partyType ? ` (${p.partyType})` : ''}` })),
-    [parties],
-  );
 
   const debitAccount = allAccounts?.find((a: any) => a.id === debitAccountId);
   const creditAccount = cashAccounts?.find((a: any) => a.id === creditAccountId);
@@ -216,7 +209,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
 
       <Field label="Pihak Terkait (opsional)">
         <OptionPicker
-          options={partyOptions}
+          {...partyPicker.pickerProps}
           value={partyId}
           onChange={setPartyId}
           placeholder="Tanpa Pihak Terkait"
@@ -263,8 +256,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
           <p className="text-xs">
             <span className="font-medium">Cr</span> {creditAccount.accountNumber} {creditAccount.name}
           </p>
-          {partyId && parties && (
-            <p className="mt-1 text-xs">Pihak: {parties.find((p: any) => p.id === partyId)?.name}</p>
+          {partyId && partyPicker.selectedParty && (
+            <p className="mt-1 text-xs">Pihak: {partyPicker.selectedParty.name}</p>
           )}
         </Callout>
       )}

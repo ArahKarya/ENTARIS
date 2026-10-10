@@ -31,6 +31,8 @@ import { statusOptions } from '@/lib/status';
 import { can, cap } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { useListState } from '@/hooks/useListState';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
+import type { PartyRecord } from '@/hooks/useSelectedPartyOption';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -102,12 +104,6 @@ interface AccountOption {
   isGroup: boolean;
 }
 
-interface PartyOption {
-  id: string;
-  name: string;
-  partyType?: string;
-}
-
 const PARTY_TYPE_LABEL: Record<string, string> = { Customer: 'Pelanggan', Supplier: 'Pemasok', Both: 'Pelanggan & Pemasok' };
 
 const withUnit = (label: string) => (
@@ -132,17 +128,12 @@ function useCashAccounts() {
   });
 }
 
-/** Customers and suppliers together: a cash movement can involve either. */
-function useAllParties() {
-  return useQuery<PartyOption[]>({
-    queryKey: ['parties', 'filter-options', 'all'],
-    queryFn: async () => {
-      const res = await api.get('/parties', { params: { limit: 200 } });
-      return (res.data.data ?? res.data) as PartyOption[];
-    },
-    staleTime: 5 * 60_000,
-  });
-}
+/** Party filter option with its type as hint (customers and suppliers together). */
+const partyFilterOption = (p: PartyRecord) => ({
+  value: p.id,
+  label: p.name,
+  hint: p.partyType ? PARTY_TYPE_LABEL[p.partyType] : undefined,
+});
 
 /** Attachment counts for the rows on screen (payments by id, journals by entry id). */
 function useAttachmentCounts(rows: CashLedgerRow[] | undefined) {
@@ -264,22 +255,14 @@ export const Payments = () => {
   });
 
   const accountsQuery = useCashAccounts();
-  const partiesQuery = useAllParties();
   const attachmentCount = useAttachmentCounts(ledgerQuery.data?.data);
 
   const accountOptions = useMemo(
     () => (accountsQuery.data ?? []).map((a) => ({ value: a.id, label: a.name, hint: a.accountNumber })),
     [accountsQuery.data],
   );
-  const partyOptions = useMemo(
-    () =>
-      (partiesQuery.data ?? []).map((p) => ({
-        value: p.id,
-        label: p.name,
-        hint: p.partyType ? PARTY_TYPE_LABEL[p.partyType] : undefined,
-      })),
-    [partiesQuery.data],
-  );
+  // A cash movement can involve a customer or a supplier: search all parties on the server.
+  const partyPicker = usePartyPicker({ selectedId: list.filters.partyId || null, toOption: partyFilterOption });
 
   const cancelPaymentMutation = useMutation({
     mutationFn: (id: string) => api.post(`/payments/${id}/cancel`),
@@ -614,8 +597,7 @@ export const Payments = () => {
             searchPlaceholder="Cari pelanggan/pemasok…"
             value={list.filters.partyId}
             onChange={(v) => list.setFilter('partyId', v)}
-            options={partyOptions}
-            loading={partiesQuery.isLoading}
+            {...partyPicker.pickerProps}
             className="w-[calc(50%-0.25rem)] sm:w-52"
           />
           <ComboboxFilter

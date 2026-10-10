@@ -23,6 +23,8 @@ export interface ComboboxFilterProps {
   searchPlaceholder?: string;
   loading?: boolean;
   className?: string;
+  /** Server-side search: options are not filtered locally and each keystroke is reported. */
+  onSearchChange?: (query: string) => void;
 }
 
 /**
@@ -38,10 +40,26 @@ export function ComboboxFilter({
   searchPlaceholder = 'Cari…',
   loading,
   className,
+  onSearchChange,
 }: ComboboxFilterProps) {
   const id = useId();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const [query, setQuery] = useState('');
   const selected = options.find((o) => o.value === value);
+  const serverSearch = !!onSearchChange;
+
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    // Reset the server search when the popup closes.
+    if (!next && serverSearch && query) {
+      setQuery('');
+      onSearchChange('');
+    }
+  };
+  const changeQuery = (next: string) => {
+    setQuery(next);
+    onSearchChange?.(next);
+  };
 
   const choose = (next: string) => {
     onChange(next);
@@ -85,11 +103,12 @@ export function ComboboxFilter({
               'bg-popover text-popover-foreground shadow-[var(--shadow-2)]',
             )}
           >
-            <Command label={label} loop>
+            <Command label={label} loop shouldFilter={!serverSearch}>
               <div className="flex items-center gap-2 border-b border-border px-3 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
                 <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <Command.Input
                   placeholder={searchPlaceholder}
+                  {...(serverSearch ? { value: query, onValueChange: changeQuery } : {})}
                   className="h-10 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
                 />
               </div>

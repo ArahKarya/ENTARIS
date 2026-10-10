@@ -37,6 +37,10 @@ interface OptionPickerProps {
   disabled?: boolean;
   searchable?: boolean | 'auto';
   className?: string;
+  /** Server-side search: always a combobox, no local filtering, each keystroke reported. */
+  onSearchChange?: (query: string) => void;
+  /** Shown in the empty state while options load. */
+  loading?: boolean;
   'aria-label'?: string;
   'aria-invalid'?: boolean | 'true' | 'false';
   'aria-describedby'?: string;
@@ -55,11 +59,28 @@ export function OptionPicker({
   disabled,
   searchable = 'auto',
   className,
+  onSearchChange,
+  loading,
   ...aria
 }: OptionPickerProps) {
-  const showSearch = searchable === 'auto' ? options.length > 7 || options.some((o) => o.group) : searchable;
+  const serverSearch = !!onSearchChange;
+  const showSearch =
+    serverSearch || (searchable === 'auto' ? options.length > 7 || options.some((o) => o.group) : searchable);
   const popupId = useId();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const [query, setQuery] = useState('');
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    // Reset the server search when the popup closes.
+    if (!next && serverSearch && query) {
+      setQuery('');
+      onSearchChange('');
+    }
+  };
+  const changeQuery = (next: string) => {
+    setQuery(next);
+    onSearchChange?.(next);
+  };
 
   if (!showSearch) {
     return (
@@ -124,18 +145,19 @@ export function OptionPicker({
           sideOffset={4}
           className="z-[var(--z-popover)] w-[max(var(--radix-popover-trigger-width),16rem)] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-[var(--shadow-2)]"
         >
-          <Command label={aria['aria-label'] ?? placeholder} loop>
+          <Command label={aria['aria-label'] ?? placeholder} loop shouldFilter={!serverSearch}>
             <div className="flex items-center gap-2 border-b border-border px-3 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
               <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <Command.Input
                 aria-label="Cari pilihan"
                 placeholder="Cari…"
+                {...(serverSearch ? { value: query, onValueChange: changeQuery } : {})}
                 className="h-10 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
               />
             </div>
             <Command.List className="max-h-64 overflow-y-auto p-1">
               <Command.Empty className="px-2 py-6 text-center text-sm text-muted-foreground">
-                Tidak ditemukan.
+                {loading ? 'Memuat…' : 'Tidak ditemukan.'}
               </Command.Empty>
               {emptyLabel && (
                 <Command.Item value={`__empty ${emptyLabel}`} onSelect={() => choose('')} className={itemClass}>

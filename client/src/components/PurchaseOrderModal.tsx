@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useMemo, useState } from 'react';
+import React, { useDeferredValue, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, ClipboardList, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRupiah } from '@/lib/format';
 import { computePoTotals, PAYMENT_TERM_PRESETS, paymentTermLabel, poDueDate } from '@/lib/purchaseOrderCalc';
-import { useSelectedPartyOption } from '@/hooks/useSelectedPartyOption';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -142,14 +142,6 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
   const [serverError, setServerError] = useState('');
   const [isUmum, setIsUmum] = useState(() => !!source && !source.partyId);
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-suppliers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Supplier');
-      return res.data.data ?? res.data;
-    },
-  });
-
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-po'],
     queryFn: async () => {
@@ -167,11 +159,7 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
     },
   });
 
-  const supplierOptions = useSelectedPartyOption<SelectOption>(
-    useMemo(() => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })), [parties]),
-    partyId,
-    source?.supplier,
-  );
+  const partyPicker = usePartyPicker({ type: 'Supplier', selectedId: partyId || null, known: source?.supplier });
   const warehouseOptions: SelectOption[] = (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }));
   const itemOptions = (inventoryItems ?? []).map((i: any) => ({
     value: i.id,
@@ -398,7 +386,7 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {!isUmum && (
           <Field label="Supplier" required error={errors.partyId}>
-            <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
+            <OptionPicker {...partyPicker.pickerProps} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
           </Field>
         )}
         <Field label="Gudang Tujuan" hint="Dipakai sebagai gudang default saat Buat STT dari PO.">

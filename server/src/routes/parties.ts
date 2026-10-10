@@ -40,10 +40,11 @@ function levenshtein(a: string, b: string): number {
 // GET /api/parties
 //
 // Two modes, same { data, total, page, limit } envelope:
-//  • List mode (any of search / sort / isActive / hasOutstanding present) —
-//    used by the "Pelanggan & Vendor" page: filters + whitelisted sort, see
+//  • List mode (any of search / sort / isActive / hasOutstanding present):
+//    the "Pelanggan & Vendor" page and every party picker (client hook
+//    usePartyPicker sends sort=name + search). Filters + whitelisted sort, see
 //    services/partyList. Limit up to 500 (export pages through it).
-//  • Legacy mode (pickers: ?type=Customer&limit=…) — unchanged below.
+//  • Legacy mode (?type=Customer&limit=…, capped at 200): older callers only.
 router.get('/', async (req, res) => {
   if (isPartyListQuery(req.query as Record<string, unknown>)) {
     try {

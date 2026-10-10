@@ -11,6 +11,7 @@ import { Field, DateInput } from '@/components/shared';
 import { cn } from '@/lib/utils';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker } from './purchase-cash/OptionPicker';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 import AttachmentUpload from './AttachmentUpload';
 import AttachmentPreview from './AttachmentPreview';
@@ -66,14 +67,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
 
   // Parties — filter by type based on payment direction
   const partyType = isReceiveFlow ? 'Customer' : 'Supplier';
-  const { data: parties } = useQuery({
-    queryKey: ['parties', partyType],
-    queryFn: async () => {
-      const res = await api.get('/parties', { params: { type: partyType } });
-      return res.data.data ?? res.data;
-    },
-    enabled: isOpen,
-  });
+  const partyPicker = usePartyPicker({ type: partyType, selectedId: partyId || null, enabled: isOpen });
 
   // Cash/Bank accounts (ASSET type, non-group, account numbers starting with 1.1.1 or 1.1.2)
   const { data: cashAccounts } = useQuery({
@@ -162,7 +156,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
 
   const totalInvoiceOutstanding = openInvoices?.reduce((s: number, inv: any) => s + Number(inv.outstanding), 0) ?? 0;
   // Party-level outstanding (includes opening balances without invoices)
-  const selectedParty = parties?.find((p: any) => p.id === partyId);
+  const selectedParty = partyPicker.selectedParty;
   const partyOutstanding = Number(selectedParty?.outstandingAmount ?? 0);
   const nonInvoiceOutstanding = Math.max(0, partyOutstanding - totalInvoiceOutstanding);
 
@@ -385,7 +379,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
             value={partyId}
             onChange={setPartyId}
             placeholder="Pilih"
-            options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+            {...partyPicker.pickerProps}
           />
         </Field>
       </div>

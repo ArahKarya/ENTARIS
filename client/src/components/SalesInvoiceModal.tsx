@@ -4,6 +4,8 @@ import api from '@/lib/api';
 import { AlertCircle, FileText, Image as ImageIcon, Paperclip, Plus, Truck, X, AlertTriangle } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
+import type { PartyRecord } from '@/hooks/useSelectedPartyOption';
 import { OptionSelect } from '@/components/sales-a/OptionSelect';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -31,6 +33,8 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'
 const defaultItem = (): InvoiceItem => ({
   id: crypto.randomUUID(), itemName: '', itemType: 'product', inventoryItemId: '', warehouseId: '', serviceItemId: '', accountId: '', description: '', quantity: 1, unit: 'Kg', rate: 0, discount: 0, taxPct: 0, pphPct: 0, deliveryOrderItemId: null, deliveryOrderNumber: undefined, sourceMovementId: '',
 });
+
+const customerOption = (p: PartyRecord) => ({ value: p.id, label: p.phone ? `${p.name} · ${p.phone}` : p.name });
 
 const SalesInvoiceModal: React.FC<{
   isOpen: boolean;
@@ -64,13 +68,7 @@ const SalesInvoiceModal: React.FC<{
 
   const queryClient = useQueryClient();
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    }
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null, toOption: customerOption });
 
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-active'],
@@ -99,7 +97,7 @@ const SalesInvoiceModal: React.FC<{
     enabled: fromDOMode && !!partyId,
   });
 
-  const selectedParty = parties?.find((p: any) => p.id === partyId);
+  const selectedParty = partyPicker.selectedParty;
   const isWapu = !!selectedParty?.isWapu;
 
   // Auto-zero tax_pct for all lines when WAPU customer is picked.
@@ -416,10 +414,7 @@ const SalesInvoiceModal: React.FC<{
                 <Field label="Tagihkan Kepada" required>
                   {() => (
                     <PickerSelect
-                      options={(parties ?? []).map((p: any) => ({
-                        value: p.id,
-                        label: p.phone ? `${p.name} · ${p.phone}` : p.name,
-                      }))}
+                      {...partyPicker.pickerProps}
                       value={partyId}
                       onChange={(v) => {
                         setPartyId(v);

@@ -17,6 +17,8 @@ interface ComboboxFieldProps {
   hint?: string;
   error?: string;
   disabled?: boolean;
+  onSearchChange?: (query: string) => void;
+  loading?: boolean;
 }
 
 export function ComboboxField({
@@ -29,6 +31,8 @@ export function ComboboxField({
   hint,
   error,
   disabled,
+  onSearchChange,
+  loading,
 }: ComboboxFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -52,6 +56,8 @@ export function ComboboxField({
           options={options}
           allLabel={placeholder}
           searchPlaceholder="Cari…"
+          onSearchChange={onSearchChange}
+          loading={loading}
         />
       )}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}

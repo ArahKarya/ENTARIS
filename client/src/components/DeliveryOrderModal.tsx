@@ -20,6 +20,7 @@ import {
 } from '@/components/sales-a/overlay-parts';
 import { formDialogClass, formShellClass, numberInputClass } from '@/components/sales-a/overlay-classes';
 import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { OptionSelect } from '@/components/sales-a/OptionSelect';
 import { WarehouseSelect } from '@/components/sales-a/WarehouseSelect';
 import { cap } from '@/lib/permissions';
@@ -107,13 +108,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
 
   const queryClient = useQueryClient();
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null });
 
   // SO terbuka (Submitted/PartiallyDelivered) utk fitur "Tarik dari SO".
   const { data: openSOs } = useQuery({
@@ -153,12 +148,8 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     },
   });
 
-  const selectedParty = parties?.find((p: any) => p.id === partyId);
+  const selectedParty = partyPicker.selectedParty;
 
-  const partyOptions = useMemo<PickerOption[]>(
-    () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
-    [parties],
-  );
 
   const inventoryOptions = useMemo<PickerOption[]>(
     () =>
@@ -431,7 +422,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                   {() => (
                     <PickerSelect
                       aria-label="Pelanggan"
-                      options={partyOptions}
+                      {...partyPicker.pickerProps}
                       value={partyId}
                       onChange={setPartyId}
                       placeholder="Pilih Pelanggan"

@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { Plus, Trash2 } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import { PickerSelect } from '@/components/sales-a/PickerSelect';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { OptionSelect } from '@/components/sales-a/OptionSelect';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -71,13 +72,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
 
   const queryClient = useQueryClient();
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null, known: editTarget?.customer ?? null });
 
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-active'],
@@ -132,10 +127,6 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editTarget?.id, editTarget?.quotationId]);
 
-  const partyOptions = useMemo(
-    () => (parties || []).map((p: any) => ({ value: p.id, label: p.name, subtitle: p.code })),
-    [parties],
-  );
 
   const itemOptions = useMemo(
     () => (inventoryItems || []).map((i: any) => ({ value: i.id, label: i.name, subtitle: i.code })),
@@ -256,7 +247,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                     aria-label="Pelanggan"
                     value={partyId}
                     onChange={setPartyId}
-                    options={partyOptions}
+                    {...partyPicker.pickerProps}
                     placeholder="Pilih pelanggan..."
                   />
                 )}

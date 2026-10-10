@@ -3,7 +3,7 @@
  * Save = create or update the draft, upload picked files, then (for "Ajukan")
  * submit. Editable only by the requester while DRAFT or REVISION (server-enforced).
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, AlertTriangle, Paperclip, Save, Send } from 'lucide-react';
@@ -23,7 +23,7 @@ import { TravelLinesEditor } from '@/components/payment-requests/TravelLinesEdit
 import { TravelSection } from '@/components/payment-requests/TravelSection';
 import { EMPTY_TRAVEL, validateTravelValue, type TravelErrors, type TravelValue } from '@/components/payment-requests/travel';
 import { linesTotal, newLine, type DraftLine } from '@/components/payment-requests/lines';
-import { useSelectedPartyOption } from '@/hooks/useSelectedPartyOption';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import {
   KIND_LABEL,
   PR_ENDPOINT,
@@ -164,15 +164,6 @@ function PaymentRequestFormBody({
     queryFn: async () => (await api.get<PaymentRequestType[]>('/payment-request-types')).data,
   });
   const detailQuery = useQuery(detailQueryOptions(id));
-  const vendorsQuery = useQuery({
-    queryKey: ['parties', 'payment-request-vendors'],
-    queryFn: async () => {
-      const res = await api.get('/parties', { params: { sort: 'name', limit: 500 } });
-      return (res.data.data ?? res.data) as Array<{ id: string; name: string }>;
-    },
-    enabled: form.payeeKind === 'VENDOR',
-    staleTime: 5 * 60_000,
-  });
 
 
   const types = typesQuery.data ?? [];
@@ -180,11 +171,11 @@ function PaymentRequestFormBody({
   const isTravel = selectedType?.kind === 'TRAVEL';
   const days = tripDays(travel.startDate, travel.endDate);
   const savedAttachments = (detailQuery.data?.attachments ?? []).filter((a) => a.scope !== 'SETTLEMENT');
-  const vendorOptions = useSelectedPartyOption(
-    useMemo(() => (vendorsQuery.data ?? []).map((v) => ({ value: v.id, label: v.name })), [vendorsQuery.data]),
-    form.payeeKind === 'VENDOR' ? form.partyId : null,
-    detailQuery.data?.party,
-  );
+  const vendorPicker = usePartyPicker({
+    selectedId: form.payeeKind === 'VENDOR' ? form.partyId || null : null,
+    known: detailQuery.data?.party,
+    enabled: form.payeeKind === 'VENDOR',
+  });
 
   const removeAttachment = useMutation({
     mutationFn: (attId: string) => api.delete(`${PR_ENDPOINT}/${id}/attachments/${attId}`),
@@ -461,11 +452,10 @@ function PaymentRequestFormBody({
                 required
                 value={form.partyId}
                 onChange={(v) => {
-                  const name = vendorOptions.find((o) => o.value === v)?.label ?? '';
+                  const name = vendorPicker.options.find((o) => o.value === v)?.label ?? '';
                   setForm((f) => ({ ...f, partyId: v, payeeName: name || f.payeeName }));
                 }}
-                options={vendorOptions}
-                loading={vendorsQuery.isLoading}
+                {...vendorPicker.pickerProps}
                 placeholder="Pilih vendor…"
                 searchPlaceholder="Cari vendor…"
                 error={errors.partyId}

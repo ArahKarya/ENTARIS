@@ -39,7 +39,7 @@ const typeConfig = {
     columns: ['name', 'partyType', 'phone', 'email', 'address', 'taxId', 'openingBalance', 'depositBalance', 'customerDepositBalance'],
     templateHeaders: 'name,partyType,phone,email,address,taxId,openingBalance,depositBalance,customerDepositBalance',
     templateSample: 'PT ABC,Customer,081234567890,abc@example.com,Jl. Contoh No.1,1234567890,5000000,0,0',
-    queryKeys: ['parties', 'parties-all', 'coa', 'coa-all', 'balance-sheet', 'trial-balance', 'profit-loss', 'journals', 'dashboard-metrics'],
+    queryKeys: ['parties', 'coa', 'coa-all', 'balance-sheet', 'trial-balance', 'profit-loss', 'journals', 'dashboard-metrics'],
   },
   coa: {
     title: 'Import Bagan Akun',

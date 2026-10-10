@@ -1,7 +1,7 @@
 /**
  * Query building for the "Pelanggan & Vendor" list (GET /api/parties list mode and /summary).
- * Party pickers send no list-only params, so isPartyListQuery returns false and they keep the
- * legacy path. Read-only: outstandingAmount and deposit caches are never written.
+ * Party pickers (client usePartyPicker) send sort=name and a search term, so they use this
+ * paged mode too. Read-only: outstandingAmount and deposit caches are never written.
  */
 import { PartyType, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';

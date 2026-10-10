@@ -7,6 +7,7 @@ import AttachmentUpload from './AttachmentUpload';
 import { RupiahField } from './purchase-cash/RupiahField';
 import AttachmentPreview from './AttachmentPreview';
 import { ComboboxField } from './overlays/ComboboxField';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -51,14 +52,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
     }
   }, [isOpen]);
 
-  const { data: customers } = useQuery({
-    queryKey: ['parties', 'Customer'],
-    queryFn: async () => {
-      const res = await api.get('/parties', { params: { type: 'Customer' } });
-      return res.data.data ?? res.data;
-    },
-    enabled: isOpen,
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null, enabled: isOpen });
 
   const { data: cashAccounts } = useQuery({
     queryKey: ['cash-accounts'],
@@ -133,7 +127,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
               <ComboboxField
                   label="Pelanggan"
                   required
-                  options={(customers ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+                  {...partyPicker.pickerProps}
                   value={partyId}
                   onChange={setPartyId}
                   placeholder="Pilih Pelanggan"
