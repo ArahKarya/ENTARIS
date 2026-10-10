@@ -54,7 +54,14 @@ export interface AssetRow {
   branch?: RefCodeName | null;
   costCenter?: RefCodeName | null;
   qr?: { qrCode?: string | null } | null;
-  fixedAsset?: { id: string; assetNumber: string; bookValue: string | number } | null;
+  fixedAsset?: {
+    id: string;
+    assetNumber: string;
+    bookValue: string | number;
+    /** Only from the detail endpoint (full fixed asset row). */
+    acquisitionDate?: string | null;
+    acquisitionCost?: string | number | null;
+  } | null;
   vehicleData?: { noPlat?: string | null } | null;
   pic?: { id: string; fullName: string | null } | null;
   /** Only with `thumb=1` (first photo) or from the detail endpoint (all). */

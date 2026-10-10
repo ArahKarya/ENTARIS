@@ -8,6 +8,7 @@ import {
   dueStateOf,
   filterServiceLogs,
   numOrNull,
+  taxCost,
   oilLife,
   parseSection,
   vehicleTitle,
@@ -111,5 +112,18 @@ describe('small helpers', () => {
     expect(apiError({ response: { data: { error: 'Ditolak' } } }, 'x')).toBe('Ditolak');
     expect(apiError(new Error('Tipe dokumen tidak ditemukan'), 'x')).toBe('Tipe dokumen tidak ditemukan');
     expect(apiError(undefined, 'Gagal')).toBe('Gagal');
+  });
+});
+
+describe('taxCost', () => {
+  it('uses paidAmount for a paid tax', () => {
+    expect(taxCost({ amount: null, paidAmount: '1500000', paidAt: '2026-05-01', status: 'PAID' })).toBe('1500000');
+    expect(taxCost({ amount: '1000000', paidAmount: '1200000', paidAt: '2026-05-01', status: 'PAID' })).toBe('1200000');
+  });
+
+  it('falls back to amount when unpaid or paidAmount is missing', () => {
+    expect(taxCost({ amount: '900000', paidAmount: null, paidAt: null, status: 'ACTIVE' })).toBe('900000');
+    expect(taxCost({ amount: '900000', paidAmount: null, paidAt: '2026-05-01', status: 'PAID' })).toBe('900000');
+    expect(taxCost({ amount: null, paidAmount: null, paidAt: null, status: 'ACTIVE' })).toBeNull();
   });
 });

@@ -571,6 +571,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 | `assetAccountId` | body | `uuid` | ya | Akun aset tetap (neraca). |
 | `depreciationAccountId` | body | `uuid` | ya | Akun beban penyusutan. |
 | `accumulatedDepAccountId` | body | `uuid` | ya | Akun akumulasi penyusutan. |
+| `gaAssetId` | body | `string` | tidak | ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan. |
 
 **Contoh pemanggilan**
 
@@ -976,6 +977,7 @@ Pada AIRA, semua tool tulis di toolset ini tier critical: wajib persetujuan manu
 | `name` | body | `string` | tidak | Nama. |
 | `category` | body | `string` | tidak | Kategori aset tetap. |
 | `description` | body | `string` | tidak | Keterangan. |
+| `gaAssetId` | body | `string` | tidak | ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan. |
 
 **Contoh pemanggilan**
 

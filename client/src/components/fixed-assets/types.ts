@@ -37,6 +37,9 @@ export interface FixedAssetRow {
   accumulatedDepAccount: AccountRef;
   user?: { fullName: string } | null;
   depreciationEntries?: DepreciationEntryRow[];
+  /** Linked EAM asset (GaAsset), one fixed asset per EAM asset. */
+  gaAssetId?: string | null;
+  gaAsset?: { id: string; code: string; name: string } | null;
 }
 
 export interface CoaOption {

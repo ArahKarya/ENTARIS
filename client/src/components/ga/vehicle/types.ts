@@ -71,6 +71,8 @@ export interface TaxRecord {
   type: string;
   periodYear: number;
   amount: Money | null;
+  /** Nominal actually paid via the EAM bill queue (may differ from amount). */
+  paidAmount?: Money | null;
   paidAt: string | null;
   dueDate: string;
   status: string;

@@ -40,7 +40,7 @@ export interface MrDetailDrawerProps {
   canEdit: boolean;
   /** ga_maintenance view (link to the source work order). */
   canViewWorkOrder: boolean;
-  /** Requester name from the list row, when known. */
+  /** Fallback requester name from the list row (the detail endpoint also returns it). */
   requesterName?: string | null;
   onClose: () => void;
 }
@@ -139,7 +139,7 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
               <>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Detail label="Diminta">{formatDate(mr.requestedAt)}</Detail>
-                  <Detail label="Pemohon">{requesterName || '-'}</Detail>
+                  <Detail label="Pemohon">{mr.requester?.fullName || requesterName || '-'}</Detail>
                   <Detail label="Aset">{mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : '-'}</Detail>
                   <Detail label="Mesin / target">{mr.machineTarget || '-'}</Detail>
                   {mr.approvedAt && <Detail label="Disetujui">{formatDate(mr.approvedAt)}</Detail>}

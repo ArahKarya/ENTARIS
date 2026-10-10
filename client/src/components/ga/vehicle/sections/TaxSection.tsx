@@ -15,7 +15,7 @@ import { TaxModal, TaxRequestModal } from '../modals/TaxInsuranceModals';
 import type { TaxRecord, TaxRequest, VehicleContext } from '../types';
 import { FLUSH_TABLE } from '../ui-classes';
 import { useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
-import { apiError, dueStateOf } from '../vehicle-model';
+import { apiError, dueStateOf, taxCost } from '../vehicle-model';
 import { DueDateCell, UnitHeader } from '../vehicle-ui';
 
 const money = (v: string | number | null | undefined) => (v == null ? '-' : formatRupiah(toNumber(v) ?? 0, { symbol: false }));
@@ -100,7 +100,7 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
         id: 'amount',
         header: () => <UnitHeader label="Biaya" />,
         meta: { align: 'right', hideBelow: 'sm' },
-        cell: ({ row }) => money(row.original.amount),
+        cell: ({ row }) => money(taxCost(row.original)),
       },
       {
         id: 'status',

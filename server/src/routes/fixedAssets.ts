@@ -12,6 +12,12 @@ import {
   buildFixedAssetWhere,
   fixedAssetOrderBy,
 } from '../services/fixedAssetList';
+import {
+  GA_ASSET_LINK_CONFLICT_MESSAGE,
+  GA_ASSET_LINK_INCLUDE,
+  isGaAssetLinkConflict,
+  resolveGaAssetLink,
+} from '../services/fixedAssetGaLink';
 
 const router = Router();
 
@@ -21,7 +27,11 @@ const FIXED_ASSET_LIST_INCLUDE = {
   depreciationAccount: { select: { id: true, accountNumber: true, name: true } },
   accumulatedDepAccount: { select: { id: true, accountNumber: true, name: true } },
   user: { select: { fullName: true } },
+  ...GA_ASSET_LINK_INCLUDE,
 } as const;
+
+// Optional EAM asset link (GaAsset id); '' or null = not linked.
+const GaAssetIdField = z.string().trim().max(100).nullable().optional();
 
 // Schemas
 const CreateFixedAssetSchema = z.object({
@@ -36,6 +46,7 @@ const CreateFixedAssetSchema = z.object({
   assetAccountId: z.string().uuid('assetAccountId harus UUID valid.'),
   depreciationAccountId: z.string().uuid('depreciationAccountId harus UUID valid.'),
   accumulatedDepAccountId: z.string().uuid('accumulatedDepAccountId harus UUID valid.'),
+  gaAssetId: GaAssetIdField,
 });
 
 const DepreciateSchema = z.object({
@@ -63,6 +74,7 @@ const UpdateFixedAssetSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   category: z.string().min(1).max(100).optional(),
   description: z.string().max(500).nullable().optional(),
+  gaAssetId: GaAssetIdField,
 });
 
 // Bulk-create for CSV import: creates the asset and its depreciation schedule.
@@ -157,6 +169,7 @@ router.get('/:id', async (req, res) => {
         accumulatedDepAccount: { select: { id: true, accountNumber: true, name: true } },
         depreciationEntries: { orderBy: { periodDate: 'asc' } },
         user: { select: { fullName: true } },
+        ...GA_ASSET_LINK_INCLUDE,
       },
     });
     if (!asset) return res.status(404).json({ error: 'Aset tidak ditemukan.' });
@@ -176,6 +189,9 @@ router.post('/', async (req: AuthRequest, res) => {
       usefulLifeMonths, salvageValue, depreciationMethod,
       assetAccountId, depreciationAccountId, accumulatedDepAccountId,
     } = body;
+
+    const link = await resolveGaAssetLink(prisma, body.gaAssetId);
+    if (!link.ok) return res.status(link.status).json({ error: link.error });
 
     const fiscalYear = await prisma.fiscalYear.findFirst({
       where: { startDate: { lte: new Date(acquisitionDate) }, endDate: { gte: new Date(acquisitionDate) } },
@@ -204,6 +220,7 @@ router.post('/', async (req: AuthRequest, res) => {
         assetAccountId,
         depreciationAccountId,
         accumulatedDepAccountId,
+        gaAssetId: link.gaAssetId ?? null,
         fiscalYearId: fiscalYear.id,
         createdBy: req.user!.userId,
       },
@@ -211,6 +228,7 @@ router.post('/', async (req: AuthRequest, res) => {
         assetAccount: { select: { id: true, accountNumber: true, name: true } },
         depreciationAccount: { select: { id: true, accountNumber: true, name: true } },
         accumulatedDepAccount: { select: { id: true, accountNumber: true, name: true } },
+        ...GA_ASSET_LINK_INCLUDE,
       },
     });
 
@@ -234,6 +252,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(asset);
   } catch (error) {
+    if (isGaAssetLinkConflict(error)) return res.status(409).json({ error: GA_ASSET_LINK_CONFLICT_MESSAGE });
     logger.error(error, 'POST /fixed-assets error');
     res.status(500).json({ error: 'Gagal membuat aset tetap.' });
   }
@@ -504,22 +523,28 @@ router.put('/:id', async (req: AuthRequest, res) => {
     const existing = await prisma.fixedAsset.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Aset tidak ditemukan.' });
 
+    const link = await resolveGaAssetLink(prisma, body.gaAssetId, id);
+    if (!link.ok) return res.status(link.status).json({ error: link.error });
+
     const updated = await prisma.fixedAsset.update({
       where: { id },
       data: {
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.category !== undefined ? { category: body.category } : {}),
         ...(body.description !== undefined ? { description: body.description } : {}),
+        ...(link.gaAssetId !== undefined ? { gaAssetId: link.gaAssetId } : {}),
       },
       include: {
         assetAccount: { select: { id: true, accountNumber: true, name: true } },
         depreciationAccount: { select: { id: true, accountNumber: true, name: true } },
         accumulatedDepAccount: { select: { id: true, accountNumber: true, name: true } },
         user: { select: { fullName: true } },
+        ...GA_ASSET_LINK_INCLUDE,
       },
     });
     return res.json(updated);
   } catch (error) {
+    if (isGaAssetLinkConflict(error)) return res.status(409).json({ error: GA_ASSET_LINK_CONFLICT_MESSAGE });
     logger.error(error, 'PUT /fixed-assets/:id error');
     return res.status(500).json({ error: 'Gagal mengupdate aset.' });
   }

@@ -4227,7 +4227,8 @@
         "depreciationMethod": "enum",
         "assetAccountId": "uuid",
         "depreciationAccountId": "uuid",
-        "accumulatedDepAccountId": "uuid"
+        "accumulatedDepAccountId": "uuid",
+        "gaAssetId": "string"
       },
       "params": [
         {
@@ -4308,6 +4309,13 @@
           "type": "uuid",
           "required": true,
           "description": "Akun akumulasi penyusutan."
+        },
+        {
+          "name": "gaAssetId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan."
         }
       ],
       "output": {
@@ -4329,7 +4337,7 @@
         "fa_depreciate",
         "fa_import"
       ],
-      "doc": "### fa_create\n\n**Ringkasan:** Mencatat aset tetap baru (nomor FA-NNNN otomatis) dan membuat jadwal penyusutan garis lurus bulanan sepanjang masa manfaat. TIDAK membuat jurnal perolehan: pembelian aset harus dijurnal terpisah.\n\n- **Risk / tier:** `write` / Draft/Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)\n- **Handler:** `POST /api/fixed-assets` (src/routes/fixedAssets.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `name` | body | `string` | ya | Nama. |\n| `category` | body | `string` | ya | Kategori aset tetap. |\n| `description` | body | `string` | tidak | Keterangan. |\n| `acquisitionDate` | body | `date` | ya | Tanggal perolehan (YYYY-MM-DD); harus ada tahun buku yang mencakupnya. |\n| `acquisitionCost` | body | `number` | ya | Harga perolehan. |\n| `usefulLifeMonths` | body | `number` | ya | Masa manfaat dalam bulan. |\n| `salvageValue` | body | `number` | tidak | Nilai sisa (default 0). |\n| `depreciationMethod` | body | enum: `straight_line` | tidak |  |\n| `assetAccountId` | body | `uuid` | ya | Akun aset tetap (neraca). |\n| `depreciationAccountId` | body | `uuid` | ya | Akun beban penyusutan. |\n| `accumulatedDepAccountId` | body | `uuid` | ya | Akun akumulasi penyusutan. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"fa_create\",\n  \"args\": {\n    \"name\": \"<name>\",\n    \"category\": \"<category>\",\n    \"acquisitionDate\": \"2026-01-31\",\n    \"acquisitionCost\": 1,\n    \"usefulLifeMonths\": 1,\n    \"assetAccountId\": \"00000000-0000-0000-0000-000000000000\",\n    \"depreciationAccountId\": \"00000000-0000-0000-0000-000000000000\",\n    \"accumulatedDepAccountId\": \"00000000-0000-0000-0000-000000000000\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Catat aset tetap <name> (<category>) senilai 1, umur 1 bulan?\"\n}\n```\n\n**Isi hasil:** Aset yang dibuat + jumlah entri jadwal.\n\n**Efek pembukuan/stok:** Tidak ada efek GL/stok saat dicatat; hanya master aset + jadwal penyusutan (belum diposting). Jurnal terjadi saat penyusutan diposting.\n\n**Teks konfirmasi:** Catat aset tetap {name} ({category}) senilai {acquisitionCost}, umur {usefulLifeMonths} bulan?\n\n**Error umum**\n\n- 400: tahun buku tidak ditemukan untuk tanggal akuisisi\n\n**Tool terkait:** [`fa_depreciate`](#fa_depreciate), [`fa_import`](#fa_import)\n",
+      "doc": "### fa_create\n\n**Ringkasan:** Mencatat aset tetap baru (nomor FA-NNNN otomatis) dan membuat jadwal penyusutan garis lurus bulanan sepanjang masa manfaat. TIDAK membuat jurnal perolehan: pembelian aset harus dijurnal terpisah.\n\n- **Risk / tier:** `write` / Draft/Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)\n- **Handler:** `POST /api/fixed-assets` (src/routes/fixedAssets.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `name` | body | `string` | ya | Nama. |\n| `category` | body | `string` | ya | Kategori aset tetap. |\n| `description` | body | `string` | tidak | Keterangan. |\n| `acquisitionDate` | body | `date` | ya | Tanggal perolehan (YYYY-MM-DD); harus ada tahun buku yang mencakupnya. |\n| `acquisitionCost` | body | `number` | ya | Harga perolehan. |\n| `usefulLifeMonths` | body | `number` | ya | Masa manfaat dalam bulan. |\n| `salvageValue` | body | `number` | tidak | Nilai sisa (default 0). |\n| `depreciationMethod` | body | enum: `straight_line` | tidak |  |\n| `assetAccountId` | body | `uuid` | ya | Akun aset tetap (neraca). |\n| `depreciationAccountId` | body | `uuid` | ya | Akun beban penyusutan. |\n| `accumulatedDepAccountId` | body | `uuid` | ya | Akun akumulasi penyusutan. |\n| `gaAssetId` | body | `string` | tidak | ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"fa_create\",\n  \"args\": {\n    \"name\": \"<name>\",\n    \"category\": \"<category>\",\n    \"acquisitionDate\": \"2026-01-31\",\n    \"acquisitionCost\": 1,\n    \"usefulLifeMonths\": 1,\n    \"assetAccountId\": \"00000000-0000-0000-0000-000000000000\",\n    \"depreciationAccountId\": \"00000000-0000-0000-0000-000000000000\",\n    \"accumulatedDepAccountId\": \"00000000-0000-0000-0000-000000000000\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Catat aset tetap <name> (<category>) senilai 1, umur 1 bulan?\"\n}\n```\n\n**Isi hasil:** Aset yang dibuat + jumlah entri jadwal.\n\n**Efek pembukuan/stok:** Tidak ada efek GL/stok saat dicatat; hanya master aset + jadwal penyusutan (belum diposting). Jurnal terjadi saat penyusutan diposting.\n\n**Teks konfirmasi:** Catat aset tetap {name} ({category}) senilai {acquisitionCost}, umur {usefulLifeMonths} bulan?\n\n**Error umum**\n\n- 400: tahun buku tidak ditemukan untuk tanggal akuisisi\n\n**Tool terkait:** [`fa_depreciate`](#fa_depreciate), [`fa_import`](#fa_import)\n",
       "example": {
         "tool": "fa_create",
         "args": {
@@ -4791,7 +4799,8 @@
         "id": "string",
         "name": "string",
         "category": "string",
-        "description": "string"
+        "description": "string",
+        "gaAssetId": "string"
       },
       "params": [
         {
@@ -4821,6 +4830,13 @@
           "type": "string",
           "required": false,
           "description": "Keterangan."
+        },
+        {
+          "name": "gaAssetId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan."
         }
       ],
       "output": {
@@ -4841,7 +4857,7 @@
       "related": [
         "fa_get"
       ],
-      "doc": "### fa_update\n\n**Ringkasan:** Mengubah metadata aset: nama, kategori, deskripsi. Nominal, masa manfaat, dan akun TIDAK bisa diubah.\n\n- **Risk / tier:** `write` / Draft/Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)\n- **Handler:** `PUT /api/fixed-assets/:id` (src/routes/fixedAssets.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `id` | path | `string` | ya | ID dokumen/rekaman (UUID). |\n| `name` | body | `string` | tidak | Nama. |\n| `category` | body | `string` | tidak | Kategori aset tetap. |\n| `description` | body | `string` | tidak | Keterangan. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"fa_update\",\n  \"args\": {\n    \"id\": \"<id>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Ubah data aset <id> (nama/kategori/deskripsi)?\"\n}\n```\n\n**Isi hasil:** Aset setelah diubah.\n\n**Efek pembukuan/stok:** Tidak ada efek GL/stok (hanya label).\n\n**Teks konfirmasi:** Ubah data aset {id} (nama/kategori/deskripsi)?\n\n**Error umum**\n\n- 404: aset tidak ditemukan\n\n**Tool terkait:** [`fa_get`](#fa_get)\n",
+      "doc": "### fa_update\n\n**Ringkasan:** Mengubah metadata aset: nama, kategori, deskripsi. Nominal, masa manfaat, dan akun TIDAK bisa diubah.\n\n- **Risk / tier:** `write` / Draft/Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant (modul `fixed_assets` / `edit`)\n- **Handler:** `PUT /api/fixed-assets/:id` (src/routes/fixedAssets.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `id` | path | `string` | ya | ID dokumen/rekaman (UUID). |\n| `name` | body | `string` | tidak | Nama. |\n| `category` | body | `string` | tidak | Kategori aset tetap. |\n| `description` | body | `string` | tidak | Keterangan. |\n| `gaAssetId` | body | `string` | tidak | ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"fa_update\",\n  \"args\": {\n    \"id\": \"<id>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Ubah data aset <id> (nama/kategori/deskripsi)?\"\n}\n```\n\n**Isi hasil:** Aset setelah diubah.\n\n**Efek pembukuan/stok:** Tidak ada efek GL/stok (hanya label).\n\n**Teks konfirmasi:** Ubah data aset {id} (nama/kategori/deskripsi)?\n\n**Error umum**\n\n- 404: aset tidak ditemukan\n\n**Tool terkait:** [`fa_get`](#fa_get)\n",
       "example": {
         "tool": "fa_update",
         "args": {

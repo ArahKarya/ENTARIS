@@ -215,3 +215,20 @@ export function apiError(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message && !('response' in err)) return err.message;
   return fallback;
 }
+
+// Vehicle tax cost
+
+/**
+ * Effective cost of a tax record: a paid record uses paidAmount (what the EAM bill queue
+ * actually posted), anything else the planned amount. null when neither is known.
+ */
+export function taxCost(t: {
+  amount?: string | number | null;
+  paidAmount?: string | number | null;
+  paidAt?: string | null;
+  status?: string | null;
+}): string | number | null {
+  const paid = t.status === 'PAID' || t.paidAt != null;
+  if (paid && t.paidAmount != null) return t.paidAmount;
+  return t.amount ?? null;
+}

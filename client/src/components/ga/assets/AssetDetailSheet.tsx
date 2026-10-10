@@ -37,6 +37,9 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
   const asset = detailQuery.data ?? (fallback && fallback.id === assetId ? fallback : null);
   const photos = detailQuery.data?.photos ?? [];
   const condition = conditionMeta(asset?.condition);
+  // The linked fixed asset (accounting) is the fallback source for acquisition data.
+  const acquisitionDate = asset?.acquisitionDate ?? asset?.fixedAsset?.acquisitionDate ?? null;
+  const acquisitionCost = asset?.acquisitionCost ?? asset?.fixedAsset?.acquisitionCost ?? null;
 
   return (
     <Sheet open={assetId !== null} onOpenChange={(open) => !open && onClose()}>
@@ -110,10 +113,10 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
                 <Detail label="Penanggung jawab">{asset.pic?.fullName ?? '-'}</Detail>
                 <Detail label="No. seri">{asset.serialNumber ? <span className="font-mono">{asset.serialNumber}</span> : '-'}</Detail>
                 <Detail label="Tanggal perolehan">
-                  <span className="num">{formatDate(asset.acquisitionDate)}</span>
+                  <span className="num">{formatDate(acquisitionDate)}</span>
                 </Detail>
                 <Detail label="Nilai perolehan">
-                  <span className="num">{asset.acquisitionCost != null ? formatRupiah(asset.acquisitionCost) : '-'}</span>
+                  <span className="num">{acquisitionCost != null ? formatRupiah(acquisitionCost) : '-'}</span>
                 </Detail>
                 {asset.vehicleData?.noPlat && <Detail label="No. polisi">{asset.vehicleData.noPlat}</Detail>}
                 {asset.fixedAsset && (

@@ -21,6 +21,8 @@ import {
   sortFleetRows,
 } from '../../services/gaFleetList';
 import { dueBoundaries } from '../../services/projectGuaranteeList';
+import { bumpVehicleOdometer } from '../../services/gaVehicleOdometer';
+import { effectiveTaxCost } from '../../services/gaVehicleTaxCost';
 import { parseListPaging } from '../../utils/listQuery';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError, BusinessError } from '../../utils/errors';
@@ -382,16 +384,8 @@ router.post('/assets/:id/services', async (req: AuthRequest, res) => {
         },
       });
 
-      // Auto-update odometer terakhir on GaVehicleData if greater
-      if (input.odometer != null) {
-        const vd = await tx.gaVehicleData.findUnique({ where: { assetId } });
-        if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
-          await tx.gaVehicleData.update({
-            where: { assetId },
-            data: { odometerTerakhir: input.odometer },
-          });
-        }
-      }
+      // Raise odometer terakhir (creates the vehicle data row when missing).
+      await bumpVehicleOdometer(tx, assetId, input.odometer);
 
       if (wantJournal) {
         await postVehicleServiceJournalInTx(tx, {
@@ -1127,13 +1121,7 @@ router.post('/assets/:id/fuel-logs', async (req: AuthRequest, res) => {
       },
     });
 
-    // Sinkron dengan pola service log: update odometer terakhir kalau lebih besar.
-    if (input.odometer != null) {
-      const vd = await prisma.gaVehicleData.findUnique({ where: { assetId } });
-      if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
-        await prisma.gaVehicleData.update({ where: { assetId }, data: { odometerTerakhir: input.odometer } });
-      }
-    }
+    await bumpVehicleOdometer(prisma, assetId, input.odometer);
 
     return res.status(201).json(created);
   } catch (error) {
@@ -1207,6 +1195,7 @@ router.post('/assets/:id/inspections', async (req: AuthRequest, res) => {
       },
       include: { photos: true },
     });
+    await bumpVehicleOdometer(prisma, created.assetId, input.odometer);
     return res.status(201).json(created);
   } catch (error) {
     return handleRouteError(res, error, 'POST /ga/vehicle/assets/:id/inspections', 'Gagal simpan data inspeksi.');
@@ -1517,11 +1506,7 @@ router.post('/assets/:id/oil-logs', async (req: AuthRequest, res) => {
       },
     });
 
-    // Auto-update odometer terakhir on GaVehicleData if greater
-    const vd = await prisma.gaVehicleData.findUnique({ where: { assetId } });
-    if (vd && (vd.odometerTerakhir == null || input.odometer > vd.odometerTerakhir)) {
-      await prisma.gaVehicleData.update({ where: { assetId }, data: { odometerTerakhir: input.odometer } });
-    }
+    await bumpVehicleOdometer(prisma, assetId, input.odometer);
 
     return res.status(201).json(created);
   } catch (error) {
@@ -1776,7 +1761,7 @@ router.get('/assets/:id/report', async (req: AuthRequest, res) => {
       }),
       prisma.gaVehicleTax.findMany({
         where: { assetId },
-        select: { type: true, amount: true, paidAt: true, dueDate: true, status: true, periodYear: true },
+        select: { type: true, amount: true, paidAmount: true, paidAt: true, dueDate: true, status: true, periodYear: true },
         orderBy: { dueDate: 'desc' },
       }),
       prisma.gaVehicleInsurance.findMany({
@@ -1823,7 +1808,7 @@ router.get('/assets/:id/report', async (req: AuthRequest, res) => {
     // Pajak: pakai paidAt sebagai tanggal biaya (hanya yang benar-benar dibayar di periode).
     for (const t of taxes) {
       if (!t.paidAt || t.paidAt < period.from || t.paidAt > period.to) continue;
-      const amount = dec(t.amount);
+      const amount = effectiveTaxCost(t);
       breakdown.tax += amount;
       if (amount) trendRows.push({ month: monthKey(t.paidAt), category: 'tax', amount });
     }
@@ -2018,7 +2003,7 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
         }),
         prisma.gaVehicleTax.findMany({
           where: { assetId: idFilter, paidAt: range },
-          select: { assetId: true, paidAt: true, amount: true },
+          select: { assetId: true, paidAt: true, amount: true, paidAmount: true },
         }),
         prisma.gaVehicleInsurance.findMany({
           where: { assetId: idFilter, startDate: range },
@@ -2077,7 +2062,7 @@ router.get('/fleet-report', async (req: AuthRequest, res) => {
       bump(r.assetId, 'fuel', dec(r.totalCost), r.tanggal);
       litersByAsset.set(r.assetId, (litersByAsset.get(r.assetId) ?? 0) + dec(r.liters));
     }
-    for (const r of taxRows) if (r.paidAt) bump(r.assetId, 'tax', dec(r.amount), r.paidAt);
+    for (const r of taxRows) if (r.paidAt) bump(r.assetId, 'tax', effectiveTaxCost(r), r.paidAt);
     for (const r of insuranceRows) bump(r.assetId, 'insurance', dec(r.premium), r.startDate);
     for (const r of incidentRows) {
       bump(r.assetId, 'incident', r.actualCost != null ? dec(r.actualCost) : dec(r.estimatedCost), r.tanggal);

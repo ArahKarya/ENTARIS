@@ -1,5 +1,5 @@
 /**
- * Edit asset metadata (name, category, description). Amounts, useful life and
+ * Edit asset metadata (name, category, description, linked EAM asset). Amounts, useful life and
  * GL accounts stay locked — correcting those means disposing the asset and
  * creating a new one, so related journals stay consistent (server rule).
  */
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Field } from '@/components/shared';
+import { EamAssetPicker } from './EamAssetPicker';
 import { apiError } from './errors';
 import type { FixedAssetRow } from './types';
 
@@ -26,6 +27,7 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [gaAssetId, setGaAssetId] = useState('');
   const [errors, setErrors] = useState<{ name?: string; category?: string }>({});
 
   // Load the asset's values whenever another asset is opened (no effect needed).
@@ -36,17 +38,25 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
       setName(asset.name);
       setCategory(asset.category);
       setDescription(asset.description ?? '');
+      setGaAssetId(asset.gaAssetId ?? asset.gaAsset?.id ?? '');
       setErrors({});
     }
   }
 
   const editMut = useMutation({
-    mutationFn: async (data: { id: string; name: string; category: string; description: string | null }) =>
+    mutationFn: async (data: {
+      id: string;
+      name: string;
+      category: string;
+      description: string | null;
+      gaAssetId: string | null;
+    }) =>
       (
         await api.put(`/fixed-assets/${data.id}`, {
           name: data.name,
           category: data.category,
           description: data.description,
+          gaAssetId: data.gaAssetId,
         })
       ).data,
     onSuccess: () => {
@@ -54,6 +64,8 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
+      qc.invalidateQueries({ queryKey: ['ga-assets'] });
+      qc.invalidateQueries({ queryKey: ['ga-asset-detail'] });
       onClose();
     },
     onError: (err) => toast.error(apiError(err, 'Gagal mengupdate aset')),
@@ -68,7 +80,13 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
     };
     setErrors(found);
     if (found.name || found.category) return;
-    editMut.mutate({ id: asset.id, name, category, description: description ? description : null });
+    editMut.mutate({
+      id: asset.id,
+      name,
+      category,
+      description: description ? description : null,
+      gaAssetId: gaAssetId || null,
+    });
   };
 
   return (
@@ -90,10 +108,17 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
             <Field label="Keterangan">
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={500} />
             </Field>
+            <EamAssetPicker
+              value={gaAssetId}
+              onChange={setGaAssetId}
+              selfId={asset?.id}
+              current={asset?.gaAsset ?? null}
+              enabled={asset !== null}
+            />
             <div className="flex items-start gap-2 rounded-md bg-info-subtle px-3 py-2.5 text-xs text-info-text">
               <Info className="mt-px size-4 shrink-0" aria-hidden />
               <p>
-                Hanya nama, kategori, dan keterangan yang bisa diubah. Untuk koreksi nominal (harga perolehan, masa
+                Hanya nama, kategori, keterangan, dan aset EAM terkait yang bisa diubah. Untuk koreksi nominal (harga perolehan, masa
                 manfaat, akun GL), lepas aset lama lalu buat aset baru supaya jurnal terkait tetap konsisten.
               </p>
             </div>
