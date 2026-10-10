@@ -5,6 +5,7 @@ import { generateDocumentNumber } from '../utils/documentNumber';
 import { adjustWarehouseStock, resolveWarehouseId, getWarehouseStockMap } from '../utils/warehouseStock';
 import { recomputeDeliveredQtyInTx, relinkDoItemsToSOInTx } from './salesOrderDelivery';
 import { logger } from '../lib/logger';
+import { resolveCogsAccountId } from './cogsAccount';
 import type { SubmitDeliveryOrderInput } from './deliveryOrderSubmit';
 
 type Tx = Prisma.TransactionClient;
@@ -140,6 +141,9 @@ export async function editDeliveryOrderInTx(
   });
   if (!fiscalYear) throw new BusinessError('Tidak ada tahun fiskal aktif untuk tanggal transaksi ini.');
 
+  // Counter account the invoice will post COGS against; stored on each Out movement.
+  const cogsAccountId = await resolveCogsAccountId(tx);
+
   for (const it of body.items) {
     let stockMovementId: string | null = null;
     if (it.inventoryItemId) {
@@ -186,6 +190,7 @@ export async function editDeliveryOrderInTx(
           referenceType: 'DeliveryOrder',
           referenceId: doId,
           referenceNumber: oldDo.doNumber,
+          offsetAccountId: totalValue > 0 ? cogsAccountId : null,
           fiscalYearId: fiscalYear.id,
           createdById: userId,
         },

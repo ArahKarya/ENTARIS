@@ -165,6 +165,8 @@ export async function submitGoodsReceiptInTx(
         referenceType: 'GoodsReceipt',
         referenceId: goodsReceipt.id,
         referenceNumber: sttNumber,
+        // The STT journal credits Hutang Belum Tagih for every valued line.
+        offsetAccountId: totalValue.gt(0) ? accruedAcct.id : null,
         notes: `Penerimaan barang dari ${party.name} (${sttNumber})`,
         createdById: userId,
         fiscalYearId: fiscalYear.id,

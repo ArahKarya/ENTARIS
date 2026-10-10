@@ -1,7 +1,7 @@
 /**
  * Query building + row enrichment for the stock opname list (GET /api/stock-opname).
- * The header has no warehouse: it lives on the adjustment movements (or old lines), so the
- * warehouse filter resolves ids from movements and an opname with no difference has no warehouse.
+ * The header stores its warehouse (stock_opnames.warehouse_id); sessions created before that
+ * column existed fall back to the warehouse of their adjustment movements (or lines).
  */
 import { Prisma, StockOpnameStatus } from '@prisma/client';
 import { firstString, localDayRange, parseDateParam, type SortSpec } from '../utils/listQuery';
@@ -53,6 +53,7 @@ export function buildStockOpnameWhere(
   if (warehouseId) {
     and.push({
       OR: [
+        { warehouseId },
         { id: { in: [...(options.warehouseOpnameIds ?? [])] } },
         { items: { some: { warehouseId } } },
       ],
@@ -131,6 +132,18 @@ export function opnameWarehouses(rows: readonly OpnameMovementWarehouse[]): Map<
     const list = out.get(row.referenceId) ?? [];
     if (!list.some((w) => w.id === row.warehouse!.id)) list.push(row.warehouse);
     out.set(row.referenceId, list);
+  }
+  return out;
+}
+
+/** Header warehouse first, then any other warehouse the movements touched (deduplicated). */
+export function mergeOpnameWarehouses(
+  header: WarehouseRef | null | undefined,
+  fromMovements: readonly WarehouseRef[],
+): WarehouseRef[] {
+  const out: WarehouseRef[] = header ? [header] : [];
+  for (const w of fromMovements) {
+    if (!out.some((x) => x.id === w.id)) out.push(w);
   }
   return out;
 }

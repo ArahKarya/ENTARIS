@@ -16,6 +16,7 @@ import {
   buildStockOpnameWhere,
   DEFAULT_STOCK_OPNAME_SORT,
   OPNAME_REFERENCE_TYPE,
+  mergeOpnameWarehouses,
   opnameWarehouses,
   STOCK_OPNAME_SORT_FIELDS,
   stockOpnameOrderBy,
@@ -59,6 +60,7 @@ router.get('/', async (req, res) => {
         where,
         include: {
           createdBy: { select: { fullName: true } },
+          warehouse: { select: { id: true, code: true, name: true } },
           _count: { select: { items: true } },
         },
         orderBy,
@@ -91,7 +93,9 @@ router.get('/', async (req, res) => {
     const result = data.map((so) => {
       const v = variance.get(so.id) ?? { totalVariance: 0, itemsWithDiff: 0 };
       const row = { ...so, totalVariance: v.totalVariance, itemsWithDiff: v.itemsWithDiff };
-      return withWarehouses ? { ...row, warehouses: warehousesById.get(so.id) ?? [] } : row;
+      return withWarehouses
+        ? { ...row, warehouses: mergeOpnameWarehouses(so.warehouse, warehousesById.get(so.id) ?? []) }
+        : row;
     });
 
     return res.json({ data: result, total, page, limit: take });
@@ -108,6 +112,7 @@ router.get('/:id', async (req, res) => {
       where: { id: req.params.id as string },
       include: {
         createdBy: { select: { fullName: true } },
+        warehouse: { select: { id: true, code: true, name: true } },
         items: {
           include: {
             item: { select: { id: true, name: true, code: true, unit: true, currentStock: true, averageCost: true } },
@@ -213,6 +218,12 @@ router.post('/', async (req: AuthRequest, res) => {
       // Opname perlu diproses kalau ada selisih qty ATAU ada revaluasi nilai.
       const needsProcessing = itemsWithDiff.length > 0 || revaluations.length > 0;
 
+      // Stock opname applies to one warehouse per session. Prefer the
+      // explicit pick from the UI; fall back to the default warehouse. The
+      // header and every line keep it so the list shows Gudang even when
+      // the count had no difference.
+      const opnameWarehouseId = await resolveWarehouseId(tx, body.warehouseId);
+
       // Create the StockOpname record
       const so = await tx.stockOpname.create({
         data: {
@@ -220,10 +231,13 @@ router.post('/', async (req: AuthRequest, res) => {
           date: txDate,
           status: 'Submitted' as any,
           notes: body.notes || null,
+          warehouseId: opnameWarehouseId,
           fiscalYearId: fiscalYear.id,
           createdById: req.user!.userId,
           submittedAt: new Date(),
-          items: { create: opnameItems },
+          items: {
+            create: opnameItems.map((line) => ({ ...line, warehouseId: opnameWarehouseId })),
+          },
         },
       });
 
@@ -231,11 +245,8 @@ router.post('/', async (req: AuthRequest, res) => {
       if (needsProcessing) {
         const defaultInvAccount = await systemAccounts.getAccount('INVENTORY');
         const varianceAccount = await systemAccounts.getAccount('INVENTORY_VARIANCE');
-        // Stock opname applies to one warehouse per session. Prefer the
-        // explicit pick from the UI; fall back to default warehouse if set;
-        // otherwise force the user to pick. (Multi-warehouse opname → run a
-        // separate session per warehouse.)
-        const opnameWarehouseId = await resolveWarehouseId(tx, body.warehouseId);
+        // Adjustments need a warehouse: force the user to pick one when no
+        // default exists. (Multi-warehouse opname → one session per warehouse.)
         if (!opnameWarehouseId) {
           throw new BusinessError(
             'Gudang opname wajib dipilih. Pilih gudang di form atau set salah satu gudang sebagai default.',

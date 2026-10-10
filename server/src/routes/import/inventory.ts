@@ -2,12 +2,8 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
-import { updateBalancesForItems } from '../../utils/accountBalance';
-import { generateDocumentNumber } from '../../utils/documentNumber';
-import { getOpenFiscalYear } from '../../utils/fiscalYear';
-import { systemAccounts } from '../../services/systemAccounts';
+import { postOpeningStockInTx } from '../../services/openingStockImport';
 import { logger } from '../../lib/logger';
-import { calcWeightedAverage } from '../../utils/weightedAverage';
 import { upload, parseFile, sanitizeCellValue } from './shared';
 
 const router = Router();
@@ -32,6 +28,7 @@ router.post(
         minimumStock?: number;
         openingQty: number;
         openingPrice: number;
+        warehouseCode?: string;
       }> = [];
 
       for (let i = 0; i < rows.length; i++) {
@@ -67,6 +64,8 @@ router.post(
         const openingPriceStr = (r.openingPrice || r.opening_price || r.openingValue || r.opening_value || r.hargaAwal || r.harga_awal || r.nilaiAwal || r.nilai_awal || '').trim();
         const openingPrice = openingPriceStr ? parseFloat(openingPriceStr) : 0;
 
+        const warehouseCode = (r.warehouseCode || r.warehouse_code || r.gudang || '').trim();
+
         if (isNaN(openingQty)) {
           errors.push({ row: rowNum, message: `openingQty "${openingQtyStr}" bukan angka valid.` });
           continue;
@@ -85,6 +84,7 @@ router.post(
           minimumStock,
           openingQty,
           openingPrice,
+          warehouseCode: warehouseCode ? sanitizeCellValue(warehouseCode) : undefined,
         });
       }
 
@@ -95,7 +95,7 @@ router.post(
       let success = 0;
       for (const row of validRows) {
         try {
-          const { openingQty, openingPrice, ...itemData } = row;
+          const { openingQty, openingPrice, warehouseCode, ...itemData } = row;
 
           const item = await prisma.inventoryItem.upsert({
             where: { code: row.code },
@@ -113,83 +113,18 @@ router.post(
             const unitCost = isLikelyTotalValue ? (openingPrice / openingQty) : openingPrice;
             const totalValue = isLikelyTotalValue ? openingPrice : rawTotal;
 
-            await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-              const now = new Date();
-              const fiscalYear = await getOpenFiscalYear(tx, now);
-              const mvNumber = await generateDocumentNumber(tx, 'SM', now, fiscalYear.id);
-
-              await tx.stockMovement.create({
-                data: {
-                  movementNumber: mvNumber,
-                  itemId: item.id,
-                  movementType: 'In',
+            await prisma.$transaction(
+              (tx: Prisma.TransactionClient) =>
+                postOpeningStockInTx(tx, {
+                  item,
                   quantity: openingQty,
-                  unitCost: unitCost,
+                  unitCost,
                   totalValue,
-                  date: now,
-                  referenceType: 'OpeningBalance',
-                  notes: `Stok awal dari import: ${row.code} - ${row.name}`,
-                  createdById: req.user!.userId,
-                  fiscalYearId: fiscalYear.id,
-                },
-              });
-
-              // Update currentStock and averageCost on inventory item
-              const newAvgCost = calcWeightedAverage(item.currentStock, item.averageCost, openingQty, unitCost);
-              await tx.inventoryItem.update({
-                where: { id: item.id },
-                data: {
-                  currentStock: { increment: openingQty },
-                  averageCost: newAvgCost,
-                },
-              });
-
-              // GL: DR Inventory / CR Ekuitas Saldo Awal
-              const invAccount = item.accountId
-                ? await tx.account.findUnique({ where: { id: item.accountId } })
-                : await systemAccounts.getAccount('INVENTORY');
-              const openingEquity = await systemAccounts.getAccount('OPENING_EQUITY');
-
-              if (invAccount) {
-                const jvNumber = await generateDocumentNumber(tx, 'JV', now, fiscalYear.id);
-                const journal = await tx.journalEntry.create({
-                  data: {
-                    entryNumber: jvNumber,
-                    date: now,
-                    narration: `Saldo awal stok: ${row.code} - ${row.name}`,
-                    status: 'Submitted',
-                    fiscalYearId: fiscalYear.id,
-                    createdBy: req.user!.userId,
-                    submittedAt: now,
-                    items: {
-                      create: [
-                        { accountId: invAccount.id, debit: totalValue, credit: 0, description: `Saldo awal stok: ${row.code}` },
-                        { accountId: openingEquity.id, debit: 0, credit: totalValue, description: `Saldo awal stok: ${row.code}` },
-                      ],
-                    },
-                  },
-                  include: { items: true },
-                });
-
-                await tx.accountingLedgerEntry.createMany({
-                  data: journal.items.map((ji) => ({
-                    date: now,
-                    accountId: ji.accountId,
-                    debit: ji.debit,
-                    credit: ji.credit,
-                    referenceType: 'JournalEntry' as const,
-                    referenceId: journal.id,
-                    description: ji.description || `Saldo awal stok: ${row.code}`,
-                    fiscalYearId: fiscalYear.id,
-                  })),
-                });
-
-                await updateBalancesForItems(
-                  tx,
-                  journal.items.map((i) => ({ accountId: i.accountId, debit: Number(i.debit), credit: Number(i.credit) }))
-                );
-              }
-            }, { timeout: 15000 });
+                  warehouseCode,
+                  userId: req.user!.userId,
+                }),
+              { timeout: 15000 },
+            );
           }
 
           success++;

@@ -85,6 +85,8 @@ router.get(
           { header: 'minimumStock', key: 'minimumStock', width: 15 },
           { header: 'openingQty', key: 'openingQty', width: 15 },
           { header: 'openingPrice', key: 'openingPrice', width: 18 },
+          // Optional: warehouse code for the opening stock (empty = default warehouse).
+          { header: 'warehouseCode', key: 'warehouseCode', width: 16 },
         ];
 
         const items = await prisma.inventoryItem.findMany({

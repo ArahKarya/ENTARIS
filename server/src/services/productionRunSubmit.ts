@@ -9,6 +9,7 @@ import { systemAccounts } from './systemAccounts';
 import { settleCogsBackfillForItem } from './cogsBackfillService';
 import { persistOeeInTx } from './oee';
 import { logger } from '../lib/logger';
+import { buildProductionRunLineItems } from './productionRunLines';
 
 type Tx = Prisma.TransactionClient;
 
@@ -513,43 +514,17 @@ export async function submitProductionRunInTx(
   }
 
   // Persist line items for audit/record-keeping.
-  const inputLineItems = body.inputs.map((inp, idx) => {
-    const snapshot = batchSnapshots.get(idx)!;
-    return {
-      productionRunId: run.id,
-      itemId: inp.itemId,
-      lineType: 'Input',
-      quantity: inp.quantity,
-      unitPrice: null as number | null,
-      yieldPct: null as number | null,
-      isByProduct: false,
-      sourceMovementId: snapshot.sourceMovementId,
-      batchUnitCost: snapshot.batchUnitCost,
-    };
+  await tx.productionRunItem.createMany({
+    data: buildProductionRunLineItems({
+      runId: run.id,
+      warehouseId: productionWarehouseId,
+      inputs: body.inputs,
+      outputs: body.outputs,
+      batchSnapshots,
+      totalInputQty,
+      computedHppNum,
+    }),
   });
-  const outputLineItems = body.outputs.map((o) => {
-    const rPct = totalInputQty > 0 && !o.isByProduct
-      ? (o.quantity / totalInputQty) * 100
-      : null;
-    // Persist the resolved unitPrice (explicit or back-filled from loaded HPP)
-    // so downstream queries don't need to redo the math.
-    const explicitPrice = o.unitPrice;
-    const persistedUnitPrice = o.isByProduct
-      ? (explicitPrice ?? null)
-      : (explicitPrice != null && explicitPrice > 0
-          ? explicitPrice
-          : (computedHppNum > 0 ? computedHppNum : null));
-    return {
-      productionRunId: run.id,
-      itemId: o.itemId,
-      lineType: o.isByProduct ? 'ByProduct' : 'Output',
-      quantity: o.quantity,
-      unitPrice: persistedUnitPrice,
-      yieldPct: rPct,
-      isByProduct: o.isByProduct ?? false,
-    };
-  });
-  await tx.productionRunItem.createMany({ data: [...inputLineItems, ...outputLineItems] });
 
   // Persist cost component snapshots + HPP breakdown on the run.
   if (resolvedCosts.length > 0) {

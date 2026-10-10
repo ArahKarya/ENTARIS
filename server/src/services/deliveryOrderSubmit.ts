@@ -6,6 +6,7 @@ import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { adjustWarehouseStock, resolveWarehouseId, getWarehouseStockMap } from '../utils/warehouseStock';
 import { logger } from '../lib/logger';
 import { linkTemporaryNotesToDoInTx } from './temporaryDeliveryNote';
+import { resolveCogsAccountId } from './cogsAccount';
 
 type Tx = Prisma.TransactionClient;
 
@@ -113,6 +114,9 @@ export async function submitDeliveryOrderInTx(
     }
   }
 
+  // Counter account the invoice will post COGS against; stored on each Out movement.
+  const cogsAccountId = await resolveCogsAccountId(tx);
+
   const deliveryOrder = await tx.deliveryOrder.create({
     data: {
       doNumber,
@@ -190,6 +194,7 @@ export async function submitDeliveryOrderInTx(
           referenceType: 'DeliveryOrder',
           referenceId: deliveryOrder.id,
           referenceNumber: doNumber,
+          offsetAccountId: totalValue > 0 ? cogsAccountId : null,
           fiscalYearId: fiscalYear.id,
           createdById: userId,
         },

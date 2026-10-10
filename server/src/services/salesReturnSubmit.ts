@@ -308,6 +308,7 @@ export async function submitSalesReturnInTx(
 
     // StockMovement In
     const smNumber = await generateDocumentNumber(tx, 'SM', parsedDate, fiscalYear.id);
+    const smTotalValue = new Decimal(r.quantity).times(new Decimal(cost)).toDecimalPlaces(2).toNumber();
     const sm = await tx.stockMovement.create({
       data: {
         movementNumber: smNumber,
@@ -317,10 +318,12 @@ export async function submitSalesReturnInTx(
         movementType: 'In',
         quantity: r.quantity,
         unitCost: cost,
-        totalValue: new Decimal(r.quantity).times(new Decimal(cost)).toDecimalPlaces(2).toNumber(),
+        totalValue: smTotalValue,
         referenceType: 'SalesReturn',
         referenceId: salesReturn.id,
         referenceNumber: returnNumber,
+        // The COGS reversal journal credits HPP for every valued restock line.
+        offsetAccountId: smTotalValue > 0 ? cogsAccount.id : null,
         fiscalYearId: fiscalYear.id,
         createdById: userId,
       },

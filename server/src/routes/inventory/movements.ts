@@ -193,19 +193,23 @@ router.post('/', async (req: AuthRequest, res) => {
 
         const entryNumber = await generateDocumentNumber(tx, 'JV', movementDate, fiscalYear.id);
 
+        // Ledger and journal lines carry the narration so Buku Besar and the
+        // reconciliation workspace show a description instead of an empty cell.
+        const narration = `${typeLabels[body.movementType]}: ${item.name} ${qty} ${item.unit}${body.notes ? ' - ' + body.notes : ''}`;
+
         const je = await tx.journalEntry.create({
           data: {
             entryNumber,
             date: movementDate,
             status: 'Submitted',
             submittedAt: new Date(),
-            narration: `${typeLabels[body.movementType]}: ${item.name} ${qty} ${item.unit}${body.notes ? ' - ' + body.notes : ''}`,
+            narration,
             fiscalYearId: fiscalYear.id,
             createdBy: userId,
             items: {
               create: [
-                { accountId: debitAccountId, debit: totalValue, credit: 0 },
-                { accountId: creditAccountId, debit: 0, credit: totalValue },
+                { accountId: debitAccountId, debit: totalValue, credit: 0, description: narration },
+                { accountId: creditAccountId, debit: 0, credit: totalValue, description: narration },
               ],
             },
           },
@@ -222,6 +226,7 @@ router.post('/', async (req: AuthRequest, res) => {
               credit: 0,
               referenceType: 'JournalEntry',
               referenceId: je.id,
+              description: narration,
               fiscalYearId: fiscalYear.id,
             },
             {
@@ -231,6 +236,7 @@ router.post('/', async (req: AuthRequest, res) => {
               credit: totalValue,
               referenceType: 'JournalEntry',
               referenceId: je.id,
+              description: narration,
               fiscalYearId: fiscalYear.id,
             },
           ],
@@ -440,6 +446,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
         });
         if (!fiscalYear) throw new BusinessError('Tidak ada tahun fiskal aktif untuk tanggal transaksi ini.');
 
+        const editNarration = `${typeLabels[body.movementType]}: ${itemAfterReversal.name} ${newQty} ${itemAfterReversal.unit}${body.notes ? ' - ' + body.notes : ''} (Edit)`;
         const entryNumber = await generateDocumentNumber(tx, 'JV', movementDate, fiscalYear.id);
 
         const je = await tx.journalEntry.create({
@@ -448,13 +455,13 @@ router.put('/:id', async (req: AuthRequest, res) => {
             date: movementDate,
             status: 'Submitted',
             submittedAt: new Date(),
-            narration: `${typeLabels[body.movementType]}: ${itemAfterReversal.name} ${newQty} ${itemAfterReversal.unit}${body.notes ? ' - ' + body.notes : ''} (Edit)`,
+            narration: editNarration,
             fiscalYearId: fiscalYear.id,
             createdBy: req.user!.userId,
             items: {
               create: [
-                { accountId: debitAccountId, debit: newTotalValue, credit: 0 },
-                { accountId: creditAccountId, debit: 0, credit: newTotalValue },
+                { accountId: debitAccountId, debit: newTotalValue, credit: 0, description: editNarration },
+                { accountId: creditAccountId, debit: 0, credit: newTotalValue, description: editNarration },
               ],
             },
           },
@@ -463,8 +470,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
 
         await tx.accountingLedgerEntry.createMany({
           data: [
-            { accountId: debitAccountId, date: movementDate, debit: newTotalValue, credit: 0, referenceType: 'JournalEntry', referenceId: je.id, fiscalYearId: fiscalYear.id },
-            { accountId: creditAccountId, date: movementDate, debit: 0, credit: newTotalValue, referenceType: 'JournalEntry', referenceId: je.id, fiscalYearId: fiscalYear.id },
+            { accountId: debitAccountId, date: movementDate, debit: newTotalValue, credit: 0, referenceType: 'JournalEntry', referenceId: je.id, description: editNarration, fiscalYearId: fiscalYear.id },
+            { accountId: creditAccountId, date: movementDate, debit: 0, credit: newTotalValue, referenceType: 'JournalEntry', referenceId: je.id, description: editNarration, fiscalYearId: fiscalYear.id },
           ],
         });
 
