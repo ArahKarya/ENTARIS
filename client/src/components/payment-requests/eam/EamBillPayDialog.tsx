@@ -85,7 +85,8 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
   const vendorsQuery = useQuery({
     queryKey: ['parties-supplier'],
     queryFn: async () => {
-      const res = await api.get('/parties', { params: { partyType: 'Supplier', limit: 500 } });
+      // `type` is the filter the server reads; isActive switches to the paged list mode (max 500).
+      const res = await api.get('/parties', { params: { type: 'Supplier', isActive: 'true', sort: 'name', limit: 500 } });
       return (res.data.data ?? res.data) as Array<{ id: string; name: string }>;
     },
     enabled: open && method === 'PURCHASE_INVOICE',
