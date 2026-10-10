@@ -18,11 +18,10 @@ export const AUTH_COPY: Record<AuthProduct, AuthCopy> = {
     documentTitle: 'Masuk · Entaris',
     heading: 'Masuk ke Entaris',
     subtitle: 'Gunakan akun yang diberikan administrator perusahaan Anda.',
-    panelHeadline: 'Pembukuan rapi, operasi terukur.',
+    panelHeadline: 'Penjualan, pembelian, stok, dan produksi dalam satu buku besar.',
     panelPoints: [
-      'Pembukuan double-entry otomatis',
-      'Jejak audit di setiap transaksi',
-      'Akses sesuai peran',
+      'Setiap transaksi membentuk jurnal double-entry tanpa input ulang.',
+      'Setiap perubahan tercatat di jejak audit, dengan akses sesuai peran.',
     ],
   },
 };
