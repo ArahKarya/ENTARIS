@@ -3,7 +3,8 @@
  * strings back into calculations. Pair numbers with NUM_CLASS for tabular, non-wrapping figures.
  */
 
-export const LOCALE = 'id-ID';
+/** Live binding: follows the UI language through setFormatLocale (i18n/index.ts). */
+export let LOCALE = 'id-ID';
 /** Shown for missing or invalid values. */
 export const EMPTY_VALUE = '—';
 /** Non-breaking space, as Intl uses between "Rp" and the amount. */
@@ -38,22 +39,39 @@ function normalizeZero(n: number, decimals: number): number {
   return Math.round(n * factor) === 0 ? 0 : n;
 }
 
-const COMPACT_UNITS: ReadonlyArray<{ value: number; suffix: string }> = [
+type CompactUnits = ReadonlyArray<{ value: number; suffix: string }>;
+const COMPACT_UNITS_ID: CompactUnits = [
   { value: 1e12, suffix: 'T' },
   { value: 1e9, suffix: 'M' },
   { value: 1e6, suffix: 'jt' },
   { value: 1e3, suffix: 'rb' },
 ];
+const COMPACT_UNITS_EN: CompactUnits = [
+  { value: 1e12, suffix: 'T' },
+  { value: 1e9, suffix: 'B' },
+  { value: 1e6, suffix: 'M' },
+  { value: 1e3, suffix: 'K' },
+];
+let compactUnits: CompactUnits = COMPACT_UNITS_ID;
+
+/** Switch number/date formatting to another locale ('id-ID' | 'en-US'). */
+export function setFormatLocale(locale: string): void {
+  if (locale === LOCALE) return;
+  LOCALE = locale;
+  compactUnits = locale.startsWith('en') ? COMPACT_UNITS_EN : COMPACT_UNITS_ID;
+  numberFormatCache.clear();
+  dateFormatCache.clear();
+}
 
 function compactParts(abs: number): { scaled: number; suffix: string } {
-  const unit = COMPACT_UNITS.find((u) => abs >= u.value);
+  const unit = compactUnits.find((u) => abs >= u.value);
   return unit ? { scaled: abs / unit.value, suffix: unit.suffix } : { scaled: abs, suffix: '' };
 }
 
 export interface RupiahOptions {
   /** Fraction digits (default 0). */
   decimals?: number;
-  /** Short form with Indonesian units: rb, jt, M, T (e.g. "Rp 1,25 jt"). */
+  /** Short form: rb/jt/M/T in Indonesian ("Rp 1,25 jt"), K/M/B/T in English ("Rp 1.25 M"). */
   compact?: boolean;
   /** Include the "Rp" symbol (default true). */
   symbol?: boolean;

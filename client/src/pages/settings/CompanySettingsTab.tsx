@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Upload, X, ImageIcon, Plus, Trash2, Sun, Moon } from 'lucide-react';
 import api from '../../lib/api';
 import { can } from '../../lib/permissions';
@@ -11,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalizeLanguage, type Language } from '@/i18n/language';
 import { SettingsCard } from '../../components/settings/SettingsCard';
 import { SaveBar } from '../../components/settings/SaveBar';
 
@@ -34,14 +37,16 @@ interface CompanyForm {
   defaultCurrency: string;
   logoUrl: string | null;
   logoUrlDark: string | null;
+  defaultLanguage: Language;
 }
 type CompanyErrors = Partial<Record<keyof CompanyForm, string>>;
 type LogoKey = 'logoUrl' | 'logoUrlDark';
-type TextKey = Exclude<keyof CompanyForm, LogoKey>;
+type TextKey = Exclude<keyof CompanyForm, LogoKey | 'defaultLanguage'>;
 
 const DEFAULT_SIGNATURES = ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'];
 const EMPTY_FORM: CompanyForm = {
   companyName: '', address: '', phone: '', email: '', taxId: '', defaultCurrency: 'IDR', logoUrl: null, logoUrlDark: null,
+  defaultLanguage: DEFAULT_LANGUAGE,
 };
 const DEFAULT_INVOICE: InvoiceFormatSettings = {
   sales: { bankAccounts: '', footerNote: '', showSignature: true, signatureLabels: DEFAULT_SIGNATURES },
@@ -78,6 +83,7 @@ function formFromSettings(settings: any, prev: CompanyForm): CompanyForm {
     defaultCurrency: settings.defaultCurrency || settings.currency || 'IDR',
     logoUrl: settings.logoUrl || null,
     logoUrlDark: settings.logoUrlDark || null,
+    defaultLanguage: normalizeLanguage(settings.defaultLanguage),
   };
 }
 
@@ -98,6 +104,7 @@ function invoiceFromSettings(s: InvoiceFormatSettings): InvoiceFormatSettings {
 }
 
 export const CompanySettingsTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const queryClient = useQueryClient();
   const canEdit = can('settings', 'edit');
   const fileInputRefLight = useRef<HTMLInputElement>(null);
@@ -237,6 +244,18 @@ export const CompanySettingsTab: React.FC = () => {
                 />
               </Field>
             ))}
+            <Field label={t('company.defaultLanguage.label')} hint={t('company.defaultLanguage.hint')}>
+              <Select value={formData.defaultLanguage} onValueChange={(v) => handleChange('defaultLanguage', normalizeLanguage(v))}>
+                <SelectTrigger aria-label={t('company.defaultLanguage.label')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_OPTIONS.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
           </div>
         </SettingsCard>
 

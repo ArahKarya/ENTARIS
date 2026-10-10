@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LanguageSchema } from './language';
 
 // Chart of Accounts
 const AccountTypeEnum = z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'], {
@@ -378,6 +379,10 @@ export const SetBalanceSchema = z.object({
 });
 
 // Company Settings
+export const UpdateMyLanguageSchema = z.object({
+  language: LanguageSchema.nullable(),
+});
+
 export const UpdateCompanySettingsSchema = z.object({
   companyName: z.string().min(1, 'Nama perusahaan wajib diisi.').optional(),
   address: z.string().nullable().optional(),
@@ -389,6 +394,7 @@ export const UpdateCompanySettingsSchema = z.object({
   currency: z.string().optional(),
   dateFormat: z.string().optional(),
   fiscalYearStartMonth: z.coerce.number().int().min(1, 'Bulan harus antara 1-12.').max(12, 'Bulan harus antara 1-12.').optional(),
+  defaultLanguage: LanguageSchema.optional(),
   invoiceSettings: z.object({
     sales: z.object({
       bankAccounts: z.string().optional(),

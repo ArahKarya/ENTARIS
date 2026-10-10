@@ -3,6 +3,7 @@
  * follows the device: reduced motion -> 'none', otherwise 'smooth'.
  * public/theme-init.js mirrors resolveMotion so <html data-motion> is set before first paint.
  */
+import { LOCALE } from './format';
 export type MotionLevel = 'none' | 'minimal' | 'smooth' | 'lively';
 
 export interface MotionMeta {
@@ -40,15 +41,20 @@ export interface NumericParts {
 }
 
 /**
- * Splits an id-ID formatted value ("Rp 1.234.567", "12,5 jt", "-3%") into the parts
- * a count-up needs. Returns null when there is no number to animate.
+ * Splits a formatted value ("Rp 1.234.567", "12,5 jt", "-3%"; en-US: "Rp 1,234,567") into the
+ * parts a count-up needs. Returns null when there is no number to animate.
  */
-export function parseNumericParts(text: string): NumericParts | null {
-  const match = /-?\d{1,3}(?:\.\d{3})+(?:,\d+)?|-?\d+(?:,\d+)?/.exec(text);
+export function parseNumericParts(text: string, locale: string = LOCALE): NumericParts | null {
+  const english = locale.startsWith('en');
+  const group = english ? ',' : '.';
+  const decimal = english ? '.' : ',';
+  const g = `\\${group}`;
+  const d = `\\${decimal}`;
+  const match = new RegExp(`-?\\d{1,3}(?:${g}\\d{3})+(?:${d}\\d+)?|-?\\d+(?:${d}\\d+)?`).exec(text);
   if (!match) return null;
   const raw = match[0];
-  const [intPart, fracPart = ''] = raw.split(',');
-  const number = Number(`${intPart.replace(/\./g, '')}.${fracPart || '0'}`);
+  const [intPart, fracPart = ''] = raw.split(decimal);
+  const number = Number(`${intPart.split(group).join('')}.${fracPart || '0'}`);
   if (!Number.isFinite(number)) return null;
   return {
     prefix: text.slice(0, match.index),
@@ -58,8 +64,8 @@ export function parseNumericParts(text: string): NumericParts | null {
   };
 }
 
-export function formatNumericParts(parts: NumericParts, value: number): string {
-  const formatted = value.toLocaleString('id-ID', {
+export function formatNumericParts(parts: NumericParts, value: number, locale: string = LOCALE): string {
+  const formatted = value.toLocaleString(locale, {
     minimumFractionDigits: parts.decimals,
     maximumFractionDigits: parts.decimals,
   });

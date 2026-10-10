@@ -1,13 +1,15 @@
+import { useTranslation } from 'react-i18next';
 import { useMotion } from '@/contexts/motion-context';
 import { MOTION_LEVELS } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 /** Four motion levels as radio cards (DESIGN.md "Gerak"). */
 export function MotionSwitcher({ className = '' }: { className?: string }) {
+  const { t } = useTranslation('settings');
   const { motion, setMotion } = useMotion();
 
   return (
-    <div role="radiogroup" aria-label="Tingkat gerak" className={cn('grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4', className)}>
+    <div role="radiogroup" aria-label={t('appearance.motion.groupLabel')} className={cn('grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4', className)}>
       {MOTION_LEVELS.map((level) => {
         const active = motion === level.id;
         return (
@@ -25,9 +27,9 @@ export function MotionSwitcher({ className = '' }: { className?: string }) {
                 : 'border-border bg-card hover:border-border-strong hover:bg-accent',
             )}
           >
-            <span className="block text-sm font-semibold text-foreground">{level.label}</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">{level.description}</span>
-            {active && <span className="mt-1 block text-xs font-medium text-primary-subtle-foreground">Aktif</span>}
+            <span className="block text-sm font-semibold text-foreground">{t(`appearance.motion.levels.${level.id}.label`)}</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">{t(`appearance.motion.levels.${level.id}.description`)}</span>
+            {active && <span className="mt-1 block text-xs font-medium text-primary-subtle-foreground">{t('appearance.active')}</span>}
           </button>
         );
       })}

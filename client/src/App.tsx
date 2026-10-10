@@ -8,6 +8,7 @@ import { MainLayout } from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
 import { lazyPage } from './app/lazy';
 import { installLinkPreload } from './app/lazyUtils';
+import { setUiLanguage } from '@/i18n';
 
 // Every page is code-split (see app/lazy.tsx). Login stays in the entry chunk.
 const Dashboard = lazyPage(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
@@ -164,7 +165,10 @@ const ProtectedRoute = () => {
     api.get('/auth/me')
       .then((res) => {
         if (cancelled) return;
-        if (res.data?.user) localStorage.setItem('user', JSON.stringify(res.data.user));
+        if (res.data?.user) {
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+          setUiLanguage(res.data.user.language);
+        }
         setAuthed(true);
       })
       .catch((err) => {

@@ -4,6 +4,7 @@ import { AlertCircle, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { AUTH_COPY, type AuthProduct } from './auth-copy';
 import { classifyLoginError, formatCountdown, safeRedirectTarget, type LoginFailure } from './login-helpers';
+import { setUiLanguage } from '@/i18n';
 
 export interface LoginFormProps {
   /** Only 'ERP' remains (EAM is a module of the main app). Defaults to 'ERP'. */
@@ -157,6 +158,7 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
     try {
       const response = await api.post('/auth/login', { username: username.trim(), password });
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      setUiLanguage(response.data.user?.language);
       setPhase('redirecting');
       const from = (location.state as { from?: unknown } | null)?.from;
       navigate(safeRedirectTarget(from), { replace: true });

@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { THEME_PACKS, normalizeTheme, type ThemeId } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +61,7 @@ function MiniPreview({ themeId }: { themeId: ThemeId }) {
 }
 
 export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitcherProps) {
+  const { t } = useTranslation(['common', 'settings']);
   const { theme, setTheme } = useTheme();
 
   if (variant === 'select') {
@@ -67,15 +69,15 @@ export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitch
       <select
         value={theme}
         onChange={(e) => setTheme(normalizeTheme(e.target.value))}
-        aria-label="Tema tampilan"
+        aria-label={t('theme.groupLabel')}
         className={cn(
           'cursor-pointer rounded-md border border-input bg-card px-3 py-1.5 text-sm text-foreground',
           className,
         )}
       >
-        {THEME_PACKS.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.label}
+        {THEME_PACKS.map((pack) => (
+          <option key={pack.id} value={pack.id}>
+            {t(`theme.${pack.id}.label`)}
           </option>
         ))}
       </select>
@@ -83,17 +85,17 @@ export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitch
   }
 
   return (
-    <div role="radiogroup" aria-label="Tema tampilan" className={cn('grid grid-cols-1 gap-3 sm:grid-cols-3', className)}>
-      {THEME_PACKS.map((t) => {
-        const active = theme === t.id;
-        const Icon = THEME_ICONS[t.id];
+    <div role="radiogroup" aria-label={t('theme.groupLabel')} className={cn('grid grid-cols-1 gap-3 sm:grid-cols-3', className)}>
+      {THEME_PACKS.map((pack) => {
+        const active = theme === pack.id;
+        const Icon = THEME_ICONS[pack.id];
         return (
           <button
-            key={t.id}
+            key={pack.id}
             type="button"
             role="radio"
             aria-checked={active}
-            onClick={() => setTheme(t.id)}
+            onClick={() => setTheme(pack.id)}
             className={cn(
               'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -102,14 +104,14 @@ export function ThemeSwitcher({ variant = 'cards', className = '' }: ThemeSwitch
                 : 'border-border bg-card hover:border-border-strong hover:bg-accent',
             )}
           >
-            <MiniPreview themeId={t.id} />
+            <MiniPreview themeId={pack.id} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
-                <span className="truncate text-sm font-semibold text-foreground">{t.label}</span>
+                <span className="truncate text-sm font-semibold text-foreground">{t(`theme.${pack.id}.label`)}</span>
               </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>
-              {active && <p className="mt-1 text-xs font-medium text-primary-subtle-foreground">Aktif</p>}
+              <p className="mt-0.5 text-xs text-muted-foreground">{t(`theme.${pack.id}.description`)}</p>
+              {active && <p className="mt-1 text-xs font-medium text-primary-subtle-foreground">{t('settings:appearance.active')}</p>}
             </div>
           </button>
         );

@@ -109,6 +109,7 @@ router.put('/company', requirePerm('settings'), async (req, res) => {
       taxId: body.taxId || null,
       defaultCurrency: body.currency || rawBody.defaultCurrency || 'IDR',
       fiscalYearStartMonth: body.fiscalYearStartMonth ?? 1,
+      ...(body.defaultLanguage !== undefined && { defaultLanguage: body.defaultLanguage }),
       ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl || null }),
       ...(body.logoUrlDark !== undefined && { logoUrlDark: body.logoUrlDark || null }),
       ...(body.invoiceSettings !== undefined && {

@@ -39,3 +39,11 @@ describe('parseNumericParts', () => {
     expect(formatNumericParts(whole, 1234567)).toBe('Rp 1.234.567');
   });
 });
+
+describe('parseNumericParts (en-US)', () => {
+  it('reads comma thousands and dot decimals', () => {
+    expect(parseNumericParts('Rp 1,234.5 M', 'en-US')).toEqual({ prefix: 'Rp ', number: 1234.5, decimals: 1, suffix: ' M' });
+    const parts = parseNumericParts('Rp 1,234,567', 'en-US')!;
+    expect(formatNumericParts(parts, 1234567, 'en-US')).toBe('Rp 1,234,567');
+  });
+});

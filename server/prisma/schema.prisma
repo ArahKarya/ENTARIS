@@ -782,6 +782,8 @@ model User {
   // read = hanya tool baca | standard = semua tool dgn tier (tulis non-draft & kritis → antrian approval) | direct = tulis/kritis langsung sebagai aktor
   airaTier                    String                       @default("standard") @map("aira_tier")
   airaJabatan                 String?                      @map("aira_jabatan")
+  // UI language 'id' | 'en'; NULL = follow CompanySettings.defaultLanguage.
+  language                    String?                      @map("language")
   journalEntries              JournalEntry[]
   salesInvoices               SalesInvoice[]
   purchaseInvoices            PurchaseInvoice[]
@@ -912,6 +914,8 @@ model CompanySettings {
   logoUrlDark          String? @map("logo_url_dark")
   defaultCurrency      String  @default("IDR") @map("default_currency")
   fiscalYearStartMonth Int     @default(1) @map("fiscal_year_start_month")
+  /// Default UI language for users without their own choice: 'id' | 'en'.
+  defaultLanguage      String  @default("id") @map("default_language")
   invoiceSettings      Json?   @map("invoice_settings")
   /// Penyiapan awal (onboarding wizard) selesai/dilewati admin. NULL = belum.
   onboardedAt          DateTime? @map("onboarded_at")

@@ -1,0 +1,17 @@
+{
+  "theme": {
+    "groupLabel": "Tema tampilan",
+    "light": {
+      "label": "Terang",
+      "description": "Latar terang, cocok untuk ruangan terang"
+    },
+    "dark": {
+      "label": "Gelap",
+      "description": "Latar gelap, nyaman untuk ruangan redup"
+    },
+    "system": {
+      "label": "Sistem",
+      "description": "Mengikuti pengaturan perangkat"
+    }
+  }
+}

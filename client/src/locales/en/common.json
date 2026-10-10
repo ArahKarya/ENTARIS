@@ -1,0 +1,17 @@
+{
+  "theme": {
+    "groupLabel": "Theme",
+    "light": {
+      "label": "Light",
+      "description": "Light background for bright rooms"
+    },
+    "dark": {
+      "label": "Dark",
+      "description": "Dark background, easier in dim rooms"
+    },
+    "system": {
+      "label": "System",
+      "description": "Follows your device setting"
+    }
+  }
+}

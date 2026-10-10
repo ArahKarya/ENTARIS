@@ -8,6 +8,8 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { loginRateLimiter } from '../middleware/rateLimiter';
 import { getEffectiveForClient } from '../services/permissionService';
 import { logger } from '../lib/logger';
+import { resolveLanguage } from '../utils/language';
+import { companyDefaultLanguage } from '../services/companyLanguage';
 
 const router = Router();
 
@@ -83,13 +85,18 @@ router.post('/login', loginRateLimiter, async (req, res) => {
       path: '/',
     });
 
-    const access = await getEffectiveForClient(user.role);
+    const [access, companyLanguage] = await Promise.all([
+      getEffectiveForClient(user.role),
+      companyDefaultLanguage(),
+    ]);
     return res.json({
       user: {
         id: user.id,
         username: user.username,
         fullName: user.fullName,
         role: user.role,
+        language: resolveLanguage(user.language, companyLanguage),
+        languagePreference: user.language ?? null,
         isSuperAdmin: access.isSuperAdmin,
         permissions: access.permissions,
         caps: access.caps,
@@ -106,15 +113,21 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, username: true, fullName: true, role: true, isActive: true },
+      select: { id: true, username: true, fullName: true, role: true, isActive: true, language: true },
     });
     if (!user || !user.isActive) {
       return res.status(401).json({ error: 'User tidak ditemukan atau tidak aktif.' });
     }
-    const access = await getEffectiveForClient(user.role);
+    const [access, companyLanguage] = await Promise.all([
+      getEffectiveForClient(user.role),
+      companyDefaultLanguage(),
+    ]);
+    const { language: languagePreference, ...profile } = user;
     return res.json({
       user: {
-        ...user,
+        ...profile,
+        language: resolveLanguage(languagePreference, companyLanguage),
+        languagePreference,
         isSuperAdmin: access.isSuperAdmin,
         permissions: access.permissions,
         caps: access.caps,
