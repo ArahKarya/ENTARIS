@@ -8,6 +8,7 @@ import { useCompanySettings } from '@/contexts/CompanySettingsContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import {
   dismissChecklist,
   isChecklistDismissed,
@@ -21,6 +22,7 @@ import {
  * wizard (`onboardedAt` set) while tasks are open, hidden for good once dismissed.
  */
 export function SetupChecklistCard() {
+  const { t } = useTranslation(['shell', 'common']);
   const company = useCompanySettings() as OnboardingCompany | null;
   const [canManage] = useState(() => can('settings', 'edit'));
   const [canSeeUsers] = useState(() => can('users', 'view'));
@@ -59,14 +61,14 @@ export function SetupChecklistCard() {
         </span>
         <div className="min-w-0 flex-1">
           <h2 id="setup-checklist-title" className="font-heading text-base font-semibold text-foreground">
-            Lengkapi penyiapan
+            {t('onboarding.checklist.title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {doneCount} dari {items.length} langkah selesai. Lengkapi agar dokumen dan laporan siap dipakai.
+            {t('onboarding.checklist.progress', { done: doneCount, total: items.length })}
           </p>
           <div
             role="progressbar"
-            aria-label="Kemajuan penyiapan"
+            aria-label={t('onboarding.checklist.progressLabel')}
             aria-valuemin={0}
             aria-valuemax={items.length}
             aria-valuenow={doneCount}
@@ -75,7 +77,7 @@ export function SetupChecklistCard() {
             <div className="h-full rounded-sm bg-primary" style={{ width: `${(doneCount / items.length) * 100}%` }} />
           </div>
         </div>
-        <Button variant="ghost" size="icon-sm" onClick={hide} aria-label="Sembunyikan daftar penyiapan" className="-mr-1 -mt-1 text-muted-foreground">
+        <Button variant="ghost" size="icon-sm" onClick={hide} aria-label={t('onboarding.checklist.hide')} className="-mr-1 -mt-1 text-muted-foreground">
           <X />
         </Button>
       </div>
@@ -96,7 +98,7 @@ export function SetupChecklistCard() {
             )}
             <div className="min-w-0 flex-1">
               <p className={cn('text-sm font-medium', item.done ? 'text-muted-foreground' : 'text-foreground')}>
-                <span className="sr-only">{item.done ? 'Selesai: ' : 'Belum: '}</span>
+                <span className="sr-only">{item.done ? t('onboarding.stepDonePrefix') : t('onboarding.checklist.todoPrefix')}</span>
                 {item.label}
               </p>
               {!item.done && (
@@ -110,9 +112,9 @@ export function SetupChecklistCard() {
               <Link
                 to={item.href}
                 className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={`${item.label} di ${item.where}`}
+                aria-label={t('onboarding.checklist.openAt', { label: item.label, where: item.where })}
               >
-                Buka <ArrowRight className="size-3.5" aria-hidden />
+                {t('common:actions.open')} <ArrowRight className="size-3.5" aria-hidden />
               </Link>
             )}
           </li>

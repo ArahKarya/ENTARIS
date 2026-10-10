@@ -7,6 +7,7 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "@/lib/api";
 import { roleLabel } from "@/components/shell/role-label";
 import {
@@ -52,13 +53,6 @@ export interface EditableUser {
   airaJabatan?: string | null;
 }
 
-const TIER_HINT: Record<AiraTier, string> = {
-  read: "Agen hanya boleh membaca data.",
-  standard:
-    "Membaca dan membuat draf langsung; tindakan lain (posting, pembayaran, pembatalan) menunggu persetujuan manusia.",
-  direct:
-    "Tindakan tulis/kritis dijalankan langsung atas nama pengguna ini, tanpa persetujuan terpisah. Tetap tunduk pada hak akses perannya.",
-};
 
 const NO_SUPERVISOR = "__none";
 
@@ -109,6 +103,7 @@ interface UserFormProps {
 }
 
 function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
+  const { t } = useTranslation(["shell", "common"]);
   const isEdit = !!editUser;
   const queryClient = useQueryClient();
   const [form, setForm] = useState<UserFormValues>(() =>
@@ -162,12 +157,12 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success(
-        isEdit ? "Data pengguna disimpan." : "Pengguna baru ditambahkan.",
+        isEdit ? t("userForm.saved") : t("userForm.added"),
       );
       onClose();
     },
     onError: (err) =>
-      setSubmitError(apiError(err, "Gagal menyimpan data pengguna.")),
+      setSubmitError(apiError(err, t("userForm.saveFailed"))),
   });
 
   const handleSubmit = (e: FormEvent) => {
@@ -201,16 +196,16 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
       <DialogHeader>
         <DialogTitle>
-          {isEdit ? "Ubah Pengguna" : "Tambah Pengguna"}
+          {isEdit ? t("userForm.editTitle") : t("userForm.addTitle")}
         </DialogTitle>
         <DialogDescription>
           {isEdit
-            ? `Mengubah data akun ${editUser!.fullName}.`
-            : "Buat akun baru untuk mengakses aplikasi."}
+            ? t("userForm.editDescription", { name: editUser!.fullName })
+            : t("userForm.addDescription")}
         </DialogDescription>
       </DialogHeader>
 
-      <Field label="Nama lengkap" required error={errors.fullName}>
+      <Field label={t("userForm.fullName")} required error={errors.fullName}>
         <Input
           value={form.fullName}
           onChange={(e) => set("fullName", e.target.value)}
@@ -219,10 +214,10 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="Nama pengguna"
+          label={t("userForm.username")}
           required
           error={errors.username}
-          hint="Dipakai untuk masuk."
+          hint={t("userForm.usernameHint")}
         >
           <Input
             value={form.username}
@@ -231,7 +226,7 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
             autoCapitalize="none"
           />
         </Field>
-        <Field label="Email" required error={errors.email}>
+        <Field label={t("userForm.email")} required error={errors.email}>
           <Input
             type="email"
             value={form.email}
@@ -240,11 +235,11 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
           />
         </Field>
       </div>
-      <Field label="Peran" required error={errors.role}>
+      <Field label={t("userForm.role")} required error={errors.role}>
         {(control) => (
           <Select value={form.role} onValueChange={(v) => set("role", v)}>
             <SelectTrigger {...control}>
-              <SelectValue placeholder="Pilih peran" />
+              <SelectValue placeholder={t("userForm.rolePlaceholder")} />
             </SelectTrigger>
             <SelectContent>
               {roles.map((r) => (
@@ -257,16 +252,16 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
         )}
       </Field>
       <Field
-        label="Atasan langsung"
-        hint="Menyetujui Pengajuan Pembayaran pengguna ini sebelum Keuangan. Kosong = langsung ke Keuangan."
+        label={t("userForm.supervisor")}
+        hint={t("userForm.supervisorHint")}
       >
         {(control) => (
           <Select value={supervisorId} onValueChange={setSupervisorId}>
             <SelectTrigger {...control}>
-              <SelectValue placeholder="Tidak ada" />
+              <SelectValue placeholder={t("common:labels.none")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_SUPERVISOR}>Tidak ada</SelectItem>
+              <SelectItem value={NO_SUPERVISOR}>{t("common:labels.none")}</SelectItem>
               {supervisorOptions
                 .filter((u) => u.id !== editUser?.id && (u.isActive || u.id === supervisorId))
                 .map((u) => (
@@ -279,14 +274,10 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
         )}
       </Field>
       <Field
-        label="Kata sandi"
+        label={t("userForm.password")}
         required={!isEdit}
         error={errors.password}
-        hint={
-          isEdit
-            ? "Kosongkan jika tidak diubah. Minimal 8 karakter, huruf besar, angka dan karakter spesial."
-            : "Minimal 8 karakter, berisi huruf besar, angka dan karakter spesial."
-        }
+        hint={isEdit ? t("userForm.passwordHintEdit") : t("userForm.passwordHintNew")}
       >
         <Input
           type="password"
@@ -297,14 +288,14 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
       </Field>
 
       <fieldset className="grid gap-3 rounded-lg border border-border p-3">
-        <legend className="px-1 text-sm font-medium text-foreground">AIRA (asisten AI)</legend>
+        <legend className="px-1 text-sm font-medium text-foreground">{t("userForm.airaLegend")}</legend>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p id="aira-enabled-label" className="text-sm font-medium text-foreground">
-              Akses AIRA
+              {t("userForm.airaAccess")}
             </p>
             <p id="aira-enabled-desc" className="mt-0.5 text-xs text-muted-foreground">
-              Izinkan pengguna ini memakai AIRA (WhatsApp/Telegram/panel). Hak data tetap mengikuti peran.
+              {t("userForm.airaAccessHint")}
             </p>
           </div>
           <Switch
@@ -316,16 +307,16 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
         </div>
         {airaEnabled && (
           <>
-            <Field label="Level akses AIRA" hint={TIER_HINT[airaTier]}>
+            <Field label={t("userForm.airaTier")} hint={t(`userForm.tierHints.${airaTier}`)}>
               {(control) => (
                 <Select value={airaTier} onValueChange={(v) => setAiraTier(v as AiraTier)}>
                   <SelectTrigger {...control}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(TIER_LABEL) as AiraTier[]).map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {TIER_LABEL[t]}
+                    {(Object.keys(TIER_LABEL) as AiraTier[]).map((tier) => (
+                      <SelectItem key={tier} value={tier}>
+                        {t(`userForm.tiers.${tier}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -337,13 +328,12 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
                 role="note"
                 className="rounded-md bg-warning-subtle px-3 py-2 text-xs text-warning-text"
               >
-                Perhatian: pada level Langsung, instruksi lewat AIRA dapat memposting transaksi tanpa
-                persetujuan terpisah. Gunakan hanya untuk pengguna tepercaya.
+                {t("userForm.directWarning")}
               </p>
             )}
             <Field
-              label="Jabatan AIRA"
-              hint="Teks bebas (mis. Direktur Keuangan). Dibaca agen untuk menyesuaikan gaya bicara."
+              label={t("userForm.airaTitle")}
+              hint={t("userForm.airaTitleHint")}
             >
               <Input
                 value={airaJabatan}
@@ -372,10 +362,10 @@ function UserForm({ editUser, onClose, onBusyChange }: UserFormProps) {
           onClick={onClose}
           disabled={mutation.isPending}
         >
-          Batal
+          {t("common:actions.cancel")}
         </Button>
         <Button type="submit" loading={mutation.isPending}>
-          {isEdit ? "Simpan Perubahan" : "Tambah Pengguna"}
+          {isEdit ? t("userForm.saveChanges") : t("userForm.addTitle")}
         </Button>
       </DialogFooter>
     </form>

@@ -1,6 +1,7 @@
 /**
  * Pure helpers for the login flow (no React, no DOM) so they can be unit tested.
  */
+import i18n from '@/i18n';
 
 export type LoginFailure =
   | { kind: 'invalid' }
@@ -65,7 +66,8 @@ export function tenantName(companyName: string | null | undefined): string | nul
   return name;
 }
 
-const HELP_MESSAGE = 'Halo, saya perlu bantuan untuk masuk ke Entaris (reset kata sandi).';
+/** Prefilled help message, in the current UI language. */
+const helpMessage = (): string => i18n.t('help.message', { ns: 'auth' });
 
 /** wa.me link for an Indonesian number ("0812…", "+62 812…", "812…"), or null. */
 export function whatsappHref(phone: string | null | undefined): string | null {
@@ -76,14 +78,14 @@ export function whatsappHref(phone: string | null | undefined): string | null {
     : digits.startsWith('0')
       ? `62${digits.slice(1)}`
       : `62${digits}`;
-  return `https://wa.me/${international}?text=${encodeURIComponent(HELP_MESSAGE)}`;
+  return `https://wa.me/${international}?text=${encodeURIComponent(helpMessage())}`;
 }
 
 export function mailtoHref(email: string | null | undefined): string | null {
   const address = (email ?? '').trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return null;
-  const subject = encodeURIComponent('Bantuan masuk Entaris');
-  const body = encodeURIComponent(HELP_MESSAGE);
+  const subject = encodeURIComponent(i18n.t('help.subject', { ns: 'auth' }));
+  const body = encodeURIComponent(helpMessage());
   return `mailto:${address}?subject=${subject}&body=${body}`;
 }
 

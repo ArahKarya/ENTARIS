@@ -2,8 +2,14 @@ import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { closeButtonClass, overlayClass } from './styles';
+
+function CloseLabel() {
+  const { t } = useTranslation('common');
+  return <span className="sr-only">{t('actions.close')}</span>;
+}
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
@@ -54,7 +60,7 @@ export const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrim
         {!hideClose && (
           <DialogPrimitive.Close className={closeButtonClass}>
             <X className="size-4" aria-hidden />
-            <span className="sr-only">Tutup</span>
+            <CloseLabel />
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

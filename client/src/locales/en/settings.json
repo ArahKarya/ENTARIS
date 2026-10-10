@@ -1,0 +1,49 @@
+{
+  "appearance": {
+    "active": "Active",
+    "theme": {
+      "title": "Theme",
+      "description": "Choose Light, Dark, or System. Changes apply right away and are saved in this browser.",
+      "current": "Current theme: <strong>{{label}}</strong>",
+      "systemNow": ", currently {{mode}}.",
+      "systemDark": "dark",
+      "systemLight": "light"
+    },
+    "motion": {
+      "title": "Motion and Animation",
+      "description": "Choose how much animation the app uses. Changes apply right away and are saved in this browser.",
+      "groupLabel": "Motion level",
+      "followsReduced": "Your device asks for reduced motion, so None is used until you choose a level.",
+      "followsDefault": "No level saved yet; Smooth is used.",
+      "levels": {
+        "none": {
+          "label": "None",
+          "description": "No transitions. Everything changes instantly."
+        },
+        "minimal": {
+          "label": "Minimal",
+          "description": "Only opening and closing of dialogs, side panels, and menus."
+        },
+        "smooth": {
+          "label": "Smooth",
+          "description": "Adds transitions on hover and when switching tabs."
+        },
+        "lively": {
+          "label": "Lively",
+          "description": "Adds KPI numbers that count up and charts that animate on load."
+        }
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "Language for screens, PDFs, and exports on your account. Saved to your account, so it follows you to other devices.",
+      "saveError": "Language could not be saved. Try again."
+    }
+  },
+  "company": {
+    "defaultLanguage": {
+      "label": "Default language",
+      "hint": "Used by people who have not picked their own language in Settings > Appearance."
+    }
+  }
+}

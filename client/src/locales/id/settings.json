@@ -1,0 +1,49 @@
+{
+  "appearance": {
+    "active": "Aktif",
+    "theme": {
+      "title": "Tema Tampilan",
+      "description": "Pilih Terang, Gelap, atau Sistem. Perubahan langsung berlaku dan disimpan di browser ini.",
+      "current": "Tema aktif: <strong>{{label}}</strong>",
+      "systemNow": ", saat ini {{mode}}.",
+      "systemDark": "gelap",
+      "systemLight": "terang"
+    },
+    "motion": {
+      "title": "Gerak dan Animasi",
+      "description": "Atur seberapa banyak animasi di aplikasi. Perubahan langsung berlaku dan disimpan di browser ini.",
+      "groupLabel": "Tingkat gerak",
+      "followsReduced": "Perangkat Anda meminta gerak dikurangi, jadi tingkat Tidak ada dipakai sampai Anda memilih sendiri.",
+      "followsDefault": "Belum ada pilihan tersimpan; tingkat Halus dipakai.",
+      "levels": {
+        "none": {
+          "label": "Tidak ada",
+          "description": "Tanpa transisi. Semua berubah seketika."
+        },
+        "minimal": {
+          "label": "Minimalis",
+          "description": "Hanya buka dan tutup dialog, panel samping, dan menu."
+        },
+        "smooth": {
+          "label": "Halus",
+          "description": "Ditambah transisi saat kursor lewat dan saat berganti tab."
+        },
+        "lively": {
+          "label": "Terasa hidup",
+          "description": "Ditambah angka KPI yang menghitung naik dan grafik yang bergerak saat dimuat."
+        }
+      }
+    },
+    "language": {
+      "title": "Bahasa",
+      "description": "Bahasa tampilan, PDF, dan ekspor untuk akun Anda. Disimpan di akun, jadi ikut ke perangkat lain.",
+      "saveError": "Bahasa gagal disimpan. Coba lagi."
+    }
+  },
+  "company": {
+    "defaultLanguage": {
+      "label": "Bahasa bawaan",
+      "hint": "Dipakai pengguna yang belum memilih bahasa sendiri di Pengaturan > Tampilan."
+    }
+  }
+}

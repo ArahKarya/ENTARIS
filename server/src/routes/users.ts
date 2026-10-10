@@ -4,7 +4,9 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 import { requirePerm, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
-import { CreateUserSchema, UpdateUserSchema, ChangePasswordSchema } from '../utils/schemas';
+import { CreateUserSchema, UpdateUserSchema, ChangePasswordSchema, UpdateMyLanguageSchema } from '../utils/schemas';
+import { resolveLanguage } from '../utils/language';
+import { companyDefaultLanguage } from '../services/companyLanguage';
 import { handleRouteError } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import { getBotUsername, sendTestToChat } from '../services/telegramService';
@@ -181,6 +183,24 @@ router.put('/me/password', async (req: AuthRequest, res) => {
     return res.json({ message: 'Password diubah.' });
   } catch (error) {
     return handleRouteError(res, error, 'PUT /users/me/password', 'Gagal mengubah password.');
+  }
+});
+
+// PUT /api/users/me/language — own UI language ('id' | 'en', null = company default)
+router.put('/me/language', async (req: AuthRequest, res) => {
+  const body = validateBody(UpdateMyLanguageSchema, req.body, res);
+  if (!body) return;
+  try {
+    const userId = req.user!.userId;
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { language: body.language },
+      select: { language: true },
+    });
+    const language = resolveLanguage(user.language, await companyDefaultLanguage());
+    return res.json({ language, languagePreference: user.language ?? null });
+  } catch (error) {
+    return handleRouteError(res, error, 'PUT /users/me/language', 'Gagal menyimpan bahasa.');
   }
 });
 
