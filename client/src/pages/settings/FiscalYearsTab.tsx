@@ -62,7 +62,7 @@ export const FiscalYearsTab: React.FC = () => {
       setIsModalOpen(false);
       setForm(EMPTY_FORM);
       setSubmitted(false);
-      toast.success('Tahun buku berhasil dibuat.');
+      toast.success('Tahun buku dibuat.');
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat tahun buku.'),
   });
@@ -71,7 +71,7 @@ export const FiscalYearsTab: React.FC = () => {
     mutationFn: async (yearId: string) => api.post(`/fiscal-years/${yearId}/close`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
-      toast.success('Tahun buku berhasil ditutup.');
+      toast.success('Tahun buku ditutup.');
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menutup tahun buku.'),
   });
@@ -80,7 +80,7 @@ export const FiscalYearsTab: React.FC = () => {
     mutationFn: async (yearId: string) => api.post(`/fiscal-years/${yearId}/reopen`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
-      toast.success('Tahun buku berhasil dibuka kembali.');
+      toast.success('Tahun buku dibuka kembali.');
     },
     onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuka tahun buku.'),
   });

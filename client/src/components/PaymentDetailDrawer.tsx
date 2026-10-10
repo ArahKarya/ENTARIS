@@ -57,7 +57,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
       await api.post('/attachments/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     onSuccess: () => {
-      toast.success('Lampiran berhasil diunggah.');
+      toast.success('Lampiran diunggah.');
       queryClient.invalidateQueries({ queryKey: ['payment-attachments', paymentId] });
       queryClient.invalidateQueries({ queryKey: ['attachment-counts'] });
     },

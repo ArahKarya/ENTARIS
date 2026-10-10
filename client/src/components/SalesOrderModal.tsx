@@ -192,7 +192,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      toast.success(isEdit ? 'Sales Order ter-update' : 'Sales Order dibuat (Draft)');
+      toast.success(isEdit ? 'Sales Order diperbarui.' : 'Sales Order dibuat sebagai draf.');
       onClose();
     },
     onError: (err: any) => {

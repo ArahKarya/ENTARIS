@@ -112,7 +112,7 @@ export const CustomerDeposits = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`${ENDPOINT}/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Uang muka pelanggan berhasil dibatalkan.');
+      toast.success('Uang muka pelanggan dibatalkan.');
       queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });

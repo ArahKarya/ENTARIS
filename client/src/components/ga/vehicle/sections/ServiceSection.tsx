@@ -54,7 +54,7 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
   const postJournal = useMutation({
     mutationFn: (id: string) => api.post(`/ga/vehicle/assets/${assetId}/services/${id}/journal`, {}),
     onSuccess: (r) => {
-      toast.success((r?.data as { message?: string } | undefined)?.message || 'Jurnal berhasil dibuat.');
+      toast.success((r?.data as { message?: string } | undefined)?.message || 'Jurnal dibuat.');
       invalidate(['services'], { fleet: false });
     },
     onError: (e) => toast.error(apiError(e, 'Gagal posting jurnal.')),

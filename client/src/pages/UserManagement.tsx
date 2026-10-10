@@ -167,7 +167,7 @@ export const UserManagement = () => {
 
   const resetMutation = useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) => api.put(`/users/${id}`, { password }),
-    onSuccess: () => toast.success('Kata sandi berhasil diatur ulang.'),
+    onSuccess: () => toast.success('Kata sandi diatur ulang.'),
     onError: (err) => toast.error(apiError(err, 'Gagal mengatur ulang kata sandi.')),
   });
 

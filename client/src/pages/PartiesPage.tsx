@@ -167,7 +167,7 @@ export const PartiesPage = () => {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       if (res.data.deactivated) toast.info(res.data.message || 'Mitra dinonaktifkan karena memiliki transaksi terkait.');
-      else toast.success(res.data.message || 'Mitra berhasil dihapus.');
+      else toast.success(res.data.message || 'Mitra dihapus.');
       setDeleteTarget(null);
     },
     onError: (err) => {

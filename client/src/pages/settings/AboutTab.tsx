@@ -73,7 +73,7 @@ export const AboutTab: React.FC = () => {
       const source = await res.text();
       const { version, changelog } = parseRemoteVersion(source);
 
-      if (!version) throw new Error('Gagal membaca versi dari repository.');
+      if (!version) throw new Error('Gagal membaca informasi versi.');
 
       if (compareSemver(version, APP_VERSION) > 0) {
         const newEntries = changelog?.filter((e) => compareSemver(e.version, APP_VERSION) > 0) || [];

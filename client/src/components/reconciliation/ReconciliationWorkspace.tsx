@@ -101,7 +101,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
       api.patch(`/reconciliation/${id}/match`, { itemId, ledgerEntryId }),
     onSuccess: () => {
       invalidateDetail();
-      toast.success('Item berhasil dicocokkan.');
+      toast.success('Item dicocokkan.');
     },
     onError: (e) => toast.error(errorMessage(e, 'Gagal mencocokkan.')),
   });
@@ -133,7 +133,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
       invalidateDetail();
       setAddingItems(false);
       setNewItems([EMPTY_ROW]);
-      toast.success('Item statement berhasil ditambahkan.');
+      toast.success('Item statement ditambahkan.');
     },
     onError: (e) => toast.error(errorMessage(e, 'Gagal menambah item.')),
   });

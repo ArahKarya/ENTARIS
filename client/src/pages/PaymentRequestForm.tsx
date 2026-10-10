@@ -249,7 +249,7 @@ function PaymentRequestFormBody({
       return { requestId, submit };
     },
     onSuccess: ({ requestId, submit }) => {
-      toast.success(submit ? 'Pengajuan berhasil diajukan.' : 'Draf pengajuan disimpan.');
+      toast.success(submit ? 'Pengajuan diajukan.' : 'Draf pengajuan disimpan.');
       qc.invalidateQueries({ queryKey: ['payment-requests'] });
       navigate(`${PR_ENDPOINT}/${requestId}`);
     },

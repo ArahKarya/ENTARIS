@@ -140,7 +140,7 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
         notes: notes || null,
         items: opnameItems,
       });
-      toast.success('Stok opname berhasil disimpan dan diproses.');
+      toast.success('Stok opname disimpan dan diproses.');
       onSuccess();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: string } } }).response?.data?.error;

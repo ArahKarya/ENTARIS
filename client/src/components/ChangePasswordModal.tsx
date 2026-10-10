@@ -37,7 +37,7 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
   const mutation = useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) => api.put('/users/me/password', data),
     onSuccess: () => {
-      toast.success('Kata sandi berhasil diubah.');
+      toast.success('Kata sandi diubah.');
       onClose();
     },
     onError: (err: unknown) => {

@@ -98,7 +98,7 @@ export default function ApprovalsPage() {
   const deleteRuleMut = useMutation({
     mutationFn: async (id: string) => (await api.delete(`/approvals/rules/${id}`)).data,
     onSuccess: () => {
-      toast.success('Aturan dihapus');
+      toast.success('Aturan dihapus.');
       qc.invalidateQueries({ queryKey: ['approval-rules'] });
     },
   });
@@ -284,7 +284,7 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
   const createRuleMut = useMutation({
     mutationFn: async (data: Record<string, unknown>) => (await api.post('/approvals/rules', data)).data,
     onSuccess: () => {
-      toast.success('Aturan dibuat');
+      toast.success('Aturan dibuat.');
       qc.invalidateQueries({ queryKey: ['approval-rules'] });
       reset();
       onClose();

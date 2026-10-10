@@ -182,7 +182,7 @@ export const GeneralLedger = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/journals/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Jurnal berhasil dibatalkan.');
+      toast.success('Jurnal dibatalkan.');
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
     },

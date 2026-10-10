@@ -192,7 +192,7 @@ export const SystemAccountsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['system-accounts'] });
       setEditState({});
       setHasChanges(false);
-      toast.success('Konfigurasi akun sistem berhasil disimpan.');
+      toast.success('Konfigurasi akun sistem disimpan.');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || error.message || 'Gagal menyimpan konfigurasi.');

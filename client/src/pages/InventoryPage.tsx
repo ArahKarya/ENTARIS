@@ -258,7 +258,7 @@ export function InventoryPage() {
     try {
       await api.delete(`/inventory/items/${deleteItemTarget.id}`);
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Item stok berhasil dihapus.');
+      toast.success('Item stok dihapus.');
     } catch (err) {
       toast.error(errorMessage(err, 'Gagal menghapus item stok.'));
     } finally {
@@ -272,7 +272,7 @@ export function InventoryPage() {
       await api.put(`/inventory/movements/${cancelMovementTarget.id}/cancel`);
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Gerakan stok berhasil dibatalkan.');
+      toast.success('Gerakan stok dibatalkan.');
     } catch (err) {
       toast.error(errorMessage(err, 'Gagal membatalkan gerakan stok.'));
     } finally {
@@ -287,7 +287,7 @@ export function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ['production-runs'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Proses produksi berhasil dibatalkan.');
+      toast.success('Proses produksi dibatalkan.');
     } catch (err) {
       toast.error(errorMessage(err, 'Gagal membatalkan proses produksi.'));
     } finally {

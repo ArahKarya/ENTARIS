@@ -99,7 +99,7 @@ export function DepreciationRunPanel({ month, onMonthChange }: DepreciationRunPa
   const postMut = useMutation({
     mutationFn: async () => (await api.post<BulkDepreciationResponse>('/fixed-assets/depreciate-bulk', { month })).data,
     onSuccess: (d) => {
-      toast.success(d.message ?? `Berhasil post ${d.posted} depresiasi (total ${formatRupiah(d.totalAmount)})`);
+      toast.success(d.message ?? `${d.posted} depresiasi diposting (total ${formatRupiah(d.totalAmount)}).`);
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });

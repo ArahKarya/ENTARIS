@@ -135,7 +135,7 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
       isEdit ? api.put(`/coa/${editNode!.id}`, payload) : api.post('/coa', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coa'] });
-      toast.success(isEdit ? 'Akun berhasil diperbarui.' : 'Akun berhasil ditambahkan.');
+      toast.success(isEdit ? 'Akun diperbarui.' : 'Akun ditambahkan.');
       onClose();
     },
     onError: (e) => setError(apiErrorMessage(e, isEdit ? 'Gagal mengupdate akun.' : 'Gagal membuat akun.')),

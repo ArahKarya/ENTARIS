@@ -142,7 +142,7 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
   const mutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => api.post('/stock-transfers', data),
     onSuccess: () => {
-      toast.success('Transfer berhasil dibuat. Stok sudah pindah, SJG siap dicetak.');
+      toast.success('Transfer dibuat. Stok sudah pindah, SJG siap dicetak.');
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });

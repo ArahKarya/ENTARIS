@@ -79,7 +79,7 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
         : api.post('/inventory/items', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Item berhasil disimpan.');
+      toast.success('Item disimpan.');
       onClose();
     },
     onError: (err: any) => {
@@ -173,7 +173,7 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
             </Field>
             <Field
               label="Akun Persediaan"
-              hint="Pilih akun aset untuk pencatatan GL otomatis saat gerakan stok."
+              hint="Pilih akun aset untuk jurnal otomatis saat stok masuk atau keluar."
             >
               {(control) => (
                 <Select

@@ -112,7 +112,7 @@ export const VendorDeposits = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`${ENDPOINT}/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Uang muka vendor berhasil dibatalkan.');
+      toast.success('Uang muka vendor dibatalkan.');
       queryClient.invalidateQueries({ queryKey: ['vendor-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });

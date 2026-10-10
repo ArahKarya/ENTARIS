@@ -58,7 +58,7 @@ const NEW_VALUE = 'new';
 const FILTER_KEYS = ['status', 'warehouseId', 'startDate', 'endDate'] as const;
 const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'stock_opname');
 const CANCEL_TITLE = 'Batalkan Stok Opname?';
-const CANCEL_MESSAGE = 'Semua penyesuaian stok dan jurnal akan di-reverse.';
+const CANCEL_MESSAGE = 'Semua penyesuaian stok dan jurnal akan dibalik.';
 
 const withUnit = (label: string) => (
   <>
@@ -134,7 +134,7 @@ export function StockOpnamePage() {
     if (!cancelTarget) return;
     try {
       await api.put(`${ENDPOINT}/${cancelTarget.id}/cancel`);
-      toast.success('Stok opname berhasil dibatalkan.');
+      toast.success('Stok opname dibatalkan.');
       invalidateAfterChange();
       queryClient.invalidateQueries({ queryKey: ['stock-opname-detail', cancelTarget.id] });
       if (selectedId === cancelTarget.id) setDetail(null);

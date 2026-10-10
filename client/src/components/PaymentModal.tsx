@@ -342,14 +342,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           hint={
             isDepositRefund ? (
               <>
-                Refund uang muka: sistem panggil endpoint <code>/{isVendorRefund ? 'vendor' : 'customer'}-deposits/refund</code>.
+                Pengembalian uang muka.
                 Sisa uang muka: <span className="font-semibold">{formatRupiah(selectedSource?.remaining ?? 0)}</span>.
-                Saldo deposit otomatis turun, jurnal: DR Bank / CR Uang Muka.
+                Saldo uang muka otomatis berkurang, jurnal: DR Bank / CR Uang Muka.
               </>
             ) : (
               <>
-                Pilih pembayaran {isVendorRefund ? 'Pay' : 'Receive'} yang sebagian dikembalikan, ATAU baris UANG MUKA untuk refund DP.
-                Sistem otomatis kurangi alokasi & restore outstanding faktur.
+                Pilih {isVendorRefund ? 'pembayaran ke supplier' : 'penerimaan dari pelanggan'} yang sebagian dikembalikan, atau baris uang muka untuk refund DP.
+                Sistem otomatis mengurangi alokasi dan mengembalikan sisa tagihan faktur.
               </>
             )
           }
@@ -357,8 +357,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           <OptionPicker
             value={refundSourcePaymentId}
             onChange={setRefundSourcePaymentId}
-            placeholder="Tanpa link (generic refund)"
-            emptyLabel="Tanpa link (generic refund)"
+            placeholder="Refund tanpa tautan dokumen"
+            emptyLabel="Refund tanpa tautan dokumen"
             searchable={false}
             options={(sourcePayments ?? []).map((p: any) => ({
               value: p.id,

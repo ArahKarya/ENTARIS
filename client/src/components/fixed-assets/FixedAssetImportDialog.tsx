@@ -49,7 +49,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
     mutationFn: async (data: ParsedImportRow[]) =>
       (await api.post<{ count: number; scheduleEntries: number }>('/fixed-assets/import', toImportPayload(data))).data,
     onSuccess: (d) => {
-      toast.success(`${d.count} aset berhasil di-import (${d.scheduleEntries} entry depresiasi).`);
+      toast.success(`${d.count} aset diimpor (${d.scheduleEntries} jadwal depresiasi).`);
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
       onOpenChange(false);
@@ -65,7 +65,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
       if (result.ok) setRows(result.rows);
       else setError(result.error);
     } catch (err) {
-      setError(`Gagal parse CSV: ${err instanceof Error ? err.message : String(err)}`);
+      setError(`Gagal membaca berkas CSV: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 

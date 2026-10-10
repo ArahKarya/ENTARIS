@@ -90,7 +90,7 @@ const RecurringTemplateModal = ({ isOpen, onClose, editTemplate }: Props) => {
       editTemplate ? api.put(`/recurring/${editTemplate.id}`, data) : api.post('/recurring', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-      toast.success(editTemplate ? 'Template diperbarui.' : 'Template berhasil dibuat.');
+      toast.success(editTemplate ? 'Template diperbarui.' : 'Template dibuat.');
       onClose();
     },
     onError: (err: any) => {

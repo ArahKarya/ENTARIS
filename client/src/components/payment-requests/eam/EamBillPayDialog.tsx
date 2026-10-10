@@ -121,7 +121,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
         notes: notes || null,
       }),
     onSuccess: () => {
-      toast.success(method === 'JOURNAL' ? 'Jurnal berhasil diposting.' : 'Faktur pembelian dibuat.');
+      toast.success(method === 'JOURNAL' ? 'Jurnal diposting.' : 'Faktur pembelian dibuat.');
       onSuccess();
     },
     onError: (e) => setError(apiError(e, 'Gagal memposting tagihan.')),

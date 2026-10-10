@@ -72,10 +72,10 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
       };
       if (editService) {
         await api.patch(`/service-items/${editService.id}`, payload);
-        toast.success('Layanan berhasil diubah.');
+        toast.success('Layanan diubah.');
       } else {
         await api.post('/service-items', payload);
-        toast.success('Layanan berhasil ditambahkan.');
+        toast.success('Layanan ditambahkan.');
       }
       queryClient.invalidateQueries({ queryKey: ['service-items'] });
       onClose();

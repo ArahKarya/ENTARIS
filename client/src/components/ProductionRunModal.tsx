@@ -567,13 +567,13 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
         for (const w of draftSaved.warnings ?? []) toast.warning(w);
       } else if (editPending) {
         // The edit is only queued for approval, so no optimistic update.
-        toast.success('Perubahan dikirim untuk persetujuan');
+        toast.success('Perubahan dikirim untuk persetujuan.');
       } else if (resubmitted) {
         toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');
       } else if (pendingApproval) {
         toast.success('Data produksi dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
       } else {
-        toast.success(editRun ? 'Proses produksi berhasil diperbarui.' : 'Proses produksi berhasil dicatat.');
+        toast.success(editRun ? 'Proses produksi diperbarui.' : 'Proses produksi dicatat.');
       }
       onClose();
     } catch (err: any) {
@@ -710,7 +710,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
             {/* Cost components. usedStandardIds: standards already used on another row of this side are hidden (prevents double entry). */}
             <RunCostSection
               title="Biaya Produksi (Sisi Input)"
-              hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Tidak posting GL (informational saja)."
+              hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Hanya sebagai catatan, tidak masuk jurnal."
               rows={inputCostRows}
               standards={standards.filter((s) => s.costSide === 'InputSide')}
               usedStandardIds={new Set(inputCostRows.map((r) => r.c.standardId).filter(Boolean))}
