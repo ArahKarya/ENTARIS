@@ -7,6 +7,7 @@ Entaris (Enterprise Agentic Reasoning Integrated System) — sistem ERP penuh un
 ## Brand
 
 - Nama produk: **Entaris** — tagline "Agentic Reasoning System"; agen AI: **AIRA**; pembuat: PT Arah Karya Sinergi.
+- Arah desain UI (kepribadian, kepadatan, warna, huruf, sudut, ikon, gerak): `DESIGN.md`.
 - Panduan merek, logo & warna: `docs/brand/entaris/README.md` (logo "Anyaman ∇" — tiga bilah menganyam segitiga terbalik; navy `#1B2B48`, biru `#3D8BE0`).
 - Pengenal teknis lama `simple-erp` (nama proses pm2, nama project Docker Compose, prefiks file backup `simple_erp_*`) sengaja dipertahankan — jangan diganti tanpa migrasi di sisi deploy.
 
