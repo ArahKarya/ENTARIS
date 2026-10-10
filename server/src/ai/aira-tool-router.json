@@ -23854,6 +23854,7 @@
         "items": "array<object>",
         "dueDate": "date",
         "notes": "string",
+        "terms": "string",
         "taxPct": "number",
         "biayaLain": "number",
         "potongan": "number"
@@ -24039,6 +24040,13 @@
           "type": "string",
           "required": false,
           "description": "Catatan bebas."
+        },
+        {
+          "name": "terms",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Termin/syarat pembayaran (opsional)."
         },
         {
           "name": "taxPct",
@@ -31022,7 +31030,7 @@
       "group": "Pembelian",
       "toolset": "pembelian",
       "module": "purchase_invoice",
-      "desc": "Mengubah catatan (notes) dan/atau tanggal jatuh tempo (dueDate) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.",
+      "desc": "Mengubah catatan (notes), tanggal jatuh tempo (dueDate) dan/atau termin (terms) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.",
       "risk": "write",
       "roles": [
         "Admin",
@@ -31032,7 +31040,8 @@
       "input": {
         "id": "string",
         "notes": "string",
-        "dueDate": "date"
+        "dueDate": "date",
+        "terms": "string"
       },
       "params": [
         {
@@ -31055,6 +31064,13 @@
           "type": "date",
           "required": false,
           "description": "Tanggal jatuh tempo baru; null = hapus jatuh tempo."
+        },
+        {
+          "name": "terms",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Termin/syarat pembayaran; string kosong = hapus termin."
         }
       ],
       "output": {
@@ -31067,8 +31083,8 @@
       "level": 1,
       "phase": 1,
       "draftCapable": false,
-      "postingEffect": "Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate).",
-      "confirm_template": "Ubah catatan/jatuh tempo Invoice Pembelian {id}. Setujui?",
+      "postingEffect": "Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate/terms).",
+      "confirm_template": "Ubah catatan/jatuh tempo/termin Invoice Pembelian {id}. Setujui?",
       "errors": [
         "404: Invoice tidak ditemukan",
         "400: Invoice sudah dibatalkan"

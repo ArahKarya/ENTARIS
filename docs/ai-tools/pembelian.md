@@ -531,6 +531,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 | `items[].goodsReceiptItemId` | body | `uuid` | tidak | (STT yang sudah create). PI hanya post AP + variance harga. |
 | `dueDate` | body | `date` | tidak | Tanggal jatuh tempo (opsional). |
 | `notes` | body | `string` | tidak | Catatan bebas. |
+| `terms` | body | `string` | tidak | Termin/syarat pembayaran (opsional). |
 | `taxPct` | body | `number` | tidak | PPN % tingkat header. |
 | `biayaLain` | body | `number` | tidak | Biaya lain tingkat header (boleh negatif = potongan tagihan). |
 | `potongan` | body | `number` | tidak | Diturunkan server dari potonganItem per baris; nilai header diabaikan. |
@@ -848,7 +849,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 
 ### pi_update
 
-**Ringkasan:** Mengubah catatan (notes) dan/atau tanggal jatuh tempo (dueDate) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.
+**Ringkasan:** Mengubah catatan (notes), tanggal jatuh tempo (dueDate) dan/atau termin (terms) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.
 
 - **Risk / tier:** `write` / Draft/Approve
 - **Draft-capable:** tidak (efek langsung)
@@ -863,6 +864,7 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
 | `id` | path | `string` | ya | ID invoice pembelian (UUID). |
 | `notes` | body | `string` | tidak | Catatan faktur. |
 | `dueDate` | body | `date` | tidak | Tanggal jatuh tempo baru; null = hapus jatuh tempo. |
+| `terms` | body | `string` | tidak | Termin/syarat pembayaran; string kosong = hapus termin. |
 
 **Contoh pemanggilan**
 
@@ -883,15 +885,15 @@ Biaya tambahan di PI (`biayaLain`, potongan item, PPN, PPh) dialokasikan sebagai
   "kind": "action",
   "status": "pending_approval",
   "approvalId": "<id>",
-  "confirm": "Ubah catatan/jatuh tempo Invoice Pembelian <id>. Setujui?"
+  "confirm": "Ubah catatan/jatuh tempo/termin Invoice Pembelian <id>. Setujui?"
 }
 ```
 
 **Isi hasil:** PI setelah diubah.
 
-**Efek pembukuan/stok:** Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate).
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate/terms).
 
-**Teks konfirmasi:** Ubah catatan/jatuh tempo Invoice Pembelian {id}. Setujui?
+**Teks konfirmasi:** Ubah catatan/jatuh tempo/termin Invoice Pembelian {id}. Setujui?
 
 **Error umum**
 

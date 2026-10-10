@@ -590,6 +590,7 @@ model PurchaseInvoice {
   biayaLain           Decimal                    @default(0) @map("biaya_lain") @db.Decimal(15, 2)
   dueDate             DateTime?                  @map("due_date")
   notes               String?
+  terms               String?
   fiscalYearId        String                     @map("fiscal_year_id")
   fiscalYear          FiscalYear                 @relation(fields: [fiscalYearId], references: [id])
   createdBy           String                     @map("created_by")

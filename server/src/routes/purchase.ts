@@ -15,6 +15,7 @@ import { queueEditApproval } from '../services/approvalEditRequests';
 import { logger } from '../lib/logger';
 import { z } from 'zod';
 import { matchPurchaseInvoiceLines } from '../services/threeWayMatchLoad';
+import { PAYMENT_ALLOCATION_PAYMENT_SELECT } from '../services/paymentAllocationDetail';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
   buildPurchaseInvoiceWhere,
@@ -147,7 +148,7 @@ router.get('/:id', async (req, res) => {
 
     const allocations = await prisma.paymentAllocation.findMany({
       where: { invoiceType: 'PurchaseInvoice', invoiceId: invoice.id },
-      include: { payment: { select: { id: true, paymentNumber: true, date: true, amount: true, referenceNo: true } } },
+      include: { payment: { select: PAYMENT_ALLOCATION_PAYMENT_SELECT } },
       orderBy: { payment: { date: 'asc' } },
     });
 
@@ -218,17 +219,18 @@ router.post('/', async (req: AuthRequest, res) => {
 });
 
 
-// PUT /api/purchase/invoices/:id — edit invoice (notes, dueDate)
+// PUT /api/purchase/invoices/:id: edit invoice (notes, dueDate, terms)
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const invoice = await prisma.purchaseInvoice.findUnique({ where: { id: req.params.id as string } });
     if (!invoice) return res.status(404).json({ error: 'Invoice tidak ditemukan.' });
     if (invoice.status === 'Cancelled') return res.status(400).json({ error: 'Invoice sudah dibatalkan, tidak bisa diedit.' });
 
-    const { notes, dueDate } = req.body;
+    const { notes, dueDate, terms } = req.body;
     const data: Prisma.PurchaseInvoiceUpdateInput = {};
     if (notes !== undefined) data.notes = notes;
     if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
+    if (terms !== undefined) data.terms = typeof terms === 'string' && terms.trim() ? terms.trim() : null;
 
     const updated = await prisma.purchaseInvoice.update({ where: { id: invoice.id }, data });
     return res.json(updated);

@@ -25102,6 +25102,7 @@
         "items": "array<object>",
         "dueDate": "date",
         "notes": "string",
+        "terms": "string",
         "taxPct": "number",
         "biayaLain": "number",
         "potongan": "number"
@@ -25289,6 +25290,13 @@
           "description": "Catatan bebas."
         },
         {
+          "name": "terms",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Termin/syarat pembayaran (opsional)."
+        },
+        {
           "name": "taxPct",
           "in": "body",
           "type": "number",
@@ -25338,7 +25346,7 @@
         "pay_record",
         "pi_cancel"
       ],
-      "doc": "### pi_create\n\n**Ringkasan:** Membuat Invoice Pembelian dengan harga aktual. Untuk role tanpa capability approval.bypass (non-Admin) dokumen tidak dibuat: payload diantrekan sebagai ApprovalRequest PurchaseInvoice (HTTP 202) dan baru dibuat saat disetujui. Untuk role bypass, langsung diposting.\n\n- **Risk / tier:** `critical` / Wajib-Approve\n- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)\n- **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)\n- **Handler:** `POST /api/purchase/invoices` (src/routes/purchase.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `date` | body | `date` | ya | Tanggal faktur (YYYY-MM-DD). |\n| `partyId` | body | `string` | ya | ID pemasok. |\n| `items` | body | `array<object>` | ya | Baris: itemName, quantity, rate wajib (rate boleh negatif untuk potongan jasa); inventoryItemId, warehouseId, goodsReceiptItemId (tautan STT), timbanganDiterima, discount, taxPct, pphPct, potonganItem opsional. |\n| `items[].itemName` | body | `string` | ya |  |\n| `items[].itemType` | body | enum: `product`, `service` | tidak |  |\n| `items[].inventoryItemId` | body | `uuid` | tidak |  |\n| `items[].warehouseId` | body | `uuid` | tidak | multi-warehouse: source for SI, destination for PI |\n| `items[].serviceItemId` | body | `uuid` | tidak |  |\n| `items[].accountId` | body | `uuid` | tidak |  |\n| `items[].quantity` | body | `number` | ya |  |\n| `items[].unit` | body | `string` | tidak |  |\n| `items[].discount` | body | `number` | tidak | persen diskon per baris |\n| `items[].taxPct` | body | `number` | tidak | PPN % per baris |\n| `items[].pphPct` | body | `number` | tidak | PPh % per baris |\n| `items[].description` | body | `string` | tidak |  |\n| `items[].deliveryOrderItemId` | body | `uuid` | tidak | From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS. |\n| `items[].sourceMovementId` | body | `uuid` | tidak | the sales line for Phase 6 \"loaded margin\" reports. |\n| `items[].rate` | body | `number` | ya | (mis. potongan jasa angkutan vendor pakai armada perusahaan). |\n| `items[].kualitas` | body | `string` | tidak |  |\n| `items[].refaksi` | body | `number` | tidak |  |\n| `items[].timbanganTruk` | body | `number` | tidak |  |\n| `items[].timbanganDiterima` | body | `number` | tidak |  |\n| `items[].nomorMobil` | body | `string` | tidak |  |\n| `items[].potonganItem` | body | `number` | tidak |  |\n| `items[].goodsReceiptItemId` | body | `uuid` | tidak | (STT yang sudah create). PI hanya post AP + variance harga. |\n| `dueDate` | body | `date` | tidak | Tanggal jatuh tempo (opsional). |\n| `notes` | body | `string` | tidak | Catatan bebas. |\n| `taxPct` | body | `number` | tidak | PPN % tingkat header. |\n| `biayaLain` | body | `number` | tidak | Biaya lain tingkat header (boleh negatif = potongan tagihan). |\n| `potongan` | body | `number` | tidak | Diturunkan server dari potonganItem per baris; nilai header diabaikan. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"pi_create\",\n  \"args\": {\n    \"date\": \"2026-01-31\",\n    \"partyId\": \"<id>\",\n    \"items\": [\n      {\n        \"itemName\": \"<itemName>\",\n        \"quantity\": 1,\n        \"rate\": 1\n      }\n    ]\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Buat Invoice Pembelian dari pemasok <id> tanggal 2026-01-31, [...] baris. Role non-Admin akan masuk antrian persetujuan. Setujui?\"\n}\n```\n\n**Isi hasil:** Bypass: PI yang dibuat (HTTP 201). Non-bypass: { pendingApproval: true, request, message } (HTTP 202).\n\n**Efek pembukuan/stok:** Cabang non-bypass: tidak ada efek GL/stok sampai disetujui (ApprovalRequest Pending, notifikasi ke Admin). Cabang bypass/standalone: DR Persediaan (akun persediaan per item) / CR Hutang Usaha (2.1.1), stok masuk + WAC, penyelesaian backfill COGS stok minus; PPN/PPh/potongan/biaya lain dialokasikan (landed cost). Baris tertaut STT (goodsReceiptItemId): stok tidak dibuat ulang; DR Hutang Belum Tagih (2.1.5) +/- Selisih Harga Pembelian (5.11) / CR Hutang Usaha (2.1.1) dan STT.invoiceId diisi.\n\n**Teks konfirmasi:** Buat Invoice Pembelian dari pemasok {partyId} tanggal {date}, {items} baris. Role non-Admin akan masuk antrian persetujuan. Setujui?\n\n**Prasyarat**\n\n- Pemasok aktif\n- Periode fiskal terbuka\n- STT yang ditautkan belum dibatalkan dan belum ditagih\n\n**Error umum**\n\n- 400: STT sudah dibatalkan / sudah ditagih / pemasok berbeda\n- 202: menunggu persetujuan (bukan error)\n\n**Tool terkait:** [`gr_pending`](#gr_pending), [`pi_match_preview`](#pi_match_preview), [`pay_record`](kas-bank.md#pay_record), [`pi_cancel`](#pi_cancel)\n",
+      "doc": "### pi_create\n\n**Ringkasan:** Membuat Invoice Pembelian dengan harga aktual. Untuk role tanpa capability approval.bypass (non-Admin) dokumen tidak dibuat: payload diantrekan sebagai ApprovalRequest PurchaseInvoice (HTTP 202) dan baru dibuat saat disetujui. Untuk role bypass, langsung diposting.\n\n- **Risk / tier:** `critical` / Wajib-Approve\n- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)\n- **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)\n- **Handler:** `POST /api/purchase/invoices` (src/routes/purchase.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `date` | body | `date` | ya | Tanggal faktur (YYYY-MM-DD). |\n| `partyId` | body | `string` | ya | ID pemasok. |\n| `items` | body | `array<object>` | ya | Baris: itemName, quantity, rate wajib (rate boleh negatif untuk potongan jasa); inventoryItemId, warehouseId, goodsReceiptItemId (tautan STT), timbanganDiterima, discount, taxPct, pphPct, potonganItem opsional. |\n| `items[].itemName` | body | `string` | ya |  |\n| `items[].itemType` | body | enum: `product`, `service` | tidak |  |\n| `items[].inventoryItemId` | body | `uuid` | tidak |  |\n| `items[].warehouseId` | body | `uuid` | tidak | multi-warehouse: source for SI, destination for PI |\n| `items[].serviceItemId` | body | `uuid` | tidak |  |\n| `items[].accountId` | body | `uuid` | tidak |  |\n| `items[].quantity` | body | `number` | ya |  |\n| `items[].unit` | body | `string` | tidak |  |\n| `items[].discount` | body | `number` | tidak | persen diskon per baris |\n| `items[].taxPct` | body | `number` | tidak | PPN % per baris |\n| `items[].pphPct` | body | `number` | tidak | PPh % per baris |\n| `items[].description` | body | `string` | tidak |  |\n| `items[].deliveryOrderItemId` | body | `uuid` | tidak | From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS. |\n| `items[].sourceMovementId` | body | `uuid` | tidak | the sales line for Phase 6 \"loaded margin\" reports. |\n| `items[].rate` | body | `number` | ya | (mis. potongan jasa angkutan vendor pakai armada perusahaan). |\n| `items[].kualitas` | body | `string` | tidak |  |\n| `items[].refaksi` | body | `number` | tidak |  |\n| `items[].timbanganTruk` | body | `number` | tidak |  |\n| `items[].timbanganDiterima` | body | `number` | tidak |  |\n| `items[].nomorMobil` | body | `string` | tidak |  |\n| `items[].potonganItem` | body | `number` | tidak |  |\n| `items[].goodsReceiptItemId` | body | `uuid` | tidak | (STT yang sudah create). PI hanya post AP + variance harga. |\n| `dueDate` | body | `date` | tidak | Tanggal jatuh tempo (opsional). |\n| `notes` | body | `string` | tidak | Catatan bebas. |\n| `terms` | body | `string` | tidak | Termin/syarat pembayaran (opsional). |\n| `taxPct` | body | `number` | tidak | PPN % tingkat header. |\n| `biayaLain` | body | `number` | tidak | Biaya lain tingkat header (boleh negatif = potongan tagihan). |\n| `potongan` | body | `number` | tidak | Diturunkan server dari potonganItem per baris; nilai header diabaikan. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"pi_create\",\n  \"args\": {\n    \"date\": \"2026-01-31\",\n    \"partyId\": \"<id>\",\n    \"items\": [\n      {\n        \"itemName\": \"<itemName>\",\n        \"quantity\": 1,\n        \"rate\": 1\n      }\n    ]\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Buat Invoice Pembelian dari pemasok <id> tanggal 2026-01-31, [...] baris. Role non-Admin akan masuk antrian persetujuan. Setujui?\"\n}\n```\n\n**Isi hasil:** Bypass: PI yang dibuat (HTTP 201). Non-bypass: { pendingApproval: true, request, message } (HTTP 202).\n\n**Efek pembukuan/stok:** Cabang non-bypass: tidak ada efek GL/stok sampai disetujui (ApprovalRequest Pending, notifikasi ke Admin). Cabang bypass/standalone: DR Persediaan (akun persediaan per item) / CR Hutang Usaha (2.1.1), stok masuk + WAC, penyelesaian backfill COGS stok minus; PPN/PPh/potongan/biaya lain dialokasikan (landed cost). Baris tertaut STT (goodsReceiptItemId): stok tidak dibuat ulang; DR Hutang Belum Tagih (2.1.5) +/- Selisih Harga Pembelian (5.11) / CR Hutang Usaha (2.1.1) dan STT.invoiceId diisi.\n\n**Teks konfirmasi:** Buat Invoice Pembelian dari pemasok {partyId} tanggal {date}, {items} baris. Role non-Admin akan masuk antrian persetujuan. Setujui?\n\n**Prasyarat**\n\n- Pemasok aktif\n- Periode fiskal terbuka\n- STT yang ditautkan belum dibatalkan dan belum ditagih\n\n**Error umum**\n\n- 400: STT sudah dibatalkan / sudah ditagih / pemasok berbeda\n- 202: menunggu persetujuan (bukan error)\n\n**Tool terkait:** [`gr_pending`](#gr_pending), [`pi_match_preview`](#pi_match_preview), [`pay_record`](kas-bank.md#pay_record), [`pi_cancel`](#pi_cancel)\n",
       "example": {
         "tool": "pi_create",
         "args": {
@@ -25795,7 +25803,7 @@
       "group": "Pembelian",
       "toolset": "pembelian",
       "module": "purchase_invoice",
-      "desc": "Mengubah catatan (notes) dan/atau tanggal jatuh tempo (dueDate) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.",
+      "desc": "Mengubah catatan (notes), tanggal jatuh tempo (dueDate) dan/atau termin (terms) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.",
       "risk": "write",
       "roles": [
         "Admin",
@@ -25805,7 +25813,8 @@
       "input": {
         "id": "string",
         "notes": "string",
-        "dueDate": "date"
+        "dueDate": "date",
+        "terms": "string"
       },
       "params": [
         {
@@ -25828,6 +25837,13 @@
           "type": "date",
           "required": false,
           "description": "Tanggal jatuh tempo baru; null = hapus jatuh tempo."
+        },
+        {
+          "name": "terms",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Termin/syarat pembayaran; string kosong = hapus termin."
         }
       ],
       "output": {
@@ -25840,8 +25856,8 @@
       "level": 1,
       "phase": 1,
       "draftCapable": false,
-      "postingEffect": "Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate).",
-      "confirm_template": "Ubah catatan/jatuh tempo Invoice Pembelian {id}. Setujui?",
+      "postingEffect": "Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate/terms).",
+      "confirm_template": "Ubah catatan/jatuh tempo/termin Invoice Pembelian {id}. Setujui?",
       "errors": [
         "404: Invoice tidak ditemukan",
         "400: Invoice sudah dibatalkan"
@@ -25850,7 +25866,7 @@
         "pi_get",
         "pi_revise_price"
       ],
-      "doc": "### pi_update\n\n**Ringkasan:** Mengubah catatan (notes) dan/atau tanggal jatuh tempo (dueDate) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.\n\n- **Risk / tier:** `write` / Draft/Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)\n- **Handler:** `PUT /api/purchase/invoices/:id` (src/routes/purchase.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `id` | path | `string` | ya | ID invoice pembelian (UUID). |\n| `notes` | body | `string` | tidak | Catatan faktur. |\n| `dueDate` | body | `date` | tidak | Tanggal jatuh tempo baru; null = hapus jatuh tempo. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"pi_update\",\n  \"args\": {\n    \"id\": \"<id>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Ubah catatan/jatuh tempo Invoice Pembelian <id>. Setujui?\"\n}\n```\n\n**Isi hasil:** PI setelah diubah.\n\n**Efek pembukuan/stok:** Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate).\n\n**Teks konfirmasi:** Ubah catatan/jatuh tempo Invoice Pembelian {id}. Setujui?\n\n**Error umum**\n\n- 404: Invoice tidak ditemukan\n- 400: Invoice sudah dibatalkan\n\n**Tool terkait:** [`pi_get`](#pi_get), [`pi_revise_price`](#pi_revise_price)\n",
+      "doc": "### pi_update\n\n**Ringkasan:** Mengubah catatan (notes), tanggal jatuh tempo (dueDate) dan/atau termin (terms) Invoice Pembelian yang belum dibatalkan. Tidak mengubah baris, harga, atau jurnal.\n\n- **Risk / tier:** `write` / Draft/Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant, StaffProduksi (modul `purchase_invoice` / `edit`)\n- **Handler:** `PUT /api/purchase/invoices/:id` (src/routes/purchase.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `id` | path | `string` | ya | ID invoice pembelian (UUID). |\n| `notes` | body | `string` | tidak | Catatan faktur. |\n| `dueDate` | body | `date` | tidak | Tanggal jatuh tempo baru; null = hapus jatuh tempo. |\n| `terms` | body | `string` | tidak | Termin/syarat pembayaran; string kosong = hapus termin. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"pi_update\",\n  \"args\": {\n    \"id\": \"<id>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Ubah catatan/jatuh tempo/termin Invoice Pembelian <id>. Setujui?\"\n}\n```\n\n**Isi hasil:** PI setelah diubah.\n\n**Efek pembukuan/stok:** Tidak ada efek GL/stok/WAC (hanya metadata notes/dueDate/terms).\n\n**Teks konfirmasi:** Ubah catatan/jatuh tempo/termin Invoice Pembelian {id}. Setujui?\n\n**Error umum**\n\n- 404: Invoice tidak ditemukan\n- 400: Invoice sudah dibatalkan\n\n**Tool terkait:** [`pi_get`](#pi_get), [`pi_revise_price`](#pi_revise_price)\n",
       "example": {
         "tool": "pi_update",
         "args": {
