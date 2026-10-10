@@ -64,7 +64,7 @@ export function AssetThumb({ filePath, alt, size = 'sm', className }: AssetThumb
   if (!filePath || broken) {
     return (
       <span
-        className={cn('inline-flex shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground/70', box, className)}
+        className={cn('inline-flex shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground', box, className)}
         title="Belum ada foto"
       >
         <ImageOff className="size-4" aria-hidden />

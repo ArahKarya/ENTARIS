@@ -43,7 +43,7 @@ const ReportSummaryCards: React.FC<Props> = ({ cards, accentCard }) => {
             <div className="w-7 h-7 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
               <accentCard.icon size={14} className="text-primary-foreground" />
             </div>
-            <span className="text-xs font-medium text-primary-foreground/80">{accentCard.label}</span>
+            <span className="text-xs font-medium text-primary-foreground">{accentCard.label}</span>
           </div>
           <p className={cn('text-lg sm:text-xl font-semibold tabular-nums truncate', accentCard.value >= 0 ? 'text-primary-foreground' : 'text-danger-foreground')} title={fmt({ ...accentCard, value: Math.abs(accentCard.value) })}>
             {accentCard.value < 0 ? '- ' : ''}{fmt({ ...accentCard, value: Math.abs(accentCard.value) })}

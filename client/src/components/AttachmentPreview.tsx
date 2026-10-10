@@ -134,7 +134,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                 <p className="text-xs truncate font-medium text-foreground">
                   {att.fileName}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {formatFileSize(att.fileSize)}
                 </p>
               </div>

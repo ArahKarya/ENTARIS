@@ -165,7 +165,7 @@ export const NotificationBell = () => {
         {unreadCount > 0 && (
           <span
             aria-hidden
-            className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-danger-foreground ring-2 ring-card"
+            className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[0.625rem] leading-none font-semibold text-danger-foreground ring-2 ring-card"
           >
             {badge}
           </span>

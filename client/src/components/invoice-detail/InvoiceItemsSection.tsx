@@ -123,16 +123,16 @@ export function InvoiceItemsSection({ invoice, items, isSales, hasPerItemPph, on
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p className="text-sm font-medium text-foreground">{item.itemName}</p>
                     {item.itemType === 'service' && (
-                      <span className="inline-flex items-center rounded bg-info-subtle px-1.5 py-0.5 text-[10px] font-semibold text-info-text">Jasa</span>
+                      <span className="inline-flex items-center rounded bg-info-subtle px-1.5 py-0.5 text-xs font-semibold text-info-text">Jasa</span>
                     )}
                     {item.deliveryOrderItem?.deliveryOrder?.doNumber && (
-                      <span className="inline-flex items-center gap-0.5 rounded bg-primary-subtle px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary-subtle-foreground">
+                      <span className="inline-flex items-center gap-0.5 rounded bg-primary-subtle px-1.5 py-0.5 font-mono text-xs font-semibold text-primary-subtle-foreground">
                         <Truck size={8} aria-hidden /> {item.deliveryOrderItem.deliveryOrder.doNumber}
                       </span>
                     )}
                     {/* STT/BPB asal (purchase side) — supaya dari PI tahu barang ini diterima lewat STT nomor berapa. */}
                     {item.goodsReceiptItem?.goodsReceipt?.sttNumber && (
-                      <span className="inline-flex items-center gap-0.5 rounded bg-success-subtle px-1.5 py-0.5 font-mono text-[10px] font-semibold text-success-text">
+                      <span className="inline-flex items-center gap-0.5 rounded bg-success-subtle px-1.5 py-0.5 font-mono text-xs font-semibold text-success-text">
                         <Truck size={8} aria-hidden /> {item.goodsReceiptItem.goodsReceipt.sttNumber}
                       </span>
                     )}

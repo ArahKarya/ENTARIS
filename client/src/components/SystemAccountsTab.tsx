@@ -410,7 +410,7 @@ export const SystemAccountsTab: React.FC = () => {
                                 Multi
                               </span>
                             )}
-                            <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                            <span className="text-xs font-mono text-muted-foreground uppercase">
                               {meta.expectedRootType}
                             </span>
                           </div>

@@ -187,8 +187,8 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
                           >
                             {(isExpired || isExpiring) && <AlertTriangle size={11} aria-hidden />}
                             Kadaluarsa: {formatDate(d.expiryDate)}
-                            {isExpired && <Badge variant="danger" className="text-[10px]">Kadaluarsa</Badge>}
-                            {!isExpired && isExpiring && <Badge variant="warning" className="text-[10px]">Segera</Badge>}
+                            {isExpired && <Badge variant="danger" className="text-xs">Kadaluarsa</Badge>}
+                            {!isExpired && isExpiring && <Badge variant="warning" className="text-xs">Segera</Badge>}
                           </div>
                         ) : null}
                       </div>

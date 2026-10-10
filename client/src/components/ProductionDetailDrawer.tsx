@@ -173,19 +173,19 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     </h3>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div className="px-1.5 py-2">
-                        <p className="text-[9px] font-semibold text-info-text uppercase tracking-wide">Availability</p>
+                        <p className="text-xs font-semibold text-info-text uppercase tracking-wide">Availability</p>
                         <p className="text-sm font-semibold text-info-text font-mono">{fmtPct(run.availabilityPct)}</p>
                       </div>
                       <div className="px-1.5 py-2">
-                        <p className="text-[9px] font-semibold text-info-text uppercase tracking-wide">Performance</p>
+                        <p className="text-xs font-semibold text-info-text uppercase tracking-wide">Performance</p>
                         <p className="text-sm font-semibold text-info-text font-mono">{fmtPct(run.performancePct)}</p>
                       </div>
                       <div className="px-1.5 py-2">
-                        <p className="text-[9px] font-semibold text-info-text uppercase tracking-wide">Quality</p>
+                        <p className="text-xs font-semibold text-info-text uppercase tracking-wide">Quality</p>
                         <p className="text-sm font-semibold text-info-text font-mono">{fmtPct(run.qualityPct)}</p>
                       </div>
                       <div className="rounded-lg bg-info-subtle px-1.5 py-2">
-                        <p className="text-[9px] font-semibold text-info-text uppercase tracking-wide">OEE</p>
+                        <p className="text-xs font-semibold text-info-text uppercase tracking-wide">OEE</p>
                         <p className="text-base font-bold text-info-text font-mono">{fmtPct(run.oeePct)}</p>
                       </div>
                     </div>
@@ -311,7 +311,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                             <div className="min-w-0">
                               <span className="text-xs font-medium text-danger-text">{d.category}</span>
                               {d.machine && (
-                                <span className="text-[10px] font-medium text-danger-text ml-2">
+                                <span className="text-xs font-medium text-danger-text ml-2">
                                   [{d.machine.code}]
                                 </span>
                               )}
@@ -451,7 +451,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                           <div>
                             <span className="text-sm font-medium text-foreground">{line.item?.name}</span>
                             <span className="text-xs text-muted-foreground ml-1">{line.item?.code}</span>
-                            <span className="ml-1 text-[9px] px-1 py-0.5 bg-warning-subtle text-warning-text rounded font-medium">
+                            <span className="ml-1 text-xs px-1 py-0.5 bg-warning-subtle text-warning-text rounded font-medium">
                               Samping
                             </span>
                           </div>
@@ -493,14 +493,14 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                             <td className="px-2 py-1.5 text-foreground">
                               {c.description}
                               {c.costAccount && (
-                                <span className="ml-1 text-[10px] text-muted-foreground">
+                                <span className="ml-1 text-xs text-muted-foreground">
                                   ({c.costAccount.accountNumber})
                                 </span>
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-center">
                               <span className={cn(
-                                'text-[10px] px-1 rounded',
+                                'text-xs px-1 rounded',
                                 c.costSide === 'InputSide' ? 'bg-info-subtle text-info-text' : 'bg-success-subtle text-success-text',
                               )}>
                                 {c.costSide === 'InputSide' ? 'Input' : 'Output'}
@@ -509,7 +509,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                             <td className="px-2 py-1.5 text-right font-mono">
                               Rp {fmtRupiah4(Number(c.rate))}
                               {c.basis !== 'Fixed' && (
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-xs text-muted-foreground">
                                   /{c.basis === 'InputQty' ? 'in' : 'out'}
                                 </span>
                               )}
@@ -532,7 +532,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                     <Calculator size={13} />
                     HPP Loaded
                     {run.hppManualOverride && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-warning-subtle text-warning-text rounded">
+                      <span className="text-xs px-1.5 py-0.5 bg-warning-subtle text-warning-text rounded">
                         Override manual
                       </span>
                     )}
@@ -561,7 +561,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                       Rp {fmtRupiah4(Number(run.computedHpp))}
                     </span>
                   </div>
-                  <p className="text-[10px] text-success-text pt-1">
+                  <p className="text-xs text-success-text pt-1">
                     Nilai ini yang diposting ke GL sebagai nilai persediaan output utama (bahan + biaya konversi − NRV produk samping).
                   </p>
                 </div>
@@ -601,7 +601,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                       </span>
                     </div>
                   )}
-                  <p className="text-[10px] text-info-text pt-1">
+                  <p className="text-xs text-info-text pt-1">
                     Laporan manajemen: hanya pembelian bahan baku (angka real), tanpa biaya estimasi & produk samping. Tidak diposting ke GL.
                   </p>
                 </div>
@@ -675,7 +675,7 @@ export default function ProductionDetailDrawer({ runId, onClose, onCancel, canCa
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
                     Jurnal: {journal.entryNumber}
                     {journal.status === 'Cancelled' && (
-                      <span className="inline-flex items-center rounded-sm bg-danger-subtle px-2 py-0.5 text-[9px] font-medium text-danger-text">Dibatalkan</span>
+                      <span className="inline-flex items-center rounded-sm bg-danger-subtle px-2 py-0.5 text-xs font-medium text-danger-text">Dibatalkan</span>
                     )}
                   </h3>
                   {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width */}

@@ -63,7 +63,7 @@ const COSTS: { key: CostKey; label: string; color: string }[] = [
   { key: 'fuel', label: 'BBM', color: 'var(--chart-2)' },
   { key: 'tax', label: 'Pajak', color: 'var(--chart-4)' },
   { key: 'insurance', label: 'Asuransi', color: 'var(--chart-3)' },
-  { key: 'incident', label: 'Insiden', color: 'var(--chart-5)' },
+  { key: 'incident', label: 'Insiden', color: 'var(--chart-6)' },
 ];
 
 interface ComplianceRow {
@@ -304,11 +304,20 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
                       }}
                     />
                     {COSTS.map((c, i) => (
-                      <Bar key={c.key} dataKey={c.key} stackId="cost" fill={c.color} maxBarSize={28} radius={i === COSTS.length - 1 ? [3, 3, 0, 0] : 0} />
+                      <Bar key={c.key} dataKey={c.key} stackId="cost" fill={c.color} stroke="var(--card)" strokeWidth={1} maxBarSize={28} radius={i === COSTS.length - 1 ? [3, 3, 0, 0] : 0} />
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground" aria-label="Legenda kategori biaya">
+                {COSTS.map((c) => (
+                  <li key={c.key} className="inline-flex items-center gap-1.5">
+                    <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} aria-hidden />
+                    <span className="text-foreground">{c.label}</span>
+                    <span className="num">{formatRupiah(trend.reduce((sum, m) => sum + (m[c.key] || 0), 0), { compact: true })}</span>
+                  </li>
+                ))}
+              </ul>
               <figcaption className="sr-only">Total per bulan: {trend.map((m) => `${m.label} ${formatRupiah(m.total)}`).join('; ')}</figcaption>
             </figure>
           </PanelState>

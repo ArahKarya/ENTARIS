@@ -76,10 +76,10 @@ export function InvoicePaymentTimeline({
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-foreground">
                     {entry.label}
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
                       {isDeposit ? 'Uang Muka' : 'Tunai/Bank'}
                     </span>
-                    {cancelled && <span className="text-[10px] font-normal text-danger-text">(Dibatalkan)</span>}
+                    {cancelled && <span className="text-xs font-normal text-danger-text">(Dibatalkan)</span>}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(entry.date)}
