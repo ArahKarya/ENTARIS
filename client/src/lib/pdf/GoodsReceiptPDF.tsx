@@ -3,7 +3,7 @@ import { Document, Page, View } from '@react-pdf/renderer';
 import { PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSignatureBlock } from './kit';
 import { NcrItemsTable, NcrNotes } from './ncrParts';
 import { FOOTER_SPACE, NCR_PAGE } from './theme';
-import { pdfDate } from './pdfFormat';
+import { pdfDate, pdfT } from './pdfFormat';
 
 export interface GoodsReceiptPDFItem {
   code?: string | null;
@@ -28,39 +28,46 @@ export interface GoodsReceiptPDFProps {
 
 const GoodsReceiptPDF: React.FC<GoodsReceiptPDFProps> = ({
   sttNumber, date, supplier, poNumber, nomorMobil, driverName, recipientName, notes, items, company,
-}) => (
-  <Document title={`Bukti Penerimaan Barang ${sttNumber}`} author={company.name}>
-    <Page size="A4" style={{ ...NCR_PAGE, paddingBottom: FOOTER_SPACE }} wrap>
-      <PdfHeader company={company} title="BUKTI PENERIMAAN BARANG" number={sttNumber} tone="mono" pageMeta />
+}) => {
+  const t = pdfT();
+  return (
+    <Document title={t('goodsReceipt.docTitle', { number: sttNumber })} author={company.name}>
+      <Page size="A4" style={{ ...NCR_PAGE, paddingBottom: FOOTER_SPACE }} wrap>
+        <PdfHeader company={company} title={t('goodsReceipt.title')} number={sttNumber} tone="mono" pageMeta />
 
-      <PdfMetaRow gap={16}>
-        <View style={{ flex: 1 }}>
-          <PdfMetaField tone="mono" label="Tanggal Terima" value={pdfDate(date)} bold />
-          <PdfPartyBlock
-            tone="mono"
-            label="Dari (Supplier)"
-            name={supplier.name}
-            lines={[supplier.address, supplier.phone && `Telp: ${supplier.phone}`, poNumber && `Ref PO: ${poNumber}`]}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <PdfMetaField tone="mono" label="No. Mobil" value={nomorMobil ? nomorMobil.toUpperCase() : null} bold />
-          <PdfMetaField tone="mono" label="Supir (Supplier)" value={driverName} bold />
-          <PdfMetaField tone="mono" label="Diterima Oleh" value={recipientName} bold />
-        </View>
-      </PdfMetaRow>
+        <PdfMetaRow gap={16}>
+          <View style={{ flex: 1 }}>
+            <PdfMetaField tone="mono" label={t('goodsReceipt.receivedDate')} value={pdfDate(date)} bold />
+            <PdfPartyBlock
+              tone="mono"
+              label={t('goodsReceipt.from')}
+              name={supplier.name}
+              lines={[supplier.address, supplier.phone && t('common.phone', { phone: supplier.phone }), poNumber && t('goodsReceipt.poRef', { number: poNumber })]}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <PdfMetaField tone="mono" label={t('common.vehicleNo')} value={nomorMobil ? nomorMobil.toUpperCase() : null} bold />
+            <PdfMetaField tone="mono" label={t('goodsReceipt.driver')} value={driverName} bold />
+            <PdfMetaField tone="mono" label={t('goodsReceipt.receivedBy')} value={recipientName} bold />
+          </View>
+        </PdfMetaRow>
 
-      <NcrItemsTable items={items} />
-      <NcrNotes notes={notes} />
+        <NcrItemsTable items={items} />
+        <NcrNotes notes={notes} />
 
-      <PdfSignatureBlock
-        tone="mono"
-        signatures={[{ label: 'PENGIRIM (SUPPLIER)' }, { label: 'SUPIR' }, { label: 'PENERIMA (KAMI)' }]}
-      />
+        <PdfSignatureBlock
+          tone="mono"
+          signatures={[
+            { label: t('goodsReceipt.signatures.sender') },
+            { label: t('goodsReceipt.signatures.driver') },
+            { label: t('goodsReceipt.signatures.recipient') },
+          ]}
+        />
 
-      <PdfFooter tone="mono" company={company.name} docRef={sttNumber} />
-    </Page>
-  </Document>
-);
+        <PdfFooter tone="mono" company={company.name} docRef={sttNumber} />
+      </Page>
+    </Document>
+  );
+};
 
 export default GoodsReceiptPDF;

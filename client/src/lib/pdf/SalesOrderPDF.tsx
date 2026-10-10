@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C, F, FOOTER_SPACE } from './theme';
-import { pdfDateShort, pdfNum, pdfRp } from './pdfFormat';
+import { pdfDateShort, pdfNum, pdfRp, pdfT, type PdfT } from './pdfFormat';
 import {
   PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSection, PdfTable, type PdfColumn,
 } from './kit';
@@ -15,32 +15,31 @@ const S = StyleSheet.create({
   grandRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 3, paddingTop: 3, borderTopWidth: 0.8, borderColor: C.primary },
 });
 
-const STATUS_ID: Record<string, string> = {
-  Draft: 'Draft', Submitted: 'Disubmit', PartiallyDelivered: 'Sebagian Terkirim',
-  FullyDelivered: 'Selesai', Cancelled: 'Dibatalkan', Paid: 'Lunas', PartiallyPaid: 'Sebagian', Overdue: 'Jatuh Tempo',
-};
+const STATUS_KEYS = ['Draft', 'Submitted', 'PartiallyDelivered', 'FullyDelivered', 'Cancelled', 'Paid', 'PartiallyPaid', 'Overdue'] as const;
+const statusLabel = (t: PdfT, status: string): string =>
+  (STATUS_KEYS as readonly string[]).includes(status) ? t(`status.${status as (typeof STATUS_KEYS)[number]}`) : status;
 const rp = (n: unknown) => pdfRp(Math.round(Number(n) || 0));
 const num = (n: unknown) => pdfNum(Number(n || 0), 3);
 
-const ITEM_COLS: PdfColumn[] = [
-  { key: 'item', label: 'Barang', width: 3 },
-  { key: 'qty', label: 'Qty', width: 1.4, align: 'right' },
-  { key: 'sent', label: 'Terkirim', width: 1.3, align: 'right' },
-  { key: 'rate', label: 'Harga', width: 1.5, align: 'right' },
-  { key: 'amount', label: 'Jumlah', width: 1.8, align: 'right' },
+const itemCols = (t: PdfT): PdfColumn[] => [
+  { key: 'item', label: t('salesOrder.columns.item'), width: 3 },
+  { key: 'qty', label: t('common.qty'), width: 1.4, align: 'right' },
+  { key: 'sent', label: t('salesOrder.columns.sent'), width: 1.3, align: 'right' },
+  { key: 'rate', label: t('common.price'), width: 1.5, align: 'right' },
+  { key: 'amount', label: t('common.amount'), width: 1.8, align: 'right' },
 ];
-const DO_COLS: PdfColumn[] = [
-  { key: 'no', label: 'No. Surat Jalan', width: 2.5 },
-  { key: 'date', label: 'Tanggal', width: 2 },
-  { key: 'qty', label: 'Qty', width: 2, align: 'right' },
-  { key: 'status', label: 'Status', width: 2, align: 'right' },
+const doCols = (t: PdfT): PdfColumn[] => [
+  { key: 'no', label: t('salesOrder.columns.doNo'), width: 2.5 },
+  { key: 'date', label: t('common.date'), width: 2 },
+  { key: 'qty', label: t('common.qty'), width: 2, align: 'right' },
+  { key: 'status', label: t('common.status'), width: 2, align: 'right' },
 ];
-const INV_COLS: PdfColumn[] = [
-  { key: 'no', label: 'No. Invoice', width: 2.2 },
-  { key: 'date', label: 'Tanggal', width: 1.6 },
-  { key: 'total', label: 'Grand Total', width: 2, align: 'right' },
-  { key: 'rest', label: 'Sisa', width: 2, align: 'right' },
-  { key: 'status', label: 'Status', width: 1.5, align: 'right' },
+const invCols = (t: PdfT): PdfColumn[] => [
+  { key: 'no', label: t('salesOrder.columns.invoiceNo'), width: 2.2 },
+  { key: 'date', label: t('common.date'), width: 1.6 },
+  { key: 'total', label: t('common.grandTotal'), width: 2, align: 'right' },
+  { key: 'rest', label: t('common.remaining'), width: 2, align: 'right' },
+  { key: 'status', label: t('common.status'), width: 1.5, align: 'right' },
 ];
 
 export interface SalesOrderPDFProps {
@@ -49,6 +48,7 @@ export interface SalesOrderPDFProps {
 }
 
 const SalesOrderPDF: React.FC<SalesOrderPDFProps> = ({ so, company }) => {
+  const t = pdfT();
   const items: any[] = so.items ?? [];
   const dos: any[] = (so.deliveryOrders ?? []).filter((d: any) => d.status !== 'Cancelled');
   // Invoice unik dari DO yang ter-link.
@@ -70,7 +70,7 @@ const SalesOrderPDF: React.FC<SalesOrderPDFProps> = ({ so, company }) => {
       no: d.doNumber,
       date: pdfDateShort(d.date),
       qty: `${num(qty)} ${d.items?.[0]?.unit ?? ''}`.trim(),
-      status: STATUS_ID[d.status] ?? d.status,
+      status: statusLabel(t, d.status),
     };
   });
   const invRows = invoices.map((inv) => ({
@@ -78,50 +78,50 @@ const SalesOrderPDF: React.FC<SalesOrderPDFProps> = ({ so, company }) => {
     date: pdfDateShort(inv.date),
     total: rp(inv.grandTotal),
     rest: rp(inv.outstanding),
-    status: STATUS_ID[inv.status] ?? inv.status,
+    status: statusLabel(t, inv.status),
   }));
 
   return (
-    <Document title={`Pesanan Penjualan ${so.soNumber}`} author={company.name}>
+    <Document title={t('salesOrder.docTitle', { number: so.soNumber })} author={company.name}>
       <Page size="A4" style={S.page} wrap>
         <PdfHeader
           company={company}
-          title="PESANAN PENJUALAN"
+          title={t('salesOrder.title')}
           number={so.soNumber}
-          dateLine={`Tanggal: ${pdfDateShort(so.date)}`}
-          status={STATUS_ID[so.status] ?? so.status}
+          dateLine={t('common.dateLine', { date: pdfDateShort(so.date) })}
+          status={statusLabel(t, so.status)}
         />
 
         <PdfMetaRow>
-          <PdfPartyBlock label="Pelanggan" name={so.customer?.name} lines={[so.customer?.address]} />
+          <PdfPartyBlock label={t('common.customer')} name={so.customer?.name} lines={[so.customer?.address]} />
           <View style={{ flex: 1 }}>
-            <PdfMetaField label="Tanggal" value={pdfDateShort(so.date)} />
-            <PdfMetaField label="Status" value={STATUS_ID[so.status] ?? so.status} />
+            <PdfMetaField label={t('common.date')} value={pdfDateShort(so.date)} />
+            <PdfMetaField label={t('common.status')} value={statusLabel(t, so.status)} />
           </View>
         </PdfMetaRow>
 
-        <PdfSection title="Item Pesanan">
-          <PdfTable columns={ITEM_COLS} rows={itemRows} repeatHeader={false} />
+        <PdfSection title={t('salesOrder.items')}>
+          <PdfTable columns={itemCols(t)} rows={itemRows} repeatHeader={false} />
         </PdfSection>
 
         {/* Ringkasan uang muka */}
         <View style={S.summaryBox} wrap={false}>
-          <View style={S.sumRow}><Text style={S.sumLabel}>Grand Total</Text><Text style={S.sumVal}>{rp(ds.grandTotal ?? so.grandTotal)}</Text></View>
-          <View style={S.sumRow}><Text style={S.sumLabel}>Uang Muka Diterima</Text><Text style={S.sumVal}>{rp(ds.received ?? 0)}</Text></View>
-          <View style={S.sumRow}><Text style={S.sumLabel}>Uang Muka Terpakai</Text><Text style={S.sumVal}>{rp(ds.applied ?? 0)}</Text></View>
-          <View style={S.sumRow}><Text style={S.sumLabel}>Sisa Uang Muka</Text><Text style={S.sumVal}>{rp(ds.depositRemaining ?? 0)}</Text></View>
+          <View style={S.sumRow}><Text style={S.sumLabel}>{t('common.grandTotal')}</Text><Text style={S.sumVal}>{rp(ds.grandTotal ?? so.grandTotal)}</Text></View>
+          <View style={S.sumRow}><Text style={S.sumLabel}>{t('salesOrder.depositReceived')}</Text><Text style={S.sumVal}>{rp(ds.received ?? 0)}</Text></View>
+          <View style={S.sumRow}><Text style={S.sumLabel}>{t('salesOrder.depositApplied')}</Text><Text style={S.sumVal}>{rp(ds.applied ?? 0)}</Text></View>
+          <View style={S.sumRow}><Text style={S.sumLabel}>{t('salesOrder.depositRemaining')}</Text><Text style={S.sumVal}>{rp(ds.depositRemaining ?? 0)}</Text></View>
           <View style={S.grandRow}>
-            <Text style={[S.sumLabel, { fontFamily: F.bold, color: C.primary }]}>Sisa Tagihan</Text>
+            <Text style={[S.sumLabel, { fontFamily: F.bold, color: C.primary }]}>{t('salesOrder.outstanding')}</Text>
             <Text style={[S.sumVal, { fontSize: 10, color: C.primary }]}>{rp(ds.remaining ?? 0)}</Text>
           </View>
         </View>
 
-        <PdfSection title={`Pengiriman / Surat Jalan (${dos.length})`}>
-          <PdfTable columns={DO_COLS} rows={doRows} repeatHeader={false} emptyText="Belum ada pengiriman." />
+        <PdfSection title={t('salesOrder.deliveries', { count: dos.length })}>
+          <PdfTable columns={doCols(t)} rows={doRows} repeatHeader={false} emptyText={t('salesOrder.noDeliveries')} />
         </PdfSection>
 
-        <PdfSection title={`Invoice Terkait (${invoices.length})`}>
-          <PdfTable columns={INV_COLS} rows={invRows} repeatHeader={false} emptyText="Belum ada invoice." />
+        <PdfSection title={t('salesOrder.invoices', { count: invoices.length })}>
+          <PdfTable columns={invCols(t)} rows={invRows} repeatHeader={false} emptyText={t('salesOrder.noInvoices')} />
         </PdfSection>
 
         <PdfFooter company={company.name} docRef={so.soNumber} />

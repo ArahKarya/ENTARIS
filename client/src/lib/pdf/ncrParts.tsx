@@ -2,7 +2,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from '@react-pdf/renderer';
 import { CARBON, F } from './theme';
-import { pdfNum } from './pdfFormat';
+import { pdfNum, pdfT, type PdfT } from './pdfFormat';
 import { PdfTable, type PdfColumn } from './kit';
 
 export interface NcrItem {
@@ -13,13 +13,13 @@ export interface NcrItem {
   description?: string | null;
 }
 
-const COLUMNS: PdfColumn[] = [
-  { key: 'no', label: 'NO', width: 0.45, align: 'center' },
-  { key: 'code', label: 'KODE', width: 1.6 },
-  { key: 'name', label: 'NAMA BARANG', width: 3.4 },
-  { key: 'qty', label: 'QTY', width: 1.1, align: 'right' },
-  { key: 'unit', label: 'SAT', width: 0.8, align: 'center' },
-  { key: 'desc', label: 'KETERANGAN', width: 2 },
+const columns = (t: PdfT): PdfColumn[] => [
+  { key: 'no', label: t('ncr.columns.no'), width: 0.45, align: 'center' },
+  { key: 'code', label: t('ncr.columns.code'), width: 1.6 },
+  { key: 'name', label: t('ncr.columns.name'), width: 3.4 },
+  { key: 'qty', label: t('ncr.columns.qty'), width: 1.1, align: 'right' },
+  { key: 'unit', label: t('ncr.columns.unit'), width: 0.8, align: 'center' },
+  { key: 'desc', label: t('ncr.columns.description'), width: 2 },
 ];
 
 export const NcrItemsTable: React.FC<{ items: NcrItem[] }> = ({ items }) => (
@@ -27,7 +27,7 @@ export const NcrItemsTable: React.FC<{ items: NcrItem[] }> = ({ items }) => (
     tone="mono"
     zebra={false}
     fontSize={10}
-    columns={COLUMNS}
+    columns={columns(pdfT())}
     rows={items.map((it, i) => ({
       no: String(i + 1),
       code: it.code || '—',
@@ -48,7 +48,7 @@ const S = StyleSheet.create({
 export const NcrNotes: React.FC<{ notes?: string | null }> = ({ notes }) =>
   notes ? (
     <View style={S.box} wrap={false}>
-      <Text style={S.label}>CATATAN</Text>
+      <Text style={S.label}>{pdfT()('common.notesUpper')}</Text>
       <Text style={S.text}>{notes}</Text>
     </View>
   ) : null;

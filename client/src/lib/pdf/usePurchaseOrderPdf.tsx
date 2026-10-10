@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useCompanyPDF } from './useCompanyPDF';
 import type { PurchaseOrderPDFData } from './PurchaseOrderPDF';
+import { loadPdfStrings, pdfT } from './pdfFormat';
 
 /** Builds the PO PDF on demand (renderer + template lazy-loaded) and downloads it. */
 export function usePurchaseOrderPdf() {
@@ -14,6 +15,7 @@ export function usePurchaseOrderPdf() {
       const [{ pdf }, { default: PurchaseOrderPDF }] = await Promise.all([
         import('@react-pdf/renderer'),
         import('./PurchaseOrderPDF'),
+        loadPdfStrings(),
       ]);
       const blob = await pdf(<PurchaseOrderPDF po={po} company={company} />).toBlob();
       const url = URL.createObjectURL(blob);
@@ -23,7 +25,7 @@ export function usePurchaseOrderPdf() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : 'Gagal membuat PDF PO.');
+      toast.error(err instanceof Error && err.message ? err.message : pdfT()('purchaseOrder.buildFailed'));
     } finally {
       setBusy(false);
     }

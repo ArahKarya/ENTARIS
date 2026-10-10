@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { groupByCategory } from '../stockCategories';
 import { C, FOOTER_SPACE } from './theme';
-import { pdfDate, pdfDateTime, pdfFixed, pdfNum, pdfRp } from './pdfFormat';
+import { pdfDate, pdfDateTime, pdfFixed, pdfNum, pdfRp, pdfT } from './pdfFormat';
 import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
@@ -87,6 +87,7 @@ export interface WarehouseStockPDFProps {
 }
 
 const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, generatedAt, company, asOfDate, valuationNote }) => {
+  const t = pdfT();
   const totalItems = warehouses.reduce((s, w) => s + w.items.length, 0);
   const totalNegative = warehouses.reduce(
     (s, w) => s + w.items.filter((i) => i.currentStock < 0).length,
@@ -104,8 +105,8 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
       <Page size="A4" style={S.page} wrap>
         <PdfHeader
           company={company}
-          title="LAPORAN STOK PER GUDANG"
-          dateLine={asOfLabel ? `Posisi per ${asOfLabel}` : `Per ${printDate}`}
+          title={t('warehouseStock.title')}
+          dateLine={asOfLabel ? t('warehouseStock.positionAsOf', { date: asOfLabel }) : t('common.asOf', { date: printDate })}
         />
         {valuationNote && (
           <Text style={{ fontSize: 7, color: C.faint, fontStyle: 'italic', marginBottom: 8 }}>
@@ -116,19 +117,19 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
         {/* Summary */}
         <View style={S.summaryRow}>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>Total Gudang</Text>
+            <Text style={S.summaryLabel}>{t('warehouseStock.totalWarehouses')}</Text>
             <Text style={S.summaryValue}>{warehouses.length}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>Total Baris Item</Text>
+            <Text style={S.summaryLabel}>{t('warehouseStock.totalItemLines')}</Text>
             <Text style={S.summaryValue}>{totalItems}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>Item Stok Negatif</Text>
+            <Text style={S.summaryLabel}>{t('warehouseStock.negativeItems')}</Text>
             <Text style={[S.summaryValue, { color: totalNegative > 0 ? C.red : C.dark }]}>{totalNegative}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>Grand Total Nilai</Text>
+            <Text style={S.summaryLabel}>{t('warehouseStock.grandTotalValue')}</Text>
             <Text style={[S.summaryValue, { color: grandTotalValue < 0 ? C.red : C.dark }]}>{idr(grandTotalValue)}</Text>
           </View>
         </View>
@@ -140,24 +141,24 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
             <View key={w.code} style={S.warehouseBlock} wrap>
               <View style={S.warehouseHeader} wrap={false}>
                 <Text style={S.warehouseTitle}>
-                  {w.code} · {w.name}{w.isDefault ? '  (default)' : ''}
+                  {w.code} · {w.name}{w.isDefault ? `  ${t('common.defaultMark')}` : ''}
                 </Text>
                 <Text style={S.warehouseMeta}>
-                  {w.items.length} item{w.location ? ` • ${w.location}` : ''}
+                  {t('common.itemCount', { count: w.items.length })}{w.location ? ` • ${w.location}` : ''}
                 </Text>
               </View>
               {w.items.length === 0 ? (
-                <Text style={S.emptyText}>Tidak ada stok (semua nol).</Text>
+                <Text style={S.emptyText}>{t('warehouseStock.empty')}</Text>
               ) : (
                 <>
                   <View style={S.tableHeader} wrap={false}>
                     <Text style={[S.tableHeaderText, S.colNo]}>#</Text>
-                    <Text style={[S.tableHeaderText, S.colCode]}>Kode</Text>
-                    <Text style={[S.tableHeaderText, S.colName]}>Nama Item</Text>
-                    <Text style={[S.tableHeaderText, S.colUnit]}>Sat.</Text>
-                    <Text style={[S.tableHeaderText, S.colNum]}>Stok</Text>
-                    <Text style={[S.tableHeaderText, S.colCost]}>Avg Cost</Text>
-                    <Text style={[S.tableHeaderText, S.colVal]}>Nilai</Text>
+                    <Text style={[S.tableHeaderText, S.colCode]}>{t('common.code')}</Text>
+                    <Text style={[S.tableHeaderText, S.colName]}>{t('common.itemName')}</Text>
+                    <Text style={[S.tableHeaderText, S.colUnit]}>{t('common.unitShort')}</Text>
+                    <Text style={[S.tableHeaderText, S.colNum]}>{t('common.stock')}</Text>
+                    <Text style={[S.tableHeaderText, S.colCost]}>{t('common.avgCost')}</Text>
+                    <Text style={[S.tableHeaderText, S.colVal]}>{t('common.value')}</Text>
                   </View>
                   {groupByCategory(w.items, (it) => it.category).map((group) => {
                     const groupVal = group.rows.reduce((s, i) => s + i.currentStock * i.averageCost, 0);
@@ -165,7 +166,7 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
                       <View key={`${w.code}-${group.label}`}>
                         <View style={S.catHeaderRow} wrap={false}>
                           <Text style={S.catHeaderText}>
-                            {group.label.toUpperCase()}  ({group.rows.length} item)
+                            {group.label.toUpperCase()}  ({t('common.itemCount', { count: group.rows.length })})
                           </Text>
                           <Text style={[S.catSubtotal, { color: groupVal < 0 ? C.red : C.dark }]}>{idr(groupVal)}</Text>
                         </View>
@@ -196,7 +197,7 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
                     );
                   })}
                   <View style={S.subtotalRow} wrap={false}>
-                    <Text style={S.subtotalLabel}>Subtotal {w.code}</Text>
+                    <Text style={S.subtotalLabel}>{t('common.subtotalOf', { name: w.code })}</Text>
                     <Text style={[S.subtotalValue, { color: subtotal < 0 ? C.red : C.dark }]}>{idr(subtotal)}</Text>
                   </View>
                 </>
@@ -205,7 +206,7 @@ const WarehouseStockPDF: React.FC<WarehouseStockPDFProps> = ({ warehouses, gener
           );
         })}
 
-        <PdfFooter company={company.name} docRef="Stok per Gudang" paddingHorizontal={36} printedAt={printDate} />
+        <PdfFooter company={company.name} docRef={t('warehouseStock.docRef')} paddingHorizontal={36} printedAt={printDate} />
       </Page>
     </Document>
   );

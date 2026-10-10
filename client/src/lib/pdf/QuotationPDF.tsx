@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { CompanyPDF } from './useCompanyPDF';
 import { C, F, FOOTER_SPACE } from './theme';
-import { pdfDateShort, pdfNum, pdfRp } from './pdfFormat';
+import { pdfDateShort, pdfNum, pdfRp, pdfT, type PdfT } from './pdfFormat';
 import {
   PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSection, PdfSignatureBlock, PdfTable, PdfTotals,
   type PdfColumn,
@@ -51,14 +51,9 @@ interface Props {
 
 const formatRupiah = (n: number) => pdfRp(n);
 
-const STATUS_LABEL: Record<string, string> = {
-  Draft: 'Draft',
-  Sent: 'Terkirim',
-  Accepted: 'Diterima',
-  Rejected: 'Ditolak',
-  Expired: 'Kadaluarsa',
-  Cancelled: 'Dibatalkan',
-};
+const STATUS_KEYS = ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled'] as const;
+const statusLabel = (t: PdfT, status: string): string =>
+  (STATUS_KEYS as readonly string[]).includes(status) ? t(`quotation.status.${status as (typeof STATUS_KEYS)[number]}`) : status;
 
 const statusColor = (status: string): string => {
   switch (status) {
@@ -70,15 +65,16 @@ const statusColor = (status: string): string => {
   }
 };
 
-const COLUMNS: PdfColumn[] = [
-  { key: 'no', label: 'No', width: 0.5, align: 'center' },
-  { key: 'item', label: 'Item', width: 4 },
-  { key: 'qty', label: 'Qty', width: 1.6, align: 'right' },
-  { key: 'rate', label: 'Harga', width: 2, align: 'right' },
-  { key: 'amount', label: 'Total', width: 2.2, align: 'right' },
+const columns = (t: PdfT): PdfColumn[] => [
+  { key: 'no', label: t('quotation.columns.no'), width: 0.5, align: 'center' },
+  { key: 'item', label: t('common.item'), width: 4 },
+  { key: 'qty', label: t('common.qty'), width: 1.6, align: 'right' },
+  { key: 'rate', label: t('common.price'), width: 2, align: 'right' },
+  { key: 'amount', label: t('common.total'), width: 2.2, align: 'right' },
 ];
 
 const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
+  const t = pdfT();
   const items = (quotation.items ?? []).map((it) => ({
     ...it,
     quantity: Number(it.quantity),
@@ -111,61 +107,59 @@ const QuotationPDF: React.FC<Props> = ({ quotation, company }) => {
   }));
 
   const totalRows = [
-    { label: 'Subtotal', value: formatRupiah(subtotal), show: true },
-    { label: 'PPN', value: formatRupiah(taxAmount), show: taxAmount > 0 },
-    { label: 'PPh', value: `-${formatRupiah(pphAmount)}`, show: pphAmount > 0 },
-    { label: quotation.labelPotongan ?? 'Potongan', value: `-${formatRupiah(potongan)}`, show: potongan > 0 },
-    { label: quotation.labelBiaya ?? 'Biaya Lain', value: formatRupiah(biayaLain), show: biayaLain !== 0 },
+    { label: t('common.subtotal'), value: formatRupiah(subtotal), show: true },
+    { label: t('common.vat'), value: formatRupiah(taxAmount), show: taxAmount > 0 },
+    { label: t('common.wht'), value: `-${formatRupiah(pphAmount)}`, show: pphAmount > 0 },
+    { label: quotation.labelPotongan ?? t('common.deduction'), value: `-${formatRupiah(potongan)}`, show: potongan > 0 },
+    { label: quotation.labelBiaya ?? t('common.otherCosts'), value: formatRupiah(biayaLain), show: biayaLain !== 0 },
   ].filter((r) => r.show);
 
   return (
-    <Document title={`Penawaran Harga ${quotation.quotationNumber}`} author={company.name}>
+    <Document title={t('quotation.docTitle', { number: quotation.quotationNumber })} author={company.name}>
       <Page size="A4" style={S.page}>
         <PdfHeader
           company={company}
-          title="PENAWARAN HARGA"
-          subtitle="Bukan Faktur Resmi / Not a Tax Invoice"
+          title={t('quotation.title')}
+          subtitle={t('quotation.subtitle')}
           number={quotation.quotationNumber}
-          dateLine={`Tanggal: ${pdfDateShort(quotation.date)}`}
-          extraLines={[`Berlaku sampai: ${pdfDateShort(quotation.validUntil)}`]}
-          status={STATUS_LABEL[quotation.status] ?? quotation.status}
+          dateLine={t('common.dateLine', { date: pdfDateShort(quotation.date) })}
+          extraLines={[t('quotation.validUntilLine', { date: pdfDateShort(quotation.validUntil) })]}
+          status={statusLabel(t, quotation.status)}
           statusColor={statusColor(quotation.status)}
         />
 
         <PdfMetaRow>
-          <PdfPartyBlock label="Kepada" name={quotation.customer?.name} lines={[quotation.customer?.address, quotation.customer?.phone]} />
+          <PdfPartyBlock label={t('common.to')} name={quotation.customer?.name} lines={[quotation.customer?.address, quotation.customer?.phone]} />
           <View style={{ flex: 1 }}>
-            <PdfMetaField label="No. Penawaran" value={quotation.quotationNumber} bold />
-            <PdfMetaField label="Tanggal" value={pdfDateShort(quotation.date)} />
-            <PdfMetaField label="Berlaku Sampai" value={pdfDateShort(quotation.validUntil)} />
+            <PdfMetaField label={t('quotation.number')} value={quotation.quotationNumber} bold />
+            <PdfMetaField label={t('common.date')} value={pdfDateShort(quotation.date)} />
+            <PdfMetaField label={t('quotation.validUntil')} value={pdfDateShort(quotation.validUntil)} />
           </View>
         </PdfMetaRow>
 
-        <PdfTable columns={COLUMNS} rows={rows} />
+        <PdfTable columns={columns(t)} rows={rows} />
 
-        <PdfTotals rows={totalRows} grand={{ label: 'GRAND TOTAL', value: formatRupiah(grandTotal) }} />
+        <PdfTotals rows={totalRows} grand={{ label: t('common.grandTotalUpper'), value: formatRupiah(grandTotal) }} />
 
         {quotation.notes ? (
-          <PdfSection title="Catatan">
+          <PdfSection title={t('common.notes')}>
             <Text style={S.para}>{quotation.notes}</Text>
           </PdfSection>
         ) : null}
         {quotation.terms ? (
-          <PdfSection title="Syarat & Ketentuan">
+          <PdfSection title={t('common.terms')}>
             <Text style={S.para}>{quotation.terms}</Text>
           </PdfSection>
         ) : null}
 
         <PdfSignatureBlock
           signatures={[
-            { label: 'Hormat Kami,', name: company.name },
-            { label: 'Disetujui Oleh,', name: quotation.customer?.name },
+            { label: t('quotation.regards'), name: company.name },
+            { label: t('quotation.approvedBy'), name: quotation.customer?.name },
           ]}
         />
 
-        <Text style={S.disclaimer}>
-          Penawaran ini berlaku sampai dengan tanggal yang tertera di atas. Harga dapat berubah sewaktu-waktu setelah masa berlaku berakhir. Untuk konfirmasi pemesanan, silakan menghubungi sales kami.
-        </Text>
+        <Text style={S.disclaimer}>{t('quotation.disclaimer')}</Text>
 
         <PdfFooter company={company.name} docRef={quotation.quotationNumber} />
       </Page>

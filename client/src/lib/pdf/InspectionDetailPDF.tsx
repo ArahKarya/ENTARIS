@@ -5,7 +5,7 @@
  */
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { C, FOOTER_SPACE } from './theme';
-import { pdfDateShort, pdfDateTime, pdfNum } from './pdfFormat';
+import { pdfDateShort, pdfDateTime, pdfNum, pdfT, type PdfT } from './pdfFormat';
 import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
@@ -62,41 +62,36 @@ const S = StyleSheet.create({
 const num = (v: number) => pdfNum(v, 3);
 const dt = (v: string | Date | null | undefined) => pdfDateShort(v);
 
-const RESULT_LABELS: Record<string, string> = {
-  BAIK: 'Baik', PERLU_PERHATIAN: 'Perlu Perhatian', TIDAK_LAYAK: 'Tidak Layak',
-};
+const RESULT_KEYS = ['BAIK', 'PERLU_PERHATIAN', 'TIDAK_LAYAK'] as const;
+const resultLabel = (t: PdfT, r: string): string =>
+  (RESULT_KEYS as readonly string[]).includes(r) ? t(`inspection.result.${r as (typeof RESULT_KEYS)[number]}`) : r;
 const resultColor = (r: string) =>
   r === 'BAIK' ? C.green : r === 'PERLU_PERHATIAN' ? C.amber : r === 'TIDAK_LAYAK' ? C.red : C.mid;
 
-const STATE_LABELS: Record<string, string> = {
-  OK: 'OK', PERLU_PERHATIAN: 'Perlu Perhatian', RUSAK: 'Rusak',
-};
+const STATE_KEYS = ['OK', 'PERLU_PERHATIAN', 'RUSAK'] as const;
+const stateLabel = (t: PdfT, s: string): string =>
+  (STATE_KEYS as readonly string[]).includes(s) ? t(`inspection.state.${s as (typeof STATE_KEYS)[number]}`) : s;
 const stateColor = (s: string) =>
   s === 'OK' ? C.green : s === 'PERLU_PERHATIAN' ? C.amber : s === 'RUSAK' ? C.red : C.faint;
 
-const FUEL_LEVEL_LABELS: Record<string, string> = {
-  KOSONG: 'Kosong (E)', SEPEREMPAT: 'Seperempat (1/4)', SETENGAH: 'Setengah (1/2)',
-  TIGA_PEREMPAT: 'Tiga Perempat (3/4)', PENUH: 'Penuh (F)',
-};
+const FUEL_KEYS = ['KOSONG', 'SEPEREMPAT', 'SETENGAH', 'TIGA_PEREMPAT', 'PENUH'] as const;
+const fuelLabel = (t: PdfT, f: string): string =>
+  (FUEL_KEYS as readonly string[]).includes(f) ? t(`inspection.fuel.${f as (typeof FUEL_KEYS)[number]}`) : f;
 
-/** Label item checklist — mencakup format LAMA (12 item datar) & format BARU per kategori. */
-const CHECKPOINT_LABELS: Record<string, string> = {
-  ban: 'Ban', rem: 'Rem', oli: 'Oli', lampu: 'Lampu', klakson: 'Klakson', wiper: 'Wiper',
-  kaca_spion: 'Kaca Spion', sabuk_pengaman: 'Sabuk Pengaman', ac: 'AC', aki: 'Aki',
-  radiator: 'Radiator', kelengkapan_p3k_apar: 'Kelengkapan P3K/APAR',
-  oli_mesin: 'Oli Mesin', oli_rem: 'Oli Rem', air_radiator: 'Air Radiator / Coolant',
-  air_aki: 'Air Aki', air_wiper: 'Air Wiper',
-  lampu_depan: 'Lampu Depan', lampu_belakang: 'Lampu Belakang', lampu_sein: 'Lampu Sein',
-  lampu_rem: 'Lampu Rem', lampu_mundur: 'Lampu Mundur',
-  rem_depan: 'Rem Depan', rem_belakang: 'Rem Belakang', rem_tangan: 'Rem Tangan',
-  kemudi_suspensi: 'Kemudi / Suspensi',
-  ban_depan: 'Ban Depan', ban_belakang: 'Ban Belakang', ban_serep: 'Ban Serep',
-  tekanan_ban: 'Tekanan Ban', velg: 'Velg',
-  p3k: 'P3K', apar: 'APAR', segitiga_pengaman: 'Segitiga Pengaman',
-  dongkrak: 'Dongkrak', kunci_roda: 'Kunci Roda',
-  kaca_depan: 'Kaca Depan', kaca_belakang: 'Kaca Belakang', body_cat: 'Body / Cat',
-  dashboard_indikator: 'Dashboard / Indikator',
-};
+/** Checklist item keys: covers the OLD flat format (12 items) and the NEW per-category format. */
+const CHECKPOINT_KEYS = [
+  'ban', 'rem', 'oli', 'lampu', 'klakson', 'wiper', 'kaca_spion', 'sabuk_pengaman', 'ac', 'aki',
+  'radiator', 'kelengkapan_p3k_apar', 'oli_mesin', 'oli_rem', 'air_radiator', 'air_aki', 'air_wiper',
+  'lampu_depan', 'lampu_belakang', 'lampu_sein', 'lampu_rem', 'lampu_mundur',
+  'rem_depan', 'rem_belakang', 'rem_tangan', 'kemudi_suspensi',
+  'ban_depan', 'ban_belakang', 'ban_serep', 'tekanan_ban', 'velg',
+  'p3k', 'apar', 'segitiga_pengaman', 'dongkrak', 'kunci_roda',
+  'kaca_depan', 'kaca_belakang', 'body_cat', 'dashboard_indikator',
+] as const;
+const checkpointLabel = (t: PdfT, key: string): string | undefined =>
+  (CHECKPOINT_KEYS as readonly string[]).includes(key)
+    ? t(`inspection.checkpoints.${key as (typeof CHECKPOINT_KEYS)[number]}`)
+    : undefined;
 
 export interface InspectionPdfCategory {
   key: string;
@@ -144,6 +139,7 @@ interface Props {
 export default function InspectionDetailPDF({
   inspection, asset, categories, photos, company, printedBy, generatedAt,
 }: Props) {
+  const t = pdfT();
   const checklist: Record<string, string> = inspection.checklist ?? {};
   const knownKeys = new Set(categories.flatMap((c) => c.items.map((i) => i.key)));
   const legacyKeys = Object.keys(checklist).filter((k) => !knownKeys.has(k));
@@ -153,14 +149,14 @@ export default function InspectionDetailPDF({
       label: cat.label,
       rows: cat.items
         .filter((i) => checklist[i.key])
-        .map((i) => ({ label: i.label ?? CHECKPOINT_LABELS[i.key] ?? i.key, state: checklist[i.key]! })),
+        .map((i) => ({ label: i.label ?? checkpointLabel(t, i.key) ?? i.key, state: checklist[i.key]! })),
     }))
     .filter((g) => g.rows.length > 0);
 
   if (legacyKeys.length > 0) {
     groups.push({
-      label: 'Checklist (format lama)',
-      rows: legacyKeys.map((k) => ({ label: CHECKPOINT_LABELS[k] ?? k, state: checklist[k]! })),
+      label: t('inspection.legacyChecklist'),
+      rows: legacyKeys.map((k) => ({ label: checkpointLabel(t, k) ?? k, state: checklist[k]! })),
     });
   }
 
@@ -174,57 +170,57 @@ export default function InspectionDetailPDF({
   let rowIndex = 0;
 
   return (
-    <Document title={`Inspeksi ${asset.noPlat ?? asset.code} ${dt(inspection.tanggal)}`}>
+    <Document title={t('inspection.docTitle', { vehicle: asset.noPlat ?? asset.code, date: dt(inspection.tanggal) })}>
       <Page size="A4" style={S.page}>
         <PdfHeader
           company={company}
-          title="HASIL INSPEKSI KENDARAAN"
+          title={t('inspection.title')}
           number={asset.noPlat ?? asset.code}
-          dateLine={`Tanggal: ${dt(inspection.tanggal)}`}
+          dateLine={t('common.dateLine', { date: dt(inspection.tanggal) })}
         />
 
         {/* Ringkasan inspeksi */}
         <View style={S.summaryRow}>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>HASIL KESELURUHAN</Text>
+            <Text style={S.summaryLabel}>{t('inspection.overallResult')}</Text>
             <Text style={[S.summaryValue, { color: resultColor(inspection.overallResult) }]}>
-              {RESULT_LABELS[inspection.overallResult] ?? inspection.overallResult}
+              {resultLabel(t, inspection.overallResult)}
             </Text>
-            <Text style={S.summarySub}>Tanggal {dt(inspection.tanggal)}</Text>
+            <Text style={S.summarySub}>{t('inspection.dateLine', { date: dt(inspection.tanggal) })}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>ODOMETER</Text>
+            <Text style={S.summaryLabel}>{t('inspection.odometer')}</Text>
             <Text style={S.summaryValue}>
               {inspection.odometer != null ? `${num(Number(inspection.odometer))} km` : '—'}
             </Text>
-            <Text style={S.summarySub}>Saat inspeksi</Text>
+            <Text style={S.summarySub}>{t('inspection.atInspection')}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>LEVEL BBM</Text>
+            <Text style={S.summaryLabel}>{t('inspection.fuelLevel')}</Text>
             <Text style={S.summaryValue}>
-              {inspection.fuelLevel ? (FUEL_LEVEL_LABELS[inspection.fuelLevel] ?? inspection.fuelLevel) : '—'}
+              {inspection.fuelLevel ? fuelLabel(t, inspection.fuelLevel) : '—'}
             </Text>
-            <Text style={S.summarySub}>Indikator tangki</Text>
+            <Text style={S.summarySub}>{t('inspection.tankGauge')}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>INSPEKSI BERIKUTNYA</Text>
+            <Text style={S.summaryLabel}>{t('inspection.nextInspection')}</Text>
             <Text style={S.summaryValue}>{dt(inspection.nextDueDate)}</Text>
-            <Text style={S.summarySub}>Jadwal jatuh tempo</Text>
+            <Text style={S.summarySub}>{t('inspection.dueSchedule')}</Text>
           </View>
         </View>
 
         {/* Identitas kendaraan */}
-        <Text style={S.sectionTitle}>Identitas Kendaraan</Text>
+        <Text style={S.sectionTitle}>{t('inspection.identity')}</Text>
         <View style={S.idGrid}>
           {[
-            ['Kode Aset', asset.code || '—'],
-            ['Nama Kendaraan', asset.name || '—'],
-            ['Nomor Plat', asset.noPlat || '—'],
-            ['Merek / Tipe', [asset.brand, asset.tipe].filter(Boolean).join(' ') || '—'],
-            ['Kategori', asset.categoryName || '—'],
-            ['Inspektor', inspection.inspectorName || '—'],
-            ['Tanggal Inspeksi', dt(inspection.tanggal)],
-            ['Inspeksi Berikutnya', dt(inspection.nextDueDate)],
+            [t('inspection.fields.assetCode'), asset.code || '—'],
+            [t('inspection.fields.vehicleName'), asset.name || '—'],
+            [t('inspection.fields.plate'), asset.noPlat || '—'],
+            [t('inspection.fields.brandType'), [asset.brand, asset.tipe].filter(Boolean).join(' ') || '—'],
+            [t('inspection.fields.category'), asset.categoryName || '—'],
+            [t('inspection.fields.inspector'), inspection.inspectorName || '—'],
+            [t('inspection.fields.inspectionDate'), dt(inspection.tanggal)],
+            [t('inspection.fields.nextInspection'), dt(inspection.nextDueDate)],
           ].map(([label, value]) => (
             <View key={label} style={S.idCell}>
               <Text style={S.idLabel}>{label.toUpperCase()}</Text>
@@ -234,13 +230,13 @@ export default function InspectionDetailPDF({
         </View>
 
         {/* Checklist per kategori */}
-        <Text style={S.sectionTitle}>Checklist Pemeriksaan</Text>
+        <Text style={S.sectionTitle}>{t('inspection.checklist')}</Text>
         <View style={S.tableHeader}>
-          <Text style={[S.tableHeaderText, S.colItem]}>ITEM PEMERIKSAAN</Text>
-          <Text style={[S.tableHeaderText, S.colStatus]}>STATUS</Text>
+          <Text style={[S.tableHeaderText, S.colItem]}>{t('inspection.checkItem')}</Text>
+          <Text style={[S.tableHeaderText, S.colStatus]}>{t('inspection.statusUpper')}</Text>
         </View>
         {groups.length === 0 ? (
-          <Text style={S.emptyText}>Checklist tidak tersedia untuk inspeksi ini.</Text>
+          <Text style={S.emptyText}>{t('inspection.noChecklist')}</Text>
         ) : (
           groups.map((g) => (
             <View key={g.label} wrap={false}>
@@ -254,7 +250,7 @@ export default function InspectionDetailPDF({
                   <View key={`${g.label}-${r.label}`} style={rowIndex % 2 === 0 ? [S.row, S.rowAlt] : S.row}>
                     <Text style={[S.cell, S.colItem]}>{r.label}</Text>
                     <Text style={[S.cellBold, S.colStatus, { color: stateColor(r.state) }]}>
-                      {STATE_LABELS[r.state] ?? r.state}
+                      {stateLabel(t, r.state)}
                     </Text>
                   </View>
                 );
@@ -264,15 +260,15 @@ export default function InspectionDetailPDF({
         )}
 
         {/* Catatan */}
-        <Text style={S.sectionTitle}>Catatan</Text>
+        <Text style={S.sectionTitle}>{t('common.notes')}</Text>
         <View style={S.noteBox}>
-          <Text style={S.noteText}>{inspection.notes || 'Tidak ada catatan tambahan.'}</Text>
+          <Text style={S.noteText}>{inspection.notes || t('inspection.noNotes')}</Text>
         </View>
 
         {/* Foto bukti */}
         {photoCats.length > 0 && (
           <>
-            <Text style={S.sectionTitle} break>Foto Bukti ({photos.length})</Text>
+            <Text style={S.sectionTitle} break>{t('inspection.photos', { count: photos.length })}</Text>
             {photoCats.map((catKey) => (
               <View key={catKey}>
                 <Text style={S.photoCatLabel}>{catLabel(catKey).toUpperCase()}</Text>
@@ -289,7 +285,7 @@ export default function InspectionDetailPDF({
           </>
         )}
 
-        <PdfFooter company={company.name} docRef={`Inspeksi ${asset.noPlat ?? asset.code}`} paddingHorizontal={36} printedAt={`${pdfDateTime(generatedAt)} oleh ${printedBy}`} />
+        <PdfFooter company={company.name} docRef={t('inspection.docRef', { vehicle: asset.noPlat ?? asset.code })} paddingHorizontal={36} printedAt={t('common.printedBy', { date: pdfDateTime(generatedAt), name: printedBy })} />
       </Page>
     </Document>
   );

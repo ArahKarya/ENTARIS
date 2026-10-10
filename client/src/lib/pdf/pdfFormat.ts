@@ -1,7 +1,9 @@
 /**
- * Pemformat angka/tanggal untuk semua PDF — tipis di atas lib/format
- * (id-ID, "Rp", nilai kosong "—") agar tidak ada template yang memformat sendiri.
+ * Number/date formatters and the translator for every PDF, a thin layer over lib/format so no template
+ * formats on its own. Everything resolves at generation time, so a PDF follows the language of the user
+ * who prints it.
  */
+import i18n from '../../i18n';
 import { LOCALE, parseDate, formatDate, formatDateTime, formatNumber, formatRupiah, type NumericInput, type DateInput } from '../format';
 
 /** Angka ber-grup id-ID; desimal hingga `maxDecimals` (nol di belakang dibuang). */
@@ -35,3 +37,20 @@ export const pdfDateWeekday = (d: DateInput): string => {
   const date = parseDate(d);
   return date ? date.toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '—';
 };
+
+/** "Okt 26" / "Oct 26" for a "YYYY-MM" month key. */
+export const pdfMonthShort = (key: string): string => {
+  const [y, m] = key.split('-').map(Number);
+  if (!y || !m) return key;
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(LOCALE, { month: 'short', year: '2-digit', timeZone: 'UTC' });
+};
+
+/**
+ * Translator for the `pdf` namespace. Call it inside the template (never at module level) so the
+ * document uses the printing user's current language.
+ */
+export const pdfT = () => i18n.getFixedT(null, 'pdf');
+export type PdfT = ReturnType<typeof pdfT>;
+
+/** Start loading the `pdf` namespace; resolves once its strings are available. */
+export const loadPdfStrings = (): Promise<void> => i18n.loadNamespaces('pdf');

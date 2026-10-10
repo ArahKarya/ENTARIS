@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import api from './api';
+import i18n from '../i18n';
 
 /**
  * Export arbitrary JSON data to an Excel file via the backend.
@@ -23,6 +24,6 @@ export async function exportToExcel(data: object[], filename: string): Promise<v
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Export failed:', error);
-    toast.error('Gagal mengekspor data. Coba lagi.');
+    toast.error(i18n.t('pdf:export.failed'));
   }
 }
