@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Field, DateInput, ConfirmDialog } from '@/components/shared';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker } from './purchase-cash/OptionPicker';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { Callout, ErrorAlert } from './purchase-cash/ErrorAlert';
 import { InvoiceLineEditor } from './purchase/InvoiceLineEditor';
 import { defaultItem, computeLine, type InvoiceItem } from './purchase/invoice-item';
@@ -63,13 +64,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
 
   const queryClient = useQueryClient();
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-suppliers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Supplier');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Supplier', selectedId: partyId || null });
 
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-active'],
@@ -146,7 +141,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
     });
   };
 
-  const selectedParty = parties?.find((p: any) => p.id === partyId);
+  const selectedParty = partyPicker.selectedParty;
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
@@ -370,7 +365,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                 value={partyId}
                 onChange={setPartyId}
                 placeholder="Pilih Supplier"
-                options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+                {...partyPicker.pickerProps}
               />
             </Field>
             {selectedParty && (

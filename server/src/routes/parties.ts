@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreatePartySchema, UpdatePartySchema } from '../utils/schemas';
+import { clearable } from '../utils/clearable';
 import { logger } from '../lib/logger';
 import { parseListPaging } from '../utils/listQuery';
 import {
@@ -39,10 +40,11 @@ function levenshtein(a: string, b: string): number {
 // GET /api/parties
 //
 // Two modes, same { data, total, page, limit } envelope:
-//  • List mode (any of search / sort / isActive / hasOutstanding present) —
-//    used by the "Pelanggan & Vendor" page: filters + whitelisted sort, see
+//  • List mode (any of search / sort / isActive / hasOutstanding present):
+//    the "Pelanggan & Vendor" page and every party picker (client hook
+//    usePartyPicker sends sort=name + search). Filters + whitelisted sort, see
 //    services/partyList. Limit up to 500 (export pages through it).
-//  • Legacy mode (pickers: ?type=Customer&limit=…) — unchanged below.
+//  • Legacy mode (?type=Customer&limit=…, capped at 200): older callers only.
 router.get('/', async (req, res) => {
   if (isPartyListQuery(req.query as Record<string, unknown>)) {
     try {
@@ -353,10 +355,10 @@ router.put('/:id', async (req, res) => {
       data: {
         name: body.name,
         partyType: body.partyType,
-        phone: body.phone,
-        email: body.email,
-        address: body.address,
-        taxId: body.taxId,
+        phone: clearable(body.phone),
+        email: clearable(body.email),
+        address: clearable(body.address),
+        taxId: clearable(body.taxId),
         isActive: body.isActive,
         isWapu: body.isWapu,
       },

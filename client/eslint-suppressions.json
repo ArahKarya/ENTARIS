@@ -40,7 +40,7 @@
   },
   "src/components/BulkExpenseModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 12
+      "count": 11
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -48,7 +48,7 @@
   },
   "src/components/CustomerDepositModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 7
+      "count": 6
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -66,12 +66,12 @@
   },
   "src/components/DeliveryOrderModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 22
+      "count": 20
     }
   },
   "src/components/ExpenseModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 14
+      "count": 12
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -84,7 +84,7 @@
   },
   "src/components/GoodsReceiptModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 11
+      "count": 10
     }
   },
   "src/components/ImportModal.tsx": {
@@ -99,7 +99,7 @@
   },
   "src/components/InquiryModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 6
+      "count": 4
     }
   },
   "src/components/InquiryQRModal.tsx": {
@@ -148,7 +148,7 @@
   },
   "src/components/PaymentModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 22
+      "count": 20
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -166,12 +166,12 @@
   },
   "src/components/ProjectGuaranteeModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 6
+      "count": 5
     }
   },
   "src/components/PurchaseInvoiceModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 15
+      "count": 13
     }
   },
   "src/components/PurchaseOrderDetailDrawer.tsx": {
@@ -181,7 +181,7 @@
   },
   "src/components/PurchaseOrderModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/QuotationDetailDrawer.tsx": {
@@ -191,7 +191,7 @@
   },
   "src/components/QuotationModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 15
+      "count": 14
     }
   },
   "src/components/ReconciliationModal.tsx": {
@@ -219,7 +219,7 @@
   },
   "src/components/SalesInvoiceModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 11
+      "count": 9
     }
   },
   "src/components/SalesOrderDetailDrawer.tsx": {
@@ -229,7 +229,7 @@
   },
   "src/components/SalesOrderModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 8
+      "count": 7
     }
   },
   "src/components/SalesReturnModal.tsx": {
@@ -265,7 +265,7 @@
   },
   "src/components/TemporaryDeliveryNoteModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 8
+      "count": 7
     }
   },
   "src/components/TransferModal.tsx": {
@@ -278,7 +278,7 @@
   },
   "src/components/VendorDepositModal.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 7
+      "count": 6
     },
     "react-hooks/set-state-in-effect": {
       "count": 1

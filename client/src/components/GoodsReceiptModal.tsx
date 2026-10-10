@@ -10,6 +10,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Field, DateInput, ConfirmDialog } from '@/components/shared';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker, type PickerOption as SelectOption } from './purchase-cash/OptionPicker';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
@@ -150,13 +151,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     }
   };
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-suppliers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Supplier');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Supplier', selectedId: partyId || null });
 
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-gr'],
@@ -189,8 +184,6 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     },
     enabled: !!partyId,
   });
-
-  const supplierOptions: SelectOption[] = (parties ?? []).map((p: any) => ({ value: p.id, label: p.name }));
 
   const poOptions: SelectOption[] = [
     { value: '', label: 'Tanpa PO (Standalone)' },
@@ -301,7 +294,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
           <DateInput value={date} onChange={setDate} />
         </Field>
         <Field label="Supplier" required className="sm:col-span-2">
-          <OptionPicker options={supplierOptions} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
+          <OptionPicker {...partyPicker.pickerProps} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
         </Field>
       </div>
 

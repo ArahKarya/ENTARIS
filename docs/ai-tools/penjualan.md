@@ -2539,7 +2539,7 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 | `id` | path | `string` | ya | ID invoice. |
 | `notes` | body | `string` | tidak | Catatan. |
 | `dueDate` | body | `date` | tidak | Tanggal jatuh tempo (YYYY-MM-DD) atau null. |
-| `terms` | body | `string` | tidak | Syarat pembayaran. |
+| `terms` | body | `string` | tidak | Syarat pembayaran; null atau string kosong = hapus. |
 
 **Contoh pemanggilan**
 

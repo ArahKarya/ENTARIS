@@ -119,7 +119,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   });
 
   const editMutation = useMutation({
-    mutationFn: (data: { notes?: string; dueDate?: string; terms?: string }) =>
+    mutationFn: (data: { notes: string; dueDate: string | null; terms: string | null }) =>
       api.put(`${endpoint}/${invoiceId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoice-detail' : 'purchase-invoice-detail', invoiceId] });
@@ -341,8 +341,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const saveEdit = () => {
     editMutation.mutate({
       notes: editNotes,
-      dueDate: editDueDate || undefined,
-      terms: editTerms || undefined,
+      // null clears the field; undefined would keep the stored value
+      dueDate: editDueDate || null,
+      terms: editTerms.trim() || null,
     });
   };
 

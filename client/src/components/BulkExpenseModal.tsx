@@ -10,6 +10,7 @@ import { Field, DateInput } from '@/components/shared';
 import { cn } from '@/lib/utils';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker } from './purchase-cash/OptionPicker';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { RupiahField } from './purchase-cash/RupiahField';
 import { uploadAttachments, validateAttachmentFiles } from '../lib/attachments';
 import type { PickerOption as SelectOption } from './purchase-cash/OptionPicker';
@@ -59,6 +60,21 @@ const makeBatchNote = (d: string): string => {
   return `BATCH-${dt.getFullYear()}${pad(dt.getMonth() + 1)}${pad(dt.getDate())}-${pad(new Date().getHours())}${pad(new Date().getMinutes())}`;
 };
 
+interface RowPartyPickerProps {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  emptyLabel: string;
+  disabled?: boolean;
+}
+
+/** Per-row party picker: each row searches the server on its own. */
+function RowPartyPicker({ value, ...rest }: RowPartyPickerProps) {
+  const { pickerProps } = usePartyPicker({ selectedId: value || null });
+  return <OptionPicker {...pickerProps} value={value} {...rest} />;
+}
+
 const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
@@ -91,14 +107,6 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
     enabled: isOpen,
   });
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-all'],
-    queryFn: async () => {
-      const res = await api.get('/parties');
-      return res.data.data ?? res.data;
-    },
-    enabled: isOpen,
-  });
 
   const cashAccounts = useMemo(
     () => (allAccounts ?? []).filter((a: any) => a.accountType === 'ASSET' && a.accountNumber.startsWith('1.1')),
@@ -133,10 +141,6 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
     [cashAccounts],
   );
 
-  const partyOptions = useMemo((): SelectOption[] =>
-    (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
-    [parties],
-  );
 
   const updateRow = (tempId: string, patch: Partial<ExpenseRow>) => {
     setRows((prev) => prev.map((r) => (r.tempId === tempId ? { ...r, ...patch } : r)));
@@ -398,9 +402,8 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
               </div>
               <div className="flex flex-col gap-1 md:col-span-2">
                 <label htmlFor={`bx-party-${row.tempId}`} className={rowLabel}>Pihak (opsional)</label>
-                <OptionPicker
+                <RowPartyPicker
                   id={`bx-party-${row.tempId}`}
-                  options={partyOptions}
                   value={row.partyId}
                   onChange={(v) => updateRow(row.tempId, { partyId: v })}
                   placeholder="Tidak ada"

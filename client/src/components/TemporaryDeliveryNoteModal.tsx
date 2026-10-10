@@ -4,6 +4,7 @@ import { Plus, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { ComboboxField } from './overlays/ComboboxField';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
@@ -51,13 +52,7 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
   );
   const [error, setError] = useState('');
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null });
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-active'],
     queryFn: async () => {
@@ -86,11 +81,6 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
     if (v !== partyId) setSalesOrderId('');
     setPartyId(v);
   };
-
-  const partyOptions = useMemo<ComboboxOption[]>(
-    () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
-    [parties],
-  );
   const inventoryOptions = useMemo<ComboboxOption[]>(
     () => (inventoryItems ?? []).map((i: any) => ({ value: i.id, label: `${i.code} · ${i.name}` })),
     [inventoryItems],
@@ -157,7 +147,7 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
               <Field label="Tanggal">
                 <DateInput value={date} onChange={setDate} />
               </Field>
-              <ComboboxField label="Pelanggan" required options={partyOptions} value={partyId} onChange={changeParty}
+              <ComboboxField label="Pelanggan" required {...partyPicker.pickerProps} value={partyId} onChange={changeParty}
                 placeholder="Pilih pelanggan" error={partyError || undefined} />
               <div className="sm:col-span-2">
                 <ComboboxField label="Sales Order (opsional)" options={salesOrderOptions} value={salesOrderId}

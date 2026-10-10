@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { Plus, Trash2 } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { OptionSelect } from '@/components/sales-a/OptionSelect';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -75,13 +76,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
 
   const queryClient = useQueryClient();
 
-  const { data: parties } = useQuery({
-    queryKey: ['parties-customers'],
-    queryFn: async () => {
-      const res = await api.get('/parties?type=Customer');
-      return res.data.data ?? res.data;
-    },
-  });
+  const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null, known: editTarget?.customer ?? null });
 
   const { data: inventoryItems } = useQuery({
     queryKey: ['inventory-items-active'],
@@ -323,7 +318,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
                 {() => (
                   <PickerSelect
                     aria-label="Pelanggan"
-                    options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+                    {...partyPicker.pickerProps}
                     value={partyId}
                     onChange={(v) => setPartyId(v)}
                     placeholder="Pilih pelanggan..."

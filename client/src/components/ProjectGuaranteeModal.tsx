@@ -5,6 +5,7 @@ import { ShieldCheck } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import { RupiahField } from './purchase-cash/RupiahField';
 import { ComboboxField } from './overlays/ComboboxField';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,14 +54,7 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
   }, [isOpen]);
 
   // Pemberi proyek bisa customer atau pihak lain — tampilkan semua pihak.
-  const { data: parties } = useQuery({
-    queryKey: ['parties'],
-    queryFn: async () => {
-      const res = await api.get('/parties');
-      return res.data.data ?? res.data;
-    },
-    enabled: isOpen,
-  });
+  const partyPicker = usePartyPicker({ selectedId: partyId || null, enabled: isOpen });
 
   const { data: cashAccounts } = useQuery({
     queryKey: ['cash-accounts'],
@@ -137,7 +131,7 @@ const ProjectGuaranteeModal: React.FC<ProjectGuaranteeModalProps> = ({ isOpen, o
             <ComboboxField
               label="Pemberi Proyek"
               required
-              options={(parties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+              {...partyPicker.pickerProps}
               value={partyId}
               onChange={setPartyId}
               placeholder="Pilih Pihak"

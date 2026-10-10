@@ -17,6 +17,7 @@ import { controlBase } from '@/components/ui/styles';
 import { DateInput, Field } from '@/components/shared';
 import { AccountPicker } from '@/components/fixed-assets/AccountPicker';
 import { ComboField } from '@/components/fixed-assets/ComboField';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { JournalPreview } from '@/components/fixed-assets/JournalPreview';
 import { apiError } from '@/components/fixed-assets/errors';
 import { PR_ENDPOINT } from '../payment-request';
@@ -82,13 +83,10 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
   });
   const accounts = accountsQuery.data;
 
-  const vendorsQuery = useQuery({
-    queryKey: ['parties-supplier'],
-    queryFn: async () => {
-      // `type` is the filter the server reads; isActive switches to the paged list mode (max 500).
-      const res = await api.get('/parties', { params: { type: 'Supplier', isActive: 'true', sort: 'name', limit: 500 } });
-      return (res.data.data ?? res.data) as Array<{ id: string; name: string }>;
-    },
+  const vendorPicker = usePartyPicker({
+    type: 'Supplier',
+    activeOnly: true,
+    selectedId: partyId || null,
     enabled: open && method === 'PURCHASE_INVOICE',
   });
 
@@ -108,10 +106,6 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
   const cashAccounts = useMemo(
     () => (accounts ?? []).filter((a) => a.accountType === 'ASSET' && a.accountNumber.startsWith('1.1')),
     [accounts],
-  );
-  const vendorOptions = useMemo(
-    () => (vendorsQuery.data ?? []).map((v) => ({ value: v.id, label: v.name })),
-    [vendorsQuery.data],
   );
 
   const mutation = useMutation({
@@ -252,10 +246,9 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
                     required
                     value={partyId}
                     onChange={setPartyId}
-                    options={vendorOptions}
+                    {...vendorPicker.pickerProps}
                     placeholder="Pilih vendor…"
                     searchPlaceholder="Cari vendor…"
-                    loading={vendorsQuery.isLoading}
                   />
                   <Field label="Jatuh tempo">
                     {(control) => <DateInput id={control.id} value={dueDate} onChange={setDueDate} />}

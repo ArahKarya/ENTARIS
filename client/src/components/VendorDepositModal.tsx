@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Field, DateInput } from '@/components/shared';
 import { FormDialog } from './purchase-cash/FormDialog';
 import { OptionPicker } from './purchase-cash/OptionPicker';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { RupiahField } from './purchase-cash/RupiahField';
 import { ErrorAlert, Callout } from './purchase-cash/ErrorAlert';
 import AttachmentUpload from './AttachmentUpload';
@@ -48,14 +49,7 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
     }
   }, [isOpen]);
 
-  const { data: suppliers } = useQuery({
-    queryKey: ['parties', 'Supplier'],
-    queryFn: async () => {
-      const res = await api.get('/parties', { params: { type: 'Supplier' } });
-      return res.data.data ?? res.data;
-    },
-    enabled: isOpen,
-  });
+  const partyPicker = usePartyPicker({ type: 'Supplier', selectedId: partyId || null, enabled: isOpen });
 
   const { data: cashAccounts } = useQuery({
     queryKey: ['cash-accounts'],
@@ -136,7 +130,7 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
             value={partyId}
             onChange={setPartyId}
             placeholder="Pilih Supplier"
-            options={(suppliers ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+            {...partyPicker.pickerProps}
           />
         </Field>
       </div>

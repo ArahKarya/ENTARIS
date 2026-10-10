@@ -18,6 +18,8 @@ interface PickerSelectProps {
   className?: string;
   /** Accessible name of the combobox (falls back to the placeholder). */
   'aria-label'?: string;
+  onSearchChange?: (query: string) => void;
+  loading?: boolean;
 }
 
 export function PickerSelect({
@@ -28,6 +30,8 @@ export function PickerSelect({
   disabled,
   className,
   'aria-label': ariaLabel,
+  onSearchChange,
+  loading,
 }: PickerSelectProps) {
   const label = ariaLabel ?? placeholder;
   if (disabled) {
@@ -53,6 +57,8 @@ export function PickerSelect({
       options={options}
       allLabel={placeholder}
       searchPlaceholder="Cari…"
+      onSearchChange={onSearchChange}
+      loading={loading}
     />
   );
 }

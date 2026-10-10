@@ -14,6 +14,7 @@ export interface ComboFieldProps {
   hint?: string;
   loading?: boolean;
   className?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 /**
@@ -33,6 +34,7 @@ export function ComboField({
   hint,
   loading,
   className,
+  onSearchChange,
 }: ComboFieldProps) {
   return (
     <div className={cn('flex min-w-0 flex-col gap-1.5', className)} data-invalid={error ? '' : undefined}>
@@ -48,6 +50,7 @@ export function ComboField({
         allLabel={placeholder}
         searchPlaceholder={searchPlaceholder}
         loading={loading}
+        onSearchChange={onSearchChange}
         className={cn(error && '[&_button[role=combobox]]:border-danger')}
       />
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}

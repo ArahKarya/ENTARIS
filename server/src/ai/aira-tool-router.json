@@ -30198,7 +30198,7 @@
       "group": "Master & Sistem",
       "toolset": "master-data",
       "module": "parties",
-      "desc": "Ubah data mitra (nama, tipe, kontak, NPWP, isWapu, isActive). Parsial: hanya field yang dikirim berubah. Perhatian: isWapu/taxId memengaruhi perlakuan pajak faktur berikutnya; isActive=false menyembunyikan dari pilihan transaksi baru.",
+      "desc": "Ubah data mitra (nama, tipe, kontak, NPWP, isWapu, isActive). Parsial: hanya field yang dikirim berubah; null atau string kosong menghapus phone/email/address/taxId. Perhatian: isWapu/taxId memengaruhi perlakuan pajak faktur berikutnya; isActive=false menyembunyikan dari pilihan transaksi baru.",
       "risk": "write",
       "roles": [
         "Admin",
@@ -31676,7 +31676,7 @@
           "in": "body",
           "type": "string",
           "required": false,
-          "description": "Syarat pembayaran."
+          "description": "Syarat pembayaran; null atau string kosong = hapus."
         }
       ],
       "output": {

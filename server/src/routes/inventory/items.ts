@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
+import { clearable } from '../../utils/clearable';
 import { CreateInventoryItemSchema, UpdateInventoryItemSchema } from '../../utils/schemas';
 import { BusinessError, handleRouteError } from '../../utils/errors';
 import { parseListPaging, parseSort } from '../../utils/listQuery';
@@ -267,8 +268,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
         ...(body.code && { code: body.code }),
         ...(body.name && { name: body.name }),
         ...(body.unit && { unit: body.unit }),
-        category: body.category ?? undefined,
-        description: body.description ?? undefined,
+        category: clearable(body.category),
+        description: clearable(body.description),
         ...(body.minimumStock !== undefined && { minimumStock: body.minimumStock }),
         ...(body.accountId !== undefined && { accountId: body.accountId || null }),
         ...(body.isActive !== undefined && { isActive: body.isActive }),

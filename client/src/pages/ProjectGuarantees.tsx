@@ -12,6 +12,7 @@ import { can, cap } from '@/lib/permissions';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
 import { useListState } from '@/hooks/useListState';
+import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Button } from '@/components/ui/button';
 import {
@@ -111,18 +112,7 @@ export const ProjectGuarantees = () => {
     placeholderData: keepPreviousData,
   });
 
-  const partiesQuery = useQuery({
-    queryKey: ['parties', 'filter-options', 'all'],
-    queryFn: async () => {
-      const res = await api.get('/parties', { params: { limit: 200 } });
-      return (res.data.data ?? res.data) as Array<{ id: string; name: string }>;
-    },
-    staleTime: 5 * 60_000,
-  });
-  const partyOptions = useMemo(
-    () => (partiesQuery.data ?? []).map((p) => ({ value: p.id, label: p.name })),
-    [partiesQuery.data],
-  );
+  const partyPicker = usePartyPicker({ selectedId: list.filters.partyId || null });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['project-guarantees'] });
@@ -343,8 +333,7 @@ export const ProjectGuarantees = () => {
             searchPlaceholder="Cari pihak…"
             value={list.filters.partyId}
             onChange={(v) => list.setFilter('partyId', v)}
-            options={partyOptions}
-            loading={partiesQuery.isLoading}
+            {...partyPicker.pickerProps}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
