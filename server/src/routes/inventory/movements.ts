@@ -5,6 +5,7 @@ import { AuthRequest, requireCap } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { CreateStockMovementSchema, UpdateStockMovementSchema } from '../../utils/schemas';
 import { BusinessError, handleRouteError } from '../../utils/errors';
+import { documentMovementLockMessage } from '../../services/documentMovementLock';
 import { generateDocumentNumber } from '../../utils/documentNumber';
 import { updateAccountBalance, recalculateAccountBalances } from '../../utils/accountBalance';
 import { systemAccounts } from '../../services/systemAccounts';
@@ -333,9 +334,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
       if (oldMov.isCancelled) throw new BusinessError('Gerakan stok sudah dibatalkan, tidak bisa diedit.');
 
       // STT-linked movements must be edited from the STT page: a per-line edit would orphan the STT journal.
-      if (oldMov.referenceType === 'GoodsReceipt') {
-        throw new BusinessError('Gerakan stok dari STT tidak dapat diedit per baris. Batalkan atau revisi STT dari halaman STT.');
-      }
+      const editLock = documentMovementLockMessage(oldMov.referenceType, 'edit');
+      if (editLock) throw new BusinessError(editLock);
 
       // Reject if movement is linked to ProductionRun
       if (oldMov.referenceType === 'ProductionRun') {
@@ -542,9 +542,8 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
       });
       if (!movement) throw new BusinessError('Gerakan stok tidak ditemukan.');
       if (movement.isCancelled) throw new BusinessError('Gerakan stok sudah dibatalkan.');
-      if (movement.referenceType === 'GoodsReceipt') {
-        throw new BusinessError('Gerakan stok dari STT tidak dapat dibatalkan per baris. Batalkan STT dari halaman STT.');
-      }
+      const cancelLock = documentMovementLockMessage(movement.referenceType, 'cancel');
+      if (cancelLock) throw new BusinessError(cancelLock);
 
       const isIn = movement.movementType === 'In' || movement.movementType === 'AdjustmentIn';
       const isOut = movement.movementType === 'Out' || movement.movementType === 'AdjustmentOut';
