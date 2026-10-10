@@ -53,16 +53,16 @@ Pola yang lazim di ERP SaaS:
 
 ## Gerak
 
-Diatur pengguna di Pengaturan, dengan empat tingkat:
+Diatur pengguna di Pengaturan > Tampilan, dengan empat tingkat. Pilihan disimpan di browser, sama seperti tema.
 
 | Tingkat | Isi |
 |---|---|
-| Tidak ada | Tanpa transisi. |
-| Minimalis | Hanya buka/tutup dialog, drawer, dan menu. |
-| Halus *(bawaan, usulan)* | Ditambah transisi hover, pergantian tab, dan munculnya baris baru. |
+| Tidak ada | Tanpa transisi. Hanya ikon memuat yang tetap berputar. |
+| Minimalis | Hanya buka/tutup dialog, panel samping, dan menu. |
+| Halus *(bawaan, usulan)* | Ditambah transisi saat kursor lewat, pergantian tab, dan gulir halus. |
 | Terasa hidup | Ditambah angka KPI yang menghitung naik dan grafik yang beranimasi saat dimuat. |
 
-Jika sistem operasi meminta gerak dikurangi (`prefers-reduced-motion`), bawaan menjadi **Tidak ada** sampai pengguna memilih sendiri.
+Jika sistem operasi meminta gerak dikurangi (`prefers-reduced-motion`), bawaan menjadi **Tidak ada** sampai pengguna memilih sendiri. Kode: `client/src/lib/motion.ts`, atribut `<html data-motion>`.
 
 ## Dashboard
 

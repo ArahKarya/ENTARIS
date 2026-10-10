@@ -6,6 +6,7 @@ import { formatNumber } from '@/lib/format';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE } from '../dashboard-kit/chart-theme';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface MovementTrendRaw {
   month: string;
@@ -27,6 +28,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Se
 const LABELS: Record<string, string> = { masuk: 'Masuk', keluar: 'Keluar', net: 'Net' };
 
 export default function MovementTrendChart() {
+  const animate = useChartAnimation();
   const { data, isLoading, isError, refetch } = useQuery<MovementTrendItem[]>({
     queryKey: ['warehouse-movement-trend'],
     queryFn: async () => {
@@ -80,9 +82,9 @@ export default function MovementTrendChart() {
               cursor={{ fill: 'var(--muted)' }}
               formatter={(v, n) => [formatNumber(Number(v)), LABELS[String(n)] ?? String(n)]}
             />
-            <Bar dataKey="masuk" name="masuk" stackId="a" fill="var(--chart-3)" isAnimationActive={false} />
-            <Bar dataKey="keluar" name="keluar" stackId="a" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-            <Line type="monotone" dataKey="net" name="net" stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: 'var(--chart-1)' }} isAnimationActive={false} />
+            <Bar dataKey="masuk" name="masuk" stackId="a" fill="var(--chart-3)" isAnimationActive={animate} />
+            <Bar dataKey="keluar" name="keluar" stackId="a" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
+            <Line type="monotone" dataKey="net" name="net" stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: 'var(--chart-1)' }} isAnimationActive={animate} />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartFrame>

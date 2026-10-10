@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 import { tabId } from './dashboardTabId';
+import { scrollBehavior } from '@/lib/motion';
 
 export interface SectionDef {
   id: string;
@@ -52,7 +53,7 @@ export default function DashboardSectionNav({ sections, scrollRootId = 'main-con
     clickedRef.current = id;
     setActive(id);
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
     if (clickTimerRef.current) window.clearTimeout(clickTimerRef.current);
     clickTimerRef.current = window.setTimeout(() => {
       clickedRef.current = null;

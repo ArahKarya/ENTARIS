@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE } from '../dashboard-kit/chart-theme';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface YieldTrendMonth {
   label: string;
@@ -21,6 +22,7 @@ interface YieldTrendData {
 }
 
 export default function YieldTrendChart() {
+  const animate = useChartAnimation();
   const { data, isLoading, isError, refetch } = useQuery<YieldTrendData>({
     queryKey: ['dashboard-yield-trend'],
     queryFn: async () => (await api.get('/inventory/dashboard/yield-trend')).data,
@@ -86,7 +88,7 @@ export default function YieldTrendChart() {
                     label={{ value: `avg ${data.overallAvg.toFixed(1)}%`, position: 'insideTopRight', fontSize: 10, fill: 'var(--muted-foreground)' }}
                   />
                 )}
-                <Line type="monotone" dataKey="avgYield" stroke="var(--chart-2)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--chart-2)' }} activeDot={{ r: 5 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="avgYield" stroke="var(--chart-2)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--chart-2)' }} activeDot={{ r: 5 }} isAnimationActive={animate} />
               </LineChart>
             </ResponsiveContainer>
           </ChartFrame>

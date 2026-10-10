@@ -4,6 +4,7 @@ import { formatRupiah } from '@/lib/format';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE, compactIdrTick } from '../dashboard-kit/chart-theme';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface Point {
   name: string;
@@ -21,6 +22,7 @@ interface RevenueChartProps {
 }
 
 export default function RevenueChart({ data, loading, isError, onRetry, description = 'Per bulan pada periode terpilih' }: RevenueChartProps) {
+  const animate = useChartAnimation();
   const rows = data ?? [];
   const totalIn = rows.reduce((s, r) => s + r.pendapatan, 0);
   const totalOut = rows.reduce((s, r) => s + r.beban, 0);
@@ -56,8 +58,8 @@ export default function RevenueChart({ data, loading, isError, onRetry, descript
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
             <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={compactIdrTick} domain={[0, 'auto']} width={44} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatRupiah(Number(v))} />
-            <Area type="monotone" dataKey="pendapatan" name="Pendapatan" stroke="var(--chart-2)" strokeWidth={2} fill="var(--chart-2)" fillOpacity={0.12} dot={rows.length <= 2} isAnimationActive={false} />
-            <Area type="monotone" dataKey="beban" name="Beban" stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="5 3" fill="var(--chart-4)" fillOpacity={0.08} dot={rows.length <= 2} isAnimationActive={false} />
+            <Area type="monotone" dataKey="pendapatan" name="Pendapatan" stroke="var(--chart-2)" strokeWidth={2} fill="var(--chart-2)" fillOpacity={0.12} dot={rows.length <= 2} isAnimationActive={animate} />
+            <Area type="monotone" dataKey="beban" name="Beban" stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="5 3" fill="var(--chart-4)" fillOpacity={0.08} dot={rows.length <= 2} isAnimationActive={animate} />
           </AreaChart>
         </ResponsiveContainer>
       </ChartFrame>

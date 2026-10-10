@@ -40,6 +40,7 @@ import {
   formatQueueCount,
   waitingDays,
 } from '@/components/inventory/approval-queue';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface ProductionDashboardData {
   yieldTrend: YieldTrendPoint[];
@@ -202,6 +203,7 @@ function YieldTrendPanel({
   rangeLabel: string;
   className?: string;
 }) {
+  const animate = useChartAnimation();
   const rows = useMemo(() => yieldTrendRows(query.data?.yieldTrend ?? []), [query.data]);
   const domain = useMemo(() => yieldDomain(rows.map((r) => r.avgYield), periodYield), [rows, periodYield]);
   return (
@@ -253,7 +255,7 @@ function YieldTrendPanel({
                     label={{ value: `Tertimbang ${formatYield(periodYield)}`, position: 'insideTopRight', fontSize: 11, fill: 'var(--text-muted)' }}
                   />
                 )}
-                <Line
+                <Line isAnimationActive={animate}
                   type="monotone"
                   dataKey="avgYield"
                   stroke="var(--chart-2)"

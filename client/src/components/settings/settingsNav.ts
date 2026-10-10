@@ -45,7 +45,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       { id: 'notifications', label: 'Notifikasi', icon: Send, description: 'Kirim notifikasi sistem ke Telegram.' },
       { id: 'backup', label: 'Cadangan & Pemulihan', icon: HardDrive, description: 'Buat, unduh, unggah, dan pulihkan cadangan database.' },
       { id: 'agentic', label: 'AIRA (MCP)', icon: AiraIcon, rbacOnly: true, description: 'Status AIRA, token MCP untuk engine AIRA, dan riwayat panggilan tool.' },
-      { id: 'appearance', label: 'Tampilan', icon: Palette, description: 'Tema terang, gelap, atau mengikuti sistem.' },
+      { id: 'appearance', label: 'Tampilan', icon: Palette, description: 'Tema terang atau gelap, dan tingkat gerak animasi.' },
       { id: 'about', label: 'Tentang', icon: Info, description: 'Versi aplikasi, pembaruan, dan riwayat perubahan.' },
     ],
   },

@@ -25,6 +25,7 @@ import { INCIDENT_SEVERITY_META, INSPECTION_RESULT_META, INSURANCE_TYPE_LABELS, 
 import { DetailItem, DueMarker, ToneBadge, UnitHeader } from '@/components/ga/vehicle/vehicle-ui';
 import { downloadBlob } from '@/components/ga/vehicle/documents-api';
 import { FLUSH_TABLE } from '@/components/ga/vehicle/ui-classes';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 export type ComplianceState = 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE';
 
@@ -79,6 +80,7 @@ interface ComplianceRow {
 const toDue = (s: ComplianceState) => (s === 'EXPIRED' ? 'overdue' : s === 'EXPIRING' ? 'dueSoon' : s === 'OK' ? 'ok' : null);
 
 export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
+  const animate = useChartAnimation();
   const { period, setPreset, setRange } = useReportPeriod();
   const [busy, setBusy] = useState(false);
   const company = useCompanyPDF();
@@ -304,7 +306,7 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
                       }}
                     />
                     {COSTS.map((c, i) => (
-                      <Bar key={c.key} dataKey={c.key} stackId="cost" fill={c.color} stroke="var(--card)" strokeWidth={1} maxBarSize={28} radius={i === COSTS.length - 1 ? [3, 3, 0, 0] : 0} />
+                      <Bar isAnimationActive={animate} key={c.key} dataKey={c.key} stackId="cost" fill={c.color} stroke="var(--card)" strokeWidth={1} maxBarSize={28} radius={i === COSTS.length - 1 ? [3, 3, 0, 0] : 0} />
                     ))}
                   </BarChart>
                 </ResponsiveContainer>

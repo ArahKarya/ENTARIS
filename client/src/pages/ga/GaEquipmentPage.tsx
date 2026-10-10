@@ -33,6 +33,7 @@ import { AssetPickerList } from '@/components/ga/assets/AssetPickerList';
 import { OptionSelect } from '@/components/ga/assets/OptionSelect';
 import { CalibrationFormSheet, type CalibrationLog } from '@/components/ga/assets/CalibrationFormSheet';
 import { useAssetSelection } from '@/components/ga/assets/useAssetSelection';
+import { scrollBehavior } from '@/lib/motion';
 
 /** Equipment markers are fetched per asset; cap the fan-out for very long lists. */
 const MARKER_LIMIT = 40;
@@ -129,7 +130,7 @@ export const GaEquipmentPage = () => {
   const onSelect = (a: AssetRow) => {
     select(a.id);
     if (window.matchMedia('(max-width: 1023px)').matches) {
-      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' }));
     }
   };
 

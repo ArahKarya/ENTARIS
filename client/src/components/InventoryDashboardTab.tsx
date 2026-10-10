@@ -43,6 +43,7 @@ import {
   type StockMovementRow,
   type StockMovementSummary,
 } from '@/components/inventory/inventory-rows';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 type ValueBy = 'category' | 'warehouse';
 const VALUE_BY_PARAM = 'valueBy';
@@ -396,6 +397,7 @@ function StockValuePanel({
   query: ReturnType<typeof useQuery<StockValueBreakdown>>;
   className?: string;
 }) {
+  const animate = useChartAnimation();
   const data = query.data;
   const groups = data?.groups ?? [];
   const chartHeight = Math.max(160, groups.length * 36 + 24);
@@ -454,7 +456,7 @@ function StockValuePanel({
                     );
                   }}
                 />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                <Bar isAnimationActive={animate} dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
                   {groups.map((g) => (
                     <Cell key={g.key} fill={g.key === OTHER_GROUP_KEY ? 'var(--chart-6)' : 'var(--chart-2)'} />
                   ))}
