@@ -184,7 +184,7 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
     <div>
       <header className="mb-8">
         {tenant && (
-          <p className="mb-4 hidden max-w-full truncate rounded-full border border-(--border) bg-(--surface-sunken) px-3 py-1 text-[13px] leading-5 text-(--text-secondary) lg:inline-block">
+          <p className="mb-4 hidden max-w-full truncate rounded-md border border-(--border) bg-(--surface-sunken) px-3 py-1 text-[13px] leading-5 text-(--text-secondary) lg:inline-block">
             Ruang kerja · <span className="font-medium text-(--text)">{tenant}</span>
           </p>
         )}

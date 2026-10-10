@@ -150,7 +150,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
 
       {sourceAccountId && destAccountId && (
         <div className="flex items-center justify-center">
-          <div className="flex items-center gap-2 rounded-full bg-info-subtle px-4 py-1.5 text-xs font-medium text-info-text">
+          <div className="flex items-center gap-2 rounded-md bg-info-subtle px-4 py-1.5 text-xs font-medium text-info-text">
             <ArrowRightLeft className="size-3" aria-hidden />
             Transfer ke
           </div>
