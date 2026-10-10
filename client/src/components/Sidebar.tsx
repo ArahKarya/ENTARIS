@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { can } from '@/lib/permissions';
@@ -59,6 +60,8 @@ function ShortChip({ text }: { text: string }) {
 }
 
 export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
+  // Subscribes to language changes: nav labels are getters that translate on read.
+  const { t } = useTranslation('shell');
   const { pathname } = useLocation();
   const baseId = useId();
   const [railStored, setRailStored] = useState<boolean>(() => readJSON<boolean>(RAIL_KEY, false) === true);
@@ -232,7 +235,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         <Link
           to="/"
           onClick={onNavigate}
-          aria-label={rail ? 'Entaris, ke Dasbor' : undefined}
+          aria-label={rail ? t('sidebar.homeLink') : undefined}
           className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           {rail ? <BrandMark variant="auto" size={28} title="" /> : <Wordmark size="md" product="ERP" />}
@@ -240,7 +243,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
       </div>
 
       <TooltipProvider delayDuration={200}>
-        <nav aria-label="Navigasi utama" className={cn('flex-1 overflow-y-auto overscroll-contain py-3', rail ? 'px-2' : 'px-3')}>
+        <nav aria-label={t('sidebar.mainNav')} className={cn('flex-1 overflow-y-auto overscroll-contain py-3', rail ? 'px-2' : 'px-3')}>
           {rail ? (
             <ul className="flex flex-col gap-1">
               {sections.map((s, i) =>
@@ -260,7 +263,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
           <button
             type="button"
             onClick={toggleRail}
-            aria-label={rail ? 'Lebarkan sidebar' : 'Ciutkan sidebar'}
+            aria-label={rail ? t('sidebar.expand') : t('sidebar.collapse')}
             className={cn(
               itemBase,
               'text-muted-foreground',
@@ -268,7 +271,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
             )}
           >
             {rail ? <PanelLeftOpen {...ICON} aria-hidden /> : <PanelLeftClose {...ICON} aria-hidden />}
-            {!rail && <span>Ciutkan</span>}
+            {!rail && <span>{t('sidebar.collapseShort')}</span>}
           </button>
         </div>
       )}

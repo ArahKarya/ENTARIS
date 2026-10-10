@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
-import { formatDateTime } from '../lib/format';
+import { LOCALE, formatDateTime } from '../lib/format';
 import { notificationLink, currentUserRole } from '../lib/notificationNav';
 
 interface Notification {
@@ -36,13 +38,13 @@ const POLL_MS = 60_000;
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'Baru saja';
-  if (minutes < 60) return `${minutes} menit lalu`;
+  if (minutes < 1) return i18n.t('relativeTime.justNow', { ns: 'common' });
+  if (minutes < 60) return i18n.t('relativeTime.minutesAgo', { ns: 'common', count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
+  if (hours < 24) return i18n.t('relativeTime.hoursAgo', { ns: 'common', count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} hari lalu`;
-  return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  if (days < 7) return i18n.t('relativeTime.daysAgo', { ns: 'common', count: days });
+  return new Date(dateStr).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' });
 }
 
 type Tone = 'danger' | 'success' | 'warning' | 'info';
@@ -94,6 +96,7 @@ function handleRowKeys(e: KeyboardEvent<HTMLButtonElement>) {
 
 /** Topbar bell: unread badge + popover with the latest notifications. */
 export const NotificationBell = () => {
+  const { t } = useTranslation(['shell', 'common']);
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -147,7 +150,8 @@ export const NotificationBell = () => {
   const unreadCount: number = unreadData?.count || 0;
   const notifications: Notification[] = (list.data?.data || []).slice(0, LIST_LIMIT);
   const badge = unreadCount > 9 ? '9+' : String(unreadCount);
-  const triggerLabel = unreadCount > 0 ? `Notifikasi, ${unreadCount} belum dibaca` : 'Notifikasi, tidak ada yang belum dibaca';
+  const triggerLabel =
+    unreadCount > 0 ? t('notificationBell.triggerUnread', { count: unreadCount }) : t('notificationBell.triggerNone');
 
   const openNotification = (notif: Notification) => {
     if (!notif.isRead) markReadMutation.mutate(notif.id);
@@ -193,7 +197,7 @@ export const NotificationBell = () => {
         >
           <div className="flex items-center gap-2 border-b border-border py-2 pr-2 pl-4">
             <h2 id="notif-popover-title" className="flex-1 text-sm font-semibold text-foreground">
-              Notifikasi
+              {t('notificationBell.title')}
             </h2>
             {unreadCount > 0 && (
               <button
@@ -203,11 +207,11 @@ export const NotificationBell = () => {
                 className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-primary transition-colors hover:bg-primary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
               >
                 <CheckCheck size={14} aria-hidden />
-                Tandai semua dibaca
+                {t('notificationBell.markAllRead')}
               </button>
             )}
             <PopoverPrimitive.Close
-              aria-label="Tutup notifikasi"
+              aria-label={t('notificationBell.close')}
               className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X size={16} aria-hidden />
@@ -218,17 +222,17 @@ export const NotificationBell = () => {
             {list.isPending ? (
               <div role="status" className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                 <Loader2 size={16} className="animate-spin" aria-hidden />
-                Memuat notifikasi…
+                {t('notificationBell.loading')}
               </div>
             ) : list.isError ? (
               <div role="alert" className="px-4 py-8 text-center">
-                <p className="text-sm font-medium text-foreground">Notifikasi gagal dimuat</p>
+                <p className="text-sm font-medium text-foreground">{t('notificationBell.loadFailed')}</p>
                 <button
                   type="button"
                   onClick={() => list.refetch()}
                   className="mt-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  Coba lagi
+                  {t('common:actions.retry')}
                 </button>
               </div>
             ) : notifications.length === 0 ? (
@@ -236,13 +240,13 @@ export const NotificationBell = () => {
                 <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                   <Bell size={24} strokeWidth={1.5} aria-hidden />
                 </span>
-                <p className="mt-3 text-sm font-semibold text-foreground">Belum ada notifikasi</p>
+                <p className="mt-3 text-sm font-semibold text-foreground">{t('notificationBell.emptyTitle')}</p>
                 <p className="mt-1 max-w-[16rem] text-xs text-muted-foreground">
-                  Faktur jatuh tempo, stok menipis, dan permintaan persetujuan akan muncul di sini.
+                  {t('notificationBell.emptyDescription')}
                 </p>
               </div>
             ) : (
-              <ul aria-label="Notifikasi terbaru" className="divide-y divide-border">
+              <ul aria-label={t('notificationBell.latest')} className="divide-y divide-border">
                 {notifications.map((notif) => (
                   <li key={notif.id}>
                     <NotificationRow notif={notif} onOpen={() => openNotification(notif)} />
@@ -258,7 +262,7 @@ export const NotificationBell = () => {
               onClick={() => setIsOpen(false)}
               className="flex h-8 items-center justify-center rounded-md text-sm font-medium text-primary transition-colors hover:bg-primary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Lihat semua notifikasi
+              {t('notificationBell.viewAll')}
             </Link>
           </div>
         </PopoverPrimitive.Content>
@@ -268,6 +272,7 @@ export const NotificationBell = () => {
 };
 
 function NotificationRow({ notif, onOpen }: { notif: Notification; onOpen: () => void }) {
+  const { t } = useTranslation('shell');
   const { icon: Icon, tone } = TYPE_META[notif.type] ?? FALLBACK_META;
   return (
     <button
@@ -290,7 +295,7 @@ function NotificationRow({ notif, onOpen }: { notif: Notification; onOpen: () =>
           </span>
           {!notif.isRead && (
             <span className="size-2 shrink-0 rounded-full bg-primary">
-              <span className="sr-only">Belum dibaca</span>
+              <span className="sr-only">{t('notificationBell.unread')}</span>
             </span>
           )}
         </span>

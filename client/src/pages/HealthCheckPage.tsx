@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, ChevronDown, ListChecks, Play, Wrench, XCircle, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { can } from '@/lib/permissions';
@@ -44,43 +46,48 @@ interface CheckInfo {
   fixEffect?: string;
 }
 
-/** Server check name → Indonesian title and fix metadata. */
-const CHECKS: Record<string, CheckInfo> = {
-  'ALE vs JournalItem Sync': {
-    title: 'Sinkronisasi buku besar (ALE) dengan jurnal',
-    fixKey: 'ale-sync',
-    fixEffect: 'Baris buku besar (ALE) yang berasal dari jurnal dihapus lalu dibuat ulang dari jurnal yang ada.',
-  },
-  'Account Balance Drift': {
-    title: 'Selisih saldo akun',
-    fixKey: 'account-balance-drift',
-    fixEffect: 'Saldo tersimpan akun yang selisih ditimpa dengan saldo hasil hitung ulang dari buku besar.',
-  },
-  'Unbalanced Journal Entries': { title: 'Jurnal tidak seimbang' },
-  'Orphan ALE Entries': {
-    title: 'Baris buku besar tanpa dokumen (ALE yatim)',
-    fixKey: 'orphan-ale',
-    fixEffect: 'Baris buku besar yang dokumen sumbernya sudah tidak ada akan dihapus.',
-  },
-  'Stock vs Movement Mismatch': { title: 'Stok tidak sesuai mutasi' },
-  'Drift Stok per Gudang': { title: 'Selisih stok per gudang' },
+type CheckKey = 'aleSync' | 'balanceDrift' | 'unbalancedJournals' | 'orphanAle' | 'stockMismatch' | 'warehouseDrift';
+
+/** Server check name → `auth:healthCheck.checks.<key>` and the fix endpoint key. */
+const CHECKS: Record<string, { key: CheckKey; fixKey?: string }> = {
+  'ALE vs JournalItem Sync': { key: 'aleSync', fixKey: 'ale-sync' },
+  'Account Balance Drift': { key: 'balanceDrift', fixKey: 'account-balance-drift' },
+  'Unbalanced Journal Entries': { key: 'unbalancedJournals' },
+  'Orphan ALE Entries': { key: 'orphanAle', fixKey: 'orphan-ale' },
+  'Stock vs Movement Mismatch': { key: 'stockMismatch' },
+  'Drift Stok per Gudang': { key: 'warehouseDrift' },
 };
 
-const STATUS: Record<CheckStatus, { label: string; icon: LucideIcon; className: string }> = {
-  ok: { label: 'OK', icon: CheckCircle2, className: 'text-success-text' },
-  warning: { label: 'Peringatan', icon: AlertTriangle, className: 'text-warning-text' },
-  error: { label: 'Gagal', icon: XCircle, className: 'text-danger-text' },
+/** Translated title and fix text for a server check (unknown checks keep the server name). */
+function checkInfo(name: string): CheckInfo {
+  const known = CHECKS[name];
+  if (!known) return { title: name };
+  const title = i18n.t(`healthCheck.checks.${known.key}.title`, { ns: 'auth' });
+  if (!known.fixKey) return { title };
+  return {
+    title,
+    fixKey: known.fixKey,
+    fixEffect: i18n.t(`healthCheck.fixEffects.${known.key as 'aleSync' | 'balanceDrift' | 'orphanAle'}`, { ns: 'auth' }),
+  };
+}
+
+/** Label: `auth:healthCheck.status.<status>`. */
+const STATUS: Record<CheckStatus, { icon: LucideIcon; className: string }> = {
+  ok: { icon: CheckCircle2, className: 'text-success-text' },
+  warning: { icon: AlertTriangle, className: 'text-warning-text' },
+  error: { icon: XCircle, className: 'text-danger-text' },
 };
 
 const PREVIEW_ROWS = 50;
 
 function StatusLabel({ status, className }: { status: CheckStatus; className?: string }) {
+  const { t } = useTranslation('auth');
   const meta = STATUS[status];
   const Icon = meta.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-sm font-medium', meta.className, className)}>
       <Icon className="size-4 shrink-0" aria-hidden />
-      {meta.label}
+      {t(`healthCheck.status.${status}`)}
     </span>
   );
 }
@@ -133,6 +140,7 @@ function DetailTable({ rows, caption }: { rows: Record<string, unknown>[]; capti
 }
 
 export default function HealthCheckPage() {
+  const { t } = useTranslation(['auth', 'common']);
   const queryClient = useQueryClient();
   const canFix = can('audit', 'edit');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -155,7 +163,7 @@ export default function HealthCheckPage() {
       toast.success(result.message);
       queryClient.invalidateQueries({ queryKey: ['health-check'] });
     },
-    onError: () => toast.error('Gagal memperbaiki masalah.'),
+    onError: () => toast.error(t('healthCheck.fixFailed')),
   });
 
   const data = healthQuery.data;
@@ -171,62 +179,58 @@ export default function HealthCheckPage() {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Pemeriksaan Sistem"
-        description={
-          ranAt
-            ? `Pemeriksaan integritas data buku besar dan stok. Terakhir dijalankan ${ranAt}.`
-            : 'Pemeriksaan integritas data buku besar dan stok.'
-        }
+        title={t('healthCheck.title')}
+        description={ranAt ? t('healthCheck.descriptionRan', { time: ranAt }) : t('healthCheck.description')}
         actions={
           <Button onClick={() => healthQuery.refetch()} loading={healthQuery.isFetching}>
             <Play aria-hidden />
-            Jalankan pemeriksaan
+            {t('healthCheck.run')}
           </Button>
         }
       />
 
-      <section aria-label="Ringkasan hasil pemeriksaan" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('healthCheck.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Status Keseluruhan"
+          label={t('healthCheck.overall')}
           icon={ListChecks}
           loading={loadingKpi}
-          value={data ? STATUS[data.status].label : '—'}
-          hint={data ? `${formatNumber(counts.ok)} dari ${formatNumber(checks.length)} lolos` : undefined}
+          value={data ? t(`healthCheck.status.${data.status}`) : '—'}
+          hint={data ? t('healthCheck.passed', { ok: formatNumber(counts.ok), total: formatNumber(checks.length) }) : undefined}
         />
-        <StatCard label="OK" icon={CheckCircle2} loading={loadingKpi} value={data ? formatNumber(counts.ok) : '—'} />
+        <StatCard label={t('healthCheck.status.ok')} icon={CheckCircle2} loading={loadingKpi} value={data ? formatNumber(counts.ok) : '—'} />
         <StatCard
-          label="Peringatan"
+          label={t('healthCheck.status.warning')}
           icon={AlertTriangle}
           loading={loadingKpi}
           value={data ? formatNumber(counts.warning) : '—'}
         />
         <StatCard
-          label="Gagal"
+          label={t('healthCheck.status.error')}
           icon={XCircle}
           loading={loadingKpi}
           value={data ? formatNumber(counts.error) : '—'}
-          hint={data ? `${formatNumber(issues)} temuan` : undefined}
+          hint={data ? t('healthCheck.findings', { count: issues, formatted: formatNumber(issues) }) : undefined}
         />
       </section>
 
-      {healthQuery.isLoading && <LoadingState label="Memeriksa kesehatan sistem…" />}
+      {healthQuery.isLoading && <LoadingState label={t('healthCheck.loading')} />}
       {healthQuery.isError && !data && (
         <EmptyState
           kind="error"
-          title="Pemeriksaan gagal dijalankan"
-          description="Coba jalankan ulang beberapa saat lagi."
+          title={t('healthCheck.errorTitle')}
+          description={t('healthCheck.errorDescription')}
           action={
             <Button size="sm" variant="outline" onClick={() => healthQuery.refetch()}>
-              Coba lagi
+              {t('common:actions.retry')}
             </Button>
           }
         />
       )}
 
       {data && (
-        <ul aria-label="Daftar pemeriksaan" className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+        <ul aria-label={t('healthCheck.listLabel')} className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
           {checks.map((check) => {
-            const info = CHECKS[check.name] ?? { title: check.name };
+            const info = checkInfo(check.name);
             const details = check.details ?? [];
             const isOpen = !!expanded[check.name];
             const panelId = `check-${check.name.replace(/\W+/g, '-')}`;
@@ -241,7 +245,9 @@ export default function HealthCheckPage() {
                     </div>
                     <p className="break-words text-sm text-muted-foreground">{check.message}</p>
                     {check.status !== 'ok' && check.count > 0 && (
-                      <p className="text-xs text-muted-foreground">{formatNumber(check.count)} temuan</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('healthCheck.findings', { count: check.count, formatted: formatNumber(check.count) })}
+                      </p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -254,7 +260,7 @@ export default function HealthCheckPage() {
                         onClick={() => setExpanded((prev) => ({ ...prev, [check.name]: !prev[check.name] }))}
                       >
                         <ChevronDown className={cn('transition-transform', isOpen && 'rotate-180')} aria-hidden />
-                        {isOpen ? 'Sembunyikan detail' : 'Lihat detail'}
+                        {isOpen ? t('healthCheck.hideDetail') : t('healthCheck.showDetail')}
                       </Button>
                     )}
                     {showFix && (
@@ -265,14 +271,14 @@ export default function HealthCheckPage() {
                         disabled={fixMutation.isPending}
                       >
                         <Wrench aria-hidden />
-                        Perbaiki
+                        {t('healthCheck.fix')}
                       </Button>
                     )}
                   </div>
                 </div>
                 {isOpen && details.length > 0 && (
                   <div id={panelId} className="mt-3">
-                    <DetailTable rows={details} caption={`Detail ${info.title}`} />
+                    <DetailTable rows={details} caption={t('healthCheck.detailCaption', { title: info.title })} />
                   </div>
                 )}
               </li>
@@ -285,29 +291,31 @@ export default function HealthCheckPage() {
         open={confirm !== null}
         onOpenChange={(open) => !open && setConfirm(null)}
         tone="danger"
-        title={confirm ? `Perbaiki: ${confirm.info.title}?` : ''}
+        title={confirm ? t('healthCheck.confirmTitle', { title: confirm.info.title }) : ''}
         description={confirm?.info.fixEffect}
-        confirmLabel="Ya, perbaiki"
+        confirmLabel={t('healthCheck.confirmLabel')}
         loading={previewQuery.isLoading}
         onConfirm={() => fixMutation.mutateAsync(confirm!.key)}
       >
         <div className="max-h-[50dvh] min-w-0 space-y-3 overflow-y-auto text-sm">
-          {previewQuery.isLoading && <p className="text-muted-foreground">Memuat pratinjau perubahan…</p>}
-          {previewQuery.isError && <p className="text-danger-text">Gagal memuat pratinjau perubahan.</p>}
+          {previewQuery.isLoading && <p className="text-muted-foreground">{t('healthCheck.previewLoading')}</p>}
+          {previewQuery.isError && <p className="text-danger-text">{t('healthCheck.previewFailed')}</p>}
           {preview && (
             <>
               <p className="font-medium text-foreground">{preview.description}</p>
               {preview.warning && (
                 <p className="rounded-md bg-warning-subtle px-3 py-2 text-warning-text">{preview.warning}</p>
               )}
-              <DetailTable rows={preview.details.slice(0, PREVIEW_ROWS)} caption="Baris yang akan diubah" />
+              <DetailTable rows={preview.details.slice(0, PREVIEW_ROWS)} caption={t('healthCheck.previewCaption')} />
               {preview.details.length > PREVIEW_ROWS && (
                 <p className="text-xs text-muted-foreground">
-                  Menampilkan {formatNumber(PREVIEW_ROWS)} dari {formatNumber(preview.details.length)} baris. Semua akan
-                  diproses saat perbaikan dijalankan.
+                  {t('healthCheck.previewTruncated', {
+                    shown: formatNumber(PREVIEW_ROWS),
+                    total: formatNumber(preview.details.length),
+                  })}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">Perbaikan dicatat di Jejak Audit.</p>
+              <p className="text-xs text-muted-foreground">{t('healthCheck.auditNote')}</p>
             </>
           )}
         </div>

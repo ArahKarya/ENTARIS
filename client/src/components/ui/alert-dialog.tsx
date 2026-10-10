@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 /** @deprecated prefer `ConfirmDialog` from components/shared (supports tone + reason). */
 
@@ -26,11 +27,12 @@ export function AlertDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Hapus',
-  cancelLabel = 'Batal',
+  confirmLabel,
+  cancelLabel,
   variant = 'danger',
   onConfirm,
 }: AlertDialogProps) {
+  const { t } = useTranslation('common');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="sm" role="alertdialog">
@@ -40,7 +42,7 @@ export function AlertDialog({
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {cancelLabel}
+            {cancelLabel ?? t('actions.cancel')}
           </Button>
           <Button
             variant={variant}
@@ -49,7 +51,7 @@ export function AlertDialog({
               onOpenChange(false);
             }}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('actions.delete')}
           </Button>
         </DialogFooter>
       </DialogContent>

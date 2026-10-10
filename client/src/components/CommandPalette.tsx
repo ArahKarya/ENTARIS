@@ -3,6 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Command } from 'cmdk';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
   Clock,
@@ -18,6 +19,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import api from '@/lib/api';
+import i18n from '@/i18n';
+import { LOCALE } from '@/lib/format';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -49,20 +52,30 @@ interface CommandPaletteProps {
   onClose: () => void;
 }
 
-/** Record types returned by GET /api/search (labels follow the sidebar names). */
-const RECORD_TYPES: Record<string, { label: string; icon: LucideIcon }> = {
-  party: { label: 'Kontak', icon: Users },
-  sales: { label: 'Faktur Penjualan', icon: FileText },
-  purchase: { label: 'Faktur Pembelian', icon: FileText },
-  payment: { label: 'Kas & Bank', icon: CreditCard },
-  journal: { label: 'Jurnal', icon: BookOpen },
-  account: { label: 'Akun', icon: List },
+type RecordTypeKey = 'party' | 'sales' | 'purchase' | 'payment' | 'journal' | 'account';
+
+/** Record types returned by GET /api/search (labels follow the sidebar names, `shell:commandPalette.recordTypes.*`). */
+const RECORD_TYPES: Record<string, { key: RecordTypeKey; icon: LucideIcon }> = {
+  party: { key: 'party', icon: Users },
+  sales: { key: 'sales', icon: FileText },
+  purchase: { key: 'purchase', icon: FileText },
+  payment: { key: 'payment', icon: CreditCard },
+  journal: { key: 'journal', icon: BookOpen },
+  account: { key: 'account', icon: List },
 };
 
-const THEME_ACTIONS: { id: ThemeId; label: string; icon: LucideIcon; keywords: string }[] = [
-  { id: 'light', label: 'Ganti ke tema Terang', icon: Sun, keywords: 'tema terang light mode tampilan' },
-  { id: 'dark', label: 'Ganti ke tema Gelap', icon: Moon, keywords: 'tema gelap dark mode tampilan malam' },
-  { id: 'system', label: 'Ikuti tema Sistem', icon: Monitor, keywords: 'tema sistem otomatis system tampilan' },
+/** Label of a record type in the given (default: current) language. */
+function recordTypeLabel(key: RecordTypeKey | undefined, lng?: string): string {
+  return key
+    ? i18n.t(`commandPalette.recordTypes.${key}`, { ns: 'shell', lng })
+    : i18n.t('commandPalette.recordTypes.other', { ns: 'shell', lng });
+}
+
+/** Theme actions; `label` is `shell:commandPalette.theme.<id>`. Keywords stay bilingual for search. */
+const THEME_ACTIONS: { id: ThemeId; icon: LucideIcon; keywords: string }[] = [
+  { id: 'light', icon: Sun, keywords: 'tema terang light mode tampilan theme' },
+  { id: 'dark', icon: Moon, keywords: 'tema gelap dark mode tampilan malam theme' },
+  { id: 'system', icon: Monitor, keywords: 'tema sistem otomatis system tampilan theme' },
 ];
 
 const MIN_RECORD_QUERY = 2;
@@ -73,7 +86,7 @@ const RECENT_KEY = 'palette.recent';
 
 const canView: CanView = (m) => can(m, 'view');
 
-const fold = (s: string) => s.toLocaleLowerCase('id-ID').normalize('NFD').replace(/[̀-ͯ]/g, '');
+const fold = (s: string) => s.toLocaleLowerCase(LOCALE).normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 const SHORTCUT_BY_PATH = new Map(GO_TO_SHORTCUTS.map((s) => [s.path, s.combos[0]]));
 
@@ -110,6 +123,7 @@ function useTrackRecentPages() {
  * sidebar. Also mounts the `g <key>` shortcuts since it is always inside the router.
  */
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+  const { t } = useTranslation('shell');
   useTrackRecentPages();
   useGoToShortcuts(!isOpen);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -133,9 +147,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             'duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           )}
         >
-          <DialogPrimitive.Title className="sr-only">Palet perintah</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">{t('commandPalette.title')}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            Cari halaman, data transaksi, atau jalankan aksi. Gunakan panah atas dan bawah, lalu Enter untuk membuka.
+            {t('commandPalette.description')}
           </DialogPrimitive.Description>
           <PaletteBody inputRef={inputRef} onClose={onClose} />
         </DialogPrimitive.Content>
@@ -151,6 +165,7 @@ interface PaletteBodyProps {
 
 /** Mounted only while open, so the query and results start fresh each time. */
 function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
+  const { t } = useTranslation(['shell', 'common']);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { theme, setTheme } = useTheme();
@@ -193,8 +208,10 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
 
   const actions = useMemo(() => {
     const q = fold(trimmed);
-    return THEME_ACTIONS.filter((a) => a.id !== theme && (!q || fold(`${a.label} ${a.keywords}`).includes(q)));
-  }, [trimmed, theme]);
+    return THEME_ACTIONS.map((a) => ({ ...a, label: t(`commandPalette.theme.${a.id}`) })).filter(
+      (a) => a.id !== theme && (!q || fold(`${a.label} ${a.keywords}`).includes(q)),
+    );
+  }, [trimmed, theme, t]);
 
   const go = (to: string, state?: unknown) => {
     onClose();
@@ -205,14 +222,14 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
     trimmed.length > 0 && pageItems.length === 0 && actions.length === 0 && recordItems.length === 0 && !waitingForRecords;
 
   return (
-    <Command label="Cari halaman, data, atau aksi" shouldFilter={false} loop vimBindings={false} className="flex min-h-0 flex-col">
+    <Command label={t('commandPalette.label')} shouldFilter={false} loop vimBindings={false} className="flex min-h-0 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
         <Search size={18} strokeWidth={1.75} className="shrink-0 text-muted-foreground" aria-hidden />
         <Command.Input
           ref={inputRef}
           value={query}
           onValueChange={setQuery}
-          placeholder="Cari halaman, nomor faktur, kontak…"
+          placeholder={t('commandPalette.placeholder')}
           className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
         />
         {waitingForRecords && (
@@ -220,25 +237,25 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
         )}
         <DialogPrimitive.Close
           className="hidden h-6 shrink-0 items-center rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex"
-          aria-label="Tutup (Esc)"
+          aria-label={t('commandPalette.closeEsc')}
         >
           Esc
         </DialogPrimitive.Close>
         <DialogPrimitive.Close
           className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-sm text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden"
         >
-          Batal
+          {t('common:actions.cancel')}
         </DialogPrimitive.Close>
       </div>
 
       <div role="status" aria-live="polite" className="empty:hidden">
         {nothingFound && (
           <p className="px-4 pt-4 pb-1 text-sm text-muted-foreground">
-            Tidak ada halaman atau data untuk “{trimmed}”.
+            {t('commandPalette.nothingFound', { query: trimmed })}
           </p>
         )}
         {trimmed.length === 1 && (
-          <p className="px-4 pt-3 text-xs text-muted-foreground">Ketik minimal 2 huruf untuk mencari data transaksi.</p>
+          <p className="px-4 pt-3 text-xs text-muted-foreground">{t('commandPalette.minChars', { count: MIN_RECORD_QUERY })}</p>
         )}
       </div>
 
@@ -247,7 +264,7 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
         className="max-h-[min(26rem,calc(100dvh-9rem))] overflow-y-auto overscroll-contain p-2 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground"
       >
         {recent.length > 0 && (
-          <Command.Group heading="Terakhir dibuka">
+          <Command.Group heading={t('commandPalette.groups.recent')}>
             {recent.map((e) => (
               <PageItem key={e.path} entry={e} recent onSelect={() => go(e.path)} />
             ))}
@@ -255,7 +272,7 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
         )}
 
         {pageItems.length > 0 && (
-          <Command.Group heading="Halaman">
+          <Command.Group heading={t('commandPalette.groups.pages')}>
             {pageItems.map((e) => (
               <PageItem key={e.path} entry={e} onSelect={() => go(e.path)} />
             ))}
@@ -263,20 +280,24 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
         )}
 
         {(recordItems.length > 0 || (records.isError && recordQuery)) && (
-          <Command.Group heading="Data">
+          <Command.Group heading={t('commandPalette.groups.records')}>
             {records.isError ? (
-              <p className="px-2 py-2 text-sm text-danger-text">Pencarian data gagal. Coba ketik ulang sebentar lagi.</p>
+              <p className="px-2 py-2 text-sm text-danger-text">{t('commandPalette.recordsError')}</p>
             ) : (
               recordItems.map((r) => {
-                const meta = RECORD_TYPES[r.type] ?? { label: 'Data', icon: FileText };
+                const type = RECORD_TYPES[r.type];
+                const Icon = type?.icon ?? FileText;
+                const typeLabel = recordTypeLabel(type?.key);
+                // The server sends the Indonesian type name as subtitle; hide it in either language.
+                const redundant = r.subtitle === typeLabel || r.subtitle === recordTypeLabel(type?.key, 'id');
                 return (
                   <Item
                     key={`${r.type}-${r.id}`}
                     value={`record:${r.type}:${r.id}`}
-                    icon={<meta.icon size={16} strokeWidth={1.75} aria-hidden />}
+                    icon={<Icon size={16} strokeWidth={1.75} aria-hidden />}
                     title={r.title}
-                    subtitle={r.subtitle !== meta.label ? r.subtitle : null}
-                    trailing={<span className="text-xs text-muted-foreground">{meta.label}</span>}
+                    subtitle={redundant ? null : r.subtitle}
+                    trailing={<span className="text-xs text-muted-foreground">{typeLabel}</span>}
                     onSelect={() => go(r.url)}
                   />
                 );
@@ -286,7 +307,7 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
         )}
 
         {actions.length > 0 && (
-          <Command.Group heading="Aksi">
+          <Command.Group heading={t('commandPalette.groups.actions')}>
             {actions.map((a) => (
               <Item
                 key={a.id}
@@ -302,21 +323,21 @@ function PaletteBody({ inputRef, onClose }: PaletteBodyProps) {
           </Command.Group>
         )}
 
-        <Command.Group heading="Asisten">
+        <Command.Group heading={t('commandPalette.groups.assistant')}>
           <Item
             value="action:aira"
             icon={<AiraIcon size={16} />}
-            title={trimmed ? `Tanya AIRA tentang “${trimmed}”` : 'Tanya AIRA'}
-            subtitle="Buka Asisten AIRA"
+            title={trimmed ? t('commandPalette.askAiraAbout', { query: trimmed }) : t('commandPalette.askAira')}
+            subtitle={t('commandPalette.openAira')}
             onSelect={() => go('/aira', trimmed ? { prompt: trimmed } : undefined)}
           />
         </Command.Group>
       </Command.List>
 
       <div className="hidden shrink-0 items-center gap-4 border-t border-border px-4 py-2 text-xs text-muted-foreground sm:flex">
-        <Hint keys={['↑', '↓']}>pindah</Hint>
-        <Hint keys={['Enter']}>buka</Hint>
-        <Hint keys={['Esc']}>tutup</Hint>
+        <Hint keys={['↑', '↓']}>{t('commandPalette.hints.move')}</Hint>
+        <Hint keys={['Enter']}>{t('commandPalette.hints.open')}</Hint>
+        <Hint keys={['Esc']}>{t('commandPalette.hints.close')}</Hint>
       </div>
     </Command>
   );

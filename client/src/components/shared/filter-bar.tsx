@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { ListState } from '@/hooks/useListState';
 import { cn } from '@/lib/utils';
 import { DateInput } from './date-input';
+import { useTranslation } from 'react-i18next';
 
 export interface FilterOption {
   value: string;
@@ -38,14 +39,15 @@ const ALL = '__all__';
  */
 export function FilterBar<K extends string>({
   list,
-  searchPlaceholder = 'Cari…',
-  searchLabel = 'Cari',
+  searchPlaceholder,
+  searchLabel,
   status,
   dateRange,
   children,
   actions,
   className,
 }: FilterBarProps<K>) {
+  const { t } = useTranslation('common');
   const id = useId();
   const statusKey = (status?.key ?? 'status') as K;
   const range = dateRange ? (dateRange === true ? {} : dateRange) : null;
@@ -57,12 +59,12 @@ export function FilterBar<K extends string>({
   return (
     <div
       role="search"
-      aria-label="Filter daftar"
+      aria-label={t('filters.label')}
       className={cn('flex flex-wrap items-center gap-2', className)}
     >
       <div className="relative w-full sm:w-auto sm:min-w-60 sm:max-w-sm sm:flex-1">
         <label htmlFor={`${id}-q`} className="sr-only">
-          {searchLabel}
+          {searchLabel ?? t('actions.search')}
         </label>
         <Search
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -73,7 +75,7 @@ export function FilterBar<K extends string>({
           type="search"
           value={list.searchInput}
           onChange={(e) => list.setSearch(e.target.value)}
-          placeholder={searchPlaceholder}
+          placeholder={searchPlaceholder ?? t('filters.searchPlaceholder')}
           autoComplete="off"
           className="pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden"
         />
@@ -81,7 +83,7 @@ export function FilterBar<K extends string>({
           <button
             type="button"
             onClick={() => list.setSearch('')}
-            aria-label="Hapus pencarian"
+            aria-label={t('filters.clearSearch')}
             className="absolute right-1.5 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" aria-hidden />
@@ -92,7 +94,7 @@ export function FilterBar<K extends string>({
       {status && (
         <div className="w-[calc(50%-0.25rem)] sm:w-44">
           <label htmlFor={`${id}-status`} className="sr-only">
-            {status.label ?? 'Status'}
+            {status.label ?? t('labels.status')}
           </label>
           <Select
             value={list.filters[statusKey] || ALL}
@@ -102,7 +104,7 @@ export function FilterBar<K extends string>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>{status.allLabel ?? 'Semua status'}</SelectItem>
+              <SelectItem value={ALL}>{status.allLabel ?? t('filters.allStatuses')}</SelectItem>
               {status.options.map((o) => (
                 <SelectItem key={o.value} value={o.value}>
                   {o.label}
@@ -117,9 +119,9 @@ export function FilterBar<K extends string>({
 
       {range && (
         <fieldset className="flex w-full items-center gap-1.5 sm:w-auto">
-          <legend className="sr-only">{range.label ?? 'Rentang tanggal'}</legend>
+          <legend className="sr-only">{range.label ?? t('filters.dateRange')}</legend>
           <label htmlFor={`${id}-from`} className="sr-only">
-            Dari tanggal
+            {t('filters.dateFrom')}
           </label>
           <DateInput
             id={`${id}-from`}
@@ -132,7 +134,7 @@ export function FilterBar<K extends string>({
             –
           </span>
           <label htmlFor={`${id}-to`} className="sr-only">
-            Sampai tanggal
+            {t('filters.dateTo')}
           </label>
           <DateInput
             id={`${id}-to`}
@@ -152,7 +154,7 @@ export function FilterBar<K extends string>({
         className={cn('text-muted-foreground hover:text-foreground', !list.hasActiveFilters && 'hidden sm:inline-flex')}
       >
         <RotateCcw aria-hidden />
-        Reset
+        {t('actions.reset')}
       </Button>
 
       {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
