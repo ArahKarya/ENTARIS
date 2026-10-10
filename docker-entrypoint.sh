@@ -54,13 +54,19 @@ npx prisma migrate deploy
 echo "[APP] Migrations complete."
 
 # ── 4b. Auto-seed jika database masih kosong (pertama kali) ────────────────
-USER_COUNT=$(su-exec postgres psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM \"User\";" 2>/dev/null || echo "0")
-if [ "$USER_COUNT" = "0" ]; then
-  echo "[APP] Database kosong, menjalankan seed data awal..."
-  npx tsx prisma/seed.ts
-  echo "[APP] Seed selesai."
+# Seed only when the users table is readable and empty. A failed query must never
+# count as "empty": re-seeding an existing database recreates the demo accounts.
+if USER_COUNT=$(su-exec postgres psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM users;" 2>/dev/null); then
+  USER_COUNT=$(echo "$USER_COUNT" | tr -d '[:space:]')
+  if [ "$USER_COUNT" = "0" ]; then
+    echo "[APP] Database kosong, menjalankan seed data awal..."
+    npx tsx prisma/seed.ts
+    echo "[APP] Seed selesai."
+  else
+    echo "[APP] Database sudah berisi data ($USER_COUNT user), skip seed."
+  fi
 else
-  echo "[APP] Database sudah berisi data ($USER_COUNT user), skip seed."
+  echo "[APP] PERINGATAN: jumlah user tidak bisa dibaca, seed dilewati. Periksa koneksi database dan migrasi."
 fi
 
 # ── 5. Start Express server ─────────────────────────────────────────────────
