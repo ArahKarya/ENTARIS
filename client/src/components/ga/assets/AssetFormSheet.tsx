@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DateInput, Field } from '@/components/shared';
 import { FormNumberInput, FormSection, FormSheet } from '@/components/inventory/master-data-kit';
+import { ComboboxField } from '@/components/overlays/ComboboxField';
 import {
   ASSET_STATUSES,
   CONDITION_OPTIONS,
@@ -22,6 +23,8 @@ import {
 } from './asset-model';
 import { OptionSelect } from './OptionSelect';
 import { masterOptions, useGaMaster } from './useGaMaster';
+import { picOptions } from './pic-options';
+import { useUserOptions } from '../vehicle/vehicle-queries';
 
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -33,6 +36,7 @@ interface FormState {
   categoryId: string;
   branchId: string;
   costCenterId: string;
+  picUserId: string;
   serialNumber: string;
   acquisitionDate: string;
   acquisitionCost: string;
@@ -51,6 +55,7 @@ function initialForm(asset: AssetRow | null): FormState {
     categoryId: asset?.categoryId ?? '',
     branchId: asset?.branchId ?? '',
     costCenterId: asset?.costCenterId ?? '',
+    picUserId: asset?.picUserId ?? asset?.pic?.id ?? '',
     serialNumber: asset?.serialNumber ?? '',
     acquisitionDate: asset?.acquisitionDate ? String(asset.acquisitionDate).slice(0, 10) : '',
     acquisitionCost: asset?.acquisitionCost != null ? String(Number(asset.acquisitionCost)) : '',
@@ -92,6 +97,7 @@ export function AssetFormSheet({ asset, onClose, onSaved }: AssetFormSheetProps)
   const categories = useGaMaster('asset-categories');
   const branches = useGaMaster('branches');
   const costCenters = useGaMaster('cost-centers');
+  const users = useUserOptions('ga-users-pic-picker');
 
   // Stored photos come from the detail endpoint (the list carries one thumbnail at most).
   const detail = useQuery<{ photos?: AssetPhotoRow[] }>({
@@ -136,6 +142,7 @@ export function AssetFormSheet({ asset, onClose, onSaved }: AssetFormSheetProps)
         categoryId: form.categoryId,
         branchId: form.branchId,
         costCenterId: form.costCenterId || null,
+        picUserId: form.picUserId || null,
         serialNumber: form.serialNumber.trim() || null,
         acquisitionDate: form.acquisitionDate || null,
         acquisitionCost: form.acquisitionCost.trim() ? Number(form.acquisitionCost) : null,
@@ -224,6 +231,20 @@ export function AssetFormSheet({ asset, onClose, onSaved }: AssetFormSheetProps)
           <Field label="Lokasi">
             <Input value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Mis. Gudang Bahan Baku" />
           </Field>
+          <div className="sm:col-span-2">
+            <ComboboxField
+              label="Penanggung jawab"
+              value={form.picUserId}
+              onChange={(v) => set('picUserId', v)}
+              options={picOptions(users.data, asset?.pic)}
+              placeholder={users.isLoading ? 'Memuat…' : 'Belum ditentukan'}
+              hint={
+                users.isError
+                  ? 'Daftar pengguna tidak bisa dimuat; penanggung jawab saat ini tetap tersimpan.'
+                  : 'Untuk kendaraan, penanggung jawab adalah driver.'
+              }
+            />
+          </div>
         </div>
       </FormSection>
 

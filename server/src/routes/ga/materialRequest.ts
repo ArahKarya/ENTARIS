@@ -198,7 +198,12 @@ router.get('/:id', async (req: AuthRequest, res) => {
       },
     });
     if (!mr) return res.status(404).json({ error: 'Permintaan barang tidak ditemukan.' });
-    return res.json(mr);
+    // Same requester shape as the list, so deep links do not depend on the list page.
+    const user = await prisma.user.findUnique({
+      where: { id: mr.requestedById },
+      select: { fullName: true },
+    });
+    return res.json({ ...mr, requester: { id: mr.requestedById, fullName: user?.fullName ?? null } });
   } catch (error) {
     return handleRouteError(res, error, 'GET /ga/material-requests/:id', 'Gagal mengambil detail permintaan barang.');
   }

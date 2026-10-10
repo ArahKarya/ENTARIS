@@ -82,6 +82,7 @@ export interface MrDetail {
   journalEntryId?: string | null;
   asset?: { id: string; code: string; name: string } | null;
   workOrder?: { id: string; code: string; title: string; status: string } | null;
+  requester?: { id: string; fullName: string | null } | null;
   items: MrItemDetail[];
 }
 

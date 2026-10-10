@@ -10,6 +10,8 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import Decimal from 'decimal.js';
 import { prisma } from '../../lib/prisma';
+import { bumpVehicleOdometer } from '../../services/gaVehicleOdometer';
+import { buildWorkOrderServiceLogData } from '../../services/gaWorkOrderServiceLog';
 import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { BusinessError, handleRouteError } from '../../utils/errors';
@@ -550,6 +552,8 @@ router.patch('/work-orders/:id/close', async (req: AuthRequest, res) => {
         description: true,
         laborCost: true,
         externalCost: true,
+        externalVendor: true,
+        vehicleServiceReq: { select: { id: true, odometer: true, jenisService: true, serviceLogId: true } },
       },
     });
     if (!wo) throw new BusinessError('Work order tidak ditemukan.');
@@ -565,21 +569,17 @@ router.patch('/work-orders/:id/close', async (req: AuthRequest, res) => {
 
       const existingLog = await tx.gaVehicleServiceLog.findUnique({ where: { workOrderId: wo.id } });
       if (!existingLog) {
-        const labor = wo.laborCost ? new Decimal(wo.laborCost) : new Decimal(0);
-        const external = wo.externalCost ? new Decimal(wo.externalCost) : new Decimal(0);
-        const total = labor.plus(external);
-        await tx.gaVehicleServiceLog.create({
-          data: {
-            assetId: wo.assetId,
-            tanggal: closed.closedAt ?? new Date(),
-            jenisService: 'LAINNYA',
-            deskripsi: wo.title || wo.description || 'Work Order (auto dari close WO)',
-            biaya: total.greaterThan(0) ? total : null,
-            workOrderId: wo.id,
-            source: 'WORK_ORDER',
-            createdById: req.user!.userId,
-          },
+        // Carries odometer / service type from the source service request and the vendor as bengkel.
+        const log = await tx.gaVehicleServiceLog.create({
+          data: buildWorkOrderServiceLogData(wo, closed.closedAt ?? new Date(), req.user!.userId),
         });
+        const serviceReq = wo.vehicleServiceReq;
+        if (serviceReq) {
+          await bumpVehicleOdometer(tx, wo.assetId, serviceReq.odometer);
+          if (!serviceReq.serviceLogId) {
+            await tx.gaVehicleServiceRequest.update({ where: { id: serviceReq.id }, data: { serviceLogId: log.id } });
+          }
+        }
       }
 
       return closed;

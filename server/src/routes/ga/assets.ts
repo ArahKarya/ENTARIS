@@ -14,6 +14,7 @@ import { AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
 import { handleRouteError } from '../../utils/errors';
 import { parseSort } from '../../utils/listQuery';
+import { buildAssetUpdateData } from '../../services/gaAssetUpdate';
 
 const router = Router();
 
@@ -332,22 +333,7 @@ router.put('/:id', async (req, res) => {
   try {
     const updated = await prisma.gaAsset.update({
       where: { id: String(req.params.id) },
-      data: {
-        code: input.code || undefined,
-        name: input.name,
-        categoryId: input.categoryId,
-        branchId: input.branchId,
-        costCenterId: input.costCenterId ?? null,
-        picUserId: input.picUserId ?? null,
-        serialNumber: input.serialNumber ?? null,
-        acquisitionDate: input.acquisitionDate ? new Date(input.acquisitionDate) : null,
-        acquisitionCost: input.acquisitionCost ?? null,
-        status: input.status,
-        condition: input.condition,
-        location: input.location ?? null,
-        notes: input.notes ?? null,
-        customFields: (input.customFields as Prisma.InputJsonValue | undefined) ?? undefined,
-      },
+      data: buildAssetUpdateData(input),
     });
     return res.json({ id: updated.id });
   } catch (error) {
