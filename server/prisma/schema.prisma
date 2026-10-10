@@ -165,6 +165,7 @@ model JournalEntry {
   paymentRequest             PaymentRequest?             @relation("PaymentRequestJournal")
   paymentRequestSettlement   PaymentRequest?             @relation("PaymentRequestSettlementJournal")
   submittedAt                DateTime?                   @map("submitted_at")
+  isDummy                    Boolean                     @default(false) @map("is_dummy")
   cancelledAt                DateTime?                   @map("cancelled_at")
   createdAt                  DateTime                    @default(now()) @map("created_at")
   updatedAt                  DateTime                    @updatedAt @map("updated_at")
