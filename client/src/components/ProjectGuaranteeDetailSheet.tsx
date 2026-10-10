@@ -4,6 +4,7 @@
  */
 import type { ReactNode } from 'react';
 import { Undo2, XCircle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { formatDate, formatRupiah, toNumber } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -62,6 +63,14 @@ interface ProjectGuaranteeDetailSheetProps {
 
 const num = (v: Money | null | undefined) => toNumber(v) ?? 0;
 
+/** Stored guarantee type → key of its translated label (unknown values shown as-is). */
+const GUARANTEE_TYPE_KEY: Record<string, 'bid' | 'performance' | 'maintenance' | 'other'> = {
+  Penawaran: 'bid',
+  Pelaksanaan: 'performance',
+  Pemeliharaan: 'maintenance',
+  Lainnya: 'other',
+};
+
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
@@ -89,7 +98,9 @@ export function ProjectGuaranteeDetailSheet({
   onCancel,
   onCancelSettlement,
 }: ProjectGuaranteeDetailSheetProps) {
+  const { t } = useTranslation('finance');
   const settlements = (g?.settlements ?? []).filter((s) => !s.isCancelled);
+  const typeKey = g ? GUARANTEE_TYPE_KEY[g.guaranteeType] : undefined;
 
   return (
     <Sheet open={g !== null} onOpenChange={(open) => !open && onClose()}>
@@ -106,36 +117,38 @@ export function ProjectGuaranteeDetailSheet({
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Pemberi proyek">{g.party?.name ?? '—'}</Detail>
-                <Detail label="Jenis jaminan">{g.guaranteeType}</Detail>
-                <Detail label="Tanggal setor">{formatDate(g.date)}</Detail>
-                <Detail label="Jatuh tempo kembali">
+                <Detail label={t('projectGuaranteeDetailSheet.fields.party')}>{g.party?.name ?? '—'}</Detail>
+                <Detail label={t('projectGuaranteeDetailSheet.fields.type')}>
+                  {typeKey ? t(`projectGuarantees.guaranteeType.${typeKey}`) : g.guaranteeType}
+                </Detail>
+                <Detail label={t('projectGuaranteeDetailSheet.fields.date')}>{formatDate(g.date)}</Detail>
+                <Detail label={t('projectGuaranteeDetailSheet.fields.returnDate')}>
                   <DueDate date={g.expectedReturnDate} dueState={g.dueState} />
                 </Detail>
-                <Detail label="Akun sumber dana">
+                <Detail label={t('projectGuaranteeDetailSheet.fields.account')}>
                   {g.account ? `${g.account.accountNumber} · ${g.account.name}` : '—'}
                 </Detail>
-                <Detail label="No. referensi">{g.referenceNo || '—'}</Detail>
+                <Detail label={t('projectGuaranteeDetailSheet.fields.reference')}>{g.referenceNo || '—'}</Detail>
                 {g.notes && (
                   <div className="col-span-2">
-                    <Detail label="Catatan">{g.notes}</Detail>
+                    <Detail label={t('projectGuaranteeDetailSheet.fields.notes')}>{g.notes}</Detail>
                   </div>
                 )}
               </dl>
 
               <dl className="grid grid-cols-2 gap-2">
-                <Figure label="Jumlah disetor" value={num(g.amount)} />
-                <Figure label="Sisa di luar" value={g.outstanding} emphasis />
-                <Figure label="Dikembalikan" value={g.totalReturned} />
-                <Figure label="Hangus" value={g.totalForfeited} />
+                <Figure label={t('projectGuaranteeDetailSheet.figures.deposited')} value={num(g.amount)} />
+                <Figure label={t('projectGuaranteeDetailSheet.figures.outstanding')} value={g.outstanding} emphasis />
+                <Figure label={t('projectGuaranteeDetailSheet.figures.returned')} value={g.totalReturned} />
+                <Figure label={t('projectGuaranteeDetailSheet.figures.forfeited')} value={g.totalForfeited} />
               </dl>
 
               <section aria-labelledby="pg-settlements">
                 <h3 id="pg-settlements" className="text-sm font-semibold text-foreground">
-                  Riwayat Settlement
+                  {t('projectGuaranteeDetailSheet.history')}
                 </h3>
                 {settlements.length === 0 ? (
-                  <p className="mt-2 text-sm text-muted-foreground">Belum ada settlement.</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{t('projectGuaranteeDetailSheet.noSettlements')}</p>
                 ) : (
                   <ul className="mt-2 space-y-2">
                     {settlements.map((s) => {
@@ -147,13 +160,23 @@ export function ProjectGuaranteeDetailSheet({
                             <p className="num text-muted-foreground">{formatDate(s.date)}</p>
                             {ret > 0 && (
                               <p className="text-foreground">
-                                Kembali <span className="num font-medium">{formatRupiah(ret)}</span>
+                                <Trans
+                                  t={t}
+                                  i18nKey="projectGuaranteeDetailSheet.returned"
+                                  values={{ amount: formatRupiah(ret) }}
+                                  components={{ b: <span className="num font-medium" /> }}
+                                />
                                 {s.returnAccount && <span className="text-muted-foreground"> → {s.returnAccount.name}</span>}
                               </p>
                             )}
                             {forfeit > 0 && (
                               <p className="text-foreground">
-                                Hangus <span className="num font-medium text-danger-text">{formatRupiah(forfeit)}</span>
+                                <Trans
+                                  t={t}
+                                  i18nKey="projectGuaranteeDetailSheet.forfeited"
+                                  values={{ amount: formatRupiah(forfeit) }}
+                                  components={{ b: <span className="num font-medium text-danger-text" /> }}
+                                />
                                 {s.forfeitAccount && <span className="text-muted-foreground"> → {s.forfeitAccount.name}</span>}
                               </p>
                             )}
@@ -164,7 +187,7 @@ export function ProjectGuaranteeDetailSheet({
                               variant="ghost"
                               size="icon-sm"
                               className="shrink-0 text-muted-foreground hover:text-danger-text"
-                              aria-label={`Batalkan settlement ${formatDate(s.date)}`}
+                              aria-label={t('projectGuaranteeDetailSheet.cancelSettlement', { date: formatDate(s.date) })}
                               onClick={() => onCancelSettlement(s)}
                             >
                               <XCircle aria-hidden />
@@ -183,13 +206,13 @@ export function ProjectGuaranteeDetailSheet({
                 {onCancel && (
                   <Button variant="outline" className="text-danger-text" onClick={onCancel}>
                     <XCircle aria-hidden />
-                    Batalkan setoran
+                    {t('projectGuaranteeDetailSheet.cancelDeposit')}
                   </Button>
                 )}
                 {onSettle && (
                   <Button onClick={onSettle}>
                     <Undo2 aria-hidden />
-                    Settlement
+                    {t('projectGuaranteeDetailSheet.settle')}
                   </Button>
                 )}
               </SheetFooter>

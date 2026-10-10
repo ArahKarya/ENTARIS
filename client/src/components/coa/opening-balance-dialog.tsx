@@ -5,7 +5,9 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { formatRupiah } from '@/lib/format';
 import { Button } from '@/components/ui/button';
@@ -30,7 +32,7 @@ function sideLabel(node: CoaNode, amount: number): string {
   if (isZero(amount)) return '';
   const normal = normalSide(node.rootType);
   const side = amount > 0 ? normal : normal === 'D' ? 'K' : 'D';
-  return side === 'D' ? 'Debit' : 'Kredit';
+  return side === 'D' ? i18n.t('finance:openingBalanceDialog.debit') : i18n.t('finance:openingBalanceDialog.credit');
 }
 
 export function OpeningBalanceDialog({ node, onClose }: OpeningBalanceDialogProps) {
@@ -54,6 +56,7 @@ function BalanceForm({
   onClose: () => void;
   onPendingChange: (pending: boolean) => void;
 }) {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const [balance, setBalance] = useState(() => String(node.balance || 0));
   const [error, setError] = useState('');
@@ -64,10 +67,10 @@ function BalanceForm({
     onSettled: () => onPendingChange(false),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coa'] });
-      toast.success('Saldo awal diatur.');
+      toast.success(t('openingBalanceDialog.saved'));
       onClose();
     },
-    onError: (e) => setError(apiErrorMessage(e, 'Gagal mengatur saldo awal.')),
+    onError: (e) => setError(apiErrorMessage(e, t('openingBalanceDialog.saveFailed'))),
   });
 
   const parsed = parseBalanceInput(balance);
@@ -77,7 +80,7 @@ function BalanceForm({
     e.preventDefault();
     setError('');
     if (!valid) {
-      setError('Masukkan angka yang valid.');
+      setError(t('openingBalanceDialog.invalid'));
       return;
     }
     mutation.mutate({ balance: parsed });
@@ -88,7 +91,7 @@ function BalanceForm({
   return (
     <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
       <DialogHeader>
-        <DialogTitle>Atur Saldo Awal</DialogTitle>
+        <DialogTitle>{t('openingBalanceDialog.title')}</DialogTitle>
         <DialogDescription>
           <span className="font-mono">{node.accountNumber}</span> · {node.name}
         </DialogDescription>
@@ -96,7 +99,7 @@ function BalanceForm({
 
       <dl className="grid grid-cols-2 gap-3 rounded-md border border-border bg-muted/40 p-3 text-sm">
         <div>
-          <dt className="text-xs text-muted-foreground">Saldo saat ini</dt>
+          <dt className="text-xs text-muted-foreground">{t('openingBalanceDialog.current')}</dt>
           <dd className="num mt-0.5 font-medium text-foreground">
             {formatRupiah(Math.abs(current))}{' '}
             {sideLabel(node, current) && (
@@ -105,23 +108,18 @@ function BalanceForm({
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Saldo normal</dt>
+          <dt className="text-xs text-muted-foreground">{t('openingBalanceDialog.normal')}</dt>
           <dd className="mt-0.5 font-medium text-foreground">
-            {normalSide(node.rootType) === 'D' ? 'Debit' : 'Kredit'}
+            {normalSide(node.rootType) === 'D' ? t('openingBalanceDialog.debit') : t('openingBalanceDialog.credit')}
           </dd>
         </div>
       </dl>
 
       <Field
-        label="Saldo baru"
+        label={t('openingBalanceDialog.newBalance')}
         required
         hint={
-          <>
-            Format Indonesia: titik untuk ribuan, koma untuk desimal (mis. 1.500.000,50). Nilai negatif = saldo
-            berlawanan.
-            <br />
-            Jurnal saldo awal otomatis dibuat terhadap akun Ekuitas Saldo Awal.
-          </>
+          <Trans t={t} i18nKey="openingBalanceDialog.hint" components={{ br: <br /> }} />
         }
       >
         <Input
@@ -133,7 +131,7 @@ function BalanceForm({
         />
       </Field>
       <p className="-mt-2 text-sm text-muted-foreground" aria-live="polite">
-        Akan disimpan:{' '}
+        {t('openingBalanceDialog.willSave')}{' '}
         <span className="num font-medium text-foreground">
           {valid
             ? formatRupiah(parsed, {
@@ -155,11 +153,11 @@ function BalanceForm({
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
-          Batal
+          {t('openingBalanceDialog.cancel')}
         </Button>
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending && <Loader2 className="animate-spin" aria-hidden />}
-          Simpan saldo
+          {t('openingBalanceDialog.save')}
         </Button>
       </DialogFooter>
     </form>

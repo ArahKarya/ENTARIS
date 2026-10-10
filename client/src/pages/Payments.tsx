@@ -23,7 +23,9 @@ import {
   Wallet,
   XCircle,
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
@@ -104,7 +106,13 @@ interface AccountOption {
   isGroup: boolean;
 }
 
-const PARTY_TYPE_LABEL: Record<string, string> = { Customer: 'Pelanggan', Supplier: 'Pemasok', Both: 'Pelanggan & Pemasok' };
+const PARTY_TYPES = ['Customer', 'Supplier', 'Both'] as const;
+
+function partyTypeLabel(type: string): string | undefined {
+  return (PARTY_TYPES as readonly string[]).includes(type)
+    ? i18n.t(`finance:payments.partyType.${type as (typeof PARTY_TYPES)[number]}`)
+    : undefined;
+}
 
 const withUnit = (label: string) => (
   <>
@@ -132,7 +140,7 @@ function useCashAccounts() {
 const partyFilterOption = (p: PartyRecord) => ({
   value: p.id,
   label: p.name,
-  hint: p.partyType ? PARTY_TYPE_LABEL[p.partyType] : undefined,
+  hint: p.partyType ? partyTypeLabel(p.partyType) : undefined,
 });
 
 /** Attachment counts for the rows on screen (payments by id, journals by entry id). */
@@ -217,7 +225,7 @@ function PartyCell({ row }: { row: CashLedgerRow }) {
       <div className="min-w-0">
         <p className="truncate font-medium text-foreground">{row.partyName}</p>
         <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
-          {row.notes || (row.partyType ? PARTY_TYPE_LABEL[row.partyType] ?? row.partyType : '')}
+          {row.notes || (row.partyType ? partyTypeLabel(row.partyType) ?? row.partyType : '')}
         </p>
       </div>
     );
@@ -237,6 +245,7 @@ export const Payments = () => {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const { t } = useTranslation('finance');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canCreate = can('payment', 'edit');
@@ -267,14 +276,14 @@ export const Payments = () => {
   const cancelPaymentMutation = useMutation({
     mutationFn: (id: string) => api.post(`/payments/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Pembayaran dibatalkan.');
+      toast.success(t('payments.toast.cancelled'));
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['cash-journals'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
     },
     onError: (err: unknown) => {
-      toast.error(errorMessage(err, 'Gagal membatalkan pembayaran.'));
+      toast.error(errorMessage(err, t('payments.toast.cancelFailed')));
     },
   });
 
@@ -303,10 +312,10 @@ export const Payments = () => {
       const params = { ...list.filterParams, ...(list.params.sort ? { sort: list.params.sort } : {}) };
       const { rows, truncated } = await fetchAllPages<CashLedgerRow>(ENDPOINT, params);
       const stamp = new Date().toISOString().slice(0, 10);
-      await exportToExcel(toExportRows(rows), `transaksi-kas-bank-${stamp}`);
-      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} transaksi pertama. Persempit filter.`);
+      await exportToExcel(toExportRows(rows), `${t('payments.exportFile')}-${stamp}`);
+      if (truncated) toast.warning(t('payments.toast.exportTruncated', { count: rows.length }));
     } catch {
-      toast.error('Gagal mengekspor transaksi. Coba lagi.');
+      toast.error(t('payments.toast.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -316,7 +325,7 @@ export const Payments = () => {
     () => [
       {
         id: 'number',
-        header: 'Nomor',
+        header: t('payments.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => {
@@ -327,10 +336,10 @@ export const Payments = () => {
               <span className="inline-flex items-center gap-1.5">
                 <DocumentLink onClick={() => openDetail(r)}>{r.number}</DocumentLink>
                 {count > 0 && (
-                  <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground" title={`${count} lampiran`}>
+                  <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground" title={t('payments.attachmentCount', { count })}>
                     <Paperclip className="size-3" aria-hidden />
                     <span className="num">{count}</span>
-                    <span className="sr-only">lampiran</span>
+                    <span className="sr-only">{t('payments.attachments')}</span>
                   </span>
                 )}
               </span>
@@ -345,7 +354,7 @@ export const Payments = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('payments.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -353,14 +362,14 @@ export const Payments = () => {
       },
       {
         id: 'party',
-        header: 'Pihak / Keterangan',
+        header: t('payments.columns.party'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => <PartyCell row={row.original} />,
       },
       {
         id: 'kind',
-        header: 'Tipe / Akun',
+        header: t('payments.columns.kind'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-52' },
         cell: ({ row }) => {
           const r = row.original;
@@ -379,7 +388,7 @@ export const Payments = () => {
       },
       {
         id: 'amount',
-        header: () => withUnit('Jumlah'),
+        header: () => withUnit(t('payments.columns.amount')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -401,28 +410,28 @@ export const Payments = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('payments.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType={statusDocType(row.original)} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('payments.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           const route = cancelRoute(r);
           return (
             <RowActions
-              label={`Aksi untuk ${r.number}`}
+              label={t('payments.rowActions', { number: r.number })}
               actions={[
                 {
-                  label: r.source === 'journal' ? 'Lihat jurnal' : 'Lihat detail',
+                  label: r.source === 'journal' ? t('payments.actions.viewJournal') : t('payments.actions.viewDetail'),
                   icon: Eye,
                   onSelect: () => openDetail(r),
                 },
                 {
-                  label: route.kind === 'redirect' ? route.label : 'Batalkan',
+                  label: route.kind === 'redirect' ? route.label : t('payments.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !canCancel || r.status === 'Cancelled',
@@ -436,7 +445,7 @@ export const Payments = () => {
     ],
     // openDetail / requestCancel only close over stable setters and navigate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canCancel, attachmentCount],
+    [canCancel, attachmentCount, t],
   );
 
   const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
@@ -444,52 +453,52 @@ export const Payments = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Transaksi Kas & Bank"
-        description="Pantau mutasi kas, pembayaran vendor, dan pelunasan piutang."
+        title={t('payments.title')}
+        description={t('payments.description')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
               <Download aria-hidden />
-              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              <span className="sr-only sm:not-sr-only">{t('payments.exportExcel')}</span>
             </Button>
             {canCreate && (
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button>
                     <Plus aria-hidden />
-                    Catat Transaksi
+                    {t('payments.record')}
                     <ChevronDown aria-hidden />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-60">
-                  <DropdownMenuLabel>Kas masuk</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('payments.menu.cashIn')}</DropdownMenuLabel>
                   <DropdownMenuItem onSelect={() => setModal('receive')}>
                     <ArrowDownLeft aria-hidden strokeWidth={1.75} />
-                    Terima Pembayaran
+                    {t('payments.menu.receive')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Kas keluar</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('payments.menu.cashOut')}</DropdownMenuLabel>
                   <DropdownMenuItem onSelect={() => setModal('pay')}>
                     <ArrowUpRight aria-hidden strokeWidth={1.75} />
-                    Bayar Hutang
+                    {t('payments.menu.pay')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setModal('expense')}>
                     <FileText aria-hidden strokeWidth={1.75} />
-                    Catat Pengeluaran
+                    {t('payments.menu.expense')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setModal('bulkExpense')}>
                     <Layers aria-hidden strokeWidth={1.75} />
-                    Input Banyak Pengeluaran
+                    {t('payments.menu.bulkExpense')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setModal('deposit')}>
                     <Wallet aria-hidden strokeWidth={1.75} />
-                    Uang Muka Vendor
+                    {t('payments.menu.supplierDeposit')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Antar akun</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('payments.menu.betweenAccounts')}</DropdownMenuLabel>
                   <DropdownMenuItem onSelect={() => setModal('transfer')}>
                     <ArrowRightLeft aria-hidden strokeWidth={1.75} />
-                    Pindah Buku (Pinbuk)
+                    {t('payments.menu.transfer')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -498,73 +507,73 @@ export const Payments = () => {
         }
       />
 
-      <section aria-label="Ringkasan transaksi sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('payments.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Transaksi"
+          label={t('payments.summary.count')}
           icon={Receipt}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary && summary.cancelledCount > 0 ? `${formatNumber(summary.cancelledCount)} dibatalkan` : undefined}
+          hint={summary && summary.cancelledCount > 0 ? t('payments.summary.cancelled', { count: summary.cancelledCount }) : undefined}
         />
         <StatCard
-          label="Kas Masuk"
+          label={t('payments.summary.cashIn')}
           icon={ArrowDownLeft}
           loading={summaryLoading}
           value={kpiMoney(summary?.inTotal)}
           valueTitle={summary ? formatRupiah(summary.inTotal) : undefined}
-          hint={summary ? `${formatNumber(summary.inCount)} transaksi` : undefined}
+          hint={summary ? t('payments.summary.transactions', { count: summary.inCount }) : undefined}
         />
         <StatCard
-          label="Kas Keluar"
+          label={t('payments.summary.cashOut')}
           icon={ArrowUpRight}
           loading={summaryLoading}
           value={kpiMoney(summary?.outTotal)}
           valueTitle={summary ? formatRupiah(summary.outTotal) : undefined}
-          hint={summary ? `${formatNumber(summary.outCount)} transaksi` : undefined}
+          hint={summary ? t('payments.summary.transactions', { count: summary.outCount }) : undefined}
         />
         <StatCard
-          label="Arus Kas Bersih"
+          label={t('payments.summary.net')}
           icon={Scale}
           loading={summaryLoading}
           value={kpiMoney(summary?.net)}
           valueTitle={summary ? formatRupiah(summary.net) : undefined}
-          hint="masuk − keluar"
+          hint={t('payments.summary.netHint')}
         />
       </section>
 
       <details className="group rounded-md border border-border bg-muted/40 px-4 py-2.5 text-sm">
         <summary className="flex cursor-pointer list-none items-center gap-2 font-medium text-foreground [&::-webkit-details-marker]:hidden">
           <Info className="size-4 text-muted-foreground" aria-hidden />
-          Cara kerja edit &amp; pembatalan
+          {t('payments.help.title')}
           <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
         </summary>
         <p className="mt-2 leading-relaxed text-muted-foreground">
-          Transaksi bank/kas tidak bisa diedit untuk menjaga integritas Buku Besar. Bila ada kesalahan,{' '}
-          <b className="font-semibold text-foreground">batalkan transaksi lalu buat ulang</b>. Uang Muka Vendor/Pelanggan
-          wajib dibatalkan dari modulnya masing-masing. Transaksi yang berasal dari jurnal manual (Beban, Pinbuk)
-          dibatalkan dari Buku Besar. Hanya role <b className="font-semibold text-foreground">Admin</b> yang boleh
-          membatalkan.
+          <Trans
+            t={t}
+            i18nKey="payments.help.body"
+            components={{ b: <b className="font-semibold text-foreground" /> }}
+          />
         </p>
       </details>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari transaksi"
-          searchPlaceholder="Cari nomor, pihak, atau keterangan"
+          searchLabel={t('payments.filters.searchLabel')}
+          searchPlaceholder={t('payments.filters.searchPlaceholder')}
           status={{ options: STATUS_FILTER }}
           dateRange
         >
           <SelectFilter
-            label="Tipe transaksi"
-            allLabel="Semua tipe"
+            label={t('payments.filters.type')}
+            allLabel={t('payments.filters.allTypes')}
             value={list.filters.type}
             onChange={(v) => list.setFilter('type', v)}
             className="w-[calc(50%-0.25rem)] sm:w-48"
           >
             <SelectSeparator />
             <SelectGroup>
-              <SelectLabel>Pembayaran</SelectLabel>
+              <SelectLabel>{t('payments.filters.paymentGroup')}</SelectLabel>
               {PAYMENT_KINDS.map((k) => (
                 <SelectItem key={k} value={k}>
                   {KIND_LABEL[k]}
@@ -573,7 +582,7 @@ export const Payments = () => {
             </SelectGroup>
             <SelectSeparator />
             <SelectGroup>
-              <SelectLabel>Jurnal kas</SelectLabel>
+              <SelectLabel>{t('payments.filters.journalGroup')}</SelectLabel>
               {JOURNAL_KINDS.map((k) => (
                 <SelectItem key={k} value={k}>
                   {KIND_LABEL[k]}
@@ -582,28 +591,28 @@ export const Payments = () => {
             </SelectGroup>
           </SelectFilter>
           <SelectFilter
-            label="Arah kas"
-            allLabel="Masuk & keluar"
+            label={t('payments.filters.direction')}
+            allLabel={t('payments.filters.allDirections')}
             value={list.filters.direction}
             onChange={(v) => list.setFilter('direction', v)}
             className="w-[calc(50%-0.25rem)] sm:w-40"
           >
-            <SelectItem value="in">Kas masuk (+)</SelectItem>
-            <SelectItem value="out">Kas keluar (−)</SelectItem>
+            <SelectItem value="in">{t('payments.filters.in')}</SelectItem>
+            <SelectItem value="out">{t('payments.filters.out')}</SelectItem>
           </SelectFilter>
           <ComboboxFilter
-            label="Pihak"
-            allLabel="Semua pihak"
-            searchPlaceholder="Cari pelanggan/pemasok…"
+            label={t('payments.filters.party')}
+            allLabel={t('payments.filters.allParties')}
+            searchPlaceholder={t('payments.filters.partySearch')}
             value={list.filters.partyId}
             onChange={(v) => list.setFilter('partyId', v)}
             {...partyPicker.pickerProps}
             className="w-[calc(50%-0.25rem)] sm:w-52"
           />
           <ComboboxFilter
-            label="Akun kas/bank"
-            allLabel="Semua akun"
-            searchPlaceholder="Cari akun…"
+            label={t('payments.filters.account')}
+            allLabel={t('payments.filters.allAccounts')}
+            searchPlaceholder={t('payments.filters.accountSearch')}
             value={list.filters.accountId}
             onChange={(v) => list.setFilter('accountId', v)}
             options={accountOptions}
@@ -614,8 +623,8 @@ export const Payments = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar transaksi kas & bank"
-          itemLabel="transaksi"
+          label={t('payments.table.label')}
+          itemLabel={t('payments.table.itemLabel')}
           columns={columns}
           data={ledgerQuery.data?.data}
           getRowId={(row) => `${row.source}-${row.id}`}
@@ -628,12 +637,12 @@ export const Payments = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada transaksi kas & bank',
-            description: 'Penerimaan, pembayaran, pengeluaran, dan pinbuk yang dicatat akan muncul di sini.',
+            title: t('payments.empty.title'),
+            description: t('payments.empty.description'),
             action: canCreate ? (
               <Button size="sm" onClick={() => setModal('receive')}>
                 <Plus aria-hidden />
-                Terima pembayaran pertama
+                {t('payments.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -650,9 +659,9 @@ export const Payments = () => {
       <ConfirmDialog
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
-        title="Batalkan Transaksi"
-        description={`Batalkan ${cancelTarget?.number}? Alokasi ke faktur, saldo kas/bank, dan jurnal akan otomatis dibalik. Tindakan tidak dapat dibatalkan.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('payments.cancelDialog.title')}
+        description={t('payments.cancelDialog.description', { number: cancelTarget?.number ?? '' })}
+        confirmLabel={t('payments.cancelDialog.confirm')}
         tone="danger"
         loading={cancelPaymentMutation.isPending}
         onConfirm={() => {

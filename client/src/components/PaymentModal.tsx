@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { TrendingDown, TrendingUp, CheckCircle2, Paperclip, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { formatRupiah, formatDate } from '@/lib/format';
@@ -25,6 +26,7 @@ interface PaymentModalProps {
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultType = 'Receive' }) => {
+  const { t } = useTranslation('finance');
   const today = new Date().toISOString().split('T')[0];
 
   const [paymentType, setPaymentType] = useState<PaymentType>(defaultType);
@@ -192,7 +194,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       // attach to) — guarded below.
       setSavedId(res.data?.id || res.data?.payment?.id || res.data?.cashJournalId || 'success');
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan pembayaran.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('paymentModal.saveFailed')),
   });
 
   const numAmount = Number(amount) || 0;
@@ -219,7 +221,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
     if (isRefund && isDepositRefund && selectedSource) {
       if (numAmount > selectedSource.remaining + 0.01) {
         setError(
-          `Jumlah refund ${formatRupiah(numAmount)} melebihi sisa uang muka ${formatRupiah(selectedSource.remaining)}.`,
+          t('paymentModal.refundExceeds', {
+            amount: formatRupiah(numAmount),
+            remaining: formatRupiah(selectedSource.remaining),
+          }),
         );
         return;
       }
@@ -280,17 +285,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
   const isVendorRefund = paymentType === 'VendorRefund';
 
   const typeLabel = isRefund
-    ? (isVendorRefund ? 'Refund dari Vendor' : 'Refund ke Pelanggan')
-    : (isReceive ? 'Terima Pembayaran' : 'Bayar Hutang');
+    ? (isVendorRefund ? t('paymentModal.type.vendorRefund') : t('paymentModal.type.customerRefund'))
+    : (isReceive ? t('paymentModal.title.receive') : t('paymentModal.title.pay'));
 
   const accountOptions = (list?: any[]) =>
     (list ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` }));
 
-  const typeButtons: Array<{ t: PaymentType; label: string; icon: React.ReactNode }> = [
-    { t: 'Receive', label: 'Penerimaan', icon: <TrendingDown aria-hidden /> },
-    { t: 'Pay', label: 'Pengeluaran', icon: <TrendingUp aria-hidden /> },
-    { t: 'CustomerRefund', label: 'Refund ke Pelanggan', icon: <RotateCcw aria-hidden /> },
-    { t: 'VendorRefund', label: 'Refund dari Vendor', icon: <RotateCcw aria-hidden /> },
+  const typeButtons: Array<{ type: PaymentType; label: string; icon: React.ReactNode }> = [
+    { type: 'Receive', label: t('paymentModal.type.receive'), icon: <TrendingDown aria-hidden /> },
+    { type: 'Pay', label: t('paymentModal.type.pay'), icon: <TrendingUp aria-hidden /> },
+    { type: 'CustomerRefund', label: t('paymentModal.type.customerRefund'), icon: <RotateCcw aria-hidden /> },
+    { type: 'VendorRefund', label: t('paymentModal.type.vendorRefund'), icon: <RotateCcw aria-hidden /> },
   ];
 
   return (
@@ -298,36 +303,36 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       open={isOpen}
       onClose={onClose}
       title={typeLabel}
-      description="Draft • belum disimpan"
+      description={t('paymentModal.draftUnsaved')}
       size="lg"
       className="sm:max-w-xl"
       busy={mutation.isPending}
-      submitLabel="Simpan"
+      submitLabel={t('paymentModal.save')}
       onSubmit={handleSubmit}
       submitDisabled={!canSubmit}
       footer={
         savedId ? (
           <Button className="h-11 sm:h-9" onClick={onClose}>
-            Selesai
+            {t('paymentModal.done')}
           </Button>
         ) : undefined
       }
     >
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium text-foreground">Tipe Transaksi</legend>
+        <legend className="mb-2 text-sm font-medium text-foreground">{t('paymentModal.typeLegend')}</legend>
         <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-          {typeButtons.map(({ t, label, icon }) => (
+          {typeButtons.map(({ type, label, icon }) => (
             <Button
-              key={t}
+              key={type}
               type="button"
-              variant={paymentType === t ? 'primary' : 'outline'}
-              aria-pressed={paymentType === t}
+              variant={paymentType === type ? 'primary' : 'outline'}
+              aria-pressed={paymentType === type}
               className="h-11 sm:h-9"
               onClick={() => {
-                setPaymentType(t);
+                setPaymentType(type);
                 setPartyId('');
                 setRefundSourcePaymentId('');
-                if (t === 'VendorRefund' || t === 'CustomerRefund') setSplitMode(false);
+                if (type === 'VendorRefund' || type === 'CustomerRefund') setSplitMode(false);
               }}
             >
               {icon} {label}
@@ -338,18 +343,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
 
       {isRefund && partyId && (
         <Field
-          label={`Pembayaran Asal ${isDepositRefund ? '(Uang Muka)' : '(opsional)'}`}
+          label={isDepositRefund ? t('paymentModal.source.labelDeposit') : t('paymentModal.source.labelOptional')}
           hint={
             isDepositRefund ? (
               <>
-                Pengembalian uang muka.
-                Sisa uang muka: <span className="font-semibold">{formatRupiah(selectedSource?.remaining ?? 0)}</span>.
-                Saldo uang muka otomatis berkurang, jurnal: DR Bank / CR Uang Muka.
+                <Trans
+                  t={t}
+                  i18nKey="paymentModal.source.depositHint"
+                  values={{ remaining: formatRupiah(selectedSource?.remaining ?? 0) }}
+                  components={{ b: <span className="font-semibold" /> }}
+                />
               </>
             ) : (
               <>
-                Pilih {isVendorRefund ? 'pembayaran ke supplier' : 'penerimaan dari pelanggan'} yang sebagian dikembalikan, atau baris uang muka untuk refund DP.
-                Sistem otomatis mengurangi alokasi dan mengembalikan sisa tagihan faktur.
+                {isVendorRefund ? t('paymentModal.source.hintSupplier') : t('paymentModal.source.hintCustomer')}
               </>
             )
           }
@@ -357,28 +364,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           <OptionPicker
             value={refundSourcePaymentId}
             onChange={setRefundSourcePaymentId}
-            placeholder="Refund tanpa tautan dokumen"
-            emptyLabel="Refund tanpa tautan dokumen"
+            placeholder={t('paymentModal.source.none')}
+            emptyLabel={t('paymentModal.source.none')}
             searchable={false}
             options={(sourcePayments ?? []).map((p: any) => ({
               value: p.id,
-              label: `${p.kind === 'deposit' ? 'UANG MUKA · ' : ''}${p.paymentNumber} • ${formatDate(p.date)}${
-                p.kind === 'deposit' ? ` • sisa ${formatRupiah(p.remaining)}` : ` • ${formatRupiah(Number(p.amount))}`
-              }`,
+              label:
+                p.kind === 'deposit'
+                  ? t('paymentModal.source.depositOption', {
+                      number: p.paymentNumber,
+                      date: formatDate(p.date),
+                      remaining: formatRupiah(p.remaining),
+                    })
+                  : `${p.paymentNumber} • ${formatDate(p.date)} • ${formatRupiah(Number(p.amount))}`,
             }))}
           />
         </Field>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Tanggal">
+        <Field label={t('paymentModal.date')}>
           <DateInput value={date} onChange={setDate} />
         </Field>
-        <Field label={isReceiveFlow ? 'Pelanggan' : 'Supplier'}>
+        <Field label={isReceiveFlow ? t('paymentModal.customer') : t('paymentModal.supplier')}>
           <OptionPicker
             value={partyId}
             onChange={setPartyId}
-            placeholder="Pilih"
+            placeholder={t('paymentModal.choose')}
             {...partyPicker.pickerProps}
           />
         </Field>
@@ -387,15 +399,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       {partyId && openInvoices && (
         <div className="space-y-2">
           {openInvoices.length > 0 && (
-            <Callout tone="info" icon={<span className="sr-only">Info:</span>}>
+            <Callout tone="info" icon={<span className="sr-only">{t('paymentModal.srInfo')}</span>}>
               <p className="mb-2 font-medium">
-                {openInvoices.length} invoice terbuka, total <span className="num">{formatRupiah(totalInvoiceOutstanding)}</span>
+                <Trans
+                  t={t}
+                  i18nKey="paymentModal.openInvoices"
+                  count={openInvoices.length}
+                  values={{ total: formatRupiah(totalInvoiceOutstanding) }}
+                  components={{ num: <span className="num" /> }}
+                />
               </p>
               <div
                 role="region"
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                 tabIndex={0}
-                aria-label="Daftar invoice terbuka"
+                aria-label={t('paymentModal.openInvoicesList')}
                 className="max-h-28 space-y-1 overflow-y-auto text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {openInvoices.map((inv: any) => (
@@ -411,8 +429,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
           )}
 
           {nonInvoiceOutstanding > 0 && (
-            <Callout tone="warning" icon={<span className="sr-only">Perhatian:</span>}>
-              Saldo {isReceive ? 'piutang' : 'hutang'} tanpa invoice (saldo awal): <span className="num">{formatRupiah(nonInvoiceOutstanding)}</span>
+            <Callout tone="warning" icon={<span className="sr-only">{t('paymentModal.srWarning')}</span>}>
+              <Trans
+                t={t}
+                i18nKey={isReceive ? 'paymentModal.nonInvoiceReceivable' : 'paymentModal.nonInvoicePayable'}
+                values={{ amount: formatRupiah(nonInvoiceOutstanding) }}
+                components={{ num: <span className="num" /> }}
+              />
             </Callout>
           )}
 
@@ -424,19 +447,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
               className="min-h-11 sm:min-h-0"
               onClick={() => setAmount(partyOutstanding)}
             >
-              Isi jumlah lunaskan semua ({formatRupiah(partyOutstanding)})
+              {t('paymentModal.fillFullAmount', { amount: formatRupiah(partyOutstanding) })}
             </Button>
           )}
 
           {partyOutstanding <= 0 && openInvoices.length === 0 && (
-            <Callout tone="neutral" icon={<span className="sr-only">Info:</span>}>
-              Tidak ada {isReceive ? 'piutang' : 'hutang'} untuk {isReceive ? 'pelanggan' : 'supplier'} ini.
+            <Callout tone="neutral" icon={<span className="sr-only">{t('paymentModal.srInfo')}</span>}>
+              {isReceive ? t('paymentModal.noReceivable') : t('paymentModal.noPayable')}
             </Callout>
           )}
         </div>
       )}
 
-      <Field label="Jumlah Tagihan (Rp)">
+      <Field label={t('paymentModal.amount')}>
         <NumberInput
           value={amount}
           onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -448,26 +471,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       </Field>
 
       {!isRefund && (
-        // eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role)
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-foreground sm:min-h-0">
           <Checkbox checked={splitMode} onCheckedChange={(v) => setSplitMode(v === true)} />
-          Split ke beberapa akun (mis. dipotong komisi)
+          {t('paymentModal.split.toggle')}
         </label>
       )}
 
       {!splitMode ? (
-        <Field label="Akun Kas/Bank">
+        <Field label={t('paymentModal.cashAccount')}>
           <OptionPicker
             value={accountId}
             onChange={setAccountId}
-            placeholder="Pilih Akun"
+            placeholder={t('paymentModal.chooseAccount')}
             options={accountOptions(cashAccounts)}
           />
         </Field>
       ) : (
-        <section aria-label="Distribusi akun" className="space-y-3 rounded-lg border border-border p-3">
+        <section aria-label={t('paymentModal.split.section')} className="space-y-3 rounded-lg border border-border p-3">
           <p className="text-xs text-muted-foreground">
-            Total {numAmount > 0 ? formatRupiah(numAmount) : '0'} dibagi ke beberapa akun. Selisih harus 0.
+            {t('paymentModal.split.hint', { amount: numAmount > 0 ? formatRupiah(numAmount) : '0' })}
           </p>
           {splits.map((sp, idx) => {
             const n = idx + 1;
@@ -475,21 +497,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
               <div
                 key={idx}
                 role="group"
-                aria-label={`Baris split ${n}`}
+                aria-label={t('paymentModal.split.row', { n })}
                 className="grid grid-cols-1 items-start gap-2 rounded-md border border-border p-2 sm:grid-cols-12 sm:border-0 sm:p-0"
               >
                 <div className="sm:col-span-5">
                   <OptionPicker
-                    aria-label={`Akun baris split ${n}`}
+                    aria-label={t('paymentModal.split.rowAccount', { n })}
                     value={sp.accountId}
                     onChange={(v) => updateSplit(idx, { accountId: v })}
-                    placeholder="Pilih Akun"
+                    placeholder={t('paymentModal.chooseAccount')}
                     options={accountOptions(allAccounts)}
                   />
                 </div>
                 <div className="sm:col-span-3">
                   <NumberInput
-                    aria-label={`Jumlah baris split ${n}`}
+                    aria-label={t('paymentModal.split.rowAmount', { n })}
                     value={sp.amount}
                     onChange={(e) => updateSplit(idx, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
                     placeholder="0"
@@ -500,10 +522,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
                 </div>
                 <div className="sm:col-span-3">
                   <Input
-                    aria-label={`Catatan baris split ${n}`}
+                    aria-label={t('paymentModal.split.rowNotes', { n })}
                     value={sp.notes}
                     onChange={(e) => updateSplit(idx, { notes: e.target.value })}
-                    placeholder="catatan"
+                    placeholder={t('paymentModal.split.notesPlaceholder')}
                   />
                 </div>
                 <div className="sm:col-span-1">
@@ -514,7 +536,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
                     className="w-full text-danger-text sm:size-9"
                     onClick={() => removeSplit(idx)}
                     disabled={splits.length === 1}
-                    aria-label={`Hapus baris split ${n}`}
+                    aria-label={t('paymentModal.split.rowRemove', { n })}
                   >
                     <Trash2 aria-hidden />
                   </Button>
@@ -523,14 +545,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
             );
           })}
           <Button type="button" variant="ghost" size="sm" className="h-11 sm:h-8" onClick={addSplit}>
-            <Plus aria-hidden /> Tambah baris
+            <Plus aria-hidden /> {t('paymentModal.split.addRow')}
           </Button>
           <div className="flex justify-between border-t border-border pt-2 text-sm">
-            <span className="text-muted-foreground">Total split:</span>
+            <span className="text-muted-foreground">{t('paymentModal.split.total')}</span>
             <span className="num font-semibold">{formatRupiah(splitsTotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Selisih:</span>
+            <span className="text-muted-foreground">{t('paymentModal.split.difference')}</span>
             <span
               className={cn('num font-semibold', Math.abs(splitsRemaining) < 0.01 ? 'text-success-text' : 'text-danger-text')}
             >
@@ -541,19 +563,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="No. Referensi">
-          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="No. cek, transfer, dll." />
+        <Field label={t('paymentModal.referenceNo')}>
+          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder={t('paymentModal.referencePlaceholder')} />
         </Field>
-        <Field label="Catatan">
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Keterangan opsional..." />
+        <Field label={t('paymentModal.notes')}>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('paymentModal.notesPlaceholder')} />
         </Field>
       </div>
 
       {numAmount > 0 && (
-        <Callout tone={isReceive ? 'success' : 'warning'} icon={<span className="sr-only">Ringkasan:</span>}>
-          {isReceive ? 'Menerima' : 'Membayar'}{' '}
+        <Callout tone={isReceive ? 'success' : 'warning'} icon={<span className="sr-only">{t('paymentModal.srSummary')}</span>}>
+          {isReceive ? t('paymentModal.summary.receiving') : t('paymentModal.summary.paying')}{' '}
           <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
-          {partyOutstanding > 0 && numAmount >= partyOutstanding && ' · Melunasi semua tagihan'}
+          {partyOutstanding > 0 && numAmount >= partyOutstanding && ` · ${t('paymentModal.summary.settlesAll')}`}
         </Callout>
       )}
 
@@ -564,9 +586,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
         <div className="space-y-3 border-t border-border pt-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-success-text" aria-hidden />
-            <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+            <span className="text-xs font-semibold text-success-text">{t('paymentModal.saved')}</span>
             <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <Paperclip className="size-3" aria-hidden /> Lampiran Bukti Transfer
+              <Paperclip className="size-3" aria-hidden /> {t('paymentModal.transferProof')}
             </span>
           </div>
           <AttachmentPreview referenceType="payment" referenceId={savedId} />
@@ -577,7 +599,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultTyp
         <div className="flex items-center gap-2 border-t border-border pt-3" role="status">
           <CheckCircle2 className="size-4 text-success-text" aria-hidden />
           <span className="text-xs font-semibold text-success-text">
-            Refund uang muka tersimpan. Saldo deposit vendor sudah berkurang.
+            {t('paymentModal.depositRefundSaved')}
           </span>
         </div>
       )}

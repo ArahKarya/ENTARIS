@@ -4,6 +4,7 @@
  */
 import { useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { BookOpen, Building2, Eye, Pencil, Plus, Trash2, TrendingDown, Wallet } from 'lucide-react';
 import api from '@/lib/api';
@@ -52,6 +53,7 @@ const num = (v: unknown) => toNumber(v as string | number | null) ?? 0;
 const money = (v: unknown) => formatRupiah(num(v), { symbol: false });
 
 export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, onCreate }: FixedAssetRegisterProps) {
+  const { t } = useTranslation('finance');
   const [density, setDensity] = useTableDensity();
 
   const assetsQuery = useQuery({
@@ -96,7 +98,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
     () => [
       {
         id: 'assetNumber',
-        header: 'No. Aset',
+        header: t('fixedAssetRegister.columns.assetNumber'),
         enableSorting: true,
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
@@ -111,7 +113,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       },
       {
         id: 'name',
-        header: 'Nama Aset',
+        header: t('fixedAssetRegister.columns.name'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
         cell: ({ row }) => (
@@ -131,7 +133,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       },
       {
         id: 'acquisitionDate',
-        header: 'Tgl. Perolehan',
+        header: t('fixedAssetRegister.columns.acquisitionDate'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -139,7 +141,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       },
       {
         id: 'acquisitionCost',
-        header: () => withUnit('Harga Perolehan'),
+        header: () => withUnit(t('fixedAssetRegister.columns.cost')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md' },
@@ -147,7 +149,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       },
       {
         id: 'accumulatedDepreciation',
-        header: () => withUnit('Akm. Penyusutan'),
+        header: () => withUnit(t('fixedAssetRegister.columns.accumulated')),
         enableSorting: true,
         sortDescFirst: true,
         // Wide screens only (≥1536px): derivable as cost − book value, and shown in the detail sheet.
@@ -160,7 +162,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       },
       {
         id: 'bookValue',
-        header: () => withUnit('Nilai Buku'),
+        header: () => withUnit(t('fixedAssetRegister.columns.bookValue')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -174,25 +176,25 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('fixedAssetRegister.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="fixed_asset" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('fixedAssetRegister.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const a = row.original;
           const writable = canEdit && a.status === ACTIVE_STATUS;
           return (
             <RowActions
-              label={`Aksi untuk ${a.assetNumber}`}
+              label={t('fixedAssetRegister.rowActions', { number: a.assetNumber })}
               actions={[
-                { label: 'Lihat detail & jadwal', icon: Eye, onSelect: () => onOpen(a) },
-                { label: 'Edit data', icon: Pencil, hidden: !writable, onSelect: () => onEdit(a) },
+                { label: t('fixedAssetRegister.actions.view'), icon: Eye, onSelect: () => onOpen(a) },
+                { label: t('fixedAssetRegister.actions.edit'), icon: Pencil, hidden: !writable, onSelect: () => onEdit(a) },
                 {
-                  label: 'Lepas aset',
+                  label: t('fixedAssetRegister.actions.dispose'),
                   icon: Trash2,
                   tone: 'danger',
                   hidden: !writable,
@@ -204,21 +206,21 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
         },
       },
     ],
-    [canEdit, onOpen, onEdit, onDispose],
+    [canEdit, onOpen, onEdit, onDispose, t],
   );
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan aset tetap aktif" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('fixedAssetRegister.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Aset Aktif"
+          label={t('fixedAssetRegister.summary.active')}
           icon={Building2}
           loading={kpiLoading}
           value={totals ? formatNumber(totals.count) : '—'}
-          hint="tidak termasuk dilepas"
+          hint={t('fixedAssetRegister.summary.activeHint')}
         />
         <StatCard
-          label="Harga Perolehan"
+          label={t('fixedAssetRegister.summary.cost')}
           icon={Wallet}
           loading={kpiLoading}
           value={kpiMoney(totals?.cost)}
@@ -226,7 +228,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
           hint={totals ? formatRupiah(totals.cost) : undefined}
         />
         <StatCard
-          label="Akm. Penyusutan"
+          label={t('fixedAssetRegister.summary.accumulated')}
           icon={TrendingDown}
           loading={kpiLoading}
           value={kpiMoney(totals?.accumulated)}
@@ -234,7 +236,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
           hint={totals ? formatRupiah(totals.accumulated) : undefined}
         />
         <StatCard
-          label="Nilai Buku"
+          label={t('fixedAssetRegister.summary.bookValue')}
           icon={BookOpen}
           loading={kpiLoading}
           value={kpiMoney(totals?.bookValue)}
@@ -246,15 +248,15 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari aset tetap"
-          searchPlaceholder="Cari nomor, nama, atau kategori aset"
+          searchLabel={t('fixedAssetRegister.filters.searchLabel')}
+          searchPlaceholder={t('fixedAssetRegister.filters.searchPlaceholder')}
           status={{ options: STATUS_FILTER }}
-          dateRange={{ label: 'Rentang tanggal perolehan' }}
+          dateRange={{ label: t('fixedAssetRegister.filters.dateRange') }}
         >
           <ComboboxFilter
-            label="Kategori"
-            allLabel="Semua kategori"
-            searchPlaceholder="Cari kategori…"
+            label={t('fixedAssetRegister.filters.category')}
+            allLabel={t('fixedAssetRegister.filters.allCategories')}
+            searchPlaceholder={t('fixedAssetRegister.filters.categorySearch')}
             value={list.filters.category}
             onChange={(v) => list.setFilter('category', v)}
             options={categoryOptions}
@@ -265,8 +267,8 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
 
         <DataTable
           {...listTableProps(list, assetsQuery.data?.total)}
-          label="Daftar aset tetap"
-          itemLabel="aset"
+          label={t('fixedAssetRegister.table.label')}
+          itemLabel={t('fixedAssetRegister.table.itemLabel')}
           columns={columns}
           data={assetsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -278,12 +280,12 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada aset tetap',
-            description: 'Aset yang Anda tambahkan atau impor akan muncul di sini beserta jadwal penyusutannya.',
+            title: t('fixedAssetRegister.empty.title'),
+            description: t('fixedAssetRegister.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={onCreate}>
                 <Plus aria-hidden />
-                Tambah aset pertama
+                {t('fixedAssetRegister.empty.action')}
               </Button>
             ) : undefined,
           }}

@@ -5,20 +5,21 @@
  * No React here — everything is unit tested in coa-tree.test.ts.
  */
 import { toNumber } from '@/lib/format';
+import i18n from '@/i18n';
 
 export const ROOT_TYPES = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
 export type RootType = (typeof ROOT_TYPES)[number];
 
-export const ROOT_TYPE_LABELS: Record<RootType, string> = {
-  ASSET: 'Aset',
-  LIABILITY: 'Kewajiban',
-  EQUITY: 'Ekuitas',
-  REVENUE: 'Pendapatan',
-  EXPENSE: 'Beban',
-};
+/** Labels resolve on every read so they follow the UI language. */
+export const ROOT_TYPE_LABELS: Readonly<Record<RootType, string>> = Object.defineProperties(
+  {} as Record<RootType, string>,
+  Object.fromEntries(
+    ROOT_TYPES.map((r) => [r, { enumerable: true, get: () => i18n.t(`finance:coaTree.rootType.${r}`) }]),
+  ),
+);
 
 export function rootTypeLabel(rootType: string): string {
-  return ROOT_TYPE_LABELS[rootType as RootType] ?? rootType;
+  return isRootType(rootType) ? ROOT_TYPE_LABELS[rootType] : rootType;
 }
 
 export function isRootType(value: string): value is RootType {
@@ -312,7 +313,7 @@ export function exportRows(nodes: readonly CoaNode[]) {
     name: n.name,
     rootType: n.rootType,
     accountType: n.account.accountType,
-    isGroup: n.isGroup ? 'Ya' : 'Tidak',
+    isGroup: n.isGroup ? i18n.t('finance:coaTree.yes') : i18n.t('finance:coaTree.no'),
     balance: n.account.balance,
   }));
 }

@@ -7,9 +7,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import { formatDate, formatRupiah } from '@/lib/format';
 import { can } from '@/lib/permissions';
 import { LIST_PARAM, useListState } from '@/hooks/useListState';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ const ASSET_PARAM = 'asset';
 const LIST_KEYS = [LIST_PARAM.page, LIST_PARAM.search, LIST_PARAM.sort, ...FIXED_ASSET_FILTER_KEYS];
 
 export default function FixedAssetsPage() {
+  const { t } = useTranslation('finance');
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const canEdit = can('fixed_assets', 'edit');
@@ -107,24 +109,24 @@ export default function FixedAssetsPage() {
     mutationFn: async ({ assetId: id, entryId }: { assetId: string; entryId: string }) =>
       (await api.post(`${FIXED_ASSET_ENDPOINT}/${id}/depreciate`, { entryId })).data,
     onSuccess: () => {
-      toast.success('Depresiasi diposting.');
+      toast.success(t('fixedAssetsPage.toast.depreciationPosted'));
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
     },
-    onError: (err) => toast.error(apiError(err, 'Gagal posting depresiasi')),
+    onError: (err) => toast.error(apiError(err, t('fixedAssetsPage.toast.depreciationFailed'))),
   });
 
   const disposeMut = useMutation({
     mutationFn: async ({ id, disposalDate }: { id: string; disposalDate: string }) =>
       (await api.post(`${FIXED_ASSET_ENDPOINT}/${id}/dispose`, { disposalDate, disposalAmount: 0 })).data,
     onSuccess: () => {
-      toast.success('Aset dilepas.');
+      toast.success(t('fixedAssetsPage.toast.disposed'));
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
     },
-    onError: (err) => toast.error(apiError(err, 'Gagal disposisi aset')),
+    onError: (err) => toast.error(apiError(err, t('fixedAssetsPage.toast.disposeFailed'))),
   });
 
   const handleExport = async () => {
@@ -133,14 +135,14 @@ export default function FixedAssetsPage() {
       const params = { ...list.filterParams, ...(list.params.sort ? { sort: list.params.sort } : {}) };
       const { rows, truncated } = await fetchAllPages<FixedAssetRow>(FIXED_ASSET_ENDPOINT, params);
       if (rows.length === 0) {
-        toast.error('Tidak ada aset untuk di-export');
+        toast.error(t('fixedAssetsPage.toast.nothingToExport'));
         return;
       }
       downloadCsv(toFixedAssetCsv(rows), `fixed-assets-${new Date().toISOString().substring(0, 10)}.csv`);
-      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} aset pertama. Persempit filter.`);
-      else toast.success(`${formatNumber(rows.length)} aset diekspor.`);
+      if (truncated) toast.warning(t('fixedAssetsPage.toast.exportTruncated', { count: rows.length }));
+      else toast.success(t('fixedAssetsPage.toast.exported', { count: rows.length }));
     } catch {
-      toast.error('Gagal mengekspor aset. Coba lagi.');
+      toast.error(t('fixedAssetsPage.toast.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -152,25 +154,25 @@ export default function FixedAssetsPage() {
     // Manual activation: avoids two history entries per click (see DeliveryOrders).
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
       <PageHeader
-        title="Aset Tetap"
-        description="Daftar aset tetap, jadwal penyusutan, dan posting penyusutan bulanan ke jurnal."
+        title={t('fixedAssetsPage.title')}
+        description={t('fixedAssetsPage.description')}
         actions={
           tab === 'list' && (
             <>
               <Button variant="outline" onClick={handleExport} loading={exporting}>
                 <Download aria-hidden />
-                <span className="sr-only sm:not-sr-only">Ekspor CSV</span>
+                <span className="sr-only sm:not-sr-only">{t('fixedAssetsPage.exportCsv')}</span>
               </Button>
               {canEdit && (
                 <Button variant="outline" onClick={() => setImportOpen(true)}>
                   <Upload aria-hidden />
-                  <span className="sr-only sm:not-sr-only">Impor CSV</span>
+                  <span className="sr-only sm:not-sr-only">{t('fixedAssetsPage.importCsv')}</span>
                 </Button>
               )}
               {canEdit && (
                 <Button onClick={() => setCreateOpen(true)}>
                   <Plus aria-hidden />
-                  Tambah Aset
+                  {t('fixedAssetsPage.add')}
                 </Button>
               )}
             </>
@@ -178,9 +180,9 @@ export default function FixedAssetsPage() {
         }
       >
         {canEdit && (
-          <TabsList variant="underline" aria-label="Tampilan aset tetap">
-            <TabsTrigger value="list">Daftar Aset</TabsTrigger>
-            <TabsTrigger value="depreciation">Posting Penyusutan</TabsTrigger>
+          <TabsList variant="underline" aria-label={t('fixedAssetsPage.tabs.label')}>
+            <TabsTrigger value="list">{t('fixedAssetsPage.tabs.list')}</TabsTrigger>
+            <TabsTrigger value="depreciation">{t('fixedAssetsPage.tabs.depreciation')}</TabsTrigger>
           </TabsList>
         )}
       </PageHeader>
@@ -224,9 +226,9 @@ export default function FixedAssetsPage() {
         open={disposeTarget !== null}
         onOpenChange={(open) => !open && setDisposeTarget(null)}
         tone="danger"
-        title="Lepas aset tetap?"
-        description={`Aset "${disposeTarget?.name ?? disposeTarget?.assetNumber ?? ''}" akan ditandai dilepas per hari ini dan tidak lagi dihitung penyusutannya.`}
-        confirmLabel="Ya, lepas aset"
+        title={t('fixedAssetsPage.dispose.title')}
+        description={t('fixedAssetsPage.dispose.description', { name: disposeTarget?.name ?? disposeTarget?.assetNumber ?? '' })}
+        confirmLabel={t('fixedAssetsPage.dispose.confirm')}
         loading={disposeMut.isPending}
         onConfirm={async () => {
           if (!disposeTarget) return;
@@ -237,9 +239,9 @@ export default function FixedAssetsPage() {
       <ConfirmDialog
         open={postTarget !== null}
         onOpenChange={(open) => !open && setPostTarget(null)}
-        title="Posting penyusutan?"
-        description="Pastikan aset dan periode sudah benar. Jurnal langsung diposting ke buku besar."
-        confirmLabel="Ya, posting penyusutan"
+        title={t('fixedAssetsPage.post.title')}
+        description={t('fixedAssetsPage.post.description')}
+        confirmLabel={t('fixedAssetsPage.post.confirm')}
         loading={depreciateMut.isPending}
         onConfirm={async () => {
           if (!postTarget) return;
@@ -250,19 +252,19 @@ export default function FixedAssetsPage() {
           <div className="space-y-3">
             <dl className="space-y-1.5 rounded-md border border-border px-3 py-2.5 text-sm">
               <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Aset</dt>
+                <dt className="text-muted-foreground">{t('fixedAssetsPage.post.asset')}</dt>
                 <dd className="num font-mono text-foreground">{postTarget.assetNumber}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Nama</dt>
+                <dt className="text-muted-foreground">{t('fixedAssetsPage.post.name')}</dt>
                 <dd className="text-right font-medium text-foreground">{postTarget.assetName}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Periode</dt>
+                <dt className="text-muted-foreground">{t('fixedAssetsPage.post.period')}</dt>
                 <dd className="num text-foreground">{formatDate(postTarget.periodDate)}</dd>
               </div>
               <div className="flex justify-between gap-3 border-t border-border pt-1.5">
-                <dt className="text-muted-foreground">Jumlah beban</dt>
+                <dt className="text-muted-foreground">{t('fixedAssetsPage.post.amount')}</dt>
                 <dd className="num font-semibold text-foreground">{formatRupiah(postTarget.amount)}</dd>
               </div>
             </dl>
@@ -271,7 +273,7 @@ export default function FixedAssetsPage() {
                 { side: 'DR', account: postTarget.depAccount, amount: formatRupiah(postTarget.amount) },
                 { side: 'CR', account: postTarget.accumAccount, amount: formatRupiah(postTarget.amount) },
               ]}
-              note="Untuk memposting semua aset sekaligus, gunakan tab Posting Penyusutan."
+              note={t('fixedAssetsPage.post.note')}
             />
           </div>
         )}

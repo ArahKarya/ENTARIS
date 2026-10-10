@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, BookOpen, Check, ClipboardCheck, Pencil, RotateCcw, Save, Send, Undo2, X, Banknote } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatDateTime, toNumber } from '@/lib/format';
@@ -60,6 +61,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export const PaymentRequestDetailPage = () => {
+  const { t } = useTranslation('finance');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -97,7 +99,8 @@ export const PaymentRequestDetailPage = () => {
     return (accountsQuery.data ?? []).filter((a) => a.accountType === 'ASSET' && (mapped.has(a.id) || a.accountNumber.startsWith('1.1')));
   }, [accountsQuery.data, systemQuery.data]);
   const advance = systemQuery.data?.mappings.EMPLOYEE_ADVANCE?.[0];
-  const advanceLabel = advance ? `${advance.accountNumber} · ${advance.accountName}` : 'Uang Muka Karyawan (akun sistem belum dipetakan)';
+  const advanceName = advance ? `${advance.accountNumber} · ${advance.accountName}` : t('paymentRequestDetail.advanceAccount.name');
+  const advanceLabel = advance ? advanceName : t('paymentRequestDetail.advanceAccount.unmapped');
 
   const refresh = () => {
     setAccountEdits({});
@@ -122,44 +125,33 @@ export const PaymentRequestDetailPage = () => {
       return api.post(`${base}/cancel-payment`, { reason });
     },
     onSuccess: (_res, { kind }) => {
-      const msg: Record<string, string> = {
-        approve: 'Pengajuan disetujui.',
-        reject: 'Pengajuan ditolak.',
-        return: 'Pengajuan dikembalikan untuk revisi.',
-        cancel: 'Pengajuan dibatalkan.',
-        submit: 'Pengajuan diajukan.',
-        cancelPayment: 'Pembayaran dibatalkan; jurnal di-void.',
-        settleApprove: 'Pertanggungjawaban disetujui; diteruskan ke Keuangan.',
-        settleReturn: 'Pertanggungjawaban dikembalikan untuk revisi.',
-        settleCancelPosting: 'Posting dibatalkan; jurnal pertanggungjawaban di-void.',
-      };
-      toast.success(msg[kind]);
+      toast.success(t(`paymentRequestDetail.toast.${kind}`));
       setApproveNote('');
       setDialog(null);
       refresh();
     },
     onError: (e) => {
-      toast.error(apiError(e, 'Gagal memproses pengajuan.'));
+      toast.error(apiError(e, t('paymentRequestDetail.toast.actionFailed')));
     },
   });
 
   const saveAccounts = useMutation({
     mutationFn: () => api.put(`${PR_ENDPOINT}/${id}/accounts`, { lineAccounts: lineAccounts() }),
     onSuccess: () => {
-      toast.success('Akun biaya disimpan.');
+      toast.success(t('paymentRequestDetail.toast.accountsSaved'));
       refresh();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal menyimpan akun biaya.')),
+    onError: (e) => toast.error(apiError(e, t('paymentRequestDetail.toast.accountsFailed'))),
   });
 
-  if (detailQuery.isLoading) return <LoadingState label="Memuat pengajuan…" />;
+  if (detailQuery.isLoading) return <LoadingState label={t('paymentRequestDetail.loading')} />;
   if (!pr) {
     return (
       <EmptyState
         kind="error"
-        title="Pengajuan tidak ditemukan"
-        description="Pengajuan ini tidak ada atau Anda tidak memiliki akses."
-        action={<Button onClick={() => navigate(PR_ENDPOINT)}>Kembali ke daftar</Button>}
+        title={t('paymentRequestDetail.notFound.title')}
+        description={t('paymentRequestDetail.notFound.description')}
+        action={<Button onClick={() => navigate(PR_ENDPOINT)}>{t('paymentRequestDetail.notFound.back')}</Button>}
       />
     );
   }
@@ -172,11 +164,15 @@ export const PaymentRequestDetailPage = () => {
   const requestAttachments = pr.attachments.filter((a) => a.scope !== 'SETTLEMENT');
   const waitingFor =
     pr.status === 'SUBMITTED'
-      ? `Menunggu persetujuan ${pr.supervisor?.fullName ?? 'atasan'}`
+      ? pr.supervisor
+        ? t('paymentRequestDetail.waiting.supervisorNamed', { name: pr.supervisor.fullName })
+        : t('paymentRequestDetail.waiting.supervisor')
       : pr.status === 'PENDING_FINANCE'
-        ? 'Menunggu verifikasi Keuangan'
+        ? t('paymentRequestDetail.waiting.finance')
         : pr.status === 'PENDING_DIRECTOR'
-          ? `Menunggu persetujuan ${pr.directorRole ?? 'Direktur'} (melewati batas nilai)`
+          ? pr.directorRole
+            ? t('paymentRequestDetail.waiting.directorNamed', { name: pr.directorRole })
+            : t('paymentRequestDetail.waiting.director')
           : null;
 
   const busy = act.isPending;
@@ -186,11 +182,11 @@ export const PaymentRequestDetailPage = () => {
         <>
           <Button variant="outline" onClick={() => navigate(`${PR_ENDPOINT}/${pr.id}/edit`)}>
             <Pencil aria-hidden />
-            Ubah
+            {t('paymentRequestDetail.actions.edit')}
           </Button>
           <Button onClick={() => setDialog('submit')}>
             <Send aria-hidden />
-            Ajukan
+            {t('paymentRequestDetail.actions.submit')}
           </Button>
         </>
       )}
@@ -198,45 +194,45 @@ export const PaymentRequestDetailPage = () => {
         <>
           <Button variant="outline" onClick={() => setDialog('reject')} className="text-danger">
             <X aria-hidden />
-            Tolak
+            {t('paymentRequestDetail.actions.reject')}
           </Button>
           <Button variant="outline" onClick={() => setDialog('return')}>
             <Undo2 aria-hidden />
-            Minta Revisi
+            {t('paymentRequestDetail.actions.return')}
           </Button>
           <Button onClick={() => setDialog('approve')}>
             <Check aria-hidden />
-            Setujui
+            {t('paymentRequestDetail.actions.approve')}
           </Button>
         </>
       )}
       {actions?.pay && (
-        <Button onClick={() => setPaying(true)} disabled={missingAccounts || accountsDirty} title={missingAccounts ? 'Lengkapi akun biaya per baris dulu' : undefined}>
+        <Button onClick={() => setPaying(true)} disabled={missingAccounts || accountsDirty} title={missingAccounts ? t('paymentRequestDetail.actions.payDisabled') : undefined}>
           <Banknote aria-hidden />
-          Bayar
+          {t('paymentRequestDetail.actions.pay')}
         </Button>
       )}
       {actions?.cancelPayment && (
         <Button variant="outline" onClick={() => setDialog('cancelPayment')}>
           <RotateCcw aria-hidden />
-          Batalkan Pembayaran
+          {t('paymentRequestDetail.actions.cancelPayment')}
         </Button>
       )}
       {sActions?.decide && (
         <>
           <Button variant="outline" onClick={() => setDialog('settleReturn')}>
             <Undo2 aria-hidden />
-            Minta Revisi Pertanggungjawaban
+            {t('paymentRequestDetail.actions.settleReturn')}
           </Button>
           {sActions.post ? (
             <Button onClick={() => setPosting(true)}>
               <ClipboardCheck aria-hidden />
-              Verifikasi & Posting
+              {t('paymentRequestDetail.actions.settlePost')}
             </Button>
           ) : (
             <Button onClick={() => setDialog('settleApprove')}>
               <Check aria-hidden />
-              Setujui Pertanggungjawaban
+              {t('paymentRequestDetail.actions.settleApprove')}
             </Button>
           )}
         </>
@@ -244,13 +240,13 @@ export const PaymentRequestDetailPage = () => {
       {sActions?.cancelPosting && (
         <Button variant="outline" onClick={() => setDialog('settleCancelPosting')}>
           <RotateCcw aria-hidden />
-          Batalkan Posting Pertanggungjawaban
+          {t('paymentRequestDetail.actions.settleCancelPosting')}
         </Button>
       )}
       {actions?.cancel && (
         <Button variant="ghost" onClick={() => setDialog('cancel')} className="text-danger">
           <Ban aria-hidden />
-          Batalkan Pengajuan
+          {t('paymentRequestDetail.actions.cancel')}
         </Button>
       )}
     </>
@@ -270,31 +266,31 @@ export const PaymentRequestDetailPage = () => {
           {pr.settlementStatus && <StatusBadge status={pr.settlementStatus} docType="payment_request_settlement" />}
           {waitingFor && <span className="text-muted-foreground">{waitingFor}</span>}
           {actions?.decide && actions.step && (
-            <span className="font-medium text-foreground">Anda memproses tahap {STEP_LABEL[actions.step]}.</span>
+            <span className="font-medium text-foreground">{t('paymentRequestDetail.yourStep', { step: STEP_LABEL[actions.step] })}</span>
           )}
         </div>
       </PageHeader>
 
       {pr.lastNote && ['REVISION', 'REJECTED', 'CANCELLED', 'APPROVED'].includes(pr.status) && (
         <p role="status" className="rounded-lg border border-border bg-muted/60 p-3 text-sm text-foreground">
-          <span className="font-medium">Catatan terakhir:</span> {pr.lastNote}
+          <span className="font-medium">{t('paymentRequestDetail.lastNote')}</span> {pr.lastNote}
         </p>
       )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-5">
-          <section aria-label="Ringkasan" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <section aria-label={t('paymentRequestDetail.summary.label')} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-xs text-muted-foreground">{t('paymentRequestDetail.summary.total')}</p>
               <p className="num mt-1 text-xl font-semibold text-foreground">{formatMoney(total)}</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Jenis</p>
+              <p className="text-xs text-muted-foreground">{t('paymentRequestDetail.summary.type')}</p>
               <p className="mt-1 font-medium text-foreground">{pr.type.name}</p>
               {KIND_LABEL[pr.type.kind] !== pr.type.name && <p className="text-xs text-muted-foreground">{KIND_LABEL[pr.type.kind]}</p>}
             </div>
             <div className="col-span-2 rounded-lg border border-border bg-card p-4 sm:col-span-1">
-              <p className="text-xs text-muted-foreground">Dibutuhkan</p>
+              <p className="text-xs text-muted-foreground">{t('paymentRequestDetail.summary.neededBy')}</p>
               <p className="mt-1 font-medium text-foreground">{pr.neededBy ? formatDate(pr.neededBy) : '—'}</p>
             </div>
           </section>
@@ -303,18 +299,23 @@ export const PaymentRequestDetailPage = () => {
 
           <Card>
             <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-              <CardTitle>{pr.type.kind === 'TRAVEL' ? 'Rencana biaya' : 'Rincian biaya'}</CardTitle>
+              <CardTitle>{pr.type.kind === 'TRAVEL' ? t('paymentRequestDetail.lines.travelTitle') : t('paymentRequestDetail.lines.title')}</CardTitle>
               {actions?.verify && accountsDirty && (
                 <Button size="sm" variant="secondary" onClick={() => saveAccounts.mutate()} loading={saveAccounts.isPending}>
                   <Save aria-hidden />
-                  Simpan akun
+                  {t('paymentRequestDetail.lines.saveAccounts')}
                 </Button>
               )}
             </CardHeader>
             <CardContent>
               {advanceKind && (
                 <p className="mb-3 rounded-md bg-info/10 px-3 py-2 text-sm text-foreground">
-                  Uang muka: saat dibayar dicatat ke <span className="font-medium">{advanceLabel.split(' (')[0]}</span>, lalu dipertanggungjawabkan.
+                  <Trans
+                    t={t}
+                    i18nKey="paymentRequestDetail.lines.advanceNote"
+                    values={{ account: advanceName }}
+                    components={{ b: <span className="font-medium" /> }}
+                  />
                 </p>
               )}
               <ul className="divide-y divide-border">
@@ -336,10 +337,10 @@ export const PaymentRequestDetailPage = () => {
                           )}
                         </p>
                       )}
-                      {l.expenseDate && <p className="text-xs text-muted-foreground">Tanggal biaya {formatDate(l.expenseDate)}</p>}
+                      {l.expenseDate && <p className="text-xs text-muted-foreground">{t('paymentRequestDetail.lines.expenseDate', { date: formatDate(l.expenseDate) })}</p>}
                       {actions?.verify && !advanceKind ? (
                         <AccountPicker
-                          label={`Akun biaya baris ${i + 1}`}
+                          label={t('paymentRequestDetail.lines.account', { n: i + 1 })}
                           value={accountEdits[l.id] ?? l.expenseAccountId ?? ''}
                           onChange={(v) => setAccountEdits((e) => ({ ...e, [l.id]: v }))}
                           accounts={expenseAccounts}
@@ -349,7 +350,11 @@ export const PaymentRequestDetailPage = () => {
                       ) : (
                         !advanceKind && (
                           <p className="text-xs text-muted-foreground">
-                            Akun: {l.expenseAccount ? `${l.expenseAccount.accountNumber} · ${l.expenseAccount.name}` : 'belum diisi Keuangan'}
+                            {t('paymentRequestDetail.lines.accountValue', {
+                              account: l.expenseAccount
+                                ? `${l.expenseAccount.accountNumber} · ${l.expenseAccount.name}`
+                                : t('paymentRequestDetail.lines.accountMissing'),
+                            })}
                           </p>
                         )
                       )}
@@ -359,7 +364,7 @@ export const PaymentRequestDetailPage = () => {
                 ))}
               </ul>
               <div className="mt-3 flex justify-between border-t border-border pt-3 text-sm">
-                <span className="text-muted-foreground">Total</span>
+                <span className="text-muted-foreground">{t('paymentRequestDetail.summary.total')}</span>
                 <span className="num font-semibold text-foreground">{formatMoney(total)}</span>
               </div>
             </CardContent>
@@ -367,11 +372,11 @@ export const PaymentRequestDetailPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Lampiran ({requestAttachments.length})</CardTitle>
+              <CardTitle>{t('paymentRequestDetail.attachments.title', { count: requestAttachments.length })}</CardTitle>
             </CardHeader>
             <CardContent>
               {requestAttachments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Tidak ada lampiran.</p>
+                <p className="text-sm text-muted-foreground">{t('paymentRequestDetail.attachments.empty')}</p>
               ) : (
                 <AttachmentPicker saved={requestAttachments} pending={[]} onPendingChange={() => undefined} readOnly />
               )}
@@ -384,23 +389,23 @@ export const PaymentRequestDetailPage = () => {
         <div className="space-y-5">
           <Card>
             <CardHeader>
-              <CardTitle>Pengaju & penerima</CardTitle>
+              <CardTitle>{t('paymentRequestDetail.people.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2.5">
-                <InfoRow label="Pengaju">{pr.requester.fullName}</InfoRow>
-                <InfoRow label="Atasan">{pr.supervisor?.fullName ?? '—'}</InfoRow>
-                {pr.department && <InfoRow label="Departemen">{pr.department}</InfoRow>}
-                <InfoRow label="Diajukan">{pr.submittedAt ? formatDateTime(pr.submittedAt) : 'Belum diajukan'}</InfoRow>
-                <InfoRow label="Penerima">
+                <InfoRow label={t('paymentRequestDetail.people.requester')}>{pr.requester.fullName}</InfoRow>
+                <InfoRow label={t('paymentRequestDetail.people.supervisor')}>{pr.supervisor?.fullName ?? '—'}</InfoRow>
+                {pr.department && <InfoRow label={t('paymentRequestDetail.people.department')}>{pr.department}</InfoRow>}
+                <InfoRow label={t('paymentRequestDetail.people.submitted')}>{pr.submittedAt ? formatDateTime(pr.submittedAt) : t('paymentRequestDetail.people.notSubmitted')}</InfoRow>
+                <InfoRow label={t('paymentRequestDetail.people.payee')}>
                   {pr.payeeName}
-                  <span className="text-muted-foreground"> · {pr.payeeKind === 'VENDOR' ? 'Vendor' : 'Karyawan'}</span>
+                  <span className="text-muted-foreground"> · {pr.payeeKind === 'VENDOR' ? t('paymentRequestDetail.people.supplier') : t('paymentRequestDetail.people.employee')}</span>
                 </InfoRow>
-                <InfoRow label="Rekening">
+                <InfoRow label={t('paymentRequestDetail.people.bankAccount')}>
                   {pr.bankAccountNo ? (
                     <>
                       {pr.bankName} <span className="num">{pr.bankAccountNo}</span>
-                      {pr.bankAccountHolder && <span className="block text-muted-foreground">a.n. {pr.bankAccountHolder}</span>}
+                      {pr.bankAccountHolder && <span className="block text-muted-foreground">{t('paymentRequestDetail.people.accountHolder', { name: pr.bankAccountHolder })}</span>}
                     </>
                   ) : (
                     '—'
@@ -413,16 +418,16 @@ export const PaymentRequestDetailPage = () => {
           {pr.status === 'PAID' || pr.paidAt ? (
             <Card>
               <CardHeader>
-                <CardTitle>Pembayaran</CardTitle>
+                <CardTitle>{t('paymentRequestDetail.payment.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2.5">
-                  <InfoRow label="Tanggal bayar">{pr.paymentDate ? formatDate(pr.paymentDate) : '—'}</InfoRow>
-                  <InfoRow label="Sumber dana">{pr.cashAccount ? `${pr.cashAccount.accountNumber} · ${pr.cashAccount.name}` : '—'}</InfoRow>
-                  <InfoRow label="Referensi">{pr.paymentReference ?? '—'}</InfoRow>
-                  <InfoRow label="Dibayar oleh">{pr.paidBy?.fullName ?? '—'}</InfoRow>
+                  <InfoRow label={t('paymentRequestDetail.payment.date')}>{pr.paymentDate ? formatDate(pr.paymentDate) : '—'}</InfoRow>
+                  <InfoRow label={t('paymentRequestDetail.payment.source')}>{pr.cashAccount ? `${pr.cashAccount.accountNumber} · ${pr.cashAccount.name}` : '—'}</InfoRow>
+                  <InfoRow label={t('paymentRequestDetail.payment.reference')}>{pr.paymentReference ?? '—'}</InfoRow>
+                  <InfoRow label={t('paymentRequestDetail.payment.paidBy')}>{pr.paidBy?.fullName ?? '—'}</InfoRow>
                   {pr.journalEntry && (
-                    <InfoRow label="Jurnal">
+                    <InfoRow label={t('paymentRequestDetail.payment.journal')}>
                       {actions?.viewJournal ? (
                         <Link to={`/gl?q=${encodeURIComponent(pr.journalEntry.entryNumber)}`} className="inline-flex items-center gap-1 text-primary hover:underline">
                           <BookOpen className="size-3.5" aria-hidden />
@@ -440,7 +445,7 @@ export const PaymentRequestDetailPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Riwayat</CardTitle>
+              <CardTitle>{t('paymentRequestDetail.history')}</CardTitle>
             </CardHeader>
             <CardContent>
               <Timeline items={pr.history} />
@@ -458,102 +463,102 @@ export const PaymentRequestDetailPage = () => {
       <ConfirmDialog
         open={dialog === 'approve'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Setujui ${pr.number}?`}
+        title={t('paymentRequestDetail.dialogs.approve.title', { number: pr.number })}
         description={
           actions?.step === 'FINANCE'
-            ? `Total ${formatMoney(total)}. Jika melewati batas nilai aturan persetujuan, pengajuan diteruskan ke Direktur; jika tidak, langsung siap dibayar.`
-            : `Total ${formatMoney(total)} untuk ${pr.payeeName}.`
+            ? t('paymentRequestDetail.dialogs.approve.financeDescription', { total: formatMoney(total) })
+            : t('paymentRequestDetail.dialogs.approve.description', { total: formatMoney(total), payee: pr.payeeName })
         }
-        confirmLabel="Setujui"
+        confirmLabel={t('paymentRequestDetail.dialogs.approve.confirm')}
         loading={busy}
         onConfirm={() => act.mutateAsync({ kind: 'approve' })}
       >
-        <Field label={actions?.step === 'FINANCE' ? 'Catatan Keuangan' : 'Catatan'} hint="Opsional. Terlihat oleh pengaju dan di riwayat.">
+        <Field label={actions?.step === 'FINANCE' ? t('paymentRequestDetail.dialogs.financeNote') : t('paymentRequestDetail.dialogs.note')} hint={t('paymentRequestDetail.dialogs.noteHint')}>
           <Textarea rows={2} maxLength={1000} value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
         </Field>
       </ConfirmDialog>
       <ConfirmDialog
         open={dialog === 'settleApprove'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Setujui pertanggungjawaban ${pr.number}?`}
-        description="Pertanggungjawaban diteruskan ke Keuangan untuk diverifikasi dan diposting."
-        confirmLabel="Setujui"
+        title={t('paymentRequestDetail.dialogs.settleApprove.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.settleApprove.description')}
+        confirmLabel={t('paymentRequestDetail.dialogs.approve.confirm')}
         loading={busy}
         onConfirm={() => act.mutateAsync({ kind: 'settleApprove' })}
       >
-        <Field label="Catatan" hint="Opsional.">
+        <Field label={t('paymentRequestDetail.dialogs.note')} hint={t('paymentRequestDetail.dialogs.optional')}>
           <Textarea rows={2} maxLength={1000} value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
         </Field>
       </ConfirmDialog>
       <ConfirmDialog
         open={dialog === 'settleReturn'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Minta revisi pertanggungjawaban ${pr.number}?`}
-        description="Dikembalikan ke pengaju untuk diperbaiki lalu diajukan ulang."
-        confirmLabel="Kembalikan"
-        requireReason={{ label: 'Yang perlu diperbaiki', minLength: 3 }}
+        title={t('paymentRequestDetail.dialogs.settleReturn.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.settleReturn.description')}
+        confirmLabel={t('paymentRequestDetail.dialogs.returnConfirm')}
+        requireReason={{ label: t('paymentRequestDetail.dialogs.fixReason'), minLength: 3 }}
         loading={busy}
         onConfirm={(reason) => act.mutateAsync({ kind: 'settleReturn', reason })}
       />
       <ConfirmDialog
         open={dialog === 'settleCancelPosting'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Batalkan posting pertanggungjawaban ${pr.number}?`}
-        description="Jurnal pertanggungjawaban di-void; status kembali ke Verifikasi Keuangan dan uang muka kembali terbuka."
+        title={t('paymentRequestDetail.dialogs.settleCancelPosting.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.settleCancelPosting.description')}
         tone="danger"
-        confirmLabel="Batalkan Posting"
-        requireReason={{ label: 'Alasan pembatalan', minLength: 3 }}
+        confirmLabel={t('paymentRequestDetail.dialogs.settleCancelPosting.confirm')}
+        requireReason={{ label: t('paymentRequestDetail.dialogs.cancelReason'), minLength: 3 }}
         loading={busy}
         onConfirm={(reason) => act.mutateAsync({ kind: 'settleCancelPosting', reason })}
       />
       <ConfirmDialog
         open={dialog === 'submit'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Ajukan ${pr.number}?`}
-        description="Setelah diajukan, pengajuan tidak bisa diubah kecuali dikembalikan untuk revisi."
-        confirmLabel="Ajukan"
+        title={t('paymentRequestDetail.dialogs.submit.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.submit.description')}
+        confirmLabel={t('paymentRequestDetail.dialogs.submit.confirm')}
         loading={busy}
         onConfirm={() => act.mutateAsync({ kind: 'submit' })}
       />
       <ConfirmDialog
         open={dialog === 'reject'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Tolak ${pr.number}?`}
-        description="Pengajuan yang ditolak tidak bisa diajukan ulang. Gunakan Minta Revisi bila pengaju cukup memperbaiki."
+        title={t('paymentRequestDetail.dialogs.reject.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.reject.description')}
         tone="danger"
-        confirmLabel="Tolak"
-        requireReason={{ label: 'Alasan penolakan', minLength: 3 }}
+        confirmLabel={t('paymentRequestDetail.dialogs.reject.confirm')}
+        requireReason={{ label: t('paymentRequestDetail.dialogs.reject.reason'), minLength: 3 }}
         loading={busy}
         onConfirm={(reason) => act.mutateAsync({ kind: 'reject', reason })}
       />
       <ConfirmDialog
         open={dialog === 'return'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Minta revisi ${pr.number}?`}
-        description="Pengajuan dikembalikan ke pengaju untuk diperbaiki lalu diajukan ulang."
-        confirmLabel="Kembalikan"
-        requireReason={{ label: 'Yang perlu diperbaiki', minLength: 3 }}
+        title={t('paymentRequestDetail.dialogs.return.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.return.description')}
+        confirmLabel={t('paymentRequestDetail.dialogs.returnConfirm')}
+        requireReason={{ label: t('paymentRequestDetail.dialogs.fixReason'), minLength: 3 }}
         loading={busy}
         onConfirm={(reason) => act.mutateAsync({ kind: 'return', reason })}
       />
       <ConfirmDialog
         open={dialog === 'cancel'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Batalkan ${pr.number}?`}
-        description="Pengajuan yang dibatalkan tidak bisa diproses lagi."
+        title={t('paymentRequestDetail.dialogs.cancel.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.cancel.description')}
         tone="danger"
-        confirmLabel="Ya, Batalkan"
+        confirmLabel={t('paymentRequestDetail.dialogs.cancel.confirm')}
         loading={busy}
         onConfirm={() => act.mutateAsync({ kind: 'cancel' })}
       />
       <ConfirmDialog
         open={dialog === 'cancelPayment'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Batalkan pembayaran ${pr.number}?`}
-        description="Jurnal pembayaran di-void dan pengajuan kembali ke Siap Dibayar."
+        title={t('paymentRequestDetail.dialogs.cancelPayment.title', { number: pr.number })}
+        description={t('paymentRequestDetail.dialogs.cancelPayment.description')}
         tone="danger"
-        confirmLabel="Batalkan Pembayaran"
-        requireReason={{ label: 'Alasan pembatalan', minLength: 3 }}
+        confirmLabel={t('paymentRequestDetail.dialogs.cancelPayment.confirm')}
+        requireReason={{ label: t('paymentRequestDetail.dialogs.cancelReason'), minLength: 3 }}
         loading={busy}
         onConfirm={(reason) => act.mutateAsync({ kind: 'cancelPayment', reason })}
       />

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface JournalPreviewLine {
@@ -15,10 +16,11 @@ interface JournalPreviewProps {
 }
 
 /** Compact "journal that will be created" box used before every GL posting. */
-export function JournalPreview({ title = 'Jurnal yang akan dibuat', lines, note, className }: JournalPreviewProps) {
+export function JournalPreview({ title, lines, note, className }: JournalPreviewProps) {
+  const { t } = useTranslation('finance');
   return (
     <div className={cn('rounded-md border border-border bg-muted/50 px-3 py-2.5 text-sm', className)}>
-      <p className="text-xs font-medium text-muted-foreground">{title}</p>
+      <p className="text-xs font-medium text-muted-foreground">{title ?? t('journalPreview.title')}</p>
       <dl className="mt-1.5 space-y-1">
         {lines.map((line, i) => (
           <div key={i} className="flex items-baseline gap-2">

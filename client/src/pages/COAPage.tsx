@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Upload } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -36,6 +37,7 @@ interface SystemAccountsResponse {
 const EMPTY_TREE: CoaNode[] = [];
 
 export const COAPage = () => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const canEdit = can('coa', 'edit');
   // DELETE /coa/:id additionally requires the doc.cancel capability.
@@ -76,16 +78,16 @@ export const COAPage = () => {
 
   const view = useCoaView(tree);
 
-  const handleExport = () => exportToExcel(exportRows(tree), 'bagan-akun');
+  const handleExport = () => exportToExcel(exportRows(tree), t('coaPage.exportFile'));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await api.delete(`/coa/${deleteTarget.id}`);
       queryClient.invalidateQueries({ queryKey: ['coa'] });
-      toast.success(`Akun "${deleteTarget.name}" dihapus.`);
+      toast.success(t('coaPage.toast.deleted', { name: deleteTarget.name }));
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Gagal menghapus akun.'));
+      toast.error(apiErrorMessage(err, t('coaPage.toast.deleteFailed')));
     }
   };
 
@@ -94,10 +96,10 @@ export const COAPage = () => {
     emptyState = (
       <EmptyState
         kind="error"
-        description="Bagan akun gagal dimuat. Periksa koneksi Anda lalu coba lagi."
+        description={t('coaPage.error.description')}
         action={
           <Button variant="outline" onClick={() => coaQuery.refetch()}>
-            Coba lagi
+            {t('coaPage.error.retry')}
           </Button>
         }
       />
@@ -105,13 +107,13 @@ export const COAPage = () => {
   } else if (total === 0) {
     emptyState = (
       <EmptyState
-        title="Belum ada akun"
-        description="Buat akun pertama atau impor bagan akun dari Excel."
+        title={t('coaPage.empty.title')}
+        description={t('coaPage.empty.description')}
         action={
           canEdit ? (
             <Button size="sm" onClick={() => setDialog({ mode: 'create', parent: null })}>
               <Plus aria-hidden />
-              Tambah akun
+              {t('coaPage.empty.action')}
             </Button>
           ) : undefined
         }
@@ -121,10 +123,10 @@ export const COAPage = () => {
     emptyState = (
       <EmptyState
         kind="no-results"
-        description={view.query ? `Tidak ada akun yang cocok dengan "${view.query}".` : undefined}
+        description={view.query ? t('coaPage.noResults', { query: view.query }) : undefined}
         action={
           <Button variant="outline" size="sm" onClick={view.list.resetFilters}>
-            Reset filter
+            {t('coaPage.resetFilter')}
           </Button>
         }
       />
@@ -136,24 +138,24 @@ export const COAPage = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Bagan Akun"
-        description="Struktur Chart of Accounts beserta saldo setiap akun."
+        title={t('coaPage.title')}
+        description={t('coaPage.description')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} disabled={!total}>
               <Download aria-hidden />
-              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              <span className="sr-only sm:not-sr-only">{t('coaPage.exportExcel')}</span>
             </Button>
             {canEdit && (
               <Button variant="outline" onClick={() => setIsImportOpen(true)}>
                 <Upload aria-hidden />
-                <span className="sr-only sm:not-sr-only">Impor</span>
+                <span className="sr-only sm:not-sr-only">{t('coaPage.import')}</span>
               </Button>
             )}
             {canEdit && (
               <Button onClick={() => setDialog({ mode: 'create', parent: null })}>
                 <Plus aria-hidden />
-                Tambah Akun
+                {t('coaPage.add')}
               </Button>
             )}
           </>
@@ -166,8 +168,8 @@ export const COAPage = () => {
         <p className="text-xs text-muted-foreground" aria-live="polite">
           {ready &&
             (view.filtering
-              ? `Menampilkan ${formatNumber(view.filtered.visibleCount)} dari ${formatNumber(total)} akun`
-              : `${formatNumber(total)} akun`)}
+              ? t('coaPage.showing', { count: view.filtered.visibleCount, total: formatNumber(total) })
+              : t('coaPage.count', { count: total }))}
         </p>
 
         <CoaTreeTable
@@ -195,17 +197,18 @@ export const COAPage = () => {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus akun?"
+        title={t('coaPage.delete.title')}
         description={
           deleteTarget ? (
-            <>
-              Akun <strong className="font-mono">{deleteTarget.accountNumber}</strong>{' '}
-              <strong>{deleteTarget.name}</strong> akan dihapus permanen. Akun hanya bisa dihapus jika tidak memiliki
-              sub-akun, tidak memiliki transaksi, dan saldonya nol.
-            </>
+            <Trans
+              t={t}
+              i18nKey="coaPage.delete.description"
+              values={{ number: deleteTarget.accountNumber, name: deleteTarget.name }}
+              components={{ mono: <strong className="font-mono" />, b: <strong /> }}
+            />
           ) : null
         }
-        confirmLabel="Ya, hapus"
+        confirmLabel={t('coaPage.delete.confirm')}
         onConfirm={handleDelete}
       />
 

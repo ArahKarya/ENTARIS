@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, CheckCircle2, ListChecks, Save, SendHorizontal, Trash2 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
@@ -57,6 +58,7 @@ const rupiah = (n: number) => formatRupiah(n);
 const rupiahCompact = (n: number) => formatRupiah(n, { compact: true });
 
 export const CashBookDraftReview = () => {
+  const { t } = useTranslation('finance');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -148,9 +150,9 @@ export const CashBookDraftReview = () => {
       setEdits({});
       setHeader({});
       setProblems([]);
-      toast.success('Perubahan draft disimpan.');
+      toast.success(t('cashBookDraftReview.toast.saved'));
     },
-    onError: (err) => setProblems(errorLines(err, 'Gagal menyimpan perubahan.')),
+    onError: (err) => setProblems(errorLines(err, t('cashBookDraftReview.toast.saveFailed'))),
   });
 
   const post = useMutation({
@@ -160,13 +162,13 @@ export const CashBookDraftReview = () => {
       void qc.invalidateQueries({ queryKey: ['journals'] });
       void qc.invalidateQueries({ queryKey: ['coa'] });
       void qc.invalidateQueries({ queryKey: ['payments'] });
-      setProblems(res.failed.map((f) => `Baris ${f.idx}: ${f.error}`));
+      setProblems(res.failed.map((f) => t('cashBookDraftReview.rowProblem', { n: f.idx, error: f.error })));
       setOfferPartial(false);
-      if (res.status === 'Posted') toast.success(`${res.postedCount} jurnal dibuat (${rupiah(res.totalAmount)}).`);
-      else toast.warning(`${res.postedCount} jurnal dibuat; ${res.failed.length} baris belum diposting.`);
+      if (res.status === 'Posted') toast.success(t('cashBookDraftReview.toast.posted', { count: res.postedCount, total: rupiah(res.totalAmount) }));
+      else toast.warning(t('cashBookDraftReview.toast.partiallyPosted', { count: res.postedCount, failed: res.failed.length }));
     },
     onError: (err) => {
-      setProblems(errorLines(err, 'Gagal memposting draft.'));
+      setProblems(errorLines(err, t('cashBookDraftReview.toast.postFailed')));
       setOfferPartial(true);
       throw err;
     },
@@ -176,11 +178,11 @@ export const CashBookDraftReview = () => {
     mutationFn: async () => api.post(`${CB_ENDPOINT}/${id}/discard`),
     onSuccess: async () => {
       await refresh();
-      toast.success('Draft dibuang.');
+      toast.success(t('cashBookDraftReview.toast.discarded'));
       navigate(CB_ENDPOINT);
     },
     onError: (err) => {
-      toast.error(errorLines(err, 'Gagal membuang draft.')[0]);
+      toast.error(errorLines(err, t('cashBookDraftReview.toast.discardFailed'))[0]);
       throw err;
     },
   });
@@ -191,65 +193,74 @@ export const CashBookDraftReview = () => {
       const r = rows.find((x) => x.id === rowId);
       if (r && !isRowLocked(r)) setEdits((prev) => mergeEdit(prev, rowId, { accountId: bulkAccount }));
     }
-    toast.success(`Akun diterapkan ke ${selected.size} baris. Simpan perubahan untuk menyimpan.`);
+    toast.success(t('cashBookDraftReview.toast.bulkApplied', { count: selected.size }));
     setSelected(new Set());
   };
 
-  if (detailQuery.isLoading) return <LoadingState label="Memuat draf buku kas…" />;
+  if (detailQuery.isLoading) return <LoadingState label={t('cashBookDraftReview.loading')} />;
   if (detailQuery.isError || !draft) {
     return (
       <div className="space-y-5 pb-8">
-        <PageHeader title="Draft Buku Kas" />
+        <PageHeader title={t('cashBookDraftReview.fallbackTitle')} />
         <EmptyState
           kind="error"
-          title="Draft tidak ditemukan"
-          description="Draft mungkin sudah dibuang atau tautannya salah."
-          action={<Button size="sm" onClick={() => navigate(CB_ENDPOINT)}>Kembali ke daftar</Button>}
+          title={t('cashBookDraftReview.notFound.title')}
+          description={t('cashBookDraftReview.notFound.description')}
+          action={<Button size="sm" onClick={() => navigate(CB_ENDPOINT)}>{t('cashBookDraftReview.backToList')}</Button>}
         />
       </div>
     );
   }
 
   const postWarnings: string[] = [];
-  if (reviewCount > 0) postWarnings.push(`${formatNumber(reviewCount)} baris masih ditandai Ragu / perlu ditinjau.`);
-  if (duplicateCount > 0) postWarnings.push(`${formatNumber(duplicateCount)} baris ditandai kemungkinan duplikat.`);
-  if (balance.checked && !balance.ok) postWarnings.push(`Saldo akhir tidak cocok (selisih ${rupiah(balance.difference ?? 0)}).`);
+  if (reviewCount > 0) postWarnings.push(t('cashBookDraftReview.warnings.review', { count: reviewCount }));
+  if (duplicateCount > 0) postWarnings.push(t('cashBookDraftReview.warnings.duplicate', { count: duplicateCount }));
+  if (balance.checked && !balance.ok) postWarnings.push(t('cashBookDraftReview.warnings.balance', { amount: rupiah(balance.difference ?? 0) }));
   const cashLabel = draft.cashAccount ? `${draft.cashAccount.accountNumber} ${draft.cashAccount.name}` : '—';
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title={`Draft ${draft.draftNumber}`}
-        description={`${draft.title} · halaman ${formatDate(draft.entryDate)} · kas ${cashLabel}`}
+        title={t('cashBookDraftReview.title', { number: draft.draftNumber })}
+        description={t('cashBookDraftReview.subtitle', { title: draft.title, date: formatDate(draft.entryDate), cash: cashLabel })}
         actions={
           <Button variant="outline" onClick={() => navigate(CB_ENDPOINT)}>
-            Kembali ke daftar
+            {t('cashBookDraftReview.backToList')}
           </Button>
         }
       >
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={draft.status} docType="cash_book_draft" />
           <SourceChip source={draft.source} />
-          {draft.createdBy && <span className="text-xs text-muted-foreground">dibuat {draft.createdBy.fullName}{draft.createdVia === 'mcp' ? ' via AIRA' : ''}</span>}
+          {draft.createdBy && <span className="text-xs text-muted-foreground">
+              {draft.createdVia === 'mcp'
+                ? t('cashBookDraftReview.createdByAira', { name: draft.createdBy.fullName })
+                : t('cashBookDraftReview.createdBy', { name: draft.createdBy.fullName })}
+            </span>}
         </div>
       </PageHeader>
 
       {draft.source === 'aira' && editable && (
         <p className="rounded-md bg-info-subtle px-3 py-2 text-sm text-info-text">
-          Baris dibaca AIRA{draft.sourceNote ? ` (${draft.sourceNote})` : ''}. Periksa baris bertanda <strong>Ragu</strong>; posting baru membuat jurnal.
+          <Trans
+            t={t}
+            i18nKey={draft.sourceNote ? 'cashBookDraftReview.airaNoteWithSource' : 'cashBookDraftReview.airaNote'}
+            values={{ note: draft.sourceNote }}
+            components={{ b: <strong /> }}
+          />
         </p>
       )}
       {!editable && draft.status !== 'Discarded' && (
         <p className="rounded-md bg-success-subtle px-3 py-2 text-sm text-success-text" role="status">
-          Draft sudah diposting{draft.postedAt ? ` pada ${formatDate(draft.postedAt)}` : ''}; tampilan hanya-baca. Nomor jurnal ada di tiap baris.
+          {draft.postedAt ? t('cashBookDraftReview.readOnlyOn', { date: formatDate(draft.postedAt) }) : t('cashBookDraftReview.readOnly')}
         </p>
       )}
       {draft.lastError && editable && (
         <p role="alert" className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-text">{draft.lastError}</p>
       )}
 
-      <section aria-label="Data halaman buku kas" className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Judul" className="sm:col-span-2 lg:col-span-1">
+      <section aria-label={t('cashBookDraftReview.page.label')} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label={t('cashBookDraftReview.page.title')} className="sm:col-span-2 lg:col-span-1">
           <Input
             value={header.title ?? draft.title}
             disabled={!editable}
@@ -258,15 +269,15 @@ export const CashBookDraftReview = () => {
           />
         </Field>
         <ComboField
-          label="Akun kas / bank"
+          label={t('cashBookDraftReview.page.cashAccount')}
           value={header.cashAccountId ?? draft.cashAccountId}
           onChange={(v) => v && setHeader((h) => ({ ...h, cashAccountId: v }))}
           options={cashOptions}
-          placeholder="Pilih akun kas…"
-          searchPlaceholder="Cari akun kas…"
-          hint={draft.status === 'PartiallyPosted' ? 'Tidak bisa diganti setelah ada baris diposting.' : undefined}
+          placeholder={t('cashBookDraftReview.page.cashPlaceholder')}
+          searchPlaceholder={t('cashBookDraftReview.page.cashSearch')}
+          hint={draft.status === 'PartiallyPosted' ? t('cashBookDraftReview.page.cashLocked') : undefined}
         />
-        <Field label="Tanggal halaman" hint="Untuk baris tanpa tanggal sendiri.">
+        <Field label={t('cashBookDraftReview.page.date')} hint={t('cashBookDraftReview.page.dateHint')}>
           {(c) => (
             <DateInput
               id={c.id}
@@ -277,10 +288,10 @@ export const CashBookDraftReview = () => {
           )}
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Saldo awal">
+          <Field label={t('cashBookDraftReview.page.opening')}>
             {(c) => <MoneyInput id={c.id} value={opening} disabled={!editable} onChange={(v) => setHeader((h) => ({ ...h, openingBalance: v }))} />}
           </Field>
-          <Field label="Saldo akhir">
+          <Field label={t('cashBookDraftReview.page.closing')}>
             {(c) => <MoneyInput id={c.id} value={closing} disabled={!editable} onChange={(v) => setHeader((h) => ({ ...h, closingBalance: v }))} />}
           </Field>
         </div>
@@ -291,51 +302,64 @@ export const CashBookDraftReview = () => {
           }`}
         >
           {!balance.checked ? (
-            <span>Isi saldo awal dan saldo akhir halaman untuk memeriksa kecocokan.</span>
+            <span>{t('cashBookDraftReview.balance.unchecked')}</span>
           ) : balance.ok ? (
             <>
               <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <span>Saldo cocok: saldo awal + masuk − keluar = {rupiah(balance.expectedClosing ?? 0)}.</span>
+              <span>{t('cashBookDraftReview.balance.ok', { amount: rupiah(balance.expectedClosing ?? 0) })}</span>
             </>
           ) : (
             <>
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
-                <strong>Saldo akhir tidak cocok.</strong> Seharusnya {rupiah(balance.expectedClosing ?? 0)}, tertulis {rupiah(closing ?? 0)} (selisih {rupiah(balance.difference ?? 0)}).
-                Periksa baris yang terlewat atau salah baca. Ini peringatan, bukan penghalang posting.
+                <Trans
+                  t={t}
+                  i18nKey="cashBookDraftReview.balance.mismatch"
+                  values={{
+                    expected: rupiah(balance.expectedClosing ?? 0),
+                    written: rupiah(closing ?? 0),
+                    difference: rupiah(balance.difference ?? 0),
+                  }}
+                  components={{ b: <strong /> }}
+                />
               </span>
             </>
           )}
         </p>
       </section>
 
-      <section aria-label="Ringkasan draft" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total Masuk" icon={ArrowDownToLine} value={rupiahCompact(totals.masuk)} valueTitle={rupiah(totals.masuk)} hint="baris tidak dilewati" />
-        <StatCard label="Total Keluar" icon={ArrowUpFromLine} value={rupiahCompact(totals.keluar)} valueTitle={rupiah(totals.keluar)} hint="baris tidak dilewati" />
-        <StatCard label="Jumlah Baris" icon={ListChecks} value={formatNumber(totals.rowCount)} hint={`${formatNumber(totals.activeCount)} akan diposting`} />
-        <StatCard label="Perlu Ditinjau" icon={AlertTriangle} value={formatNumber(reviewCount)} hint={duplicateCount > 0 ? `${formatNumber(duplicateCount)} duplikat?` : 'baris Ragu'} />
+      <section aria-label={t('cashBookDraftReview.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('cashBookDraftReview.summary.in')} icon={ArrowDownToLine} value={rupiahCompact(totals.masuk)} valueTitle={rupiah(totals.masuk)} hint={t('cashBookDraftReview.summary.notSkipped')} />
+        <StatCard label={t('cashBookDraftReview.summary.out')} icon={ArrowUpFromLine} value={rupiahCompact(totals.keluar)} valueTitle={rupiah(totals.keluar)} hint={t('cashBookDraftReview.summary.notSkipped')} />
+        <StatCard label={t('cashBookDraftReview.summary.rows')} icon={ListChecks} value={formatNumber(totals.rowCount)} hint={t('cashBookDraftReview.summary.toPost', { count: totals.activeCount })} />
+        <StatCard
+          label={t('cashBookDraftReview.summary.review')}
+          icon={AlertTriangle}
+          value={formatNumber(reviewCount)}
+          hint={duplicateCount > 0 ? t('cashBookDraftReview.summary.duplicates', { count: duplicateCount }) : t('cashBookDraftReview.summary.doubtful')}
+        />
       </section>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2 text-sm text-foreground">
           <Switch id="cb-only-review" checked={onlyReview} onCheckedChange={setOnlyReview} />
-          <label htmlFor="cb-only-review">Hanya yang perlu ditinjau</label>
+          <label htmlFor="cb-only-review">{t('cashBookDraftReview.onlyReview')}</label>
         </div>
         {editable && selected.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Aksi massal">
-            <span className="text-sm text-muted-foreground" role="status">{formatNumber(selected.size)} baris dipilih</span>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('cashBookDraftReview.bulk.label')}>
+            <span className="text-sm text-muted-foreground" role="status">{t('cashBookDraftReview.bulk.selected', { count: selected.size })}</span>
             <div className="w-64">
               <ComboboxFilter
-                label="Akun untuk baris terpilih"
+                label={t('cashBookDraftReview.bulk.account')}
                 value={bulkAccount}
                 onChange={setBulkAccount}
                 options={accountOptions}
-                allLabel="Pilih akun massal…"
-                searchPlaceholder="Cari nomor atau nama akun…"
+                allLabel={t('cashBookDraftReview.bulk.accountPlaceholder')}
+                searchPlaceholder={t('cashBookDraftReview.bulk.accountSearch')}
               />
             </div>
-            <Button size="sm" variant="secondary" disabled={!bulkAccount} onClick={applyBulk}>Terapkan akun</Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Batal pilih</Button>
+            <Button size="sm" variant="secondary" disabled={!bulkAccount} onClick={applyBulk}>{t('cashBookDraftReview.bulk.apply')}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>{t('cashBookDraftReview.bulk.clear')}</Button>
           </div>
         )}
       </div>
@@ -344,11 +368,11 @@ export const CashBookDraftReview = () => {
         <div role="alert" className="space-y-2 rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-text">
           <ul className="space-y-1">
             {problems.slice(0, 10).map((p) => <li key={p}>{p}</li>)}
-            {problems.length > 10 && <li>… dan {problems.length - 10} lainnya.</li>}
+            {problems.length > 10 && <li>{t('cashBookDraftReview.moreProblems', { count: problems.length - 10 })}</li>}
           </ul>
           {offerPartial && editable && !dirty && (
             <Button size="sm" variant="outline" loading={post.isPending} onClick={() => post.mutate(true)}>
-              Posting baris yang valid saja
+              {t('cashBookDraftReview.postValidOnly')}
             </Button>
           )}
         </div>
@@ -369,19 +393,21 @@ export const CashBookDraftReview = () => {
         <div className="sticky bottom-0 z-20 -mx-3 border-t border-border bg-card/95 px-3 py-3 shadow-[var(--shadow-2)] backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <p className="w-full text-sm text-muted-foreground sm:mr-auto sm:w-auto" role="status">
-              {dirty ? 'Ada perubahan yang belum disimpan.' : `${formatNumber(toPost.length)} baris siap diposting.`}
+              {dirty ? t('cashBookDraftReview.footer.unsaved') : t('cashBookDraftReview.footer.ready', { count: toPost.length })}
             </p>
             <Button variant="danger" className="px-3 sm:px-4" onClick={() => setDialog('discard')} disabled={draft.status !== 'Draft'}>
               <Trash2 aria-hidden />
-              Buang<span className="hidden sm:inline">&nbsp;draft</span>
+              {t('cashBookDraftReview.footer.discard')}
+              <span className="hidden sm:inline">&nbsp;{t('cashBookDraftReview.footer.discardSuffix')}</span>
             </Button>
             <Button variant="outline" className="px-3 sm:px-4" onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
               <Save aria-hidden />
-              Simpan<span className="hidden sm:inline">&nbsp;perubahan</span>
+              {t('cashBookDraftReview.footer.save')}
+              <span className="hidden sm:inline">&nbsp;{t('cashBookDraftReview.footer.saveSuffix')}</span>
             </Button>
-            <Button className="px-3 sm:px-4" onClick={() => setDialog('post')} disabled={dirty || toPost.length === 0} title={dirty ? 'Simpan perubahan dulu' : undefined}>
+            <Button className="px-3 sm:px-4" onClick={() => setDialog('post')} disabled={dirty || toPost.length === 0} title={dirty ? t('cashBookDraftReview.footer.saveFirst') : undefined}>
               <SendHorizontal aria-hidden />
-              Posting semua
+              {t('cashBookDraftReview.footer.postAll')}
             </Button>
           </div>
         </div>
@@ -390,14 +416,14 @@ export const CashBookDraftReview = () => {
       <ConfirmDialog
         open={dialog === 'post'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={`Posting ${formatNumber(toPost.length)} baris?`}
-        confirmLabel="Posting"
+        title={t('cashBookDraftReview.postDialog.title', { count: toPost.length })}
+        confirmLabel={t('cashBookDraftReview.postDialog.confirm')}
         loading={post.isPending}
         onConfirm={() => post.mutateAsync(false)}
-        description={`Akan dibuat ${formatNumber(toPost.length)} jurnal seimbang (satu per baris) di ${cashLabel}: masuk ${rupiah(postTotals.masuk)}, keluar ${rupiah(postTotals.keluar)}. Jurnal tidak dapat dihapus; koreksi lewat pembatalan di Jurnal Umum.`}
+        description={t('cashBookDraftReview.postDialog.description', { count: toPost.length, cash: cashLabel, in: rupiah(postTotals.masuk), out: rupiah(postTotals.keluar) })}
       >
         {postWarnings.length > 0 && (
-          <ul className="space-y-1 rounded-md bg-warning-subtle px-3 py-2 text-sm text-warning-text" aria-label="Peringatan sebelum posting">
+          <ul className="space-y-1 rounded-md bg-warning-subtle px-3 py-2 text-sm text-warning-text" aria-label={t('cashBookDraftReview.postDialog.warnings')}>
             {postWarnings.map((w) => (
               <li key={w} className="flex items-start gap-1.5">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -411,9 +437,9 @@ export const CashBookDraftReview = () => {
         open={dialog === 'discard'}
         onOpenChange={(o) => !o && setDialog(null)}
         tone="danger"
-        title="Buang draft ini?"
-        description={`Draft ${draft.draftNumber} (${formatNumber(draft.rows.length)} baris) dibuang dan tidak dapat diposting. Belum ada jurnal yang terdampak.`}
-        confirmLabel="Buang draft"
+        title={t('cashBookDraftReview.discardDialog.title')}
+        description={t('cashBookDraftReview.discardDialog.description', { number: draft.draftNumber, count: draft.rows.length })}
+        confirmLabel={t('cashBookDraftReview.discardDialog.confirm')}
         loading={discard.isPending}
         onConfirm={() => discard.mutateAsync()}
       />

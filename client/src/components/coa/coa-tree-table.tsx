@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { ChevronRight, Lock, Pencil, PlusCircle, Trash2, Wallet } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { RowActions } from '@/components/shared';
@@ -65,29 +66,31 @@ function Highlight({ text, query, active }: { text: string; query: string; activ
 }
 
 export function SystemAccountBadge({ roles, className }: { roles: string[]; className?: string }) {
+  const { t } = useTranslation('finance');
   return (
     <span
-      title={`Akun sistem: ${roles.join(', ')}`}
+      title={t('coaTreeTable.systemBadge.title', { roles: roles.join(', ') })}
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-sm bg-neutral-subtle px-1.5 py-0.5 text-xs font-medium leading-4 text-neutral-text',
         className,
       )}
     >
       <Lock className="size-3" aria-hidden />
-      <span className="sr-only sm:not-sr-only">Sistem</span>
+      <span className="sr-only sm:not-sr-only">{t('coaTreeTable.systemBadge.label')}</span>
       <span className="sr-only">: {roles.join(', ')}</span>
     </span>
   );
 }
 
 function BalanceCell({ node }: { node: CoaNode }) {
+  const { t } = useTranslation('finance');
   const amount = displayBalance(node);
   const zero = isZero(amount);
   const negative = !zero && amount < 0;
   return (
     <span className={cn('num', zero && 'text-muted-foreground', negative && 'text-danger-text')}>
       {formatRupiah(zero ? 0 : amount, { symbol: false, negative: 'parens' })}
-      {negative && <span className="sr-only"> (saldo berlawanan dengan saldo normal)</span>}
+      {negative && <span className="sr-only"> {t('coaTreeTable.oppositeBalance')}</span>}
     </span>
   );
 }
@@ -137,6 +140,7 @@ export function CoaTreeTable({
   onSetBalance,
   onDelete,
 }: CoaTreeTableProps) {
+  const { t } = useTranslation('finance');
   const [activeId, setActiveId] = useState<string | null>(null);
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
   const pendingFocus = useRef<string | null>(null);
@@ -226,7 +230,7 @@ export function CoaTreeTable({
       const isGroupRow = node.isGroup || row.hasChildren;
       const matched = matchIds.has(node.id);
       const hasKids = node.children.length > 0;
-      const deleteBlock = isSystem ? 'akun sistem' : hasKids ? 'masih punya sub-akun' : null;
+      const deleteBlock = isSystem ? t('coaTreeTable.deleteBlock.system') : hasKids ? t('coaTreeTable.deleteBlock.children') : null;
       const depth = row.level - 1;
       return (
         <tr
@@ -299,49 +303,49 @@ export function CoaTreeTable({
               >
                 <Highlight text={node.name} query={query} active={matched} />
               </span>
-              {isGroupRow && <span className="sr-only">, akun grup</span>}
+              {isGroupRow && <span className="sr-only">{t('coaTreeTable.groupSr')}</span>}
               {isSystem && <SystemAccountBadge roles={roles!} />}
               {!node.isActive && (
                 <span className="shrink-0 rounded-sm bg-neutral-subtle px-1.5 py-0.5 text-xs font-medium leading-4 text-neutral-text">
-                  Nonaktif
+                  {t('coaTreeTable.inactive')}
                 </span>
               )}
             </div>
           </td>
           <td role="gridcell" className="hidden h-10 px-3 text-muted-foreground md:table-cell">
             {rootTypeLabel(node.rootType)}
-            <span className="text-xs"> · {isGroupRow ? 'Grup' : 'Detail'}</span>
+            <span className="text-xs"> · {isGroupRow ? t('coaTreeTable.group') : t('coaTreeTable.detail')}</span>
           </td>
           <td role="gridcell" className="hidden h-10 px-3 text-muted-foreground md:table-cell">
-            {normalSide(node.rootType) === 'D' ? 'Debit' : 'Kredit'}
+            {normalSide(node.rootType) === 'D' ? t('coaTreeTable.debit') : t('coaTreeTable.credit')}
           </td>
           <td role="gridcell" className={cn('h-10 px-2 text-right sm:px-3', isGroupRow && 'font-semibold')}>
             <BalanceCell node={node} />
           </td>
           <td role="gridcell" className="h-10 py-0 pr-1 text-right sm:pr-2">
             <RowActions
-              label={`Aksi untuk ${node.accountNumber} ${node.name}`}
+              label={t('coaTreeTable.rowActions', { number: node.accountNumber, name: node.name })}
               actions={[
                 {
-                  label: 'Tambah sub-akun',
+                  label: t('coaTreeTable.actions.addChild'),
                   icon: PlusCircle,
                   hidden: !canEdit || !node.isGroup,
                   onSelect: () => onAddChild(node),
                 },
                 {
-                  label: 'Atur saldo awal',
+                  label: t('coaTreeTable.actions.setBalance'),
                   icon: Wallet,
                   hidden: !canEdit || node.isGroup,
                   onSelect: () => onSetBalance(node),
                 },
                 {
-                  label: 'Edit akun',
+                  label: t('coaTreeTable.actions.edit'),
                   icon: Pencil,
                   hidden: !canEdit,
                   onSelect: () => onEdit(node),
                 },
                 {
-                  label: deleteBlock ? `Hapus (${deleteBlock})` : 'Hapus',
+                  label: deleteBlock ? t('coaTreeTable.actions.deleteBlocked', { reason: deleteBlock }) : t('coaTreeTable.actions.delete'),
                   icon: Trash2,
                   tone: 'danger',
                   hidden: !canEdit || !canDelete,
@@ -362,7 +366,7 @@ export function CoaTreeTable({
       <table
         // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role
         role="treegrid"
-        aria-label="Bagan akun"
+        aria-label={t('coaTreeTable.label')}
         aria-busy={loading || undefined}
         className="w-full table-fixed border-collapse text-sm [--coa-indent:0.875rem] sm:[--coa-indent:1.375rem]"
       >
@@ -377,14 +381,14 @@ export function CoaTreeTable({
           <tr role="row" className="border-b border-border">
             {(
               [
-                ['Akun', 'pl-3 text-left'],
-                ['Tipe', 'hidden text-left md:table-cell'],
-                ['Saldo Normal', 'hidden text-left md:table-cell'],
-                ['Saldo (Rp)', 'text-right max-sm:px-2'],
+                ['account', 'pl-3 text-left'],
+                ['type', 'hidden text-left md:table-cell'],
+                ['normalBalance', 'hidden text-left md:table-cell'],
+                ['balance', 'text-right max-sm:px-2'],
               ] as const
-            ).map(([label, cls]) => (
+            ).map(([key, cls]) => (
               <th
-                key={label}
+                key={key}
                 role="columnheader"
                 scope="col"
                 className={cn(
@@ -392,11 +396,11 @@ export function CoaTreeTable({
                   cls,
                 )}
               >
-                {label}
+                {t(`coaTreeTable.columns.${key}`)}
               </th>
             ))}
             <th role="columnheader" scope="col" className="h-10 w-12">
-              <span className="sr-only">Aksi</span>
+              <span className="sr-only">{t('coaTreeTable.columns.actions')}</span>
             </th>
           </tr>
         </thead>

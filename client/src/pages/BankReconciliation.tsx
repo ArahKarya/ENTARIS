@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -80,6 +81,7 @@ function useCashAccounts() {
 }
 
 export const BankReconciliation = () => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'statementDate', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -119,16 +121,16 @@ export const BankReconciliation = () => {
     mutationFn: async (id: string) => api.delete(`${ENDPOINT}/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliations'] });
-      toast.success('Rekonsiliasi dihapus.');
+      toast.success(t('bankReconciliation.toast.deleted'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal menghapus.')),
+    onError: (e) => toast.error(errorMessage(e, t('bankReconciliation.toast.deleteFailed'))),
   });
 
   const columns = useMemo<ColumnDef<ReconciliationRow>[]>(
     () => [
       {
         id: 'account',
-        header: 'Akun',
+        header: t('bankReconciliation.columns.account'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
@@ -144,7 +146,7 @@ export const BankReconciliation = () => {
       },
       {
         id: 'statementDate',
-        header: 'Tanggal Statement',
+        header: t('bankReconciliation.columns.statementDate'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -152,7 +154,7 @@ export const BankReconciliation = () => {
       },
       {
         id: 'bookBalance',
-        header: () => withUnit('Saldo Buku'),
+        header: () => withUnit(t('bankReconciliation.columns.bookBalance')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'lg' },
@@ -160,7 +162,7 @@ export const BankReconciliation = () => {
       },
       {
         id: 'statementBalance',
-        header: () => withUnit('Saldo Statement'),
+        header: () => withUnit(t('bankReconciliation.columns.statementBalance')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -168,7 +170,7 @@ export const BankReconciliation = () => {
       },
       {
         id: 'difference',
-        header: () => withUnit('Selisih'),
+        header: () => withUnit(t('bankReconciliation.columns.difference')),
         meta: { align: 'right' },
         cell: ({ row }) => {
           const diff = difference(row.original);
@@ -177,7 +179,7 @@ export const BankReconciliation = () => {
             <div className="flex flex-col items-end gap-1">
               <span className={cn('font-medium', balanced ? 'text-success-text' : 'text-warning-text')}>
                 {money(diff)}
-                <span className="sr-only">{balanced ? ' (seimbang)' : ' (belum seimbang)'}</span>
+                <span className="sr-only"> {balanced ? t('bankReconciliation.balanced') : t('bankReconciliation.unbalanced')}</span>
               </span>
               {/* Mobile: status stacked here because its column is hidden. */}
               <StatusBadge status={row.original.status} className="sm:hidden" />
@@ -187,34 +189,34 @@ export const BankReconciliation = () => {
       },
       {
         id: 'items',
-        header: 'Tercocokkan',
+        header: t('bankReconciliation.columns.matched'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) =>
           `${formatNumber(row.original.matchedCount ?? 0)} / ${formatNumber(row.original._count?.items ?? 0)}`,
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('bankReconciliation.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('bankReconciliation.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           return (
             <RowActions
-              label={`Aksi untuk rekonsiliasi ${r.account.name} ${formatDate(r.statementDate)}`}
+              label={t('bankReconciliation.rowActions', { account: r.account.name, date: formatDate(r.statementDate) })}
               actions={[
                 {
-                  label: r.status === 'Draft' && canEdit ? 'Buka pencocokan' : 'Lihat detail',
+                  label: r.status === 'Draft' && canEdit ? t('bankReconciliation.actions.open') : t('bankReconciliation.actions.view'),
                   icon: Eye,
                   onSelect: () => openWorkspace(r.id),
                 },
                 {
-                  label: 'Hapus',
+                  label: t('bankReconciliation.actions.delete'),
                   icon: Trash2,
                   tone: 'danger',
                   hidden: !canEdit || r.status !== 'Draft',
@@ -228,7 +230,7 @@ export const BankReconciliation = () => {
     ],
     // openWorkspace only wraps the stable setSearchParams.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit],
+    [canEdit, t],
   );
 
   if (selectedId) {
@@ -238,13 +240,13 @@ export const BankReconciliation = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Rekonsiliasi Bank"
-        description="Cocokkan transaksi buku dengan mutasi bank."
+        title={t('bankReconciliation.title')}
+        description={t('bankReconciliation.description')}
         actions={
           canEdit && (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus aria-hidden />
-              Rekonsiliasi Baru
+              {t('bankReconciliation.create')}
             </Button>
           )
         }
@@ -253,15 +255,15 @@ export const BankReconciliation = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari rekonsiliasi"
-          searchPlaceholder="Cari nama/nomor akun atau catatan"
+          searchLabel={t('bankReconciliation.filters.searchLabel')}
+          searchPlaceholder={t('bankReconciliation.filters.searchPlaceholder')}
           status={{ options: STATUS_FILTER }}
-          dateRange={{ label: 'Rentang tanggal statement' }}
+          dateRange={{ label: t('bankReconciliation.filters.dateRange') }}
         >
           <ComboboxFilter
-            label="Filter akun bank"
-            allLabel="Semua akun bank"
-            searchPlaceholder="Cari akun…"
+            label={t('bankReconciliation.filters.account')}
+            allLabel={t('bankReconciliation.filters.allAccounts')}
+            searchPlaceholder={t('bankReconciliation.filters.accountSearch')}
             value={list.filters.accountId}
             onChange={(v) => list.setFilter('accountId', v)}
             options={accountOptions}
@@ -272,8 +274,8 @@ export const BankReconciliation = () => {
 
         <DataTable
           {...listTableProps(list, listQuery.data?.total)}
-          label="Daftar rekonsiliasi bank"
-          itemLabel="rekonsiliasi"
+          label={t('bankReconciliation.table.label')}
+          itemLabel={t('bankReconciliation.table.itemLabel')}
           columns={columns}
           data={listQuery.data?.data}
           getRowId={(row) => row.id}
@@ -285,12 +287,12 @@ export const BankReconciliation = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada rekonsiliasi',
-            description: 'Sesi rekonsiliasi rekening bank akan muncul di sini.',
+            title: t('bankReconciliation.empty.title'),
+            description: t('bankReconciliation.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat rekonsiliasi pertama
+                {t('bankReconciliation.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -302,9 +304,9 @@ export const BankReconciliation = () => {
       <ConfirmDialog
         open={confirmDelete !== null}
         onOpenChange={(open) => !open && setConfirmDelete(null)}
-        title="Hapus Rekonsiliasi"
-        description="Yakin ingin menghapus rekonsiliasi ini? Data yang sudah dicocokkan akan hilang."
-        confirmLabel="Hapus"
+        title={t('bankReconciliation.deleteDialog.title')}
+        description={t('bankReconciliation.deleteDialog.description')}
+        confirmLabel={t('bankReconciliation.deleteDialog.confirm')}
         tone="danger"
         onConfirm={() => {
           if (confirmDelete) deleteMutation.mutate(confirmDelete.id);

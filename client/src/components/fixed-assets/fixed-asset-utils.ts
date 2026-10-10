@@ -4,6 +4,7 @@
  * preview grouping. Unit-tested in fixed-asset-utils.test.ts.
  */
 import { LOCALE, toNumber } from '@/lib/format';
+import i18n from '@/i18n';
 import type { CoaOption, FixedAssetRow } from './types';
 
 export const EXPORT_COLUMNS = [
@@ -77,10 +78,15 @@ export function toFixedAssetCsv(assets: readonly FixedAssetRow[]): string {
 
 /** Template with one sample row using real account ids when available. */
 export function importTemplateCsv(coa: readonly CoaOption[]): string {
-  const asset = coa.find((a) => a.accountNumber.startsWith('1.6'))?.id ?? '<uuid-akun-aset>';
-  const dep = coa.find((a) => a.accountNumber.startsWith('6.'))?.id ?? '<uuid-akun-beban>';
-  const acc = coa.find((a) => a.accountNumber.startsWith('1.7'))?.id ?? '<uuid-akun-akm>';
-  const sample = `Mesin Contoh,Mesin,Mesin contoh untuk template,2026-01-15,50000000,96,0,${asset},${dep},${acc}`;
+  const asset = coa.find((a) => a.accountNumber.startsWith('1.6'))?.id ?? i18n.t('finance:fixedAssetUtils.template.assetAccount');
+  const dep = coa.find((a) => a.accountNumber.startsWith('6.'))?.id ?? i18n.t('finance:fixedAssetUtils.template.expenseAccount');
+  const acc = coa.find((a) => a.accountNumber.startsWith('1.7'))?.id ?? i18n.t('finance:fixedAssetUtils.template.accumAccount');
+  const sampleText = [
+    i18n.t('finance:fixedAssetUtils.template.name'),
+    i18n.t('finance:fixedAssetUtils.template.category'),
+    i18n.t('finance:fixedAssetUtils.template.description'),
+  ].map(escapeCsv);
+  const sample = `${sampleText.join(',')},2026-01-15,50000000,96,0,${asset},${dep},${acc}`;
   return `${BOM}${IMPORT_TEMPLATE_HEADER}\n${sample}`;
 }
 
@@ -128,12 +134,12 @@ export type ParseImportResult = { ok: true; rows: ParsedImportRow[] } | { ok: fa
 export function parseFixedAssetImport(text: string, coa: readonly CoaOption[]): ParseImportResult {
   const clean = text.replace(/^\uFEFF/, '').trim();
   const lines = clean.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) return { ok: false, error: 'CSV kosong atau hanya berisi header.' };
+  if (lines.length < 2) return { ok: false, error: i18n.t('finance:fixedAssetUtils.import.empty') };
 
   const header = splitCsvLine(lines[0]).map((h) => h.toLowerCase());
   const idx = (col: string) => header.indexOf(col);
   const missing = IMPORT_REQUIRED_COLUMNS.filter((c) => idx(c) < 0);
-  if (missing.length > 0) return { ok: false, error: `Kolom wajib hilang: ${missing.join(', ')}.` };
+  if (missing.length > 0) return { ok: false, error: i18n.t('finance:fixedAssetUtils.import.missingColumns', { columns: missing.join(', ') }) };
 
   const byId = new Map(coa.map((c) => [c.id, c]));
   const label = (a: CoaOption | undefined) => (a ? `${a.accountNumber} ${a.name}` : '?');
@@ -160,15 +166,20 @@ export function parseFixedAssetImport(text: string, coa: readonly CoaOption[]): 
       accumAccountLabel: label(accAcc),
     };
     const errs: string[] = [];
-    if (!row.name) errs.push('name kosong');
-    if (!row.category) errs.push('category kosong');
-    if (!row.acquisitionDate) errs.push('acquisition_date kosong');
-    if (!(row.acquisitionCost > 0)) errs.push('acquisition_cost tidak valid');
-    if (!(row.usefulLifeMonths > 0)) errs.push('useful_life_months tidak valid');
-    if (!aAcc) errs.push('asset_account_id tidak dikenal');
-    if (!dAcc) errs.push('depreciation_account_id tidak dikenal');
-    if (!accAcc) errs.push('accumulated_dep_account_id tidak dikenal');
-    return errs.length > 0 ? { ...row, error: `Baris ${lineNo + 2}: ${errs.join('; ')}` } : row;
+    const empty = (column: string) => i18n.t('finance:fixedAssetUtils.import.emptyField', { column });
+    const invalid = (column: string) => i18n.t('finance:fixedAssetUtils.import.invalidField', { column });
+    const unknown = (column: string) => i18n.t('finance:fixedAssetUtils.import.unknownField', { column });
+    if (!row.name) errs.push(empty('name'));
+    if (!row.category) errs.push(empty('category'));
+    if (!row.acquisitionDate) errs.push(empty('acquisition_date'));
+    if (!(row.acquisitionCost > 0)) errs.push(invalid('acquisition_cost'));
+    if (!(row.usefulLifeMonths > 0)) errs.push(invalid('useful_life_months'));
+    if (!aAcc) errs.push(unknown('asset_account_id'));
+    if (!dAcc) errs.push(unknown('depreciation_account_id'));
+    if (!accAcc) errs.push(unknown('accumulated_dep_account_id'));
+    return errs.length > 0
+      ? { ...row, error: i18n.t('finance:fixedAssetUtils.import.rowError', { line: lineNo + 2, errors: errs.join('; ') }) }
+      : row;
   });
   return { ok: true, rows };
 }

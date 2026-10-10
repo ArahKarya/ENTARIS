@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 import api from '../lib/api';
@@ -32,6 +33,7 @@ interface Props {
 }
 
 const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const [accountId, setAccountId] = useState('');
   const [statementDate, setStatementDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -76,12 +78,12 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliations'] });
-      toast.success('Rekonsiliasi dibuat.');
+      toast.success(t('reconciliationModal.created'));
       resetForm();
       onClose();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Gagal membuat rekonsiliasi.');
+      toast.error(error.response?.data?.error || t('reconciliationModal.createFailed'));
     },
   });
 
@@ -109,7 +111,7 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleSubmit = () => {
     if (!accountId || !statementDate || statementBalance === '') {
-      toast.error('Lengkapi semua field yang wajib diisi.');
+      toast.error(t('reconciliationModal.required'));
       return;
     }
     createMutation.mutate({
@@ -124,29 +126,29 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Rekonsiliasi Baru"
-      description="Cocokkan saldo buku dengan statement bank / kas."
+      title={t('reconciliationModal.title')}
+      description={t('reconciliationModal.description')}
       className="sm:max-w-2xl"
       busy={createMutation.isPending}
-      submitLabel="Buat Rekonsiliasi"
-      busyLabel="Menyimpan…"
+      submitLabel={t('reconciliationModal.submit')}
+      busyLabel={t('reconciliationModal.saving')}
       onSubmit={handleSubmit}
       submitDisabled={!accountId || !statementDate || statementBalance === ''}
     >
-      <Field label="Akun Bank / Kas" required>
+      <Field label={t('reconciliationModal.account')} required>
         <OptionPicker
           value={accountId}
           onChange={setAccountId}
-          placeholder="Pilih akun..."
+          placeholder={t('reconciliationModal.accountPlaceholder')}
           options={(accounts ?? []).map((acc) => ({ value: acc.id, label: `${acc.accountNumber} - ${acc.name}` }))}
         />
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Tanggal Statement" required>
+        <Field label={t('reconciliationModal.statementDate')} required>
           <DateInput value={statementDate} onChange={setStatementDate} />
         </Field>
-        <Field label="Saldo Statement (Rp)" required>
+        <Field label={t('reconciliationModal.statementBalance')} required>
           <NumberInput
             value={statementBalance}
             onChange={(e) => setStatementBalance(e.target.value)}
@@ -157,17 +159,17 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </Field>
       </div>
 
-      <Field label="Catatan">
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional..." />
+      <Field label={t('reconciliationModal.notes')}>
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('reconciliationModal.optional')} />
       </Field>
 
       <section aria-labelledby="recon-items-title" className="space-y-3 border-t border-border pt-4">
         <div className="flex items-center justify-between gap-2">
           <h3 id="recon-items-title" className="text-sm font-medium text-foreground">
-            Mutasi Bank (Opsional)
+            {t('reconciliationModal.items.title')}
           </h3>
           <Button type="button" variant="outline" size="sm" className="h-11 sm:h-8" onClick={handleAddItem}>
-            <Plus aria-hidden /> Tambah
+            <Plus aria-hidden /> {t('reconciliationModal.items.add')}
           </Button>
         </div>
 
@@ -175,21 +177,21 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <ul className="space-y-3">
             {statementItems.map((item, idx) => (
               <li key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-border p-3 sm:grid-cols-[9rem_1fr_9rem_auto] sm:items-center sm:border-0 sm:p-0">
-                <Field label={`Tanggal mutasi ${idx + 1}`} hideLabel>
+                <Field label={t('reconciliationModal.items.date', { n: idx + 1 })} hideLabel>
                   <DateInput value={item.statementDate} onChange={(v) => handleItemChange(idx, 'statementDate', v)} />
                 </Field>
-                <Field label={`Keterangan mutasi ${idx + 1}`} hideLabel>
+                <Field label={t('reconciliationModal.items.description', { n: idx + 1 })} hideLabel>
                   <Input
                     value={item.statementDesc}
                     onChange={(e) => handleItemChange(idx, 'statementDesc', e.target.value)}
-                    placeholder="Keterangan"
+                    placeholder={t('reconciliationModal.items.descriptionPlaceholder')}
                   />
                 </Field>
-                <Field label={`Jumlah mutasi ${idx + 1} (Rp)`} hideLabel>
+                <Field label={t('reconciliationModal.items.amount', { n: idx + 1 })} hideLabel>
                   <NumberInput
                     value={item.statementAmount}
                     onChange={(e) => handleItemChange(idx, 'statementAmount', e.target.value)}
-                    placeholder="Jumlah (Rp)"
+                    placeholder={t('reconciliationModal.items.amountPlaceholder')}
                     inputMode="decimal"
                     className="h-10 text-right md:h-9"
                   />
@@ -199,7 +201,7 @@ const ReconciliationModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   variant="ghost"
                   size="icon-touch"
                   className="text-danger-text sm:size-9"
-                  aria-label={`Hapus mutasi ${idx + 1}`}
+                  aria-label={t('reconciliationModal.items.remove', { n: idx + 1 })}
                   onClick={() => handleRemoveItem(idx)}
                 >
                   <Trash2 aria-hidden />

@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ function Checkbox({
 }
 
 export function AccountFormDialog({ state, onClose, tree, systemRoles }: AccountFormDialogProps) {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const open = state !== null;
   const isEdit = state?.mode === 'edit';
@@ -135,18 +137,18 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
       isEdit ? api.put(`/coa/${editNode!.id}`, payload) : api.post('/coa', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coa'] });
-      toast.success(isEdit ? 'Akun diperbarui.' : 'Akun ditambahkan.');
+      toast.success(isEdit ? t('accountFormDialog.toast.updated') : t('accountFormDialog.toast.created'));
       onClose();
     },
-    onError: (e) => setError(apiErrorMessage(e, isEdit ? 'Gagal mengupdate akun.' : 'Gagal membuat akun.')),
+    onError: (e) => setError(apiErrorMessage(e, isEdit ? t('accountFormDialog.toast.updateFailed') : t('accountFormDialog.toast.createFailed'))),
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError('');
     const next = {
-      accountNumber: accountNumber.trim() ? undefined : 'Nomor akun wajib diisi.',
-      name: name.trim() ? undefined : 'Nama akun wajib diisi.',
+      accountNumber: accountNumber.trim() ? undefined : t('accountFormDialog.errors.accountNumber'),
+      name: name.trim() ? undefined : t('accountFormDialog.errors.name'),
     };
     setFieldErrors(next);
     if (next.accountNumber || next.name) return;
@@ -172,15 +174,15 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
       <DialogContent size="sm">
         <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Akun' : parent ? 'Tambah Sub-akun' : 'Tambah Akun'}</DialogTitle>
+            <DialogTitle>{isEdit ? t('accountFormDialog.title.edit') : parent ? t('accountFormDialog.title.createChild') : t('accountFormDialog.title.create')}</DialogTitle>
             <DialogDescription>
               {isEdit && editNode ? (
                 <>
                   <span className="font-mono">{editNode.accountNumber}</span> · {rootTypeLabel(editNode.rootType)} ·{' '}
-                  {editNode.isGroup ? 'Grup' : 'Detail'}
+                  {editNode.isGroup ? t('accountFormDialog.group') : t('accountFormDialog.detail')}
                 </>
               ) : (
-                'Akun grup hanya mengelompokkan sub-akun; transaksi dicatat ke akun detail.'
+                t('accountFormDialog.description')
               )}
             </DialogDescription>
           </DialogHeader>
@@ -189,22 +191,21 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
             <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <SystemAccountBadge roles={editRoles} />
               <p>
-                Dipakai untuk posting otomatis ({editRoles.join(', ')}). Akun ini tidak dapat dihapus selama masih
-                dipetakan di Pengaturan → Akun Sistem.
+                {t('accountFormDialog.systemNote', { roles: editRoles.join(', ') })}
               </p>
             </div>
           )}
 
           <div className="grid gap-3">
             {!isEdit && (
-              <Field label="Akun induk" hint="Kosongkan untuk membuat akun level teratas.">
+              <Field label={t('accountFormDialog.parent')} hint={t('accountFormDialog.parentHint')}>
                 {(ctl) => (
                   <Select value={parentId} onValueChange={changeParent}>
                     <SelectTrigger {...ctl}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_PARENT}>Tanpa induk (level teratas)</SelectItem>
+                      <SelectItem value={NO_PARENT}>{t('accountFormDialog.noParent')}</SelectItem>
                       {groups.map((g) => (
                         <SelectItem key={g.id} value={g.id}>
                           <span className="font-mono text-xs">{g.accountNumber}</span> {g.name}
@@ -217,7 +218,7 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nomor akun" required error={fieldErrors.accountNumber}>
+              <Field label={t('accountFormDialog.accountNumber')} required error={fieldErrors.accountNumber}>
                 <Input
                   value={accountNumber}
                   onChange={(e) => changeNumber(e.target.value)}
@@ -227,13 +228,13 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
                 />
               </Field>
               <Field
-                label="Tipe root"
+                label={t('accountFormDialog.rootType')}
                 hint={
                   isEdit
-                    ? 'Mengikuti digit pertama nomor akun.'
+                    ? t('accountFormDialog.rootTypeHint.edit')
                     : parent
-                      ? 'Mengikuti akun induk.'
-                      : 'Otomatis dari digit pertama.'
+                      ? t('accountFormDialog.rootTypeHint.parent')
+                      : t('accountFormDialog.rootTypeHint.auto')
                 }
               >
                 {(ctl) =>
@@ -256,9 +257,9 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {ROOT_TYPES.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {rootTypeLabel(t)}
+                        {ROOT_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {rootTypeLabel(type)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -268,22 +269,22 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
               </Field>
             </div>
 
-            <Field label="Nama akun" required error={fieldErrors.name}>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Mis: Bank BNI" />
+            <Field label={t('accountFormDialog.name')} required error={fieldErrors.name}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('accountFormDialog.namePlaceholder')} />
             </Field>
 
             <Checkbox
               checked={isGroup}
               onChange={setIsGroup}
-              label="Akun grup"
-              hint="Hanya untuk mengelompokkan sub-akun. Akun grup yang masih punya sub-akun tidak bisa diubah menjadi detail."
+              label={t('accountFormDialog.isGroup')}
+              hint={t('accountFormDialog.isGroupHint')}
             />
             {isEdit && (
               <Checkbox
                 checked={isActive}
                 onChange={setIsActive}
-                label="Akun aktif"
-                hint="Akun nonaktif tidak muncul di pilihan akun pada transaksi."
+                label={t('accountFormDialog.isActive')}
+                hint={t('accountFormDialog.isActiveHint')}
               />
             )}
 
@@ -299,11 +300,11 @@ export function AccountFormDialog({ state, onClose, tree, systemRoles }: Account
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
-              Batal
+              {t('accountFormDialog.cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 className="animate-spin" aria-hidden />}
-              {isEdit ? 'Simpan perubahan' : 'Simpan akun'}
+              {isEdit ? t('accountFormDialog.saveChanges') : t('accountFormDialog.save')}
             </Button>
           </DialogFooter>
         </form>

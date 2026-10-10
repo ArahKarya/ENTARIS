@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   CreditCard, User, Calendar, Clock,
@@ -18,15 +19,18 @@ interface Props {
   onClose: () => void;
 }
 
-const typeConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  Receive: { label: 'Terima Pembayaran', icon: <TrendingDown className="size-4" aria-hidden />, color: 'text-success-text' },
-  Pay: { label: 'Bayar Hutang', icon: <TrendingUp className="size-4" aria-hidden />, color: 'text-danger-text' },
-  VendorDeposit: { label: 'Uang Muka Vendor', icon: <CreditCard className="size-4" aria-hidden />, color: 'text-warning-text' },
-  Expense: { label: 'Pengeluaran', icon: <FileText className="size-4" aria-hidden />, color: 'text-warning-text' },
-  Transfer: { label: 'Pemindahbukuan', icon: <ArrowRightLeft className="size-4" aria-hidden />, color: 'text-info-text' },
+type PaymentTypeKey = 'Receive' | 'Pay' | 'VendorDeposit' | 'Expense' | 'Transfer';
+
+const typeConfig: Record<string, { type: PaymentTypeKey; icon: React.ReactNode; color: string }> = {
+  Receive: { type: 'Receive', icon: <TrendingDown className="size-4" aria-hidden />, color: 'text-success-text' },
+  Pay: { type: 'Pay', icon: <TrendingUp className="size-4" aria-hidden />, color: 'text-danger-text' },
+  VendorDeposit: { type: 'VendorDeposit', icon: <CreditCard className="size-4" aria-hidden />, color: 'text-warning-text' },
+  Expense: { type: 'Expense', icon: <FileText className="size-4" aria-hidden />, color: 'text-warning-text' },
+  Transfer: { type: 'Transfer', icon: <ArrowRightLeft className="size-4" aria-hidden />, color: 'text-info-text' },
 };
 
 const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,21 +61,21 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
       await api.post('/attachments/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     onSuccess: () => {
-      toast.success('Lampiran diunggah.');
+      toast.success(t('paymentDetailDrawer.toast.uploaded'));
       queryClient.invalidateQueries({ queryKey: ['payment-attachments', paymentId] });
       queryClient.invalidateQueries({ queryKey: ['attachment-counts'] });
     },
-    onError: () => toast.error('Gagal mengunggah lampiran.'),
+    onError: () => toast.error(t('paymentDetailDrawer.toast.uploadFailed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/attachments/${id}`),
     onSuccess: () => {
-      toast.success('Lampiran dihapus.');
+      toast.success(t('paymentDetailDrawer.toast.deleted'));
       queryClient.invalidateQueries({ queryKey: ['payment-attachments', paymentId] });
       queryClient.invalidateQueries({ queryKey: ['attachment-counts'] });
     },
-    onError: () => toast.error('Gagal menghapus lampiran.'),
+    onError: () => toast.error(t('paymentDetailDrawer.toast.deleteFailed')),
   });
 
   const [dragOver, setDragOver] = useState(false);
@@ -81,7 +85,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
     if (!files) return;
     for (const file of Array.from(files)) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`File ${file.name} terlalu besar (maks 10MB).`);
+        toast.error(t('paymentDetailDrawer.toast.tooLarge', { name: file.name }));
         continue;
       }
       uploadMutation.mutate(file);
@@ -99,52 +103,52 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
       <DetailSheet
         open={!!paymentId}
         onClose={onClose}
-        title={payment?.paymentNumber ?? 'Memuat…'}
+        title={payment?.paymentNumber ?? t('paymentDetailDrawer.loadingTitle')}
         badge={payment && <StatusBadge status={payment.status} docType="payment" />}
-        description={payment ? 'Detail pembayaran' : 'Memuat detail pembayaran'}
+        description={payment ? t('paymentDetailDrawer.description') : t('paymentDetailDrawer.loadingDescription')}
       >
         {isLoading ? (
-          <LoadingState label="Memuat pembayaran…" />
+          <LoadingState label={t('paymentDetailDrawer.loading')} />
         ) : isError ? (
           <EmptyState
             kind="error"
-            title="Pembayaran gagal dimuat"
-            description="Permintaan ke server gagal, jadi detail belum bisa ditampilkan. Periksa koneksi lalu coba lagi."
-            action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+            title={t('paymentDetailDrawer.error.title')}
+            description={t('paymentDetailDrawer.error.description')}
+            action={<Button variant="outline" onClick={() => refetch()}>{t('paymentDetailDrawer.error.retry')}</Button>}
           />
         ) : !payment ? (
-          <EmptyState title="Pembayaran tidak ditemukan" description="Pembayaran ini mungkin sudah dihapus. Tutup panel lalu muat ulang daftar." />
+          <EmptyState title={t('paymentDetailDrawer.notFound.title')} description={t('paymentDetailDrawer.notFound.description')} />
         ) : (
           <div className="space-y-5">
             <div className="rounded-xl border border-border p-4">
               <div className="mb-3 flex items-center gap-2">
                 <span className={tc.color}>{tc.icon}</span>
-                <span className="text-sm font-medium text-foreground">{tc.label}</span>
+                <span className="text-sm font-medium text-foreground">{t(`paymentDetailDrawer.type.${tc.type}`)}</span>
               </div>
               <p className={cn('num text-2xl font-bold', tc.color)}>{formatRupiah(Number(payment.amount))}</p>
               {Number(payment.refundedAmount) > 0 && (
-                <p className="mt-1 text-xs text-warning-text">Refund: {formatRupiah(Number(payment.refundedAmount))}</p>
+                <p className="mt-1 text-xs text-warning-text">{t('paymentDetailDrawer.refund', { amount: formatRupiah(Number(payment.refundedAmount)) })}</p>
               )}
             </div>
 
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <InfoItem icon={<Calendar className="size-3.5" aria-hidden />} label="Tanggal" value={formatDate(payment.date)} />
-              <InfoItem icon={<User className="size-3.5" aria-hidden />} label="Pihak Terkait" value={payment.party?.name ?? '—'} />
-              <InfoItem icon={<CreditCard className="size-3.5" aria-hidden />} label="Akun Kas/Bank" value={payment.account?.name ?? '—'} />
-              <InfoItem icon={<Clock className="size-3.5" aria-hidden />} label="Referensi" value={payment.referenceNo || '—'} />
+              <InfoItem icon={<Calendar className="size-3.5" aria-hidden />} label={t('paymentDetailDrawer.info.date')} value={formatDate(payment.date)} />
+              <InfoItem icon={<User className="size-3.5" aria-hidden />} label={t('paymentDetailDrawer.info.party')} value={payment.party?.name ?? '—'} />
+              <InfoItem icon={<CreditCard className="size-3.5" aria-hidden />} label={t('paymentDetailDrawer.info.account')} value={payment.account?.name ?? '—'} />
+              <InfoItem icon={<Clock className="size-3.5" aria-hidden />} label={t('paymentDetailDrawer.info.reference')} value={payment.referenceNo || '—'} />
             </dl>
 
             {payment.splits && payment.splits.length > 0 && (
               <section>
-                <h3 className={sectionTitle}>Detail Akun</h3>
+                <h3 className={sectionTitle}>{t('paymentDetailDrawer.splits.title')}</h3>
                 <div role="region"
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-                tabIndex={0} aria-label="Tabel detail akun" className={tableRegion}>
+                tabIndex={0} aria-label={t('paymentDetailDrawer.splits.table')} className={tableRegion}>
                   <table className="w-full text-sm">
                     <thead className="bg-muted">
                       <tr>
-                        <th scope="col" className={cn(th, 'text-left')}>Akun</th>
-                        <th scope="col" className={cn(th, 'text-right')}>Jumlah</th>
+                        <th scope="col" className={cn(th, 'text-left')}>{t('paymentDetailDrawer.columns.account')}</th>
+                        <th scope="col" className={cn(th, 'text-right')}>{t('paymentDetailDrawer.columns.amount')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -167,13 +171,13 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
 
             {payment.allocations && payment.allocations.length > 0 && (
               <section>
-                <h3 className={sectionTitle}>Alokasi ke Faktur</h3>
+                <h3 className={sectionTitle}>{t('paymentDetailDrawer.allocations.title')}</h3>
                 <ul className="space-y-2">
                   {payment.allocations.map((a: any) => (
                     <li key={a.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted p-3">
                       <div>
                         <p className="text-xs font-medium text-foreground">
-                          {a.invoiceType === 'SalesInvoice' ? 'Faktur Penjualan' : 'Faktur Pembelian'}
+                          {a.invoiceType === 'SalesInvoice' ? t('paymentDetailDrawer.allocations.salesInvoice') : t('paymentDetailDrawer.allocations.purchaseInvoice')}
                         </p>
                         <p className="font-mono text-xs text-muted-foreground">{a.invoiceNumber ?? `${a.invoiceId.slice(0, 8)}...`}</p>
                       </div>
@@ -186,16 +190,16 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
 
             {payment.journalEntry && (
               <section>
-                <h3 className={sectionTitle}>Jurnal ({payment.journalEntry.entryNumber})</h3>
+                <h3 className={sectionTitle}>{t('paymentDetailDrawer.journal.title', { number: payment.journalEntry.entryNumber })}</h3>
                 <div role="region"
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-                tabIndex={0} aria-label="Tabel jurnal" className={tableRegion}>
+                tabIndex={0} aria-label={t('paymentDetailDrawer.journal.table')} className={tableRegion}>
                   <table className="w-full text-xs">
                     <thead className="bg-muted">
                       <tr>
-                        <th scope="col" className={cn(th, 'text-left')}>Akun</th>
-                        <th scope="col" className={cn(th, 'text-right')}>Debit</th>
-                        <th scope="col" className={cn(th, 'text-right')}>Kredit</th>
+                        <th scope="col" className={cn(th, 'text-left')}>{t('paymentDetailDrawer.columns.account')}</th>
+                        <th scope="col" className={cn(th, 'text-right')}>{t('paymentDetailDrawer.columns.debit')}</th>
+                        <th scope="col" className={cn(th, 'text-right')}>{t('paymentDetailDrawer.columns.credit')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -220,14 +224,14 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
 
             {payment.notes && (
               <div className="rounded-lg border border-border bg-muted p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Catatan</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('paymentDetailDrawer.notes')}</p>
                 <p className="text-xs leading-relaxed text-foreground">{payment.notes}</p>
               </div>
             )}
 
             <section>
               <h3 className={sectionTitle}>
-                <Paperclip className="size-3" aria-hidden /> Lampiran ({attachments.length})
+                <Paperclip className="size-3" aria-hidden /> {t('paymentDetailDrawer.attachments.title', { count: attachments.length })}
               </h3>
 
               {payment.status !== 'Cancelled' && (
@@ -248,16 +252,16 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
                     loading={uploadMutation.isPending}
                   >
                     <Upload aria-hidden />
-                    {uploadMutation.isPending ? 'Mengunggah…' : 'Pilih file'}
+                    {uploadMutation.isPending ? t('paymentDetailDrawer.attachments.uploading') : t('paymentDetailDrawer.attachments.choose')}
                   </Button>
-                  <p className="mt-2 text-xs text-muted-foreground">atau seret file ke sini (maks 10MB)</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{t('paymentDetailDrawer.attachments.dropHint')}</p>
                   <input
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
                     multiple
                     tabIndex={-1}
-                    aria-label="Berkas lampiran"
+                    aria-label={t('paymentDetailDrawer.attachments.input')}
                     accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
                     onChange={(e) => handleFiles(e.target.files)}
                   />
@@ -265,7 +269,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
               )}
 
               {attachments.length === 0 ? (
-                <p className="text-xs italic text-muted-foreground">Belum ada lampiran.</p>
+                <p className="text-xs italic text-muted-foreground">{t('paymentDetailDrawer.attachments.empty')}</p>
               ) : (
                 <ul className="space-y-2">
                   {attachments.map((a: any) => {
@@ -283,7 +287,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
                             href={`/api/attachments/file/${a.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={`Unduh ${a.originalName}`}
+                            aria-label={t('paymentDetailDrawer.attachments.download', { name: a.originalName })}
                           >
                             <Download aria-hidden />
                           </a>
@@ -294,7 +298,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
                             variant="ghost"
                             size="icon-touch"
                             className="text-danger-text sm:size-9"
-                            aria-label={`Hapus ${a.originalName}`}
+                            aria-label={t('paymentDetailDrawer.attachments.delete', { name: a.originalName })}
                             onClick={() => setDeleteTarget({ id: a.id, name: a.originalName })}
                           >
                             <Trash2 aria-hidden />
@@ -314,9 +318,9 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus lampiran?"
-        description={deleteTarget ? `Lampiran "${deleteTarget.name}" akan dihapus permanen.` : undefined}
-        confirmLabel="Hapus"
+        title={t('paymentDetailDrawer.deleteDialog.title')}
+        description={deleteTarget ? t('paymentDetailDrawer.deleteDialog.description', { name: deleteTarget.name }) : undefined}
+        confirmLabel={t('paymentDetailDrawer.deleteDialog.confirm')}
         loading={deleteMutation.isPending}
         onConfirm={() => (deleteTarget ? deleteMutation.mutateAsync(deleteTarget.id) : undefined)}
       />

@@ -5,9 +5,10 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, Download, FileText, Upload } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { formatNumber, formatRupiah } from '@/lib/format';
+import { formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,6 +31,7 @@ interface FixedAssetImportDialogProps {
 const MAX_ROWS = 500;
 
 export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetImportDialogProps) {
+  const { t } = useTranslation('finance');
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [rows, setRows] = useState<ParsedImportRow[] | null>(null);
@@ -49,12 +51,12 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
     mutationFn: async (data: ParsedImportRow[]) =>
       (await api.post<{ count: number; scheduleEntries: number }>('/fixed-assets/import', toImportPayload(data))).data,
     onSuccess: (d) => {
-      toast.success(`${d.count} aset diimpor (${d.scheduleEntries} jadwal depresiasi).`);
+      toast.success(t('fixedAssetImportDialog.imported', { count: d.count, schedules: d.scheduleEntries }));
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
       onOpenChange(false);
     },
-    onError: (err) => setError(apiError(err, 'Gagal import.')),
+    onError: (err) => setError(apiError(err, t('fixedAssetImportDialog.importFailed'))),
   });
 
   const onFile = async (file: File) => {
@@ -65,7 +67,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
       if (result.ok) setRows(result.rows);
       else setError(result.error);
     } catch (err) {
-      setError(`Gagal membaca berkas CSV: ${err instanceof Error ? err.message : String(err)}`);
+      setError(t('fixedAssetImportDialog.readFailed', { reason: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -76,8 +78,8 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
     <Dialog open={open} onOpenChange={(next) => !importMut.isPending && onOpenChange(next)}>
       <DialogContent size="lg" hideClose={importMut.isPending}>
         <DialogHeader>
-          <DialogTitle>Impor Aset Tetap (CSV)</DialogTitle>
-          <DialogDescription>Buat banyak aset sekaligus; jadwal penyusutan dibuat otomatis.</DialogDescription>
+          <DialogTitle>{t('fixedAssetImportDialog.title')}</DialogTitle>
+          <DialogDescription>{t('fixedAssetImportDialog.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="min-w-0 space-y-4">
@@ -85,9 +87,9 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
             <>
               <div className="rounded-md border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
                 <p className="flex items-center gap-1.5 font-medium text-foreground">
-                  <FileText className="size-4" aria-hidden /> Format CSV
+                  <FileText className="size-4" aria-hidden /> {t('fixedAssetImportDialog.format.title')}
                 </p>
-                <p className="mt-1.5">Kolom wajib (header tidak peka huruf besar/kecil):</p>
+                <p className="mt-1.5">{t('fixedAssetImportDialog.format.required')}</p>
                 <ul className="mt-1 list-inside list-disc space-y-0.5">
                   <li>
                     <code className="font-mono">name</code>, <code className="font-mono">category</code>,{' '}
@@ -98,11 +100,15 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                   </li>
                   <li>
                     <code className="font-mono">asset_account_id</code>, <code className="font-mono">depreciation_account_id</code>,{' '}
-                    <code className="font-mono">accumulated_dep_account_id</code> (UUID akun)
+                    <code className="font-mono">accumulated_dep_account_id</code> {t('fixedAssetImportDialog.format.accountUuid')}
                   </li>
                 </ul>
                 <p className="mt-1">
-                  Opsional: <code className="font-mono">description</code>, <code className="font-mono">salvage_value</code>
+                  <Trans
+                    t={t}
+                    i18nKey="fixedAssetImportDialog.format.optional"
+                    components={{ code: <code className="font-mono" /> }}
+                  />
                 </p>
                 <Button
                   variant="link"
@@ -110,7 +116,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                   className="mt-2 text-xs"
                   onClick={() => downloadCsv(importTemplateCsv(coa), 'fixed-assets-import-template.csv')}
                 >
-                  <Download aria-hidden /> Unduh template
+                  <Download aria-hidden /> {t('fixedAssetImportDialog.format.download')}
                 </Button>
               </div>
 
@@ -121,8 +127,8 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                 )}
               >
                 <Upload className="size-6 text-muted-foreground" aria-hidden />
-                <span className="text-sm font-medium text-foreground">Pilih file CSV</span>
-                <span className="text-xs text-muted-foreground">Maks. {formatNumber(MAX_ROWS)} baris per impor</span>
+                <span className="text-sm font-medium text-foreground">{t('fixedAssetImportDialog.choose')}</span>
+                <span className="text-xs text-muted-foreground">{t('fixedAssetImportDialog.maxRows', { count: MAX_ROWS })}</span>
                 <input
                   ref={fileRef}
                   type="file"
@@ -149,22 +155,22 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
             <>
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
                 <p className="text-sm text-foreground">
-                  <span className="font-medium">{formatNumber(rows.length)} baris terbaca</span>
+                  <span className="font-medium">{t('fixedAssetImportDialog.rowsRead', { count: rows.length })}</span>
                   {errorRows.length > 0 && (
-                    <span className="ml-2 text-danger-text">({formatNumber(errorRows.length)} error)</span>
+                    <span className="ml-2 text-danger-text">{t('fixedAssetImportDialog.errorCount', { count: errorRows.length })}</span>
                   )}
                   {rows.length > MAX_ROWS && (
-                    <span className="ml-2 text-danger-text">(melebihi batas {formatNumber(MAX_ROWS)} baris)</span>
+                    <span className="ml-2 text-danger-text">{t('fixedAssetImportDialog.overLimit', { count: MAX_ROWS })}</span>
                   )}
                 </p>
                 <Button variant="link" size="sm" onClick={() => { setRows(null); setError(null); }}>
-                  Pilih file lain
+                  {t('fixedAssetImportDialog.chooseAnother')}
                 </Button>
               </div>
 
               <div
                 role="region"
-                aria-label="Pratinjau impor"
+                aria-label={t('fixedAssetImportDialog.preview')}
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                 tabIndex={0}
                 className="max-h-72 overflow-auto rounded-md border border-border focus-visible:outline-2 focus-visible:outline-ring"
@@ -172,14 +178,14 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-muted text-left uppercase tracking-wide text-muted-foreground">
                     <tr>
-                      <th scope="col" className="px-2 py-1.5 font-medium">No</th>
-                      <th scope="col" className="px-2 py-1.5 font-medium">Nama</th>
-                      <th scope="col" className="px-2 py-1.5 font-medium">Kategori</th>
-                      <th scope="col" className="px-2 py-1.5 font-medium">Tanggal</th>
-                      <th scope="col" className="px-2 py-1.5 text-right font-medium">Harga</th>
-                      <th scope="col" className="px-2 py-1.5 text-right font-medium">Umur</th>
-                      <th scope="col" className="px-2 py-1.5 font-medium">Akun aset</th>
-                      <th scope="col" className="px-2 py-1.5 font-medium">Status</th>
+                      <th scope="col" className="px-2 py-1.5 font-medium">{t('fixedAssetImportDialog.columns.no')}</th>
+                      <th scope="col" className="px-2 py-1.5 font-medium">{t('fixedAssetImportDialog.columns.name')}</th>
+                      <th scope="col" className="px-2 py-1.5 font-medium">{t('fixedAssetImportDialog.columns.category')}</th>
+                      <th scope="col" className="px-2 py-1.5 font-medium">{t('fixedAssetImportDialog.columns.date')}</th>
+                      <th scope="col" className="px-2 py-1.5 text-right font-medium">{t('fixedAssetImportDialog.columns.cost')}</th>
+                      <th scope="col" className="px-2 py-1.5 text-right font-medium">{t('fixedAssetImportDialog.columns.life')}</th>
+                      <th scope="col" className="px-2 py-1.5 font-medium">{t('fixedAssetImportDialog.columns.assetAccount')}</th>
+                      <th scope="col" className="px-2 py-1.5 font-medium">{t('fixedAssetImportDialog.columns.status')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -190,7 +196,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                         <td className="px-2 py-1.5">{r.category}</td>
                         <td className="num px-2 py-1.5">{r.acquisitionDate}</td>
                         <td className="num px-2 py-1.5 text-right">{formatRupiah(r.acquisitionCost, { symbol: false })}</td>
-                        <td className="num px-2 py-1.5 text-right">{r.usefulLifeMonths} bln</td>
+                        <td className="num px-2 py-1.5 text-right">{t('fixedAssetImportDialog.monthsShort', { count: r.usefulLifeMonths })}</td>
                         <td className="max-w-32 truncate px-2 py-1.5" title={r.assetAccountLabel}>
                           {r.assetAccountLabel}
                         </td>
@@ -201,7 +207,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-success-text">
-                              <CheckCircle2 className="size-3.5" aria-hidden /> OK
+                              <CheckCircle2 className="size-3.5" aria-hidden /> {t('fixedAssetImportDialog.ok')}
                             </span>
                           )}
                         </td>
@@ -214,7 +220,7 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
               {errorRows.length > 0 && (
                 <div className="space-y-0.5 rounded-md bg-warning-subtle px-3 py-2.5 text-xs text-warning-text">
                   <p className="flex items-center gap-1 font-medium">
-                    <AlertCircle className="size-3.5" aria-hidden /> Baris dengan error:
+                    <AlertCircle className="size-3.5" aria-hidden /> {t('fixedAssetImportDialog.errorRows')}
                   </p>
                   {errorRows.slice(0, 5).map((r, i) => (
                     <p key={i} className="font-mono">{r.error}</p>
@@ -227,12 +233,12 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importMut.isPending}>
-            Batal
+            {t('fixedAssetImportDialog.cancel')}
           </Button>
           {canImport && (
             <Button onClick={() => importMut.mutate(rows)} loading={importMut.isPending}>
               <Upload aria-hidden />
-              Impor {formatNumber(rows.length)} aset
+              {t('fixedAssetImportDialog.submit', { count: rows.length })}
             </Button>
           )}
         </DialogFooter>

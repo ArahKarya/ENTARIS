@@ -1,4 +1,5 @@
 import { AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ComboboxFilter, type ComboboxOption } from '@/components/shared';
 import { cn } from '@/lib/utils';
 
@@ -27,8 +28,8 @@ export function ComboField({
   value,
   onChange,
   options,
-  placeholder = 'Pilih…',
-  searchPlaceholder = 'Cari…',
+  placeholder,
+  searchPlaceholder,
   required,
   error,
   hint,
@@ -36,6 +37,7 @@ export function ComboField({
   className,
   onSearchChange,
 }: ComboFieldProps) {
+  const { t } = useTranslation('finance');
   return (
     <div className={cn('flex min-w-0 flex-col gap-1.5', className)} data-invalid={error ? '' : undefined}>
       <span aria-hidden className="inline-flex items-center gap-1 text-sm font-medium leading-5 text-foreground">
@@ -43,12 +45,12 @@ export function ComboField({
         {required && <span className="text-danger-text">*</span>}
       </span>
       <ComboboxFilter
-        label={required ? `${label} (wajib)` : label}
+        label={required ? t('comboField.required', { label }) : label}
         value={value}
         onChange={onChange}
         options={options}
-        allLabel={placeholder}
-        searchPlaceholder={searchPlaceholder}
+        allLabel={placeholder ?? t('comboField.placeholder')}
+        searchPlaceholder={searchPlaceholder ?? t('comboField.search')}
         loading={loading}
         onSearchChange={onSearchChange}
         className={cn(error && '[&_button[role=combobox]]:border-danger')}

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, AlertTriangle, Paperclip, Save, Send } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -130,10 +131,11 @@ const detailQueryOptions = (id: string | undefined) => ({
 
 /** Loads the request (edit) / user context (new), then mounts the form with its initial state. */
 export const PaymentRequestForm = () => {
+  const { t } = useTranslation('finance');
   const { id } = useParams<{ id: string }>();
   const metaQuery = useQuery(metaQueryOptions);
   const detailQuery = useQuery(detailQueryOptions(id));
-  if ((id && detailQuery.isLoading) || metaQuery.isLoading) return <LoadingState label="Memuat formulir…" />;
+  if ((id && detailQuery.isLoading) || metaQuery.isLoading) return <LoadingState label={t('paymentRequestForm.loading')} />;
   return <PaymentRequestFormBody key={id ?? 'new'} id={id} initialDetail={detailQuery.data} initialMeta={metaQuery.data} />;
 };
 
@@ -146,6 +148,7 @@ function PaymentRequestFormBody({
   initialDetail: PaymentRequestDetail | undefined;
   initialMeta: PaymentRequestMeta | undefined;
 }) {
+  const { t } = useTranslation('finance');
   const isEdit = !!id;
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -167,7 +170,7 @@ function PaymentRequestFormBody({
 
 
   const types = typesQuery.data ?? [];
-  const selectedType = types.find((t) => t.id === form.typeId) ?? (detailQuery.data?.type.id === form.typeId ? detailQuery.data?.type : undefined);
+  const selectedType = types.find((type) => type.id === form.typeId) ?? (detailQuery.data?.type.id === form.typeId ? detailQuery.data?.type : undefined);
   const isTravel = selectedType?.kind === 'TRAVEL';
   const days = tripDays(travel.startDate, travel.endDate);
   const savedAttachments = (detailQuery.data?.attachments ?? []).filter((a) => a.scope !== 'SETTLEMENT');
@@ -180,21 +183,21 @@ function PaymentRequestFormBody({
   const removeAttachment = useMutation({
     mutationFn: (attId: string) => api.delete(`${PR_ENDPOINT}/${id}/attachments/${attId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-requests', 'detail', id] }),
-    onError: (e) => toast.error(apiError(e, 'Gagal menghapus lampiran.')),
+    onError: (e) => toast.error(apiError(e, t('paymentRequestForm.toast.deleteAttachmentFailed'))),
   });
 
   const validate = (forSubmit: boolean): Errors => {
     const e: Errors = {};
-    if (!form.typeId) e.typeId = 'Pilih jenis pengajuan.';
-    if (form.purpose.trim().length < 3) e.purpose = 'Jelaskan keperluan (minimal 3 karakter).';
-    if (!form.payeeName.trim()) e.payeeName = 'Nama penerima wajib diisi.';
-    if (form.payeeKind === 'VENDOR' && !form.partyId) e.partyId = 'Pilih vendor.';
+    if (!form.typeId) e.typeId = t('paymentRequestForm.errors.type');
+    if (form.purpose.trim().length < 3) e.purpose = t('paymentRequestForm.errors.purpose');
+    if (!form.payeeName.trim()) e.payeeName = t('paymentRequestForm.errors.payeeName');
+    if (form.payeeKind === 'VENDOR' && !form.partyId) e.partyId = t('paymentRequestForm.errors.supplier');
     const filled = lines.filter((l) => l.description.trim() || l.amount);
-    if (filled.some((l) => !l.description.trim() || !l.amount || l.amount <= 0)) e.lines = 'Setiap baris wajib berisi uraian dan nominal lebih dari 0.';
-    else if (forSubmit && filled.length === 0) e.lines = 'Tambahkan minimal satu rincian biaya.';
+    if (filled.some((l) => !l.description.trim() || !l.amount || l.amount <= 0)) e.lines = t('paymentRequestForm.errors.lineIncomplete');
+    else if (forSubmit && filled.length === 0) e.lines = t('paymentRequestForm.errors.noLines');
     if (isTravel) setTravelErrors(validateTravelValue(travel, forSubmit));
     if (forSubmit && selectedType?.requiresAttachment && savedAttachments.length + pending.length === 0) {
-      e.attachments = 'Jenis pengajuan ini wajib melampirkan bukti.';
+      e.attachments = t('paymentRequestForm.errors.attachmentRequired');
     }
     return e;
   };
@@ -249,12 +252,12 @@ function PaymentRequestFormBody({
       return { requestId, submit };
     },
     onSuccess: ({ requestId, submit }) => {
-      toast.success(submit ? 'Pengajuan diajukan.' : 'Draf pengajuan disimpan.');
+      toast.success(submit ? t('paymentRequestForm.toast.submitted') : t('paymentRequestForm.toast.draftSaved'));
       qc.invalidateQueries({ queryKey: ['payment-requests'] });
       navigate(`${PR_ENDPOINT}/${requestId}`);
     },
     onError: (e) => {
-      setServerError(apiError(e, 'Gagal menyimpan pengajuan.'));
+      setServerError(apiError(e, t('paymentRequestForm.toast.saveFailed')));
       qc.invalidateQueries({ queryKey: ['payment-requests'] });
     },
   });
@@ -271,14 +274,18 @@ function PaymentRequestFormBody({
   if (isEdit && detailQuery.data && !detailQuery.data.actions.edit) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Ubah Pengajuan" description={detailQuery.data.number} />
-        <p className="text-sm text-muted-foreground">Pengajuan ini tidak bisa diubah lagi (hanya saat Draf atau Perlu Revisi).</p>
-        <Button variant="outline" onClick={() => navigate(`${PR_ENDPOINT}/${id}`)}>Kembali ke detail</Button>
+        <PageHeader title={t('paymentRequestForm.editTitle')} description={detailQuery.data.number} />
+        <p className="text-sm text-muted-foreground">{t('paymentRequestForm.notEditable')}</p>
+        <Button variant="outline" onClick={() => navigate(`${PR_ENDPOINT}/${id}`)}>{t('paymentRequestForm.backToDetail')}</Button>
       </div>
     );
   }
 
-  const title = isEdit ? `Ubah ${detailQuery.data?.number ?? 'Pengajuan'}` : 'Buat Pengajuan';
+  const title = isEdit
+    ? detailQuery.data?.number
+      ? t('paymentRequestForm.editTitleNumber', { number: detailQuery.data.number })
+      : t('paymentRequestForm.editTitle')
+    : t('paymentRequestForm.createTitle');
   const supervisor = metaQuery.data?.me?.supervisor;
 
   return (
@@ -294,8 +301,8 @@ function PaymentRequestFormBody({
         title={title}
         description={
           supervisor?.isActive
-            ? `Setelah diajukan, pengajuan menunggu persetujuan atasan Anda (${supervisor.fullName}), lalu Keuangan.`
-            : 'Setelah diajukan, pengajuan langsung diverifikasi Keuangan (atasan langsung belum diatur).'
+            ? t('paymentRequestForm.flow.supervisor', { name: supervisor.fullName })
+            : t('paymentRequestForm.flow.finance')
         }
       />
 
@@ -303,9 +310,16 @@ function PaymentRequestFormBody({
         <div role="status" className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <p>
-            Anda masih punya <span className="font-medium">{metaQuery.data?.openAdvances.overdueCount} uang muka</span> yang belum
-            dipertanggungjawabkan lebih dari {metaQuery.data?.overdueDays} hari ({formatMoney(metaQuery.data?.openAdvances.overdueAmount ?? 0)}).
-            Pengajuan baru tetap bisa dibuat, tetapi mohon segera selesaikan pertanggungjawaban.
+            <Trans
+              t={t}
+              i18nKey="paymentRequestForm.overdueAdvances"
+              count={metaQuery.data?.openAdvances.overdueCount ?? 0}
+              values={{
+                days: metaQuery.data?.overdueDays,
+                amount: formatMoney(metaQuery.data?.openAdvances.overdueAmount ?? 0),
+              }}
+              components={{ b: <span className="font-medium" /> }}
+            />
           </p>
         </div>
       )}
@@ -314,7 +328,7 @@ function PaymentRequestFormBody({
         <div role="status" className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <p>
-            <span className="font-medium">Catatan revisi:</span> {detailQuery.data.lastNote}
+            <span className="font-medium">{t('paymentRequestForm.revisionNote')}</span> {detailQuery.data.lastNote}
           </p>
         </div>
       )}
@@ -323,19 +337,19 @@ function PaymentRequestFormBody({
         <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader>
-              <CardTitle>Informasi pengajuan</CardTitle>
+              <CardTitle>{t('paymentRequestForm.info.title')}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Field label="Jenis pengajuan" required error={errors.typeId} className="sm:col-span-2">
+              <Field label={t('paymentRequestForm.info.type')} required error={errors.typeId} className="sm:col-span-2">
                 {(control) => (
                   <Select value={form.typeId} onValueChange={(v) => set('typeId', v)}>
                     <SelectTrigger {...control}>
-                      <SelectValue placeholder="Pilih jenis…" />
+                      <SelectValue placeholder={t('paymentRequestForm.info.typePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {types.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
+                      {types.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -354,25 +368,25 @@ function PaymentRequestFormBody({
                   <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <li className="inline-flex items-center gap-1">
                       <Paperclip className="size-3.5" aria-hidden />
-                      {selectedType.requiresAttachment ? 'Wajib lampiran' : 'Lampiran opsional'}
+                      {selectedType.requiresAttachment ? t('paymentRequestForm.info.attachmentRequired') : t('paymentRequestForm.info.attachmentOptional')}
                     </li>
-                    {(selectedType.requiresSettlement || isAdvanceKind(selectedType.kind)) && <li>Wajib dipertanggungjawabkan setelah dipakai</li>}
+                    {(selectedType.requiresSettlement || isAdvanceKind(selectedType.kind)) && <li>{t('paymentRequestForm.info.requiresSettlement')}</li>}
                   </ul>
                 </div>
               )}
-              <Field label={isTravel ? 'Keperluan perjalanan' : 'Keperluan'} required error={errors.purpose} className="sm:col-span-2">
+              <Field label={isTravel ? t('paymentRequestForm.info.travelPurpose') : t('paymentRequestForm.info.purpose')} required error={errors.purpose} className="sm:col-span-2">
                 <Textarea
                   rows={3}
                   maxLength={1000}
-                  placeholder="Tujuan dan tanggal kegiatan"
+                  placeholder={t('paymentRequestForm.info.purposePlaceholder')}
                   value={form.purpose}
                   onChange={(e) => set('purpose', e.target.value)}
                 />
               </Field>
-              <Field label="Dibutuhkan tanggal" hint="Opsional: kapan dana dibutuhkan.">
+              <Field label={t('paymentRequestForm.info.neededBy')} hint={t('paymentRequestForm.info.neededByHint')}>
                 {(control) => <DateInput id={control.id} value={form.neededBy} onChange={(v) => set('neededBy', v)} />}
               </Field>
-              <Field label="Departemen / bagian" hint="Opsional.">
+              <Field label={t('paymentRequestForm.info.department')} hint={t('paymentRequestForm.info.optional')}>
                 <Input maxLength={100} value={form.department} onChange={(e) => set('department', e.target.value)} />
               </Field>
             </CardContent>
@@ -382,11 +396,11 @@ function PaymentRequestFormBody({
 
           <Card>
             <CardHeader>
-              <CardTitle>{isTravel ? 'Rencana biaya perjalanan' : 'Rincian biaya'}</CardTitle>
+              <CardTitle>{isTravel ? t('paymentRequestForm.lines.travelTitle') : t('paymentRequestForm.lines.title')}</CardTitle>
               <CardDescription>
                 {isTravel
-                  ? 'Perkiraan biaya per kategori, dipakai sebagai pembanding saat pertanggungjawaban. Akun biaya dipilih Keuangan.'
-                  : 'Akun biaya dipilih oleh Keuangan saat verifikasi.'}
+                  ? t('paymentRequestForm.lines.travelHint')
+                  : t('paymentRequestForm.lines.hint')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -400,8 +414,8 @@ function PaymentRequestFormBody({
 
           <Card>
             <CardHeader>
-              <CardTitle>Lampiran</CardTitle>
-              <CardDescription>Nota, kuitansi, invoice vendor, atau dokumen pendukung lain.</CardDescription>
+              <CardTitle>{t('paymentRequestForm.attachments.title')}</CardTitle>
+              <CardDescription>{t('paymentRequestForm.attachments.hint')}</CardDescription>
             </CardHeader>
             <CardContent>
               <AttachmentPicker
@@ -419,10 +433,10 @@ function PaymentRequestFormBody({
 
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Penerima pembayaran</CardTitle>
+            <CardTitle>{t('paymentRequestForm.payee.title')}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <Field label="Dibayarkan ke" required>
+            <Field label={t('paymentRequestForm.payee.kind')} required>
               {(control) => (
                 <Select
                   value={form.payeeKind}
@@ -440,15 +454,15 @@ function PaymentRequestFormBody({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EMPLOYEE">Karyawan (saya)</SelectItem>
-                    <SelectItem value="VENDOR">Vendor / pemasok</SelectItem>
+                    <SelectItem value="EMPLOYEE">{t('paymentRequestForm.payee.employee')}</SelectItem>
+                    <SelectItem value="VENDOR">{t('paymentRequestForm.payee.supplier')}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             </Field>
             {form.payeeKind === 'VENDOR' && (
               <ComboField
-                label="Vendor"
+                label={t('paymentRequestForm.payee.supplierLabel')}
                 required
                 value={form.partyId}
                 onChange={(v) => {
@@ -456,21 +470,21 @@ function PaymentRequestFormBody({
                   setForm((f) => ({ ...f, partyId: v, payeeName: name || f.payeeName }));
                 }}
                 {...vendorPicker.pickerProps}
-                placeholder="Pilih vendor…"
-                searchPlaceholder="Cari vendor…"
+                placeholder={t('paymentRequestForm.payee.supplierPlaceholder')}
+                searchPlaceholder={t('paymentRequestForm.payee.supplierSearch')}
                 error={errors.partyId}
               />
             )}
-            <Field label="Nama penerima" required error={errors.payeeName}>
+            <Field label={t('paymentRequestForm.payee.name')} required error={errors.payeeName}>
               <Input maxLength={200} value={form.payeeName} onChange={(e) => set('payeeName', e.target.value)} />
             </Field>
-            <Field label="Bank">
-              <Input maxLength={100} placeholder="mis. BCA" value={form.bankName} onChange={(e) => set('bankName', e.target.value)} />
+            <Field label={t('paymentRequestForm.payee.bank')}>
+              <Input maxLength={100} placeholder={t('paymentRequestForm.payee.bankPlaceholder')} value={form.bankName} onChange={(e) => set('bankName', e.target.value)} />
             </Field>
-            <Field label="Nomor rekening">
+            <Field label={t('paymentRequestForm.payee.accountNo')}>
               <Input maxLength={50} inputMode="numeric" className="num" value={form.bankAccountNo} onChange={(e) => set('bankAccountNo', e.target.value)} />
             </Field>
-            <Field label="Atas nama rekening">
+            <Field label={t('paymentRequestForm.payee.accountHolder')}>
               <Input maxLength={200} value={form.bankAccountHolder} onChange={(e) => set('bankAccountHolder', e.target.value)} />
             </Field>
           </CardContent>
@@ -486,18 +500,18 @@ function PaymentRequestFormBody({
 
       <div className="sticky bottom-0 z-10 -mx-3 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-background/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
         <p className="mr-auto text-sm text-muted-foreground">
-          Total <span className="num ml-1 font-semibold text-foreground">{formatMoney(linesTotal(lines))}</span>
+          {t('paymentRequestForm.footer.total')} <span className="num ml-1 font-semibold text-foreground">{formatMoney(linesTotal(lines))}</span>
         </p>
         <Button type="button" variant="outline" onClick={() => navigate(isEdit ? `${PR_ENDPOINT}/${id}` : PR_ENDPOINT)}>
-          Batal
+          {t('paymentRequestForm.footer.cancel')}
         </Button>
         <Button type="button" variant="secondary" onClick={() => onSave(false)} loading={save.isPending && save.variables === false}>
           <Save aria-hidden />
-          Simpan Draf
+          {t('paymentRequestForm.footer.saveDraft')}
         </Button>
         <Button type="submit" loading={save.isPending && save.variables === true}>
           <Send aria-hidden />
-          Ajukan
+          {t('paymentRequestForm.footer.submit')}
         </Button>
       </div>
     </form>

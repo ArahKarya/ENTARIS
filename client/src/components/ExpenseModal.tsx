@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { CheckCircle2, Paperclip } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
@@ -21,18 +22,13 @@ interface ExpenseModalProps {
   onClose: () => void;
 }
 
-/** Readable account-type labels */
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  EXPENSE: 'Beban / Biaya',
-  LIABILITY: 'Hutang',
-  ASSET: 'Aset',
-  EQUITY: 'Ekuitas',
-  REVENUE: 'Pendapatan',
-};
+/** Debit-side account types, in display order (labels come from expenseModal.accountType). */
+const ACCOUNT_TYPE_ORDER = ['EXPENSE', 'LIABILITY', 'ASSET', 'EQUITY', 'REVENUE'] as const;
 
 const partyWithTypeOption = (p: PartyRecord) => ({ value: p.id, label: `${p.name}${p.partyType ? ` (${p.partyType})` : ''}` });
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation('finance');
   const today = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
@@ -93,17 +89,16 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
       if (!groups[type]) groups[type] = [];
       groups[type].push(acc);
     }
-    const order = ['EXPENSE', 'LIABILITY', 'ASSET', 'EQUITY', 'REVENUE'];
-    return order
-      .filter((t) => groups[t]?.length)
-      .flatMap((t) =>
-        groups[t].map((a: any) => ({
+    return ACCOUNT_TYPE_ORDER
+      .filter((type) => groups[type]?.length)
+      .flatMap((type) =>
+        groups[type].map((a: any) => ({
           value: a.id,
           label: `${a.accountNumber} · ${a.name}`,
-          group: ACCOUNT_TYPE_LABELS[t] || t,
+          group: t(`expenseModal.accountType.${type}`),
         }))
       );
-  }, [allAccounts]);
+  }, [allAccounts, t]);
 
   const cashOptions = useMemo((): SelectOption[] =>
     cashAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
@@ -128,7 +123,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       setSavedId(res.data?.id);
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan pengeluaran.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('expenseModal.saveFailed')),
   });
 
   const numAmount = Number(amount) || 0;
@@ -136,18 +131,18 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = () => {
     if (debitAccountId === creditAccountId) {
-      setError('Akun debit dan kredit tidak boleh sama.');
+      setError(t('expenseModal.sameAccount'));
       return;
     }
 
     const debitName = debitAccount ? `${debitAccount.accountNumber} ${debitAccount.name}` : '';
     const creditName = creditAccount ? `${creditAccount.accountNumber} ${creditAccount.name}` : '';
     const refPart = referenceNo ? ` (Ref: ${referenceNo})` : '';
-    const descPart = description || `Pengeluaran: ${debitName}`;
+    const descPart = description || t('expenseModal.narration.description', { account: debitName });
 
     mutation.mutate({
       date,
-      narration: `Pengeluaran: ${debitName} dari ${creditName}${refPart}${notes ? ` - ${notes}` : ''}`,
+      narration: `${t('expenseModal.narration.text', { debit: debitName, credit: creditName })}${refPart}${notes ? ` - ${notes}` : ''}`,
       items: [
         {
           accountId: debitAccountId,
@@ -171,53 +166,53 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Catat Pengeluaran"
-      description="Semua jenis pengeluaran kas & bank"
+      title={t('expenseModal.title')}
+      description={t('expenseModal.description')}
       busy={mutation.isPending}
-      submitLabel="Simpan Pengeluaran"
+      submitLabel={t('expenseModal.submit')}
       onSubmit={handleSubmit}
       submitDisabled={!canSubmit}
       footer={
         savedId ? (
           <Button className="h-11 sm:h-9" onClick={onClose}>
-            Selesai
+            {t('expenseModal.done')}
           </Button>
         ) : undefined
       }
     >
-      <Field label="Tanggal">
+      <Field label={t('expenseModal.date')}>
         <DateInput value={date} onChange={setDate} />
       </Field>
 
-      <Field label="Akun Pengeluaran (Debit)" hint="Contoh: Beban Listrik, Beban Gaji, Hutang Usaha, dll.">
+      <Field label={t('expenseModal.debitAccount')} hint={t('expenseModal.debitAccountHint')}>
         <OptionPicker
           options={debitOptions}
           value={debitAccountId}
           onChange={setDebitAccountId}
-          placeholder="Pilih Akun Pengeluaran"
+          placeholder={t('expenseModal.debitPlaceholder')}
         />
       </Field>
 
-      <Field label="Dibayar Dari (Kredit)">
+      <Field label={t('expenseModal.creditAccount')}>
         <OptionPicker
           options={cashOptions}
           value={creditAccountId}
           onChange={setCreditAccountId}
-          placeholder="Pilih Akun Kas/Bank"
+          placeholder={t('expenseModal.creditPlaceholder')}
         />
       </Field>
 
-      <Field label="Pihak Terkait (opsional)">
+      <Field label={t('expenseModal.party')}>
         <OptionPicker
           {...partyPicker.pickerProps}
           value={partyId}
           onChange={setPartyId}
-          placeholder="Tanpa Pihak Terkait"
-          emptyLabel="Tanpa Pihak Terkait"
+          placeholder={t('expenseModal.noParty')}
+          emptyLabel={t('expenseModal.noParty')}
         />
       </Field>
 
-      <Field label="Jumlah (Rp)">
+      <Field label={t('expenseModal.amount')}>
         <NumberInput
           value={amount}
           onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -228,27 +223,27 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
         />
       </Field>
 
-      <Field label="Keterangan">
+      <Field label={t('expenseModal.descriptionLabel')}>
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Contoh: Bayar listrik bulan Maret..."
+          placeholder={t('expenseModal.descriptionPlaceholder')}
         />
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="No. Referensi">
-          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="No. kwitansi, bukti, dll." />
+        <Field label={t('expenseModal.referenceNo')}>
+          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder={t('expenseModal.referencePlaceholder')} />
         </Field>
-        <Field label="Catatan">
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan opsional..." />
+        <Field label={t('expenseModal.notes')}>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('expenseModal.notesPlaceholder')} />
         </Field>
       </div>
 
       {numAmount > 0 && debitAccount && creditAccount && (
-        <Callout tone="warning" icon={<span className="sr-only">Ringkasan:</span>}>
+        <Callout tone="warning" icon={<span className="sr-only">{t('expenseModal.srSummary')}</span>}>
           <p>
-            Pengeluaran <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
+            {t('expenseModal.summary')} <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
           </p>
           <p className="mt-1 text-xs">
             <span className="font-medium">Dr</span> {debitAccount.accountNumber} {debitAccount.name}
@@ -257,13 +252,13 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
             <span className="font-medium">Cr</span> {creditAccount.accountNumber} {creditAccount.name}
           </p>
           {partyId && partyPicker.selectedParty && (
-            <p className="mt-1 text-xs">Pihak: {partyPicker.selectedParty.name}</p>
+            <p className="mt-1 text-xs">{t('expenseModal.partyValue', { name: partyPicker.selectedParty.name })}</p>
           )}
         </Callout>
       )}
 
       {debitAccountId && creditAccountId && debitAccountId === creditAccountId && (
-        <Callout tone="warning">Akun debit dan kredit tidak boleh sama.</Callout>
+        <Callout tone="warning">{t('expenseModal.sameAccount')}</Callout>
       )}
 
       <ErrorAlert message={error} />
@@ -272,9 +267,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
         <div className="space-y-3 border-t border-border pt-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-success-text" aria-hidden />
-            <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+            <span className="text-xs font-semibold text-success-text">{t('expenseModal.saved')}</span>
             <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <Paperclip className="size-3" aria-hidden /> Lampiran Bukti
+              <Paperclip className="size-3" aria-hidden /> {t('expenseModal.proof')}
             </span>
           </div>
           <AttachmentPreview referenceType="journal" referenceId={savedId} />

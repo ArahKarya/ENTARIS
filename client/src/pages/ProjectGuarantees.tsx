@@ -6,7 +6,9 @@ import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, CheckCircle2, Eye, Flame, ShieldCheck, Undo2, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { can, cap } from '@/lib/permissions';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -55,11 +57,21 @@ interface ProjectGuaranteeSummary {
 const ENDPOINT = '/project-guarantees';
 const FILTER_KEYS = ['status', 'partyId', 'guaranteeType', 'due', 'startDate', 'endDate'] as const;
 const STATUS_FILTER = statusOptions(['Disetor', 'Selesai', 'Dibatalkan'], 'project_guarantee');
-const TYPE_FILTER = ['Penawaran', 'Pelaksanaan', 'Pemeliharaan', 'Lainnya'].map((t) => ({ value: t, label: t }));
-const DUE_FILTER = [
-  { value: 'overdue', label: 'Lewat jatuh tempo' },
-  { value: 'dueSoon', label: 'Segera jatuh tempo (30 hari)' },
-];
+/** Guarantee types are stored as these Indonesian values; only their labels are translated. */
+const GUARANTEE_TYPES = ['Penawaran', 'Pelaksanaan', 'Pemeliharaan', 'Lainnya'] as const;
+const GUARANTEE_TYPE_KEY = {
+  Penawaran: 'bid',
+  Pelaksanaan: 'performance',
+  Pemeliharaan: 'maintenance',
+  Lainnya: 'other',
+} as const satisfies Record<(typeof GUARANTEE_TYPES)[number], string>;
+
+function guaranteeTypeLabel(value: string): string {
+  const key = GUARANTEE_TYPE_KEY[value as keyof typeof GUARANTEE_TYPE_KEY];
+  return key ? i18n.t(`finance:projectGuarantees.guaranteeType.${key}`) : value;
+}
+
+const DUE_FILTER_VALUES = ['overdue', 'dueSoon'] as const;
 /** Same threshold as the server: an outstanding balance above this can still be settled. */
 const OUTSTANDING_EPSILON = 0.01;
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-48';
@@ -85,6 +97,7 @@ const isSettleable = (g: ProjectGuaranteeRow) => g.status === 'Disetor' && g.out
 const isCancellable = (g: ProjectGuaranteeRow) => g.status !== 'Dibatalkan' && activeSettlements(g).length === 0;
 
 export const ProjectGuarantees = () => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -123,19 +136,19 @@ export const ProjectGuarantees = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`${ENDPOINT}/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Uang jaminan dibatalkan.');
+      toast.success(t('projectGuarantees.toast.cancelled'));
       invalidate();
     },
-    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan uang jaminan.')),
+    onError: (err: unknown) => toast.error(errorMessage(err, t('projectGuarantees.toast.cancelFailed'))),
   });
 
   const cancelSettlementMutation = useMutation({
     mutationFn: (id: string) => api.post(`${ENDPOINT}/settlements/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Settlement dibatalkan.');
+      toast.success(t('projectGuarantees.toast.settlementCancelled'));
       invalidate();
     },
-    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan settlement.')),
+    onError: (err: unknown) => toast.error(errorMessage(err, t('projectGuarantees.toast.settlementCancelFailed'))),
   });
 
   const rows = guaranteesQuery.data?.data;
@@ -147,7 +160,7 @@ export const ProjectGuarantees = () => {
     () => [
       {
         id: 'guaranteeNumber',
-        header: 'Nomor',
+        header: t('projectGuarantees.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => {
@@ -165,7 +178,7 @@ export const ProjectGuarantees = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('projectGuarantees.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -173,7 +186,7 @@ export const ProjectGuarantees = () => {
       },
       {
         id: 'party',
-        header: 'Pemberi Proyek',
+        header: t('projectGuarantees.columns.party'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
         cell: ({ row }) => {
@@ -182,7 +195,7 @@ export const ProjectGuarantees = () => {
             <div className="min-w-0">
               <p className="truncate font-medium text-foreground">{g.party?.name ?? '—'}</p>
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden" title={g.projectName}>
-                {g.guaranteeType} · {g.projectName}
+                {guaranteeTypeLabel(g.guaranteeType)} · {g.projectName}
               </p>
             </div>
           );
@@ -190,14 +203,14 @@ export const ProjectGuarantees = () => {
       },
       {
         id: 'expectedReturnDate',
-        header: 'Jatuh Tempo',
+        header: t('projectGuarantees.columns.due'),
         enableSorting: true,
         meta: { hideBelow: 'md' },
         cell: ({ row }) => <DueDate date={row.original.expectedReturnDate} dueState={row.original.dueState} />,
       },
       {
         id: 'amount',
-        header: () => withUnit('Jumlah'),
+        header: () => withUnit(t('projectGuarantees.columns.amount')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -205,7 +218,7 @@ export const ProjectGuarantees = () => {
       },
       {
         id: 'outstanding',
-        header: () => withUnit('Sisa'),
+        header: () => withUnit(t('projectGuarantees.columns.outstanding')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -224,29 +237,29 @@ export const ProjectGuarantees = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('projectGuarantees.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="project_guarantee" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('projectGuarantees.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const g = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${g.guaranteeNumber}`}
+              label={t('projectGuarantees.rowActions', { number: g.guaranteeNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelected(g) },
+                { label: t('projectGuarantees.actions.view'), icon: Eye, onSelect: () => setSelected(g) },
                 {
-                  label: 'Settlement (kembali/hangus)',
+                  label: t('projectGuarantees.actions.settle'),
                   icon: Undo2,
                   hidden: !canEdit || !isSettleable(g),
                   onSelect: () => setSettleTarget(g),
                 },
                 {
-                  label: 'Batalkan setoran',
+                  label: t('projectGuarantees.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !canCancel || !isCancellable(g),
@@ -258,7 +271,7 @@ export const ProjectGuarantees = () => {
         },
       },
     ],
-    [canEdit, canCancel],
+    [canEdit, canCancel, t],
   );
 
   const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
@@ -267,53 +280,53 @@ export const ProjectGuarantees = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Uang Jaminan Proyek"
-        description="Setoran jaminan tender/pelaksanaan ke pemberi proyek."
+        title={t('projectGuarantees.title')}
+        description={t('projectGuarantees.description')}
         actions={
           canEdit && (
             <Button onClick={() => setIsModalOpen(true)}>
               <ShieldCheck aria-hidden />
-              Setor Jaminan
+              {t('projectGuarantees.create')}
             </Button>
           )
         }
       />
 
-      <section aria-label="Ringkasan uang jaminan sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('projectGuarantees.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Sisa di Luar"
+          label={t('projectGuarantees.summary.outstanding')}
           icon={ShieldCheck}
           loading={kpiLoading}
           value={kpiMoney(summary?.totalOutstanding)}
           valueTitle={summary ? formatRupiah(summary.totalOutstanding) : undefined}
-          hint={summary ? `${formatNumber(summary.activeCount)} jaminan aktif` : undefined}
+          hint={summary ? t('projectGuarantees.summary.active', { count: summary.activeCount }) : undefined}
         />
         <StatCard
-          label="Dikembalikan"
+          label={t('projectGuarantees.summary.returned')}
           icon={CheckCircle2}
           loading={kpiLoading}
           value={kpiMoney(summary?.totalReturned)}
           valueTitle={summary ? formatRupiah(summary.totalReturned) : undefined}
-          hint={summary ? `dari ${formatRupiah(summary.totalDeposited, { compact: true })} disetor` : undefined}
+          hint={summary ? t('projectGuarantees.summary.ofDeposited', { amount: formatRupiah(summary.totalDeposited, { compact: true }) }) : undefined}
         />
         <StatCard
-          label="Hangus"
+          label={t('projectGuarantees.summary.forfeited')}
           icon={Flame}
           loading={kpiLoading}
           value={kpiMoney(summary?.totalForfeited)}
           valueTitle={summary ? formatRupiah(summary.totalForfeited) : undefined}
-          hint="dibebankan ke biaya"
+          hint={t('projectGuarantees.summary.forfeitedHint')}
         />
         <StatCard
-          label="Lewat Jatuh Tempo"
+          label={t('projectGuarantees.summary.overdue')}
           icon={AlertTriangle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.overdueCount) : '—'}
           hint={
             summary
               ? summary.overdueCount > 0
-                ? `Sisa ${formatRupiah(summary.overdueOutstanding, { compact: true })}`
-                : `${formatNumber(summary.dueSoonCount)} segera jatuh tempo`
+                ? t('projectGuarantees.summary.overdueOutstanding', { amount: formatRupiah(summary.overdueOutstanding, { compact: true }) })
+                : t('projectGuarantees.summary.dueSoon', { count: summary.dueSoonCount })
               : undefined
           }
         />
@@ -322,44 +335,44 @@ export const ProjectGuarantees = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari uang jaminan"
-          searchPlaceholder="Cari nomor, pihak, atau proyek"
+          searchLabel={t('projectGuarantees.filters.searchLabel')}
+          searchPlaceholder={t('projectGuarantees.filters.searchPlaceholder')}
           status={{ options: STATUS_FILTER }}
-          dateRange={{ label: 'Rentang tanggal setor' }}
+          dateRange={{ label: t('projectGuarantees.filters.dateRange') }}
         >
           <ComboboxFilter
-            label="Filter pemberi proyek"
-            allLabel="Semua pemberi proyek"
-            searchPlaceholder="Cari pihak…"
+            label={t('projectGuarantees.filters.party')}
+            allLabel={t('projectGuarantees.filters.allParties')}
+            searchPlaceholder={t('projectGuarantees.filters.partySearch')}
             value={list.filters.partyId}
             onChange={(v) => list.setFilter('partyId', v)}
             {...partyPicker.pickerProps}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter jenis jaminan"
-            allLabel="Semua jenis"
-            searchPlaceholder="Cari jenis…"
+            label={t('projectGuarantees.filters.type')}
+            allLabel={t('projectGuarantees.filters.allTypes')}
+            searchPlaceholder={t('projectGuarantees.filters.typeSearch')}
             value={list.filters.guaranteeType}
             onChange={(v) => list.setFilter('guaranteeType', v)}
-            options={TYPE_FILTER}
+            options={GUARANTEE_TYPES.map((value) => ({ value, label: guaranteeTypeLabel(value) }))}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter jatuh tempo"
-            allLabel="Semua jatuh tempo"
-            searchPlaceholder="Cari…"
+            label={t('projectGuarantees.filters.due')}
+            allLabel={t('projectGuarantees.filters.allDue')}
+            searchPlaceholder={t('projectGuarantees.filters.dueSearch')}
             value={list.filters.due}
             onChange={(v) => list.setFilter('due', v)}
-            options={DUE_FILTER}
+            options={DUE_FILTER_VALUES.map((value) => ({ value, label: t(`projectGuarantees.filters.dueOption.${value}`) }))}
             className={FILTER_CLASS}
           />
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, guaranteesQuery.data?.total)}
-          label="Daftar uang jaminan proyek"
-          itemLabel="uang jaminan"
+          label={t('projectGuarantees.table.label')}
+          itemLabel={t('projectGuarantees.table.itemLabel')}
           columns={columns}
           data={rows}
           getRowId={(row) => row.id}
@@ -372,12 +385,12 @@ export const ProjectGuarantees = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada uang jaminan proyek',
-            description: 'Setoran jaminan tender atau pelaksanaan ke pemberi proyek akan muncul di sini.',
+            title: t('projectGuarantees.empty.title'),
+            description: t('projectGuarantees.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <ShieldCheck aria-hidden />
-                Setor jaminan pertama
+                {t('projectGuarantees.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -433,9 +446,9 @@ export const ProjectGuarantees = () => {
       <ConfirmDialog
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
-        title="Batalkan Uang Jaminan"
-        description={`Apakah Anda yakin ingin membatalkan setoran ${cancelTarget?.guaranteeNumber ?? ''}? Saldo akun akan dikembalikan seperti sebelum setor.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('projectGuarantees.cancelDialog.title')}
+        description={t('projectGuarantees.cancelDialog.description', { number: cancelTarget?.guaranteeNumber ?? '' })}
+        confirmLabel={t('projectGuarantees.confirmCancel')}
         tone="danger"
         loading={cancelMutation.isPending}
         onConfirm={async () => {
@@ -449,9 +462,9 @@ export const ProjectGuarantees = () => {
       <ConfirmDialog
         open={cancelSettlementTarget !== null}
         onOpenChange={(open) => !open && setCancelSettlementTarget(null)}
-        title="Batalkan Settlement"
-        description={`Batalkan settlement ${cancelSettlementTarget?.label ?? ''}? Jurnal settlement dibalik dan sisa jaminan kembali bertambah.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('projectGuarantees.cancelSettlementDialog.title')}
+        description={t('projectGuarantees.cancelSettlementDialog.description', { label: cancelSettlementTarget?.label ?? '' })}
+        confirmLabel={t('projectGuarantees.confirmCancel')}
         tone="danger"
         loading={cancelSettlementMutation.isPending}
         onConfirm={async () => {

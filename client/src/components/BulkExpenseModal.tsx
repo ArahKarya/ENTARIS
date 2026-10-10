@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, AlertCircle, CheckCircle2, Plus, Trash2, Paperclip, RotateCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -34,13 +35,8 @@ interface ExpenseRow {
   error?: string;
 }
 
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  EXPENSE: 'Beban / Biaya',
-  LIABILITY: 'Hutang',
-  ASSET: 'Aset',
-  EQUITY: 'Ekuitas',
-  REVENUE: 'Pendapatan',
-};
+/** Debit-side account types, in display order (labels come from bulkExpenseModal.accountType). */
+const ACCOUNT_TYPE_ORDER = ['EXPENSE', 'LIABILITY', 'ASSET', 'EQUITY', 'REVENUE'] as const;
 
 const genTempId = () => Math.random().toString(36).slice(2, 10);
 
@@ -76,6 +72,7 @@ function RowPartyPicker({ value, ...rest }: RowPartyPickerProps) {
 }
 
 const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
+  const { t } = useTranslation('finance');
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [cashAccountId, setCashAccountId] = useState('');
@@ -124,17 +121,16 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
       if (!groups[type]) groups[type] = [];
       groups[type].push(acc);
     }
-    const order = ['EXPENSE', 'LIABILITY', 'ASSET', 'EQUITY', 'REVENUE'];
-    return order
-      .filter((t) => groups[t]?.length)
-      .flatMap((t) =>
-        groups[t].map((a: any) => ({
+    return ACCOUNT_TYPE_ORDER
+      .filter((type) => groups[type]?.length)
+      .flatMap((type) =>
+        groups[type].map((a: any) => ({
           value: a.id,
           label: `${a.accountNumber} · ${a.name}`,
-          group: ACCOUNT_TYPE_LABELS[t] ?? t,
+          group: t(`bulkExpenseModal.accountType.${type}`),
         }))
       );
-  }, [allAccounts]);
+  }, [allAccounts, t]);
 
   const cashOptions = useMemo((): SelectOption[] =>
     cashAccounts.map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
@@ -188,7 +184,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
         const debitLabel = debitAcc ? `${debitAcc.accountNumber} ${debitAcc.name}` : '';
         const cashLabel = cashAcc ? `${cashAcc.accountNumber} ${cashAcc.name}` : '';
         const amount = Number(row.amount) || 0;
-        const narration = `[${batchNote}] ${row.description} (${debitLabel} dari ${cashLabel})`;
+        const narration = `[${batchNote}] ${row.description} (${t('bulkExpenseModal.narration', { debit: debitLabel, cash: cashLabel })})`;
 
         const res = await api.post('/journals', {
           date,
@@ -212,7 +208,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
         });
         savedJournalId = res.data?.id;
         if (!savedJournalId) {
-          return { ...row, status: 'error', error: 'Server tidak mengembalikan ID jurnal.' };
+          return { ...row, status: 'error', error: t('bulkExpenseModal.errors.noJournalId') };
         }
       }
 
@@ -224,7 +220,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
             ...row,
             status: 'error',
             savedJournalId,
-            error: `Jurnal tersimpan, tapi lampiran gagal: ${uploadErr.response?.data?.error ?? 'Upload error'}`,
+            error: t('bulkExpenseModal.errors.uploadFailed', { reason: uploadErr.response?.data?.error ?? t('bulkExpenseModal.errors.uploadError') }),
           };
         }
       }
@@ -234,7 +230,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
       return {
         ...row,
         status: 'error',
-        error: err.response?.data?.error ?? 'Gagal menyimpan jurnal.',
+        error: err.response?.data?.error ?? t('bulkExpenseModal.errors.saveFailed'),
       };
     }
   };
@@ -287,32 +283,32 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
     <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" role="status">
         <div>
-          <span className="text-muted-foreground">Baris valid: </span>
+          <span className="text-muted-foreground">{t('bulkExpenseModal.footer.validRows')} </span>
           <span className="num font-semibold text-foreground">{validRows.length}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">Total: </span>
+          <span className="text-muted-foreground">{t('bulkExpenseModal.footer.total')} </span>
           <span className="num font-bold text-foreground">{formatRupiah(total)}</span>
         </div>
         {hasSubmitted && (
           <>
-            {doneCount > 0 && <span className="font-semibold text-success-text">{doneCount} sukses</span>}
-            {errorCount > 0 && <span className="font-semibold text-danger-text">{errorCount} gagal</span>}
+            {doneCount > 0 && <span className="font-semibold text-success-text">{t('bulkExpenseModal.footer.done', { count: doneCount })}</span>}
+            {errorCount > 0 && <span className="font-semibold text-danger-text">{t('bulkExpenseModal.footer.failed', { count: errorCount })}</span>}
           </>
         )}
       </div>
       <div className="flex flex-col-reverse gap-2 sm:flex-row">
         {allDone ? (
           <Button className="h-11 sm:h-9" onClick={onClose}>
-            Selesai
+            {t('bulkExpenseModal.footer.finish')}
           </Button>
         ) : (
           <>
             <Button variant="outline" className="h-11 sm:h-9" onClick={onClose} disabled={isSubmitting}>
-              {hasSubmitted ? 'Tutup' : 'Batal'}
+              {hasSubmitted ? t('bulkExpenseModal.footer.close') : t('bulkExpenseModal.footer.cancel')}
             </Button>
             <Button className="h-11 sm:h-9" onClick={handleSubmit} disabled={!canSubmit} loading={isSubmitting}>
-              {isSubmitting ? 'Menyimpan…' : `Simpan Semua (${validRows.length})`}
+              {isSubmitting ? t('bulkExpenseModal.footer.saving') : t('bulkExpenseModal.footer.saveAll', { count: validRows.length })}
             </Button>
           </>
         )}
@@ -324,27 +320,27 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Input Pengeluaran (Banyak Baris)"
-      description="Input banyak pengeluaran sekaligus dari satu sumber kas"
+      title={t('bulkExpenseModal.title')}
+      description={t('bulkExpenseModal.description')}
       size="doc"
       className="lg:max-w-5xl"
       busy={isSubmitting}
       footer={footer}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Field label="Tanggal">
+        <Field label={t('bulkExpenseModal.date')}>
           <DateInput value={date} onChange={setDate} disabled={headerLocked} />
         </Field>
-        <Field label="Sumber Kas">
+        <Field label={t('bulkExpenseModal.cashSource')}>
           <OptionPicker
             options={cashOptions}
             value={cashAccountId}
             onChange={setCashAccountId}
-            placeholder="Pilih Akun Kas/Bank"
+            placeholder={t('bulkExpenseModal.cashPlaceholder')}
             disabled={headerLocked}
           />
         </Field>
-        <Field label="Batch Note">
+        <Field label={t('bulkExpenseModal.batchNote')}>
           <Input
             value={batchNote}
             onChange={(e) => setBatchNote(e.target.value)}
@@ -356,11 +352,11 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
 
       <div className="space-y-2">
         <div className="hidden grid-cols-12 gap-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid" aria-hidden>
-          <div className="col-span-3">Akun Debit</div>
-          <div className="col-span-3">Keterangan</div>
-          <div className="col-span-2">Pihak (opsional)</div>
-          <div className="col-span-2 text-right">Jumlah</div>
-          <div className="col-span-1 text-center">Lampiran</div>
+          <div className="col-span-3">{t('bulkExpenseModal.columns.debitAccount')}</div>
+          <div className="col-span-3">{t('bulkExpenseModal.columns.description')}</div>
+          <div className="col-span-2">{t('bulkExpenseModal.columns.party')}</div>
+          <div className="col-span-2 text-right">{t('bulkExpenseModal.columns.amount')}</div>
+          <div className="col-span-1 text-center">{t('bulkExpenseModal.columns.attachment')}</div>
           <div className="col-span-1" />
         </div>
 
@@ -371,7 +367,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
             <div
               key={row.tempId}
               role="group"
-              aria-label={`Baris pengeluaran ${n}`}
+              aria-label={t('bulkExpenseModal.row.label', { n })}
               className={cn(
                 'grid grid-cols-1 items-start gap-2 rounded-lg border p-2 md:grid-cols-12',
                 row.status === 'done' && 'border-success/40 bg-success-subtle',
@@ -380,39 +376,39 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
               )}
             >
               <div className="flex flex-col gap-1 md:col-span-3">
-                <label htmlFor={`bx-debit-${row.tempId}`} className={rowLabel}>Akun Debit</label>
+                <label htmlFor={`bx-debit-${row.tempId}`} className={rowLabel}>{t('bulkExpenseModal.columns.debitAccount')}</label>
                 <OptionPicker
                   id={`bx-debit-${row.tempId}`}
                   options={debitOptions}
                   value={row.debitAccountId}
                   onChange={(v) => updateRow(row.tempId, { debitAccountId: v })}
-                  placeholder="Pilih Akun"
+                  placeholder={t('bulkExpenseModal.row.accountPlaceholder')}
                   disabled={locked}
                 />
               </div>
               <div className="flex flex-col gap-1 md:col-span-3">
-                <label htmlFor={`bx-desc-${row.tempId}`} className={rowLabel}>Keterangan</label>
+                <label htmlFor={`bx-desc-${row.tempId}`} className={rowLabel}>{t('bulkExpenseModal.columns.description')}</label>
                 <Input
                   id={`bx-desc-${row.tempId}`}
                   value={row.description}
                   onChange={(e) => updateRow(row.tempId, { description: e.target.value })}
                   disabled={locked}
-                  placeholder={`Baris #${n}, contoh: Beli ATK`}
+                  placeholder={t('bulkExpenseModal.row.descriptionPlaceholder', { n })}
                 />
               </div>
               <div className="flex flex-col gap-1 md:col-span-2">
-                <label htmlFor={`bx-party-${row.tempId}`} className={rowLabel}>Pihak (opsional)</label>
+                <label htmlFor={`bx-party-${row.tempId}`} className={rowLabel}>{t('bulkExpenseModal.columns.party')}</label>
                 <RowPartyPicker
                   id={`bx-party-${row.tempId}`}
                   value={row.partyId}
                   onChange={(v) => updateRow(row.tempId, { partyId: v })}
-                  placeholder="Tidak ada"
-                  emptyLabel="Tidak ada"
+                  placeholder={t('bulkExpenseModal.row.noParty')}
+                  emptyLabel={t('bulkExpenseModal.row.noParty')}
                   disabled={locked}
                 />
               </div>
               <div className="flex flex-col gap-1 md:col-span-2">
-                <label htmlFor={`bx-amt-${row.tempId}`} className={rowLabel}>Jumlah (Rp)</label>
+                <label htmlFor={`bx-amt-${row.tempId}`} className={rowLabel}>{t('bulkExpenseModal.row.amount')}</label>
                 <RupiahField
                   id={`bx-amt-${row.tempId}`}
                   value={typeof row.amount === 'number' ? row.amount : 0}
@@ -430,10 +426,10 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                   disabled={locked}
                   aria-label={
                     row.files.length > 0
-                      ? `Lampiran baris ${n}: ${row.files.map((f) => f.name).join(', ')}`
-                      : `Unggah lampiran baris ${n}`
+                      ? t('bulkExpenseModal.row.attachments', { n, files: row.files.map((f) => f.name).join(', ') })
+                      : t('bulkExpenseModal.row.upload', { n })
                   }
-                  title={row.files.length > 0 ? row.files.map((f) => f.name).join(', ') : 'Upload lampiran'}
+                  title={row.files.length > 0 ? row.files.map((f) => f.name).join(', ') : t('bulkExpenseModal.row.uploadTitle')}
                 >
                   <Paperclip aria-hidden />
                   {row.files.length > 0 && <span className="font-semibold">{row.files.length}</span>}
@@ -446,7 +442,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                   accept=".jpg,.jpeg,.png,.webp,.pdf"
                   multiple
                   className="hidden"
-                  aria-label={`Berkas lampiran baris ${n}`}
+                  aria-label={t('bulkExpenseModal.row.fileInput', { n })}
                   tabIndex={-1}
                   onChange={(e) => {
                     handleFiles(row.tempId, e.target.files);
@@ -457,13 +453,13 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                   {row.status === 'saving' && (
                     <>
                       <Loader2 className="size-4 animate-spin text-primary" aria-hidden />
-                      <span className="sr-only">Menyimpan baris {n}</span>
+                      <span className="sr-only">{t('bulkExpenseModal.row.saving', { n })}</span>
                     </>
                   )}
                   {row.status === 'done' && (
                     <>
                       <CheckCircle2 className="size-4 text-success-text" aria-hidden />
-                      <span className="sr-only">Baris {n} tersimpan</span>
+                      <span className="sr-only">{t('bulkExpenseModal.row.saved', { n })}</span>
                     </>
                   )}
                   {row.status === 'error' && (
@@ -473,7 +469,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                       size="icon-touch"
                       className="text-danger-text md:size-9"
                       onClick={() => retryRow(row.tempId)}
-                      aria-label={`Ulangi simpan baris ${n}`}
+                      aria-label={t('bulkExpenseModal.row.retry', { n })}
                     >
                       <RotateCw aria-hidden />
                     </Button>
@@ -485,7 +481,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
                       size="icon-touch"
                       className="text-muted-foreground hover:text-danger-text md:size-9"
                       onClick={() => removeRow(row.tempId)}
-                      aria-label={`Hapus baris ${n}`}
+                      aria-label={t('bulkExpenseModal.row.remove', { n })}
                     >
                       <Trash2 aria-hidden />
                     </Button>
@@ -504,7 +500,7 @@ const BulkExpenseModal = ({ isOpen, onClose }: Props) => {
       </div>
 
       <Button type="button" variant="outline" size="sm" className="h-11 border-dashed sm:h-8" onClick={addRow} disabled={isSubmitting}>
-        <Plus aria-hidden /> Tambah Baris
+        <Plus aria-hidden /> {t('bulkExpenseModal.addRow')}
       </Button>
     </FormDialog>
   );

@@ -5,6 +5,8 @@
  * (live totals, balance check, which types fit a direction) before saving.
  */
 
+import i18n from '@/i18n';
+
 export const CB_ENDPOINT = '/cash-book-drafts';
 export const CB_ROW_LIMIT = 300;
 export const CB_REVIEW_THRESHOLD = 0.7;
@@ -16,13 +18,13 @@ export const TXN_TYPES = ['pengeluaran', 'pemasukan', 'uang_muka', 'terima_kasbo
 export type TxnType = (typeof TXN_TYPES)[number];
 export type Direction = 'masuk' | 'keluar';
 
-export const TXN_LABEL: Record<TxnType, string> = {
-  pengeluaran: 'Pengeluaran',
-  pemasukan: 'Pemasukan',
-  uang_muka: 'Uang muka karyawan',
-  terima_kasbon: 'Terima kasbon',
-  lainnya: 'Lainnya',
-};
+/** Labels resolve on every read so they follow the UI language. */
+export const TXN_LABEL: Readonly<Record<TxnType, string>> = Object.defineProperties(
+  {} as Record<TxnType, string>,
+  Object.fromEntries(
+    TXN_TYPES.map((type) => [type, { enumerable: true, get: () => i18n.t(`finance:cashBook.txnType.${type}`) }]),
+  ),
+);
 
 export interface CounterAccount {
   id: string;
@@ -213,7 +215,7 @@ export function liveBalance(opening: number | null, closing: number | null, tota
   if (opening === null || closing === null) return { checked: false, expectedClosing: null, difference: null, ok: true, warning: null };
   const expected = round2(opening + totals.masuk - totals.keluar);
   const diff = round2(closing - expected);
-  return { checked: true, expectedClosing: expected, difference: diff, ok: diff === 0, warning: diff === 0 ? null : 'Saldo akhir tidak cocok' };
+  return { checked: true, expectedClosing: expected, difference: diff, ok: diff === 0, warning: diff === 0 ? null : i18n.t('finance:cashBook.balanceMismatch') };
 }
 
 /** Rows still to be posted (not skipped, no journal yet). */
