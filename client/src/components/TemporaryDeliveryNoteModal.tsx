@@ -36,6 +36,8 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
   const [driverName, setDriverName] = useState(() => editNote?.driverName ?? '');
   const [recipientName, setRecipientName] = useState(() => editNote?.recipientName ?? '');
   const [notes, setNotes] = useState(() => editNote?.notes ?? '');
+  // Optional SO this delivery belongs to (same customer).
+  const [salesOrderId, setSalesOrderId] = useState<string>(() => editNote?.salesOrderId ?? '');
   const [rows, setRows] = useState<Row[]>(() =>
     editNote
       ? editNote.items.map((it: any) => ({
@@ -65,6 +67,26 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
     },
   });
 
+  const { data: customerOrders } = useQuery({
+    queryKey: ['sales-orders', 'for-tdn', partyId],
+    enabled: !!partyId,
+    queryFn: async () => {
+      const res = await api.get('/sales-orders', { params: { partyId, limit: 200, sort: '-date' } });
+      return (res.data.data ?? res.data) as Array<{ id: string; soNumber: string; status: string; date: string }>;
+    },
+  });
+  const salesOrderOptions = useMemo<ComboboxOption[]>(
+    () =>
+      (customerOrders ?? [])
+        .filter((so) => so.status !== 'Cancelled' || so.id === salesOrderId)
+        .map((so) => ({ value: so.id, label: `${so.soNumber} · ${String(so.date).slice(0, 10)}` })),
+    [customerOrders, salesOrderId],
+  );
+  const changeParty = (v: string) => {
+    if (v !== partyId) setSalesOrderId('');
+    setPartyId(v);
+  };
+
   const partyOptions = useMemo<ComboboxOption[]>(
     () => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })),
     [parties],
@@ -81,6 +103,7 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
         nomorMobil: nomorMobil || null,
         driverName: driverName || null,
         recipientName: recipientName || null,
+        salesOrderId: salesOrderId || null,
         notes: notes || null,
         items: rows.map((r) => ({
           inventoryItemId: r.inventoryItemId,
@@ -134,8 +157,14 @@ const TemporaryDeliveryNoteModal: React.FC<Props> = ({ onClose, editNote }) => {
               <Field label="Tanggal">
                 <DateInput value={date} onChange={setDate} />
               </Field>
-              <ComboboxField label="Pelanggan" required options={partyOptions} value={partyId} onChange={setPartyId}
+              <ComboboxField label="Pelanggan" required options={partyOptions} value={partyId} onChange={changeParty}
                 placeholder="Pilih pelanggan" error={partyError || undefined} />
+              <div className="sm:col-span-2">
+                <ComboboxField label="Sales Order (opsional)" options={salesOrderOptions} value={salesOrderId}
+                  onChange={setSalesOrderId} disabled={!partyId}
+                  placeholder={partyId ? 'Tanpa sales order' : 'Pilih pelanggan dulu'}
+                  hint="Tautkan pengiriman sementara ini ke pesanan pelanggan." />
+              </div>
               <Field label="No. Mobil">
                 <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} />
               </Field>

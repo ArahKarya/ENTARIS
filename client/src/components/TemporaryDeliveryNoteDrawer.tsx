@@ -131,6 +131,9 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
                     <div><dt className="text-xs text-muted-foreground">No. Mobil</dt><dd className="font-mono text-xs font-medium uppercase text-foreground">{note.nomorMobil || '—'}</dd></div>
                     <div><dt className="text-xs text-muted-foreground">Supir</dt><dd className="text-xs font-medium text-foreground">{note.driverName || '—'}</dd></div>
                     <div><dt className="text-xs text-muted-foreground">Penerima</dt><dd className="text-xs font-medium text-foreground">{note.recipientName || '—'}</dd></div>
+                    {note.soNumber && (
+                      <div><dt className="text-xs text-muted-foreground">Sales Order</dt><dd className="font-mono text-xs font-medium text-foreground">{note.soNumber}</dd></div>
+                    )}
                   </dl>
                 </div>
 

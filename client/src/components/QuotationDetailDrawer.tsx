@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Send, CheckCircle2, XCircle, FileCheck2, Download, Edit3, Trash2, Ban } from 'lucide-react';
+import { Loader2, Send, CheckCircle2, XCircle, FileCheck2, Download, Edit3, Trash2, Ban, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatRupiah, formatDate } from '@/lib/format';
@@ -15,6 +15,7 @@ import {
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import QuotationPDF from '../lib/pdf/QuotationPDF';
 import { useCompanyPDF } from '../lib/pdf/useCompanyPDF';
+import { canCreateSalesOrderFromQuotation } from './sales/so-from-quotation';
 
 interface Props {
   quotationId: string | null;
@@ -124,7 +125,9 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
 
   if (!isOpen) return null;
 
-  const canConvert = q && q.status === 'Accepted' && !q.salesInvoice;
+  // An SO already made from it means billing goes through the SO, not a direct invoice.
+  const canConvert = q && q.status === 'Accepted' && !q.salesInvoice && !(q.salesOrders ?? []).length;
+  const canCreateSo = canCreateSalesOrderFromQuotation(q);
   const canCancel = q && ['Sent', 'Accepted', 'Rejected', 'Expired'].includes(q.status) && !q.convertedAt;
   const footBtn = 'max-sm:h-11';
 
@@ -163,6 +166,14 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                     <div className="flex items-center justify-between border-t border-border pt-1 text-xs">
                       <span className="text-muted-foreground">Sales Invoice</span>
                       <span className="font-mono text-success-text">{q.salesInvoice.invoiceNumber}</span>
+                    </div>
+                  )}
+                  {(q.salesOrders ?? []).length > 0 && (
+                    <div className="flex items-center justify-between gap-2 border-t border-border pt-1 text-xs">
+                      <span className="text-muted-foreground">Sales Order</span>
+                      <span className="font-mono text-success-text">
+                        {q.salesOrders.map((so: { soNumber: string }) => so.soNumber).join(', ')}
+                      </span>
                     </div>
                   )}
                   {q.rejectReason && (
@@ -287,6 +298,16 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                       <CheckCircle2 aria-hidden /> Diterima
                     </Button>
                   </>
+                )}
+
+                {canCreateSo && (
+                  <Button
+                    variant="outline"
+                    className={footBtn}
+                    onClick={() => navigate(`/sales-orders?fromQuotation=${encodeURIComponent(q.id)}`)}
+                  >
+                    <ClipboardList aria-hidden /> Buat Sales Order
+                  </Button>
                 )}
 
                 {canConvert && (
