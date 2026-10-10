@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { AlertTriangle, Check, Copy, FileText, Loader2, OctagonX, RotateCcw, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AiraIcon } from '@/components/shell/AiraIcon';
 import { Button } from '@/components/ui/button';
 import { SimpleTooltip } from '@/components/ui/tooltip';
@@ -23,15 +24,16 @@ interface MessageItemProps {
 }
 
 function CopyButton({ text }: { text: string }) {
+  const { t } = useTranslation('aira');
   const [done, setDone] = useState(false);
   return (
-    <SimpleTooltip content={done ? 'Tersalin' : 'Salin jawaban'}>
+    <SimpleTooltip content={t(done ? 'message.copied' : 'message.copyAnswer')}>
       <Button
         type="button"
         variant="ghost"
         size="icon-sm"
         className="size-7 text-muted-foreground"
-        aria-label="Salin jawaban"
+        aria-label={t('message.copyAnswer')}
         onClick={() => {
           void navigator.clipboard?.writeText(text).then(() => {
             setDone(true);
@@ -46,10 +48,12 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function UserBubble({ message }: { message: ViewMessage }) {
+  const { t } = useTranslation('aira');
   const [imgFailed, setImgFailed] = useState(false);
   const att = message.attachments[0];
   const local = message.localAttachment;
   const isImage = !imgFailed && ((att?.mimeType ?? '').startsWith('image/') || !!local?.previewUrl);
+  // 'Lampiran: ' = penanda pesan khusus-lampiran dari server (data, bukan teks UI).
   const placeholder = message.content.startsWith('Lampiran: ') && (att || local);
   return (
     <div className="flex max-w-[85%] flex-col items-end gap-1.5">
@@ -58,7 +62,7 @@ function UserBubble({ message }: { message: ViewMessage }) {
           {isImage ? (
             <img
               src={local?.previewUrl ?? attachmentUrl(att!.id)}
-              alt={`Lampiran ${att?.fileName ?? local?.name}`}
+              alt={t('message.attachment', { name: att?.fileName ?? local?.name ?? '' })}
               onError={() => setImgFailed(true)}
               className="size-14 rounded-md object-cover"
             />
@@ -78,9 +82,10 @@ function UserBubble({ message }: { message: ViewMessage }) {
 }
 
 export function MessageItem({ message, canRetry, onRetry, retryTargetId }: MessageItemProps) {
+  const { t } = useTranslation('aira');
   if (message.role === 'user') {
     return (
-      <article aria-label="Pesan Anda" className="flex justify-end gap-2.5 sm:gap-3">
+      <article aria-label={t('message.yourMessage')} className="flex justify-end gap-2.5 sm:gap-3">
         <UserBubble message={message} />
         <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-subtle text-neutral-text">
           <User className="size-4" aria-hidden />
@@ -92,7 +97,7 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId }: Messa
   const failed = message.status === 'error';
   const aborted = message.status === 'aborted';
   return (
-    <article aria-label="Balasan AIRA" aria-busy={streaming} className="flex justify-start gap-2.5 sm:gap-3">
+    <article aria-label={t('message.airaReply')} aria-busy={streaming} className="flex justify-start gap-2.5 sm:gap-3">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card">
         <AiraIcon size={18} />
       </span>
@@ -106,7 +111,7 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId }: Messa
         {streaming && !message.content && message.tools.length === 0 && (
           <div className="inline-flex rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5">
             <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
-            <span className="sr-only">AIRA sedang mengetik…</span>
+            <span className="sr-only">{t('message.typing')}</span>
           </div>
         )}
         {message.cards.map((c, i) => <CardPartView key={`${c.href}-${i}`} card={c} />)}
@@ -119,11 +124,11 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId }: Messa
             )}
           >
             {failed ? <AlertTriangle className="size-4 shrink-0" aria-hidden /> : <OctagonX className="size-4 shrink-0" aria-hidden />}
-            <span className="break-words">{failed ? message.error || 'Jawaban gagal dibuat.' : 'Dihentikan. Teks yang sudah diterima tetap tersimpan.'}</span>
+            <span className="break-words">{failed ? message.error || t('message.failed') : t('message.stopped')}</span>
             {canRetry && retryTargetId && (
               <Button type="button" size="sm" variant="outline" onClick={() => onRetry(retryTargetId)}>
                 <RotateCcw className="size-3.5" aria-hidden />
-                Coba lagi
+                {t('message.retry')}
               </Button>
             )}
           </div>

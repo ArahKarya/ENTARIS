@@ -6,7 +6,7 @@ describe('settingsNav', () => {
     const ids = visibleSettingsNav(false).flatMap((g) => g.items.map((i) => i.id));
     expect(ids).not.toContain('roles');
     expect(ids).not.toContain('agentic');
-    expect(visibleSettingsNav(false).map((g) => g.label)).toEqual(['Perusahaan', 'Sistem']);
+    expect(visibleSettingsNav(false).map((g) => g.id)).toEqual(['company', 'system']);
     expect(visibleSettingsNav(true).flatMap((g) => g.items).length).toBe(11);
   });
 

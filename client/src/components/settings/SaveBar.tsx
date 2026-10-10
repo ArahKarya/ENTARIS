@@ -1,4 +1,5 @@
 import { Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +18,8 @@ export interface SaveBarProps {
 }
 
 /** Sticky save bar shown at the bottom of a settings form. */
-export function SaveBar({ dirty, saving = false, onSave, onReset, saveLabel = 'Simpan', saveDisabled = false, message, className }: SaveBarProps) {
+export function SaveBar({ dirty, saving = false, onSave, onReset, saveLabel, saveDisabled = false, message, className }: SaveBarProps) {
+  const { t } = useTranslation('settings');
   return (
     <div
       className={cn(
@@ -26,17 +28,17 @@ export function SaveBar({ dirty, saving = false, onSave, onReset, saveLabel = 'S
       )}
     >
       <p className="min-w-0 text-sm text-muted-foreground" aria-live="polite">
-        {message ?? (dirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan sudah tersimpan.')}
+        {message ?? (dirty ? t('saveBar.dirty') : t('saveBar.clean'))}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         {onReset && (
           <Button variant="outline" onClick={onReset} disabled={!dirty || saving}>
-            Batalkan
+            {t('saveBar.reset')}
           </Button>
         )}
         <Button onClick={onSave} disabled={!dirty || saveDisabled} loading={saving}>
           {!saving && <Save aria-hidden />}
-          {saveLabel}
+          {saveLabel ?? t('saveBar.save')}
         </Button>
       </div>
     </div>

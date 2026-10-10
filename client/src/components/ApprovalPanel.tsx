@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Check, X, Eye, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
@@ -27,14 +28,8 @@ export interface ApprovalRequest {
   createdAt: string;
 }
 
-const STATUS_TABS = [
-  { key: 'Pending', label: 'Menunggu' },
-  { key: 'Approved', label: 'Disetujui' },
-  { key: 'Rejected', label: 'Ditolak' },
-  { key: 'NeedsRevision', label: 'Perlu Revisi' },
-] as const;
-type StatusKey = typeof STATUS_TABS[number]['key'];
-const labelOf = (s: string) => STATUS_TABS.find((t) => t.key === s)?.label ?? s;
+const STATUS_TABS = ['Pending', 'Approved', 'Rejected', 'NeedsRevision'] as const;
+type StatusKey = typeof STATUS_TABS[number];
 
 interface Props {
   documentType?: string | string[]; // undefined = semua tipe
@@ -50,6 +45,7 @@ interface Props {
  * edit and resubmit a request that needs revision.
  */
 export default function ApprovalPanel({ documentType, onResubmit, onViewDocument, focusRequestId, onFocusHandled }: Props) {
+  const { t } = useTranslation('approvals');
   const qc = useQueryClient();
   const isAdmin = cap('approval.decide');
   const currentUserId = useMemo(() => {
@@ -135,22 +131,22 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const approveMut = useMutation({
     mutationFn: async (id: string) => (await api.post(`/approvals/requests/${id}/approve`, { notes: '' })).data,
     onSuccess: (data: any) => {
-      toast.success(data?.createdDocument ? `Disetujui. ${data.createdDocument.number} dibuat.` : 'Disetujui.');
+      toast.success(data?.createdDocument ? t('panel.toast.approvedWithDocument', { number: data.createdDocument.number }) : t('panel.toast.approved'));
       invalidateAll();
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal approve.'),
+    onError: (e: any) => toast.error(e?.response?.data?.error || t('panel.toast.approveFailed')),
   });
 
   const rejectMut = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => (await api.post(`/approvals/requests/${id}/reject`, { notes })).data,
-    onSuccess: () => { toast.success('Pengajuan ditolak.'); invalidateAll(); },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal reject.'),
+    onSuccess: () => { toast.success(t('panel.toast.rejected')); invalidateAll(); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || t('panel.toast.rejectFailed')),
   });
 
   const revisionMut = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => (await api.post(`/approvals/requests/${id}/request-revision`, { notes })).data,
-    onSuccess: () => { toast.success('Dikembalikan ke staff untuk revisi.'); invalidateAll(); },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal minta revisi.'),
+    onSuccess: () => { toast.success(t('panel.toast.revisionRequested')); invalidateAll(); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || t('panel.toast.revisionFailed')),
   });
 
   const submitReason = (txt: string) => {
@@ -167,37 +163,37 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
       {/* Status filter (segmented) */}
       <div
         role="group"
-        aria-label="Filter status pengajuan"
+        aria-label={t('panel.statusFilter')}
         className="grid w-full grid-cols-4 gap-1 rounded-md bg-muted p-1 text-muted-foreground sm:inline-flex sm:w-auto"
       >
-        {STATUS_TABS.map((t) => (
+        {STATUS_TABS.map((key) => (
           <button
-            key={t.key}
+            key={key}
             type="button"
-            aria-pressed={status === t.key}
-            onClick={() => setStatus(t.key)}
+            aria-pressed={status === key}
+            onClick={() => setStatus(key)}
             className={cn(
               'inline-flex h-7 items-center justify-center rounded-sm px-1.5 text-[13px] font-medium whitespace-nowrap transition-colors hover:text-foreground sm:px-3 sm:text-sm',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              status === t.key && 'bg-card text-foreground shadow-[var(--shadow-1)]',
+              status === key && 'bg-card text-foreground shadow-[var(--shadow-1)]',
             )}
           >
-            {t.label}
+            {t(`status.${key}`)}
           </button>
         ))}
       </div>
 
       {/* List */}
       {isLoading ? (
-        <LoadingState className="rounded-lg border border-border bg-card py-10" label="Memuat pengajuan…" />
+        <LoadingState className="rounded-lg border border-border bg-card py-10" label={t('panel.loading')} />
       ) : requests.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-4 py-10 text-center">
           <Clock className="size-5 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-medium text-foreground">Tidak ada pengajuan berstatus "{labelOf(status)}"</p>
-          <p className="text-sm text-muted-foreground">Pengajuan baru akan muncul di sini.</p>
+          <p className="text-sm font-medium text-foreground">{t('panel.emptyTitle', { status: t(`status.${status}`) })}</p>
+          <p className="text-sm text-muted-foreground">{t('panel.emptyDescription')}</p>
         </div>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card" aria-label="Daftar pengajuan">
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card" aria-label={t('panel.listLabel')}>
           {requests.map((req) => {
             const ownNeedsRevision = req.status === 'NeedsRevision' && req.requestedBy === currentUserId;
             const docLabel = approvalTypeLabel(req.documentType);
@@ -217,7 +213,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                       {isAi
                         ? req.payload?.confirm || req.payload?.tool || req.documentType
                         : req.documentType === 'ProductionRun' || req.documentType === 'ProductionRunEdit'
-                          ? `${fmtNum(Number(req.amount ?? 0))} kg input`
+                          ? t('panel.amountKgInput', { value: fmtNum(Number(req.amount ?? 0)) })
                           : `Rp ${fmtNum(Number(req.amount ?? 0))}`}
                     </span>
                     {req.approver && (
@@ -227,27 +223,27 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    oleh {req.requester.fullName} ({req.requester.role}) · <span className="num">{fmtDate(req.createdAt)}</span>
+                    {t('panel.requestedBy', { name: req.requester.fullName, role: req.requester.role })} · <span className="num">{fmtDate(req.createdAt)}</span>
                   </p>
                   {/* Reason (reject / revision) */}
                   {(req.status === 'Rejected' || req.status === 'NeedsRevision') && req.notes && (
                     <p className="mt-1.5 rounded-md border border-warning/30 bg-warning-subtle px-2.5 py-1.5 text-xs text-warning-text">
-                      <span className="font-medium">{req.status === 'Rejected' ? 'Alasan tolak:' : 'Catatan revisi:'}</span> {req.notes}
+                      <span className="font-medium">{req.status === 'Rejected' ? t('reason.rejected') : t('reason.revision')}</span> {req.notes}
                     </p>
                   )}
                 </div>
                 <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-                  <Button size="sm" variant="outline" onClick={() => setDetailReq(req)} aria-label={`Detail pengajuan ${docLabel}`}>
-                    <Eye aria-hidden /> Detail
+                  <Button size="sm" variant="outline" onClick={() => setDetailReq(req)} aria-label={t('panel.detailAria', { type: docLabel })}>
+                    <Eye aria-hidden /> {t('actions.detail')}
                   </Button>
                   {isAdmin && req.status === 'Pending' && (
                     <>
                       <Button size="sm" onClick={() => approveMut.mutate(req.id)} disabled={busy} loading={approveMut.isPending && approveMut.variables === req.id}>
-                        {!(approveMut.isPending && approveMut.variables === req.id) && <Check aria-hidden />} Setuju
+                        {!(approveMut.isPending && approveMut.variables === req.id) && <Check aria-hidden />} {t('actions.approve')}
                       </Button>
                       {!isEditApprovalType(req.documentType) && !isAi && (
                         <Button size="sm" variant="outline" onClick={() => setReasonModal({ mode: 'revision', id: req.id })} disabled={busy}>
-                          <Pencil aria-hidden /> Minta Edit
+                          <Pencil aria-hidden /> {t('actions.requestEdit')}
                         </Button>
                       )}
                       <Button
@@ -257,18 +253,18 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
                         disabled={busy}
                         className="text-danger-text hover:bg-danger-subtle"
                       >
-                        <X aria-hidden /> Tolak
+                        <X aria-hidden /> {t('actions.reject')}
                       </Button>
                     </>
                   )}
                   {ownNeedsRevision && onResubmit && (
                     <Button size="sm" onClick={() => onResubmit(req)}>
-                      <Pencil aria-hidden /> Edit &amp; Ajukan Ulang
+                      <Pencil aria-hidden /> {t('actions.editResubmit')}
                     </Button>
                   )}
                   {req.status === 'Approved' && req.documentId && onViewDocument && (
                     <Button size="sm" variant="outline" onClick={() => onViewDocument(req)}>
-                      <FileText aria-hidden /> Lihat Dokumen
+                      <FileText aria-hidden /> {t('actions.viewDocument')}
                     </Button>
                   )}
                 </div>
@@ -283,17 +279,17 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         open={reasonModal !== null}
         onOpenChange={(open) => !open && setReasonModal(null)}
         tone={reasonModal?.mode === 'reject' ? 'danger' : 'default'}
-        title={reasonModal?.mode === 'revision' ? 'Minta Edit (Kembalikan ke Staff)' : 'Tolak Pengajuan'}
+        title={reasonModal?.mode === 'revision' ? t('panel.reasonDialog.revisionTitle') : t('panel.reasonDialog.rejectTitle')}
         description={
           reasonModal?.mode === 'revision'
-            ? 'Pengajuan dikembalikan agar staff memperbaiki & mengajukan ulang.'
-            : 'Pengajuan ditolak permanen. Staff perlu mengajukan baru jika ingin lanjut.'
+            ? t('panel.reasonDialog.revisionDescription')
+            : t('panel.reasonDialog.rejectDescription')
         }
-        confirmLabel={reasonModal?.mode === 'revision' ? 'Minta Edit' : 'Tolak'}
+        confirmLabel={reasonModal?.mode === 'revision' ? t('actions.requestEdit') : t('actions.reject')}
         requireReason={{
-          label: 'Alasan (min 5 karakter)',
+          label: t('panel.reasonDialog.reasonLabel'),
           minLength: 5,
-          placeholder: reasonModal?.mode === 'revision' ? 'contoh: Harga rate salah, perbaiki sesuai PO' : 'contoh: Supplier tidak valid',
+          placeholder: reasonModal?.mode === 'revision' ? t('panel.reasonDialog.revisionPlaceholder') : t('panel.reasonDialog.rejectPlaceholder'),
         }}
         loading={busy}
         onConfirm={(reason) => submitReason(reason ?? '')}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DECISION_LABEL, DECISION_TONE, authorizationHeader, healthCurl, initializeCurl, mcpUrl, normalizeBaseUrl } from './mcpEndpoint';
+import { CALL_DECISIONS, DECISION_TONE, decisionLabel, authorizationHeader, healthCurl, initializeCurl, mcpUrl, normalizeBaseUrl } from './mcpEndpoint';
 
 describe('mcpEndpoint', () => {
   it('normalises the base URL and builds /mcp', () => {
@@ -21,9 +21,12 @@ describe('mcpEndpoint', () => {
   });
 
   it('every decision has a label and a tone', () => {
-    for (const d of ['allowed', 'queued', 'denied', 'error', 'inflight'] as const) {
-      expect(DECISION_LABEL[d]).toBeTruthy();
+    for (const d of CALL_DECISIONS) {
+      expect(decisionLabel(d)).toBeTruthy();
+      expect(decisionLabel(d)).not.toContain('mcp.decision');
       expect(DECISION_TONE[d]).toBeTruthy();
     }
+    expect(decisionLabel('queued')).toBe('Menunggu persetujuan');
+    expect(decisionLabel('unknown')).toBe('unknown');
   });
 });

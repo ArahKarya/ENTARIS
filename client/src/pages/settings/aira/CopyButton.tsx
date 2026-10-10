@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,23 +14,24 @@ interface CopyButtonProps {
 
 /** Tombol salin ke clipboard dengan umpan balik (ikon + toast). */
 export function CopyButton({ value, what, size = 'sm' }: CopyButtonProps) {
+  const { t } = useTranslation('aira');
   const [done, setDone] = useState(false);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value);
       setDone(true);
-      toast.success(`${what} disalin.`);
+      toast.success(t('mcp.copy.copied', { what }));
       window.setTimeout(() => setDone(false), 2000);
     } catch {
-      toast.error('Gagal menyalin. Salin manual dari kolom di samping.');
+      toast.error(t('mcp.copy.failed'));
     }
   };
 
   return (
-    <Button type="button" variant="outline" size={size} onClick={copy} aria-label={`Salin ${what}`}>
+    <Button type="button" variant="outline" size={size} onClick={copy} aria-label={t('mcp.copy.copyWhat', { what })}>
       {done ? <Check aria-hidden className="text-success" /> : <Copy aria-hidden />}
-      {size === 'sm' && <span>{done ? 'Disalin' : 'Salin'}</span>}
+      {size === 'sm' && <span>{t(done ? 'mcp.copy.done' : 'mcp.copy.copy')}</span>}
     </Button>
   );
 }

@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import {
@@ -15,10 +16,7 @@ export interface PermissionMatrixProps {
   caption: string;
 }
 
-const ACTIONS: Array<{ action: PermAction; label: string }> = [
-  { action: 'view', label: 'Lihat' },
-  { action: 'edit', label: 'Ubah' },
-];
+const ACTIONS: PermAction[] = ['view', 'edit'];
 
 interface TriCheckProps {
   state: CheckState;
@@ -54,29 +52,31 @@ const stickyCol = 'sticky left-0 z-10';
 
 /** Modules × view/edit matrix with group headers and bulk toggles. */
 export function PermissionMatrix({ groups, draft, onChange, disabled, caption }: PermissionMatrixProps) {
+  const { t } = useTranslation('settings');
   const allMods = groups.flatMap(([, mods]) => mods.map((m) => m.key));
+  const actionLabel = (action: PermAction) => t(`permissionMatrix.actions.${action}`);
 
   return (
     <div
       role="region"
-      aria-label={`Matriks hak akses ${caption}`}
+      aria-label={t('permissionMatrix.regionLabel', { role: caption })}
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
       tabIndex={0}
       className="relative max-h-[65vh] overflow-auto rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <table className="w-full min-w-[300px] border-separate border-spacing-0 text-sm">
-        <caption className="sr-only">Hak akses modul untuk peran {caption}</caption>
+        <caption className="sr-only">{t('permissionMatrix.caption', { role: caption })}</caption>
         <thead>
           <tr>
-            <th scope="col" className={cn(headCell, stickyCol, 'z-30 border-b border-border text-left')}>Modul</th>
-            {ACTIONS.map(({ action, label }) => (
+            <th scope="col" className={cn(headCell, stickyCol, 'z-30 border-b border-border text-left')}>{t('permissionMatrix.module')}</th>
+            {ACTIONS.map((action) => (
               <th key={action} scope="col" className={cn(headCell, 'w-16 border-b border-border text-center')}>
                 <span className="flex flex-col items-center gap-1.5">
-                  {label}
+                  {actionLabel(action)}
                   <TriCheck
                     state={columnState(draft, allMods, action)}
                     disabled={disabled}
-                    label={`${label} semua modul`}
+                    label={t('permissionMatrix.actionAllModules', { action: actionLabel(action) })}
                     onChange={(v) => onChange(setMany(draft, allMods, action, v))}
                   />
                 </span>
@@ -84,11 +84,11 @@ export function PermissionMatrix({ groups, draft, onChange, disabled, caption }:
             ))}
             <th scope="col" className={cn(headCell, 'w-16 border-b border-border text-center')}>
               <span className="flex flex-col items-center gap-1.5">
-                Semua
+                {t('permissionMatrix.all')}
                 <TriCheck
                   state={rowsState(draft, allMods)}
                   disabled={disabled}
-                  label="Akses penuh semua modul"
+                  label={t('permissionMatrix.fullAllModules')}
                   onChange={(v) => onChange(setRows(draft, allMods, v))}
                 />
               </span>
@@ -107,12 +107,12 @@ export function PermissionMatrix({ groups, draft, onChange, disabled, caption }:
                   >
                     {group}
                   </th>
-                  {ACTIONS.map(({ action, label }) => (
+                  {ACTIONS.map((action) => (
                     <td key={action} className="border-b border-border bg-muted px-3 py-2 text-center">
                       <TriCheck
                         state={columnState(draft, keys, action)}
                         disabled={disabled}
-                        label={`${label} semua modul grup ${group}`}
+                        label={t('permissionMatrix.actionGroup', { action: actionLabel(action), group })}
                         onChange={(v) => onChange(setMany(draft, keys, action, v))}
                       />
                     </td>
@@ -121,7 +121,7 @@ export function PermissionMatrix({ groups, draft, onChange, disabled, caption }:
                     <TriCheck
                       state={rowsState(draft, keys)}
                       disabled={disabled}
-                      label={`Akses penuh grup ${group}`}
+                      label={t('permissionMatrix.fullGroup', { group })}
                       onChange={(v) => onChange(setRows(draft, keys, v))}
                     />
                   </td>
@@ -136,12 +136,12 @@ export function PermissionMatrix({ groups, draft, onChange, disabled, caption }:
                       >
                         {m.label}
                       </th>
-                      {ACTIONS.map(({ action, label }) => (
+                      {ACTIONS.map((action) => (
                         <td key={action} className="border-b border-border px-3 py-2 text-center group-hover/row:bg-accent">
                           <Checkbox
                             checked={p[action]}
                             disabled={disabled}
-                            aria-label={`${label} ${m.label}`}
+                            aria-label={t('permissionMatrix.actionModule', { action: actionLabel(action), module: m.label })}
                             onCheckedChange={(v) => onChange(setPerm(draft, m.key, action, v === true))}
                           />
                         </td>
@@ -150,7 +150,7 @@ export function PermissionMatrix({ groups, draft, onChange, disabled, caption }:
                         <TriCheck
                           state={rowState(draft, m.key)}
                           disabled={disabled}
-                          label={`Akses penuh ${m.label}`}
+                          label={t('permissionMatrix.fullModule', { module: m.label })}
                           onChange={(v) => onChange(setRow(draft, m.key, v))}
                         />
                       </td>

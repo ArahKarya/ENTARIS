@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
 import { Tag, Clock, ExternalLink, RefreshCw, CheckCircle, ArrowUpCircle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -53,6 +54,7 @@ interface RuntimeInfo {
 }
 
 export const AboutTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
@@ -73,7 +75,7 @@ export const AboutTab: React.FC = () => {
       const source = await res.text();
       const { version, changelog } = parseRemoteVersion(source);
 
-      if (!version) throw new Error('Gagal membaca informasi versi.');
+      if (!version) throw new Error(t('about.readVersionError'));
 
       if (compareSemver(version, APP_VERSION) > 0) {
         const newEntries = changelog?.filter((e) => compareSemver(e.version, APP_VERSION) > 0) || [];
@@ -82,24 +84,24 @@ export const AboutTab: React.FC = () => {
         setUpdateInfo({ status: 'latest', remoteVersion: version });
       }
     } catch (err: any) {
-      setUpdateInfo({ status: 'error', errorMsg: err?.message || 'Gagal memeriksa pembaruan.' });
+      setUpdateInfo({ status: 'error', errorMsg: err?.message || t('about.checkError') });
     } finally {
       setChecking(false);
     }
   };
 
   const facts = [
-    { icon: Tag, label: 'Versi', value: APP_VERSION, mono: true },
-    { icon: Clock, label: 'Tanggal build', value: APP_BUILD_DATE },
-    { icon: Info, label: 'Platform', value: runtime?.platform || '…' },
-    { icon: ExternalLink, label: 'Domain', value: runtime?.domain || window.location.origin },
+    { icon: Tag, label: t('about.facts.version'), value: APP_VERSION, mono: true },
+    { icon: Clock, label: t('about.facts.buildDate'), value: APP_BUILD_DATE },
+    { icon: Info, label: t('about.facts.platform'), value: runtime?.platform || '…' },
+    { icon: ExternalLink, label: t('about.facts.domain'), value: runtime?.domain || window.location.origin },
   ];
 
   return (
     <div className="space-y-5">
       <SettingsCard
         title={APP_NAME}
-        description="Sistem ERP & Operasional"
+        description={t('about.tagline')}
         actions={<Badge variant="primary" className="font-mono text-sm">v{APP_VERSION}</Badge>}
         contentClassName="space-y-5"
       >
@@ -117,12 +119,12 @@ export const AboutTab: React.FC = () => {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" size="sm" onClick={handleCheckUpdate} loading={checking}>
-              {!checking && <RefreshCw aria-hidden />} {checking ? 'Memeriksa…' : 'Periksa Pembaruan'}
+              {!checking && <RefreshCw aria-hidden />} {checking ? t('about.checking') : t('about.checkUpdate')}
             </Button>
             <div aria-live="polite" className="text-xs">
               {updateInfo?.status === 'latest' && (
                 <span className="flex items-center gap-1.5 font-medium text-success-text">
-                  <CheckCircle className="size-4" aria-hidden /> Aplikasi sudah versi terbaru (v{updateInfo.remoteVersion}).
+                  <CheckCircle className="size-4" aria-hidden /> {t('about.upToDate', { version: updateInfo.remoteVersion })}
                 </span>
               )}
               {updateInfo?.status === 'error' && (
@@ -137,20 +139,20 @@ export const AboutTab: React.FC = () => {
             <div className="space-y-3 rounded-lg border border-primary/30 bg-primary-subtle p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="flex items-center gap-2 text-sm font-semibold text-primary-subtle-foreground">
-                  <ArrowUpCircle className="size-4" aria-hidden /> Pembaruan tersedia: v{updateInfo.remoteVersion}
+                  <ArrowUpCircle className="size-4" aria-hidden /> {t('about.available', { version: updateInfo.remoteVersion })}
                 </p>
                 <Badge variant="outline" className="font-mono">v{APP_VERSION} → v{updateInfo.remoteVersion}</Badge>
               </div>
               {updateInfo.remoteChangelog && updateInfo.remoteChangelog.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-foreground">Perubahan baru:</p>
+                  <p className="text-xs font-semibold text-foreground">{t('about.newChanges')}</p>
                   {updateInfo.remoteChangelog.map((entry) => (
                     <ChangelogEntry key={entry.version} entry={entry} highlight={false} />
                   ))}
                 </div>
               )}
               <div className="space-y-1 rounded-lg bg-card p-3 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">Cara update di server:</p>
+                <p className="font-semibold text-foreground">{t('about.howToUpdate')}</p>
                 {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable) */}
                 <pre className="overflow-x-auto rounded-md border border-border bg-surface-sunken p-2.5 font-mono text-xs text-foreground" tabIndex={0}>
 {`cd ~/entaris
@@ -163,8 +165,8 @@ docker compose up -d --build`}</pre>
       </SettingsCard>
 
       <SettingsCard
-        title="Riwayat Perubahan"
-        actions={<Badge variant="info">{CHANGELOG.length} rilis</Badge>}
+        title={t('about.changelog')}
+        actions={<Badge variant="info">{t('about.releases', { count: CHANGELOG.length })}</Badge>}
       >
         <ol className="relative space-y-3 border-l border-border pl-5">
           {CHANGELOG.map((entry, idx) => (

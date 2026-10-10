@@ -3,7 +3,9 @@ import PurchaseOrderApprovalSummary from '../PurchaseOrderApprovalSummary';
 import { ThreeWayMatchPreview } from '../purchase/ThreeWayMatchPanel';
 import AttachmentPreview from '../AttachmentPreview';
 import { Check, Pencil, FileText, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatRupiah } from '../../lib/formatters';
+import { LOCALE } from '@/lib/format';
 import { cn } from '../../lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -60,6 +62,7 @@ function DetailContent({
   onRevision,
   onApprove,
 }: ApprovalDetailDialogProps & { request: ApprovalRequest }) {
+  const { t } = useTranslation('approvals');
   const p = detailReq.payload ?? {};
   const isProd = detailReq.documentType === 'ProductionRun';
   const isDO = detailReq.documentType === 'DeliveryOrder';
@@ -72,8 +75,9 @@ function DetailContent({
   const runMachines: any[] = p.runMachines ?? [];
   const downtimes: any[] = p.downtimes ?? [];
   const processIds: string[] = p.processIds ?? [];
-  const basisLabel: Record<string, string> = { InputQty: 'per kg input', OutputQty: 'per kg output', Fixed: 'tetap' };
-  const fmtT = (v: any) => (v ? new Date(v).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+  const basisLabel = (basis: unknown): string =>
+    basis === 'InputQty' || basis === 'OutputQty' || basis === 'Fixed' ? t(`detail.basis.${basis}`) : String(basis ?? '');
+  const fmtT = (v: any) => (v ? new Date(v).toLocaleString(LOCALE, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
   const pi = isProd || isDO || isEdit || isAiToolApproval(detailReq.documentType) ? null : piTotals(p);
   const hppEst = isProd ? prodHppEstimate(p) : null;
   const docLabel = approvalTypeLabel(detailReq.documentType);
@@ -82,9 +86,9 @@ function DetailContent({
   return (
     <DialogContent size={isProd || isDO ? 'lg' : 'doc'} className={pinnedDialogClass}>
       <PinnedHeader>
-        <DialogTitle>Detail Pengajuan {docLabel}</DialogTitle>
+        <DialogTitle>{t('detail.title', { type: docLabel })}</DialogTitle>
         <DialogDescription>
-          <StatusBadge status={detailReq.status} docType="approval" className="align-middle" /> oleh {detailReq.requester.fullName} ({detailReq.requester.role}) •{' '}
+          <StatusBadge status={detailReq.status} docType="approval" className="align-middle" /> {t('detail.requestedBy', { name: detailReq.requester.fullName, role: detailReq.requester.role })} •{' '}
           {fmtDate(detailReq.createdAt)}
           {detailReq.documentNumber && detailReq.status === 'Approved' && <span className="ml-2 font-mono">{detailReq.documentNumber}</span>}
         </DialogDescription>
@@ -92,59 +96,59 @@ function DetailContent({
       <PinnedBody className="space-y-4 text-sm">
         {detailReq.notes && (detailReq.status === 'Rejected' || detailReq.status === 'NeedsRevision') && (
           <div className="text-xs bg-warning-subtle border border-warning/30 rounded px-3 py-2 text-warning-text">
-            <span className="font-medium">{detailReq.status === 'Rejected' ? 'Alasan tolak:' : 'Catatan revisi:'}</span> {detailReq.notes}
+            <span className="font-medium">{detailReq.status === 'Rejected' ? t('reason.rejected') : t('reason.revision')}</span> {detailReq.notes}
           </div>
         )}
         {/* Info umum */}
         {!isEdit && !isAi && <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
           {p.date && (
             <div>
-              <span className="text-muted-foreground">Tanggal:</span> <span className="text-foreground">{p.date}</span>
+              <span className="text-muted-foreground">{t('detail.fields.date')}</span> <span className="text-foreground">{p.date}</span>
             </div>
           )}
           {!isProd && p.partyId && (
             <div>
-              <span className="text-muted-foreground">{isDO ? 'Pelanggan:' : 'Supplier:'}</span> <span className="text-foreground">{partyName(p.partyId)}</span>
+              <span className="text-muted-foreground">{isDO ? t('detail.fields.customer') : t('detail.fields.supplier')}</span> <span className="text-foreground">{partyName(p.partyId)}</span>
             </div>
           )}
           {!isProd && p.dueDate && (
             <div>
-              <span className="text-muted-foreground">Jatuh Tempo:</span> <span className="text-foreground">{p.dueDate}</span>
+              <span className="text-muted-foreground">{t('detail.fields.dueDate')}</span> <span className="text-foreground">{p.dueDate}</span>
             </div>
           )}
           {!isProd && p.terms && (
             <div>
-              <span className="text-muted-foreground">Syarat:</span> <span className="text-foreground">{p.terms}</span>
+              <span className="text-muted-foreground">{t('detail.fields.terms')}</span> <span className="text-foreground">{p.terms}</span>
             </div>
           )}
           {!isProd && p.customerRefNo && (
             <div>
-              <span className="text-muted-foreground">No. Ref:</span> <span className="text-foreground">{p.customerRefNo}</span>
+              <span className="text-muted-foreground">{t('detail.fields.refNo')}</span> <span className="text-foreground">{p.customerRefNo}</span>
             </div>
           )}
           {isProd && p.warehouseId && (
             <div>
-              <span className="text-muted-foreground">Gudang:</span> <span className="text-foreground">{warehouseMap[p.warehouseId] ?? '—'}</span>
+              <span className="text-muted-foreground">{t('detail.fields.warehouse')}</span> <span className="text-foreground">{warehouseMap[p.warehouseId] ?? '—'}</span>
             </div>
           )}
           {isProd && p.shift && (
             <div>
-              <span className="text-muted-foreground">Shift:</span> <span className="text-foreground">{p.shift}</span>
+              <span className="text-muted-foreground">{t('detail.fields.shift')}</span> <span className="text-foreground">{p.shift}</span>
             </div>
           )}
           {isProd && p.shiftLead && (
             <div>
-              <span className="text-muted-foreground">Kepala Shift:</span> <span className="text-foreground">{p.shiftLead}</span>
+              <span className="text-muted-foreground">{t('detail.fields.shiftLead')}</span> <span className="text-foreground">{p.shiftLead}</span>
             </div>
           )}
           {isProd && p.manpowerCount != null && (
             <div>
-              <span className="text-muted-foreground">Jml Orang:</span> <span className="text-foreground">{p.manpowerCount}</span>
+              <span className="text-muted-foreground">{t('detail.fields.manpower')}</span> <span className="text-foreground">{p.manpowerCount}</span>
             </div>
           )}
           {isProd && (p.plannedStart || p.plannedEnd) && (
             <div className="col-span-2">
-              <span className="text-muted-foreground">Jendela Shift:</span>{' '}
+              <span className="text-muted-foreground">{t('detail.fields.shiftWindow')}</span>{' '}
               <span className="text-foreground">
                 {fmtT(p.plannedStart)} – {fmtT(p.plannedEnd)}
               </span>
@@ -152,7 +156,7 @@ function DetailContent({
           )}
           {isProd && (p.breakStart || p.breakEnd) && (
             <div className="col-span-2">
-              <span className="text-muted-foreground">Istirahat:</span>{' '}
+              <span className="text-muted-foreground">{t('detail.fields.break')}</span>{' '}
               <span className="text-foreground">
                 {fmtT(p.breakStart)} – {fmtT(p.breakEnd)}
               </span>
@@ -160,7 +164,7 @@ function DetailContent({
           )}
           {p.notes && (
             <div className="col-span-2">
-              <span className="text-muted-foreground">Catatan:</span> <span className="text-foreground">{p.notes}</span>
+              <span className="text-muted-foreground">{t('detail.fields.notes')}</span> <span className="text-foreground">{p.notes}</span>
             </div>
           )}
         </div>}
@@ -182,11 +186,11 @@ function DetailContent({
           <>
             {p.negativeStockReason && (
               <div className="rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2 text-xs text-warning-text">
-                <span className="font-semibold">Alasan stok minus:</span> {p.negativeStockReason}
+                <span className="font-semibold">{t('detail.deliveryOrder.negativeStockReason')}</span> {p.negativeStockReason}
               </div>
             )}
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1.5">Barang Dikirim</p>
+              <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.deliveryOrder.itemsShipped')}</p>
               <div className="border border-border rounded-lg divide-y divide-border">
                 {piItems.length === 0 ? (
                   <p className="px-3 py-2 text-xs text-muted-foreground">—</p>
@@ -195,7 +199,7 @@ function DetailContent({
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
                       <div className="text-foreground">
                         <span className="font-medium">{it.itemName ?? '—'}</span>
-                        {it.warehouseId && <span className="text-muted-foreground"> · {warehouseMap[it.warehouseId] ?? 'gudang'}</span>}
+                        {it.warehouseId && <span className="text-muted-foreground"> · {warehouseMap[it.warehouseId] ?? t('detail.deliveryOrder.warehouseFallback')}</span>}
                       </div>
                       <span className="font-mono tabular-nums text-muted-foreground">
                         {fmtNum(Number(it.quantity ?? 0))} {it.unit ?? ''}
@@ -209,7 +213,7 @@ function DetailContent({
         ) : isProd ? (
           <>
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1.5">Bahan Baku (Input)</p>
+              <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.production.inputs')}</p>
               <div className="border border-border rounded-lg divide-y divide-border">
                 {inputs.length === 0 ? (
                   <p className="px-3 py-2 text-xs text-muted-foreground">—</p>
@@ -219,7 +223,7 @@ function DetailContent({
                       <span className="text-foreground">
                         {itemName(it.itemId)}
                         {Number(it.batchUnitCost ?? 0) > 0 && (
-                          <span className="ml-1.5 text-xs px-1 py-0.5 bg-info-subtle text-info-text rounded">batch @{formatRupiah(Number(it.batchUnitCost))}</span>
+                          <span className="ml-1.5 text-xs px-1 py-0.5 bg-info-subtle text-info-text rounded">{t('detail.production.batchRate', { rate: formatRupiah(Number(it.batchUnitCost)) })}</span>
                         )}
                       </span>
                       <span className="font-mono tabular-nums text-muted-foreground">
@@ -231,7 +235,7 @@ function DetailContent({
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1.5">Hasil Produksi (Output)</p>
+              <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.production.outputs')}</p>
               <div className="border border-border rounded-lg divide-y divide-border">
                 {outputs.length === 0 ? (
                   <p className="px-3 py-2 text-xs text-muted-foreground">—</p>
@@ -240,7 +244,7 @@ function DetailContent({
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
                       <span className="text-foreground">
                         {itemName(it.itemId)}
-                        {it.isByProduct && <span className="ml-1.5 text-xs px-1 py-0.5 bg-warning-subtle text-warning-text rounded font-medium">Samping</span>}
+                        {it.isByProduct && <span className="ml-1.5 text-xs px-1 py-0.5 bg-warning-subtle text-warning-text rounded font-medium">{t('detail.production.byProduct')}</span>}
                       </span>
                       <span className="font-mono tabular-nums text-muted-foreground">
                         {fmtNum(Number(it.quantity ?? 0))} {itemUnit(it.itemId)}
@@ -253,15 +257,15 @@ function DetailContent({
             </div>
             {costs.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5">Komponen Biaya</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.production.costs')}</p>
                 <div className="border border-border rounded-lg divide-y divide-border">
                   {costs.map((c, i) => (
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
                       <span className="text-foreground">
-                        {c.description ?? '—'} <span className="text-muted-foreground">({c.costSide === 'OutputSide' ? 'output' : 'input'})</span>
+                        {c.description ?? '—'} <span className="text-muted-foreground">({c.costSide === 'OutputSide' ? t('detail.production.costSideOutput') : t('detail.production.costSideInput')})</span>
                       </span>
                       <span className="font-mono tabular-nums text-muted-foreground">
-                        {formatRupiah(Number(c.rate ?? 0))} <span className="text-muted-foreground">{basisLabel[c.basis] ?? c.basis ?? ''}</span>
+                        {formatRupiah(Number(c.rate ?? 0))} <span className="text-muted-foreground">{basisLabel(c.basis)}</span>
                       </span>
                     </div>
                   ))}
@@ -270,11 +274,11 @@ function DetailContent({
             )}
             {runMachines.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5">Mesin</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.production.machines')}</p>
                 <div className="border border-border rounded-lg divide-y divide-border">
                   {runMachines.map((m, i) => (
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
-                      <span className="text-foreground">{machineMap[m.machineId] ?? '(mesin)'}</span>
+                      <span className="text-foreground">{machineMap[m.machineId] ?? t('detail.production.machineFallback')}</span>
                       <span className="font-mono text-muted-foreground">
                         {fmtT(m.startAt)} – {fmtT(m.endAt)}
                       </span>
@@ -285,16 +289,16 @@ function DetailContent({
             )}
             {downtimes.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5">Downtime</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.production.downtime')}</p>
                 <div className="border border-border rounded-lg divide-y divide-border">
                   {downtimes.map((d, i) => (
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
                       <span className="text-foreground">
                         {d.category}
-                        {d.machineId ? ` • ${machineMap[d.machineId] ?? 'mesin'}` : ''}
+                        {d.machineId ? ` • ${machineMap[d.machineId] ?? t('detail.production.machineShortFallback')}` : ''}
                         {d.reason ? `: ${d.reason}` : ''}
                       </span>
-                      <span className="font-mono tabular-nums text-muted-foreground">{fmtNum(Number(d.durationMin ?? 0))} mnt</span>
+                      <span className="font-mono tabular-nums text-muted-foreground">{t('detail.minutes', { value: fmtNum(Number(d.durationMin ?? 0)) })}</span>
                     </div>
                   ))}
                 </div>
@@ -302,22 +306,22 @@ function DetailContent({
             )}
             {processIds.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5">Proses</p>
-                <p className="text-xs text-muted-foreground">{processIds.length} proses tercatat</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.production.processes')}</p>
+                <p className="text-xs text-muted-foreground">{t('detail.production.processCount', { count: processIds.length })}</p>
               </div>
             )}
             {/* Estimasi HPP */}
             <div className="bg-muted/50 border border-border rounded-lg p-3">
-              <p className="text-xs font-semibold text-foreground mb-1">Estimasi HPP</p>
+              <p className="text-xs font-semibold text-foreground mb-1">{t('detail.production.hppEstimate')}</p>
               {hppEst && hppEst.hpp != null ? (
                 <p className="text-sm font-semibold text-foreground">
-                  {formatRupiah(hppEst.hpp)} <span className="text-xs font-normal text-muted-foreground">/ kg produk utama (estimasi)</span>
+                  {formatRupiah(hppEst.hpp)} <span className="text-xs font-normal text-muted-foreground">{t('detail.production.hppPerKg')}</span>
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Biaya: {formatRupiah(hppEst?.costTotal ?? 0)} · Nilai by-product: {formatRupiah(hppEst?.byproductValue ?? 0)}
+                  {t('detail.production.costSummary', { cost: formatRupiah(hppEst?.costTotal ?? 0), byproduct: formatRupiah(hppEst?.byproductValue ?? 0) })}
                   <br />
-                  <span className="text-warning-text">HPP final (termasuk biaya material) dihitung saat disetujui.</span>
+                  <span className="text-warning-text">{t('detail.production.hppFinalNote')}</span>
                 </p>
               )}
             </div>
@@ -335,49 +339,56 @@ function DetailContent({
               const warn: string[] = [];
               for (const it of piItems) {
                 const sl = it.goodsReceiptItemId ? detailCtx?.sttLines?.[it.goodsReceiptItemId] : null;
-                if (sl?.alreadyInvoiced) warn.push(`${sl.sttNumber} sudah ditagih di ${sl.alreadyInvoiced}`);
-                if (sl?.sttStatus === 'Cancelled') warn.push(`${sl.sttNumber} berstatus DIBATALKAN`);
+                if (sl?.alreadyInvoiced) warn.push(t('detail.invoice.warnAlreadyInvoiced', { stt: sl.sttNumber, invoice: sl.alreadyInvoiced }));
+                if (sl?.sttStatus === 'Cancelled') warn.push(t('detail.invoice.warnCancelled', { stt: sl.sttNumber }));
                 const q = Number(it.timbanganDiterima ?? it.quantity ?? 0);
                 if (sl && Math.abs(q + Number(it.refaksi ?? 0) - Number(sl.quantity)) > 0.5)
-                  warn.push(`${sl.sttNumber}: diterima ${fmtNum(q)} + refaksi ${fmtNum(Number(it.refaksi ?? 0))} ≠ STT ${fmtNum(Number(sl.quantity))}`);
-                if (!it.goodsReceiptItemId && it.inventoryItemId) warn.push(`${it.itemName}: tidak terhubung STT`);
+                  warn.push(
+                    t('detail.invoice.warnQtyMismatch', {
+                      stt: sl.sttNumber,
+                      received: fmtNum(q),
+                      refaksi: fmtNum(Number(it.refaksi ?? 0)),
+                      sttQty: fmtNum(Number(sl.quantity)),
+                    }),
+                  );
+                if (!it.goodsReceiptItemId && it.inventoryItemId) warn.push(t('detail.invoice.warnNoStt', { item: it.itemName }));
               }
               return (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Diterima</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('detail.invoice.totalReceived')}</p>
                       <p className="text-sm font-semibold text-foreground tabular-nums">{fmtNum(totalKg)} kg</p>
                       {totalTruk > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          truk {fmtNum(totalTruk)} · refaksi {fmtNum(totalRef)}
+                          {t('detail.invoice.truckRefaksi', { truck: fmtNum(totalTruk), refaksi: fmtNum(totalRef) })}
                           {totalTruk > 0 ? ` (${((totalRef / totalTruk) * 100).toFixed(2)}%)` : ''}
                         </p>
                       )}
                     </div>
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Harga Rata² / kg</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('detail.invoice.avgPrice')}</p>
                       <p className="text-sm font-semibold text-foreground tabular-nums">
                         {totalKg > 0 ? formatRupiah(Math.round((pi?.grandTotal ?? 0) / totalKg)) : '—'}
                       </p>
-                      <p className="text-xs text-muted-foreground">grand total ÷ kg diterima</p>
+                      <p className="text-xs text-muted-foreground">{t('detail.invoice.avgPriceHint')}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Hutang Berjalan Supplier</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('detail.invoice.supplierPayables')}</p>
                       <p className="text-sm font-semibold text-foreground tabular-nums">{sup ? formatRupiah(sup.openOutstanding) : '—'}</p>
-                      <p className="text-xs text-muted-foreground">{sup ? `${sup.openInvoiceCount} invoice belum lunas` : ''}</p>
+                      <p className="text-xs text-muted-foreground">{sup ? t('detail.invoice.unpaidInvoices', { count: Number(sup.openInvoiceCount ?? 0) }) : ''}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Deposit / Uang Muka</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('detail.invoice.deposit')}</p>
                       <p className={cn('text-sm font-semibold tabular-nums', (sup?.depositBalance ?? 0) > 0 ? 'text-success-text' : 'text-foreground')}>
                         {sup ? formatRupiah(sup.depositBalance) : '—'}
                       </p>
-                      <p className="text-xs text-muted-foreground">{(sup?.depositBalance ?? 0) > 0 ? 'bisa dipotongkan' : ''}</p>
+                      <p className="text-xs text-muted-foreground">{(sup?.depositBalance ?? 0) > 0 ? t('detail.invoice.depositHint') : ''}</p>
                     </div>
                   </div>
                   {warn.length > 0 && (
                     <div className="rounded-lg border border-danger/30 bg-danger-subtle px-3 py-2 text-xs text-danger-text space-y-0.5">
-                      <p className="flex items-center gap-1 font-semibold"><AlertTriangle className="size-3.5" aria-hidden />Perlu dicek</p>
+                      <p className="flex items-center gap-1 font-semibold"><AlertTriangle className="size-3.5" aria-hidden />{t('detail.invoice.needsCheck')}</p>
                       {warn.map((w, k) => (
                         <p key={k}>• {w}</p>
                       ))}
@@ -388,28 +399,28 @@ function DetailContent({
             })()}
 
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1.5">Item Invoice ({piItems.length} baris)</p>
+              <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.invoice.itemsTitle', { count: piItems.length })}</p>
               {piItems.length === 0 ? (
                 <p className="text-xs text-muted-foreground">—</p>
               ) : (
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
-                <div className="border border-border rounded-lg overflow-x-auto" role="region" aria-label="Rincian item pengajuan" tabIndex={0}>
+                <div className="border border-border rounded-lg overflow-x-auto" role="region" aria-label={t('detail.invoice.itemsRegion')} tabIndex={0}>
                   <table className="w-full text-xs">
                     <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
                       <tr>
                         <th className="px-2 py-2 text-left">#</th>
-                        <th className="px-2 py-2 text-left">STT</th>
-                        <th className="px-2 py-2 text-left">Item / Gudang</th>
-                        <th className="px-2 py-2 text-left">Mobil</th>
-                        <th className="px-2 py-2 text-right">KA %</th>
-                        <th className="px-2 py-2 text-right">Timb. Truk</th>
-                        <th className="px-2 py-2 text-right">Refaksi</th>
-                        <th className="px-2 py-2 text-right">Diterima</th>
-                        <th className="px-2 py-2 text-right">Harga</th>
-                        <th className="px-2 py-2 text-right">Harga Lalu</th>
-                        <th className="px-2 py-2 text-right">Pajak/Pot.</th>
-                        <th className="px-2 py-2 text-right">Subtotal</th>
-                        <th className="px-2 py-2 text-left">Keterangan</th>
+                        <th className="px-2 py-2 text-left">{t('detail.invoice.columns.stt')}</th>
+                        <th className="px-2 py-2 text-left">{t('detail.invoice.columns.itemWarehouse')}</th>
+                        <th className="px-2 py-2 text-left">{t('detail.invoice.columns.vehicle')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.moisture')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.truckWeight')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.refaksi')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.received')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.price')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.lastPrice')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.taxDeduction')}</th>
+                        <th className="px-2 py-2 text-right">{t('detail.invoice.columns.subtotal')}</th>
+                        <th className="px-2 py-2 text-left">{t('detail.invoice.columns.description')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -423,9 +434,9 @@ function DetailContent({
                         const diff = last ? rate - last.rate : 0;
                         const qtyMismatch = sl && Math.abs(qty + Number(it.refaksi ?? 0) - Number(sl.quantity)) > 0.5;
                         const tax: string[] = [];
-                        if (Number(it.discount ?? 0) > 0) tax.push(`disk ${it.discount}%`);
-                        if (Number(it.taxPct ?? 0) > 0) tax.push(`PPN ${it.taxPct}%`);
-                        if (Number(it.pphPct ?? 0) > 0) tax.push(`PPh ${it.pphPct}%`);
+                        if (Number(it.discount ?? 0) > 0) tax.push(t('detail.invoice.taxDiscount', { value: it.discount }));
+                        if (Number(it.taxPct ?? 0) > 0) tax.push(t('detail.invoice.taxPpn', { value: it.taxPct }));
+                        if (Number(it.pphPct ?? 0) > 0) tax.push(t('detail.invoice.taxPph', { value: it.pphPct }));
                         if (Number(it.potonganItem ?? 0) > 0) tax.push(`−${formatRupiah(Number(it.potonganItem))}`);
                         const ket = it.description || sl?.description;
                         const ref = Number(it.refaksi ?? 0);
@@ -437,13 +448,13 @@ function DetailContent({
                               {sl?.sttNumber ?? <span className="text-muted-foreground">—</span>}
                               {sl?.sttDate && (
                                 <div className="text-xs text-muted-foreground font-sans">
-                                  {new Date(sl.sttDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                  {new Date(sl.sttDate).toLocaleDateString(LOCALE, { day: '2-digit', month: 'short' })}
                                 </div>
                               )}
                             </td>
                             <td className="px-2 py-2">
                               <div className="font-medium text-foreground">{it.itemName ?? '—'}</div>
-                              {it.warehouseId && <div className="text-xs text-muted-foreground">{warehouseMap[it.warehouseId] ?? 'gudang'}</div>}
+                              {it.warehouseId && <div className="text-xs text-muted-foreground">{warehouseMap[it.warehouseId] ?? t('detail.deliveryOrder.warehouseFallback')}</div>}
                             </td>
                             <td className="px-2 py-2 whitespace-nowrap text-muted-foreground">{it.nomorMobil ?? '—'}</td>
                             <td className="px-2 py-2 text-right tabular-nums">{it.kualitas ?? '—'}</td>
@@ -456,7 +467,7 @@ function DetailContent({
                               <span className="font-medium">{fmtNum(qty)}</span> <span className="text-muted-foreground">{it.unit ?? ''}</span>
                               {sl && (
                                 <div className={cn('text-xs', qtyMismatch ? 'text-danger-text font-semibold' : 'text-muted-foreground')}>
-                                  STT {fmtNum(Number(sl.quantity))}
+                                  {t('detail.invoice.sttQty', { qty: fmtNum(Number(sl.quantity)) })}
                                 </div>
                               )}
                             </td>
@@ -465,7 +476,7 @@ function DetailContent({
                               {last ? (
                                 <div
                                   title={hist
-                                    .map((h) => `${h.invoiceNumber} · ${new Date(h.date).toLocaleDateString('id-ID')} · ${h.supplier} · ${formatRupiah(h.rate)}`)
+                                    .map((h) => `${h.invoiceNumber} · ${new Date(h.date).toLocaleDateString(LOCALE)} · ${h.supplier} · ${formatRupiah(h.rate)}`)
                                     .join('\n')}
                                 >
                                   <span className="text-muted-foreground">{formatRupiah(last.rate)}</span>
@@ -476,8 +487,8 @@ function DetailContent({
                                     </span>
                                   )}
                                   <div className="text-xs text-muted-foreground">
-                                    {lastSame ? 'supplier ini' : (last.supplier ?? 'lain')} ·{' '}
-                                    {new Date(last.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                    {lastSame ? t('detail.invoice.thisSupplier') : (last.supplier ?? t('detail.invoice.otherSupplier'))} ·{' '}
+                                    {new Date(last.date).toLocaleDateString(LOCALE, { day: '2-digit', month: 'short' })}
                                   </div>
                                 </div>
                               ) : (
@@ -488,7 +499,7 @@ function DetailContent({
                             <td className="px-2 py-2 text-right tabular-nums font-medium whitespace-nowrap">{formatRupiah(Math.round(piLineTotal(it)))}</td>
                             <td className="px-2 py-2 text-muted-foreground">
                               {ket ?? <span className="text-muted-foreground">—</span>}
-                              {sl?.alreadyInvoiced && <div className="text-xs text-danger-text font-semibold">sudah di {sl.alreadyInvoiced}</div>}
+                              {sl?.alreadyInvoiced && <div className="text-xs text-danger-text font-semibold">{t('detail.invoice.alreadyIn', { invoice: sl.alreadyInvoiced })}</div>}
                             </td>
                           </tr>
                         );
@@ -498,20 +509,20 @@ function DetailContent({
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                Harga Lalu = harga beli item sama pada invoice terakhir (supplier ini bila ada). Arahkan kursor untuk lihat 5 riwayat. ▲ merah = lebih mahal.
+                {t('detail.invoice.lastPriceNote')}
               </p>
             </div>
             <ThreeWayMatchPreview items={piItems} />
             {/* Lampiran: pengajuan + STT sumber */}
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1.5">Lampiran</p>
+              <p className="text-xs font-semibold text-foreground mb-1.5">{t('detail.invoice.attachments')}</p>
               {detailCtxLoading ? (
-                <p className="text-xs text-muted-foreground">Memuat lampiran…</p>
+                <p className="text-xs text-muted-foreground">{t('detail.invoice.loadingAttachments')}</p>
               ) : (
                 <div className="space-y-3">
                   {(detailCtx?.requestAttachments?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[11px] text-muted-foreground mb-1">Dari pengajuan ({detailCtx.requestAttachments.length})</p>
+                      <p className="text-[11px] text-muted-foreground mb-1">{t('detail.invoice.fromRequest', { n: detailCtx.requestAttachments.length })}</p>
                       <AttachmentPreview referenceType="approval_request" referenceId={detailReq.id} canDelete={false} />
                     </div>
                   )}
@@ -519,20 +530,20 @@ function DetailContent({
                     <div key={s.id}>
                       <p className="text-[11px] text-muted-foreground mb-1">
                         <span className="font-mono text-foreground">{s.sttNumber}</span>
-                        {s.date && <> · {new Date(s.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</>}
+                        {s.date && <> · {new Date(s.date).toLocaleDateString(LOCALE, { day: '2-digit', month: 'short', year: 'numeric' })}</>}
                         {s.nomorMobil && <> · {s.nomorMobil}</>}
-                        {s.driverName && <> · supir {s.driverName}</>}
-                        {s.status === 'Cancelled' && <span className="ml-1 text-danger-text font-medium">(STT dibatalkan)</span>}
+                        {s.driverName && <> · {t('detail.invoice.driver', { name: s.driverName })}</>}
+                        {s.status === 'Cancelled' && <span className="ml-1 text-danger-text font-medium">{t('detail.invoice.sttCancelled')}</span>}
                       </p>
                       {s.attachments?.length > 0 ? (
                         <AttachmentPreview referenceType="goods_receipt" referenceId={s.id} canDelete={false} />
                       ) : (
-                        <p className="text-xs text-warning-text">Tidak ada lampiran di STT ini.</p>
+                        <p className="text-xs text-warning-text">{t('detail.invoice.noSttAttachments')}</p>
                       )}
                     </div>
                   ))}
                   {(detailCtx?.requestAttachments?.length ?? 0) === 0 && (detailCtx?.stts?.length ?? 0) === 0 && (
-                    <p className="text-xs text-warning-text">Tidak ada lampiran (pengajuan tidak terhubung ke STT & tidak ada file diunggah).</p>
+                    <p className="text-xs text-warning-text">{t('detail.invoice.noAttachments')}</p>
                   )}
                 </div>
               )}
@@ -540,24 +551,24 @@ function DetailContent({
             {/* Totals (estimasi) */}
             <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-1 text-xs">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-muted-foreground">{t('detail.invoice.subtotal')}</span>
                 <span className="font-mono tabular-nums">{formatRupiah(pi?.subtotal ?? 0)}</span>
               </div>
               {Number(p.potongan ?? 0) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Potongan</span>
+                  <span className="text-muted-foreground">{t('detail.invoice.discount')}</span>
                   <span className="font-mono tabular-nums text-danger-text">− {formatRupiah(Number(p.potongan))}</span>
                 </div>
               )}
               {Number(p.biayaLain ?? 0) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Biaya Lain</span>
+                  <span className="text-muted-foreground">{t('detail.invoice.otherCosts')}</span>
                   <span className="font-mono tabular-nums">{formatRupiah(Number(p.biayaLain))}</span>
                 </div>
               )}
               <div className="flex justify-between pt-1 border-t border-border font-semibold text-foreground">
                 <span>
-                  Grand Total <span className="text-xs font-normal text-muted-foreground">(estimasi)</span>
+                  {t('detail.invoice.grandTotal')} <span className="text-xs font-normal text-muted-foreground">{t('detail.invoice.estimate')}</span>
                 </span>
                 <span className="font-mono tabular-nums">{formatRupiah(pi?.grandTotal ?? 0)}</span>
               </div>
@@ -567,16 +578,16 @@ function DetailContent({
       </PinnedBody>
       <PinnedFooter className="flex-wrap">
         <Button size="sm" variant="ghost" onClick={onClose}>
-          Tutup
+          {t('actions.close')}
         </Button>
         {isAdmin && detailReq.status === 'Pending' && (
           <>
             <Button size="sm" variant="outline" className="text-danger-text hover:bg-danger-subtle" onClick={() => onReject(detailReq.id)}>
-              Tolak
+              {t('actions.reject')}
             </Button>
             {!isEdit && !isAi && (
               <Button size="sm" variant="outline" onClick={() => onRevision(detailReq.id)}>
-                Minta Edit
+                {t('actions.requestEdit')}
               </Button>
             )}
             <Button
@@ -586,7 +597,7 @@ function DetailContent({
                 onClose();
               }}
             >
-              <Check aria-hidden /> Setuju
+              <Check aria-hidden /> {t('actions.approve')}
             </Button>
           </>
         )}
@@ -598,7 +609,7 @@ function DetailContent({
               onClose();
             }}
           >
-            <Pencil aria-hidden /> Edit &amp; Ajukan Ulang
+            <Pencil aria-hidden /> {t('actions.editResubmit')}
           </Button>
         )}
         {detailReq.status === 'Approved' && !isEdit && detailReq.documentId && onViewDocument && (
@@ -609,7 +620,7 @@ function DetailContent({
               onClose();
             }}
           >
-            <FileText aria-hidden /> Lihat Dokumen
+            <FileText aria-hidden /> {t('actions.viewDocument')}
           </Button>
         )}
       </PinnedFooter>

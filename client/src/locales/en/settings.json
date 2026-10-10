@@ -44,6 +44,677 @@
     "defaultLanguage": {
       "label": "Default language",
       "hint": "Used by people who have not picked their own language in Settings > Appearance."
+    },
+    "legend": "Company profile",
+    "save": "Save Settings",
+    "viewOnly": "You have view-only access to these settings.",
+    "footerNote": "Footer note",
+    "toast": {
+      "saved": "Settings saved.",
+      "saveError": "Could not save the settings."
+    },
+    "errors": {
+      "nameRequired": "Company name is required.",
+      "emailInvalid": "Email format is not valid."
+    },
+    "fields": {
+      "companyName": {
+        "label": "Company name",
+        "placeholder": "Your company name"
+      },
+      "address": {
+        "label": "Address",
+        "placeholder": "Company address"
+      },
+      "phone": {
+        "label": "Phone number"
+      },
+      "email": {
+        "label": "Email"
+      },
+      "taxId": {
+        "label": "Tax ID (NPWP)"
+      },
+      "defaultCurrency": {
+        "label": "Currency",
+        "hint": "ISO code, e.g. IDR."
+      }
+    },
+    "logo": {
+      "title": "Company Logo",
+      "description": "Upload two variants so the logo stays visible in every theme. If the dark variant is empty, the light one is used in all modes.",
+      "light": {
+        "title": "Light mode",
+        "hint": "Dark logo on a light background"
+      },
+      "dark": {
+        "title": "Dark mode",
+        "hint": "Light logo on a dark background"
+      },
+      "formats": "PNG, JPG, SVG, WEBP · Max. 2MB per file · Transparent background recommended.",
+      "tooLarge": "Maximum file size is 2MB.",
+      "previewAlt": "Logo preview, {{variant}}",
+      "none": "None yet",
+      "uploadLabel": "Upload logo, {{variant}}",
+      "replace": "Replace",
+      "upload": "Upload",
+      "remove": "Remove"
+    },
+    "identity": {
+      "title": "Company Identity",
+      "description": "Shown on financial reports, PDF documents, and in the app."
+    },
+    "salesInvoice": {
+      "title": "Sales Invoice Format",
+      "description": "How the sales invoice PDF looks.",
+      "bankAccounts": "Bank account details",
+      "bankAccountsHint": "Shown on sales invoices to help customers pay.",
+      "bankAccountsPlaceholder": "BRI: 0123-4567-8901 in the name of Your Company\nMandiri: 1234-5678-9012 in the name of Your Company",
+      "footerPlaceholder": "Thank you for your business."
+    },
+    "purchaseInvoice": {
+      "title": "Purchase Invoice Format",
+      "description": "How the purchase invoice PDF looks.",
+      "footerPlaceholder": "Purchased goods cannot be returned."
+    },
+    "signature": {
+      "show": "Show signature area",
+      "legend": "Signature labels",
+      "label": "Signature label {{index}}",
+      "remove": "Remove signature label {{index}}",
+      "add": "Add signature column"
+    }
+  },
+  "page": {
+    "title": "Settings",
+    "description": "Company, access, and system configuration.",
+    "sectionLabel": "Settings section"
+  },
+  "nav": {
+    "groups": {
+      "company": "Company",
+      "access": "Users & Access",
+      "system": "System"
+    },
+    "items": {
+      "company": {
+        "label": "Company Profile",
+        "description": "Company identity, logo, and PDF invoice format."
+      },
+      "fiscal": {
+        "label": "Fiscal Years",
+        "description": "Manage accounting periods, and close or reopen fiscal years."
+      },
+      "tax": {
+        "label": "Tax",
+        "description": "VAT, income tax, and other tax rates used in transactions."
+      },
+      "accounts": {
+        "label": "System Accounts",
+        "description": "Chart of Accounts mappings the system uses automatically."
+      },
+      "paymentRequestTypes": {
+        "label": "Request Types",
+        "description": "Payment Request types: reimbursement, advances, business travel, and more."
+      },
+      "roles": {
+        "label": "Roles & Permissions",
+        "description": "Set view/edit rights per module and special permissions for each role."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Send system notifications to Telegram."
+      },
+      "backup": {
+        "label": "Backup & Restore",
+        "description": "Create, download, upload, and restore database backups."
+      },
+      "agentic": {
+        "label": "AIRA (MCP)",
+        "description": "AIRA status, MCP tokens for the AIRA engine, and tool call history."
+      },
+      "appearance": {
+        "label": "Appearance",
+        "description": "Light or dark theme, and animation level."
+      },
+      "about": {
+        "label": "About",
+        "description": "App version, updates, and changelog."
+      }
+    }
+  },
+  "saveBar": {
+    "save": "Save",
+    "dirty": "You have unsaved changes.",
+    "clean": "All changes saved.",
+    "reset": "Discard"
+  },
+  "typedConfirm": {
+    "prompt": "Type <strong>{{keyword}}</strong> to confirm",
+    "placeholder": "Type {{keyword}}",
+    "cancel": "Cancel"
+  },
+  "dashboardSettings": {
+    "title": "Dashboard Settings",
+    "description": "Choose which widgets to show",
+    "done": "Done"
+  },
+  "permissionMatrix": {
+    "actions": {
+      "view": "View",
+      "edit": "Edit"
+    },
+    "regionLabel": "Permission matrix for {{role}}",
+    "caption": "Module permissions for the {{role}} role",
+    "module": "Module",
+    "all": "All",
+    "actionAllModules": "{{action}} all modules",
+    "fullAllModules": "Full access to all modules",
+    "actionGroup": "{{action}} all modules in group {{group}}",
+    "fullGroup": "Full access to group {{group}}",
+    "actionModule": "{{action}} {{module}}",
+    "fullModule": "Full access to {{module}}"
+  },
+  "auditLog": {
+    "change": {
+      "added": "Added",
+      "removed": "Removed",
+      "changed": "Changed",
+      "unchanged": "Unchanged"
+    },
+    "before": "Before",
+    "after": "After",
+    "noChanges": "No values changed.",
+    "unchangedCount_one": "{{count}} field unchanged",
+    "unchangedCount_other": "{{count}} fields unchanged",
+    "detailTitle": "Audit Entry Details",
+    "loadingEntry": "Loading entry…",
+    "bodyLabel": "Audit entry contents",
+    "loading": "Loading audit log…",
+    "notFound": "Audit entry not found or could not be loaded.",
+    "fields": {
+      "action": "Action",
+      "time": "Time",
+      "user": "User",
+      "entity": "Entity",
+      "entityId": "Entity ID",
+      "ipAddress": "IP address",
+      "userAgent": "Device (user agent)"
+    },
+    "valueChanges": "Value changes",
+    "noValues": "This entry does not store data values.",
+    "createdValues": "Values when the record was created.",
+    "noPreviousValues": "Previous values were not recorded for this entry; the values shown are what was sent.",
+    "secretsMasked": "Secret values (such as passwords and tokens) are masked when recorded."
+  },
+  "users": {
+    "title": "User Management",
+    "description": "Manage app user accounts, roles, and status.",
+    "add": "Add User",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "never": "Never",
+    "telegram": {
+      "linked": "Linked",
+      "notLinked": "Not linked"
+    },
+    "toast": {
+      "activated": "User {{name}} activated.",
+      "deactivated": "User {{name}} deactivated.",
+      "toggleError": "Could not change the user status.",
+      "passwordReset": "Password reset.",
+      "passwordResetError": "Could not reset the password.",
+      "linkError": "Could not create a link code.",
+      "unlinked": "Telegram unlinked.",
+      "unlinkError": "Could not unlink.",
+      "testSent": "Test message sent.",
+      "testError": "Test failed."
+    },
+    "columns": {
+      "name": "Name",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "supervisor": "Supervisor",
+      "status": "Status",
+      "lastLogin": "Last Login",
+      "actions": "Actions"
+    },
+    "actions": {
+      "menuLabel": "Actions for {{name}}",
+      "edit": "Edit",
+      "resetPassword": "Reset password",
+      "relinkTelegram": "Relink Telegram",
+      "linkTelegram": "Link Telegram",
+      "testTelegram": "Test Telegram",
+      "activate": "Activate",
+      "unlinkTelegram": "Unlink Telegram",
+      "deactivateSelf": "Deactivate (your own account)",
+      "deactivate": "Deactivate"
+    },
+    "summary": {
+      "label": "User summary for the current filter",
+      "total": "Total Users",
+      "activeHint": "can sign in",
+      "inactiveHint": "access blocked",
+      "telegramLinked": "Telegram Linked",
+      "telegramHint": "receive notifications"
+    },
+    "search": {
+      "label": "Search users",
+      "placeholder": "Search by name, email, or username"
+    },
+    "filter": {
+      "allRoles": "All roles"
+    },
+    "table": {
+      "label": "User list",
+      "itemLabel": "users"
+    },
+    "empty": {
+      "title": "No users yet",
+      "description": "User accounts you create will appear here."
+    },
+    "reset": {
+      "newPassword": "New password",
+      "hint": "At least 8 characters, with an uppercase letter, a number, and a special character."
+    },
+    "link": {
+      "linked": "Telegram for <b>{{name}}</b> is linked. Notifications will be sent to their private chat.",
+      "sendTest": "Send test message",
+      "intro": "Ask <b>{{name}}</b> to do the following on their phone:",
+      "step1": "Open the bot link below and tap <b>Start</b> (or send <code>{{command}}</code> to the bot).",
+      "step2": "The status changes to <b>Linked</b> within a minute.",
+      "botLink": "Bot link",
+      "copied": "Link copied.",
+      "copy": "Copy",
+      "botNotConfigured": "The bot is not configured yet. Set it up in <b>Settings → Notifications</b>. Link code: <code>{{code}}</code>",
+      "waiting": "Waiting for the user to tap Start… the status updates automatically.",
+      "close": "Close"
+    },
+    "confirm": {
+      "reset": {
+        "title": "Reset the password for {{name}}?",
+        "description": "The old password stops working immediately. Share the new password with the user securely.",
+        "confirm": "Reset"
+      },
+      "unlink": {
+        "title": "Unlink Telegram for {{name}}?",
+        "description": "The user will not receive Telegram notifications until linked again.",
+        "confirm": "Unlink"
+      },
+      "deactivate": {
+        "title": "Deactivate {{name}}?",
+        "description": "The user cannot sign in until reactivated. Their data and history are kept.",
+        "confirm": "Deactivate"
+      },
+      "activate": {
+        "title": "Activate {{name}}?",
+        "description": "The user can sign in again with their password.",
+        "confirm": "Activate"
+      }
+    },
+    "airaTier": {
+      "read": "Read only",
+      "standard": "Standard",
+      "direct": "Direct"
+    }
+  },
+  "about": {
+    "readVersionError": "Could not read the version information.",
+    "checkError": "Could not check for updates.",
+    "facts": {
+      "version": "Version",
+      "buildDate": "Build date",
+      "platform": "Platform",
+      "domain": "Domain"
+    },
+    "tagline": "ERP & Operations System",
+    "checking": "Checking…",
+    "checkUpdate": "Check for Updates",
+    "upToDate": "The app is up to date (v{{version}}).",
+    "available": "Update available: v{{version}}",
+    "newChanges": "What's new:",
+    "howToUpdate": "How to update on the server:",
+    "changelog": "Changelog",
+    "releases_one": "{{count}} release",
+    "releases_other": "{{count}} releases"
+  },
+  "backup": {
+    "title": "Database Backups",
+    "description": "Up to 5 backups are kept automatically. Restoring overwrites all current data.",
+    "upload": "Upload Backup",
+    "create": "Create Backup",
+    "last": "Latest backup",
+    "warning": "Restoring will <strong>overwrite all existing data</strong>. Create a backup before you restore.",
+    "loading": "Loading backups…",
+    "empty": "No backup files yet",
+    "table": {
+      "label": "Backup files",
+      "filename": "File name",
+      "size": "Size",
+      "date": "Date",
+      "actions": "Actions",
+      "download": "Download {{filename}}",
+      "restore": "Restore {{filename}}"
+    },
+    "toast": {
+      "created": "Backup created.",
+      "createError": "Could not create the backup.",
+      "restored": "Backup restored. Reload the page.",
+      "restoreError": "Could not restore the backup.",
+      "uploaded": "Backup file uploaded.",
+      "uploadError": "Could not upload the backup file.",
+      "invalidFile": "Only .sql.gz files are allowed.",
+      "downloadError": "Could not download the backup."
+    },
+    "dummy": {
+      "title": "Dummy Data (Testing)",
+      "description": "Create sample transactions (customers, suppliers, invoices, journals, inventory) for testing. Dummy data can be deleted without affecting real data.",
+      "create": "Create Dummy Data",
+      "delete": "Delete Dummy Data",
+      "created": "Dummy data created: {{parties}} partners, {{salesInvoices}} SI, {{purchaseInvoices}} PI, {{journals}} journals, {{items}} items.",
+      "createError": "Could not create dummy data.",
+      "deleted": "Dummy data deleted: {{parties}} partners, {{salesInvoices}} SI, {{purchaseInvoices}} PI, {{items}} items.",
+      "deleteError": "Could not delete dummy data."
+    },
+    "reset": {
+      "title": "Reset All Data",
+      "description": "Delete all transactions, accounts, partners, and users; the database returns to its initial (seed) state. For development and testing only.",
+      "action": "Reset Data",
+      "done": "Data reset. Sign in again.",
+      "error": "Could not reset the data."
+    },
+    "restoreConfirm": {
+      "title": "Restore backup?",
+      "description": "This cannot be undone. All current data will be overwritten with the data from this file.",
+      "confirm": "Restore"
+    },
+    "resetConfirm": {
+      "title": "Reset all data?",
+      "description": "This cannot be undone. All data will be deleted and returned to its initial state.",
+      "items": {
+        "transactions": "All transactions (invoices, payments, journals)",
+        "partners": "All partners (customers, suppliers)",
+        "accounts": "All accounts (Chart of Accounts) and balances",
+        "users": "All users (recreated from seed)",
+        "stock": "All stock and inventory movements"
+      }
+    }
+  },
+  "fiscal": {
+    "errors": {
+      "nameRequired": "Fiscal year name is required.",
+      "startRequired": "Start date is required.",
+      "endRequired": "End date is required.",
+      "endAfterStart": "End date must be after the start date."
+    },
+    "toast": {
+      "created": "Fiscal year created.",
+      "createError": "Could not create the fiscal year.",
+      "closed": "Fiscal year closed.",
+      "closeError": "Could not close the fiscal year.",
+      "reopened": "Fiscal year reopened.",
+      "reopenError": "Could not reopen the fiscal year."
+    },
+    "title": "Accounting Periods",
+    "description": "Closing a year creates a closing journal; reopening deletes it. Both actions require the document cancellation permission.",
+    "new": "New Fiscal Year",
+    "loading": "Loading fiscal years…",
+    "empty": {
+      "title": "No fiscal years yet",
+      "description": "Create the first fiscal year to start recording accounting periods."
+    },
+    "yearName": "Year {{name}}",
+    "closedAt": "Closed {{date}}",
+    "close": "Close Year",
+    "reopen": "Reopen",
+    "closeConfirm": {
+      "title": "Close fiscal year {{name}}?",
+      "description": "A closing journal will be created and revenue/expense balances will be moved to retained earnings."
+    },
+    "reopenConfirm": {
+      "title": "Reopen fiscal year {{name}}?",
+      "description": "The closing journal will be deleted and revenue/expense balances will be restored."
+    },
+    "form": {
+      "title": "Add Fiscal Year",
+      "description": "The new period is created as open.",
+      "name": "Year name",
+      "nameHint": "Example: 2027",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
+  },
+  "notifications": {
+    "toast": {
+      "saved": "Telegram settings saved.",
+      "saveError": "Could not save.",
+      "testSent": "Test message sent to Telegram. Check your group.",
+      "testError": "Test failed."
+    },
+    "loading": "Loading notification settings…",
+    "tokenInvalid": "Token format not recognized (example: 123456789:ABC-DEF…).",
+    "title": "Telegram Notifications",
+    "description": "Send system notifications (approvals, overdue invoices, low stock) to Telegram.",
+    "testConnection": "Test Connection",
+    "enabled": {
+      "label": "Turn on Telegram notifications",
+      "description": "Main switch. When off, no messages are sent."
+    },
+    "botToken": {
+      "label": "Bot token",
+      "hintSaved": "A token is saved and is never shown again. Fill this in only to replace it.",
+      "hintNew": "For security, the token is never shown again.",
+      "placeholderSaved": "•••••••• (saved)",
+      "placeholderNew": "e.g. 123456789:ABC-DEF..."
+    },
+    "chatId": {
+      "label": "Group chat ID (optional)",
+      "hint": "Notifications go as private messages to linked staff; the group chat ID only mirrors announcements to a group.",
+      "placeholder": "e.g. -1001234567890"
+    },
+    "types": {
+      "title": "Notification Types",
+      "description": "Choose which events are sent to Telegram.",
+      "approval": "Pending approvals / requests",
+      "overdue": "Overdue invoices",
+      "lowStock": "Low stock",
+      "personal": {
+        "label": "Personal notifications (private message to the user)",
+        "description": "Send to the personal Telegram of linked staff (e.g. approval results to the requester). Link accounts in User Management."
+      }
+    },
+    "setup": {
+      "title": "Quick setup",
+      "step1": "Open <b>@BotFather</b> in Telegram → <code>/newbot</code> → follow the steps → get the <b>Bot Token</b>.",
+      "step2": "Create a group and add the bot to it (make it an admin so it can post).",
+      "step3": "Send one message in the group, then get the group <b>Chat ID</b> (e.g. via <b>@userinfobot</b> / <b>@getidsbot</b>, or open <url>{{url}}</url> and take the <code>chat.id</code> starting with <code>-100…</code>).",
+      "step4": "Enter the Token & Chat ID above → <b>Save</b> → <b>Test Connection</b>."
+    },
+    "fixToken": "Fix the token format before saving."
+  },
+  "paymentRequestTypes": {
+    "kinds": {
+      "REIMBURSEMENT": "Reimbursement",
+      "VENDOR_PAYMENT": "Supplier payment",
+      "CASH_ADVANCE": "Cash advance",
+      "TRAVEL": "Business travel",
+      "OTHER": "Other"
+    },
+    "toast": {
+      "saved": "Request type saved.",
+      "saveError": "Could not save the request type.",
+      "toggleError": "Could not change the status.",
+      "deleted": "Request type deleted.",
+      "deleteError": "Could not delete the request type."
+    },
+    "errors": {
+      "code": "Code must be 2–20 characters: letters, numbers, _ or -.",
+      "name": "Name must be at least 2 characters."
+    },
+    "title": "Payment Request Types",
+    "description": "Types employees can choose when creating a Payment Request. Deactivate types that are already in use instead of deleting them.",
+    "add": "Add Type",
+    "loading": "Loading request types…",
+    "empty": "No request types yet",
+    "requiresAttachment": "Attachment required",
+    "requiresSettlement": "Settlement required",
+    "account": "Account {{number}}",
+    "activate": "Activate {{name}}",
+    "deactivate": "Deactivate {{name}}",
+    "edit": "Edit {{name}}",
+    "delete": "Delete {{name}}",
+    "form": {
+      "addTitle": "Add Request Type",
+      "description": "The type sets the accounting treatment on payment and the attachment rules.",
+      "code": "Code",
+      "name": "Name",
+      "kind": "Treatment",
+      "kindHint": "Cash advances and business travel are recorded to Employee Advances.",
+      "notes": "Description",
+      "defaultAccount": "Default expense account",
+      "defaultAccountHint": "Optional. Filled in automatically on the lines; Finance can change it.",
+      "sortOrder": "Sort order",
+      "active": "Active",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "deleteConfirm": {
+      "title": "Delete {{name}}?",
+      "description": "Types that have never been used are deleted permanently.",
+      "confirm": "Delete"
+    }
+  },
+  "roles": {
+    "errors": {
+      "nameMin_one": "Role name must be at least {{count}} character.",
+      "nameMin_other": "Role name must be at least {{count}} characters."
+    },
+    "toast": {
+      "saved": "Role saved.",
+      "saveError": "Could not save the role.",
+      "created": "Role created.",
+      "createError": "Could not create the role.",
+      "deleted": "Role deleted.",
+      "deleteError": "Could not delete the role."
+    },
+    "loading": "Loading permissions…",
+    "listTitle": "Roles",
+    "new": "New Role",
+    "newName": "New role name",
+    "newNamePlaceholder": "e.g. Cashier",
+    "cancel": "Cancel",
+    "create": "Create",
+    "listLabel": "Role list",
+    "superAdmin": "Super-admin",
+    "system": "System",
+    "custom": "Custom",
+    "userCount_one": "{{count}} user",
+    "userCount_other": "{{count}} users",
+    "permissions": "Permissions",
+    "pick": {
+      "title": "Choose a role",
+      "description": "Choose a role from the list to set its permissions, or create a new role."
+    },
+    "superAdminNote": "This role is a super-admin. It always has full access and cannot be restricted.",
+    "detail": "Role Details",
+    "builtIn": "Built-in role",
+    "inUse": "The role is still assigned to users",
+    "delete": "Delete Role",
+    "name": "Role name",
+    "description": "Description",
+    "builtInNote": "Built-in role: its permissions can be changed, but the role cannot be deleted.",
+    "inUseNote_one": "The role is still assigned to {{count}} user, so it cannot be deleted.",
+    "inUseNote_other": "The role is still assigned to {{count}} users, so it cannot be deleted.",
+    "modules": {
+      "title": "Module Permissions",
+      "description": "Edit automatically includes View; removing View also removes Edit. Use the header boxes to select in bulk."
+    },
+    "caps": {
+      "title": "Special Permissions",
+      "description": "Sensitive capabilities outside module permissions.",
+      "empty": "No special permissions."
+    },
+    "saveChanges": "Save Changes",
+    "saveConfirm": {
+      "title": "Save permissions for {{name}}?",
+      "descriptionUsers_one": "Changes apply immediately to {{count}} user with this role.",
+      "descriptionUsers_other": "Changes apply immediately to {{count}} users with this role.",
+      "descriptionNone": "Changes apply to users who are given this role later.",
+      "confirm": "Save"
+    },
+    "deleteConfirm": {
+      "title": "Delete role \"{{name}}\"?",
+      "description": "A deleted role cannot be restored."
+    }
+  },
+  "tax": {
+    "types": {
+      "sales": {
+        "label": "Sales",
+        "option": "Sales (output VAT)"
+      },
+      "purchase": {
+        "label": "Purchase",
+        "option": "Purchase (input VAT)"
+      },
+      "withholding": {
+        "label": "Withholding",
+        "option": "Withholding (income tax)"
+      }
+    },
+    "errors": {
+      "nameRequired": "Tax name is required.",
+      "rateRequired": "Rate is required.",
+      "rateRange": "Rate must be between 0 and 100."
+    },
+    "toast": {
+      "created": "Tax configuration created.",
+      "createError": "Could not create the tax configuration.",
+      "updated": "Tax configuration updated.",
+      "updateError": "Could not update the tax configuration.",
+      "deactivated": "Tax configuration deactivated.",
+      "deleteError": "Could not delete the tax configuration.",
+      "enabled": "Tax activated.",
+      "disabled": "Tax deactivated.",
+      "toggleError": "Could not change the status."
+    },
+    "title": "Tax Configuration",
+    "description": "Inactive taxes are not offered in new transactions.",
+    "add": "Add Tax",
+    "loading": "Loading tax configuration…",
+    "empty": "No tax configurations yet",
+    "table": {
+      "label": "Tax configurations",
+      "name": "Tax Name",
+      "rate": "Rate",
+      "type": "Type",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "activate": "Activate {{name}}",
+    "deactivate": "Deactivate {{name}}",
+    "edit": "Edit {{name}}",
+    "form": {
+      "editTitle": "Edit Tax Configuration",
+      "addTitle": "Add Tax Configuration",
+      "description": "Rate in percent, e.g. 11 for 11% VAT.",
+      "name": "Tax name",
+      "namePlaceholder": "Example: \"VAT 11%\", \"PPh 23\"",
+      "rate": "Rate (%)",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "deleteConfirm": {
+      "title": "Deactivate {{name}}?",
+      "fallbackName": "tax",
+      "description": "This tax configuration can no longer be chosen in new transactions. Existing transactions do not change.",
+      "confirm": "Deactivate"
     }
   }
 }

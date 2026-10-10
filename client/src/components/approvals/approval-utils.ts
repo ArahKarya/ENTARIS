@@ -1,18 +1,27 @@
 /** Pure formatting + estimation helpers shared by ApprovalPanel and its detail dialog. */
 
-export const fmtNum = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 3 });
-export const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+import i18n from '@/i18n';
+import { LOCALE } from '@/lib/format';
 
-export const docTypeLabel: Record<string, string> = {
-  PurchaseInvoice: 'Invoice Pembelian',
-  ProductionRun: 'Data Produksi',
-  SalesReturn: 'Retur Penjualan',
-  DeliveryOrder: 'Surat Jalan',
-  PurchaseOrder: 'Purchase Order',
-  ProductionRunEdit: 'Edit Data Produksi',
-  PurchaseInvoiceRevisePrice: 'Revisi Harga Invoice Pembelian',
-};
+export const fmtNum = (n: number) => n.toLocaleString(LOCALE, { maximumFractionDigits: 3 });
+export const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString(LOCALE, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+/** Request types with a translated label (`approvals:docTypes.*`). */
+const REQUEST_DOC_TYPES = [
+  'PurchaseInvoice',
+  'ProductionRun',
+  'SalesReturn',
+  'DeliveryOrder',
+  'PurchaseOrder',
+  'ProductionRunEdit',
+  'PurchaseInvoiceRevisePrice',
+] as const;
+type RequestDocType = (typeof REQUEST_DOC_TYPES)[number];
+const isRequestDocType = (t: string): t is RequestDocType => (REQUEST_DOC_TYPES as readonly string[]).includes(t);
+
+/** Display label for a known request document type, or the raw type when unknown. */
+export const docTypeLabel = (t: string): string => (isRequestDocType(t) ? i18n.t(`approvals:docTypes.${t}`) : t);
 
 /** Pengajuan yang MENGUBAH dokumen existing (bukan membuat baru) → tampil sebagai perbandingan. */
 export const isEditApprovalType = (t: string) => t === 'ProductionRunEdit' || t === 'PurchaseInvoiceRevisePrice';
@@ -21,7 +30,7 @@ export const isEditApprovalType = (t: string) => t === 'ProductionRunEdit' || t 
 export const isAiToolApproval = (t: string) => t.startsWith('ai_tool:');
 
 /** Label tampilan tipe pengajuan (mengenali ai_tool:*). */
-export const approvalTypeLabel = (t: string) => (isAiToolApproval(t) ? 'Permintaan AIRA' : docTypeLabel[t] ?? t);
+export const approvalTypeLabel = (t: string) => (isAiToolApproval(t) ? i18n.t('approvals:docTypes.aiTool') : docTypeLabel(t));
 
 // Total harga akhir satu baris PI dari payload pengajuan.
 // hargaAkhir = qty×rate×(1−disc%) + PPN − PPh − potonganItem.
@@ -93,12 +102,12 @@ export function approvalLabels(ctx: ApprovalLookupContext | null | undefined, lo
       if (!partyId) return '—';
       const name = (ctx?.party?.id === partyId ? ctx.party.name : null) ?? ctx?.supplier?.name;
       if (name) return name;
-      return loading ? '…' : `(pihak ${shortId(partyId)})`;
+      return loading ? '…' : i18n.t('approvals:lookup.partyFallback', { id: shortId(partyId) });
     },
     itemName: (itemId) => {
       const name = itemId ? ctx?.items?.[itemId]?.name : undefined;
       if (name) return name;
-      return loading ? '…' : `(item ${shortId(itemId)})`;
+      return loading ? '…' : i18n.t('approvals:lookup.itemFallback', { id: shortId(itemId) });
     },
     itemUnit: (itemId) => (itemId ? ctx?.items?.[itemId]?.unit : undefined) ?? '',
   };

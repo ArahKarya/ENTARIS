@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import { Send, Info } from 'lucide-react';
 import api from '../../lib/api';
 import { can } from '../../lib/permissions';
@@ -67,6 +68,7 @@ function ToggleRow({ id, label, desc, checked, disabled, onChange }: ToggleRowPr
 }
 
 export const NotificationsTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const queryClient = useQueryClient();
   const canEdit = can('settings', 'edit');
   const { data, isLoading } = useQuery<TelegramConfig>({
@@ -96,9 +98,9 @@ export const NotificationsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['telegram-config'] });
       setForm((f) => ({ ...f, botToken: '' }));
-      toast.success('Konfigurasi Telegram disimpan.');
+      toast.success(t('notifications.toast.saved'));
     },
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Gagal menyimpan.'),
+    onError: (e: any) => toast.error(e.response?.data?.error || t('notifications.toast.saveError')),
   });
 
   const testMut = useMutation({
@@ -106,14 +108,14 @@ export const NotificationsTab: React.FC = () => {
       ...(form.botToken.trim() ? { botToken: form.botToken.trim() } : {}),
       ...(form.chatId.trim() ? { chatId: form.chatId.trim() } : {}),
     }),
-    onSuccess: () => toast.success('Pesan uji terkirim ke Telegram. Cek grup Anda.'),
-    onError: (e: any) => toast.error(e.response?.data?.error || 'Tes gagal.'),
+    onSuccess: () => toast.success(t('notifications.toast.testSent')),
+    onError: (e: any) => toast.error(e.response?.data?.error || t('notifications.toast.testError')),
   });
 
-  if (isLoading) return <LoadingState label="Memuat pengaturan notifikasi…" />;
+  if (isLoading) return <LoadingState label={t('notifications.loading')} />;
 
   const tokenError = form.botToken.trim() && !TOKEN_RE.test(form.botToken.trim())
-    ? 'Format token tidak dikenali (contoh: 123456789:ABC-DEF…).'
+    ? t('notifications.tokenInvalid')
     : undefined;
   const dirty = isDirty(form, data);
   const setToggle = (key: ToggleKey) => (v: boolean) => setForm((f) => ({ ...f, [key]: v }));
@@ -122,28 +124,28 @@ export const NotificationsTab: React.FC = () => {
   return (
     <div className="space-y-5">
       <SettingsCard
-        title="Notifikasi Telegram"
-        description="Kirim notifikasi sistem (approval, invoice jatuh tempo, stok rendah) ke Telegram."
+        title={t('notifications.title')}
+        description={t('notifications.description')}
         actions={canEdit && (
           <Button variant="outline" onClick={() => testMut.mutate()} loading={testMut.isPending} disabled={!!tokenError}>
-            {!testMut.isPending && <Send aria-hidden />} Tes Koneksi
+            {!testMut.isPending && <Send aria-hidden />} {t('notifications.testConnection')}
           </Button>
         )}
       >
         <div className="divide-y divide-border">
           <ToggleRow
             id="tg-enabled"
-            label="Aktifkan notifikasi Telegram"
-            desc="Sakelar utama. Jika mati, tidak ada pesan yang dikirim."
+            label={t('notifications.enabled.label')}
+            desc={t('notifications.enabled.description')}
             checked={form.enabled}
             disabled={!canEdit}
             onChange={setToggle('enabled')}
           />
           <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
             <Field
-              label="Bot token"
+              label={t('notifications.botToken.label')}
               error={tokenError}
-              hint={form.hasToken ? 'Token tersimpan dan tidak ditampilkan kembali. Isi hanya untuk mengganti.' : 'Token tidak pernah ditampilkan kembali demi keamanan.'}
+              hint={form.hasToken ? t('notifications.botToken.hintSaved') : t('notifications.botToken.hintNew')}
             >
               <Input
                 type="password"
@@ -151,33 +153,33 @@ export const NotificationsTab: React.FC = () => {
                 disabled={!canEdit}
                 value={form.botToken}
                 onChange={(e) => setForm((f) => ({ ...f, botToken: e.target.value }))}
-                placeholder={form.hasToken ? '•••••••• (tersimpan)' : 'mis. 123456789:ABC-DEF...'}
+                placeholder={form.hasToken ? t('notifications.botToken.placeholderSaved') : t('notifications.botToken.placeholderNew')}
               />
             </Field>
             <Field
-              label="Chat ID grup (opsional)"
-              hint="Notifikasi dikirim japri ke staf yang ditautkan; Chat ID grup hanya untuk mirror pengumuman ke grup."
+              label={t('notifications.chatId.label')}
+              hint={t('notifications.chatId.hint')}
             >
               <Input
                 disabled={!canEdit}
                 value={form.chatId}
                 onChange={(e) => setForm((f) => ({ ...f, chatId: e.target.value }))}
-                placeholder="mis. -1001234567890"
+                placeholder={t('notifications.chatId.placeholder')}
               />
             </Field>
           </div>
         </div>
       </SettingsCard>
 
-      <SettingsCard title="Jenis Notifikasi" description="Pilih kejadian yang dikirim ke Telegram.">
+      <SettingsCard title={t('notifications.types.title')} description={t('notifications.types.description')}>
         <div className="divide-y divide-border">
-          <ToggleRow id="tg-approval" label="Approval / pengajuan menunggu" checked={form.notifyApproval} disabled={!canEdit} onChange={setToggle('notifyApproval')} />
-          <ToggleRow id="tg-overdue" label="Invoice jatuh tempo" checked={form.notifyInvoiceOverdue} disabled={!canEdit} onChange={setToggle('notifyInvoiceOverdue')} />
-          <ToggleRow id="tg-lowstock" label="Stok rendah" checked={form.notifyLowStock} disabled={!canEdit} onChange={setToggle('notifyLowStock')} />
+          <ToggleRow id="tg-approval" label={t('notifications.types.approval')} checked={form.notifyApproval} disabled={!canEdit} onChange={setToggle('notifyApproval')} />
+          <ToggleRow id="tg-overdue" label={t('notifications.types.overdue')} checked={form.notifyInvoiceOverdue} disabled={!canEdit} onChange={setToggle('notifyInvoiceOverdue')} />
+          <ToggleRow id="tg-lowstock" label={t('notifications.types.lowStock')} checked={form.notifyLowStock} disabled={!canEdit} onChange={setToggle('notifyLowStock')} />
           <ToggleRow
             id="tg-personal"
-            label="Notifikasi personal (japri ke user)"
-            desc="Kirim ke Telegram pribadi staf yang sudah ditautkan (mis. hasil approval ke pengaju). Tautkan akun di Manajemen User."
+            label={t('notifications.types.personal.label')}
+            desc={t('notifications.types.personal.description')}
             checked={form.personalEnabled}
             disabled={!canEdit}
             onChange={setToggle('personalEnabled')}
@@ -188,12 +190,12 @@ export const NotificationsTab: React.FC = () => {
       <div className="flex gap-3 rounded-lg border border-info/30 bg-info-subtle p-4 text-sm text-foreground">
         <Info className="mt-0.5 size-4 shrink-0 text-info-text" aria-hidden />
         <div className="space-y-1.5">
-          <p className="font-medium">Cara setup singkat</p>
+          <p className="font-medium">{t('notifications.setup.title')}</p>
           <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
-            <li>Buka <b>@BotFather</b> di Telegram → <code>/newbot</code> → ikuti langkah → dapat <b>Bot Token</b>.</li>
-            <li>Buat grup, tambahkan bot tadi ke grup (jadikan admin agar bisa kirim).</li>
-            <li>Kirim 1 pesan di grup, lalu dapatkan <b>Chat ID</b> grup (mis. via <b>@userinfobot</b> / <b>@getidsbot</b>, atau buka <code className="break-all">https://api.telegram.org/bot&lt;token&gt;/getUpdates</code> dan ambil <code>chat.id</code> yang diawali <code>-100…</code>).</li>
-            <li>Isi Token &amp; Chat ID di atas → <b>Simpan</b> → <b>Tes Koneksi</b>.</li>
+            <li><Trans t={t} i18nKey="notifications.setup.step1" components={{ b: <b />, code: <code /> }} /></li>
+            <li>{t('notifications.setup.step2')}</li>
+            <li><Trans t={t} i18nKey="notifications.setup.step3" values={{ url: 'https://api.telegram.org/bot<token>/getUpdates' }} components={{ b: <b />, code: <code />, url: <code className="break-all" /> }} /></li>
+            <li><Trans t={t} i18nKey="notifications.setup.step4" components={{ b: <b /> }} /></li>
           </ol>
         </div>
       </div>
@@ -205,7 +207,7 @@ export const NotificationsTab: React.FC = () => {
           saving={saveMut.isPending}
           onSave={() => saveMut.mutate()}
           onReset={reset}
-          message={tokenError ? 'Perbaiki format token sebelum menyimpan.' : undefined}
+          message={tokenError ? t('notifications.fixToken') : undefined}
         />
       )}
     </div>

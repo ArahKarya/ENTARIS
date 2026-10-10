@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
+import { LOCALE } from '@/lib/format';
 import { Upload, HardDrive, Download, RotateCcw, AlertTriangle, ShieldCheck, Database, Plus, Trash2 } from 'lucide-react';
 import api from '../../lib/api';
 import { can, cap } from '../../lib/permissions';
@@ -18,9 +20,10 @@ const formatSize = (bytes: number) => {
 };
 
 const formatDateTime = (d: string, month: 'long' | 'short') =>
-  new Date(d).toLocaleString('id-ID', { day: 'numeric', month, year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  new Date(d).toLocaleString(LOCALE, { day: 'numeric', month, year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export const BackupTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const queryClient = useQueryClient();
   const canWriteBackup = can('audit', 'edit');
   const canRestore = canWriteBackup && cap('doc.cancel');
@@ -33,32 +36,32 @@ export const BackupTab: React.FC = () => {
     mutationFn: async () => api.post('/settings/generate-dummy'),
     onSuccess: (res) => {
       const r = res.data.results;
-      toast.success(`Data dummy dibuat: ${r.parties} mitra, ${r.salesInvoices} SI, ${r.purchaseInvoices} PI, ${r.journals} jurnal, ${r.inventoryItems} item.`);
+      toast.success(t('backup.dummy.created', { parties: r.parties, salesInvoices: r.salesInvoices, purchaseInvoices: r.purchaseInvoices, journals: r.journals, items: r.inventoryItems }));
       queryClient.invalidateQueries();
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat data dummy.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.dummy.createError')),
   });
 
   const deleteDummyMutation = useMutation({
     mutationFn: async () => api.post('/settings/delete-dummy'),
     onSuccess: (res) => {
       const r = res.data.results;
-      toast.success(`Data dummy dihapus: ${r.parties} mitra, ${r.salesInvoices} SI, ${r.purchaseInvoices} PI, ${r.inventoryItems} item.`);
+      toast.success(t('backup.dummy.deleted', { parties: r.parties, salesInvoices: r.salesInvoices, purchaseInvoices: r.purchaseInvoices, items: r.inventoryItems }));
       queryClient.invalidateQueries();
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menghapus data dummy.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.dummy.deleteError')),
   });
 
   const resetMutation = useMutation({
     mutationFn: async () => api.post('/settings/reset-data', { confirmation: 'RESET' }),
     onSuccess: () => {
-      toast.success('Data direset. Silakan login ulang.');
+      toast.success(t('backup.reset.done'));
       localStorage.removeItem('user');
       localStorage.removeItem('onboardingDone');
       localStorage.removeItem('widgetPrefs');
       setTimeout(() => { window.location.href = '/login'; }, 1500);
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal mereset data.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.reset.error')),
   });
 
   const { data: backups, isLoading } = useQuery<BackupFile[]>({
@@ -70,18 +73,18 @@ export const BackupTab: React.FC = () => {
     mutationFn: async () => api.post('/backup/create'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['backups'] });
-      toast.success('Backup dibuat.');
+      toast.success(t('backup.toast.created'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat backup.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.toast.createError')),
   });
 
   const restoreMutation = useMutation({
     mutationFn: async (filename: string) => api.post('/backup/restore', { filename }),
     onSuccess: () => {
-      toast.success('Backup dipulihkan. Silakan muat ulang halaman.');
+      toast.success(t('backup.toast.restored'));
       setConfirmRestore(null);
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal restore backup.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.toast.restoreError')),
   });
 
   const uploadMutation = useMutation({
@@ -92,17 +95,17 @@ export const BackupTab: React.FC = () => {
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['backups'] });
-      toast.success(res.data.message || 'File backup diunggah.');
+      toast.success(res.data.message || t('backup.toast.uploaded'));
       if (fileInputRef.current) fileInputRef.current.value = '';
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal mengupload file backup.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.toast.uploadError')),
   });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith('.sql.gz')) {
-      toast.error('Hanya file .sql.gz yang diperbolehkan.');
+      toast.error(t('backup.toast.invalidFile'));
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -125,7 +128,7 @@ export const BackupTab: React.FC = () => {
         link.click();
         URL.revokeObjectURL(blobUrl);
       })
-      .catch(() => toast.error('Gagal mengunduh backup.'));
+      .catch(() => toast.error(t('backup.toast.downloadError')));
   };
 
   const lastBackup = backups?.[0];
@@ -134,16 +137,16 @@ export const BackupTab: React.FC = () => {
   return (
     <div className="space-y-5">
       <SettingsCard
-        title="Cadangan Database"
-        description="Maksimal 5 cadangan disimpan otomatis. Pemulihan menimpa seluruh data saat ini."
+        title={t('backup.title')}
+        description={t('backup.description')}
         actions={canWriteBackup && (
           <>
             <input ref={fileInputRef} type="file" accept=".sql.gz" onChange={handleFileUpload} className="sr-only" tabIndex={-1} aria-hidden />
             <Button variant="outline" onClick={() => fileInputRef.current?.click()} loading={uploadMutation.isPending}>
-              {!uploadMutation.isPending && <Upload aria-hidden />} Unggah Cadangan
+              {!uploadMutation.isPending && <Upload aria-hidden />} {t('backup.upload')}
             </Button>
             <Button onClick={() => createMutation.mutate()} loading={createMutation.isPending}>
-              {!createMutation.isPending && <HardDrive aria-hidden />} Buat Cadangan
+              {!createMutation.isPending && <HardDrive aria-hidden />} {t('backup.create')}
             </Button>
           </>
         )}
@@ -156,31 +159,31 @@ export const BackupTab: React.FC = () => {
                 <ShieldCheck className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">Cadangan terakhir</p>
+                <p className="text-sm font-medium text-foreground">{t('backup.last')}</p>
                 <p className="text-xs text-muted-foreground">{formatDateTime(lastBackup.date, 'long')} · {formatSize(lastBackup.size)}</p>
               </div>
             </div>
           )}
           <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning-subtle p-3 text-xs text-foreground">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-text" aria-hidden />
-            <p>Pemulihan akan <strong>menimpa seluruh data</strong> yang ada. Buat cadangan terlebih dahulu sebelum memulihkan.</p>
+            <p><Trans t={t} i18nKey="backup.warning" components={{ strong: <strong /> }} /></p>
           </div>
         </div>
 
         {isLoading ? (
-          <LoadingState className="pb-5" label="Memuat daftar cadangan…" />
+          <LoadingState className="pb-5" label={t('backup.loading')} />
         ) : !backups || backups.length === 0 ? (
-          <EmptyState compact icon={HardDrive} title="Belum ada file cadangan" className="pb-5" />
+          <EmptyState compact icon={HardDrive} title={t('backup.empty')} className="pb-5" />
         ) : (
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
-          <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel file cadangan" tabIndex={0}>
+          <div className="relative overflow-x-auto border-t border-border" role="region" aria-label={t('backup.table.label')} tabIndex={0}>
             <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-5 py-2.5 text-left font-medium">Nama file</th>
-                  <th scope="col" className="px-3 py-2.5 text-right font-medium">Ukuran</th>
-                  <th scope="col" className="px-3 py-2.5 text-left font-medium">Tanggal</th>
-                  <th scope="col" className="px-5 py-2.5 text-right font-medium"><span className="sr-only">Aksi</span></th>
+                  <th scope="col" className="px-5 py-2.5 text-left font-medium">{t('backup.table.filename')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">{t('backup.table.size')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-left font-medium">{t('backup.table.date')}</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium"><span className="sr-only">{t('backup.table.actions')}</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -191,11 +194,11 @@ export const BackupTab: React.FC = () => {
                     <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{formatDateTime(backup.date, 'short')}</td>
                     <td className="px-5 py-2.5">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => handleDownload(backup.filename)} aria-label={`Unduh ${backup.filename}`}>
+                        <Button variant="ghost" size="icon-sm" onClick={() => handleDownload(backup.filename)} aria-label={t('backup.table.download', { filename: backup.filename })}>
                           <Download aria-hidden />
                         </Button>
                         {canRestore && (
-                          <Button variant="ghost" size="icon-sm" onClick={() => setConfirmRestore(backup.filename)} aria-label={`Pulihkan ${backup.filename}`}>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setConfirmRestore(backup.filename)} aria-label={t('backup.table.restore', { filename: backup.filename })}>
                             <RotateCcw className="text-warning-text" aria-hidden />
                           </Button>
                         )}
@@ -211,15 +214,15 @@ export const BackupTab: React.FC = () => {
 
       {canDevTools && (
         <SettingsCard
-          title="Data Dummy (Pengujian)"
-          description="Buat data transaksi contoh (pelanggan, pemasok, invoice, jurnal, inventori) untuk pengujian. Data dummy bisa dihapus tanpa memengaruhi data asli."
+          title={t('backup.dummy.title')}
+          description={t('backup.dummy.description')}
         >
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => generateDummyMutation.mutate()} loading={generateDummyMutation.isPending} disabled={dummyBusy}>
-              {!generateDummyMutation.isPending && <Plus aria-hidden />} Buat Data Dummy
+              {!generateDummyMutation.isPending && <Plus aria-hidden />} {t('backup.dummy.create')}
             </Button>
             <Button variant="outline" onClick={() => deleteDummyMutation.mutate()} loading={deleteDummyMutation.isPending} disabled={dummyBusy}>
-              {!deleteDummyMutation.isPending && <Trash2 aria-hidden />} Hapus Data Dummy
+              {!deleteDummyMutation.isPending && <Trash2 aria-hidden />} {t('backup.dummy.delete')}
             </Button>
           </div>
         </SettingsCard>
@@ -228,11 +231,11 @@ export const BackupTab: React.FC = () => {
       {canDevTools && (
         <SettingsCard
           tone="danger"
-          title="Reset Seluruh Data"
-          description="Hapus semua transaksi, akun, mitra, dan pengguna; database dikembalikan ke kondisi awal (seed). Hanya untuk development/pengujian."
+          title={t('backup.reset.title')}
+          description={t('backup.reset.description')}
           actions={(
             <Button variant="danger" onClick={() => setShowResetConfirm(true)}>
-              <Database aria-hidden /> Reset Data
+              <Database aria-hidden /> {t('backup.reset.action')}
             </Button>
           )}
         />
@@ -241,10 +244,10 @@ export const BackupTab: React.FC = () => {
       <TypedConfirmDialog
         open={confirmRestore !== null}
         onOpenChange={(o) => !o && setConfirmRestore(null)}
-        title="Pulihkan cadangan?"
-        description="Aksi ini tidak dapat dibatalkan. Seluruh data saat ini akan ditimpa dengan data dari file berikut."
+        title={t('backup.restoreConfirm.title')}
+        description={t('backup.restoreConfirm.description')}
         keyword="RESTORE"
-        confirmLabel="Pulihkan"
+        confirmLabel={t('backup.restoreConfirm.confirm')}
         loading={restoreMutation.isPending}
         onConfirm={() => confirmRestore && restoreMutation.mutate(confirmRestore)}
       >
@@ -254,19 +257,19 @@ export const BackupTab: React.FC = () => {
       <TypedConfirmDialog
         open={showResetConfirm}
         onOpenChange={setShowResetConfirm}
-        title="Reset seluruh data?"
-        description="Aksi ini tidak dapat dibatalkan. Semua data akan dihapus dan dikembalikan ke kondisi awal."
+        title={t('backup.resetConfirm.title')}
+        description={t('backup.resetConfirm.description')}
         keyword="RESET"
-        confirmLabel="Reset Data"
+        confirmLabel={t('backup.reset.action')}
         loading={resetMutation.isPending}
         onConfirm={() => resetMutation.mutate()}
       >
         <ul className="ml-4 list-disc space-y-1 text-xs text-muted-foreground">
-          <li>Semua transaksi (invoice, pembayaran, jurnal)</li>
-          <li>Semua mitra (pelanggan, pemasok)</li>
-          <li>Semua akun (COA) dan saldo</li>
-          <li>Semua pengguna (dibuat ulang dari seed)</li>
-          <li>Semua stok dan gerakan inventori</li>
+          <li>{t('backup.resetConfirm.items.transactions')}</li>
+          <li>{t('backup.resetConfirm.items.partners')}</li>
+          <li>{t('backup.resetConfirm.items.accounts')}</li>
+          <li>{t('backup.resetConfirm.items.users')}</li>
+          <li>{t('backup.resetConfirm.items.stock')}</li>
         </ul>
       </TypedConfirmDialog>
     </div>

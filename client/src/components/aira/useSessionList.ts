@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
+import i18n from '@/i18n';
 import { chatKeys, fetchSessions, patchSession, removeSession } from './chatApi';
 import type { ChatSessionDto, SessionStatus } from './types';
 
@@ -36,23 +37,23 @@ export function useSessionList() {
   const rename = useMutation({
     mutationFn: ({ id, title }: { id: string; title: string }) => patchSession(id, { title }),
     onSuccess: invalidate,
-    onError: (e) => toast.error(errMsg(e, 'Gagal mengubah nama sesi.')),
+    onError: (e) => toast.error(errMsg(e, i18n.t('aira:sessionList.renameFailed'))),
   });
   const archive = useMutation({
     mutationFn: ({ id, archived }: { id: string; archived: boolean }) => patchSession(id, { status: archived ? 'archived' : 'active' }),
     onSuccess: (_d, v) => {
-      toast.success(v.archived ? 'Sesi diarsipkan.' : 'Sesi dipulihkan.');
+      toast.success(i18n.t(v.archived ? 'aira:sessionList.archived' : 'aira:sessionList.restored'));
       void invalidate();
     },
-    onError: (e) => toast.error(errMsg(e, 'Gagal memperbarui sesi.')),
+    onError: (e) => toast.error(errMsg(e, i18n.t('aira:sessionList.updateFailed'))),
   });
   const remove = useMutation({
     mutationFn: (id: string) => removeSession(id),
     onSuccess: () => {
-      toast.success('Percakapan dihapus.');
+      toast.success(i18n.t('aira:sessionList.deleted'));
       void invalidate();
     },
-    onError: (e) => toast.error(errMsg(e, 'Gagal menghapus sesi.')),
+    onError: (e) => toast.error(errMsg(e, i18n.t('aira:sessionList.deleteFailed'))),
   });
 
   return {

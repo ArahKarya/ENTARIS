@@ -12,7 +12,7 @@ import { MessageItem } from './MessageItem';
 import { Composer } from './Composer';
 import { SessionList } from './SessionList';
 import { EmptyChat } from './EmptyChat';
-import { EXAMPLE_PROMPTS } from './examples';
+import { examplePrompts } from './examples';
 import type { ChatSessionDto, ViewMessage } from './types';
 
 const wrap = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -64,13 +64,13 @@ describe('session grouping', () => {
   const s = (id: string, daysAgo: number): ChatSessionDto => ({
     id, title: id, titleSource: 'auto', status: 'active', messageCount: 2, lastMessageAt: new Date(2026, 9, 14 - daysAgo, 9).toISOString(), lastOpenedAt: null, createdAt: '', busy: false,
   });
-  it('buckets Hari ini / Kemarin / 7 hari terakhir / Lebih lama, in order, omitting empty groups', () => {
-    expect(groupOf(s('a', 0).lastMessageAt, now)).toBe('Hari ini');
-    expect(groupOf(s('a', 1).lastMessageAt, now)).toBe('Kemarin');
-    expect(groupOf(s('a', 5).lastMessageAt, now)).toBe('7 hari terakhir');
-    expect(groupOf(s('a', 30).lastMessageAt, now)).toBe('Lebih lama');
+  it('buckets today / yesterday / last 7 days / older, in order, omitting empty groups', () => {
+    expect(groupOf(s('a', 0).lastMessageAt, now)).toBe('today');
+    expect(groupOf(s('a', 1).lastMessageAt, now)).toBe('yesterday');
+    expect(groupOf(s('a', 5).lastMessageAt, now)).toBe('last7Days');
+    expect(groupOf(s('a', 30).lastMessageAt, now)).toBe('older');
     const g = groupSessions([s('x', 30), s('y', 0), s('z', 1)], now);
-    expect(g.map((x) => x.label)).toEqual(['Hari ini', 'Kemarin', 'Lebih lama']);
+    expect(g.map((x) => x.key)).toEqual(['today', 'yesterday', 'older']);
   });
 });
 
@@ -199,7 +199,7 @@ describe('SessionList / EmptyChat', () => {
   it('empty chat offers the three example prompts', () => {
     const onPick = vi.fn();
     render(<EmptyChat onPick={onPick} />);
-    expect(EXAMPLE_PROMPTS).toHaveLength(3);
+    expect(examplePrompts()).toHaveLength(3);
     fireEvent.click(screen.getByRole('button', { name: 'Apa saja yang menunggu persetujuan saya?' }));
     expect(onPick).toHaveBeenCalledWith('Apa saja yang menunggu persetujuan saya?');
   });

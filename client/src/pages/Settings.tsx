@@ -1,6 +1,7 @@
 /** Settings shell; the section lives in ?tab=, and unknown or hidden ids fall back to "company". */
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Settings } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,6 +35,7 @@ const PANELS: Record<SettingsTabId, React.FC> = {
 };
 
 export const SettingsPage: React.FC = () => {
+  const { t } = useTranslation('settings');
   const [searchParams, setSearchParams] = useSearchParams();
   const canManageRbac = cap('rbac.manage');
   const nav = useMemo(() => visibleSettingsNav(canManageRbac), [canManageRbac]);
@@ -51,22 +53,22 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="pb-8">
-      <PageHeader title="Pengaturan" description="Konfigurasi perusahaan, akses, dan sistem ERP." icon={Settings} />
+      <PageHeader title={t('page.title')} description={t('page.description')} icon={Settings} />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
         {/* Mobile / tablet: section select */}
         <div className="lg:hidden">
-          <label htmlFor="settings-section" className="sr-only">Bagian pengaturan</label>
+          <label htmlFor="settings-section" className="sr-only">{t('page.sectionLabel')}</label>
           <Select value={active.id} onValueChange={changeTab}>
-            <SelectTrigger id="settings-section" aria-label="Bagian pengaturan">
+            <SelectTrigger id="settings-section" aria-label={t('page.sectionLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {nav.map((group) => (
-                <SelectGroup key={group.label}>
-                  <SelectLabel>{group.label}</SelectLabel>
+                <SelectGroup key={group.id}>
+                  <SelectLabel>{t(`nav.groups.${group.id}`)}</SelectLabel>
                   {group.items.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
+                    <SelectItem key={item.id} value={item.id}>{t(`nav.items.${item.key}.label`)}</SelectItem>
                   ))}
                 </SelectGroup>
               ))}
@@ -75,14 +77,14 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Desktop: grouped vertical nav */}
-        <nav aria-label="Bagian pengaturan" className="hidden lg:block">
+        <nav aria-label={t('page.sectionLabel')} className="hidden lg:block">
           <div className="sticky top-4 space-y-5">
             {nav.map((group) => {
-              const groupId = `settings-group-${group.label.replace(/\W+/g, '-').toLowerCase()}`;
+              const groupId = `settings-group-${group.id}`;
               return (
-                <div key={group.label}>
+                <div key={group.id}>
                   <p id={groupId} className="mb-1.5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {group.label}
+                    {t(`nav.groups.${group.id}`)}
                   </p>
                   <ul aria-labelledby={groupId} className="space-y-0.5">
                     {group.items.map((item) => {
@@ -102,7 +104,7 @@ export const SettingsPage: React.FC = () => {
                             )}
                           >
                             <item.icon className="size-4 shrink-0" aria-hidden />
-                            <span className="truncate">{item.label}</span>
+                            <span className="truncate">{t(`nav.items.${item.key}.label`)}</span>
                           </button>
                         </li>
                       );
@@ -117,9 +119,9 @@ export const SettingsPage: React.FC = () => {
         <section aria-labelledby="settings-section-title" className="min-w-0 space-y-5">
           <div>
             <h2 id="settings-section-title" className="font-heading text-lg font-semibold text-foreground">
-              {active.label}
+              {t(`nav.items.${active.key}.label`)}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">{active.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t(`nav.items.${active.key}.description`)}</p>
           </div>
           <Panel key={active.id} />
         </section>

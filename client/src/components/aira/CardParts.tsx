@@ -4,6 +4,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, ClipboardList, FileSignature, HandCoins, NotebookPen, Factory, ShieldCheck, ShoppingCart } from 'lucide-react';
 import type { ComponentType } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { cn } from '@/lib/utils';
 import { isInternalPath } from './cardUtils';
@@ -11,24 +12,29 @@ import type { CardPart } from './types';
 
 type IconType = ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
 
-const KIND: Record<CardPart['kind'], { icon: IconType; label: string; cta: string; tone: string }> = {
-  cash_book_draft: { icon: NotebookPen, label: 'Draft Buku Kas', cta: 'Tinjau draft', tone: 'text-primary' },
-  production_draft: { icon: Factory, label: 'Draft Produksi', cta: 'Buka draft produksi', tone: 'text-primary' },
-  payment_request_draft: { icon: HandCoins, label: 'Pengajuan Pembayaran', cta: 'Buka pengajuan', tone: 'text-primary' },
-  purchase_order_draft: { icon: ShoppingCart, label: 'Pesanan Pembelian', cta: 'Buka daftar PO', tone: 'text-primary' },
-  quotation_draft: { icon: FileSignature, label: 'Penawaran', cta: 'Buka daftar penawaran', tone: 'text-primary' },
-  sales_order_draft: { icon: ClipboardList, label: 'Pesanan Penjualan', cta: 'Buka daftar SO', tone: 'text-primary' },
-  approval: { icon: ShieldCheck, label: 'Menunggu persetujuan', cta: 'Buka Persetujuan', tone: 'text-warning-text' },
-  link: { icon: ArrowRight, label: 'Tautan', cta: 'Buka', tone: 'text-primary' },
+type KindKey = 'cashBookDraft' | 'productionDraft' | 'paymentRequestDraft' | 'purchaseOrderDraft' | 'quotationDraft' | 'salesOrderDraft' | 'approval' | 'link';
+
+// Label & CTA disimpan sebagai kunci (aira:cards.<key>.label/cta) dan diterjemahkan saat render.
+const KIND: Record<CardPart['kind'], { icon: IconType; key: KindKey; tone: string }> = {
+  cash_book_draft: { icon: NotebookPen, key: 'cashBookDraft', tone: 'text-primary' },
+  production_draft: { icon: Factory, key: 'productionDraft', tone: 'text-primary' },
+  payment_request_draft: { icon: HandCoins, key: 'paymentRequestDraft', tone: 'text-primary' },
+  purchase_order_draft: { icon: ShoppingCart, key: 'purchaseOrderDraft', tone: 'text-primary' },
+  quotation_draft: { icon: FileSignature, key: 'quotationDraft', tone: 'text-primary' },
+  sales_order_draft: { icon: ClipboardList, key: 'salesOrderDraft', tone: 'text-primary' },
+  approval: { icon: ShieldCheck, key: 'approval', tone: 'text-warning-text' },
+  link: { icon: ArrowRight, key: 'link', tone: 'text-primary' },
 };
 
 export function CardPartView({ card }: { card: CardPart }) {
+  const { t } = useTranslation('aira');
   const meta = KIND[card.kind] ?? KIND.link;
   const Icon = meta.icon;
+  const label = t(`cards.${meta.key}.label`);
   const safe = isInternalPath(card.href);
   return (
     <section
-      aria-label={`${meta.label}: ${card.title}`}
+      aria-label={`${label}: ${card.title}`}
       className="flex w-full max-w-md items-start gap-3 rounded-lg border border-border bg-card p-3 text-sm shadow-[var(--shadow-1)]"
     >
       <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-subtle">
@@ -54,7 +60,7 @@ export function CardPartView({ card }: { card: CardPart }) {
               to={card.href}
               className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {meta.cta}
+              {t(`cards.${meta.key}.cta`)}
               <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           )}

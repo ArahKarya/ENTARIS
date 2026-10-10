@@ -10,6 +10,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { formatRupiah } from '@/lib/format';
 import { can, cap } from '@/lib/permissions';
@@ -44,21 +46,17 @@ type Tab = 'requests' | 'rules';
 
 const TAB_PARAM = 'tab';
 
-const DOC_TYPES = [
-  { value: 'PurchaseInvoice', label: 'Invoice Pembelian' },
-  { value: 'ProductionRun', label: 'Data Produksi' },
-  { value: 'PurchaseOrder', label: 'Purchase Order' },
-  { value: 'PaymentRequest', label: 'Pengajuan Pembayaran (tahap Direktur)' },
-  { value: 'SalesInvoice', label: 'Invoice Penjualan' },
-  { value: 'Payment', label: 'Pembayaran' },
-  { value: 'JournalEntry', label: 'Jurnal Umum' },
-];
+/** Document types a rule can target (API values); labels live in `approvals:ruleDocTypes.*`. */
+const DOC_TYPES = ['PurchaseInvoice', 'ProductionRun', 'PurchaseOrder', 'PaymentRequest', 'SalesInvoice', 'Payment', 'JournalEntry'] as const;
+type RuleDocType = (typeof DOC_TYPES)[number];
+const isRuleDocType = (value: string): value is RuleDocType => (DOC_TYPES as readonly string[]).includes(value);
 
 const ROLES = ['Admin', 'Accountant'];
 
-const docTypeLabel = (value: string) => DOC_TYPES.find((d) => d.value === value)?.label ?? value;
+const docTypeLabel = (value: string): string => (isRuleDocType(value) ? i18n.t(`approvals:ruleDocTypes.${value}`) : value);
 
 export default function ApprovalsPage() {
+  const { t } = useTranslation('approvals');
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   // Rules endpoints are gated by the approval.decide capability (server); writes
@@ -98,7 +96,7 @@ export default function ApprovalsPage() {
   const deleteRuleMut = useMutation({
     mutationFn: async (id: string) => (await api.delete(`/approvals/rules/${id}`)).data,
     onSuccess: () => {
-      toast.success('Aturan dihapus.');
+      toast.success(t('page.toast.ruleDeleted'));
       qc.invalidateQueries({ queryKey: ['approval-rules'] });
     },
   });
@@ -107,12 +105,12 @@ export default function ApprovalsPage() {
     () => [
       {
         id: 'documentType',
-        header: 'Tipe Dokumen',
+        header: t('page.columns.documentType'),
         cell: ({ row }) => (
           <div className="flex flex-col gap-0.5">
             <span className="font-medium text-foreground">{docTypeLabel(row.original.documentType)}</span>
             {/* Mobile: role stacked here because its column is hidden. */}
-            <span className="text-xs text-muted-foreground sm:hidden">Oleh {row.original.requiredRole}</span>
+            <span className="text-xs text-muted-foreground sm:hidden">{t('page.columns.byRole', { role: row.original.requiredRole })}</span>
           </div>
         ),
       },
@@ -120,7 +118,7 @@ export default function ApprovalsPage() {
         id: 'minAmount',
         header: () => (
           <>
-            Min. Nominal <span className="normal-case">(Rp)</span>
+            {t('page.columns.minAmount')} <span className="normal-case">{t('page.columns.minAmountUnit')}</span>
           </>
         ),
         meta: { align: 'right' },
@@ -133,26 +131,26 @@ export default function ApprovalsPage() {
       },
       {
         id: 'requiredRole',
-        header: 'Role Penyetuju',
+        header: t('page.columns.approverRole'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <Badge variant="neutral">{row.original.requiredRole}</Badge>,
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('page.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('page.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk aturan ${docTypeLabel(row.original.documentType)}`}
+            label={t('page.rowActionsLabel', { type: docTypeLabel(row.original.documentType) })}
             actions={[
               {
-                label: 'Hapus aturan',
+                label: t('page.deleteRule'),
                 icon: Trash2,
                 tone: 'danger',
                 hidden: !canManageRules,
@@ -163,27 +161,27 @@ export default function ApprovalsPage() {
         ),
       },
     ],
-    [canManageRules],
+    [canManageRules, t],
   );
 
   return (
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
       <PageHeader
-        title="Persetujuan"
-        description="Tinjau pengajuan dokumen yang menunggu keputusan dan atur batas nominal yang wajib disetujui."
+        title={t('page.title')}
+        description={t('page.description')}
         actions={
           tab === 'rules' && canManageRules ? (
             <Button onClick={() => setShowRuleForm(true)}>
               <Plus aria-hidden />
-              Tambah Aturan
+              {t('page.addRule')}
             </Button>
           ) : undefined
         }
       >
         {canViewRules && (
-          <TabsList variant="underline" aria-label="Tampilan persetujuan">
-            <TabsTrigger value="requests">Pengajuan</TabsTrigger>
-            <TabsTrigger value="rules">Aturan</TabsTrigger>
+          <TabsList variant="underline" aria-label={t('page.tabsLabel')}>
+            <TabsTrigger value="requests">{t('page.tabs.requests')}</TabsTrigger>
+            <TabsTrigger value="rules">{t('page.tabs.rules')}</TabsTrigger>
           </TabsList>
         )}
       </PageHeader>
@@ -204,8 +202,8 @@ export default function ApprovalsPage() {
       {canViewRules && (
         <TabsContent value="rules" className="mt-1">
           <DataTable
-            label="Daftar aturan persetujuan"
-            itemLabel="aturan"
+            label={t('page.tableLabel')}
+            itemLabel={t('page.itemLabel')}
             columns={columns}
             data={rulesQuery.data}
             getRowId={(row) => row.id}
@@ -214,12 +212,12 @@ export default function ApprovalsPage() {
             onRetry={() => rulesQuery.refetch()}
             stickyHeader={false}
             empty={{
-              title: 'Belum ada aturan persetujuan',
-              description: 'Tanpa aturan, dokumen langsung diproses tanpa menunggu persetujuan.',
+              title: t('page.emptyTitle'),
+              description: t('page.emptyDescription'),
               action: canManageRules ? (
                 <Button size="sm" onClick={() => setShowRuleForm(true)}>
                   <Plus aria-hidden />
-                  Tambah aturan
+                  {t('page.emptyAction')}
                 </Button>
               ) : undefined,
             }}
@@ -233,9 +231,9 @@ export default function ApprovalsPage() {
         open={deleteRule !== null}
         onOpenChange={(open) => !open && setDeleteRule(null)}
         tone="danger"
-        title="Hapus Aturan Approval"
-        description="Hapus aturan ini? Tindakan ini tidak bisa dibatalkan."
-        confirmLabel="Ya, Hapus"
+        title={t('page.deleteDialog.title')}
+        description={t('page.deleteDialog.description')}
+        confirmLabel={t('page.deleteDialog.confirm')}
         onConfirm={() => {
           if (deleteRule) deleteRuleMut.mutate(deleteRule.id);
           setDeleteRule(null);
@@ -256,8 +254,9 @@ interface RuleFormDialogProps {
 }
 
 function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
+  const { t } = useTranslation('approvals');
   const qc = useQueryClient();
-  const [documentType, setDocumentType] = useState(DOC_TYPES[0].value);
+  const [documentType, setDocumentType] = useState<string>(DOC_TYPES[0]);
   const [minAmount, setMinAmount] = useState('');
   const [requiredRole, setRequiredRole] = useState(ROLES[0]);
   const [touched, setTouched] = useState(false);
@@ -272,10 +271,10 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
   const roleOptions = rolesQuery.data?.length ? rolesQuery.data : ROLES;
 
   const amountError =
-    touched && (minAmount.trim() === '' || Number(minAmount) < 0) ? 'Isi nominal minimal (0 atau lebih).' : undefined;
+    touched && (minAmount.trim() === '' || Number(minAmount) < 0) ? t('page.form.minAmountError') : undefined;
 
   const reset = () => {
-    setDocumentType(DOC_TYPES[0].value);
+    setDocumentType(DOC_TYPES[0]);
     setMinAmount('');
     setRequiredRole(ROLES[0]);
     setTouched(false);
@@ -284,12 +283,12 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
   const createRuleMut = useMutation({
     mutationFn: async (data: Record<string, unknown>) => (await api.post('/approvals/rules', data)).data,
     onSuccess: () => {
-      toast.success('Aturan dibuat.');
+      toast.success(t('page.toast.ruleCreated'));
       qc.invalidateQueries({ queryKey: ['approval-rules'] });
       reset();
       onClose();
     },
-    onError: () => toast.error('Gagal membuat aturan'),
+    onError: () => toast.error(t('page.toast.ruleCreateFailed')),
   });
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -312,14 +311,14 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
       <DialogContent size="sm">
         <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
           <DialogHeader>
-            <DialogTitle>Tambah Aturan Approval</DialogTitle>
+            <DialogTitle>{t('page.form.title')}</DialogTitle>
             <DialogDescription>
-              Dokumen dengan nominal sama atau di atas batas ini harus disetujui sebelum diproses.
+              {t('page.form.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
-            <Field label="Tipe Dokumen" required>
+            <Field label={t('page.form.documentType')} required>
               {(control) => (
                 <Select value={documentType} onValueChange={setDocumentType}>
                   <SelectTrigger {...control}>
@@ -327,25 +326,25 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {DOC_TYPES.map((d) => (
-                      <SelectItem key={d.value} value={d.value}>
-                        {d.label}
+                      <SelectItem key={d} value={d}>
+                        {t(`ruleDocTypes.${d}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             </Field>
-            <Field label="Min. Nominal (Rp)" required error={amountError}>
+            <Field label={t('page.form.minAmount')} required error={amountError}>
               <NumberInput
                 min={0}
                 inputMode="decimal"
                 value={minAmount}
                 onChange={(e) => setMinAmount(e.target.value)}
                 onBlur={() => setTouched(true)}
-                placeholder="Mis: 10000000"
+                placeholder={t('page.form.minAmountPlaceholder')}
               />
             </Field>
-            <Field label="Role yang Dibutuhkan" required>
+            <Field label={t('page.form.requiredRole')} required>
               {(control) => (
                 <Select value={requiredRole} onValueChange={setRequiredRole}>
                   <SelectTrigger {...control}>
@@ -373,10 +372,10 @@ function RuleFormDialog({ open, onClose }: RuleFormDialogProps) {
               }}
               disabled={createRuleMut.isPending}
             >
-              Batal
+              {t('actions.cancel')}
             </Button>
             <Button type="submit" loading={createRuleMut.isPending}>
-              Simpan
+              {t('actions.save')}
             </Button>
           </DialogFooter>
         </form>

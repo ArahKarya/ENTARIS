@@ -1,6 +1,7 @@
 /** Queue summary strip around the shared <ApprovalPanel/>; counts reuse its cached responses. */
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Clock3, Hourglass, RotateCcw } from 'lucide-react';
 import { cap } from '@/lib/permissions';
 import { formatNumber } from '@/lib/format';
@@ -57,6 +58,7 @@ function Metric({
 }
 
 export function ProductionApprovalView({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('approvals');
   const pending = useQueue('Pending');
   const revision = useQueue('NeedsRevision');
   const pendingRows = pending.data ?? [];
@@ -66,24 +68,24 @@ export function ProductionApprovalView({ children }: { children: ReactNode }) {
   return (
     <div className="space-y-4">
       <section
-        aria-label="Ringkasan antrean persetujuan produksi"
+        aria-label={t('productionQueue.summaryLabel')}
         className="grid grid-cols-3 divide-x divide-border rounded-lg border border-border bg-card shadow-[var(--shadow-1)]"
       >
         <Metric
           icon={Hourglass}
-          label={decider ? 'Menunggu keputusan' : 'Pengajuan Anda menunggu'}
+          label={decider ? t('productionQueue.awaitingDecision') : t('productionQueue.yourPending')}
           value={pending.data ? formatQueueCount(pendingRows.length) : '—'}
           tone={pendingRows.length > 0 ? 'warning' : undefined}
         />
         <Metric
           icon={RotateCcw}
-          label="Perlu revisi"
+          label={t('productionQueue.needsRevision')}
           value={revision.data ? formatQueueCount(revision.data.length) : '—'}
         />
         <Metric
           icon={Clock3}
-          label="Antrean tertua"
-          value={pendingRows.length === 0 ? '—' : oldest === 0 ? 'Hari ini' : `${formatNumber(oldest)} hari`}
+          label={t('productionQueue.oldest')}
+          value={pendingRows.length === 0 ? '—' : oldest === 0 ? t('productionQueue.today') : t('productionQueue.days', { count: oldest, value: formatNumber(oldest) })}
           tone={oldest >= 3 ? 'danger' : undefined}
         />
       </section>

@@ -2,6 +2,7 @@
 // menghentikan, mencoba lagi. Pesan pengguna sudah tersimpan di server sebelum agen dipanggil.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import i18n from '@/i18n';
 import { fetchMessages } from './chatApi';
 import { StreamHttpError, streamTurn } from './sse';
 import type { CardPart, ChatMessageDto, StreamEvent, ToolChip, ViewMessage } from './types';
@@ -111,7 +112,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
       const ctl = new AbortController();
       abortRef.current = ctl;
       setBusy(true);
-      setAnnounce('AIRA sedang menjawab…');
+      setAnnounce(i18n.t('aira:conversation.answering'));
       let sid = sessionRef.current;
       let finalStatus: 'ok' | 'error' | 'aborted' = 'aborted';
       let engineError = false;
@@ -160,7 +161,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
           setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userId));
           return { ok: false, restore: req.input, error: { code: err.code, message: err.message } };
         }
-        setMessages((prev) => applyEvent(prev, assistantId, { event: 'error', data: { message: 'Koneksi terputus. Coba lagi.', code: 'network' } }));
+        setMessages((prev) => applyEvent(prev, assistantId, { event: 'error', data: { message: i18n.t('aira:conversation.connectionLost'), code: 'network' } }));
         finalStatus = 'error';
         engineError = true;
         return { ok: false };
@@ -170,7 +171,11 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
         }
         setBusy(false);
         abortRef.current = null;
-        setAnnounce(finalStatus === 'ok' ? 'Jawaban AIRA selesai.' : finalStatus === 'error' ? 'Jawaban AIRA gagal.' : 'Jawaban dihentikan.');
+        setAnnounce(
+          i18n.t(
+            finalStatus === 'ok' ? 'aira:conversation.answerDone' : finalStatus === 'error' ? 'aira:conversation.answerFailed' : 'aira:conversation.answerStopped',
+          ),
+        );
         if (engineError) onEngineError();
         onSessionsChanged();
         if (sid) void resync(sid);
