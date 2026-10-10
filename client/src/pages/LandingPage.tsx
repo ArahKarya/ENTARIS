@@ -1,9 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
-  ArrowRight, BarChart3, BookOpen, Boxes, Check, ClipboardCheck, Factory, FileCheck2,
-  Layers, LogIn, Mail, MessageCircle, MessagesSquare, Blocks, ShieldCheck, ShoppingCart,
-  Truck, type LucideProps,
+  ArrowRight, BarChart3, BookOpen, Factory, FileCheck2, Layers, LogIn, Mail, MessageCircle, MessagesSquare, ShoppingCart, Truck, type LucideProps,
 } from 'lucide-react';
 import { BrandMark, Wordmark } from '@/components/shared';
 import { AiraIcon } from '@/components/shell/AiraIcon';
@@ -31,13 +29,31 @@ function readSalesContact(): { email: string; waLink: string | null } {
 
 const SALES = readSalesContact();
 
-const FEATURES: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
-  { icon: BookOpen, title: 'Akuntansi double-entry', desc: 'Buku besar, jurnal, neraca, dan laba-rugi. Setiap transaksi langsung terposting ke bagan akun.' },
-  { icon: Boxes, title: 'Persediaan multi-gudang', desc: 'Stok per gudang dan per batch, HPP rata-rata tertimbang, transfer, serta stok opname.' },
-  { icon: Factory, title: 'Produksi dan rendemen', desc: 'Catat input-output produksi, biaya konversi, dan yield untuk manufaktur dan penggilingan.' },
-  { icon: Truck, title: 'Pembelian dan penjualan', desc: 'Alur PO, penerimaan, invoice, surat jalan, retur, dan uang muka pelanggan maupun pemasok.' },
-  { icon: ClipboardCheck, title: 'Persetujuan berlapis', desc: 'Pengajuan menunggu persetujuan manajer, dari aplikasi atau langsung lewat Telegram.' },
-  { icon: BarChart3, title: 'Laporan dan dashboard', desc: 'Neraca, arus kas, laba-rugi, umur piutang dan utang, serta dashboard operasional.' },
+const WORKFLOWS: ReadonlyArray<{ icon: Icon; title: string; flow: readonly string[]; note: string }> = [
+  {
+    icon: ShoppingCart,
+    title: 'Penjualan',
+    flow: ['Penawaran', 'Pesanan (SO)', 'Surat jalan', 'Faktur', 'Pembayaran'],
+    note: 'Retur, uang muka pelanggan, dan umur piutang ikut tercatat.',
+  },
+  {
+    icon: Truck,
+    title: 'Pembelian',
+    flow: ['Pesanan pembelian (PO)', 'Penerimaan barang (STT)', 'Faktur pembelian', 'Pembayaran'],
+    note: 'Selisih harga STT dan faktur dibukukan otomatis. Uang muka pemasok dan umur utang tersedia.',
+  },
+  {
+    icon: Factory,
+    title: 'Persediaan dan produksi',
+    flow: ['Stok per gudang dan batch', 'Transfer', 'Produksi', 'Stok opname'],
+    note: 'HPP rata-rata tertimbang, rendemen, biaya konversi, dan OEE mesin.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Keuangan',
+    flow: ['Jurnal otomatis', 'Kas dan bank', 'Rekonsiliasi', 'Neraca dan laba-rugi'],
+    note: 'Pengajuan pembayaran karyawan dan aset tetap masuk ke buku besar yang sama.',
+  },
 ];
 
 const AIRA_POINTS: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
@@ -46,21 +62,11 @@ const AIRA_POINTS: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = 
   { icon: Layers, title: 'Bernalar dari buku besar yang sama', desc: 'Jawaban diambil dari data transaksi yang sudah terposting, bukan dari salinan terpisah.' },
 ];
 
-const STEPS = [
-  { n: '1', title: 'Catat transaksi', desc: 'Input penjualan, pembelian, produksi, dan kas lewat formulir ringkas. Stok dan jurnal terbentuk otomatis.' },
-  { n: '2', title: 'Kontrol dan setujui', desc: 'Hak akses per peran, dan setiap pengajuan disetujui manajer sebelum diproses.' },
-  { n: '3', title: 'Baca hasilnya', desc: 'Laporan keuangan dan operasional dihitung dari transaksi yang sudah diposting.' },
+const PRINCIPLES: ReadonlyArray<{ title: string; desc: string }> = [
+  { title: 'Integritas data', desc: 'Semua modul memposting ke satu buku besar, jadi laporan operasional dan keuangan membaca data yang sama.' },
+  { title: 'Keamanan dan jejak audit', desc: 'Hak akses berbasis peran yang bisa diatur, dan setiap aksi tercatat.' },
+  { title: 'Siap tumbuh', desc: 'Satu instalasi untuk satu perusahaan. Modul bisa diaktifkan sesuai kebutuhan bisnis.' },
 ];
-
-const SECTORS = ['Penggilingan padi', 'Pelet biomassa', 'Trading dan distribusi', 'Manufaktur', 'Pangan', 'UKM'];
-
-const PRINCIPLES: ReadonlyArray<{ icon: Icon; title: string; desc: string }> = [
-  { icon: Layers, title: 'Integritas data', desc: 'Semua modul memposting ke satu buku besar, jadi laporan operasional dan keuangan membaca data yang sama.' },
-  { icon: ShieldCheck, title: 'Keamanan dan jejak audit', desc: 'Hak akses berbasis peran yang bisa diatur, dan setiap aksi tercatat.' },
-  { icon: Blocks, title: 'Siap tumbuh', desc: 'Satu instalasi untuk satu perusahaan. Modul bisa diaktifkan sesuai kebutuhan bisnis.' },
-];
-
-const HERO_POINTS = ['Pembukuan double-entry', 'Multi-gudang dan batch', 'Hak akses dan jejak audit'];
 
 /** Static product schematic: how modules feed one ledger. Illustrative only, no figures. */
 function FlowDiagram() {
@@ -78,7 +84,7 @@ function FlowDiagram() {
 
   return (
     <figure className="rounded-xl border border-white/15 bg-[rgb(255_255_255/0.04)] p-5 sm:p-6" aria-label="Alur data Entaris: modul transaksi ke buku besar, lalu ke laporan dan AIRA">
-      <figcaption className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Satu sumber data</figcaption>
+      <figcaption className="text-sm font-medium text-white/80">Semua modul menulis ke satu buku besar</figcaption>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         {sources.map(({ icon: I, label }) => (
           <div key={label} className={node}>
@@ -108,11 +114,10 @@ function FlowDiagram() {
   );
 }
 
-function SectionHeading({ eyebrow, title, desc, id }: { eyebrow: string; title: string; desc?: ReactNode; id?: string }) {
+function SectionHeading({ title, desc, id }: { title: string; desc?: ReactNode; id?: string }) {
   return (
     <div className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
-      <h2 id={id} className="mt-2 text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h2>
+      <h2 id={id} className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h2>
       {desc && <p className="mt-3 text-base leading-relaxed text-foreground-secondary">{desc}</p>}
     </div>
   );
@@ -155,9 +160,8 @@ export default function LandingPage() {
             <Wordmark variant="negative" size="md" />
           </Link>
           <div className="flex items-center gap-1 sm:gap-6">
-            <a href="#fitur" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">Fitur</a>
+            <a href="#modul" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">Modul</a>
             <a href="#aira" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">AIRA</a>
-            <a href="#cara-kerja" className="hidden text-sm font-medium text-white/80 hover:text-white md:block">Cara kerja</a>
             <Link to="/login" className={`${primaryOnNavy} h-9 px-4`}>
               <LogIn className="size-4" aria-hidden /> Masuk
             </Link>
@@ -171,8 +175,7 @@ export default function LandingPage() {
           <BrandMark variant="negative" size={560} title="" className="pointer-events-none absolute -right-40 -top-24 opacity-[0.05]" />
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:pb-24 md:pt-20">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-blue-light">Agentic ERP</p>
-              <h1 id="hero-title" className="mt-4 text-[2rem] font-bold leading-[1.15] tracking-tight text-white md:text-5xl md:leading-[1.1]">
+              <h1 id="hero-title" className="text-[2rem] font-bold leading-[1.15] tracking-tight text-white md:text-5xl md:leading-[1.1]">
                 Operasional dan keuangan bisnis Anda, dalam satu sistem.
               </h1>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/80 md:text-lg">
@@ -185,52 +188,50 @@ export default function LandingPage() {
                 </Link>
                 <ContactButtons />
               </div>
-              <ul className="mt-8 flex flex-col gap-2 text-sm text-white/80 sm:flex-row sm:flex-wrap sm:gap-x-6">
-                {HERO_POINTS.map((t) => (
-                  <li key={t} className="inline-flex items-center gap-2">
-                    <Check className="size-4 text-brand-blue-light" aria-hidden /> {t}
-                  </li>
-                ))}
-              </ul>
             </div>
             <FlowDiagram />
           </div>
         </section>
 
         {/* Sectors */}
-        <section className="border-b border-border bg-card" aria-labelledby="sektor-title">
-          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-            <h2 id="sektor-title" className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Dirancang untuk
-            </h2>
-            <ul className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              {SECTORS.map((s) => (
-                <li key={s} className="rounded-md border border-border px-3 py-1 text-sm font-medium text-foreground-secondary">{s}</li>
-              ))}
-            </ul>
-          </div>
+        <section className="border-b border-border bg-card" aria-label="Sektor pengguna">
+          <p className="mx-auto max-w-6xl px-4 py-5 text-center text-sm text-foreground-secondary sm:px-6">
+            Dipakai untuk penggilingan padi, pabrik pelet biomassa, trading dan distribusi, serta manufaktur skala UKM.
+          </p>
         </section>
 
-        {/* Features */}
-        <section id="fitur" className="scroll-mt-16 py-16 md:py-24" aria-labelledby="fitur-title">
+        {/* Modules, by workflow */}
+        <section id="modul" className="scroll-mt-16 py-16 md:py-24" aria-labelledby="modul-title">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <SectionHeading
-              id="fitur-title"
-              eyebrow="Fitur"
-              title="Modul yang dibutuhkan bisnis Anda"
-              desc="Dari transaksi harian sampai laporan keuangan, tanpa berpindah aplikasi."
+              id="modul-title"
+              title="Dokumen mengikuti alur kerja Anda"
+              desc="Setiap dokumen membawa data dari langkah sebelumnya, dan setiap langkah yang menyentuh uang atau stok langsung membentuk jurnal."
             />
-            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: I, title, desc }) => (
-                <li key={title} className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-1)]">
-                  <div className="flex size-10 items-center justify-center rounded-md bg-primary-subtle text-primary-subtle-foreground">
-                    <I className="size-5" strokeWidth={1.75} aria-hidden />
+            <ul className="mt-10 divide-y divide-border border-y border-border">
+              {WORKFLOWS.map(({ icon: I, title, flow, note }) => (
+                <li key={title} className="grid gap-3 py-6 md:grid-cols-[14rem_1fr] md:gap-8">
+                  <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                    <I className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
+                    {title}
+                  </h3>
+                  <div>
+                    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm font-medium text-foreground" aria-label={`Alur ${title}`}>
+                      {flow.map((step, k) => (
+                        <li key={step} className="inline-flex items-center gap-2">
+                          {k > 0 && <ArrowRight className="size-3.5 text-muted-foreground" aria-hidden />}
+                          <span className="rounded-sm border border-border bg-card px-2 py-1">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground-secondary">{note}</p>
                   </div>
-                  <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-foreground-secondary">{desc}</p>
                 </li>
               ))}
             </ul>
+            <p className="mt-6 text-sm text-foreground-secondary">
+              Pengajuan dari staf menunggu persetujuan atasan sebelum diposting, dari aplikasi atau lewat Telegram.
+            </p>
           </div>
         </section>
 
@@ -239,7 +240,6 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <SectionHeading
               id="aira-title"
-              eyebrow="AIRA"
               title="Agen AI yang bekerja di atas data transaksi Anda"
               desc="AIRA membaca buku besar yang sama dengan tim keuangan Anda. Ia membantu menjawab pertanyaan dan menyiapkan pekerjaan, sementara keputusan tetap di tangan Anda."
             />
@@ -257,39 +257,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How it works */}
-        <section id="cara-kerja" className="scroll-mt-16 py-16 md:py-24" aria-labelledby="cara-kerja-title">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <SectionHeading id="cara-kerja-title" eyebrow="Cara kerja" title="Tiga langkah, langsung berjalan" />
-            <ol className="mt-10 grid gap-4 md:grid-cols-3">
-              {STEPS.map((s) => (
-                <li key={s.n} className="rounded-lg border border-border bg-card p-6">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden>
-                    {s.n}
-                  </span>
-                  <h3 className="mt-4 text-base font-semibold text-foreground">{s.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-foreground-secondary">{s.desc}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
         {/* Principles */}
         <section className="border-t border-border bg-card py-16 md:py-24" aria-labelledby="prinsip-title">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
             <SectionHeading
               id="prinsip-title"
-              eyebrow="Prinsip"
               title="Dibangun untuk angka yang bisa dipercaya"
-              desc={`${VENDOR} merancang Entaris agar stabil, aman, dan bisa tumbuh bersama bisnis Anda.`}
+              desc={`Dikembangkan dan didukung oleh ${VENDOR}.`}
             />
             <ul className="flex flex-col divide-y divide-border">
-              {PRINCIPLES.map(({ icon: I, title, desc }) => (
-                <li key={title} className="flex gap-4 py-5 first:pt-0 last:pb-0">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-primary">
-                    <I className="size-5" strokeWidth={1.75} aria-hidden />
-                  </div>
+              {PRINCIPLES.map(({ title, desc }) => (
+                <li key={title} className="py-5 first:pt-0 last:pb-0">
                   <div>
                     <h3 className="text-base font-semibold text-foreground">{title}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-foreground-secondary">{desc}</p>
@@ -305,18 +283,12 @@ export default function LandingPage() {
           <div className="mx-auto flex max-w-3xl flex-col items-center px-4 text-center sm:px-6">
             <BrandMark variant="negative" size={40} title="" />
             <h2 id="cta-title" className="mt-5 text-2xl font-bold tracking-tight text-white md:text-3xl">
-              Siap merapikan operasional bisnis Anda?
+              Bicarakan kebutuhan bisnis Anda dengan tim kami
             </h2>
             <p className="mt-3 max-w-xl text-base text-white/80">
-              Sudah punya akun? Masuk sekarang. Belum? Hubungi tim kami untuk demo, implementasi, dan migrasi data.
+              Kami mendampingi implementasi, memindahkan data dari spreadsheet atau sistem lama, dan melatih tim Anda.
+              Data tetap milik perusahaan Anda.
             </p>
-            <ul className="mt-6 flex flex-col gap-2 text-left text-sm text-white/85">
-              {['Implementasi dan migrasi data didampingi', 'Pelatihan untuk tim Anda', 'Data sepenuhnya milik Anda'].map((t) => (
-                <li key={t} className="inline-flex items-center gap-2">
-                  <Check className="size-4 text-brand-blue-light" aria-hidden /> {t}
-                </li>
-              ))}
-            </ul>
             <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
               <Link to="/login" className={primaryOnNavy}>
                 <LogIn className="size-4" aria-hidden /> Masuk ke aplikasi
