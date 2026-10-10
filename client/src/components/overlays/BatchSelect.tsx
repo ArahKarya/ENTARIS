@@ -6,7 +6,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Package } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { LOCALE } from '@/lib/format';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface Batch {
@@ -39,15 +41,16 @@ const NONE = '__none';
 
 const fmtDate = (s: string) => {
   try {
-    return new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' });
+    return new Date(s).toLocaleDateString(LOCALE, { day: '2-digit', month: 'short', year: '2-digit' });
   } catch {
     return s;
   }
 };
-const fmtNum = (val: number) => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 3 });
-const fmtRupiah = (val: number) => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 4 });
+const fmtNum = (val: number) => Number(val).toLocaleString(LOCALE, { maximumFractionDigits: 3 });
+const fmtRupiah = (val: number) => Number(val).toLocaleString(LOCALE, { maximumFractionDigits: 4 });
 
 export function BatchSelect({ itemId, warehouseId, value, onChange, label, disabled, excludeIds }: BatchSelectProps) {
+  const { t } = useTranslation('inventory');
   const enabled = !!itemId && !!warehouseId;
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['item-batches', itemId, warehouseId],
@@ -65,19 +68,19 @@ export function BatchSelect({ itemId, warehouseId, value, onChange, label, disab
   }, [data, excludeKey, value]);
 
   if (!enabled) {
-    return <p className="text-xs italic text-muted-foreground">Pilih item &amp; gudang dulu untuk lihat batch.</p>;
+    return <p className="text-xs italic text-muted-foreground">{t('batchSelect.pickFirst')}</p>;
   }
   if (isLoading) {
     return (
       <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Loader2 className="size-3 animate-spin" aria-hidden /> Memuat batch…
+        <Loader2 className="size-3 animate-spin" aria-hidden /> {t('batchSelect.loading')}
       </p>
     );
   }
   if (batches.length === 0) {
     return (
       <p className="text-xs italic text-muted-foreground">
-        Tidak ada batch tersedia untuk item ini di gudang terpilih. Sistem akan pakai WAC saat submit.
+        {t('batchSelect.none')}
       </p>
     );
   }
@@ -97,18 +100,18 @@ export function BatchSelect({ itemId, warehouseId, value, onChange, label, disab
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>Pakai WAC (tidak pilih batch)</SelectItem>
+          <SelectItem value={NONE}>{t('batchSelect.useWac')}</SelectItem>
           {batches.map((b) => (
             <SelectItem key={b.id} value={b.id}>
-              {fmtDate(b.date)} · {fmtNum(b.qtyAvailable)} Kg tersedia (@ Rp {fmtRupiah(b.unitCost)}/Kg) · {b.sourceRef ?? b.movementNumber}
+              {t('batchSelect.option', { date: fmtDate(b.date), qty: fmtNum(b.qtyAvailable), cost: fmtRupiah(b.unitCost), ref: b.sourceRef ?? b.movementNumber })}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <Package className="size-3" aria-hidden />
-        {batches.length} batch · total {fmtNum(sumAvailable)} Kg tersedia (FIFO sudah serap outbound legacy)
-        {isFetching && !isLoading && <span className="ml-1">memuat ulang…</span>}
+        {t('batchSelect.summary', { count: batches.length, total: fmtNum(sumAvailable) })}
+        {isFetching && !isLoading && <span className="ml-1">{t('batchSelect.refreshing')}</span>}
       </p>
     </div>
   );

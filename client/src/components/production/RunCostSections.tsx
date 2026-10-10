@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Field } from '@/components/shared';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { LOCALE } from '@/lib/format';
 import { fmtRupiah, type CostLine, type CostStandard } from './run-form-utils';
 
 const NONE = '__none';
@@ -29,6 +31,7 @@ interface CostSectionProps {
 export function RunCostSection({
   title, hint, rows, standards, usedStandardIds, onAdd, onRemove, onUpdate, onPickStandard, computeTotal,
 }: CostSectionProps) {
+  const { t } = useTranslation('production');
   const sectionTotal = rows.reduce((s, { c }) => s + computeTotal(c), 0);
   // "Tambah Biaya" stays enabled even when every standard is used — staff can still enter manually.
   const hasMoreStandards = standards.length > usedStandardIds.size;
@@ -40,7 +43,7 @@ export function RunCostSection({
           <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
         </div>
         <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onAdd}>
-          <Plus aria-hidden /> Tambah Biaya
+          <Plus aria-hidden /> {t('runCostSections.addCost')}
         </Button>
       </div>
       {rows.length > 0 && (
@@ -53,30 +56,30 @@ export function RunCostSection({
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
                   <div className="col-span-2 min-w-0 sm:col-span-1">
                     <Select value={c.standardId || NONE} onValueChange={(v) => onPickStandard(idx, v === NONE ? '' : v)}>
-                      <SelectTrigger aria-label={`Standar biaya ${title} baris ${idx + 1}`}>
+                      <SelectTrigger aria-label={t('runCostSections.standardAria', { title, n: idx + 1 })}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>Isi manual</SelectItem>
+                        <SelectItem value={NONE}>{t('runCostSections.manualEntry')}</SelectItem>
                         {available.map((s) => (
                           <SelectItem key={s.id} value={s.id}>
-                            {s.name} (default Rp {Number(s.defaultRate)})
+                            {t('runCostSections.standardOption', { name: s.name, rate: Number(s.defaultRate) })}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <Select value={c.basis} onValueChange={(v) => onUpdate(idx, { basis: v as CostLine['basis'] })}>
-                    <SelectTrigger aria-label={`Basis biaya ${title} baris ${idx + 1}`}>
+                    <SelectTrigger aria-label={t('runCostSections.basisAria', { title, n: idx + 1 })}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="InputQty">× qty input</SelectItem>
-                      <SelectItem value="OutputQty">× qty output</SelectItem>
-                      <SelectItem value="Fixed">Flat (run)</SelectItem>
+                      <SelectItem value="InputQty">{t('runCostSections.basisInputQty')}</SelectItem>
+                      <SelectItem value="OutputQty">{t('runCostSections.basisOutputQty')}</SelectItem>
+                      <SelectItem value="Fixed">{t('runCostSections.basisFixed')}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button type="button" variant="ghost" size="icon-touch" className="text-muted-foreground hover:text-danger-text" onClick={() => onRemove(idx)} aria-label={`Hapus biaya ${title} baris ${idx + 1}`}>
+                  <Button type="button" variant="ghost" size="icon-touch" className="text-muted-foreground hover:text-danger-text" onClick={() => onRemove(idx)} aria-label={t('runCostSections.removeAria', { title, n: idx + 1 })}>
                     <Trash2 aria-hidden />
                   </Button>
                 </div>
@@ -84,15 +87,15 @@ export function RunCostSection({
                   <Input
                     value={c.description}
                     onChange={(e) => onUpdate(idx, { description: e.target.value, standardId: '' })}
-                    placeholder="Keterangan…"
-                    aria-label={`Keterangan biaya ${title} baris ${idx + 1}`}
+                    placeholder={t('runCostSections.descriptionPlaceholder')}
+                    aria-label={t('runCostSections.descriptionAria', { title, n: idx + 1 })}
                   />
                   <NumberInput
                     step="0.0001"
                     value={c.rate}
                     onChange={(e) => onUpdate(idx, { rate: e.target.value, standardId: '' })}
-                    placeholder="Rate"
-                    aria-label={`Rate biaya ${title} baris ${idx + 1}`}
+                    placeholder={t('runCostSections.ratePlaceholder')}
+                    aria-label={t('runCostSections.rateAria', { title, n: idx + 1 })}
                     className="h-10 text-right font-mono tabular-nums"
                   />
                   <span className="col-span-2 text-right font-mono text-xs tabular-nums text-muted-foreground">
@@ -103,13 +106,13 @@ export function RunCostSection({
             );
           })}
           <div className="pr-1 text-right font-mono text-xs tabular-nums text-muted-foreground">
-            Subtotal: <span className="font-semibold text-foreground">Rp {fmtRupiah(sectionTotal)}</span>
+            {t('runCostSections.subtotal')} <span className="font-semibold text-foreground">Rp {fmtRupiah(sectionTotal)}</span>
           </div>
         </div>
       )}
       {!hasMoreStandards && standards.length > 0 && rows.length > 0 && (
         <p className="mt-1.5 text-xs text-muted-foreground">
-          Semua master standar di sisi ini sudah dipakai. Tambah baris berikutnya hanya bisa diisi manual.
+          {t('runCostSections.allStandardsUsed')}
         </p>
       )}
     </section>
@@ -130,6 +133,7 @@ interface HppSummaryProps {
 }
 
 export function RunHppSummary(p: HppSummaryProps) {
+  const { t } = useTranslation('production');
   const row = (label: string, value: number) => (
     <>
       <span className="text-muted-foreground">{label}</span>
@@ -137,20 +141,20 @@ export function RunHppSummary(p: HppSummaryProps) {
     </>
   );
   return (
-    <section aria-label="HPP loaded" className="space-y-1.5 rounded-lg border border-success/30 bg-success-subtle px-4 py-3">
+    <section aria-label={t('runCostSections.hppLoadedAria')} className="space-y-1.5 rounded-lg border border-success/30 bg-success-subtle px-4 py-3">
       <div className="mb-1 flex items-center gap-1.5">
         <Calculator className="size-3.5 text-success-text" aria-hidden />
-        <h3 className="text-xs font-bold uppercase tracking-wide text-success-text">HPP Loaded (auto-calculated)</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-success-text">{t('runCostSections.hppLoadedHeading')}</h3>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-        {row('Biaya Material', p.materialCost)}
-        {row('+ Biaya Sisi Input', p.costInputSide)}
-        {row('+ Biaya Sisi Output', p.costOutputSide)}
-        {row('− Nilai Produk Samping (NRV)', p.byproductValue)}
+        {row(t('runCostSections.materialCost'), p.materialCost)}
+        {row(t('runCostSections.inputSideCost'), p.costInputSide)}
+        {row(t('runCostSections.outputSideCost'), p.costOutputSide)}
+        {row(t('runCostSections.byProductValue'), p.byproductValue)}
       </div>
       <div className="flex items-baseline justify-between gap-2 border-t border-success/30 pt-1.5">
         <span className="text-xs text-success-text">
-          HPP per Kg main output ({p.mainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })} Kg):
+          {t('runCostSections.hppPerKgMain', { qty: p.mainOutputQty.toLocaleString(LOCALE, { maximumFractionDigits: 3 }) })}
         </span>
         <span className="font-mono text-base font-bold tabular-nums text-success-text">Rp {fmtRupiah(p.previewHpp)}</span>
       </div>
@@ -162,7 +166,7 @@ export function RunHppSummary(p: HppSummaryProps) {
             onCheckedChange={(v) => p.onHppOverride(v === true ? String(p.autoHpp.toFixed(4)) : '')}
           />
           <Label htmlFor="run-hpp-override" className="cursor-pointer text-xs font-normal text-muted-foreground">
-            Override manual HPP
+            {t('runCostSections.overrideHpp')}
           </Label>
         </div>
         {p.hasOverride && (
@@ -170,8 +174,8 @@ export function RunHppSummary(p: HppSummaryProps) {
             step="0.0001"
             value={p.hppOverride}
             onChange={(e) => p.onHppOverride(e.target.value)}
-            placeholder="Override Rp/Kg"
-            aria-label="Nilai override HPP (Rp per Kg)"
+            placeholder={t('runCostSections.overridePlaceholder')}
+            aria-label={t('runCostSections.overrideAria')}
             className="h-9 w-40 text-right font-mono tabular-nums"
           />
         )}
@@ -189,16 +193,17 @@ interface YieldSummaryProps {
 }
 
 export function RunYieldSummary({ yieldPct, mainOutputQty, inputQty, unit, hasByproduct }: YieldSummaryProps) {
+  const { t } = useTranslation('production');
   return (
     <p role="status" className="rounded-lg bg-info-subtle px-4 py-3 text-sm text-info-text">
-      <span className="font-semibold">Yield: </span>
+      <span className="font-semibold">{t('runCostSections.yieldLabel')} </span>
       {yieldPct}%
       <span className="ml-1">
-        ({mainOutputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+        ({mainOutputQty.toLocaleString(LOCALE, { maximumFractionDigits: 3 })}
         {' / '}
-        {inputQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {unit})
+        {inputQty.toLocaleString(LOCALE, { maximumFractionDigits: 3 })} {unit})
       </span>
-      {hasByproduct && <span className="ml-2 text-xs text-warning-text">(produk samping tidak dihitung)</span>}
+      {hasByproduct && <span className="ml-2 text-xs text-warning-text">{t('runCostSections.byProductExcluded')}</span>}
     </p>
   );
 }
@@ -210,12 +215,13 @@ interface ProcessPickerProps {
 }
 
 export function RunProcessPicker({ processes, selectedIds, onToggle }: ProcessPickerProps) {
+  const { t } = useTranslation('production');
   return (
     <section aria-labelledby="run-process-heading">
       <div className="mb-1.5 flex items-center justify-between">
-        <h3 id="run-process-heading" className="text-xs font-bold uppercase tracking-wide text-foreground">Proses Yang Dijalankan</h3>
+        <h3 id="run-process-heading" className="text-xs font-bold uppercase tracking-wide text-foreground">{t('runCostSections.processHeading')}</h3>
         <span className="text-xs text-muted-foreground">
-          {selectedIds.length > 0 ? `${selectedIds.length} dipilih` : 'opsional · traceability saja'}
+          {selectedIds.length > 0 ? t('runCostSections.processSelected', { count: selectedIds.length }) : t('runCostSections.processOptional')}
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -243,8 +249,8 @@ export function RunProcessPicker({ processes, selectedIds, onToggle }: ProcessPi
         })}
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">
-        Klik untuk pilih/batal. Hanya untuk catatan traceability. Tidak posting GL, tidak pengaruhi HPP. Master diatur di tab{' '}
-        <span className="font-semibold">Master Proses</span>.
+        {t('runCostSections.processHint')}{' '}
+        <span className="font-semibold">{t('runCostSections.processMasterTab')}</span>.
       </p>
     </section>
   );
@@ -258,23 +264,24 @@ interface NegativeStockProps {
 }
 
 export function RunNegativeStockOverride({ allow, reason, onAllow, onReason }: NegativeStockProps) {
+  const { t } = useTranslation('production');
   return (
-    <section aria-label="Admin override stok minus" className="space-y-3 rounded-lg border border-warning/30 bg-warning-subtle/40 p-3">
+    <section aria-label={t('runCostSections.negativeStockAria')} className="space-y-3 rounded-lg border border-warning/30 bg-warning-subtle/40 p-3">
       <div className="flex items-start gap-2">
         <Checkbox id="run-negative-stock" checked={allow} onCheckedChange={(v) => onAllow(v === true)} className="mt-0.5" />
         <Label htmlFor="run-negative-stock" className="block cursor-pointer text-xs font-normal leading-snug text-foreground">
-          <strong>Admin override:</strong> izinkan stok bahan baku minus
+          <strong>{t('runCostSections.adminOverride')}</strong> {t('runCostSections.allowNegativeStock')}
           <span className="mt-0.5 block text-xs text-warning-text">
-            Pakai saat produksi backdate / barang fisik sudah keluar tapi system belum tahu. Audit log dicatat.
+            {t('runCostSections.negativeStockHint')}
           </span>
         </Label>
       </div>
       {allow && (
-        <Field label="Alasan bypass (min 10 karakter)" required>
+        <Field label={t('runCostSections.bypassReason')} required>
           <Textarea
             value={reason}
             onChange={(e) => onReason(e.target.value)}
-            placeholder="contoh: Output 50 ton sudah dikirim ke 2 pelanggan, input produksi menyusul"
+            placeholder={t('runCostSections.bypassReasonPlaceholder')}
             rows={2}
           />
         </Field>

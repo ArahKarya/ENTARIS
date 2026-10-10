@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { LOCALE } from '@/lib/format';
 import type { Batch } from './overlays/BatchSelect';
 import { cap } from '../lib/permissions';
 import { fetchBatches, allocateFifo } from '../lib/fifoAllocate';
@@ -51,6 +53,7 @@ const DRAFTS_ENDPOINT = '/inventory/production-runs/drafts';
 const today = () => new Date().toISOString().split('T')[0];
 
 export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPayload, resubmitRequestId, draft }: Props) {
+  const { t } = useTranslation('production');
   const queryClient = useQueryClient();
   const [date, setDate] = useState(today());
   const [warehouseId, setWarehouseId] = useState('');
@@ -318,7 +321,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       });
       const { allocations, shortfall } = allocateFifo(batches, qty, claimed);
       if (allocations.length === 0) {
-        toast.error('Tidak ada batch tersedia untuk item ini di gudang terpilih.');
+        toast.error(t('productionRunModal.noBatches'));
         return;
       }
       const newRows: LineItem[] = allocations.map(a => ({
@@ -329,13 +332,13 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       }));
       if (shortfall > 0) {
         newRows.push({ itemId: row.itemId, quantity: String(shortfall), sourceMovementId: '', batchUnitCost: '' });
-        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia. Baris sisa memakai biaya rata-rata (WAC).`);
+        toast.warning(t('productionRunModal.batchShortfall', { qty: shortfall.toLocaleString(LOCALE) }));
       } else {
-        toast.success(`Dibagi ke ${allocations.length} batch (FIFO).`);
+        toast.success(t('productionRunModal.batchSplit', { count: allocations.length }));
       }
       setInputs(prev => [...prev.slice(0, idx), ...newRows, ...prev.slice(idx + 1)]);
     } catch {
-      toast.error('Gagal mengambil daftar batch.');
+      toast.error(t('productionRunModal.batchLoadFailed'));
     }
   };
 
@@ -449,28 +452,28 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     setErrors([]);
 
     const errs: string[] = [];
-    if (!date) errs.push('Tanggal wajib diisi.');
-    if (!warehouseId) errs.push('Gudang wajib dipilih.');
+    if (!date) errs.push(t('productionRunModal.errors.dateRequired'));
+    if (!warehouseId) errs.push(t('productionRunModal.errors.warehouseRequired'));
     const validInputs = inputs.filter(i => i.itemId && i.quantity && parseFloat(i.quantity) > 0);
     const validOutputs = outputs.filter(o => o.itemId && o.quantity && parseFloat(o.quantity) > 0);
-    if (validInputs.length === 0) errs.push('Minimal satu item input.');
-    if (validOutputs.length === 0) errs.push('Minimal satu item output.');
+    if (validInputs.length === 0) errs.push(t('productionRunModal.errors.inputRequired'));
+    if (validOutputs.length === 0) errs.push(t('productionRunModal.errors.outputRequired'));
     // By-products require an explicit NRV. Main outputs may omit unitPrice; the
     // server back-fills it from loaded HPP.
     validOutputs.forEach((o, i) => {
       if (o.isByProduct && (!o.unitPrice || parseFloat(o.unitPrice) < 0)) {
-        errs.push(`Produk samping baris ke-${i + 1}: NRV wajib diisi.`);
+        errs.push(t('productionRunModal.errors.byProductNrv', { n: i + 1 }));
       }
     });
     if (allowNegativeStock && negativeStockReason.trim().length < 10) {
-      errs.push('Alasan bypass stok minus wajib diisi (minimal 10 karakter).');
+      errs.push(t('productionRunModal.errors.bypassReason'));
     }
     if (plannedStart && plannedEnd && new Date(plannedEnd).getTime() <= new Date(plannedStart).getTime()) {
-      errs.push('Jam selesai shift harus setelah jam mulai shift.');
+      errs.push(t('productionRunModal.errors.shiftEndBeforeStart'));
     }
     runMachines.forEach((m, i) => {
       if (m.startAt && m.endAt && new Date(m.endAt).getTime() <= new Date(m.startAt).getTime()) {
-        errs.push(`Mesin baris ke-${i + 1}: jam selesai harus setelah jam mulai.`);
+        errs.push(t('productionRunModal.errors.machineEndBeforeStart', { n: i + 1 }));
       }
     });
     if (errs.length) { setErrors(errs); return; }
@@ -563,21 +566,21 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
       queryClient.invalidateQueries({ queryKey: ['approval-pending'] });
       if (draftSaved) {
-        toast.success(`Draft ${draftSaved.draft?.draftNumber ?? ''} tersimpan. Belum memengaruhi stok, jurnal, atau HPP sampai diposting.`);
+        toast.success(t('productionRunModal.toast.draftSaved', { number: draftSaved.draft?.draftNumber ?? '' }));
         for (const w of draftSaved.warnings ?? []) toast.warning(w);
       } else if (editPending) {
         // The edit is only queued for approval, so no optimistic update.
-        toast.success('Perubahan dikirim untuk persetujuan.');
+        toast.success(t('productionRunModal.toast.editPending'));
       } else if (resubmitted) {
-        toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');
+        toast.success(t('productionRunModal.toast.resubmitted'));
       } else if (pendingApproval) {
-        toast.success('Data produksi dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
+        toast.success(t('productionRunModal.toast.pendingApproval'));
       } else {
-        toast.success(editRun ? 'Proses produksi diperbarui.' : 'Proses produksi dicatat.');
+        toast.success(editRun ? t('productionRunModal.toast.updated') : t('productionRunModal.toast.recorded'));
       }
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || (editRun ? 'Gagal mengedit proses produksi.' : resubmitRequestId ? 'Gagal mengajukan ulang.' : 'Gagal menyimpan draft produksi.'));
+      toast.error(err.response?.data?.error || (editRun ? t('productionRunModal.toast.editFailed') : resubmitRequestId ? t('productionRunModal.toast.resubmitFailed') : t('productionRunModal.toast.saveDraftFailed')));
     } finally {
       setIsSubmitting(false);
     }
@@ -591,12 +594,12 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
         <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <PinnedHeader>
             <DialogTitle>
-              {editRun ? `Edit ${editRun.runNumber}` : draft ? `Edit Draft ${draft.draftNumber}` : resubmitRequestId ? 'Perbaiki Pengajuan' : 'Draft Proses Produksi'}
+              {editRun ? t('productionRunModal.titleEdit', { number: editRun.runNumber }) : draft ? t('productionRunModal.titleEditDraft', { number: draft.draftNumber }) : resubmitRequestId ? t('productionRunModal.titleResubmit') : t('productionRunModal.titleNew')}
             </DialogTitle>
             <DialogDescription>
               {editRun || resubmitRequestId
-                ? 'Catat bahan input, hasil output, biaya, dan data OEE untuk satu proses produksi.'
-                : 'Isi bahan input, hasil output, biaya, dan data OEE. Disimpan sebagai draft. Stok, jurnal, dan HPP baru terbentuk setelah draft diposting.'}
+                ? t('productionRunModal.descriptionEdit')
+                : t('productionRunModal.descriptionDraft')}
             </DialogDescription>
           </PinnedHeader>
 
@@ -605,7 +608,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
               <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger-subtle p-3 text-sm text-danger-text">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <div>
-                  <p className="font-medium">Posting sebelumnya gagal / dikembalikan</p>
+                  <p className="font-medium">{t('productionRunModal.lastErrorTitle')}</p>
                   <p className="break-words">{draft.lastError}</p>
                 </div>
               </div>
@@ -626,28 +629,28 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
             )}
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Tanggal" required>
+              <Field label={t('productionRunModal.date')} required>
                 <DateInput value={date} onChange={setDate} />
               </Field>
               <WarehouseSelectField
-                label="Gudang"
+                label={t('productionRunModal.warehouse')}
                 required
                 value={warehouseId}
                 onChange={setWarehouseId}
                 autoDefault
-                placeholder="Pilih gudang produksi…"
+                placeholder={t('productionRunModal.warehousePlaceholder')}
               />
-              <Field label="Referensi (No. PI / Opsional)">
+              <Field label={t('productionRunModal.reference')}>
                 <Input
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
-                  placeholder="Misal: PI-202603-0001"
+                  placeholder={t('productionRunModal.referencePlaceholder')}
                 />
               </Field>
             </div>
 
-            <Field label="Catatan">
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Keterangan tambahan…" className="resize-none" />
+            <Field label={t('productionRunModal.notes')}>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t('productionRunModal.notesPlaceholder')} className="resize-none" />
             </Field>
 
             <RunInputsSection
@@ -709,8 +712,8 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
 
             {/* Cost components. usedStandardIds: standards already used on another row of this side are hidden (prevents double entry). */}
             <RunCostSection
-              title="Biaya Produksi (Sisi Input)"
-              hint="Contoh: Listrik mesin produksi per Kg bahan baku masuk. Hanya sebagai catatan, tidak masuk jurnal."
+              title={t('productionRunModal.inputCostTitle')}
+              hint={t('productionRunModal.inputCostHint')}
               rows={inputCostRows}
               standards={standards.filter((s) => s.costSide === 'InputSide')}
               usedStandardIds={new Set(inputCostRows.map((r) => r.c.standardId).filter(Boolean))}
@@ -721,8 +724,8 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
               computeTotal={computeCostTotal}
             />
             <RunCostSection
-              title="Biaya Produksi (Sisi Output)"
-              hint="Contoh: Biaya kirim hasil ke gudang per Kg beras."
+              title={t('productionRunModal.outputCostTitle')}
+              hint={t('productionRunModal.outputCostHint')}
               rows={outputCostRows}
               standards={standards.filter((s) => s.costSide === 'OutputSide')}
               usedStandardIds={new Set(outputCostRows.map((r) => r.c.standardId).filter(Boolean))}
@@ -770,10 +773,10 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
 
           <PinnedFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
-              Batal
+              {t('productionRunModal.cancel')}
             </Button>
             <Button type="submit" loading={isSubmitting} className="min-w-[120px]">
-              {isSubmitting ? 'Menyimpan…' : editRun ? 'Simpan Perubahan' : resubmitRequestId ? 'Kirim Ulang' : 'Simpan Draft'}
+              {isSubmitting ? t('productionRunModal.saving') : editRun ? t('productionRunModal.saveChanges') : resubmitRequestId ? t('productionRunModal.resubmit') : t('productionRunModal.saveDraft')}
             </Button>
           </PinnedFooter>
         </form>

@@ -5,6 +5,7 @@
  */
 import type { ReactNode } from 'react';
 import { Factory, Pencil, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatDate, formatDateTime, formatRupiah } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -37,6 +38,7 @@ function Detail({ label, children, wide }: { label: string; children: ReactNode;
 }
 
 export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, onOpenProductionRun }: MovementDetailSheetProps) {
+  const { t } = useTranslation('inventory');
   const editBlock = m ? movementEditBlock(m) : null;
   const cancelBlock = m ? movementCancelBlock(m) : null;
   const showEdit = !!m && !!onEdit && !editBlock;
@@ -61,29 +63,29 @@ export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, on
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Tanggal">{formatDate(m.date)}</Detail>
-                <Detail label="Gudang">{m.warehouse?.name ?? '—'}</Detail>
-                <Detail label="Item">
+                <Detail label={t('movementDetailSheet.fields.date')}>{formatDate(m.date)}</Detail>
+                <Detail label={t('movementDetailSheet.fields.warehouse')}>{m.warehouse?.name ?? '—'}</Detail>
+                <Detail label={t('movementDetailSheet.fields.item')}>
                   {m.item?.name ?? '—'}
                   {m.item?.code && <span className="num ml-1.5 font-mono text-xs text-muted-foreground">{m.item.code}</span>}
                 </Detail>
-                <Detail label="Tipe">{movementTypeLabel(m.movementType)}</Detail>
-                <Detail label="Kuantitas">
+                <Detail label={t('movementDetailSheet.fields.type')}>{movementTypeLabel(m.movementType)}</Detail>
+                <Detail label={t('movementDetailSheet.fields.quantity')}>
                   <span className="num font-medium">
                     {isInbound(m.movementType) ? '+' : '−'}
                     {formatQty(m.quantity)} {m.item?.unit ?? ''}
                   </span>
                 </Detail>
-                <Detail label="Harga satuan">
+                <Detail label={t('movementDetailSheet.fields.unitCost')}>
                   <span className="num">{formatRupiah(m.unitCost ?? 0)}</span>
                 </Detail>
-                <Detail label="Nilai">
+                <Detail label={t('movementDetailSheet.fields.value')}>
                   <span className="num font-medium">{m.totalValue != null ? formatRupiah(m.totalValue) : '—'}</span>
                 </Detail>
-                <Detail label="Akun lawan">
+                <Detail label={t('movementDetailSheet.fields.offsetAccount')}>
                   {m.offsetAccount ? `${m.offsetAccount.accountNumber} · ${m.offsetAccount.name}` : '—'}
                 </Detail>
-                <Detail label="Referensi" wide>
+                <Detail label={t('movementDetailSheet.fields.reference')} wide>
                   {m.referenceNumber ? (
                     <span>
                       {referenceTypeLabel(m.referenceType)}{' '}
@@ -94,11 +96,11 @@ export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, on
                   )}
                 </Detail>
                 {m.notes && (
-                  <Detail label="Catatan" wide>
+                  <Detail label={t('movementDetailSheet.fields.notes')} wide>
                     {m.notes}
                   </Detail>
                 )}
-                {m.createdAt && <Detail label="Dicatat">{formatDateTime(m.createdAt)}</Detail>}
+                {m.createdAt && <Detail label={t('movementDetailSheet.fields.recordedAt')}>{formatDateTime(m.createdAt)}</Detail>}
               </dl>
 
               {note && (
@@ -111,19 +113,19 @@ export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, on
                 {runId && onOpenProductionRun && (
                   <Button variant="outline" onClick={() => onOpenProductionRun(runId)}>
                     <Factory aria-hidden />
-                    Lihat proses produksi
+                    {t('movementDetailSheet.actions.openProductionRun')}
                   </Button>
                 )}
                 {showCancel && (
                   <Button variant="outline" className="text-danger-text" onClick={() => onCancel?.(m)}>
                     <XCircle aria-hidden />
-                    Batalkan
+                    {t('movementDetailSheet.actions.cancel')}
                   </Button>
                 )}
                 {showEdit && (
                   <Button onClick={() => onEdit?.(m)}>
                     <Pencil aria-hidden />
-                    Edit
+                    {t('movementDetailSheet.actions.edit')}
                   </Button>
                 )}
               </SheetFooter>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +37,7 @@ const defaultForm = {
 const NO_ACCOUNT = '__none';
 
 export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemModalProps) {
+  const { t } = useTranslation('inventory');
   const [form, setForm] = useState({ ...defaultForm });
   const [error, setError] = useState('');
   const [showErrors, setShowErrors] = useState(false);
@@ -79,11 +81,11 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
         : api.post('/inventory/items', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Item disimpan.');
+      toast.success(t('inventoryItemModal.toast.saved'));
       onClose();
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error || 'Gagal menyimpan item.';
+      const msg = err.response?.data?.error || t('inventoryItemModal.toast.saveFailed');
       setError(msg);
       toast.error(msg);
     },
@@ -109,7 +111,7 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
     });
   };
 
-  const required = (v: string) => (showErrors && !v.trim() ? 'Wajib diisi.' : undefined);
+  const required = (v: string) => (showErrors && !v.trim() ? t('inventoryItemModal.errors.required') : undefined);
   const pending = mutation.isPending;
 
   return (
@@ -117,52 +119,52 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
       <DialogContent size="md" className={pinnedDialogClass}>
         <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <PinnedHeader>
-            <DialogTitle>{editItem ? 'Edit Item Stok' : 'Tambah Item Stok'}</DialogTitle>
-            <DialogDescription>Data master item persediaan.</DialogDescription>
+            <DialogTitle>{editItem ? t('inventoryItemModal.titleEdit') : t('inventoryItemModal.titleCreate')}</DialogTitle>
+            <DialogDescription>{t('inventoryItemModal.description')}</DialogDescription>
           </PinnedHeader>
           <PinnedBody className="grid gap-4">
-            <Field label="Kode Item" required error={required(form.code)}>
+            <Field label={t('inventoryItemModal.fields.code')} required error={required(form.code)}>
               <Input
                 value={form.code}
                 onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
-                placeholder="Contoh: BBM-001"
+                placeholder={t('inventoryItemModal.placeholders.code')}
               />
             </Field>
-            <Field label="Nama Item" required error={required(form.name)}>
+            <Field label={t('inventoryItemModal.fields.name')} required error={required(form.name)}>
               <Input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Nama item persediaan"
+                placeholder={t('inventoryItemModal.placeholders.name')}
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Satuan" required error={required(form.unit)}>
+              <Field label={t('inventoryItemModal.fields.unit')} required error={required(form.unit)}>
                 <Input
                   value={form.unit}
                   onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                  placeholder="kg, sak, pcs, ton"
+                  placeholder={t('inventoryItemModal.placeholders.unit')}
                 />
               </Field>
-              <Field label="Kategori">
+              <Field label={t('inventoryItemModal.fields.category')}>
                 <Input
                   value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  placeholder="Bahan baku, produk jadi, dll."
+                  placeholder={t('inventoryItemModal.placeholders.category')}
                 />
               </Field>
             </div>
-            <Field label="Deskripsi">
+            <Field label={t('inventoryItemModal.fields.description')}>
               <Textarea
                 rows={3}
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Deskripsi opsional tentang item ini"
+                placeholder={t('inventoryItemModal.placeholders.description')}
                 className="resize-none"
               />
             </Field>
             <Field
-              label="Stok Minimum"
-              hint="Peringatan stok menipis akan muncul jika stok di bawah nilai ini."
+              label={t('inventoryItemModal.fields.minimumStock')}
+              hint={t('inventoryItemModal.hints.minimumStock')}
             >
               <NumberInput
                 min={0}
@@ -172,8 +174,8 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
               />
             </Field>
             <Field
-              label="Akun Persediaan"
-              hint="Pilih akun aset untuk jurnal otomatis saat stok masuk atau keluar."
+              label={t('inventoryItemModal.fields.account')}
+              hint={t('inventoryItemModal.hints.account')}
             >
               {(control) => (
                 <Select
@@ -181,10 +183,10 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
                   onValueChange={v => setForm(f => ({ ...f, accountId: v === NO_ACCOUNT ? '' : v }))}
                 >
                   <SelectTrigger {...control}>
-                    <SelectValue placeholder="Tidak dipilih" />
+                    <SelectValue placeholder={t('inventoryItemModal.placeholders.account')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_ACCOUNT}>Tidak Dipilih</SelectItem>
+                    <SelectItem value={NO_ACCOUNT}>{t('inventoryItemModal.noAccount')}</SelectItem>
                     {assetAccounts.map((a: any) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.accountNumber} · {a.name}
@@ -198,10 +200,10 @@ export function InventoryItemModal({ isOpen, onClose, editItem }: InventoryItemM
           </PinnedBody>
           <PinnedFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
-              Batal
+              {t('inventoryItemModal.actions.cancel')}
             </Button>
             <Button type="submit" loading={pending}>
-              {pending ? 'Menyimpan…' : 'Simpan Item'}
+              {pending ? t('inventoryItemModal.actions.saving') : t('inventoryItemModal.actions.save')}
             </Button>
           </PinnedFooter>
         </form>

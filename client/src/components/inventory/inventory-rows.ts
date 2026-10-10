@@ -2,6 +2,7 @@
  * Row types, labels and pure rules for the Stok & Produksi list tabs
  * (pages/InventoryPage.tsx). Kept free of React so they can be unit tested.
  */
+import i18n from '@/i18n';
 import { formatNumber, toNumber } from '@/lib/format';
 import type { Paginated } from '@/components/shared';
 
@@ -76,36 +77,44 @@ export type MovementType = 'In' | 'Out' | 'AdjustmentIn' | 'AdjustmentOut' | 'Tr
 
 export const MOVEMENT_TYPES: readonly MovementType[] = ['In', 'Out', 'AdjustmentIn', 'AdjustmentOut', 'TransferIn', 'TransferOut'];
 
-export const MOVEMENT_TYPE_LABEL: Record<MovementType, string> = {
-  In: 'Masuk',
-  Out: 'Keluar',
-  AdjustmentIn: 'Penyesuaian +',
-  AdjustmentOut: 'Penyesuaian −',
-  TransferIn: 'Transfer Masuk',
-  TransferOut: 'Transfer Keluar',
-};
+const isMovementType = (type: string): type is MovementType => (MOVEMENT_TYPES as readonly string[]).includes(type);
+
+/** Movement type label in the current UI language. */
+export const movementTypeLabel = (type: string): string =>
+  isMovementType(type) ? i18n.t(`inventoryRows.movementType.${type}`, { ns: 'inventory' }) : type;
+
+/**
+ * Movement type labels, read through getters so every access follows the current language.
+ * Prefer movementTypeLabel(); read it at render time, never into a module-level constant.
+ */
+export const MOVEMENT_TYPE_LABEL: Readonly<Record<MovementType, string>> = Object.defineProperties(
+  {} as Record<MovementType, string>,
+  Object.fromEntries(MOVEMENT_TYPES.map((t) => [t, { enumerable: true, get: () => movementTypeLabel(t) }])),
+);
 
 const INBOUND = new Set<string>(['In', 'AdjustmentIn', 'TransferIn']);
 
 export const isInbound = (type: string): boolean => INBOUND.has(type);
 
-export const movementTypeLabel = (type: string): string => MOVEMENT_TYPE_LABEL[type as MovementType] ?? type;
+/** Source documents of system-generated movements (label key: inventoryRows.referenceType.<type>). */
+const REFERENCE_TYPES = [
+  'GoodsReceipt',
+  'PurchaseInvoice',
+  'SalesInvoice',
+  'SalesReturn',
+  'DeliveryOrder',
+  'ProductionRun',
+  'StockOpname',
+  'StockTransfer',
+  'OpeningBalance',
+] as const;
+type ReferenceType = (typeof REFERENCE_TYPES)[number];
+const isReferenceType = (type: string): type is ReferenceType => (REFERENCE_TYPES as readonly string[]).includes(type);
 
-/** Source documents of system-generated movements, in Indonesian. */
-const REFERENCE_LABEL: Record<string, string> = {
-  GoodsReceipt: 'STT',
-  PurchaseInvoice: 'Faktur Pembelian',
-  SalesInvoice: 'Faktur Penjualan',
-  SalesReturn: 'Retur Penjualan',
-  DeliveryOrder: 'Surat Jalan',
-  ProductionRun: 'Proses Produksi',
-  StockOpname: 'Stok Opname',
-  StockTransfer: 'Transfer Stok',
-  OpeningBalance: 'Saldo Awal',
+export const referenceTypeLabel = (type: string | null | undefined): string => {
+  if (!type) return '';
+  return isReferenceType(type) ? i18n.t(`inventoryRows.referenceType.${type}`, { ns: 'inventory' }) : type;
 };
-
-export const referenceTypeLabel = (type: string | null | undefined): string =>
-  type ? (REFERENCE_LABEL[type] ?? type) : '';
 
 export interface StockMovementRow {
   id: string;
@@ -147,15 +156,15 @@ export interface StockMovementSummary {
  *  • Production-run movements: no edit — edit the production run.
  */
 export function movementEditBlock(m: Pick<StockMovementRow, 'referenceType' | 'isCancelled'>): string | null {
-  if (m.isCancelled) return 'Gerakan sudah dibatalkan.';
-  if (m.referenceType === 'GoodsReceipt') return 'Gerakan dari STT hanya bisa diubah lewat halaman STT.';
-  if (m.referenceType === 'ProductionRun') return 'Gerakan dari proses produksi diubah lewat proses produksinya.';
+  if (m.isCancelled) return i18n.t('inventoryRows.block.cancelled', { ns: 'inventory' });
+  if (m.referenceType === 'GoodsReceipt') return i18n.t('inventoryRows.block.editFromReceipt', { ns: 'inventory' });
+  if (m.referenceType === 'ProductionRun') return i18n.t('inventoryRows.block.editFromProduction', { ns: 'inventory' });
   return null;
 }
 
 export function movementCancelBlock(m: Pick<StockMovementRow, 'referenceType' | 'isCancelled'>): string | null {
-  if (m.isCancelled) return 'Gerakan sudah dibatalkan.';
-  if (m.referenceType === 'GoodsReceipt') return 'Gerakan dari STT hanya bisa dibatalkan lewat halaman STT.';
+  if (m.isCancelled) return i18n.t('inventoryRows.block.cancelled', { ns: 'inventory' });
+  if (m.referenceType === 'GoodsReceipt') return i18n.t('inventoryRows.block.cancelFromReceipt', { ns: 'inventory' });
   return null;
 }
 

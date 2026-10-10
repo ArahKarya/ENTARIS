@@ -19,6 +19,8 @@ import {
 } from '@/components/overlays/dialog-parts';
 import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { WarehouseSelectField } from '@/components/overlays/WarehouseSelectField';
+import { useTranslation } from 'react-i18next';
+import { formatNumber } from '@/lib/format';
 
 interface StockMovementModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ const defaultForm = {
 };
 
 export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovementModalProps) {
+  const { t } = useTranslation('inventory');
   const [form, setForm] = useState({ ...defaultForm, date: today() });
   const [error, setError] = useState('');
   const [showErrors, setShowErrors] = useState(false);
@@ -119,11 +122,11 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
     mutationFn: (data: any) => api.post('/inventory/movements', data),
     onSuccess: () => {
       invalidateAll();
-      toast.success('Gerakan stok dicatat.');
+      toast.success(t('stockMovementModal.toast.created'));
       onClose();
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error || 'Gagal mencatat gerakan stok.';
+      const msg = err.response?.data?.error || t('stockMovementModal.toast.createFailed');
       setError(msg);
       toast.error(msg);
     },
@@ -133,11 +136,11 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
     mutationFn: (data: any) => api.put(`/inventory/movements/${editMovement?.id}`, data),
     onSuccess: () => {
       invalidateAll();
-      toast.success('Gerakan stok diperbarui.');
+      toast.success(t('stockMovementModal.toast.updated'));
       onClose();
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error || 'Gagal mengupdate gerakan stok.';
+      const msg = err.response?.data?.error || t('stockMovementModal.toast.updateFailed');
       setError(msg);
       toast.error(msg);
     },
@@ -176,8 +179,8 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
   const isProductionLinked = editMovement?.referenceType === 'ProductionRun';
   const pending = mutation.isPending;
   const stockItem = selectedItem || editMovement?.item;
-  const dateError = showErrors && !form.date ? 'Tanggal wajib diisi.' : undefined;
-  const qtyError = showErrors && !(Number(form.quantity) >= 0.001) ? 'Kuantitas minimal 0,001.' : undefined;
+  const dateError = showErrors && !form.date ? t('stockMovementModal.errors.dateRequired') : undefined;
+  const qtyError = showErrors && !(Number(form.quantity) >= 0.001) ? t('stockMovementModal.errors.quantityMin') : undefined;
   const offsetMissing = totalValue > 0 && !form.offsetAccountId;
 
   return (
@@ -185,20 +188,20 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
       <DialogContent size="md" className={pinnedDialogClass}>
         <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <PinnedHeader>
-            <DialogTitle>{isEdit ? 'Edit Gerakan Stok' : 'Catat Gerakan Stok'}</DialogTitle>
+            <DialogTitle>{isEdit ? t('stockMovementModal.titleEdit') : t('stockMovementModal.titleCreate')}</DialogTitle>
             <DialogDescription>
-              Pergerakan stok masuk, keluar, atau penyesuaian beserta posting ke COA.
+              {t('stockMovementModal.description')}
             </DialogDescription>
           </PinnedHeader>
           <PinnedBody className="grid gap-4">
             {isProductionLinked && (
               <p role="status" className="flex items-center gap-2 rounded-md bg-warning-subtle px-3 py-2 text-sm text-warning-text">
                 <AlertCircle className="size-4 shrink-0" aria-hidden />
-                Gerakan stok dari proses produksi tidak dapat diedit langsung.
+                {t('stockMovementModal.productionLinked')}
               </p>
             )}
 
-            <Field label="Tanggal" required error={dateError}>
+            <Field label={t('stockMovementModal.fields.date')} required error={dateError}>
               <DateInput
                 value={form.date}
                 onChange={(v) => setForm(f => ({ ...f, date: v }))}
@@ -207,7 +210,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
             </Field>
 
             {isEdit ? (
-              <Field label="Item" required>
+              <Field label={t('stockMovementModal.fields.item')} required>
                 <Input
                   readOnly
                   value={editMovement?.item ? `${editMovement.item.code} · ${editMovement.item.name} (${editMovement.item.unit})` : ''}
@@ -216,17 +219,17 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               </Field>
             ) : (
               <ComboboxField
-                label="Item"
+                label={t('stockMovementModal.fields.item')}
                 required
                 options={itemOptions}
                 value={form.itemId}
                 onChange={(v) => setForm(f => ({ ...f, itemId: v }))}
-                placeholder="Pilih Item"
+                placeholder={t('stockMovementModal.placeholders.item')}
               />
             )}
 
             {isEdit ? (
-              <Field label="Gudang" hint="Gudang tidak dapat dipindah lewat edit.">
+              <Field label={t('stockMovementModal.fields.warehouse')} hint={t('stockMovementModal.hints.warehouseLocked')}>
                 <Input readOnly value={editMovement?.warehouse?.name ?? '—'} className="bg-muted" />
               </Field>
             ) : (
@@ -237,7 +240,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               />
             )}
 
-            <Field label="Tipe Gerakan" required>
+            <Field label={t('stockMovementModal.fields.movementType')} required>
               {(control) => (
                 <Select
                   value={form.movementType}
@@ -248,10 +251,10 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="In">Masuk (In)</SelectItem>
-                    <SelectItem value="Out">Keluar (Out)</SelectItem>
-                    <SelectItem value="AdjustmentIn">Penyesuaian Naik (AdjustmentIn)</SelectItem>
-                    <SelectItem value="AdjustmentOut">Penyesuaian Turun (AdjustmentOut)</SelectItem>
+                    <SelectItem value="In">{t('stockMovementModal.types.in')}</SelectItem>
+                    <SelectItem value="Out">{t('stockMovementModal.types.out')}</SelectItem>
+                    <SelectItem value="AdjustmentIn">{t('stockMovementModal.types.adjustmentIn')}</SelectItem>
+                    <SelectItem value="AdjustmentOut">{t('stockMovementModal.types.adjustmentOut')}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -259,12 +262,15 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label="Kuantitas"
+                label={t('stockMovementModal.fields.quantity')}
                 required
                 error={qtyError}
                 hint={
                   stockItem
-                    ? `${!isEdit && form.warehouseId ? 'Stok di gudang ini' : 'Stok saat ini'}: ${Number(stockItem.currentStock ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${stockItem.unit ?? ''}`
+                    ? t(!isEdit && form.warehouseId ? 'stockMovementModal.hints.stockInWarehouse' : 'stockMovementModal.hints.stockCurrent', {
+                        qty: formatNumber(Number(stockItem.currentStock ?? 0), { maxDecimals: 3 }),
+                        unit: stockItem.unit ?? '',
+                      })
                     : undefined
                 }
               >
@@ -278,7 +284,7 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
                   className="h-10 text-right tabular-nums"
                 />
               </Field>
-              <Field label="Harga Satuan">
+              <Field label={t('stockMovementModal.fields.unitCost')}>
                 <NumberInput
                   min={0}
                   step="any"
@@ -291,30 +297,30 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
               </Field>
             </div>
 
-            <Field label="Total Nilai">
+            <Field label={t('stockMovementModal.fields.totalValue')}>
               <Input
                 readOnly
-                value={totalValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                value={formatNumber(totalValue, { decimals: 0 })}
                 className="bg-muted text-right tabular-nums"
               />
             </Field>
 
             <ComboboxField
-              label={totalValue > 0 ? 'Akun Lawan' : 'Akun Lawan (opsional)'}
+              label={totalValue > 0 ? t('stockMovementModal.fields.offsetAccount') : t('stockMovementModal.fields.offsetAccountOptional')}
               required={totalValue > 0}
               options={accountOptions}
               value={form.offsetAccountId}
               onChange={(v) => setForm(f => ({ ...f, offsetAccountId: v }))}
-              placeholder="Pilih Akun Lawan"
+              placeholder={t('stockMovementModal.placeholders.offsetAccount')}
               disabled={isProductionLinked}
               hint={
                 offsetMissing
-                  ? 'Pilih akun lawan agar nilai stok tercatat di COA.'
-                  : 'Untuk posting ke COA.'
+                  ? t('stockMovementModal.hints.offsetMissing')
+                  : t('stockMovementModal.hints.offsetPurpose')
               }
             />
 
-            <Field label="Tipe Referensi">
+            <Field label={t('stockMovementModal.fields.referenceType')}>
               {(control) => (
                 <Select
                   value={form.referenceType || '__none'}
@@ -327,32 +333,32 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">Tidak Ada</SelectItem>
-                    <SelectItem value="PurchaseInvoice">Invoice Pembelian</SelectItem>
-                    <SelectItem value="SalesInvoice">Invoice Penjualan</SelectItem>
+                    <SelectItem value="__none">{t('stockMovementModal.referenceTypes.none')}</SelectItem>
+                    <SelectItem value="PurchaseInvoice">{t('stockMovementModal.referenceTypes.purchaseInvoice')}</SelectItem>
+                    <SelectItem value="SalesInvoice">{t('stockMovementModal.referenceTypes.salesInvoice')}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             </Field>
 
             {form.referenceType && (
-              <Field label="Nomor Referensi">
+              <Field label={t('stockMovementModal.fields.referenceNumber')}>
                 <Input
                   value={form.referenceNumber}
                   onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))}
                   disabled={isProductionLinked}
-                  placeholder="Nomor dokumen referensi"
+                  placeholder={t('stockMovementModal.placeholders.referenceNumber')}
                 />
               </Field>
             )}
 
-            <Field label="Catatan">
+            <Field label={t('stockMovementModal.fields.notes')}>
               <Textarea
                 rows={3}
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 disabled={isProductionLinked}
-                placeholder="Catatan opsional tentang gerakan stok ini"
+                placeholder={t('stockMovementModal.placeholders.notes')}
                 className="resize-none"
               />
             </Field>
@@ -361,11 +367,11 @@ export function StockMovementModal({ isOpen, onClose, editMovement }: StockMovem
           </PinnedBody>
           <PinnedFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
-              Batal
+              {t('stockMovementModal.actions.cancel')}
             </Button>
             {!isProductionLinked && (
               <Button type="submit" loading={pending}>
-                {pending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Gerakan'}
+                {pending ? t('stockMovementModal.actions.saving') : isEdit ? t('stockMovementModal.actions.saveChanges') : t('stockMovementModal.actions.save')}
               </Button>
             )}
           </PinnedFooter>

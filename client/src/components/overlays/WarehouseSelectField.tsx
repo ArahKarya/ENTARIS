@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Field } from '@/components/shared';
@@ -31,16 +32,17 @@ interface WarehouseSelectFieldProps {
 }
 
 export function WarehouseSelectField({
-  label = 'Gudang',
+  label,
   value,
   onChange,
   autoDefault = false,
   disabled,
-  placeholder = 'Pilih gudang',
+  placeholder,
   hint,
   required,
   error,
 }: WarehouseSelectFieldProps) {
+  const { t } = useTranslation('inventory');
   const { data } = useQuery({
     queryKey: ['warehouses-active'],
     queryFn: async () => {
@@ -58,7 +60,7 @@ export function WarehouseSelectField({
   }, [defaultWh?.id, autoDefault]);
 
   return (
-    <Field label={label} hint={hint} required={required} error={error}>
+    <Field label={label ?? t('warehouseSelectField.label')} hint={hint} required={required} error={error}>
       {(control) => (
         <Select
           value={value || NONE}
@@ -66,10 +68,10 @@ export function WarehouseSelectField({
           disabled={disabled}
         >
           <SelectTrigger {...control}>
-            <SelectValue placeholder={placeholder} />
+            <SelectValue placeholder={placeholder ?? t('warehouseSelectField.placeholder')} />
           </SelectTrigger>
           <SelectContent>
-            {!autoDefault && <SelectItem value={NONE}>Tidak dipilih</SelectItem>}
+            {!autoDefault && <SelectItem value={NONE}>{t('warehouseSelectField.none')}</SelectItem>}
             {warehouses.map((w) => (
               <SelectItem key={w.id} value={w.id}>
                 {w.code} · {w.name}

@@ -8,6 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, Boxes, Download, History, PackageX, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -38,11 +39,7 @@ import {
 } from './inventory-rows';
 
 const ENDPOINT = '/inventory/items';
-const STOCK_FILTER = statusOptions(['low', 'out', 'ok'], 'inventory_item');
-const ACTIVE_FILTER = [
-  { value: 'true', label: 'Aktif' },
-  { value: 'false', label: 'Nonaktif' },
-];
+const STOCK_STATUSES = ['low', 'out', 'ok'];
 
 interface InventoryItemsTabProps {
   canEdit: boolean;
@@ -55,7 +52,14 @@ interface InventoryItemsTabProps {
 const stockValue = (i: InventoryItemRow) => (toNumber(i.currentStock) ?? 0) * (toNumber(i.averageCost) ?? 0);
 
 export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowMovements }: InventoryItemsTabProps) {
+  const { t } = useTranslation('inventory');
   const list = useListState({ filters: ITEM_FILTER_KEYS, defaultSort: { id: 'currentStock', desc: true } });
+  // Built per render so labels follow the UI language.
+  const stockFilter = statusOptions(STOCK_STATUSES, 'inventory_item');
+  const activeFilter = [
+    { value: 'true', label: t('inventoryItemsTab.active') },
+    { value: 'false', label: t('inventoryItemsTab.inactive') },
+  ];
   const [density, setDensity] = useTableDensity();
   const [exporting, setExporting] = useState(false);
   const perWarehouse = !!list.filters.warehouseId;
@@ -86,9 +90,9 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
       // The endpoint caps a page at 200 rows.
       const { rows, truncated } = await fetchAllPages<InventoryItemRow>(ENDPOINT, params, { pageSize: 200 });
       exportToExcel(toItemExportRows(rows), 'master-item');
-      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} item pertama. Persempit filter.`);
+      if (truncated) toast.warning(t('inventoryItemsTab.exportTruncated', { n: formatNumber(rows.length) }));
     } catch {
-      toast.error('Gagal mengekspor item. Coba lagi.');
+      toast.error(t('inventoryItemsTab.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -98,14 +102,14 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
     () => [
       {
         id: 'code',
-        header: 'Kode',
+        header: t('inventoryItemsTab.columns.code'),
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => <span className="num font-mono text-xs text-foreground">{row.original.code}</span>,
       },
       {
         id: 'name',
-        header: 'Nama Item',
+        header: t('inventoryItemsTab.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36 max-w-80' },
         cell: ({ row }) => {
@@ -128,14 +132,14 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
       },
       {
         id: 'category',
-        header: 'Kategori',
+        header: t('inventoryItemsTab.columns.category'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => row.original.category || '—',
       },
       {
         id: 'currentStock',
-        header: perWarehouse ? 'Stok Gudang' : 'Stok',
+        header: perWarehouse ? t('inventoryItemsTab.columns.warehouseStock') : t('inventoryItemsTab.columns.stock'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -158,7 +162,7 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
       },
       {
         id: 'minimumStock',
-        header: 'Stok Min.',
+        header: t('inventoryItemsTab.columns.minimumStock'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md', cellClassName: 'text-muted-foreground' },
@@ -166,7 +170,7 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
       },
       {
         id: 'stockValue',
-        header: () => withUnit('Nilai Stok'),
+        header: () => withUnit(t('inventoryItemsTab.columns.stockValue')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'xl' },
@@ -174,90 +178,90 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
       },
       {
         id: 'stockStatus',
-        header: 'Status Stok',
+        header: t('inventoryItemsTab.columns.stockStatus'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={itemStockStatus(row.original)} docType="inventory_item" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('inventoryItemsTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const i = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${i.code}`}
+              label={t('inventoryItemsTab.rowActions', { code: i.code })}
               actions={[
-                { label: 'Riwayat gerakan', icon: History, onSelect: () => onShowMovements(i) },
-                { label: 'Edit item', icon: Pencil, hidden: !canEdit, onSelect: () => onEdit(i) },
-                { label: 'Hapus item', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => onDelete(i) },
+                { label: t('inventoryItemsTab.actions.history'), icon: History, onSelect: () => onShowMovements(i) },
+                { label: t('inventoryItemsTab.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => onEdit(i) },
+                { label: t('inventoryItemsTab.actions.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => onDelete(i) },
               ]}
             />
           );
         },
       },
     ],
-    [perWarehouse, canEdit, onEdit, onDelete, onShowMovements],
+    [t, perWarehouse, canEdit, onEdit, onDelete, onShowMovements],
   );
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan item sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('inventoryItemsTab.kpi.sectionLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Item"
+          label={t('inventoryItemsTab.kpi.count')}
           icon={Boxes}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary ? `${formatNumber(summary.activeCount)} aktif` : undefined}
+          hint={summary ? t('inventoryItemsTab.kpi.activeHint', { n: formatNumber(summary.activeCount) }) : undefined}
         />
         <StatCard
-          label="Nilai Persediaan"
+          label={t('inventoryItemsTab.kpi.value')}
           icon={Wallet}
           loading={kpiLoading}
           value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.stockValue) : undefined}
-          hint={perWarehouse ? 'stok gudang × harga rata-rata' : 'stok × harga rata-rata'}
+          hint={perWarehouse ? t('inventoryItemsTab.kpi.valueHintWarehouse') : t('inventoryItemsTab.kpi.valueHint')}
         />
         <StatCard
-          label="Stok Menipis"
+          label={t('inventoryItemsTab.kpi.low')}
           icon={AlertTriangle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.lowCount) : '—'}
-          hint="di bawah stok minimum"
+          hint={t('inventoryItemsTab.kpi.lowHint')}
         />
         <StatCard
-          label="Stok Habis"
+          label={t('inventoryItemsTab.kpi.out')}
           icon={PackageX}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.outCount) : '—'}
-          hint="stok nol atau minus"
+          hint={t('inventoryItemsTab.kpi.outHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari item"
-          searchPlaceholder="Cari kode atau nama item"
-          status={{ options: STOCK_FILTER, key: 'stockStatus', label: 'Status stok', allLabel: 'Semua stok' }}
+          searchLabel={t('inventoryItemsTab.searchLabel')}
+          searchPlaceholder={t('inventoryItemsTab.searchPlaceholder')}
+          status={{ options: stockFilter, key: 'stockStatus', label: t('inventoryItemsTab.stockStatusFilter'), allLabel: t('inventoryItemsTab.allStock') }}
           actions={
             <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
               <Download aria-hidden />
-              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              <span className="sr-only sm:not-sr-only">{t('inventoryItemsTab.exportExcel')}</span>
             </Button>
           }
         >
           <SelectFilter
-            label="Status item"
-            allLabel="Aktif & nonaktif"
-            options={ACTIVE_FILTER}
+            label={t('inventoryItemsTab.itemStatusFilter')}
+            allLabel={t('inventoryItemsTab.activeAndInactive')}
+            options={activeFilter}
             value={list.filters.isActive}
             onChange={(v) => list.setFilter('isActive', v)}
           />
           {categoryOptions.length > 0 && (
             <SelectFilter
-              label="Kategori"
-              allLabel="Semua kategori"
+              label={t('inventoryItemsTab.categoryFilter')}
+              allLabel={t('inventoryItemsTab.allCategories')}
               options={categoryOptions}
               value={list.filters.category}
               onChange={(v) => list.setFilter('category', v)}
@@ -266,15 +270,15 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
           <WarehouseFilter
             value={list.filters.warehouseId}
             onChange={(v) => list.setFilter('warehouseId', v)}
-            allLabel="Semua gudang (total)"
+            allLabel={t('inventoryItemsTab.allWarehousesTotal')}
             className="w-[calc(50%-0.25rem)] sm:w-56"
           />
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar item persediaan"
-          itemLabel="item"
+          label={t('inventoryItemsTab.tableLabel')}
+          itemLabel={t('inventoryItemsTab.itemLabel')}
           columns={columns}
           data={itemsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -285,12 +289,12 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada item persediaan',
-            description: 'Tambahkan item atau impor dari Excel untuk mulai mencatat stok.',
+            title: t('inventoryItemsTab.empty.title'),
+            description: t('inventoryItemsTab.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={onCreate}>
                 <Plus aria-hidden />
-                Tambah item pertama
+                {t('inventoryItemsTab.empty.action')}
               </Button>
             ) : undefined,
           }}

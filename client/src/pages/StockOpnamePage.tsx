@@ -8,6 +8,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronLeft, Eye, Plus, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
@@ -57,8 +58,6 @@ const DETAIL_PARAM = 'opname';
 const NEW_VALUE = 'new';
 const FILTER_KEYS = ['status', 'warehouseId', 'startDate', 'endDate'] as const;
 const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'stock_opname');
-const CANCEL_TITLE = 'Batalkan Stok Opname?';
-const CANCEL_MESSAGE = 'Semua penyesuaian stok dan jurnal akan dibalik.';
 
 const withUnit = (label: string) => (
   <>
@@ -70,6 +69,8 @@ const warehouseLabel = (row: StockOpnameRow) =>
   row.warehouses && row.warehouses.length > 0 ? row.warehouses.map((w) => w.name).join(', ') : '—';
 
 export function StockOpnamePage() {
+  const { t } = useTranslation('inventory');
+  const cancelMessage = t('stockOpnamePage.cancelDialog.message');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -103,7 +104,7 @@ export function StockOpnamePage() {
       className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ChevronLeft className="size-3.5" aria-hidden />
-      Stok Opname
+      {t('stockOpnamePage.title')}
     </Link>
   );
 
@@ -134,13 +135,13 @@ export function StockOpnamePage() {
     if (!cancelTarget) return;
     try {
       await api.put(`${ENDPOINT}/${cancelTarget.id}/cancel`);
-      toast.success('Stok opname dibatalkan.');
+      toast.success(t('stockOpnamePage.toast.cancelled'));
       invalidateAfterChange();
       queryClient.invalidateQueries({ queryKey: ['stock-opname-detail', cancelTarget.id] });
       if (selectedId === cancelTarget.id) setDetail(null);
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(message || 'Gagal membatalkan stok opname.');
+      toast.error(message || t('stockOpnamePage.toast.cancelFailed'));
     } finally {
       setCancelTarget(null);
     }
@@ -150,7 +151,7 @@ export function StockOpnamePage() {
     () => [
       {
         id: 'opnameNumber',
-        header: 'Nomor',
+        header: t('stockOpnamePage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -164,7 +165,7 @@ export function StockOpnamePage() {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('stockOpnamePage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -172,25 +173,25 @@ export function StockOpnamePage() {
       },
       {
         id: 'warehouse',
-        header: 'Gudang',
+        header: t('stockOpnamePage.columns.warehouse'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-56' },
         cell: ({ row }) => <span className="block truncate text-foreground">{warehouseLabel(row.original)}</span>,
       },
       {
         id: 'items',
-        header: 'Item Dihitung',
+        header: t('stockOpnamePage.columns.itemsCounted'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
       },
       {
         id: 'itemsWithDiff',
-        header: 'Item Selisih',
+        header: t('stockOpnamePage.columns.itemsWithDiff'),
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => formatNumber(row.original.itemsWithDiff ?? 0),
       },
       {
         id: 'totalVariance',
-        header: () => withUnit('Nilai Selisih'),
+        header: () => withUnit(t('stockOpnamePage.columns.varianceValue')),
         meta: { align: 'right' },
         cell: ({ row }) => (
           <div className="flex flex-col items-end gap-1">
@@ -204,29 +205,29 @@ export function StockOpnamePage() {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('stockOpnamePage.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="stock_opname" />,
       },
       {
         id: 'createdBy',
-        header: 'Dibuat Oleh',
+        header: t('stockOpnamePage.columns.createdBy'),
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => row.original.createdBy?.fullName ?? '—',
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('stockOpnamePage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const so = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${so.opnameNumber}`}
+              label={t('stockOpnamePage.rowActions.label', { number: so.opnameNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setDetail(so.id) },
+                { label: t('stockOpnamePage.rowActions.view'), icon: Eye, onSelect: () => setDetail(so.id) },
                 {
-                  label: 'Batalkan',
+                  label: t('stockOpnamePage.rowActions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !canCancel || so.status !== 'Submitted',
@@ -240,25 +241,25 @@ export function StockOpnamePage() {
     ],
     // setDetail only wraps the stable setSearchParams.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canCancel],
+    [canCancel, t],
   );
 
   const cancelDialog = (
     <ConfirmDialog
       open={!!cancelTarget}
       onOpenChange={(open) => !open && setCancelTarget(null)}
-      title={CANCEL_TITLE}
+      title={t('stockOpnamePage.cancelDialog.title')}
       description={
         cancelTarget ? (
           <>
-            <span className="num font-medium text-foreground">{cancelTarget.opnameNumber}</span>: {CANCEL_MESSAGE}
+            <span className="num font-medium text-foreground">{cancelTarget.opnameNumber}</span>: {cancelMessage}
           </>
         ) : (
-          CANCEL_MESSAGE
+          cancelMessage
         )
       }
       tone="danger"
-      confirmLabel="Ya, Batalkan"
+      confirmLabel={t('stockOpnamePage.cancelDialog.confirm')}
       onConfirm={handleCancel}
     />
   );
@@ -290,13 +291,13 @@ export function StockOpnamePage() {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Stok Opname"
-        description="Hitung fisik per gudang; selisih disesuaikan ke stok dan dijurnal otomatis."
+        title={t('stockOpnamePage.title')}
+        description={t('stockOpnamePage.description')}
         actions={
           canEdit && (
             <Button onClick={openCreate}>
               <Plus aria-hidden />
-              Buat Stok Opname
+              {t('stockOpnamePage.create')}
             </Button>
           )
         }
@@ -305,15 +306,15 @@ export function StockOpnamePage() {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari stok opname"
-          searchPlaceholder="Cari nomor, catatan, atau pembuat"
+          searchLabel={t('stockOpnamePage.filters.searchLabel')}
+          searchPlaceholder={t('stockOpnamePage.filters.searchPlaceholder')}
           status={{ options: STATUS_FILTER }}
           dateRange
         >
           <ComboboxFilter
-            label="Gudang"
-            allLabel="Semua gudang"
-            searchPlaceholder="Cari gudang…"
+            label={t('stockOpnamePage.filters.warehouse')}
+            allLabel={t('stockOpnamePage.filters.allWarehouses')}
+            searchPlaceholder={t('stockOpnamePage.filters.searchWarehouse')}
             value={list.filters.warehouseId}
             onChange={(v) => list.setFilter('warehouseId', v)}
             options={warehouseOptions}
@@ -324,8 +325,8 @@ export function StockOpnamePage() {
 
         <DataTable
           {...listTableProps(list, listQuery.data?.total)}
-          label="Daftar stok opname"
-          itemLabel="stok opname"
+          label={t('stockOpnamePage.table.label')}
+          itemLabel={t('stockOpnamePage.table.itemLabel')}
           columns={columns}
           data={listQuery.data?.data}
           getRowId={(row) => row.id}
@@ -337,12 +338,12 @@ export function StockOpnamePage() {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada stok opname',
-            description: 'Sesi hitung fisik yang Anda simpan akan muncul di sini.',
+            title: t('stockOpnamePage.empty.title'),
+            description: t('stockOpnamePage.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
-                Buat stok opname pertama
+                {t('stockOpnamePage.empty.action')}
               </Button>
             ) : undefined,
           }}

@@ -3,6 +3,7 @@
  * filter + slot + primary action), info note and the create/edit form sheet.
  */
 import { forwardRef, useId, type ComponentPropsWithoutRef, type FormEvent, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertCircle, Info, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { controlBase } from '@/components/ui/styles';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { ACTIVE_FILTER_OPTIONS, type ActiveFilter } from './master-data';
+import { activeFilterOptions, type ActiveFilter } from './master-data';
 
 const ALL = '__all__';
 
@@ -42,8 +43,9 @@ export function MasterToolbar({
   action,
 }: MasterToolbarProps) {
   const id = useId();
+  const { t } = useTranslation('inventory');
   return (
-    <div role="search" aria-label="Filter daftar" className="flex flex-wrap items-center gap-2">
+    <div role="search" aria-label={t('masterDataKit.filterLabel')} className="flex flex-wrap items-center gap-2">
       <div className="relative w-full sm:w-auto sm:min-w-60 sm:max-w-sm sm:flex-1">
         <label htmlFor={`${id}-q`} className="sr-only">
           {searchLabel}
@@ -62,7 +64,7 @@ export function MasterToolbar({
           <button
             type="button"
             onClick={() => onSearch('')}
-            aria-label="Hapus pencarian"
+            aria-label={t('masterDataKit.clearSearch')}
             className="absolute right-1.5 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" aria-hidden />
@@ -71,15 +73,15 @@ export function MasterToolbar({
       </div>
       <div className="w-[calc(50%-0.25rem)] sm:w-40">
         <label htmlFor={`${id}-status`} className="sr-only">
-          Status
+          {t('masterDataKit.status')}
         </label>
         <Select value={status || ALL} onValueChange={(v) => onStatus(v === ALL ? '' : (v as ActiveFilter))}>
           <SelectTrigger id={`${id}-status`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Semua status</SelectItem>
-            {ACTIVE_FILTER_OPTIONS.map((o) => (
+            <SelectItem value={ALL}>{t('masterDataKit.allStatuses')}</SelectItem>
+            {activeFilterOptions().map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}
               </SelectItem>
@@ -122,6 +124,7 @@ interface FormSheetProps {
 /** Right side sheet hosting a create/edit form; Enter submits, Esc closes (unless saving). */
 export function FormSheet({ open, onOpenChange, title, description, error, saving, submitLabel, onSubmit, children, footerNote }: FormSheetProps) {
   const formId = useId();
+  const { t } = useTranslation('inventory');
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSubmit();
@@ -147,7 +150,7 @@ export function FormSheet({ open, onOpenChange, title, description, error, savin
         <SheetFooter className="sm:items-center">
           {footerNote && <p className="mr-auto hidden min-w-0 truncate text-xs text-muted-foreground sm:block">{footerNote}</p>}
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={saving}>
-            Batal
+            {t('masterDataKit.cancel')}
           </Button>
           <Button type="submit" form={formId} loading={saving}>
             {submitLabel}

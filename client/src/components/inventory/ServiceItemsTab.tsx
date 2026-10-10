@@ -4,6 +4,7 @@
  */
 import { useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, Pencil, Plus } from 'lucide-react';
 import api from '@/lib/api';
@@ -16,10 +17,6 @@ import { withUnit } from './list-helpers';
 import { SERVICE_FILTER_KEYS, type ServiceItemRow } from './inventory-rows';
 
 const ENDPOINT = '/service-items';
-const ACTIVE_FILTER = [
-  { value: 'true', label: 'Aktif' },
-  { value: 'false', label: 'Nonaktif' },
-];
 
 interface ServiceItemsTabProps {
   canEdit: boolean;
@@ -30,6 +27,7 @@ interface ServiceItemsTabProps {
 }
 
 export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDeactivate }: ServiceItemsTabProps) {
+  const { t } = useTranslation('inventory');
   const list = useListState({ filters: SERVICE_FILTER_KEYS, defaultSort: { id: 'code', desc: false } });
   const [density, setDensity] = useTableDensity();
 
@@ -44,14 +42,14 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
     () => [
       {
         id: 'code',
-        header: 'Kode',
+        header: t('serviceItemsTab.columns.code'),
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap font-mono text-xs text-foreground' },
         cell: ({ row }) => row.original.code,
       },
       {
         id: 'name',
-        header: 'Nama Layanan',
+        header: t('serviceItemsTab.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36 max-w-80' },
         cell: ({ row }) => {
@@ -71,13 +69,13 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
       },
       {
         id: 'unit',
-        header: 'Satuan',
+        header: t('serviceItemsTab.columns.unit'),
         meta: { hideBelow: 'md', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => row.original.unit || '—',
       },
       {
         id: 'defaultRate',
-        header: () => withUnit('Tarif Default'),
+        header: () => withUnit(t('serviceItemsTab.columns.defaultRate')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -98,7 +96,7 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
       },
       {
         id: 'account',
-        header: 'Akun Pendapatan',
+        header: t('serviceItemsTab.columns.account'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-64 truncate text-muted-foreground' },
         cell: ({ row }) => {
           const a = row.original.account;
@@ -107,23 +105,23 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('serviceItemsTab.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('serviceItemsTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const s = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${s.code}`}
+              label={t('serviceItemsTab.actions.menuLabel', { name: s.code })}
               actions={[
-                { label: 'Edit layanan', icon: Pencil, hidden: !canEdit, onSelect: () => onEdit(s) },
+                { label: t('serviceItemsTab.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => onEdit(s) },
                 {
-                  label: 'Nonaktifkan',
+                  label: t('serviceItemsTab.actions.deactivate'),
                   icon: Ban,
                   tone: 'danger',
                   hidden: !s.isActive || !canDeactivate,
@@ -135,21 +133,28 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
         },
       },
     ],
-    [canEdit, canDeactivate, onEdit, onDeactivate],
+    [canEdit, canDeactivate, onEdit, onDeactivate, t],
+  );
+  const activeFilter = useMemo(
+    () => [
+      { value: 'true', label: t('serviceItemsTab.statusFilter.active') },
+      { value: 'false', label: t('serviceItemsTab.statusFilter.inactive') },
+    ],
+    [t],
   );
 
   return (
     <div className="space-y-3">
       <FilterBar
         list={list}
-        searchLabel="Cari layanan"
-        searchPlaceholder="Cari kode atau nama layanan"
-        status={{ options: ACTIVE_FILTER, key: 'isActive', label: 'Status layanan', allLabel: 'Semua status' }}
+        searchLabel={t('serviceItemsTab.search.label')}
+        searchPlaceholder={t('serviceItemsTab.search.placeholder')}
+        status={{ options: activeFilter, key: 'isActive', label: t('serviceItemsTab.filters.status'), allLabel: t('serviceItemsTab.filters.allStatuses') }}
       />
       <DataTable
         {...listTableProps(list, total)}
-        label="Daftar layanan"
-        itemLabel="layanan"
+        label={t('serviceItemsTab.table.label')}
+        itemLabel={t('serviceItemsTab.table.itemLabel')}
         columns={columns}
         data={servicesQuery.data?.data}
         getRowId={(row) => row.id}
@@ -161,12 +166,12 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
         density={density}
         onDensityChange={setDensity}
         empty={{
-          title: 'Belum ada layanan',
-          description: 'Layanan (jasa) dipakai di faktur penjualan dan penawaran.',
+          title: t('serviceItemsTab.empty.title'),
+          description: t('serviceItemsTab.empty.description'),
           action: onCreate ? (
             <Button size="sm" onClick={onCreate}>
               <Plus aria-hidden />
-              Tambah layanan
+              {t('serviceItemsTab.empty.action')}
             </Button>
           ) : undefined,
         }}

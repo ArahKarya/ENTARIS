@@ -9,6 +9,8 @@ import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { BatchSelect } from '@/components/overlays/BatchSelect';
 import type { Batch } from '@/components/overlays/BatchSelect';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { LOCALE } from '@/lib/format';
 import type { LineItem, OutputLineItem } from './run-form-utils';
 
 interface ItemLike {
@@ -33,12 +35,13 @@ const rowClass = 'rounded-lg border border-border bg-muted/40 p-3';
 export function RunInputsSection({
   inputs, itemOptions, warehouseId, getItemById, onUpdate, onPickBatch, onSplit, onAdd, onRemove,
 }: InputsSectionProps) {
+  const { t } = useTranslation('production');
   return (
     <section aria-labelledby="run-inputs-heading">
       <div className="mb-2 flex items-center justify-between">
-        <h3 id="run-inputs-heading" className="text-xs font-bold uppercase tracking-wide text-foreground">Bahan Input</h3>
+        <h3 id="run-inputs-heading" className="text-xs font-bold uppercase tracking-wide text-foreground">{t('runLinesSections.inputsHeading')}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onAdd}>
-          <Plus aria-hidden /> Tambah Input
+          <Plus aria-hidden /> {t('runLinesSections.addInput')}
         </Button>
       </div>
       <ul className="space-y-2">
@@ -49,14 +52,14 @@ export function RunInputsSection({
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
                 <div className="col-span-2 sm:col-span-1">
                   <ComboboxField
-                    label={`Item input ${idx + 1}`}
+                    label={t('runLinesSections.inputItemLabel', { n: idx + 1 })}
                     options={itemOptions}
                     value={row.itemId}
                     onChange={(v) => onUpdate(idx, 'itemId', v)}
-                    placeholder="Pilih Item"
+                    placeholder={t('runLinesSections.selectItem')}
                     hint={
                       item
-                        ? `Stok gudang: ${Number(item.currentStock).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${item.unit ?? ''}`
+                        ? t('runLinesSections.warehouseStock', { qty: Number(item.currentStock).toLocaleString(LOCALE, { maximumFractionDigits: 3 }), unit: item.unit ?? '' })
                         : undefined
                     }
                   />
@@ -79,7 +82,7 @@ export function RunInputsSection({
                       size="icon-touch"
                       className="text-muted-foreground hover:text-danger-text"
                       onClick={() => onRemove(idx)}
-                      aria-label={`Hapus input ${idx + 1}`}
+                      aria-label={t('runLinesSections.removeInput', { n: idx + 1 })}
                     >
                       <Trash2 aria-hidden />
                     </Button>
@@ -88,11 +91,11 @@ export function RunInputsSection({
               </div>
               {row.itemId && (
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-muted-foreground">Batch sumber</span>
+                  <span className="mb-1 block text-xs font-semibold text-muted-foreground">{t('runLinesSections.sourceBatch')}</span>
                   <div className="flex flex-wrap items-start gap-2">
                     <div className="min-w-0 flex-1 basis-60">
                       <BatchSelect
-                        label={`Batch sumber input ${idx + 1}`}
+                        label={t('runLinesSections.sourceBatchLabel', { n: idx + 1 })}
                         itemId={row.itemId}
                         warehouseId={warehouseId}
                         value={row.sourceMovementId}
@@ -108,9 +111,9 @@ export function RunInputsSection({
                         variant="outline"
                         size="sm"
                         onClick={() => onSplit(idx)}
-                        title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
+                        title={t('runLinesSections.splitBatchTitle')}
                       >
-                        <Layers aria-hidden /> Bagi Batch
+                        <Layers aria-hidden /> {t('runLinesSections.splitBatch')}
                       </Button>
                     )}
                   </div>
@@ -138,12 +141,13 @@ interface OutputsSectionProps {
 export function RunOutputsSection({
   outputs, itemOptions, getItemById, totalInputQty, autoHpp, onUpdate, onAdd, onRemove,
 }: OutputsSectionProps) {
+  const { t } = useTranslation('production');
   return (
     <section aria-labelledby="run-outputs-heading">
       <div className="mb-2 flex items-center justify-between">
-        <h3 id="run-outputs-heading" className="text-xs font-bold uppercase tracking-wide text-foreground">Hasil Output</h3>
+        <h3 id="run-outputs-heading" className="text-xs font-bold uppercase tracking-wide text-foreground">{t('runLinesSections.outputsHeading')}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onAdd}>
-          <Plus aria-hidden /> Tambah Output
+          <Plus aria-hidden /> {t('runLinesSections.addOutput')}
         </Button>
       </div>
       <ul className="space-y-3">
@@ -164,11 +168,11 @@ export function RunOutputsSection({
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
                 <div className="col-span-2 sm:col-span-1">
                   <ComboboxField
-                    label={`Item output ${idx + 1}`}
+                    label={t('runLinesSections.outputItemLabel', { n: idx + 1 })}
                     options={itemOptions}
                     value={row.itemId}
                     onChange={(v) => onUpdate(idx, 'itemId', v)}
-                    placeholder="Pilih Item"
+                    placeholder={t('runLinesSections.selectItem')}
                   />
                 </div>
                 <Field label={`Qty${item?.unit ? ` (${item.unit})` : ''}`}>
@@ -189,7 +193,7 @@ export function RunOutputsSection({
                       size="icon-touch"
                       className="text-muted-foreground hover:text-danger-text"
                       onClick={() => onRemove(idx)}
-                      aria-label={`Hapus output ${idx + 1}`}
+                      aria-label={t('runLinesSections.removeOutput', { n: idx + 1 })}
                     >
                       <Trash2 aria-hidden />
                     </Button>
@@ -202,22 +206,22 @@ export function RunOutputsSection({
                   <span className="rounded-md bg-success-subtle px-2 py-1 text-xs font-semibold text-success-text">{rPct}%</span>
                 )}
                 {row.isByProduct && (
-                  <span className="rounded-md bg-warning-subtle px-2 py-1 text-xs font-semibold text-warning-text">Samping</span>
+                  <span className="rounded-md bg-warning-subtle px-2 py-1 text-xs font-semibold text-warning-text">{t('runLinesSections.byProductBadge')}</span>
                 )}
               </div>
 
               {/* HPP / unit price row + by-product toggle */}
               <div className="grid gap-3 sm:grid-cols-[minmax(0,14rem)_1fr] sm:items-end">
-                <Field label={row.isByProduct ? 'NRV/kg (Rp)' : 'HPP/kg (Rp)'}>
+                <Field label={row.isByProduct ? t('runLinesSections.nrvPerKg') : t('runLinesSections.hppPerKg')}>
                   <NumberInput
                     value={row.unitPrice}
                     onChange={(e) => onUpdate(idx, 'unitPrice', e.target.value)}
                     placeholder={
                       row.isByProduct
-                        ? 'Nilai NRV per kg'
+                        ? t('runLinesSections.nrvPlaceholder')
                         : autoHpp > 0
-                          ? `auto: Rp ${autoHpp.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`
-                          : 'kosongkan = ikut HPP loaded'
+                          ? t('runLinesSections.autoHppPlaceholder', { amount: autoHpp.toLocaleString(LOCALE, { maximumFractionDigits: 0 }) })
+                          : t('runLinesSections.emptyHppPlaceholder')
                     }
                     min="0"
                     className="h-10 text-right font-mono tabular-nums"
@@ -225,10 +229,10 @@ export function RunOutputsSection({
                 </Field>
                 <div className="flex flex-wrap items-center justify-between gap-2 sm:pb-2">
                   {price > 0 && qty > 0 ? (
-                    <span className="font-mono text-xs tabular-nums text-muted-foreground">= Rp {(price * qty).toLocaleString('id-ID')}</span>
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">= Rp {(price * qty).toLocaleString(LOCALE)}</span>
                   ) : !row.isByProduct && qty > 0 && autoHpp > 0 ? (
                     <span className="whitespace-nowrap font-mono text-xs tabular-nums text-success-text">
-                      = Rp {Math.round(autoHpp * qty).toLocaleString('id-ID')} (auto)
+                      = Rp {Math.round(autoHpp * qty).toLocaleString(LOCALE)} {t('runLinesSections.autoSuffix')}
                     </span>
                   ) : (
                     <span />
@@ -240,7 +244,7 @@ export function RunOutputsSection({
                       onCheckedChange={(v) => onUpdate(idx, 'isByProduct', v === true)}
                     />
                     <Label htmlFor={checkId} className="cursor-pointer text-xs font-medium text-muted-foreground">
-                      Produk Samping
+                      {t('runLinesSections.byProduct')}
                     </Label>
                   </div>
                 </div>

@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can, cap } from '@/lib/permissions';
 import { formatNumber } from '@/lib/format';
@@ -45,6 +46,7 @@ const QUERY_KEY = ['production-processes-all'];
 const blankForm: FormState = { name: '', description: '', sortOrder: '0' };
 
 export default function ProductionProcessesTab() {
+  const { t } = useTranslation('production');
   const canEdit = can('production', 'edit');
   const canDelete = canEdit && cap('doc.cancel');
   const queryClient = useQueryClient();
@@ -72,10 +74,10 @@ export default function ProductionProcessesTab() {
   const toggleActive = async (p: ProductionProcess) => {
     try {
       await api.put(`/inventory/production-processes/${p.id}`, { isActive: !p.isActive });
-      toast.success(p.isActive ? `Proses "${p.name}" dinonaktifkan.` : `Proses "${p.name}" diaktifkan.`);
+      toast.success(p.isActive ? t('productionProcessesTab.toast.deactivated', { name: p.name }) : t('productionProcessesTab.toast.activated', { name: p.name }));
       invalidate();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal mengubah status proses.'));
+      toast.error(errorMessage(err, t('productionProcessesTab.toast.toggleFailed')));
     }
   };
 
@@ -83,10 +85,10 @@ export default function ProductionProcessesTab() {
     if (!deleteTarget) return;
     try {
       const res = await api.delete(`/inventory/production-processes/${deleteTarget.id}`);
-      toast.success(res.data?.message || 'Proses dihapus.');
+      toast.success(res.data?.message || t('productionProcessesTab.toast.deleted'));
       invalidate();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal menghapus proses.'));
+      toast.error(errorMessage(err, t('productionProcessesTab.toast.deleteFailed')));
       throw err;
     }
   };
@@ -96,7 +98,7 @@ export default function ProductionProcessesTab() {
       {
         id: 'sortOrder',
         accessorKey: 'sortOrder',
-        header: 'Urutan',
+        header: t('productionProcessesTab.columns.sortOrder'),
         enableSorting: true,
         meta: { align: 'right', hideBelow: 'sm', headerClassName: 'w-24' },
         cell: ({ row }) => <span className="text-muted-foreground">{formatNumber(row.original.sortOrder)}</span>,
@@ -104,7 +106,7 @@ export default function ProductionProcessesTab() {
       {
         id: 'name',
         accessorKey: 'name',
-        header: 'Nama Proses',
+        header: t('productionProcessesTab.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-40' },
         cell: ({ row }) => {
@@ -120,29 +122,29 @@ export default function ProductionProcessesTab() {
       {
         id: 'status',
         accessorFn: (p) => (p.isActive ? 1 : 0),
-        header: 'Status',
+        header: t('productionProcessesTab.columns.status'),
         enableSorting: true,
         meta: { headerClassName: 'w-28' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('productionProcessesTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const p = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${p.name}`}
+              label={t('productionProcessesTab.actionsFor', { name: p.name })}
               actions={[
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: p }) },
+                { label: t('productionProcessesTab.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: p }) },
                 {
-                  label: p.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  label: p.isActive ? t('productionProcessesTab.actions.deactivate') : t('productionProcessesTab.actions.activate'),
                   icon: p.isActive ? PowerOff : Power,
                   hidden: !canEdit,
                   onSelect: () => toggleActive(p),
                 },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(p) },
+                { label: t('productionProcessesTab.actions.delete'), icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(p) },
               ]}
             />
           );
@@ -150,37 +152,36 @@ export default function ProductionProcessesTab() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toggleActive only closes over stable setters
-    [canEdit, canDelete],
+    [canEdit, canDelete, t],
   );
 
   return (
     <div className="space-y-4">
       <InfoNote>
-        Daftar proses yang dipilih staf saat mencatat produksi (mis. Drying, Huller, Polishing, Packing). Hanya untuk
-        ketertelusuran. Tidak ada biaya atau gerakan stok yang terkait ke proses.
+        {t('productionProcessesTab.info')}
       </InfoNote>
 
       <MasterToolbar
         search={search}
         onSearch={setSearch}
-        searchLabel="Cari proses"
-        searchPlaceholder="Cari nama atau keterangan"
+        searchLabel={t('productionProcessesTab.searchLabel')}
+        searchPlaceholder={t('productionProcessesTab.searchPlaceholder')}
         status={status}
         onStatus={setStatus}
-        summary={all.length > 0 ? `${formatNumber(counts.total)} proses · ${formatNumber(counts.active)} aktif` : undefined}
+        summary={all.length > 0 ? t('productionProcessesTab.summary', { total: formatNumber(counts.total), active: formatNumber(counts.active) }) : undefined}
         action={
           canEdit && (
             <Button onClick={() => setSheet({ edit: null })}>
               <Plus aria-hidden />
-              Proses Baru
+              {t('productionProcessesTab.newProcess')}
             </Button>
           )
         }
       />
 
       <DataTable
-        label="Daftar master proses"
-        itemLabel="proses"
+        label={t('productionProcessesTab.tableLabel')}
+        itemLabel={t('productionProcessesTab.itemLabel')}
         columns={columns}
         data={rows}
         getRowId={(r) => r.id}
@@ -196,12 +197,12 @@ export default function ProductionProcessesTab() {
         rowClassName={(p) => (p.isActive ? undefined : 'text-muted-foreground')}
         pageSize={25}
         empty={{
-          title: 'Belum ada master proses',
-          description: 'Tambahkan proses seperti Drying, Huller, Polishing, atau Packing.',
+          title: t('productionProcessesTab.empty.title'),
+          description: t('productionProcessesTab.empty.description'),
           action: canEdit ? (
             <Button size="sm" onClick={() => setSheet({ edit: null })}>
               <Plus aria-hidden />
-              Tambah proses pertama
+              {t('productionProcessesTab.empty.action')}
             </Button>
           ) : undefined,
         }}
@@ -222,9 +223,9 @@ export default function ProductionProcessesTab() {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus proses?"
-        description={`Hapus proses "${deleteTarget?.name ?? ''}"? Jika sudah dipakai di produksi, proses akan dinonaktifkan agar histori tetap utuh.`}
-        confirmLabel="Ya, hapus"
+        title={t('productionProcessesTab.deleteDialog.title')}
+        description={t('productionProcessesTab.deleteDialog.description', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('productionProcessesTab.deleteDialog.confirm')}
         onConfirm={handleDelete}
       />
     </div>
@@ -240,6 +241,7 @@ function ProcessFormSheet({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation('production');
   const isEdit = !!editTarget;
   const [form, setForm] = useState<FormState>(() =>
     editTarget
@@ -265,14 +267,14 @@ function ProcessFormSheet({
       };
       if (isEdit) {
         await api.put(`/inventory/production-processes/${editTarget.id}`, payload);
-        toast.success('Proses diperbarui.');
+        toast.success(t('productionProcessesTab.toast.updated'));
       } else {
         await api.post('/inventory/production-processes', payload);
-        toast.success('Proses dibuat.');
+        toast.success(t('productionProcessesTab.toast.created'));
       }
       onSaved();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal menyimpan proses.'));
+      setServerError(errorMessage(err, t('productionProcessesTab.toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -282,31 +284,31 @@ function ProcessFormSheet({
     <FormSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title={isEdit ? 'Edit proses produksi' : 'Proses produksi baru'}
-      description="Master ketertelusuran. Tidak memposting jurnal atau stok."
+      title={isEdit ? t('productionProcessesTab.form.editTitle') : t('productionProcessesTab.form.newTitle')}
+      description={t('productionProcessesTab.form.description')}
       error={serverError}
       saving={saving}
-      submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan proses'}
+      submitLabel={isEdit ? t('productionProcessesTab.form.saveChanges') : t('productionProcessesTab.form.save')}
       onSubmit={submit}
     >
-      <Field label="Nama proses" required error={errors.name}>
+      <Field label={t('productionProcessesTab.form.name')} required error={errors.name}>
         <Input
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
           onBlur={() => form.name && setTouched(true)}
-          placeholder="Drying / Huller / Polishing / Packing"
+          placeholder={t('productionProcessesTab.form.namePlaceholder')}
           maxLength={100}
         />
       </Field>
-      <Field label="Keterangan">
+      <Field label={t('productionProcessesTab.form.descriptionLabel')}>
         <Textarea
           value={form.description}
           onChange={(e) => set('description', e.target.value)}
-          placeholder="Mis. mengeringkan gabah dengan dryer vertikal sampai kadar air 14%"
+          placeholder={t('productionProcessesTab.form.descriptionPlaceholder')}
           rows={3}
         />
       </Field>
-      <Field label="Urutan tampil" hint="Angka kecil tampil lebih dulu saat memilih proses di input produksi." error={errors.sortOrder}>
+      <Field label={t('productionProcessesTab.form.sortOrder')} hint={t('productionProcessesTab.form.sortOrderHint')} error={errors.sortOrder}>
         <FormNumberInput value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} step={1} className="w-32" />
       </Field>
     </FormSheet>

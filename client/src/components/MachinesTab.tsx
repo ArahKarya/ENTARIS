@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { formatNumber, formatPercent } from '@/lib/format';
@@ -72,6 +73,7 @@ function payloadOf(m: Machine, patch: Partial<{ isActive: boolean }> = {}) {
 }
 
 export default function MachinesTab() {
+  const { t } = useTranslation('production');
   const canEdit = can('production', 'edit');
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -114,10 +116,10 @@ export default function MachinesTab() {
   const toggleActive = async (m: Machine) => {
     try {
       await api.put(`/inventory/machines/${m.id}`, payloadOf(m, { isActive: !m.isActive }));
-      toast.success(m.isActive ? `Mesin "${m.name}" dinonaktifkan.` : `Mesin "${m.name}" diaktifkan.`);
+      toast.success(m.isActive ? t('machinesTab.toast.deactivated', { name: m.name }) : t('machinesTab.toast.activated', { name: m.name }));
       invalidate();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal mengubah status mesin.'));
+      toast.error(errorMessage(err, t('machinesTab.toast.toggleFailed')));
     }
   };
 
@@ -125,10 +127,10 @@ export default function MachinesTab() {
     if (!deleteTarget) return;
     try {
       const res = await api.delete(`/inventory/machines/${deleteTarget.id}`);
-      toast.success(res.data?.message || 'Mesin dihapus.');
+      toast.success(res.data?.message || t('machinesTab.toast.deleted'));
       invalidate();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal menghapus mesin.'));
+      toast.error(errorMessage(err, t('machinesTab.toast.deleteFailed')));
       throw err;
     }
   };
@@ -138,7 +140,7 @@ export default function MachinesTab() {
       {
         id: 'code',
         accessorKey: 'code',
-        header: 'Kode',
+        header: t('machinesTab.columns.code'),
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => <span className="num font-mono text-xs text-foreground">{row.original.code}</span>,
@@ -146,7 +148,7 @@ export default function MachinesTab() {
       {
         id: 'name',
         accessorKey: 'name',
-        header: 'Nama Mesin',
+        header: t('machinesTab.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36' },
         cell: ({ row }) => {
@@ -163,7 +165,7 @@ export default function MachinesTab() {
       {
         id: 'idealRatePerHour',
         accessorFn: (m) => (m.idealRatePerHour == null ? -1 : Number(m.idealRatePerHour)),
-        header: 'Kapasitas Ideal',
+        header: t('machinesTab.columns.idealRate'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -172,12 +174,12 @@ export default function MachinesTab() {
           const rate = fmtRate(m.idealRatePerHour);
           return rate != null ? (
             <span className="text-foreground">
-              {rate} <span className="text-xs text-muted-foreground">{m.unit}/jam</span>
+              {rate} <span className="text-xs text-muted-foreground">{t('machinesTab.perHour', { unit: m.unit })}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-text" title="Performance OEE tidak terhitung">
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-text" title={t('machinesTab.rateMissingTitle')}>
               <AlertTriangle className="size-3.5" aria-hidden />
-              Belum diisi
+              {t('machinesTab.rateMissing')}
             </span>
           );
         },
@@ -187,7 +189,7 @@ export default function MachinesTab() {
             {
               id: 'oee',
               accessorFn: (m) => oeeById.get(m.id)?.avgOee ?? -1,
-              header: `OEE ${OEE_DAYS} hr`,
+              header: t('machinesTab.columns.oee', { days: OEE_DAYS }),
               enableSorting: true,
               sortDescFirst: true,
               meta: { align: 'right', hideBelow: 'md' },
@@ -209,7 +211,7 @@ export default function MachinesTab() {
             {
               id: 'runs',
               accessorFn: (m) => oeeById.get(m.id)?.runs ?? 0,
-              header: `Proses ${OEE_DAYS} hr`,
+              header: t('machinesTab.columns.runs', { days: OEE_DAYS }),
               enableSorting: true,
               sortDescFirst: true,
               meta: { align: 'right', hideBelow: 'lg' },
@@ -222,29 +224,29 @@ export default function MachinesTab() {
       {
         id: 'status',
         accessorFn: (m) => (m.isActive ? 1 : 0),
-        header: 'Status',
+        header: t('machinesTab.columns.status'),
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('machinesTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const m = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${m.code}`}
+              label={t('machinesTab.actionsFor', { code: m.code })}
               actions={[
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: m }) },
+                { label: t('machinesTab.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: m }) },
                 {
-                  label: m.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  label: m.isActive ? t('machinesTab.actions.deactivate') : t('machinesTab.actions.activate'),
                   icon: m.isActive ? PowerOff : Power,
                   hidden: !canEdit,
                   onSelect: () => toggleActive(m),
                 },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(m) },
+                { label: t('machinesTab.actions.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(m) },
               ]}
             />
           );
@@ -252,17 +254,16 @@ export default function MachinesTab() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toggleActive only closes over stable setters
-    [canEdit, showOee, oeeById],
+    [canEdit, showOee, oeeById, t],
   );
 
   return (
     <div className="space-y-4">
       <InfoNote>
-        Mesin produksi beserta kapasitas idealnya per jam. Kapasitas dipakai untuk menghitung Performance pada OEE
-        (Overall Equipment Effectiveness) saat produksi dicatat.
+        {t('machinesTab.info')}
         {missingRate > 0 && (
           <span className="mt-1 block font-medium text-warning-text">
-            {formatNumber(missingRate)} mesin aktif belum punya kapasitas ideal. Performance OEE-nya tidak terhitung.
+            {t('machinesTab.missingRate', { count: missingRate, value: formatNumber(missingRate) })}
           </span>
         )}
       </InfoNote>
@@ -270,24 +271,24 @@ export default function MachinesTab() {
       <MasterToolbar
         search={search}
         onSearch={setSearch}
-        searchLabel="Cari mesin"
-        searchPlaceholder="Cari kode, nama, atau catatan"
+        searchLabel={t('machinesTab.searchLabel')}
+        searchPlaceholder={t('machinesTab.searchPlaceholder')}
         status={status}
         onStatus={setStatus}
-        summary={all.length > 0 ? `${formatNumber(counts.total)} mesin · ${formatNumber(counts.active)} aktif` : undefined}
+        summary={all.length > 0 ? t('machinesTab.summary', { total: formatNumber(counts.total), active: formatNumber(counts.active) }) : undefined}
         action={
           canEdit && (
             <Button onClick={() => setSheet({ edit: null })}>
               <Plus aria-hidden />
-              Mesin Baru
+              {t('machinesTab.newMachine')}
             </Button>
           )
         }
       />
 
       <DataTable
-        label="Daftar mesin"
-        itemLabel="mesin"
+        label={t('machinesTab.tableLabel')}
+        itemLabel={t('machinesTab.itemLabel')}
         columns={columns}
         data={rows}
         getRowId={(r) => r.id}
@@ -303,12 +304,12 @@ export default function MachinesTab() {
         rowClassName={(m) => (m.isActive ? undefined : 'text-muted-foreground')}
         pageSize={25}
         empty={{
-          title: 'Belum ada master mesin',
-          description: 'Tambahkan mesin produksi (mis. Mesin Pellet 1) beserta kapasitas idealnya.',
+          title: t('machinesTab.empty.title'),
+          description: t('machinesTab.empty.description'),
           action: canEdit ? (
             <Button size="sm" onClick={() => setSheet({ edit: null })}>
               <Plus aria-hidden />
-              Tambah mesin pertama
+              {t('machinesTab.empty.action')}
             </Button>
           ) : undefined,
         }}
@@ -329,9 +330,9 @@ export default function MachinesTab() {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus mesin?"
-        description={`Hapus mesin "${deleteTarget?.name ?? ''}"? Mesin yang sudah dipakai di produksi tidak bisa dihapus. Nonaktifkan saja agar histori OEE tetap utuh.`}
-        confirmLabel="Ya, hapus"
+        title={t('machinesTab.deleteDialog.title')}
+        description={t('machinesTab.deleteDialog.description', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('machinesTab.deleteDialog.confirm')}
         onConfirm={handleDelete}
       />
     </div>
@@ -339,6 +340,7 @@ export default function MachinesTab() {
 }
 
 function MachineFormSheet({ editTarget, onClose, onSaved }: { editTarget: Machine | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation('production');
   const isEdit = !!editTarget;
   const switchId = useId();
   const [form, setForm] = useState<FormState>(() =>
@@ -376,14 +378,14 @@ function MachineFormSheet({ editTarget, onClose, onSaved }: { editTarget: Machin
       };
       if (isEdit) {
         await api.put(`/inventory/machines/${editTarget.id}`, payload);
-        toast.success('Mesin diperbarui.');
+        toast.success(t('machinesTab.toast.updated'));
       } else {
         await api.post('/inventory/machines', payload);
-        toast.success('Mesin dibuat.');
+        toast.success(t('machinesTab.toast.created'));
       }
       onSaved();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal menyimpan mesin.'));
+      setServerError(errorMessage(err, t('machinesTab.toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -393,27 +395,27 @@ function MachineFormSheet({ editTarget, onClose, onSaved }: { editTarget: Machin
     <FormSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title={isEdit ? 'Edit mesin' : 'Mesin baru'}
-      description="Master mesin untuk perhitungan OEE."
+      title={isEdit ? t('machinesTab.form.editTitle') : t('machinesTab.form.newTitle')}
+      description={t('machinesTab.form.description')}
       error={serverError}
       saving={saving}
-      submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan mesin'}
+      submitLabel={isEdit ? t('machinesTab.form.saveChanges') : t('machinesTab.form.save')}
       onSubmit={submit}
     >
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Kode" required error={errors.code}>
+        <Field label={t('machinesTab.form.code')} required error={errors.code}>
           <Input value={form.code} onChange={(e) => set('code', e.target.value)} placeholder="MSN-PELLET-01" maxLength={50} />
         </Field>
-        <Field label="Satuan" hint="Default kg" error={errors.unit}>
+        <Field label={t('machinesTab.form.unit')} hint={t('machinesTab.form.unitHint')} error={errors.unit}>
           <Input value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="kg" maxLength={20} />
         </Field>
       </div>
-      <Field label="Nama mesin" required error={errors.name}>
-        <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Mesin Pellet 1" maxLength={150} />
+      <Field label={t('machinesTab.form.name')} required error={errors.name}>
+        <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={t('machinesTab.form.namePlaceholder')} maxLength={150} />
       </Field>
       <Field
-        label={`Kapasitas ideal (${unit}/jam)`}
-        hint="Output maksimal mesin per jam; dipakai untuk komponen Performance OEE. Kosongkan bila belum diketahui."
+        label={t('machinesTab.form.idealRate', { unit })}
+        hint={t('machinesTab.form.idealRateHint')}
         error={errors.idealRatePerHour}
       >
         <FormNumberInput
@@ -421,19 +423,19 @@ function MachineFormSheet({ editTarget, onClose, onSaved }: { editTarget: Machin
           onChange={(e) => set('idealRatePerHour', e.target.value)}
           min={0}
           step="0.001"
-          placeholder="Mis. 1000"
+          placeholder={t('machinesTab.form.idealRatePlaceholder')}
           className="num text-right"
         />
       </Field>
-      <Field label="Catatan">
-        <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Keterangan tambahan…" rows={3} />
+      <Field label={t('machinesTab.form.notes')}>
+        <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder={t('machinesTab.form.notesPlaceholder')} rows={3} />
       </Field>
       <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
         <div>
           <label htmlFor={switchId} className="text-sm font-medium text-foreground">
-            Mesin aktif
+            {t('machinesTab.form.active')}
           </label>
-          <p className="text-xs text-muted-foreground">Mesin nonaktif tidak muncul saat mencatat produksi.</p>
+          <p className="text-xs text-muted-foreground">{t('machinesTab.form.activeHint')}</p>
         </div>
         <Switch id={switchId} checked={form.isActive} onCheckedChange={(v: boolean) => set('isActive', v)} />
       </div>

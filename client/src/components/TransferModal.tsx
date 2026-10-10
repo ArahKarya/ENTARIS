@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { ArrowRightLeft, CheckCircle2, Paperclip } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
@@ -19,6 +20,7 @@ interface TransferModalProps {
 }
 
 const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation('inventory');
   const today = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
@@ -68,7 +70,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['coa'] });
       setSavedId(res.data?.id);
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan transfer.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('transferModal.errors.saveFailed')),
   });
 
   const numAmount = Number(amount) || 0;
@@ -81,7 +83,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = () => {
     if (sourceAccountId === destAccountId) {
-      setError('Akun asal dan tujuan tidak boleh sama.');
+      setError(t('transferModal.errors.sameAccount'));
       return;
     }
 
@@ -121,29 +123,29 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Pemindahbukuan (Pinbuk)"
-      description="Transfer antar rekening kas/bank"
+      title={t('transferModal.title')}
+      description={t('transferModal.description')}
       busy={mutation.isPending}
-      submitLabel="Simpan Transfer"
+      submitLabel={t('transferModal.submit')}
       onSubmit={handleSubmit}
       submitDisabled={!canSubmit}
       footer={
         savedId ? (
           <Button className="h-11 sm:h-9" onClick={onClose}>
-            Selesai
+            {t('transferModal.done')}
           </Button>
         ) : undefined
       }
     >
-      <Field label="Tanggal">
+      <Field label={t('transferModal.fields.date')}>
         <DateInput value={date} onChange={setDate} />
       </Field>
 
-      <Field label="Akun Asal (Transfer Dari)">
+      <Field label={t('transferModal.fields.source')}>
         <OptionPicker
           value={sourceAccountId}
           onChange={setSourceAccountId}
-          placeholder="Pilih Akun Asal"
+          placeholder={t('transferModal.fields.sourcePlaceholder')}
           options={accountOptions(destAccountId)}
         />
       </Field>
@@ -152,21 +154,21 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-center">
           <div className="flex items-center gap-2 rounded-md bg-info-subtle px-4 py-1.5 text-xs font-medium text-info-text">
             <ArrowRightLeft className="size-3" aria-hidden />
-            Transfer ke
+            {t('transferModal.transferTo')}
           </div>
         </div>
       )}
 
-      <Field label="Akun Tujuan (Transfer Ke)">
+      <Field label={t('transferModal.fields.destination')}>
         <OptionPicker
           value={destAccountId}
           onChange={setDestAccountId}
-          placeholder="Pilih Akun Tujuan"
+          placeholder={t('transferModal.fields.destinationPlaceholder')}
           options={accountOptions(sourceAccountId)}
         />
       </Field>
 
-      <Field label="Jumlah (Rp)">
+      <Field label={t('transferModal.fields.amount')}>
         <NumberInput
           value={amount}
           onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -178,18 +180,18 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="No. Referensi">
-          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="No. cek, transfer, dll." />
+        <Field label={t('transferModal.fields.reference')}>
+          <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder={t('transferModal.fields.referencePlaceholder')} />
         </Field>
-        <Field label="Catatan">
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Keterangan opsional..." />
+        <Field label={t('transferModal.fields.notes')}>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('transferModal.fields.notesPlaceholder')} />
         </Field>
       </div>
 
       {numAmount > 0 && sourceAccount && destAccount && (
-        <Callout tone="info" icon={<span className="sr-only">Ringkasan:</span>}>
+        <Callout tone="info" icon={<span className="sr-only">{t('transferModal.summary')}</span>}>
           <p>
-            Transfer <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
+            {t('transferModal.transferAmount')} <span className="num text-base font-bold">{formatRupiah(numAmount)}</span>
           </p>
           <p className="mt-1 text-xs">
             {sourceAccount.accountNumber} {sourceAccount.name} → {destAccount.accountNumber} {destAccount.name}
@@ -198,7 +200,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
       )}
 
       {sourceAccountId && destAccountId && sourceAccountId === destAccountId && (
-        <Callout tone="warning">Akun asal dan tujuan tidak boleh sama.</Callout>
+        <Callout tone="warning">{t('transferModal.errors.sameAccount')}</Callout>
       )}
 
       <ErrorAlert message={error} />
@@ -207,9 +209,9 @@ const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
         <div className="space-y-3 border-t border-border pt-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-success-text" aria-hidden />
-            <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+            <span className="text-xs font-semibold text-success-text">{t('transferModal.saved')}</span>
             <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <Paperclip className="size-3" aria-hidden /> Lampiran Bukti Transfer
+              <Paperclip className="size-3" aria-hidden /> {t('transferModal.attachments')}
             </span>
           </div>
           <AttachmentPreview referenceType="journal" referenceId={savedId} />
