@@ -101,7 +101,7 @@ export const AuditTrail = () => {
 
   const total = logsQuery.data?.total;
   const summary = summaryQuery.data;
-  const count = (action: string) => (summary ? formatNumber(summary.byAction[action] ?? 0) : '-');
+  const count = (action: string) => (summary ? formatNumber(summary.byAction[action] ?? 0) : '—');
 
   const handleExport = async () => {
     setExporting(true);
@@ -111,15 +111,15 @@ export const AuditTrail = () => {
       exportToExcel(
         rows.map((l) => ({
           Waktu: formatDateTime(l.createdAt),
-          Pengguna: l.user?.fullName ?? '-',
-          Email: l.user?.email ?? '-',
+          Pengguna: l.user?.fullName ?? '—',
+          Email: l.user?.email ?? '—',
           Aksi: auditActionLabel(l.action),
           'Kode Aksi': l.action,
           Entitas: l.entityType,
           'ID Entitas': l.entityId,
-          'Alamat IP': l.ipAddress ?? '-',
-          'Nilai Lama': l.oldValues ? JSON.stringify(l.oldValues) : '-',
-          'Nilai Baru': l.newValues ? JSON.stringify(l.newValues) : '-',
+          'Alamat IP': l.ipAddress ?? '—',
+          'Nilai Lama': l.oldValues ? JSON.stringify(l.oldValues) : '—',
+          'Nilai Baru': l.newValues ? JSON.stringify(l.newValues) : '—',
         })),
         `jejak-audit-${new Date().toISOString().slice(0, 10)}`,
       );
@@ -156,7 +156,7 @@ export const AuditTrail = () => {
         meta: { hideBelow: 'md', cellClassName: 'min-w-36 max-w-60' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{row.original.user?.fullName ?? '-'}</p>
+            <p className="truncate font-medium text-foreground">{row.original.user?.fullName ?? '—'}</p>
             <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
               {row.original.user?.email}
             </p>
@@ -189,7 +189,7 @@ export const AuditTrail = () => {
         id: 'ipAddress',
         header: 'Alamat IP',
         meta: { hideBelow: 'xl', cellClassName: 'font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.ipAddress ?? '-',
+        cell: ({ row }) => row.original.ipAddress ?? '—',
       },
       {
         id: 'actions',
@@ -224,7 +224,7 @@ export const AuditTrail = () => {
           label="Jumlah Aktivitas"
           icon={History}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.total) : '-'}
+          value={summary ? formatNumber(summary.total) : '—'}
           hint={summary ? `${formatNumber(summary.byAction.LOGIN ?? 0)} kali masuk` : undefined}
         />
         <StatCard label="Buat" icon={FilePlus2} loading={!summary && !summaryQuery.isError} value={count('CREATE')} />

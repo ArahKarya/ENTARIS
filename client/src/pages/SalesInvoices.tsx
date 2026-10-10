@@ -203,7 +203,7 @@ export const SalesInvoices = () => {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.invoiceNumber}</DocumentLink>
             {/* Mobile: customer stacked here because its column is hidden. */}
             <span className="line-clamp-2 max-w-44 text-sm font-medium break-words text-foreground sm:hidden">
-              {row.original.customer?.name ?? '-'}
+              {row.original.customer?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -224,7 +224,7 @@ export const SalesInvoices = () => {
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>
+            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>
             {row.original.customer?.phone && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 {row.original.customer.phone}
@@ -240,7 +240,7 @@ export const SalesInvoices = () => {
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap' },
         cell: ({ row }) => {
           const inv = row.original;
-          if (!inv.dueDate) return <span className="text-muted-foreground">-</span>;
+          if (!inv.dueDate) return <span className="text-muted-foreground">—</span>;
           const late = isOverdue(inv);
           return (
             <span className={cn('inline-flex items-center gap-1', late ? 'font-medium text-danger-text' : 'text-muted-foreground')}>
@@ -336,7 +336,7 @@ export const SalesInvoices = () => {
     [canReturn],
   );
 
-  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
 
   return (
     <div className="space-y-5 pb-8">
@@ -370,7 +370,7 @@ export const SalesInvoices = () => {
           label="Jumlah Faktur"
           icon={Receipt}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary ? `Nilai ${formatRupiah(summary.grandTotal)}` : undefined}
         />
         <StatCard
@@ -385,14 +385,14 @@ export const SalesInvoices = () => {
           label="Lunas"
           icon={CheckCircle2}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.paidCount) : '-'}
+          value={summary ? formatNumber(summary.paidCount) : '—'}
           hint="faktur dibayar penuh"
         />
         <StatCard
           label="Lewat Jatuh Tempo"
           icon={AlertTriangle}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.overdueCount) : '-'}
+          value={summary ? formatNumber(summary.overdueCount) : '—'}
           hint={summary ? `Sisa ${formatRupiah(summary.overdueOutstanding)}` : undefined}
         />
       </section>

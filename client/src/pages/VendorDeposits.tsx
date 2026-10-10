@@ -135,7 +135,7 @@ export const VendorDeposits = () => {
             {/* Mobile: supplier + date stacked here because their columns are hidden.
                 Long supplier names wrap (max two lines) so the row menu stays in view at 390px. */}
             <span className="line-clamp-2 max-w-44 text-sm font-medium break-words text-foreground sm:hidden">
-              {row.original.party?.name ?? '-'}
+              {row.original.party?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -159,7 +159,7 @@ export const VendorDeposits = () => {
           const sub = [d.account?.name, d.referenceNo].filter(Boolean).join(' · ');
           return (
             <div className="min-w-0">
-              <p className="truncate font-medium text-foreground">{d.party?.name ?? '-'}</p>
+              <p className="truncate font-medium text-foreground">{d.party?.name ?? '—'}</p>
               {sub && (
                 <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">{sub}</p>
               )}
@@ -254,7 +254,7 @@ export const VendorDeposits = () => {
     [canEdit],
   );
 
-  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
 
   return (
     <div className="space-y-5 pb-8">
@@ -300,7 +300,7 @@ export const VendorDeposits = () => {
           label="Deposit Aktif"
           icon={Clock}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.activeCount) : '-'}
+          value={summary ? formatNumber(summary.activeCount) : '—'}
           hint="masih punya sisa"
         />
       </section>

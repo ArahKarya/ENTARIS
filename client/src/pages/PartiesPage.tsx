@@ -88,7 +88,7 @@ const isCustomerSide = (p: PartyRow) => p.partyType === 'Customer' || p.partyTyp
 const isSupplierSide = (p: PartyRow) => p.partyType === 'Supplier' || p.partyType === 'Both';
 const num = (v: Money | null | undefined) => toNumber(v) ?? 0;
 const money = (v: Money | null | undefined) => formatRupiah(v, { symbol: false });
-const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
 const errorMessage = (err: unknown, fallback: string) =>
   (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
 
@@ -263,7 +263,7 @@ export const PartiesPage = () => {
         id: 'taxId',
         header: 'NPWP',
         meta: { hideBelow: 'xl', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => row.original.taxId || '-',
+        cell: ({ row }) => row.original.taxId || '—',
       },
       {
         id: 'outstanding',
@@ -398,7 +398,7 @@ export const PartiesPage = () => {
               label="Jumlah Mitra"
               icon={Users}
               loading={kpiLoading}
-              value={summary ? formatNumber(summary.total) : '-'}
+              value={summary ? formatNumber(summary.total) : '—'}
               hint={
                 summary
                   ? `${formatNumber(summary.byType.Customer)} pelanggan · ${formatNumber(summary.byType.Supplier)} vendor`
@@ -425,7 +425,7 @@ export const PartiesPage = () => {
               label="Mitra dengan Saldo"
               icon={PiggyBank}
               loading={kpiLoading}
-              value={summary ? formatNumber(summary.withOutstandingCount) : '-'}
+              value={summary ? formatNumber(summary.withOutstandingCount) : '—'}
               hint={summary ? `${formatNumber(summary.inactiveCount)} nonaktif` : undefined}
             />
           </section>

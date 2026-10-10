@@ -45,7 +45,7 @@ describe('intervalLabel', () => {
   it('describes the interval unit', () => {
     expect(intervalLabel({ intervalDays: 30, intervalHours: null, intervalKm: null })).toBe('Setiap 30 hari');
     expect(intervalLabel({ intervalDays: null, intervalHours: 500, intervalKm: null })).toBe('Setiap 500 jam operasi');
-    expect(intervalLabel({ intervalDays: null, intervalHours: null, intervalKm: null })).toBe('-');
+    expect(intervalLabel({ intervalDays: null, intervalHours: null, intervalKm: null })).toBe('—');
   });
 });
 

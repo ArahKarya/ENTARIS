@@ -148,7 +148,7 @@ export default function InventoryDashboardTab() {
           label="Nilai Persediaan"
           icon={Wallet}
           loading={kpiLoading}
-          value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.stockValue) : undefined}
           hint="stok × harga rata-rata, item aktif"
         />
@@ -156,7 +156,7 @@ export default function InventoryDashboardTab() {
           label="Item Aktif"
           icon={Boxes}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint="item persediaan"
           href={itemsLink({ isActive: 'true' })}
         />
@@ -164,7 +164,7 @@ export default function InventoryDashboardTab() {
           label="Stok Habis"
           icon={PackageX}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.outCount) : '-'}
+          value={summary ? formatNumber(summary.outCount) : '—'}
           hint="stok nol atau minus"
           href={itemsLink({ isActive: 'true', stockStatus: 'out' })}
         />
@@ -172,7 +172,7 @@ export default function InventoryDashboardTab() {
           label="Di Bawah Minimum"
           icon={AlertTriangle}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.lowCount) : '-'}
+          value={summary ? formatNumber(summary.lowCount) : '—'}
           hint="perlu dipesan ulang"
           href={itemsLink({ isActive: 'true', stockStatus: 'low' })}
         />
@@ -180,7 +180,7 @@ export default function InventoryDashboardTab() {
           label="Gerakan Stok"
           icon={ArrowLeftRight}
           loading={!moves && !movementQuery.isError}
-          value={movementCount !== null ? formatNumber(movementCount) : '-'}
+          value={movementCount !== null ? formatNumber(movementCount) : '—'}
           delta={movementCount !== null ? countDelta(movementCount, prevMovementCount) : undefined}
           hint={moves ? `${formatNumber(moves.inCount)} masuk · ${formatNumber(moves.outCount)} keluar` : period.label}
           href={movementsLink(periodLinkParams)}
@@ -281,7 +281,7 @@ function AttentionPanel({
                 {formatQty(i.currentStock)}
                 <span className="font-normal text-muted-foreground">
                   {' '}
-                  / {toNumber(i.minimumStock) ? formatQty(i.minimumStock) : '-'} {i.unit}
+                  / {toNumber(i.minimumStock) ? formatQty(i.minimumStock) : '—'} {i.unit}
                 </span>
               </span>
               {coverage !== null && (
@@ -507,7 +507,7 @@ function RecentMovementsPanel({
               {m.movementNumber}
             </Link>
           ) : (
-            '-'
+            '—'
           );
         },
       },
@@ -528,7 +528,7 @@ function RecentMovementsPanel({
                   {m.item.name}
                 </Link>
               ) : (
-                '-'
+                '—'
               )}
               <p className="num text-xs text-muted-foreground sm:hidden">{formatDate(m.date, 'short')}</p>
             </div>
@@ -569,7 +569,7 @@ function RecentMovementsPanel({
         id: 'value',
         header: 'Nilai',
         meta: { align: 'right', hideBelow: 'md' },
-        cell: ({ row }) => (row.original.totalValue != null ? formatRupiah(row.original.totalValue) : '-'),
+        cell: ({ row }) => (row.original.totalValue != null ? formatRupiah(row.original.totalValue) : '—'),
       },
     ],
     [],

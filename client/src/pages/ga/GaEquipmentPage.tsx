@@ -186,7 +186,7 @@ export const GaEquipmentPage = () => {
           </>
         ),
         meta: { align: 'right' },
-        cell: ({ row }) => (row.original.biaya != null ? formatRupiah(row.original.biaya, { symbol: false }) : '-'),
+        cell: ({ row }) => (row.original.biaya != null ? formatRupiah(row.original.biaya, { symbol: false }) : '—'),
       },
     ],
     [],

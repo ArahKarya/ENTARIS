@@ -105,7 +105,7 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
     <StatCard
       key="stock"
       label="Stok Kritis"
-      value={stock.isError ? '-' : critical >= 20 ? '20+' : String(critical)}
+      value={stock.isError ? '—' : critical >= 20 ? '20+' : String(critical)}
       icon={PackageX}
       loading={stock.isLoading}
       hint={stock.isError ? 'gagal dimuat' : critical === 0 ? 'semua stok aman' : `${empty} habis`}
@@ -119,7 +119,7 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
     <StatCard
       key="maintenance"
       label="Pemeliharaan"
-      value={maintenance.isError ? '-' : mk ? String(mk.overdue) : '-'}
+      value={maintenance.isError ? '—' : mk ? String(mk.overdue) : '—'}
       icon={Wrench}
       loading={maintenance.isLoading}
       hint={

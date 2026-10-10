@@ -182,7 +182,7 @@ export const RecurringTransactions = () => {
         header: 'Terakhir Dijalankan',
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => (row.original.lastRunDate ? formatDate(row.original.lastRunDate) : '-'),
+        cell: ({ row }) => (row.original.lastRunDate ? formatDate(row.original.lastRunDate) : '—'),
       },
       {
         id: 'status',

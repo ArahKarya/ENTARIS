@@ -136,7 +136,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
               <DocumentLink onClick={() => onOpen(wo)}>{wo.code}</DocumentLink>
               {/* Mobile: title, asset, priority and due marker stacked here (their columns are hidden). */}
               <span className="line-clamp-2 max-w-52 break-words text-sm font-medium text-foreground sm:hidden">{wo.title}</span>
-              <span className="max-w-52 truncate text-xs text-muted-foreground sm:hidden">{wo.asset?.name ?? '-'}</span>
+              <span className="max-w-52 truncate text-xs text-muted-foreground sm:hidden">{wo.asset?.name ?? '—'}</span>
               <span className="flex flex-wrap items-center gap-1.5 md:hidden">
                 <PriorityBadge priority={wo.priority} />
                 <DueDate dueState={due} markerOnly />
@@ -155,7 +155,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
             <div className="min-w-0">
               <p className="line-clamp-2 break-words font-medium text-foreground">{wo.title}</p>
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
-                {wo.asset ? `${wo.asset.code} · ${wo.asset.name}` : '-'}
+                {wo.asset ? `${wo.asset.code} · ${wo.asset.name}` : '—'}
               </p>
             </div>
           );
@@ -178,7 +178,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
           row.original.dueAt ? (
             <DueDate date={row.original.dueAt} dueState={woDueState(row.original)} />
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -207,7 +207,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
           return cost ? (
             <span className="text-foreground">{formatRupiah(cost, { symbol: false })}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           );
         },
       },
@@ -274,28 +274,28 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
           label="WO Aktif"
           icon={ClipboardList}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.active) : '-'}
+          value={summary ? formatNumber(summary.active) : '—'}
           hint={summary ? `dari ${formatNumber(summary.count)} work order` : undefined}
         />
         <StatCard
           label="Lewat Jatuh Tempo"
           icon={CalendarClock}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.overdue) : '-'}
+          value={summary ? formatNumber(summary.overdue) : '—'}
           hint="WO aktif melewati tanggal jatuh tempo"
         />
         <StatCard
           label="Selesai Bulan Ini"
           icon={CheckCircle2}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.doneThisMonth) : '-'}
+          value={summary ? formatNumber(summary.doneThisMonth) : '—'}
           hint="status Selesai atau Ditutup"
         />
         <StatCard
           label="Total Biaya"
           icon={Wallet}
           loading={kpiLoading}
-          value={summary ? formatRupiah(summary.totalCost, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.totalCost, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.totalCost) : undefined}
           hint="tenaga + vendor + part"
         />

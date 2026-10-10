@@ -30,11 +30,11 @@ export const NcrItemsTable: React.FC<{ items: NcrItem[] }> = ({ items }) => (
     columns={COLUMNS}
     rows={items.map((it, i) => ({
       no: String(i + 1),
-      code: it.code || '-',
+      code: it.code || '—',
       name: it.name,
       qty: <Text style={{ fontSize: 10, fontFamily: F.bold, textAlign: 'right' }}>{pdfNum(it.qty, 3)}</Text>,
       unit: it.unit,
-      desc: it.description || '-',
+      desc: it.description || '—',
     }))}
   />
 );

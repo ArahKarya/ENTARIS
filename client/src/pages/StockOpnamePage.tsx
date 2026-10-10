@@ -67,7 +67,7 @@ const withUnit = (label: string) => (
 );
 
 const warehouseLabel = (row: StockOpnameRow) =>
-  row.warehouses && row.warehouses.length > 0 ? row.warehouses.map((w) => w.name).join(', ') : '-';
+  row.warehouses && row.warehouses.length > 0 ? row.warehouses.map((w) => w.name).join(', ') : '—';
 
 export function StockOpnamePage() {
   const queryClient = useQueryClient();
@@ -212,7 +212,7 @@ export function StockOpnamePage() {
         id: 'createdBy',
         header: 'Dibuat Oleh',
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => row.original.createdBy?.fullName ?? '-',
+        cell: ({ row }) => row.original.createdBy?.fullName ?? '—',
       },
       {
         id: 'actions',

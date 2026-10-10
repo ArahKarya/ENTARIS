@@ -102,7 +102,7 @@ export default function SalesReturnsPage() {
   const columns = useMemo<ColumnDef<SalesReturnRow>[]>(() => {
     const invoiceRef = (r: SalesReturnRow, className?: string) => {
       const inv = r.salesInvoice;
-      if (!inv) return <span className="text-muted-foreground">-</span>;
+      if (!inv) return <span className="text-muted-foreground">—</span>;
       if (!canOpenInvoice) return <span className={`num font-mono text-xs ${className ?? ''}`}>{inv.invoiceNumber}</span>;
       return (
         <DocumentLink focusable onClick={() => setInvoiceId(inv.id)} className={className}>
@@ -122,7 +122,7 @@ export default function SalesReturnsPage() {
             <span className="num font-mono text-xs font-medium text-foreground">{row.original.returnNumber}</span>
             {/* Mobile: customer + date stacked here because their columns are hidden. */}
             <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
-              {row.original.customer?.name ?? '-'}
+              {row.original.customer?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -143,7 +143,7 @@ export default function SalesReturnsPage() {
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>
+            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>
             {row.original.reason && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 {row.original.reason}

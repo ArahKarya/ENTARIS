@@ -295,7 +295,7 @@ export const PaymentRequestDetailPage = () => {
             </div>
             <div className="col-span-2 rounded-lg border border-border bg-card p-4 sm:col-span-1">
               <p className="text-xs text-muted-foreground">Dibutuhkan</p>
-              <p className="mt-1 font-medium text-foreground">{pr.neededBy ? formatDate(pr.neededBy) : '-'}</p>
+              <p className="mt-1 font-medium text-foreground">{pr.neededBy ? formatDate(pr.neededBy) : '—'}</p>
             </div>
           </section>
 
@@ -389,7 +389,7 @@ export const PaymentRequestDetailPage = () => {
             <CardContent>
               <dl className="space-y-2.5">
                 <InfoRow label="Pengaju">{pr.requester.fullName}</InfoRow>
-                <InfoRow label="Atasan">{pr.supervisor?.fullName ?? '-'}</InfoRow>
+                <InfoRow label="Atasan">{pr.supervisor?.fullName ?? '—'}</InfoRow>
                 {pr.department && <InfoRow label="Departemen">{pr.department}</InfoRow>}
                 <InfoRow label="Diajukan">{pr.submittedAt ? formatDateTime(pr.submittedAt) : 'Belum diajukan'}</InfoRow>
                 <InfoRow label="Penerima">
@@ -403,7 +403,7 @@ export const PaymentRequestDetailPage = () => {
                       {pr.bankAccountHolder && <span className="block text-muted-foreground">a.n. {pr.bankAccountHolder}</span>}
                     </>
                   ) : (
-                    '-'
+                    '—'
                   )}
                 </InfoRow>
               </dl>
@@ -417,10 +417,10 @@ export const PaymentRequestDetailPage = () => {
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2.5">
-                  <InfoRow label="Tanggal bayar">{pr.paymentDate ? formatDate(pr.paymentDate) : '-'}</InfoRow>
-                  <InfoRow label="Sumber dana">{pr.cashAccount ? `${pr.cashAccount.accountNumber} · ${pr.cashAccount.name}` : '-'}</InfoRow>
-                  <InfoRow label="Referensi">{pr.paymentReference ?? '-'}</InfoRow>
-                  <InfoRow label="Dibayar oleh">{pr.paidBy?.fullName ?? '-'}</InfoRow>
+                  <InfoRow label="Tanggal bayar">{pr.paymentDate ? formatDate(pr.paymentDate) : '—'}</InfoRow>
+                  <InfoRow label="Sumber dana">{pr.cashAccount ? `${pr.cashAccount.accountNumber} · ${pr.cashAccount.name}` : '—'}</InfoRow>
+                  <InfoRow label="Referensi">{pr.paymentReference ?? '—'}</InfoRow>
+                  <InfoRow label="Dibayar oleh">{pr.paidBy?.fullName ?? '—'}</InfoRow>
                   {pr.journalEntry && (
                     <InfoRow label="Jurnal">
                       {actions?.viewJournal ? (

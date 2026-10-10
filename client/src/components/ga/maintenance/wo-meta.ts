@@ -153,14 +153,14 @@ export function intervalLabel(s: Pick<ScheduleRow, 'intervalDays' | 'intervalHou
   if (s.intervalDays) return `Setiap ${s.intervalDays} hari`;
   if (s.intervalHours) return `Setiap ${s.intervalHours} jam operasi`;
   if (s.intervalKm) return `Setiap ${s.intervalKm.toLocaleString('id-ID')} km`;
-  return '-';
+  return '—';
 }
 
 /** ISO/date string → yyyy-mm-dd for date inputs (UTC date part). */
 export const toDateInput = (v: string | null | undefined): string => (v ? new Date(v).toISOString().slice(0, 10) : '');
 
 export const assetLabel = (a: { code?: string; name?: string } | null | undefined): string =>
-  a ? [a.code, a.name].filter(Boolean).join(' · ') || '-' : '-';
+  a ? [a.code, a.name].filter(Boolean).join(' · ') || '—' : '—';
 
 /** Which lifecycle actions a work order allows (server rules in routes/ga/maintenance.ts). */
 export function woActions(status: WoStatus) {

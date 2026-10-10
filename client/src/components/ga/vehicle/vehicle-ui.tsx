@@ -41,7 +41,7 @@ export function DueMarker({ state, prefix, short, hideOk, className }: DueMarker
 
 /** Date with its due marker stacked under it. */
 export function DueDateCell({ date, state, hideOk = true }: { date?: string | null; state: DueState | null; hideOk?: boolean }) {
-  if (!date) return <span className="text-muted-foreground">-</span>;
+  if (!date) return <span className="text-muted-foreground">—</span>;
   const flagged = state === 'overdue' || state === 'dueSoon';
   return (
     <span className="inline-flex flex-col items-start gap-0.5">

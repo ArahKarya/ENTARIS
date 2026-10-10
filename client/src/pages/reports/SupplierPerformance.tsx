@@ -37,8 +37,8 @@ interface PerformanceRow {
   priceVarianceAmount: number;
 }
 
-const pct = (v: number | null) => (v == null ? '-' : `${formatNumber(v, { maxDecimals: 2 })}%`);
-const signedPct = (v: number | null) => (v == null ? '-' : `${v > 0 ? '+' : ''}${formatNumber(v, { maxDecimals: 2 })}%`);
+const pct = (v: number | null) => (v == null ? '—' : `${formatNumber(v, { maxDecimals: 2 })}%`);
+const signedPct = (v: number | null) => (v == null ? '—' : `${v > 0 ? '+' : ''}${formatNumber(v, { maxDecimals: 2 })}%`);
 
 /** >= 90 good, >= 70 watch, else poor. The label text states the rate, so colour is reinforcement only. */
 const rateClass = (v: number | null) =>
@@ -65,7 +65,7 @@ const COLUMNS: DataColumn<PerformanceRow>[] = [
     key: 'lead',
     header: 'Lead Time',
     numeric: true,
-    render: (r) => (r.avgLeadTimeDays == null ? '-' : `${formatNumber(r.avgLeadTimeDays, { maxDecimals: 1 })} hari`),
+    render: (r) => (r.avgLeadTimeDays == null ? '—' : `${formatNumber(r.avgLeadTimeDays, { maxDecimals: 1 })} hari`),
   },
   {
     key: 'fill',

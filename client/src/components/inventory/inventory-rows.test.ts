@@ -43,7 +43,7 @@ describe('movement rules', () => {
 describe('helpers', () => {
   it('formats quantities with up to 3 decimals', () => {
     expect(formatQty('1250.5')).toBe('1.250,5');
-    expect(formatQty(null)).toBe('-');
+    expect(formatQty(null)).toBe('—');
   });
 
   it('splits production lines into inputs and outputs', () => {

@@ -73,7 +73,7 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
         id: 'unit',
         header: 'Satuan',
         meta: { hideBelow: 'md', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => row.original.unit || '-',
+        cell: ({ row }) => row.original.unit || '—',
       },
       {
         id: 'defaultRate',
@@ -86,7 +86,7 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
           return (
             <div className="flex flex-col items-end gap-1">
               <span className="text-foreground">
-                {s.defaultRate != null && Number(s.defaultRate) > 0 ? formatRupiah(s.defaultRate, { symbol: false }) : '-'}
+                {s.defaultRate != null && Number(s.defaultRate) > 0 ? formatRupiah(s.defaultRate, { symbol: false }) : '—'}
                 {s.defaultRate != null && Number(s.defaultRate) > 0 && (
                   <span className="text-xs text-muted-foreground"> /{s.unit}</span>
                 )}
@@ -102,7 +102,7 @@ export function ServiceItemsTab({ canEdit, canDeactivate, onCreate, onEdit, onDe
         meta: { hideBelow: 'lg', cellClassName: 'max-w-64 truncate text-muted-foreground' },
         cell: ({ row }) => {
           const a = row.original.account;
-          return a ? `${a.accountNumber} · ${a.name}` : '-';
+          return a ? `${a.accountNumber} · ${a.name}` : '—';
         },
       },
       {

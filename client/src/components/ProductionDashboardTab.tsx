@@ -112,7 +112,7 @@ export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboar
           label="Proses Produksi"
           icon={Factory}
           loading={kpiLoading}
-          value={s ? formatNumber(s.activeCount) : '-'}
+          value={s ? formatNumber(s.activeCount) : '—'}
           delta={s ? countDelta(s.activeCount, prev?.activeCount) : undefined}
           href={`/inventory?tab=production&view=data&startDate=${range.startDate}&endDate=${range.endDate}`}
         />
@@ -120,28 +120,28 @@ export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboar
           label="Bahan Diproses"
           icon={Boxes}
           loading={kpiLoading}
-          value={s ? qty(s.inputQty) : '-'}
+          value={s ? qty(s.inputQty) : '—'}
           hint="total input"
         />
         <StatCard
           label="Output Utama"
           icon={PackageCheck}
           loading={kpiLoading}
-          value={s ? qty(mainOutputQty(s)) : '-'}
+          value={s ? qty(mainOutputQty(s)) : '—'}
           hint="tanpa produk samping"
         />
         <StatCard
           label="Produk Samping"
           icon={Layers}
           loading={kpiLoading}
-          value={s ? qty(s.byproductQty) : '-'}
+          value={s ? qty(s.byproductQty) : '—'}
           hint={s && s.outputQty > 0 ? `${formatYield((s.byproductQty / s.outputQty) * 100)} dari output` : undefined}
         />
         <StatCard
           label="Yield Tertimbang"
           icon={Percent}
           loading={kpiLoading}
-          value={s ? formatYield(s.yieldPct) : '-'}
+          value={s ? formatYield(s.yieldPct) : '—'}
           delta={s ? pointDelta(s.yieldPct, prev?.yieldPct) : undefined}
           hint={s && !prev ? 'dibobot qty input' : undefined}
         />
@@ -149,7 +149,7 @@ export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboar
           label="Biaya Konversi"
           icon={Coins}
           loading={!dashQuery.data && !dashQuery.isError}
-          value={conv !== null ? formatRupiah(conv, { compact: true }) : '-'}
+          value={conv !== null ? formatRupiah(conv, { compact: true }) : '—'}
           valueTitle={conv !== null ? formatRupiah(conv) : undefined}
           hint={
             dashQuery.isError
@@ -411,7 +411,7 @@ function RecentRunsPanel({ query, onOpenRun }: { query: DashQuery; onOpenRun: (i
                       <span className="num text-xs text-muted-foreground">{formatDate(r.date)}</span>
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground" title={r.outputSummary}>
-                      {r.outputSummary || '-'}
+                      {r.outputSummary || '—'}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">

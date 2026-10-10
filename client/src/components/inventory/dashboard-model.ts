@@ -144,7 +144,7 @@ export function pointDelta(current: number | null | undefined, previous: number 
 
 /** Yield stored as percent (62.5) → "62,5%". */
 export const formatYield = (pct: number | null | undefined): string =>
-  pct === null || pct === undefined ? '-' : formatPercent(pct / 100, { decimals: 1 });
+  pct === null || pct === undefined ? '—' : formatPercent(pct / 100, { decimals: 1 });
 
 // Inventory: "Perlu tindakan"
 

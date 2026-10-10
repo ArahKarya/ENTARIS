@@ -78,7 +78,7 @@ function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = []): Un
     urgensi: r.urgensi,
     jenis: SERVICE_TYPE_LABELS[r.jenisService] ?? r.jenisService,
     keterangan: r.deskripsi,
-    assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '-',
+    assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '—',
     nominal: null,
     createdAt: r.createdAt,
     tindakLanjut: r.workOrder ? `WO ${r.workOrder.code}` : r.rejectedReason ? `Ditolak: ${r.rejectedReason}` : null,
@@ -90,7 +90,7 @@ function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = []): Un
     urgensi: r.urgensi,
     jenis: `${TAX_TYPE_LABELS[r.type] ?? r.type} ${r.periodYear}`,
     keterangan: r.deskripsi || `Jatuh tempo ${formatDate(r.dueDate)}`,
-    assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '-',
+    assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '—',
     nominal: r.estimatedAmount != null ? Number(r.estimatedAmount) : null,
     createdAt: r.createdAt,
     tindakLanjut: r.tax ? `Pajak ${r.tax.periodYear} (${r.tax.status})` : r.rejectedReason ? `Ditolak: ${r.rejectedReason}` : null,
@@ -254,7 +254,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
           row.original.nominal != null ? (
             formatRupiah(row.original.nominal, { symbol: false })
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -278,7 +278,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
         meta: { hideBelow: 'xl', cellClassName: 'max-w-52' },
         cell: ({ row }) => (
           <span className="block truncate text-muted-foreground" title={row.original.tindakLanjut ?? ''}>
-            {row.original.tindakLanjut ?? '-'}
+            {row.original.tindakLanjut ?? '—'}
           </span>
         ),
       },

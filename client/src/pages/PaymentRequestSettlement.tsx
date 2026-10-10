@@ -182,7 +182,7 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Uang muka diterima</p>
           <p className="num mt-1 text-xl font-semibold text-foreground">{formatMoney(advance)}</p>
-          <p className="text-xs text-muted-foreground">dibayar {pr.paymentDate ? formatDate(pr.paymentDate) : '-'}</p>
+          <p className="text-xs text-muted-foreground">dibayar {pr.paymentDate ? formatDate(pr.paymentDate) : '—'}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total realisasi</p>

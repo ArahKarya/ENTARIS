@@ -103,14 +103,14 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Jenis dokumen">{doc.type?.name ?? '-'}</Detail>
-                <Detail label="Aset terkait">{doc.asset ? `${doc.asset.code} · ${doc.asset.name}` : '-'}</Detail>
-                <Detail label="Diterbitkan oleh">{doc.issuedBy || '-'}</Detail>
+                <Detail label="Jenis dokumen">{doc.type?.name ?? '—'}</Detail>
+                <Detail label="Aset terkait">{doc.asset ? `${doc.asset.code} · ${doc.asset.name}` : '—'}</Detail>
+                <Detail label="Diterbitkan oleh">{doc.issuedBy || '—'}</Detail>
                 <Detail label="Nomor penerbitan">
-                  {doc.issuedNumber ? <span className="num font-mono">{doc.issuedNumber}</span> : '-'}
+                  {doc.issuedNumber ? <span className="num font-mono">{doc.issuedNumber}</span> : '—'}
                 </Detail>
                 <Detail label="Tanggal efektif">
-                  <span className="num">{doc.effectiveDate ? formatDate(doc.effectiveDate) : '-'}</span>
+                  <span className="num">{doc.effectiveDate ? formatDate(doc.effectiveDate) : '—'}</span>
                 </Detail>
                 <Detail label="Tanggal kedaluwarsa">
                   <span className="num">{doc.expiryDate ? formatDate(doc.expiryDate) : 'Tanpa batas'}</span>
@@ -150,7 +150,7 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
                             {v.versionNo === latestNo && <StatusBadge status="latest" label="Terbaru" tone="primary" dot={false} />}
                           </p>
                           <p className="num text-xs text-muted-foreground">
-                            {v.createdAt ? formatDateTime(v.createdAt) : '-'} · {formatFileSize(v.fileSize)}
+                            {v.createdAt ? formatDateTime(v.createdAt) : '—'} · {formatFileSize(v.fileSize)}
                           </p>
                           {v.notes && <p className="text-xs break-words text-muted-foreground">{v.notes}</p>}
                         </div>

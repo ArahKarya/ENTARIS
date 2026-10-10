@@ -224,7 +224,7 @@ function PartyCell({ row }: { row: CashLedgerRow }) {
   }
   return (
     <p className="truncate text-muted-foreground" title={row.notes ?? undefined}>
-      {row.notes || '-'}
+      {row.notes || '—'}
     </p>
   );
 }
@@ -336,7 +336,7 @@ export const Payments = () => {
               </span>
               {/* Mobile: party / narration stacked here because its column is hidden. */}
               <span className="max-w-[7.5rem] truncate text-sm font-medium text-foreground sm:hidden">
-                {r.partyName ?? r.notes ?? '-'}
+                {r.partyName ?? r.notes ?? '—'}
               </span>
               <span className="num text-xs text-muted-foreground md:hidden">{formatDate(r.date)}</span>
             </div>
@@ -371,7 +371,7 @@ export const Payments = () => {
                 className="max-w-full truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden"
                 title={r.accountNumber ? `${r.accountNumber} ${r.accountName ?? ''}` : undefined}
               >
-                {r.accountName ?? '-'}
+                {r.accountName ?? '—'}
               </span>
             </div>
           );
@@ -439,7 +439,7 @@ export const Payments = () => {
     [canCancel, attachmentCount],
   );
 
-  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
 
   return (
     <div className="space-y-5 pb-8">
@@ -503,7 +503,7 @@ export const Payments = () => {
           label="Jumlah Transaksi"
           icon={Receipt}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary && summary.cancelledCount > 0 ? `${formatNumber(summary.cancelledCount)} dibatalkan` : undefined}
         />
         <StatCard

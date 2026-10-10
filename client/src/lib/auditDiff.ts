@@ -81,7 +81,7 @@ const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
 /** "5 menit yang lalu", "kemarin", "baru saja". */
 export function formatRelativeTime(value: string | number | Date, now: Date = new Date()): string {
   const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return '-';
+  if (Number.isNaN(d.getTime())) return '—';
   const diffSec = Math.round((d.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(diffSec);
   if (abs < 45) return 'baru saja';

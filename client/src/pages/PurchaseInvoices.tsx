@@ -164,7 +164,7 @@ export const PurchaseInvoices = () => {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.invoiceNumber}</DocumentLink>
             {/* Mobile: supplier stacked here because its column is hidden. */}
             <span className="line-clamp-2 max-w-44 text-sm font-medium break-words text-foreground sm:hidden">
-              {row.original.supplier?.name ?? '-'}
+              {row.original.supplier?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -185,7 +185,7 @@ export const PurchaseInvoices = () => {
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{row.original.supplier?.name ?? '-'}</p>
+            <p className="truncate font-medium text-foreground">{row.original.supplier?.name ?? '—'}</p>
             {row.original.supplier?.phone && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 {row.original.supplier.phone}
@@ -201,7 +201,7 @@ export const PurchaseInvoices = () => {
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap' },
         cell: ({ row }) => {
           const inv = row.original;
-          if (!inv.dueDate) return <span className="text-muted-foreground">-</span>;
+          if (!inv.dueDate) return <span className="text-muted-foreground">—</span>;
           const late = isPurchaseInvoiceOverdue(inv);
           return (
             <span className={cn('inline-flex items-center gap-1', late ? 'font-medium text-danger-text' : 'text-muted-foreground')}>
@@ -281,7 +281,7 @@ export const PurchaseInvoices = () => {
     [canRecreate],
   );
 
-  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
 
   return (
     // Manual activation: avoids two history entries per click (see DeliveryOrders).
@@ -324,7 +324,7 @@ export const PurchaseInvoices = () => {
             label="Jumlah Faktur"
             icon={Receipt}
             loading={kpiLoading}
-            value={summary ? formatNumber(summary.count) : '-'}
+            value={summary ? formatNumber(summary.count) : '—'}
             hint={summary ? `Nilai ${formatRupiah(summary.grandTotal)}` : undefined}
           />
           <StatCard
@@ -339,14 +339,14 @@ export const PurchaseInvoices = () => {
             label="Lunas"
             icon={CheckCircle2}
             loading={kpiLoading}
-            value={summary ? formatNumber(summary.paidCount) : '-'}
+            value={summary ? formatNumber(summary.paidCount) : '—'}
             hint="faktur dibayar penuh"
           />
           <StatCard
             label="Lewat Jatuh Tempo"
             icon={AlertTriangle}
             loading={kpiLoading}
-            value={summary ? formatNumber(summary.overdueCount) : '-'}
+            value={summary ? formatNumber(summary.overdueCount) : '—'}
             hint={summary ? `Sisa ${formatRupiah(summary.overdueOutstanding)}` : undefined}
           />
         </section>

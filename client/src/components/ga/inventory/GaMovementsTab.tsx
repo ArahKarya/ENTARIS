@@ -91,7 +91,7 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
           const m = row.original;
           return (
             <div className="min-w-0">
-              <p className="line-clamp-2 font-medium break-words text-foreground">{m.item?.name ?? '-'}</p>
+              <p className="line-clamp-2 font-medium break-words text-foreground">{m.item?.name ?? '—'}</p>
               {m.item?.sku && <p className="num font-mono text-xs text-muted-foreground">{m.item.sku}</p>}
               <p className="truncate text-xs text-muted-foreground lg:hidden">{movementRoute(m)}</p>
             </div>
@@ -125,7 +125,7 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
         meta: { hideBelow: 'xl', cellClassName: 'max-w-56' },
         cell: ({ row }) => {
           const m = row.original;
-          if (!m.referenceNo && !m.notes) return <span className="text-muted-foreground">-</span>;
+          if (!m.referenceNo && !m.notes) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="min-w-0 text-xs">
               {m.referenceNo && <p className="num truncate font-mono text-foreground">{m.referenceNo}</p>}

@@ -228,7 +228,7 @@ export const PurchaseOrders = () => {
         header: 'Target Terima',
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => (row.original.expectedDeliveryDate ? formatDate(row.original.expectedDeliveryDate) : '-'),
+        cell: ({ row }) => (row.original.expectedDeliveryDate ? formatDate(row.original.expectedDeliveryDate) : '—'),
       },
       {
         id: 'items',
@@ -249,7 +249,7 @@ export const PurchaseOrders = () => {
               {value > 0 ? (
                 <span className="font-medium text-foreground">{formatRupiah(value, { symbol: false })}</span>
               ) : (
-                <span className="text-muted-foreground">-</span>
+                <span className="text-muted-foreground">—</span>
               )}
               {/* Mobile: status stacked here because its column is hidden. */}
               <StatusBadge status={row.original.displayStatus ?? row.original.status} docType="purchase_order" className="sm:hidden" />
@@ -279,7 +279,7 @@ export const PurchaseOrders = () => {
               {row.original.isOverdue && <OverdueMarker />}
             </div>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {

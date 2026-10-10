@@ -258,7 +258,7 @@ export const WarehouseStockDashboard = () => {
           cellClassName: 'text-muted-foreground',
         },
         cell: ({ row }) =>
-          row.original.averageCost > 0 ? formatRupiah(row.original.averageCost, { symbol: false }) : '-',
+          row.original.averageCost > 0 ? formatRupiah(row.original.averageCost, { symbol: false }) : '—',
       },
       {
         id: 'value',
@@ -269,7 +269,7 @@ export const WarehouseStockDashboard = () => {
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => (
           <span className={cn(row.original.value < 0 ? 'text-danger-text' : 'text-foreground')}>
-            {row.original.value !== 0 ? formatRupiah(row.original.value, { symbol: false }) : '-'}
+            {row.original.value !== 0 ? formatRupiah(row.original.value, { symbol: false }) : '—'}
           </span>
         ),
       },
@@ -357,14 +357,14 @@ export const WarehouseStockDashboard = () => {
           label="Gudang"
           icon={WarehouseIcon}
           loading={!summary && !snapshotQuery.isError}
-          value={summary ? formatNumber(summary.warehouses) : '-'}
+          value={summary ? formatNumber(summary.warehouses) : '—'}
           hint={warehouseId ? scopeLabel : 'gudang aktif'}
         />
         <StatCard
           label="Item Bersaldo"
           icon={Package}
           loading={!summary && !snapshotQuery.isError}
-          value={summary ? formatNumber(summary.items) : '-'}
+          value={summary ? formatNumber(summary.items) : '—'}
           hint={
             summary && summary.rows !== summary.items ? `${formatNumber(summary.rows)} saldo per gudang` : 'jenis item'
           }
@@ -373,7 +373,7 @@ export const WarehouseStockDashboard = () => {
           label="Nilai Persediaan"
           icon={Wallet}
           loading={!summary && !snapshotQuery.isError}
-          value={summary ? formatRupiah(summary.value, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.value, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.value) : undefined}
           hint="estimasi avg cost terkini"
         />
@@ -381,7 +381,7 @@ export const WarehouseStockDashboard = () => {
           label="Stok Negatif"
           icon={summary?.negative ? AlertTriangle : Boxes}
           loading={!summary && !snapshotQuery.isError}
-          value={summary ? formatNumber(summary.negative) : '-'}
+          value={summary ? formatNumber(summary.negative) : '—'}
           hint={summary ? (summary.negative > 0 ? 'perlu ditindaklanjuti' : 'tidak ada') : undefined}
           className={summary && summary.negative > 0 ? 'border-danger/40' : undefined}
         />

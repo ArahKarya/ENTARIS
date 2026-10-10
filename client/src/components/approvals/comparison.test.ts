@@ -4,7 +4,7 @@ import { isEditApprovalType } from './approval-utils';
 
 describe('formatComparisonValue', () => {
   it('formats by kind and shows a dash for empty', () => {
-    expect(formatComparisonValue(null, 'number')).toBe('-');
+    expect(formatComparisonValue(null, 'number')).toBe('—');
     expect(formatComparisonValue(1234.5, 'number')).toBe('1.234,5');
     expect(formatComparisonValue(60, 'percent')).toBe('60%');
     expect(formatComparisonValue(10500, 'currency')).toContain('10.500');

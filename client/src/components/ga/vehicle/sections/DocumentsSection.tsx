@@ -45,7 +45,7 @@ export function DocumentsSection({ assetId }: VehicleContext) {
           <div className="min-w-0">
             <p className="font-medium text-foreground">{row.original.title}</p>
             <p className="text-xs text-muted-foreground">
-              {row.original.type?.name ?? '-'}
+              {row.original.type?.name ?? '—'}
               <span className="num"> · {row.original.issuedNumber || row.original.code}</span>
             </p>
           </div>

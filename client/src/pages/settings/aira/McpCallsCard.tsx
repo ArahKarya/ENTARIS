@@ -78,7 +78,7 @@ export function McpCallsCard() {
         meta: { cellClassName: 'max-w-44' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate">{row.original.actorName ?? <span className="text-muted-foreground">-</span>}</p>
+            <p className="truncate">{row.original.actorName ?? <span className="text-muted-foreground">—</span>}</p>
             {row.original.channel && <p className="truncate text-xs text-muted-foreground">via {row.original.channel}</p>}
           </div>
         ),
@@ -123,7 +123,7 @@ export function McpCallsCard() {
               Buka
             </Link>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
     ],

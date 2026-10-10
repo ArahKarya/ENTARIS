@@ -147,7 +147,7 @@ export const SalesOrders = () => {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.soNumber}</DocumentLink>
             {/* Mobile: customer + date stacked here because their columns are hidden. */}
             <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
-              {row.original.customer?.name ?? '-'}
+              {row.original.customer?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -168,7 +168,7 @@ export const SalesOrders = () => {
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>
+            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>
             {row.original.customerRefNo && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 Ref: {row.original.customerRefNo}
@@ -182,7 +182,7 @@ export const SalesOrders = () => {
         header: 'Target Kirim',
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => (row.original.expectedDelivery ? formatDate(row.original.expectedDelivery) : '-'),
+        cell: ({ row }) => (row.original.expectedDelivery ? formatDate(row.original.expectedDelivery) : '—'),
       },
       {
         id: 'items',
@@ -231,7 +231,7 @@ export const SalesOrders = () => {
     [],
   );
 
-  const count = (v: number | undefined) => (v === undefined ? '-' : formatNumber(v));
+  const count = (v: number | undefined) => (v === undefined ? '—' : formatNumber(v));
 
   return (
     <div className="space-y-5 pb-8">

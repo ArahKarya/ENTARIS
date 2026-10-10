@@ -55,16 +55,16 @@ export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, on
                 <StatusBadge status={m.isCancelled ? 'Cancelled' : 'Posted'} />
               </div>
               <SheetDescription>
-                {movementTypeLabel(m.movementType)} · {m.item?.name ?? '-'}
+                {movementTypeLabel(m.movementType)} · {m.item?.name ?? '—'}
               </SheetDescription>
             </SheetHeader>
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <Detail label="Tanggal">{formatDate(m.date)}</Detail>
-                <Detail label="Gudang">{m.warehouse?.name ?? '-'}</Detail>
+                <Detail label="Gudang">{m.warehouse?.name ?? '—'}</Detail>
                 <Detail label="Item">
-                  {m.item?.name ?? '-'}
+                  {m.item?.name ?? '—'}
                   {m.item?.code && <span className="num ml-1.5 font-mono text-xs text-muted-foreground">{m.item.code}</span>}
                 </Detail>
                 <Detail label="Tipe">{movementTypeLabel(m.movementType)}</Detail>
@@ -78,10 +78,10 @@ export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, on
                   <span className="num">{formatRupiah(m.unitCost ?? 0)}</span>
                 </Detail>
                 <Detail label="Nilai">
-                  <span className="num font-medium">{m.totalValue != null ? formatRupiah(m.totalValue) : '-'}</span>
+                  <span className="num font-medium">{m.totalValue != null ? formatRupiah(m.totalValue) : '—'}</span>
                 </Detail>
                 <Detail label="Akun lawan">
-                  {m.offsetAccount ? `${m.offsetAccount.accountNumber} · ${m.offsetAccount.name}` : '-'}
+                  {m.offsetAccount ? `${m.offsetAccount.accountNumber} · ${m.offsetAccount.name}` : '—'}
                 </Detail>
                 <Detail label="Referensi" wide>
                   {m.referenceNumber ? (
@@ -90,7 +90,7 @@ export function MovementDetailSheet({ movement: m, onClose, onEdit, onCancel, on
                       <span className="num font-mono">{m.referenceNumber}</span>
                     </span>
                   ) : (
-                    '-'
+                    '—'
                   )}
                 </Detail>
                 {m.notes && (

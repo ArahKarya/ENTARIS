@@ -103,20 +103,20 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
               )}
 
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Kategori">{asset.category?.name ?? '-'}</Detail>
+                <Detail label="Kategori">{asset.category?.name ?? '—'}</Detail>
                 <Detail label="Kondisi">
                   <StatusBadge label={condition.label} tone={condition.tone} dot={false} />
                 </Detail>
-                <Detail label="Cabang">{asset.branch ? `${asset.branch.name} (${asset.branch.code})` : '-'}</Detail>
-                <Detail label="Lokasi">{asset.location || '-'}</Detail>
-                <Detail label="Cost center">{asset.costCenter ? `${asset.costCenter.code} · ${asset.costCenter.name}` : '-'}</Detail>
-                <Detail label="Penanggung jawab">{asset.pic?.fullName ?? '-'}</Detail>
-                <Detail label="No. seri">{asset.serialNumber ? <span className="font-mono">{asset.serialNumber}</span> : '-'}</Detail>
+                <Detail label="Cabang">{asset.branch ? `${asset.branch.name} (${asset.branch.code})` : '—'}</Detail>
+                <Detail label="Lokasi">{asset.location || '—'}</Detail>
+                <Detail label="Cost center">{asset.costCenter ? `${asset.costCenter.code} · ${asset.costCenter.name}` : '—'}</Detail>
+                <Detail label="Penanggung jawab">{asset.pic?.fullName ?? '—'}</Detail>
+                <Detail label="No. seri">{asset.serialNumber ? <span className="font-mono">{asset.serialNumber}</span> : '—'}</Detail>
                 <Detail label="Tanggal perolehan">
                   <span className="num">{formatDate(acquisitionDate)}</span>
                 </Detail>
                 <Detail label="Nilai perolehan">
-                  <span className="num">{acquisitionCost != null ? formatRupiah(acquisitionCost) : '-'}</span>
+                  <span className="num">{acquisitionCost != null ? formatRupiah(acquisitionCost) : '—'}</span>
                 </Detail>
                 {asset.vehicleData?.noPlat && <Detail label="No. polisi">{asset.vehicleData.noPlat}</Detail>}
                 {asset.fixedAsset && (

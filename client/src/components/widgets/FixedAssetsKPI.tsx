@@ -46,7 +46,7 @@ export default function FixedAssetsKPI() {
         label="Nilai Buku Bersih"
         {...money(s?.totalBookValue)}
         icon={Wallet}
-        hint={s ? (s.totalCost > 0 ? `${((s.totalBookValue / s.totalCost) * 100).toFixed(1)}% dari harga beli` : '-') : undefined}
+        hint={s ? (s.totalCost > 0 ? `${((s.totalBookValue / s.totalCost) * 100).toFixed(1)}% dari harga beli` : '—') : undefined}
         loading={isLoading}
       />
     </div>

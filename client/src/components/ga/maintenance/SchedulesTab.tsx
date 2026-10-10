@@ -102,7 +102,7 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
           const s = row.original;
           return (
             <div className="min-w-0">
-              <p className="truncate font-medium text-foreground">{s.asset?.name ?? '-'}</p>
+              <p className="truncate font-medium text-foreground">{s.asset?.name ?? '—'}</p>
               <p className="num truncate text-xs text-muted-foreground">{s.asset?.code ?? ''}</p>
               {/* Mobile: interval stacked here because its column is hidden. */}
               <p className="text-xs text-muted-foreground sm:hidden">{intervalLabel(s)}</p>
@@ -124,7 +124,7 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
           row.original.nextDueAt ? (
             <DueDate date={row.original.nextDueAt} dueState={scheduleDueState(row.original)} />
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -135,7 +135,7 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
           row.original.notes ? (
             <span className="line-clamp-2 text-muted-foreground">{row.original.notes}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {

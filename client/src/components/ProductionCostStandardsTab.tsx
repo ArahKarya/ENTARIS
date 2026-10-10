@@ -216,7 +216,7 @@ export default function ProductionCostStandardsTab() {
               <span className="num font-mono">{a.accountNumber}</span> <span className="text-muted-foreground">{a.name}</span>
             </span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           );
         },
       },

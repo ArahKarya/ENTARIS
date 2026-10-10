@@ -46,7 +46,7 @@ export default function RecentActivities({ data, isLoading, isError, onRetry }: 
                 <p className="text-xs text-muted-foreground">{formatDate(a.date, 'short')} · {receive ? 'Masuk' : 'Keluar'}</p>
               </div>
               <span className={cn('num text-xs font-semibold', receive ? 'text-success-text' : 'text-danger-text')}>
-                {receive ? '+' : '-'}{formatRupiah(a.amount, { symbol: false })}
+                {receive ? '+' : '—'}{formatRupiah(a.amount, { symbol: false })}
               </span>
             </li>
           );

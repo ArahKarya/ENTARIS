@@ -134,7 +134,7 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
         id: 'days',
         header: 'Sisa Hari',
         meta: { align: 'right', hideBelow: 'sm' },
-        cell: ({ row }) => (row.original.daysRemaining != null ? formatNumber(row.original.daysRemaining) : '-'),
+        cell: ({ row }) => (row.original.daysRemaining != null ? formatNumber(row.original.daysRemaining) : '—'),
       },
       {
         id: 'amount',
@@ -218,7 +218,7 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
           label="Total Biaya (TCO)"
           icon={TrendingUp}
           loading={loading}
-          value={tco ? formatRupiah(tco.totalCost, { compact: true }) : '-'}
+          value={tco ? formatRupiah(tco.totalCost, { compact: true }) : '—'}
           valueTitle={tco ? formatRupiah(tco.totalCost) : undefined}
           hint={tco ? `${formatRupiah(tco.costPerMonth, { compact: true })} / bulan` : undefined}
         />
@@ -226,21 +226,21 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
           label="Biaya per km"
           icon={Gauge}
           loading={loading}
-          value={tco?.costPerKm != null ? formatRupiah(tco.costPerKm) : '-'}
+          value={tco?.costPerKm != null ? formatRupiah(tco.costPerKm) : '—'}
           hint={tco ? (tco.distanceKm != null ? `${formatNumber(tco.distanceKm)} km tercatat` : 'Data odometer belum cukup') : undefined}
         />
         <StatCard
           label="Konsumsi BBM"
           icon={Fuel}
           loading={loading}
-          value={tco?.kmPerLiter != null ? `${formatNumber(tco.kmPerLiter, { decimals: 1 })} km/L` : '-'}
+          value={tco?.kmPerLiter != null ? `${formatNumber(tco.kmPerLiter, { decimals: 1 })} km/L` : '—'}
           hint={tco ? `${formatNumber(tco.totalLiters, { maxDecimals: 1 })} L · ${formatRupiah(tco.breakdown.fuel, { compact: true })}` : undefined}
         />
         <StatCard
           label="Isu Kepatuhan"
           icon={AlertTriangle}
           loading={loading}
-          value={report ? formatNumber(report.compliance.issueCount) : '-'}
+          value={report ? formatNumber(report.compliance.issueCount) : '—'}
           hint={report ? (report.compliance.issueCount > 0 ? 'Perlu tindak lanjut' : 'Semua dokumen aman') : undefined}
         />
       </section>
@@ -348,7 +348,7 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
               return (
                 <li key={i} className="flex flex-wrap items-start justify-between gap-2 py-2 first:pt-0 last:pb-0">
                   <div className="min-w-0">
-                    <p className="text-sm text-foreground">{inc.description ?? '-'}</p>
+                    <p className="text-sm text-foreground">{inc.description ?? '—'}</p>
                     <p className="num text-xs text-muted-foreground">{formatDate(inc.tanggal)}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -409,11 +409,11 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground">{TIRE_POSITION_LABELS[t.position] ?? t.position}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t.brand ?? '-'}
+                      {t.brand ?? '—'}
                       {t.serialNumber ? ` · ${t.serialNumber}` : ''} · pasang {formatDate(t.installedAt)}
                     </p>
                   </div>
-                  <span className="num text-sm text-foreground">{t.usageKm != null ? `${formatNumber(t.usageKm)} km` : '-'}</span>
+                  <span className="num text-sm text-foreground">{t.usageKm != null ? `${formatNumber(t.usageKm)} km` : '—'}</span>
                 </li>
               ))}
             </ul>

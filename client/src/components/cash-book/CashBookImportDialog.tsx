@@ -193,10 +193,10 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
                       {[...parsed.rows.filter((r) => r.error), ...parsed.rows.filter((r) => !r.error)].slice(0, PREVIEW_LIMIT).map((r) => (
                         <tr key={r.line}>
                           <td className="num px-3 py-1.5 text-muted-foreground">{r.line}</td>
-                          <td className="num px-3 py-1.5">{r.date || '-'}</td>
-                          <td className="max-w-64 truncate px-3 py-1.5" title={r.description}>{r.description || '-'}</td>
-                          <td className="num px-3 py-1.5 text-right">{r.masuk || '-'}</td>
-                          <td className="num px-3 py-1.5 text-right">{r.keluar || '-'}</td>
+                          <td className="num px-3 py-1.5">{r.date || '—'}</td>
+                          <td className="max-w-64 truncate px-3 py-1.5" title={r.description}>{r.description || '—'}</td>
+                          <td className="num px-3 py-1.5 text-right">{r.masuk || '—'}</td>
+                          <td className="num px-3 py-1.5 text-right">{r.keluar || '—'}</td>
                           <td className="px-3 py-1.5 font-medium text-danger-text">{r.error ?? ''}</td>
                         </tr>
                       ))}

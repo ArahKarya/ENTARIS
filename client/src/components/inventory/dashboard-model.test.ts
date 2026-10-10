@@ -77,7 +77,7 @@ describe('deltas and formatting', () => {
 
   it('formats a percent yield', () => {
     expect(formatYield(62.5)).toBe('62,5%');
-    expect(formatYield(null)).toBe('-');
+    expect(formatYield(null)).toBe('—');
   });
 });
 

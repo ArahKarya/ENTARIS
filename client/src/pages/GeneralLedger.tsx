@@ -204,7 +204,7 @@ export const GeneralLedger = () => {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.entryNumber}</DocumentLink>
             {/* Mobile: narration and date stacked here because their columns are hidden. */}
             <span className="line-clamp-2 max-w-48 text-sm break-words sm:hidden">
-              {row.original.narration || '-'}
+              {row.original.narration || '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -225,7 +225,7 @@ export const GeneralLedger = () => {
         cell: ({ row }) => (
           <div className="min-w-0">
             <p className="line-clamp-2 break-words" title={row.original.narration ?? undefined}>
-              {row.original.narration || '-'}
+              {row.original.narration || '—'}
             </p>
             {row.original.user?.fullName && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">

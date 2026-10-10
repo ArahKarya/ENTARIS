@@ -131,7 +131,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
         id: 'nomorMobil',
         header: 'No. Mobil',
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
-        cell: ({ row }) => row.original.nomorMobil || '-',
+        cell: ({ row }) => row.original.nomorMobil || '—',
       },
       {
         id: 'ringkasan',
@@ -139,7 +139,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
         meta: { hideBelow: 'md', cellClassName: 'max-w-72' },
         cell: ({ row }) => (
           <p className="truncate text-muted-foreground" title={row.original.ringkasan ?? undefined}>
-            {row.original.ringkasan || '-'}
+            {row.original.ringkasan || '—'}
           </p>
         ),
       },
@@ -169,7 +169,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
           row.original.doNumber ? (
             <span className="num font-mono text-xs text-foreground">{row.original.doNumber}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {

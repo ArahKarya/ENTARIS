@@ -68,7 +68,7 @@ const COLUMNS: DataColumn<OutstandingRow>[] = [
     className: 'whitespace-nowrap text-xs',
     render: (r) => (
       <>
-        {r.expectedDeliveryDate ? formatDate(r.expectedDeliveryDate) : '-'}
+        {r.expectedDeliveryDate ? formatDate(r.expectedDeliveryDate) : '—'}
         {r.isOverdue && (
           <span className="mt-0.5 flex items-center gap-1 font-medium text-danger-text">
             <AlertTriangle className="size-3" aria-hidden /> Terlambat {r.daysOverdue} hari

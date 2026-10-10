@@ -169,14 +169,14 @@ export function DepreciationRunPanel({ month, onMonthChange }: DepreciationRunPa
           label="Jumlah aset"
           icon={Layers}
           loading={loading}
-          value={preview ? formatNumber(items.length) : '-'}
+          value={preview ? formatNumber(items.length) : '—'}
           hint={preview ? `${formatNumber(items.length)} jurnal · ${label}` : undefined}
         />
         <StatCard
           label="Total beban"
           icon={Wallet}
           loading={loading}
-          value={preview ? formatRupiah(preview.totalAmount, { compact: true }) : '-'}
+          value={preview ? formatRupiah(preview.totalAmount, { compact: true }) : '—'}
           valueTitle={preview ? formatRupiah(preview.totalAmount) : undefined}
           hint={preview ? formatRupiah(preview.totalAmount) : undefined}
         />
@@ -184,7 +184,7 @@ export function DepreciationRunPanel({ month, onMonthChange }: DepreciationRunPa
           label="Kategori"
           icon={CalendarClock}
           loading={loading}
-          value={preview ? formatNumber(groups.length) : '-'}
+          value={preview ? formatNumber(groups.length) : '—'}
           hint={groups.length ? groups.map((g) => g.category).join(', ') : undefined}
           className="col-span-2 lg:col-span-1"
         />

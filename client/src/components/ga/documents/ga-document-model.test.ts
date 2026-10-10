@@ -25,6 +25,6 @@ describe('ga document model', () => {
     expect(expiryDistance('2026-10-06T00:00:00.000Z', NOW)).toBe('2 hari lagi');
     expect(expiryDistance('2026-10-01T00:00:00.000Z', NOW)).toBe('lewat 3 hari');
     expect(formatFileSize(2048)).toBe('2 KB');
-    expect(formatFileSize(0)).toBe('-');
+    expect(formatFileSize(0)).toBe('—');
   });
 });

@@ -161,7 +161,7 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
         cell: ({ row }) => {
           const d = row.original.driver;
           return d ? (
-            <span className="block truncate text-foreground">{d.fullName ?? '-'}</span>
+            <span className="block truncate text-foreground">{d.fullName ?? '—'}</span>
           ) : (
             <span className="text-muted-foreground">Belum ditugaskan</span>
           );
@@ -173,7 +173,7 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md' },
-        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : <span className="text-muted-foreground">-</span>),
+        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : <span className="text-muted-foreground">—</span>),
       },
       {
         id: 'nextDue',
@@ -193,7 +193,7 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
               {formatNumber(row.original.openIncidentCount)} terbuka
             </span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -253,28 +253,28 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
           label="Total Armada"
           icon={Car}
           loading={kpiLoading}
-          value={s ? formatNumber(s.totalVehicles) : '-'}
+          value={s ? formatNumber(s.totalVehicles) : '—'}
           hint={s ? `${formatNumber(s.openIncidents)} insiden terbuka` : undefined}
         />
         <StatCard
           label="Pajak/STNK/KIR"
           icon={FileWarning}
           loading={kpiLoading}
-          value={s ? formatNumber(taxDue) : '-'}
+          value={s ? formatNumber(taxDue) : '—'}
           hint={s ? `${formatNumber(s.taxExpired)} lewat · ${formatNumber(s.taxExpiringSoon)} ≤30 hari` : undefined}
         />
         <StatCard
           label="Asuransi"
           icon={ShieldCheck}
           loading={kpiLoading}
-          value={s ? formatNumber(insDue) : '-'}
+          value={s ? formatNumber(insDue) : '—'}
           hint={s ? `${formatNumber(s.insuranceExpired)} lewat · ${formatNumber(s.insuranceExpiringSoon)} ≤30 hari` : undefined}
         />
         <StatCard
           label="Inspeksi"
           icon={ClipboardCheck}
           loading={kpiLoading}
-          value={s ? formatNumber(inspDue) : '-'}
+          value={s ? formatNumber(inspDue) : '—'}
           hint={
             s
               ? `${formatNumber(s.inspectionOverdue ?? 0)} lewat · ${formatNumber(s.inspectionNeverDone ?? 0)} belum pernah`
@@ -285,7 +285,7 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
           label="Servis Bulan Ini"
           icon={Wrench}
           loading={kpiLoading}
-          value={s ? formatRupiah(s.serviceCostThisMonth, { compact: true }) : '-'}
+          value={s ? formatRupiah(s.serviceCostThisMonth, { compact: true }) : '—'}
           valueTitle={s ? formatRupiah(s.serviceCostThisMonth) : undefined}
           hint="biaya servis tercatat"
         />
@@ -293,7 +293,7 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
           label="Biaya Bulan Ini"
           icon={Wallet}
           loading={kpiLoading}
-          value={s ? formatRupiah(monthCost, { compact: true }) : '-'}
+          value={s ? formatRupiah(monthCost, { compact: true }) : '—'}
           valueTitle={s ? formatRupiah(monthCost) : undefined}
           hint={s ? `BBM ${formatRupiah(s.fuelCostThisMonth, { compact: true })}` : undefined}
         />

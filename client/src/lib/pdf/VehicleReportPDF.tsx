@@ -89,7 +89,7 @@ const ENUM_LABEL: Record<string, string> = {
   ALL_RISK: 'All Risk', KECELAKAAN_DIRI: 'Kecelakaan Diri', DALAM_PROSES: 'Dalam Proses',
 };
 const lbl = (v: string | null | undefined): string => {
-  if (!v) return '-';
+  if (!v) return '—';
   if (!/^[A-Z0-9_]+$/.test(v)) return v;
   return ENUM_LABEL[v] ?? v.toLowerCase().split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };

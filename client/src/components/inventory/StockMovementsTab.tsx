@@ -117,7 +117,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
               </DocumentLink>
               {/* Mobile: item and date stacked here because their columns are hidden. */}
               <span className="line-clamp-2 max-w-40 text-sm font-medium break-words text-foreground sm:hidden">
-                {m.item?.name ?? '-'}
+                {m.item?.name ?? '—'}
               </span>
               <span className="num text-xs text-muted-foreground md:hidden">{formatDate(m.date)}</span>
             </div>
@@ -141,7 +141,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           const m = row.original;
           return (
             <div className="min-w-0">
-              <p className="truncate font-medium text-foreground">{m.item?.name ?? '-'}</p>
+              <p className="truncate font-medium text-foreground">{m.item?.name ?? '—'}</p>
               <p className="num truncate font-mono text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 {m.item?.code}
                 <span className="font-sans xl:hidden">{m.warehouse ? ` · ${m.warehouse.name}` : ''}</span>
@@ -154,7 +154,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
         id: 'warehouse',
         header: 'Gudang',
         meta: { hideBelow: 'xl', cellClassName: 'max-w-32 text-muted-foreground' },
-        cell: ({ row }) => row.original.warehouse?.name ?? '-',
+        cell: ({ row }) => row.original.warehouse?.name ?? '—',
       },
       {
         id: 'movementType',
@@ -194,7 +194,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           const m = row.original;
           return (
             <span className={cn(m.isCancelled ? 'text-muted-foreground line-through' : 'text-foreground')}>
-              {m.totalValue != null ? formatRupiah(m.totalValue, { symbol: false }) : '-'}
+              {m.totalValue != null ? formatRupiah(m.totalValue, { symbol: false }) : '—'}
             </span>
           );
         },
@@ -205,7 +205,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
         meta: { hideBelow: 'xl', cellClassName: 'max-w-36' },
         cell: ({ row }) => {
           const m = row.original;
-          if (!m.referenceNumber) return <span className="text-muted-foreground">-</span>;
+          if (!m.referenceNumber) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="min-w-0 text-xs">
               <p className="truncate text-muted-foreground">{referenceTypeLabel(m.referenceType)}</p>
@@ -256,14 +256,14 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           label="Jumlah Gerakan"
           icon={ArrowLeftRight}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary ? `${formatNumber(summary.count - summary.cancelledCount)} diposting` : undefined}
         />
         <StatCard
           label="Nilai Masuk"
           icon={ArrowDownLeft}
           loading={kpiLoading}
-          value={summary ? formatRupiah(summary.inValue, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.inValue, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.inValue) : undefined}
           hint={qtyHint(summary?.inCount, summary?.inQty)}
         />
@@ -271,7 +271,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           label="Nilai Keluar"
           icon={ArrowUpRight}
           loading={kpiLoading}
-          value={summary ? formatRupiah(summary.outValue, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.outValue, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.outValue) : undefined}
           hint={qtyHint(summary?.outCount, summary?.outQty)}
         />
@@ -279,7 +279,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           label="Dibatalkan"
           icon={Ban}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.cancelledCount) : '-'}
+          value={summary ? formatNumber(summary.cancelledCount) : '—'}
           hint="tidak dihitung di nilai"
         />
       </section>

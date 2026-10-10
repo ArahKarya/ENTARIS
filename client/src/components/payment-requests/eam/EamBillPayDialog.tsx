@@ -151,7 +151,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
             <DialogHeader>
               <DialogTitle>Bayar / Posting Tagihan</DialogTitle>
               <DialogDescription>
-                {meta.label} · {bill.assetName ?? '-'}
+                {meta.label} · {bill.assetName ?? '—'}
               </DialogDescription>
             </DialogHeader>
 

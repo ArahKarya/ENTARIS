@@ -18,7 +18,7 @@ import { useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
 import { apiError, dueStateOf } from '../vehicle-model';
 import { DueDateCell, UnitHeader } from '../vehicle-ui';
 
-const money = (v: string | number | null | undefined) => (v == null ? '-' : formatRupiah(toNumber(v) ?? 0, { symbol: false }));
+const money = (v: string | number | null | undefined) => (v == null ? '—' : formatRupiah(toNumber(v) ?? 0, { symbol: false }));
 
 export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
   const invalidate = useInvalidateVehicle(assetId);

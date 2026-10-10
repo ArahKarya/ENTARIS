@@ -61,7 +61,7 @@ const branchColumn: MasterColumn = {
   id: 'branch',
   header: 'Cabang',
   hideBelow: 'md',
-  render: (r) => r.branch?.name ?? '-',
+  render: (r) => r.branch?.name ?? '—',
 };
 
 export const MASTER_ENTITIES: readonly MasterEntity[] = [
@@ -81,7 +81,7 @@ export const MASTER_ENTITIES: readonly MasterEntity[] = [
     info: 'Cabang/lokasi kantor pemilik aset. Kode cabang menjadi bagian kode aset (mis. BLD-PST-0001).',
     hasActive: true,
     fields: [CODE, NAME, { key: 'address', label: 'Alamat', type: 'text' }],
-    extraColumns: [{ id: 'address', header: 'Alamat', hideBelow: 'lg', render: (r) => r.address || '-' }],
+    extraColumns: [{ id: 'address', header: 'Alamat', hideBelow: 'lg', render: (r) => r.address || '—' }],
     searchText: (r) => [r.address],
   },
   {
@@ -111,7 +111,7 @@ export const MASTER_ENTITIES: readonly MasterEntity[] = [
     info: 'Jenis dokumen legal & sertifikat (STNK, IMB, sertifikat kalibrasi, …) untuk Dokumen & Sertifikat.',
     hasActive: true,
     fields: [CODE, NAME, { key: 'category', label: 'Kelompok', type: 'text', placeholder: 'Mis. Kendaraan' }],
-    extraColumns: [{ id: 'category', header: 'Kelompok', hideBelow: 'md', render: (r) => r.category || '-' }],
+    extraColumns: [{ id: 'category', header: 'Kelompok', hideBelow: 'md', render: (r) => r.category || '—' }],
     searchText: (r) => [r.category],
   },
   {
@@ -129,7 +129,7 @@ export const MASTER_ENTITIES: readonly MasterEntity[] = [
       {
         id: 'type',
         header: 'Tipe',
-        render: (r) => (r.type === 'SPAREPART' ? 'Sparepart' : r.type === 'CONSUMABLE' ? 'Consumable' : r.type || '-'),
+        render: (r) => (r.type === 'SPAREPART' ? 'Sparepart' : r.type === 'CONSUMABLE' ? 'Consumable' : r.type || '—'),
       },
     ],
   },

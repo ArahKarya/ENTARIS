@@ -86,7 +86,7 @@ const CAT_COLOR: Record<CostCategory, string> = {
 const CAT_SHORT: Record<CostCategory, string> = {
   service: 'Servis', fuel: 'BBM', tax: 'Pajak', insurance: 'Asuransi', incident: 'Insiden', workorder: 'Work order',
 };
-const STATE_LABEL: Record<ComplianceState, string> = { EXPIRED: 'Lewat', EXPIRING: 'Segera', OK: 'Aman', NONE: '-' };
+const STATE_LABEL: Record<ComplianceState, string> = { EXPIRED: 'Lewat', EXPIRING: 'Segera', OK: 'Aman', NONE: '—' };
 const toDue = (s: ComplianceState) => (s === 'EXPIRED' ? 'overdue' : s === 'EXPIRING' ? 'dueSoon' : s === 'OK' ? 'ok' : null);
 const money = (v: number) => formatRupiah(v, { symbol: false });
 const compact = (v: number) => formatRupiah(v, { compact: true, symbol: false });
@@ -189,7 +189,7 @@ export function GaFleetReportPage() {
         id: k,
         header: () => <UnitHeader label={{ service: 'Servis', fuel: 'BBM', tax: 'Pajak', insurance: 'Asuransi', incident: 'Insiden', workorder: 'WO' }[k]} />,
         meta: { align: 'right', hideBelow: k === 'service' || k === 'fuel' ? 'md' : 'xl' },
-        cell: ({ row }) => (row.original.breakdown[k] ? money(row.original.breakdown[k]) : <span className="text-muted-foreground">-</span>),
+        cell: ({ row }) => (row.original.breakdown[k] ? money(row.original.breakdown[k]) : <span className="text-muted-foreground">—</span>),
       })),
       {
         id: 'total',
@@ -262,7 +262,7 @@ export function GaFleetReportPage() {
               label="Total Biaya"
               icon={Wallet}
               loading={loading}
-              value={data ? formatRupiah(data.totals.totalCost, { compact: true }) : '-'}
+              value={data ? formatRupiah(data.totals.totalCost, { compact: true }) : '—'}
               valueTitle={data ? formatRupiah(data.totals.totalCost) : undefined}
               hint={data ? `${formatRupiah(data.totals.totalCost / data.period.months, { compact: true })} / bulan` : undefined}
             />
@@ -270,21 +270,21 @@ export function GaFleetReportPage() {
               label="Kendaraan"
               icon={Car}
               loading={loading}
-              value={data ? formatNumber(data.totals.vehicleCount) : '-'}
+              value={data ? formatNumber(data.totals.vehicleCount) : '—'}
               hint={data ? `${formatRupiah(data.totals.costPerVehicle, { compact: true })} / kendaraan` : undefined}
             />
             <StatCard
               label="Biaya Terbesar"
               icon={TrendingUp}
               loading={loading}
-              value={top && top.amount > 0 ? CAT_SHORT[top.category] : '-'}
+              value={top && top.amount > 0 ? CAT_SHORT[top.category] : '—'}
               hint={top && top.amount > 0 ? `${CAT_LABEL[top.category]} · ${formatPercent(top.percentage / 100)}` : 'Belum ada biaya'}
             />
             <StatCard
               label="Kendaraan Bermasalah"
               icon={AlertTriangle}
               loading={loading}
-              value={data ? formatNumber(data.compliance.vehiclesWithIssues) : '-'}
+              value={data ? formatNumber(data.compliance.vehiclesWithIssues) : '—'}
               hint={
                 data
                   ? `${data.compliance.taxIssues} pajak · ${data.compliance.insuranceIssues} asuransi · ${data.compliance.openIncidents} insiden`

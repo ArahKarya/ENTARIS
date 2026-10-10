@@ -160,7 +160,7 @@ export const Warehouses = () => {
           hideBelow: 'md',
           cellClassName: 'max-w-56 truncate text-muted-foreground',
         },
-        cell: ({ row }) => row.original.location || '-',
+        cell: ({ row }) => row.original.location || '—',
       },
       {
         id: 'itemCount',

@@ -131,7 +131,7 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
         header: 'Kategori',
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => row.original.category || '-',
+        cell: ({ row }) => row.original.category || '—',
       },
       {
         id: 'currentStock',
@@ -162,7 +162,7 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => (toNumber(row.original.minimumStock) ? formatQty(row.original.minimumStock) : '-'),
+        cell: ({ row }) => (toNumber(row.original.minimumStock) ? formatQty(row.original.minimumStock) : '—'),
       },
       {
         id: 'stockValue',
@@ -207,14 +207,14 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
           label="Jumlah Item"
           icon={Boxes}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary ? `${formatNumber(summary.activeCount)} aktif` : undefined}
         />
         <StatCard
           label="Nilai Persediaan"
           icon={Wallet}
           loading={kpiLoading}
-          value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.stockValue, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.stockValue) : undefined}
           hint={perWarehouse ? 'stok gudang × harga rata-rata' : 'stok × harga rata-rata'}
         />
@@ -222,14 +222,14 @@ export function InventoryItemsTab({ canEdit, onCreate, onEdit, onDelete, onShowM
           label="Stok Menipis"
           icon={AlertTriangle}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.lowCount) : '-'}
+          value={summary ? formatNumber(summary.lowCount) : '—'}
           hint="di bawah stok minimum"
         />
         <StatCard
           label="Stok Habis"
           icon={PackageX}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.outCount) : '-'}
+          value={summary ? formatNumber(summary.outCount) : '—'}
           hint="stok nol atau minus"
         />
       </section>

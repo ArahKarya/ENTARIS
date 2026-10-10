@@ -59,13 +59,13 @@ export default function RecentMovements() {
             case 'date':
               return <span className="whitespace-nowrap text-muted-foreground">{formatDate(r.date, 'short')}</span>;
             case 'item':
-              return <span className="block max-w-[140px] truncate font-medium">{r.item?.name ?? '-'}</span>;
+              return <span className="block max-w-[140px] truncate font-medium">{r.item?.name ?? '—'}</span>;
             case 'type':
               return <Badge variant={mv.variant}>{mv.label}</Badge>;
             case 'qty':
               return formatNumber(r.quantity);
             default:
-              return <span className="text-muted-foreground">{r.totalValue != null ? formatRupiah(Number(r.totalValue)) : '-'}</span>;
+              return <span className="text-muted-foreground">{r.totalValue != null ? formatRupiah(Number(r.totalValue)) : '—'}</span>;
           }
         }}
       />
