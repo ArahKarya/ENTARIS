@@ -176,7 +176,8 @@ export async function unlinkTemporaryNotesFromDoInTx(tx: Tx, doId: string) {
 
 export async function getTemporaryNote(tx: Tx, id: string) {
   const heads = await tx.$queryRaw<any[]>`
-    SELECT t.id, t.number, t.date, t.party_id AS "partyId", p.name AS "customerName", t.nomor_mobil AS "nomorMobil",
+    SELECT t.id, t.number, t.date, t.party_id AS "partyId", p.name AS "customerName",
+           p.address AS "customerAddress", p.phone AS "customerPhone", t.nomor_mobil AS "nomorMobil",
            t.driver_name AS "driverName", t.recipient_name AS "recipientName", t.sales_order_id AS "salesOrderId",
            t.status, t.notes, t.delivery_order_id AS "deliveryOrderId", d.do_number AS "doNumber",
            t.linked_at AS "linkedAt", t.created_at AS "createdAt"

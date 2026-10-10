@@ -87,7 +87,11 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
       doNumber={note.number}
       date={note.date}
       status={note.status}
-      customer={{ name: note.customerName ?? '—' }}
+      customer={{
+        name: note.customerName ?? '-',
+        address: note.customerAddress ?? null,
+        phone: note.customerPhone ?? null,
+      }}
       nomorMobil={note.nomorMobil}
       driverName={note.driverName}
       recipientName={note.recipientName}
