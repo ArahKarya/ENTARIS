@@ -50,10 +50,10 @@ export function InvoiceStatusProgress({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.min(paidPct, 100)}
-          className="h-2 w-full overflow-hidden rounded-full bg-muted"
+          className="h-2 w-full overflow-hidden rounded-sm bg-muted"
         >
           <div
-            className={cn('h-full rounded-full transition-all', paidPct >= 100 ? 'bg-success' : paidPct > 0 ? 'bg-warning' : 'bg-border')}
+            className={cn('h-full rounded-sm transition-all', paidPct >= 100 ? 'bg-success' : paidPct > 0 ? 'bg-warning' : 'bg-border')}
             style={{ width: `${Math.min(paidPct, 100)}%` }}
           />
         </div>

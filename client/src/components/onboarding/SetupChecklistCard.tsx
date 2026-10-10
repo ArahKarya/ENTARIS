@@ -70,9 +70,9 @@ export function SetupChecklistCard() {
             aria-valuemin={0}
             aria-valuemax={items.length}
             aria-valuenow={doneCount}
-            className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+            className="mt-3 h-1.5 overflow-hidden rounded-sm bg-muted"
           >
-            <div className="h-full rounded-full bg-primary" style={{ width: `${(doneCount / items.length) * 100}%` }} />
+            <div className="h-full rounded-sm bg-primary" style={{ width: `${(doneCount / items.length) * 100}%` }} />
           </div>
         </div>
         <Button variant="ghost" size="icon-sm" onClick={hide} aria-label="Sembunyikan daftar penyiapan" className="-mr-1 -mt-1 text-muted-foreground">

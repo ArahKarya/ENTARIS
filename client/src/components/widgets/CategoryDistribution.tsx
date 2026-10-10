@@ -39,8 +39,8 @@ export default function CategoryDistribution() {
               <span className="min-w-0 truncate text-xs font-medium text-foreground">{cat.category || 'Tanpa Kategori'}</span>
               <span className="num shrink-0 text-xs text-muted-foreground">{formatNumber(cat.totalQuantity)}</span>
             </div>
-            <div className="h-2 rounded-full bg-muted" aria-hidden>
-              <div className="h-2 rounded-full bg-chart-2" style={{ width: `${Math.round((cat.totalQuantity / maxQty) * 100)}%` }} />
+            <div className="h-2 rounded-sm bg-muted" aria-hidden>
+              <div className="h-2 rounded-sm bg-chart-2" style={{ width: `${Math.round((cat.totalQuantity / maxQty) * 100)}%` }} />
             </div>
           </li>
         ))}

@@ -318,7 +318,7 @@ export function TireOilSection({ assetId, canEdit, odometer }: TireOilSectionPro
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={Math.round(life.pct)}
-                    className="h-2 w-full overflow-hidden rounded-full bg-muted"
+                    className="h-2 w-full overflow-hidden rounded-sm bg-muted"
                   >
                     <div
                       className={cn('h-full', lifeState === 'overdue' ? 'bg-danger' : lifeState === 'soon' ? 'bg-warning' : 'bg-success')}

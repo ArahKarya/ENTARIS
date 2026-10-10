@@ -285,12 +285,12 @@ function AttentionPanel({
               </span>
               {coverage !== null && (
                 <span
-                  className="block h-1 w-20 overflow-hidden rounded-full bg-muted"
+                  className="block h-1 w-20 overflow-hidden rounded-sm bg-muted"
                   role="img"
                   aria-label={`${formatPercent(Math.min(coverage, 1), { decimals: 0 })} dari stok minimum`}
                 >
                   <span
-                    className={cn('block h-full rounded-full', out ? 'bg-danger' : 'bg-warning')}
+                    className={cn('block h-full rounded-sm', out ? 'bg-danger' : 'bg-warning')}
                     style={{ width: `${Math.max(4, Math.min(coverage, 1) * 100)}%` }}
                   />
                 </span>

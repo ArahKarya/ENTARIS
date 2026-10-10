@@ -70,8 +70,8 @@ function TopItemList({ title, hint, items, icon, tone }: { title: string; hint: 
               <span className="min-w-0 truncate text-xs text-foreground">{it.name}</span>
               <span className="num shrink-0 text-xs font-medium text-muted-foreground">{formatNumber(it.quantity)} {it.unit}</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-              <div className={cn('h-full rounded-full', tone)} style={{ width: `${(it.quantity / max) * 100}%` }} />
+            <div className="h-1.5 overflow-hidden rounded-sm bg-muted" aria-hidden>
+              <div className={cn('h-full rounded-sm', tone)} style={{ width: `${(it.quantity / max) * 100}%` }} />
             </div>
           </li>
         ))}

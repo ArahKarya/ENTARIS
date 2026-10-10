@@ -76,7 +76,7 @@ export default function TopAssetsByValue() {
             default:
               return (
                 <div className="flex items-center justify-end gap-1.5">
-                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-muted" aria-hidden>
+                  <div className="h-1.5 w-12 overflow-hidden rounded-sm bg-muted" aria-hidden>
                     <div className="h-full bg-chart-4" style={{ width: `${Math.min(100, a.accumPct)}%` }} />
                   </div>
                   <span className="w-9 text-right text-[11px] text-muted-foreground">{a.accumPct}%</span>

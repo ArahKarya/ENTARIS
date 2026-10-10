@@ -181,7 +181,7 @@ export const CashBookDrafts = () => {
                 <span className="inline-flex items-center gap-1.5">
                   {t.label}
                   {countOf(t.value) > 0 && t.value !== 'Discarded' && (
-                    <span className="num rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold leading-none text-muted-foreground">
+                    <span className="num rounded-sm bg-muted px-1.5 py-0.5 text-[11px] font-semibold leading-none text-muted-foreground">
                       {formatNumber(countOf(t.value))}
                     </span>
                   )}

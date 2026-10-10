@@ -393,7 +393,7 @@ export function InventoryPage() {
                   <TabsTrigger key={v.value} value={v.value}>
                     {v.label}
                     {v.value === 'draft' && openDrafts > 0 && (
-                      <span className="num ml-1.5 rounded-full bg-primary-subtle px-1.5 text-xs font-medium text-primary-subtle-foreground">
+                      <span className="num ml-1.5 rounded-sm bg-primary-subtle px-1.5 text-xs font-medium text-primary-subtle-foreground">
                         <span aria-hidden>{openDrafts}</span>
                         <span className="sr-only">, {openDrafts} draft belum diposting</span>
                       </span>

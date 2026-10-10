@@ -32,7 +32,7 @@ export function Stepper({ current }: { current: number }) {
           <li key={s.id} aria-current={active ? 'step' : undefined} className="flex min-w-0 flex-1 flex-col gap-1.5">
             <span
               aria-hidden
-              className={cn('h-1 rounded-full transition-colors', done || active ? 'bg-primary' : 'bg-border')}
+              className={cn('h-1 rounded-sm transition-colors', done || active ? 'bg-primary' : 'bg-border')}
             />
             <span
               className={cn(

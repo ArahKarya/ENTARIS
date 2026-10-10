@@ -25,7 +25,7 @@ function Bar({ buckets, total, label }: { buckets: AgingBucket[]; total: number;
     <div
       role="img"
       aria-label={`${label}: ${buckets.map((b) => `${b.label} ${formatRupiah(b.amount)}`).join(', ')}`}
-      className="flex h-3 overflow-hidden rounded-full bg-muted"
+      className="flex h-3 overflow-hidden rounded-sm bg-muted"
     >
       {total > 0 &&
         buckets.map((b, i) => {

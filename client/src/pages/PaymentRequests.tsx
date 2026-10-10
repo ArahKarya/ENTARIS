@@ -96,7 +96,7 @@ function TabLabel({ label, count, suffix = 'menunggu' }: { label: string; count?
     <span className="relative inline-flex items-center gap-1.5">
       {label}
       {count ? (
-        <span className="num rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground">
+        <span className="num rounded-sm bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground">
           {formatNumber(count)}
           <span className="sr-only"> {suffix}</span>
         </span>

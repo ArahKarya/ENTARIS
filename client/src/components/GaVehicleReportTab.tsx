@@ -263,8 +263,8 @@ export default function GaVehicleReportTab({ assetId }: { assetId: string }) {
                           {formatRupiah(amount)} <span className="text-muted-foreground">· {formatPercent(pct)}</span>
                         </dd>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-                        <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: c.color }} />
+                      <div className="h-1.5 overflow-hidden rounded-sm bg-muted" aria-hidden>
+                        <div className="h-full rounded-sm" style={{ width: `${pct * 100}%`, background: c.color }} />
                       </div>
                     </div>
                   );

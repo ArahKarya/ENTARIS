@@ -46,10 +46,10 @@ function LineProgress({ ordered, received, unit }: { ordered: number; received: 
         aria-valuemax={100}
         aria-valuenow={p.percent}
         aria-valuetext={`Diterima ${qtyFmt(received)} dari ${qtyFmt(ordered)} ${unit}`}
-        className="h-1.5 w-full max-w-56 overflow-hidden rounded-full bg-muted"
+        className="h-1.5 w-full max-w-56 overflow-hidden rounded-sm bg-muted"
       >
         <div
-          className={cn('h-full rounded-full', p.done ? 'bg-success' : 'bg-warning')}
+          className={cn('h-full rounded-sm', p.done ? 'bg-success' : 'bg-warning')}
           style={{ width: `${p.percent}%` }}
         />
       </div>

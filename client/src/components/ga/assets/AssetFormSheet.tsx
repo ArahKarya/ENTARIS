@@ -280,7 +280,7 @@ export function AssetFormSheet({ asset, onClose, onSaved }: AssetFormSheetProps)
                   disabled={deletePhoto.isPending}
                   aria-label="Hapus foto"
                   title="Hapus foto"
-                  className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-overlay text-white hover:bg-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                  className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-md bg-overlay text-white hover:bg-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                 >
                   <Trash2 className="size-3.5" aria-hidden />
                 </button>

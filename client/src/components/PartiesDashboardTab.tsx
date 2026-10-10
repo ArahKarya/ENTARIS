@@ -77,7 +77,7 @@ function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
       </div>
       {total > 0 ? (
         <>
-          <div className="flex h-3 overflow-hidden rounded-full bg-muted">
+          <div className="flex h-3 overflow-hidden rounded-sm bg-muted">
             {buckets.map((val, i) => {
               const pct = (val / total) * 100;
               if (pct < 0.5) return null;
@@ -264,8 +264,8 @@ function TopList({ title, icon, items, barColor }: { title: string; icon: React.
                     {formatRupiah(item.outstanding)}
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className={cn(barColor, 'h-full rounded-full')} style={{ width: `${pct}%` }} />
+                <div className="h-1.5 overflow-hidden rounded-sm bg-muted">
+                  <div className={cn(barColor, 'h-full rounded-sm')} style={{ width: `${pct}%` }} />
                 </div>
               </li>
             );
