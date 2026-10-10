@@ -8,6 +8,7 @@ import { systemAccounts } from '../../services/systemAccounts';
 import { recalcPartyOutstanding } from '../../utils/accountBalance';
 import { adjustWarehouseStock, resolveWarehouseId } from '../../utils/warehouseStock';
 import { calcWeightedAverage } from '../../utils/weightedAverage';
+import { DUMMY_LEDGER_MARKERS, matchGenericDummyJournals, specificDummyNarrations } from '../../services/dummyJournalMatch';
 
 const router = Router();
 
@@ -60,7 +61,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         await tx.journalEntry.create({
           data: {
             entryNumber: jvInit, date: initDate, narration: 'Setoran modal awal',
-            status: 'Submitted', fiscalYearId: initFy.id, createdBy: admin.id, submittedAt: initDate,
+            status: 'Submitted', isDummy: true, fiscalYearId: initFy.id, createdBy: admin.id, submittedAt: initDate,
             items: { create: [
               { accountId: kasId!, debit: 350000000, credit: 0 },
               { accountId: bankId || kasId!, debit: 150000000, credit: 0 },
@@ -163,7 +164,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           await tx.journalEntry.create({
             data: {
               entryNumber: jvNum, date, narration: 'Pembelian gabah - ' + supplier.name,
-              status: 'Submitted', fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
+              status: 'Submitted', isDummy: true, fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
               items: { create: [
                 { accountId: invId!, debit: grandTotal, credit: 0 },
                 { accountId: apId!, debit: 0, credit: grandTotal },
@@ -209,7 +210,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           await tx.journalEntry.create({
             data: {
               entryNumber: siJvNum, date, narration: 'Penjualan beras - ' + customer.name,
-              status: 'Submitted', fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
+              status: 'Submitted', isDummy: true, fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
               items: { create: [
                 { accountId: arId!, debit: grandTotal, credit: 0 },
                 { accountId: salesId!, debit: 0, credit: grandTotal },
@@ -229,7 +230,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
             await tx.journalEntry.create({
               data: {
                 entryNumber: cogsJvNum, date, narration: `HPP: ${siInvNum}`,
-                status: 'Submitted', fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
+                status: 'Submitted', isDummy: true, fiscalYearId: fy.id, createdBy: admin.id, submittedAt: date,
                 items: { create: [
                   { accountId: cogsId, debit: cogsAmount, credit: 0, description: `HPP: ${siInvNum}` },
                   { accountId: invId, debit: 0, credit: cogsAmount, description: `Persediaan: ${siInvNum}` },
@@ -262,7 +263,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
             await tx.journalEntry.create({
               data: {
                 entryNumber: jvPay, date: payDate, narration: 'Pembayaran ' + customer.name,
-                status: 'Submitted', fiscalYearId: payFy.id, createdBy: admin.id, submittedAt: payDate,
+                status: 'Submitted', isDummy: true, fiscalYearId: payFy.id, createdBy: admin.id, submittedAt: payDate,
                 items: { create: [
                   { accountId: kasId!, debit: grandTotal, credit: 0 },
                   { accountId: arId!, debit: 0, credit: grandTotal },
@@ -304,7 +305,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
           await tx.journalEntry.create({
             data: {
               entryNumber: jvPay, date: payDate, narration: 'Pembayaran ke supplier',
-              status: 'Submitted', fiscalYearId: payFy.id, createdBy: admin.id, submittedAt: payDate,
+              status: 'Submitted', isDummy: true, fiscalYearId: payFy.id, createdBy: admin.id, submittedAt: payDate,
               items: { create: [
                 { accountId: apId!, debit: piAmount, credit: 0 },
                 { accountId: kasId!, debit: 0, credit: piAmount },
@@ -328,7 +329,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         await tx.journalEntry.create({
           data: {
             entryNumber: jeGaji, date: gajiDate, narration: 'Gaji karyawan bulan ' + (month.getMonth() + 1),
-            status: 'Submitted', fiscalYearId: fyGaji.id, createdBy: admin.id, submittedAt: gajiDate,
+            status: 'Submitted', isDummy: true, fiscalYearId: fyGaji.id, createdBy: admin.id, submittedAt: gajiDate,
             items: { create: [
               { accountId: gajiId || kasId!, debit: gajiAmount, credit: 0 },
               { accountId: kasId!, debit: 0, credit: gajiAmount },
@@ -349,7 +350,7 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
         await tx.journalEntry.create({
           data: {
             entryNumber: jeListrik, date: listrikDate, narration: 'Listrik & air bulan ' + (month.getMonth() + 1),
-            status: 'Submitted', fiscalYearId: fyListrik.id, createdBy: admin.id, submittedAt: listrikDate,
+            status: 'Submitted', isDummy: true, fiscalYearId: fyListrik.id, createdBy: admin.id, submittedAt: listrikDate,
             items: { create: [
               { accountId: listrikId || kasId!, debit: listrikAmount, credit: 0 },
               { accountId: kasId!, debit: 0, credit: listrikAmount },
@@ -644,10 +645,7 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         results.payments = (await tx.payment.deleteMany({ where: { id: { in: paymentIds } } })).count;
       }
 
-      const dummyRefIds = [
-        ...siIds, ...piIds, ...paymentIds,
-        'dummy-modal-init', 'dummy-gaji', 'dummy-listrik', 'dummy-pay-pi',
-      ];
+      const dummyRefIds = [...siIds, ...piIds, ...paymentIds];
       if (dummyRefIds.length > 0) {
         await tx.accountingLedgerEntry.deleteMany({ where: { referenceId: { in: dummyRefIds } } });
       }
@@ -661,16 +659,43 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         await tx.journalEntry.deleteMany({ where: { id: { in: paymentJeIds } } });
       }
 
-      // Dummy journals are identified by their narration prefixes.
+      // Dummy journals carry isDummy. Journals generated before that flag existed are
+      // matched exactly (dummy names, dummy invoice numbers, or a dummy ledger marker).
+      const [dummyPartyRows, dummySiRows] = await Promise.all([
+        tx.party.findMany({ where: { isDummy: true }, select: { name: true, partyType: true } }),
+        tx.salesInvoice.findMany({ where: { isDummy: true }, select: { invoiceNumber: true } }),
+      ]);
+      const exactNarrations = specificDummyNarrations({
+        customerNames: dummyPartyRows.filter((p) => p.partyType !== 'Supplier').map((p) => p.name),
+        supplierNames: dummyPartyRows.filter((p) => p.partyType !== 'Customer').map((p) => p.name),
+        salesInvoiceNumbers: dummySiRows.map((r) => r.invoiceNumber),
+      });
+      const markerRows = await tx.accountingLedgerEntry.findMany({
+        where: { referenceId: { in: [...DUMMY_LEDGER_MARKERS] } },
+        select: { date: true, accountId: true, debit: true },
+      });
+      const genericCandidates = await tx.journalEntry.findMany({
+        where: {
+          isDummy: false,
+          OR: [
+            { narration: 'Setoran modal awal' },
+            { narration: 'Pembayaran ke supplier' },
+            { narration: { startsWith: 'Gaji karyawan bulan ' } },
+            { narration: { startsWith: 'Listrik & air bulan ' } },
+          ],
+        },
+        select: { id: true, date: true, narration: true, items: { select: { accountId: true, debit: true } } },
+      });
+      const legacyGenericIds = matchGenericDummyJournals(
+        genericCandidates.map((j) => ({ ...j, items: j.items.map((it) => ({ accountId: it.accountId, debit: Number(it.debit) })) })),
+        markerRows.map((m) => ({ date: m.date, accountId: m.accountId, debit: Number(m.debit) })),
+      );
       const dummyJournals = await tx.journalEntry.findMany({
         where: {
           OR: [
-            { narration: { startsWith: 'Setoran modal awal' } },
-            { narration: { startsWith: 'Pembelian gabah' } },
-            { narration: { startsWith: 'Penjualan beras' } },
-            { narration: { startsWith: 'Pembayaran ' } },
-            { narration: { startsWith: 'Gaji karyawan bulan' } },
-            { narration: { startsWith: 'Listrik & air bulan' } },
+            { isDummy: true },
+            ...(exactNarrations.length > 0 ? [{ narration: { in: exactNarrations } }] : []),
+            ...(legacyGenericIds.length > 0 ? [{ id: { in: legacyGenericIds } }] : []),
           ],
         },
         select: { id: true },
@@ -680,6 +705,8 @@ router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
         await tx.journalItem.deleteMany({ where: { journalEntryId: { in: journalIds } } });
         results.journals = (await tx.journalEntry.deleteMany({ where: { id: { in: journalIds } } })).count;
       }
+
+      await tx.accountingLedgerEntry.deleteMany({ where: { referenceId: { in: [...DUMMY_LEDGER_MARKERS] } } });
 
       if (siIds.length > 0) {
         await tx.salesInvoiceItem.deleteMany({ where: { salesInvoiceId: { in: siIds } } });
