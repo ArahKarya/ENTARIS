@@ -59,7 +59,7 @@ const InvoiceItemSchema = z.object({
 
 export const CreateSalesInvoiceSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
-  partyId: z.string().min(1, 'Pelanggan wajib dipilih.'),
+  partyId: z.string().min(1, 'Customer wajib dipilih.'),
   items: z.array(InvoiceItemSchema).min(1, 'Minimal satu item.'),
   dueDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
@@ -99,7 +99,7 @@ export const CreateSalesReturnSchema = z.object({
 export const CreateQuotationSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
   validUntil: z.string().min(1, 'Tanggal berlaku-sampai wajib diisi.'),
-  partyId: z.string().min(1, 'Pelanggan wajib dipilih.'),
+  partyId: z.string().min(1, 'Customer wajib dipilih.'),
   items: z.array(InvoiceItemSchema).min(1, 'Minimal satu item.'),
   notes: z.string().nullable().optional(),
   potongan: z.coerce.number().min(0).optional().default(0),
@@ -228,7 +228,7 @@ const PurchaseInvoiceItemSchema = InvoiceItemSchema.extend({
 
 export const CreatePurchaseInvoiceSchema = z.object({
   date: z.string().min(1, 'Tanggal wajib diisi.'),
-  partyId: z.string().min(1, 'Pemasok wajib dipilih.'),
+  partyId: z.string().min(1, 'Supplier wajib dipilih.'),
   items: z.array(PurchaseInvoiceItemSchema).min(1, 'Minimal satu item.'),
   dueDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),

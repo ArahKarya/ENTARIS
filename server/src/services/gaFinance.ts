@@ -165,8 +165,8 @@ async function createExpensePurchaseInvoice(
   },
 ) {
   const party = await tx.party.findUnique({ where: { id: opts.partyId } });
-  if (!party) throw new BusinessError('Data vendor tidak ditemukan.');
-  if (!party.isActive) throw new BusinessError('Vendor sudah tidak aktif.');
+  if (!party) throw new BusinessError('Data supplier tidak ditemukan.');
+  if (!party.isActive) throw new BusinessError('Supplier sudah tidak aktif.');
 
   const fiscalYear = await getOpenFiscalYear(tx, opts.date);
   const apAccount = await accountByNumber(tx, ACC_AP);
@@ -328,7 +328,7 @@ export async function payVehicleTaxInTx(tx: Tx, args: PayGaBillArgs) {
   let creditAccountId: string | null = null;
 
   if (args.method === 'PURCHASE_INVOICE') {
-    if (!args.partyId) throw new BusinessError('Vendor wajib dipilih untuk jalur Faktur Pembelian.');
+    if (!args.partyId) throw new BusinessError('Supplier wajib dipilih untuk jalur Invoice Pembelian.');
     const { invoice, journalEntry } = await createExpensePurchaseInvoice(tx, {
       date,
       dueDate: args.dueDate ? new Date(args.dueDate) : null,
@@ -386,7 +386,7 @@ export async function cancelVehicleTaxPaymentInTx(tx: Tx, id: string) {
     if (inv && inv.status !== 'Cancelled') {
       if (Number(inv.outstanding) !== Number(inv.grandTotal)) {
         throw new BusinessError(
-          `Faktur ${inv.invoiceNumber} sudah dibayar sebagian/lunas. Batalkan pembayarannya dulu di modul Pembayaran.`,
+          `Invoice ${inv.invoiceNumber} sudah dibayar sebagian/lunas. Batalkan pembayarannya dulu di modul Pembayaran.`,
         );
       }
       await tx.purchaseInvoice.update({
@@ -427,7 +427,7 @@ export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
       `Service log bersumber "${log.source}" (data historis) tidak dapat diposting karena nilainya sudah tercatat di GL lewat input manual.`,
     );
   }
-  if (!args.partyId) throw new BusinessError('Vendor/bengkel wajib dipilih untuk jalur Faktur Pembelian.');
+  if (!args.partyId) throw new BusinessError('Supplier/bengkel wajib dipilih untuk jalur Invoice Pembelian.');
 
   const amount = Number(args.amount ?? log.biaya ?? 0);
   if (!(amount > 0)) throw new BusinessError('Biaya service harus lebih besar dari 0.');
@@ -479,7 +479,7 @@ export async function cancelServiceLogInvoiceInTx(tx: Tx, id: string) {
     if (inv && inv.status !== 'Cancelled') {
       if (Number(inv.outstanding) !== Number(inv.grandTotal)) {
         throw new BusinessError(
-          `Faktur ${inv.invoiceNumber} sudah dibayar sebagian/lunas. Batalkan pembayarannya dulu di modul Pembayaran.`,
+          `Invoice ${inv.invoiceNumber} sudah dibayar sebagian/lunas. Batalkan pembayarannya dulu di modul Pembayaran.`,
         );
       }
       await tx.purchaseInvoice.update({
@@ -539,7 +539,7 @@ export async function payMaterialRequestInTx(tx: Tx, args: PayGaBillArgs) {
   let creditAccountId: string | null = null;
 
   if (args.method === 'PURCHASE_INVOICE') {
-    if (!args.partyId) throw new BusinessError('Vendor wajib dipilih untuk jalur Faktur Pembelian.');
+    if (!args.partyId) throw new BusinessError('Supplier wajib dipilih untuk jalur Invoice Pembelian.');
     const { invoice, journalEntry } = await createExpensePurchaseInvoice(tx, {
       date,
       dueDate: args.dueDate ? new Date(args.dueDate) : null,
@@ -597,7 +597,7 @@ export async function cancelMaterialRequestPaymentInTx(tx: Tx, id: string) {
     if (inv && inv.status !== 'Cancelled') {
       if (Number(inv.outstanding) !== Number(inv.grandTotal)) {
         throw new BusinessError(
-          `Faktur ${inv.invoiceNumber} sudah dibayar sebagian/lunas. Batalkan pembayarannya dulu di modul Pembayaran.`,
+          `Invoice ${inv.invoiceNumber} sudah dibayar sebagian/lunas. Batalkan pembayarannya dulu di modul Pembayaran.`,
         );
       }
       await tx.purchaseInvoice.update({

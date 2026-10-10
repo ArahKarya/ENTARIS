@@ -143,9 +143,9 @@ async function normalizeInput(tx: Tx, input: PaymentRequestInput) {
   if (!type || !type.isActive) throw new BusinessError('Jenis pengajuan tidak ditemukan atau tidak aktif.');
   let partyId: string | null = null;
   if (input.payeeKind === 'VENDOR') {
-    if (!input.partyId) throw new BusinessError('Pilih vendor penerima pembayaran.');
+    if (!input.partyId) throw new BusinessError('Pilih supplier penerima pembayaran.');
     const party = await tx.party.findUnique({ where: { id: input.partyId }, select: { id: true } });
-    if (!party) throw new BusinessError('Vendor tidak ditemukan.');
+    if (!party) throw new BusinessError('Supplier tidak ditemukan.');
     partyId = party.id;
   }
   if (input.costCenterId) {

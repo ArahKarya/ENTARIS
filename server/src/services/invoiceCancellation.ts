@@ -35,7 +35,7 @@ export async function cancelSalesInvoiceInTx(
     where: { salesInvoiceId: invoice.id, isCancelled: false },
   });
   if (activeDepositApps > 0) {
-    throw new BusinessError('Invoice memiliki alokasi uang muka pelanggan aktif. Batalkan alokasi terlebih dahulu.');
+    throw new BusinessError('Invoice memiliki alokasi uang muka customer aktif. Batalkan alokasi terlebih dahulu.');
   }
 
   await tx.salesInvoice.update({

@@ -85,7 +85,7 @@ export async function submitPurchaseInvoiceInTx(
       }
       if (grItem.goodsReceipt.isCustomerOwned) {
         throw new BusinessError(
-          `STT ${grItem.goodsReceipt.sttNumber} adalah barang titipan pelanggan (repros). Tidak bisa di-invoice sebagai pembelian.`,
+          `STT ${grItem.goodsReceipt.sttNumber} adalah barang titipan customer (repros). Tidak bisa di-invoice sebagai pembelian.`,
         );
       }
       if (grItem.goodsReceipt.partyId !== body.partyId) {

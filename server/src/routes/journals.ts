@@ -199,7 +199,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
     if (/^JV-(PAY|SI|PI|COGS)/.test(entry.entryNumber)) {
       return res.status(400).json({
         error:
-          'Jurnal ini dibuat otomatis dari transaksi sumber (Pembayaran/Faktur/HPP). Batalkan dari modul asalnya, bukan dari Buku Besar.',
+          'Jurnal ini dibuat otomatis dari transaksi sumber (Pembayaran/Invoice/HPP). Batalkan dari modul asalnya, bukan dari Buku Besar.',
       });
     }
 
@@ -209,7 +209,7 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
     if (/^Aplikasi Uang Muka:/.test(entry.narration ?? '')) {
       return res.status(400).json({
         error:
-          'Jurnal ini adalah aplikasi Uang Muka ke faktur. Batalkan dari modul Uang Muka Pelanggan/Vendor (tombol batalkan aplikasi), bukan dari Buku Besar.',
+          'Jurnal ini adalah aplikasi Uang Muka ke invoice. Batalkan dari modul Uang Muka Customer/Supplier (tombol batalkan aplikasi), bukan dari Buku Besar.',
       });
     }
 

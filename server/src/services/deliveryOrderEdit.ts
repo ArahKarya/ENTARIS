@@ -55,8 +55,8 @@ export async function editDeliveryOrderInTx(
 
   // Customer may change as long as the party is Customer/Both (same rule as submit).
   const party = await tx.party.findUnique({ where: { id: body.partyId } });
-  if (!party) throw new BusinessError('Data pelanggan tidak ditemukan.');
-  if (!party.isActive) throw new BusinessError('Pelanggan sudah tidak aktif.');
+  if (!party) throw new BusinessError('Data customer tidak ditemukan.');
+  if (!party.isActive) throw new BusinessError('Customer sudah tidak aktif.');
   if (party.partyType !== 'Customer' && party.partyType !== 'Both') {
     throw new BusinessError('Surat jalan hanya bisa untuk Customer.');
   }

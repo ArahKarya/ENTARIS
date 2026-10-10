@@ -99,7 +99,7 @@ describe('buildPurchaseInvoiceWhere', () => {
   });
 
   it('rejects unknown statuses and malformed dates', () => {
-    expect(buildPurchaseInvoiceWhere({ status: 'Unpaid' })).toEqual({ ok: false, error: 'Status faktur tidak dikenal.' });
+    expect(buildPurchaseInvoiceWhere({ status: 'Unpaid' })).toEqual({ ok: false, error: 'Status invoice tidak dikenal.' });
     expect(buildPurchaseInvoiceWhere({ startDate: '01/02/2026' }).ok).toBe(false);
     expect(buildPurchaseInvoiceWhere({ endDate: '2026-02-30x' }).ok).toBe(false);
   });
