@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { BusinessError } from '../utils/errors';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { logger } from '../lib/logger';
+import { assertSalesOrderLinkable } from './salesDocumentLinks';
 
 type Tx = Prisma.TransactionClient;
 
@@ -83,6 +84,7 @@ export async function createTemporaryNoteInTx(tx: Tx, body: TdnInput, userId: st
   if (isNaN(date.getTime())) throw new BusinessError('Format tanggal tidak valid.');
   const fy = await getOpenFiscalYear(tx, date);
   await validateParty(tx, body.partyId);
+  if (body.salesOrderId) await assertSalesOrderLinkable(tx, body.salesOrderId, body.partyId);
   const items = await validateAndResolveItems(tx, body.items);
 
   const id = randomUUID();
@@ -102,7 +104,8 @@ export async function createTemporaryNoteInTx(tx: Tx, body: TdnInput, userId: st
 }
 
 export async function updateTemporaryNoteInTx(tx: Tx, id: string, body: TdnInput) {
-  const rows = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM temporary_delivery_notes WHERE id = ${id} FOR UPDATE`;
+  const rows = await tx.$queryRaw<{ status: string; sales_order_id: string | null }[]>`
+    SELECT status, sales_order_id FROM temporary_delivery_notes WHERE id = ${id} FOR UPDATE`;
   if (!rows[0]) throw new BusinessError('Surat jalan sementara tidak ditemukan.');
   if (rows[0].status !== 'Open') {
     throw new BusinessError('Hanya surat jalan sementara berstatus Terbuka yang bisa diubah.'); // keputusan #2
@@ -110,6 +113,10 @@ export async function updateTemporaryNoteInTx(tx: Tx, id: string, body: TdnInput
   const date = new Date(body.date);
   if (isNaN(date.getTime())) throw new BusinessError('Format tanggal tidak valid.');
   await validateParty(tx, body.partyId);
+  if (body.salesOrderId) {
+    const keptLink = body.salesOrderId === rows[0].sales_order_id;
+    await assertSalesOrderLinkable(tx, body.salesOrderId, body.partyId, { keptLink });
+  }
   const items = await validateAndResolveItems(tx, body.items);
 
   await tx.$executeRaw`
@@ -179,11 +186,12 @@ export async function getTemporaryNote(tx: Tx, id: string) {
     SELECT t.id, t.number, t.date, t.party_id AS "partyId", p.name AS "customerName",
            p.address AS "customerAddress", p.phone AS "customerPhone", t.nomor_mobil AS "nomorMobil",
            t.driver_name AS "driverName", t.recipient_name AS "recipientName", t.sales_order_id AS "salesOrderId",
-           t.status, t.notes, t.delivery_order_id AS "deliveryOrderId", d.do_number AS "doNumber",
+           so.so_number AS "soNumber", t.status, t.notes, t.delivery_order_id AS "deliveryOrderId", d.do_number AS "doNumber",
            t.linked_at AS "linkedAt", t.created_at AS "createdAt"
     FROM temporary_delivery_notes t
     JOIN parties p ON p.id = t.party_id
     LEFT JOIN delivery_orders d ON d.id = t.delivery_order_id
+    LEFT JOIN sales_orders so ON so.id = t.sales_order_id
     WHERE t.id = ${id}`;
   if (!heads[0]) return null;
   const items = await tx.$queryRaw<any[]>`

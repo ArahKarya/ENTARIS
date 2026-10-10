@@ -292,6 +292,9 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     {so.expectedDelivery && <p className="text-sm"><span className={metaLabel}>Target Kirim:</span> {formatDate(so.expectedDelivery)}</p>}
                     <p className="text-sm"><span className={metaLabel}>Pelanggan:</span> <span className="font-medium">{so.customer?.name}</span></p>
                     {so.customerRefNo && <p className="text-sm"><span className={metaLabel}>Ref PO:</span> {so.customerRefNo}</p>}
+                    {so.quotation?.quotationNumber && (
+                      <p className="text-sm"><span className={metaLabel}>Penawaran:</span> <span className="font-mono">{so.quotation.quotationNumber}</span></p>
+                    )}
                     {so.notes && <p className="text-sm text-muted-foreground">Catatan: {so.notes}</p>}
                   </div>
                   <StatusBadge status={so.status} docType="sales_order" />

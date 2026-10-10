@@ -157,6 +157,8 @@ async function createExpensePurchaseInvoice(
     expenseAccountId: string;
     amount: number;
     itemName: string;
+    /** 'service' for tax / vehicle service bills, 'product' for spare parts. */
+    itemType: 'product' | 'service';
     narration: string;
     notes?: string | null;
     userId: string;
@@ -191,6 +193,7 @@ async function createExpensePurchaseInvoice(
         create: [
           {
             itemName: opts.itemName,
+            itemType: opts.itemType,
             quantity: 1,
             unit: 'ls',
             rate: total,
@@ -333,6 +336,7 @@ export async function payVehicleTaxInTx(tx: Tx, args: PayGaBillArgs) {
       expenseAccountId: debitAcc.id,
       amount,
       itemName: label,
+      itemType: 'service',
       narration,
       notes: args.notes ?? tax.notes,
       userId: args.userId,
@@ -443,6 +447,7 @@ export async function payServiceLogViaInvoiceInTx(tx: Tx, args: PayGaBillArgs) {
     expenseAccountId: debitAcc.id,
     amount,
     itemName: `Service ${plat}: ${log.deskripsi}`.slice(0, 200),
+    itemType: 'service',
     narration,
     notes: args.notes ?? null,
     userId: args.userId,
@@ -542,6 +547,7 @@ export async function payMaterialRequestInTx(tx: Tx, args: PayGaBillArgs) {
       expenseAccountId: debitAcc.id,
       amount,
       itemName: `Sparepart ${mr.code}`,
+      itemType: 'product',
       narration,
       notes: args.notes ?? mr.notes,
       userId: args.userId,

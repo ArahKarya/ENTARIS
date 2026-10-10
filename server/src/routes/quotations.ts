@@ -192,6 +192,12 @@ router.get('/:id', async (req, res) => {
         },
         user: { select: { id: true, fullName: true } },
         salesInvoice: { select: { id: true, invoiceNumber: true, date: true, grandTotal: true } },
+        // Active SOs created from this quotation.
+        salesOrders: {
+          where: { status: { not: 'Cancelled' } },
+          select: { id: true, soNumber: true, status: true },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
     if (!quotation) return res.status(404).json({ error: 'Penawaran tidak ditemukan.' });

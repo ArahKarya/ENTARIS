@@ -13,6 +13,7 @@ import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
 import { submitDeliveryOrderInTx } from '../services/deliveryOrderSubmit';
 import { recomputeDeliveredQtyInTx } from '../services/salesOrderDelivery';
+import { assertQuotationLinkable, resolveSalesOrderQuotationId } from '../services/salesDocumentLinks';
 import { logger } from '../lib/logger';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
@@ -166,6 +167,7 @@ router.post('/', async (req: AuthRequest, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const date = new Date(body.date);
       const fy = await getOpenFiscalYear(tx, date);
+      if (body.quotationId) await assertQuotationLinkable(tx, body.quotationId, body.partyId);
       const soNumber = await generateDocumentNumber(tx, 'PSN', date, fy.id);
       const { subtotal, grandTotal } = computeTotals({
         items: body.items.map((i) => ({ quantity: i.quantity, rate: i.rate, discount: i.discount, amount: i.amount })),
@@ -231,6 +233,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
         biayaLain: body.biayaLain,
         taxPct: body.taxPct,
       });
+      const quotationId = await resolveSalesOrderQuotationId(tx, body.quotationId, so.quotationId, body.partyId);
       await tx.salesOrderItem.deleteMany({ where: { salesOrderId: so.id } });
       const updated = await tx.salesOrder.update({
         where: { id: so.id },
@@ -239,7 +242,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
           expectedDelivery: body.expectedDelivery ? new Date(body.expectedDelivery) : null,
           partyId: body.partyId,
           customerRefNo: body.customerRefNo ?? null,
-          quotationId: body.quotationId ?? null,
+          quotationId,
           notes: body.notes ?? null,
           subtotal,
           taxPct: body.taxPct,

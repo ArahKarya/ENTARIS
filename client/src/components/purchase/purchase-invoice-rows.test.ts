@@ -114,4 +114,10 @@ describe('toPurchaseInvoicePrefill', () => {
     expect(prefill.items[0]).toMatchObject({ warehouseId: 'wh-1', goodsReceiptItemId: 'gri-1' });
     expect(prefill.items[1]).toMatchObject({ warehouseId: '', goodsReceiptItemId: null });
   });
+
+  it('uses the stored service type even when the line has a quantity', () => {
+    const rows = [{ itemName: 'Jasa bongkar', itemType: 'service', quantity: '3', timbanganDiterima: '3', rate: '10000' }];
+    const prefill = toPurchaseInvoicePrefill({ items: rows }, { keepLinks: false, newId: () => 'x' });
+    expect(prefill.items[0]).toMatchObject({ itemType: 'service', timbanganDiterima: 3 });
+  });
 });

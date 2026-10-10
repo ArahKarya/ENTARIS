@@ -3,7 +3,9 @@
  * Server-side paging/sort/filter on GET /sales-orders; KPI cards from
  * GET /sales-orders/summary with the same filters.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CheckCircle2, Clock, Eye, FileText, Plus, Truck } from 'lucide-react';
@@ -26,6 +28,11 @@ import {
   type Paginated,
 } from '@/components/shared';
 import SalesOrderModal from '@/components/SalesOrderModal';
+import {
+  canCreateSalesOrderFromQuotation,
+  quotationToSalesOrderPrefill,
+  type QuotationForSalesOrder,
+} from '@/components/sales/so-from-quotation';
 import SalesOrderDetailDrawer from '@/components/SalesOrderDetailDrawer';
 
 type Money = string | number;
@@ -86,6 +93,42 @@ export const SalesOrders = () => {
 
   const total = ordersQuery.data?.total;
   const summary = summaryQuery.data;
+
+  // "Buat Sales Order" from a quotation lands here with ?fromQuotation=<id>.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fromQuotation = searchParams.get('fromQuotation');
+  useEffect(() => {
+    if (!fromQuotation) return;
+    let cancelled = false;
+    api
+      .get<QuotationForSalesOrder>(`/quotations/${encodeURIComponent(fromQuotation)}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (!canCreateSalesOrderFromQuotation(data)) {
+          toast.error(`Penawaran ${data.quotationNumber} tidak bisa dibuatkan Sales Order.`);
+          return;
+        }
+        setEditTarget(quotationToSalesOrderPrefill(data));
+        setIsModalOpen(true);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error('Gagal memuat penawaran.');
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('fromQuotation');
+            return next;
+          },
+          { replace: true },
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fromQuotation, setSearchParams]);
 
   const openCreate = () => {
     setEditTarget(null);

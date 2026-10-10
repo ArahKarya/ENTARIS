@@ -31,9 +31,10 @@ describe('crypto', () => {
     expect(encryptSecret('entsig_rahasia', ENV)).not.toBe(enc);
     expect(decryptSecret(enc, ENV)).toBe('entsig_rahasia');
     const [v, iv, tag, ct] = enc.split('.');
-    // Change the last ciphertext char to a different one so the tag check always fails.
-    const last = ct.slice(-1) === 'A' ? 'B' : 'A';
-    const flipped = `${v}.${iv}.${tag}.${ct.slice(0, -1)}${last}`;
+    // Flip a whole ciphertext byte; editing a base64 char can hit padding bits only.
+    const bytes = Buffer.from(ct, 'base64url');
+    bytes[0] ^= 0xff;
+    const flipped = `${v}.${iv}.${tag}.${bytes.toString('base64url')}`;
     expect(() => decryptSecret(flipped, ENV)).toThrow();
   });
 

@@ -64,6 +64,9 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
   const [biayaLain, setBiayaLain] = useState(0);
   const [taxPct, setTaxPct] = useState(0);
   const [items, setItems] = useState<SOItem[]>([defaultItem()]);
+  // Source quotation link (edit keeps it; "dari penawaran" prefill sets it).
+  const [quotationId, setQuotationId] = useState<string | null>(null);
+  const [quotationNumber, setQuotationNumber] = useState('');
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();
@@ -89,6 +92,8 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     if (!isOpen) return;
     if (editTarget) {
       setDate(editTarget.date ? new Date(editTarget.date).toISOString().split('T')[0] : today);
+      setQuotationId(editTarget.quotationId ?? null);
+      setQuotationNumber(editTarget.quotation?.quotationNumber ?? editTarget.quotationNumber ?? '');
       setExpectedDelivery(editTarget.expectedDelivery ? new Date(editTarget.expectedDelivery).toISOString().split('T')[0] : '');
       setPartyId(editTarget.partyId || '');
       setCustomerRefNo(editTarget.customerRefNo || '');
@@ -120,10 +125,12 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
       setBiayaLain(0);
       setTaxPct(0);
       setItems([defaultItem()]);
+      setQuotationId(null);
+      setQuotationNumber('');
     }
     setError('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editTarget?.id]);
+  }, [isOpen, editTarget?.id, editTarget?.quotationId]);
 
   const partyOptions = useMemo(
     () => (parties || []).map((p: any) => ({ value: p.id, label: p.name, subtitle: p.code })),
@@ -169,6 +176,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
         expectedDelivery: expectedDelivery || null,
         partyId,
         customerRefNo: customerRefNo || null,
+        quotationId,
         notes: notes || null,
         potongan,
         biayaLain,
@@ -230,6 +238,11 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
           </FormDialogHeader>
 
           <FormDialogBody>
+            {quotationId && (
+              <p className="rounded-md bg-info-subtle px-3 py-2 text-xs text-info-text">
+                Dari penawaran <span className="font-mono font-semibold">{quotationNumber || '-'}</span>
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <Field label="Tanggal">
                 {(c) => <DateInput id={c.id} value={date} onChange={setDate} />}
