@@ -249,7 +249,7 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
       (tx) => cancelProductionRunInTx(tx, id, { allowNegativeStock, negativeStockReason }),
       { timeout: 15000 },
     );
-    return res.json({ message: 'Proses produksi berhasil dibatalkan.' });
+    return res.json({ message: 'Proses produksi dibatalkan.' });
   } catch (error: any) {
     return handleRouteError(res, error, 'PUT /inventory/production-runs/:id/cancel', 'Gagal membatalkan proses produksi.');
   }

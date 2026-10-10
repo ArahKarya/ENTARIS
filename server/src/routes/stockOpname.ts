@@ -473,7 +473,7 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
       });
     }, { timeout: 15000 });
 
-    return res.json({ message: 'Stok opname berhasil dibatalkan.' });
+    return res.json({ message: 'Stok opname dibatalkan.' });
   } catch (error: any) {
     return handleRouteError(res, error, 'PUT /stock-opname/:id/cancel', 'Gagal membatalkan stok opname.');
   }

@@ -176,7 +176,7 @@ router.put('/', async (req: AuthRequest, res: Response) => {
   });
 
   res.json({
-    message: 'Konfigurasi akun sistem berhasil diperbarui.',
+    message: 'Konfigurasi akun sistem diperbarui.',
     updated: updated.map((m) => ({
       role: m.role,
       accountId: m.account.id,

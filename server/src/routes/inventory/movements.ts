@@ -593,7 +593,7 @@ router.put('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, res
       await recomputeAverageCostFromReplay(tx, movement.itemId);
     }, { timeout: 15000 });
 
-    return res.json({ message: 'Gerakan stok berhasil dibatalkan.' });
+    return res.json({ message: 'Gerakan stok dibatalkan.' });
   } catch (error: any) {
     return handleRouteError(res, error, 'PUT /inventory/movements/:id/cancel', 'Gagal membatalkan gerakan stok.');
   }

@@ -396,7 +396,7 @@ router.delete('/:id', requireCap('doc.cancel'), async (req, res) => {
     }
 
     await prisma.party.delete({ where: { id } });
-    return res.json({ message: 'Mitra berhasil dihapus.', deleted: true });
+    return res.json({ message: 'Mitra dihapus.', deleted: true });
   } catch (error: any) {
     logger.error({ error }, 'DELETE /parties/:id error');
     if (error.code === 'P2025') return res.status(404).json({ error: 'Data mitra tidak ditemukan.' });

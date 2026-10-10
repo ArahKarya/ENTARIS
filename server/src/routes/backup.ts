@@ -323,7 +323,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     logger.info({ filename, size }, 'Backup file uploaded');
     return res.json({
-      message: `File ${filename} berhasil diupload.`,
+      message: `File ${filename} diunggah.`,
       filename,
       size,
     });
@@ -361,7 +361,7 @@ router.post('/restore', requireCap('doc.cancel'), async (req, res) => {
     await spawnRestorePipeline('gunzip', ['-c', filepath], restoreCmd, restoreArgs, env, 300_000);
 
     logger.info(`Backup restored: ${sanitized}`);
-    return res.json({ message: `Restore berhasil dari ${sanitized}.` });
+    return res.json({ message: `Backup dipulihkan dari ${sanitized}.` });
   } catch (error: unknown) {
     logger.error({ error: error instanceof Error ? error.message : error }, 'POST /backup/restore error');
     return res.status(500).json({ error: 'Gagal restore backup. Silakan coba lagi atau hubungi administrator.' });
