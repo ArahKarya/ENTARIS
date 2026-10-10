@@ -32,9 +32,7 @@ export function TypedConfirmDialog({
     <Dialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <DialogContent size="sm" role="alertdialog" hideClose={loading}>
         <DialogHeader className="flex-row items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-danger-subtle text-danger-text">
-            <AlertTriangle className="size-5" aria-hidden />
-          </span>
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger-text" aria-hidden />
           <div className="flex min-w-0 flex-col gap-1.5">
             <DialogTitle>{title}</DialogTitle>
             {description && <DialogDescription>{description}</DialogDescription>}

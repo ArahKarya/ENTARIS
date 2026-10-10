@@ -202,9 +202,7 @@ export default function PublicInquiry() {
       <main className="flex min-h-dvh items-start justify-center bg-background px-4 py-10 sm:items-center">
         <div className="w-full max-w-md">
           <section className="rounded-xl border border-border bg-card p-6 text-center shadow-[var(--shadow-2)] sm:p-8" aria-live="polite">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-success-subtle">
-              <CheckCircle2 className="size-7 text-success-text" aria-hidden />
-            </div>
+            <CheckCircle2 className="mx-auto mb-4 size-8 text-success-text" aria-hidden />
             <h1 className="text-xl font-semibold text-foreground">Terima kasih, permintaan terkirim</h1>
             <p className="mt-2 text-sm text-foreground-secondary">{success.message}</p>
             <div className="mt-5 rounded-lg bg-surface-sunken px-4 py-3">

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AlertTriangle, HelpCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Field } from './field';
-import { cn } from '@/lib/utils';
 
 export interface ReasonOptions {
   label?: string;
@@ -96,20 +95,11 @@ export function ConfirmDialog({
     }
   };
 
-  const Icon = tone === 'danger' ? AlertTriangle : HelpCircle;
-
   return (
     <Dialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <DialogContent size="sm" role="alertdialog" hideClose={loading}>
         <DialogHeader className="flex-row items-start gap-3">
-          <span
-            className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-full',
-              tone === 'danger' ? 'bg-danger-subtle text-danger-text' : 'bg-primary-subtle text-primary-subtle-foreground',
-            )}
-          >
-            <Icon className="size-5" aria-hidden />
-          </span>
+          {tone === 'danger' && <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger-text" aria-hidden />}
           <div className="flex min-w-0 flex-col gap-1.5">
             <DialogTitle>{title}</DialogTitle>
             {description && <DialogDescription>{description}</DialogDescription>}
