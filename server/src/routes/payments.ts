@@ -10,6 +10,7 @@ import { BusinessError, handleRouteError } from '../utils/errors';
 import { logger } from '../lib/logger';
 import { systemAccounts } from '../services/systemAccounts';
 import { submitPaymentInTx } from '../services/paymentSubmit';
+import { withAllocationInvoiceNumbers } from '../services/paymentAllocationDetail';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
   buildCashLedgerFilter,
@@ -142,7 +143,8 @@ router.get('/:id', async (req, res) => {
       },
     });
     if (!payment) return res.status(404).json({ error: 'Pembayaran tidak ditemukan.' });
-    return res.json(payment);
+    const allocations = await withAllocationInvoiceNumbers(prisma, payment.allocations);
+    return res.json({ ...payment, allocations });
   } catch (error) {
     logger.error({ error }, 'GET /payments/:id error');
     return res.status(500).json({ error: 'Gagal mengambil detail pembayaran.' });
