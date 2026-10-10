@@ -22,6 +22,7 @@ import {
 } from '@/components/sales-a/overlay-parts';
 import { formDialogClass, formShellClass, numberInputClass } from '@/components/sales-a/overlay-classes';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface QuotationItem {
   id: string;
@@ -57,6 +58,7 @@ interface Props {
 }
 
 const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreated }) => {
+  const { t } = useTranslation('sales');
   const isEdit = Boolean(editTarget?.id);
   const today = new Date().toISOString().split('T')[0];
   const defaultValidUntil = new Date(new Date().getTime() + 30 * 86400000).toISOString().split('T')[0];
@@ -65,11 +67,11 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
   const [validUntil, setValidUntil] = useState(defaultValidUntil);
   const [partyId, setPartyId] = useState('');
   const [notes, setNotes] = useState('');
-  const [terms, setTerms] = useState('Penawaran berlaku 30 hari. Harga sewaktu-waktu dapat berubah setelah masa berlaku.');
+  const [terms, setTerms] = useState(() => t('quotationModal.defaults.terms'));
   const [potongan, setPotongan] = useState(0);
   const [biayaLain, setBiayaLain] = useState(0);
-  const [labelPotongan, setLabelPotongan] = useState('Potongan');
-  const [labelBiaya, setLabelBiaya] = useState('Biaya Lain');
+  const [labelPotongan, setLabelPotongan] = useState(() => t('quotationModal.defaults.discountLabel'));
+  const [labelBiaya, setLabelBiaya] = useState(() => t('quotationModal.defaults.otherCostLabel'));
   const [items, setItems] = useState<QuotationItem[]>([defaultItem()]);
   const [error, setError] = useState('');
 
@@ -117,8 +119,8 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
       setTerms(editTarget.terms ?? '');
       setPotongan(Number(editTarget.potongan ?? 0));
       setBiayaLain(Number(editTarget.biayaLain ?? 0));
-      setLabelPotongan(editTarget.labelPotongan ?? 'Potongan');
-      setLabelBiaya(editTarget.labelBiaya ?? 'Biaya Lain');
+      setLabelPotongan(editTarget.labelPotongan ?? t('quotationModal.defaults.discountLabel'));
+      setLabelBiaya(editTarget.labelBiaya ?? t('quotationModal.defaults.otherCostLabel'));
       setItems(
         (editTarget.items ?? []).map((it: any) => ({
           id: crypto.randomUUID(),
@@ -143,8 +145,8 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
       setNotes('');
       setPotongan(0);
       setBiayaLain(0);
-      setLabelPotongan('Potongan');
-      setLabelBiaya('Biaya Lain');
+      setLabelPotongan(t('quotationModal.defaults.discountLabel'));
+      setLabelBiaya(t('quotationModal.defaults.otherCostLabel'));
       setItems([defaultItem()]);
     }
     setError('');
@@ -178,14 +180,14 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
       return res.data;
     },
     onSuccess: async (data) => {
-      toast.success(isEdit ? 'Penawaran diperbarui.' : 'Penawaran dibuat.');
+      toast.success(isEdit ? t('quotationModal.toast.updated') : t('quotationModal.toast.created'));
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       if (!isEdit && onCreated) {
         try { await onCreated(data); } catch { /* caller handles its own toast */ }
       }
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error ?? 'Gagal menyimpan penawaran.'),
+    onError: (err: any) => setError(err.response?.data?.error ?? t('quotationModal.errors.saveFailed')),
   });
 
   const updateItem = (i: number, field: keyof QuotationItem, value: any) => {
@@ -260,11 +262,11 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
   const handleSubmit = () => {
     setError('');
     const validItems = items.filter((it) => it.itemName);
-    if (validItems.length === 0) { setError('Tambahkan minimal satu item.'); return; }
-    if (!partyId) { setError('Pilih pelanggan.'); return; }
-    if (new Date(validUntil) < new Date(date)) { setError('Tanggal berlaku-sampai harus setelah tanggal penawaran.'); return; }
+    if (validItems.length === 0) { setError(t('quotationModal.errors.noItems')); return; }
+    if (!partyId) { setError(t('quotationModal.errors.noCustomer')); return; }
+    if (new Date(validUntil) < new Date(date)) { setError(t('quotationModal.errors.validUntilBeforeDate')); return; }
     for (const it of validItems) {
-      if (!it.accountId) { setError(`Item "${it.itemName}" belum punya akun pendapatan.`); return; }
+      if (!it.accountId) { setError(t('quotationModal.errors.missingRevenueAccount', { name: it.itemName })); return; }
     }
     mutation.mutate({
       date,
@@ -301,27 +303,27 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
         <form noValidate onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={formShellClass}>
           <FormDialogHeader>
             <DialogTitle>
-              {isEdit ? `Edit Penawaran ${editTarget?.quotationNumber ?? ''}` : 'Buat Penawaran Baru'}
+              {isEdit ? t('quotationModal.titleEdit', { number: editTarget?.quotationNumber ?? '' }) : t('quotationModal.titleCreate')}
             </DialogTitle>
-            <DialogDescription>Penawaran harga ke pelanggan sebelum menjadi Sales Order.</DialogDescription>
+            <DialogDescription>{t('quotationModal.description')}</DialogDescription>
           </FormDialogHeader>
 
           <FormDialogBody className="space-y-5">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Field label="Tanggal">
+              <Field label={t('quotationModal.fields.date')}>
                 {(c) => <DateInput id={c.id} value={date} onChange={setDate} />}
               </Field>
-              <Field label="Berlaku Sampai">
+              <Field label={t('quotationModal.fields.validUntil')}>
                 {(c) => <DateInput id={c.id} value={validUntil} onChange={setValidUntil} />}
               </Field>
-              <Field label="Pelanggan" required>
+              <Field label={t('quotationModal.fields.customer')} required>
                 {() => (
                   <PickerSelect
-                    aria-label="Pelanggan"
+                    aria-label={t('quotationModal.fields.customer')}
                     {...partyPicker.pickerProps}
                     value={partyId}
                     onChange={(v) => setPartyId(v)}
-                    placeholder="Pilih pelanggan..."
+                    placeholder={t('quotationModal.placeholders.customer')}
                   />
                 )}
               </Field>
@@ -329,16 +331,16 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
 
             <section aria-labelledby="qt-items-title">
               <div className="mb-2 flex items-center justify-between">
-                <h4 id="qt-items-title" className="text-sm font-semibold text-foreground">Item Penawaran</h4>
+                <h4 id="qt-items-title" className="text-sm font-semibold text-foreground">{t('quotationModal.items.title')}</h4>
                 <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={addItem}>
-                  <Plus aria-hidden /> Tambah baris
+                  <Plus aria-hidden /> {t('quotationModal.items.addRow')}
                 </Button>
               </div>
               <div className="space-y-3">
                 {items.map((it, idx) => (
-                  <div key={it.id} role="group" aria-label={`Item penawaran ${idx + 1}`} className="space-y-2 rounded-lg border border-border bg-card p-3">
+                  <div key={it.id} role="group" aria-label={t('quotationModal.items.rowLabel', { n: idx + 1 })} className="space-y-2 rounded-lg border border-border bg-card p-3">
                     <div className="flex items-center justify-between">
-                      <div role="group" aria-label={`Jenis item ${idx + 1}`} className="inline-flex overflow-hidden rounded-lg border border-border text-xs">
+                      <div role="group" aria-label={t('quotationModal.items.typeLabel', { n: idx + 1 })} className="inline-flex overflow-hidden rounded-lg border border-border text-xs">
                         {(['product', 'service'] as const).map((type) => (
                           <button
                             key={type}
@@ -350,7 +352,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
                               it.itemType === type ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-accent',
                             )}
                           >
-                            {type === 'product' ? 'Produk' : 'Jasa'}
+                            {type === 'product' ? t('quotationModal.items.product') : t('quotationModal.items.service')}
                           </button>
                         ))}
                       </div>
@@ -359,7 +361,7 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
                           variant="ghost"
                           size="icon-sm"
                           className="text-danger-text max-sm:size-11"
-                          aria-label={`Hapus baris ${idx + 1}`}
+                          aria-label={t('quotationModal.items.removeRow', { n: idx + 1 })}
                           onClick={() => removeItem(idx)}
                         >
                           <Trash2 aria-hidden />
@@ -368,30 +370,30 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
                     </div>
 
                     <div className="grid grid-cols-12 gap-2">
-                      <Field label="Item" className="col-span-12 md:col-span-5">
+                      <Field label={t('quotationModal.items.item')} className="col-span-12 md:col-span-5">
                         {() => (
                           <div className="space-y-1.5">
                             {it.itemType === 'product' ? (
                               <PickerSelect
-                                aria-label={`Item produk baris ${idx + 1}`}
+                                aria-label={t('quotationModal.items.productItemLabel', { n: idx + 1 })}
                                 options={inventoryOptions}
                                 value={it.inventoryItemId}
                                 onChange={(v) => selectInventoryItem(idx, v)}
-                                placeholder="Pilih item / ketik nama bebas..."
+                                placeholder={t('quotationModal.items.productPlaceholder')}
                               />
                             ) : (
                               <PickerSelect
-                                aria-label={`Item jasa baris ${idx + 1}`}
+                                aria-label={t('quotationModal.items.serviceItemLabel', { n: idx + 1 })}
                                 options={serviceOptions}
                                 value={it.serviceItemId}
                                 onChange={(v) => selectServiceItem(idx, v)}
-                                placeholder="Pilih jasa / ketik nama bebas..."
+                                placeholder={t('quotationModal.items.servicePlaceholder')}
                               />
                             )}
                             {!it.inventoryItemId && !it.serviceItemId && (
                               <Input
-                                aria-label={`Nama item bebas baris ${idx + 1}`}
-                                placeholder="Atau ketik nama item bebas"
+                                aria-label={t('quotationModal.items.freeNameLabel', { n: idx + 1 })}
+                                placeholder={t('quotationModal.items.freeNamePlaceholder')}
                                 value={it.itemName}
                                 onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
                                 autoComplete="off"
@@ -400,36 +402,36 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
                           </div>
                         )}
                       </Field>
-                      <Field label="Qty" className="col-span-4 md:col-span-2">
+                      <Field label={t('quotationModal.items.qty')} className="col-span-4 md:col-span-2">
                         <NumberInput min={0} value={it.quantity || ''} className={compactNum}
                           onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value) || 0)} />
                       </Field>
-                      <Field label="Unit" className="col-span-4 md:col-span-2">
+                      <Field label={t('quotationModal.items.unit')} className="col-span-4 md:col-span-2">
                         {() => (
                           <OptionSelect
-                            aria-label={`Unit baris ${idx + 1}`}
+                            aria-label={t('quotationModal.items.unitLabel', { n: idx + 1 })}
                             value={it.unit}
                             onChange={(v) => updateItem(idx, 'unit', v)}
                             options={UNITS.map((u) => ({ value: u, label: u }))}
                           />
                         )}
                       </Field>
-                      <Field label="Harga Satuan" className="col-span-4 md:col-span-3">
+                      <Field label={t('quotationModal.items.rate')} className="col-span-4 md:col-span-3">
                         <NumberInput min={0} value={it.rate || ''} className={compactNum}
                           onChange={(e) => updateItem(idx, 'rate', Number(e.target.value) || 0)} />
                       </Field>
                     </div>
 
                     <div className="grid grid-cols-12 gap-2">
-                      <Field label="Diskon %" className="col-span-4 md:col-span-2">
+                      <Field label={t('quotationModal.items.discountPct')} className="col-span-4 md:col-span-2">
                         <NumberInput min={0} max={100} value={it.discount || ''} className={compactNum}
                           onChange={(e) => updateItem(idx, 'discount', Math.min(100, Number(e.target.value) || 0))} />
                       </Field>
-                      <Field label="PPN %" className="col-span-4 md:col-span-2">
+                      <Field label={t('quotationModal.items.vatPct')} className="col-span-4 md:col-span-2">
                         <NumberInput min={0} max={100} value={it.taxPct || ''} className={compactNum}
                           onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value) || 0)))} />
                       </Field>
-                      <Field label="PPh %" className="col-span-4 md:col-span-2">
+                      <Field label={t('quotationModal.items.pphPct')} className="col-span-4 md:col-span-2">
                         <NumberInput min={0} max={100} value={it.pphPct || ''} className={compactNum}
                           onChange={(e) => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value) || 0)))} />
                       </Field>
@@ -444,36 +446,36 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="space-y-3">
-                <Field label="Catatan">
+                <Field label={t('quotationModal.fields.notes')}>
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-                    placeholder="Catatan tambahan untuk pelanggan..." />
+                    placeholder={t('quotationModal.placeholders.notes')} />
                 </Field>
-                <Field label="Syarat & Ketentuan">
+                <Field label={t('quotationModal.fields.terms')}>
                   <Textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={3} />
                 </Field>
               </div>
 
               <div className="space-y-2 rounded-lg bg-muted/40 p-4 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t('quotationModal.summary.subtotal')}</span>
                   <span className="tabular-nums">{formatRupiah(subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">PPN</span>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t('quotationModal.summary.vat')}</span>
                   <span className="tabular-nums">{formatRupiah(taxAmount)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">PPh</span>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t('quotationModal.summary.pph')}</span>
                   <span className="tabular-nums">−{formatRupiah(pphAmount)}</span></div>
                 <div className="flex items-center gap-2">
-                  <Input aria-label="Label potongan" value={labelPotongan} onChange={(e) => setLabelPotongan(e.target.value)}
+                  <Input aria-label={t('quotationModal.summary.discountLabelAria')} value={labelPotongan} onChange={(e) => setLabelPotongan(e.target.value)}
                     className="flex-1 text-sm" />
-                  <NumberInput aria-label="Nilai potongan" min={0} value={potongan || ''} onChange={(e) => setPotongan(Number(e.target.value) || 0)}
+                  <NumberInput aria-label={t('quotationModal.summary.discountValueAria')} min={0} value={potongan || ''} onChange={(e) => setPotongan(Number(e.target.value) || 0)}
                     className={`${compactNum} w-32`} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input aria-label="Label biaya lain" value={labelBiaya} onChange={(e) => setLabelBiaya(e.target.value)}
+                  <Input aria-label={t('quotationModal.summary.otherCostLabelAria')} value={labelBiaya} onChange={(e) => setLabelBiaya(e.target.value)}
                     className="flex-1 text-sm" />
-                  <NumberInput aria-label="Nilai biaya lain" value={biayaLain || ''} onChange={(e) => setBiayaLain(Number(e.target.value) || 0)}
+                  <NumberInput aria-label={t('quotationModal.summary.otherCostValueAria')} value={biayaLain || ''} onChange={(e) => setBiayaLain(Number(e.target.value) || 0)}
                     className={`${compactNum} w-32`} />
                 </div>
                 <div className="flex justify-between border-t border-border pt-2 font-bold">
-                  <span>Grand Total</span>
+                  <span>{t('quotationModal.summary.grandTotal')}</span>
                   <span className="text-lg tabular-nums text-primary">{formatRupiah(grandTotal)}</span>
                 </div>
               </div>
@@ -483,13 +485,13 @@ const QuotationModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreate
           </FormDialogBody>
 
           <FormDialogFooter>
-            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('quotationModal.actions.cancel')}</FooterButton>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
               <p className="text-xs text-muted-foreground">
-                {canSubmit ? `Total: ${formatRupiah(grandTotal)}` : 'Lengkapi pelanggan dan minimal 1 item.'}
+                {canSubmit ? t('quotationModal.footer.total', { amount: formatRupiah(grandTotal) }) : t('quotationModal.footer.incomplete')}
               </p>
               <FooterButton type="submit" loading={mutation.isPending} disabled={!canSubmit && !mutation.isPending}>
-                {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Draft'}
+                {mutation.isPending ? t('quotationModal.actions.saving') : isEdit ? t('quotationModal.actions.saveChanges') : t('quotationModal.actions.saveDraft')}
               </FooterButton>
             </div>
           </FormDialogFooter>

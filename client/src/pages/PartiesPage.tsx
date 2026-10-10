@@ -4,12 +4,14 @@
  */
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Download, FileText, Pencil, Plus, ShoppingCart, Trash2, Upload, Users, Wallet, Scale, PiggyBank } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
+import i18n from '@/i18n';
 import { formatNumber, formatRupiah, toNumber } from '@/lib/format';
 import type { StatusTone } from '@/lib/status';
 import { can, cap } from '@/lib/permissions';
@@ -72,16 +74,20 @@ const TYPE_PARAM = 'type';
 const VIEW_PARAM = 'view';
 /** List params cleared when switching tabs (filters are kept). */
 const TAB_RESET_KEYS = [LIST_PARAM.page];
-const ACTIVE_FILTER = [
-  { value: 'true', label: 'Aktif' },
-  { value: 'false', label: 'Nonaktif' },
+const activeFilterOptions = () => [
+  { value: 'true', label: i18n.t('sales:partiesPage.status.active') },
+  { value: 'false', label: i18n.t('sales:partiesPage.status.inactive') },
 ];
 const ALL = '__all__';
 
-const TYPE_META: Record<PartyType, { label: string; tone: StatusTone }> = {
-  Customer: { label: 'Pelanggan', tone: 'info' },
-  Supplier: { label: 'Vendor', tone: 'primary' },
-  Both: { label: 'Pelanggan & Vendor', tone: 'neutral' },
+const TYPE_META: Record<PartyType, { labelKey: 'customer' | 'supplier' | 'both'; tone: StatusTone }> = {
+  Customer: { labelKey: 'customer', tone: 'info' },
+  Supplier: { labelKey: 'supplier', tone: 'primary' },
+  Both: { labelKey: 'both', tone: 'neutral' },
+};
+const typeLabel = (type: PartyType): string | undefined => {
+  const meta = TYPE_META[type];
+  return meta ? i18n.t(`sales:partiesPage.type.${meta.labelKey}`) : undefined;
 };
 
 const isCustomerSide = (p: PartyRow) => p.partyType === 'Customer' || p.partyType === 'Both';
@@ -101,11 +107,11 @@ const withUnit = (label: string) => (
 /** What a positive / negative outstanding means for this party. */
 function outstandingCaption(p: PartyRow): string {
   const value = num(p.outstandingAmount);
-  if (value < 0) return 'Lebih bayar';
+  if (value < 0) return i18n.t('sales:partiesPage.outstanding.overpaid');
   if (value === 0) return '';
-  if (p.partyType === 'Customer') return 'Piutang';
-  if (p.partyType === 'Supplier') return 'Hutang';
-  return 'Terutang';
+  if (p.partyType === 'Customer') return i18n.t('sales:partiesPage.outstanding.receivable');
+  if (p.partyType === 'Supplier') return i18n.t('sales:partiesPage.outstanding.payable');
+  return i18n.t('sales:partiesPage.outstanding.owed');
 }
 
 function toExportRows(rows: PartyRow[]): Record<string, unknown>[] {
@@ -124,6 +130,7 @@ function toExportRows(rows: PartyRow[]): Record<string, unknown>[] {
 }
 
 export const PartiesPage = () => {
+  const { t } = useTranslation('sales');
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -166,12 +173,12 @@ export const PartiesPage = () => {
     mutationFn: (id: string) => api.delete<{ message?: string; deactivated?: boolean }>(`${ENDPOINT}/${id}`),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['parties'] });
-      if (res.data.deactivated) toast.info(res.data.message || 'Mitra dinonaktifkan karena memiliki transaksi terkait.');
-      else toast.success(res.data.message || 'Mitra dihapus.');
+      if (res.data.deactivated) toast.info(res.data.message || t('partiesPage.toast.deactivated'));
+      else toast.success(res.data.message || t('partiesPage.toast.deleted'));
       setDeleteTarget(null);
     },
     onError: (err) => {
-      toast.error(errorMessage(err, 'Gagal menghapus mitra.'));
+      toast.error(errorMessage(err, t('partiesPage.toast.deleteFailed')));
       setDeleteTarget(null);
     },
   });
@@ -206,10 +213,10 @@ export const PartiesPage = () => {
     try {
       const exportParams = { ...filterParams, sort: String(list.params.sort ?? 'name') };
       const { rows, truncated } = await fetchAllPages<PartyRow>(ENDPOINT, exportParams);
-      exportToExcel(toExportRows(rows), 'pelanggan-vendor');
-      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} mitra pertama. Persempit filter.`);
+      exportToExcel(toExportRows(rows), t('partiesPage.export.fileName'));
+      if (truncated) toast.warning(t('partiesPage.export.truncated', { total: formatNumber(rows.length) }));
     } catch {
-      toast.error('Gagal mengekspor data mitra. Coba lagi.');
+      toast.error(t('partiesPage.export.failed'));
     } finally {
       setExporting(false);
     }
@@ -219,7 +226,7 @@ export const PartiesPage = () => {
     () => [
       {
         id: 'name',
-        header: 'Nama',
+        header: t('partiesPage.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-32 max-w-80 sm:min-w-44' },
         cell: ({ row }) => {
@@ -237,7 +244,7 @@ export const PartiesPage = () => {
                     className="px-1.5"
                   />
                 )}
-                {!p.isActive && <StatusBadge tone="neutral" label="Nonaktif" dot={false} className="px-1.5" />}
+                {!p.isActive && <StatusBadge tone="neutral" label={t('partiesPage.status.inactive')} dot={false} className="px-1.5" />}
               </div>
               {contact && (
                 <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
@@ -245,32 +252,34 @@ export const PartiesPage = () => {
                 </p>
               )}
               {/* Mobile: type stacked here because its column is hidden. */}
-              <p className="mt-0.5 text-xs text-muted-foreground md:hidden">{TYPE_META[p.partyType]?.label}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground md:hidden">{typeLabel(p.partyType)}</p>
             </div>
           );
         },
       },
       {
         id: 'type',
-        header: 'Jenis',
+        header: t('partiesPage.columns.type'),
         meta: { hideBelow: 'md' },
         cell: ({ row }) => {
           const meta = TYPE_META[row.original.partyType];
-          return meta ? <StatusBadge tone={meta.tone} label={meta.label} /> : null;
+          return meta ? <StatusBadge tone={meta.tone} label={typeLabel(row.original.partyType) ?? ''} /> : null;
         },
       },
       {
         id: 'taxId',
-        header: 'NPWP',
+        header: t('partiesPage.columns.taxId'),
         meta: { hideBelow: 'xl', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => row.original.taxId || '—',
       },
       {
         id: 'outstanding',
         header: () => (
-          <>
-            Saldo<span className="hidden sm:inline"> Terutang</span> <span className="normal-case">(Rp)</span>
-          </>
+          <Trans
+            t={t}
+            i18nKey="partiesPage.columns.outstanding"
+            components={{ wide: <span className="hidden sm:inline" />, unit: <span className="normal-case" /> }}
+          />
         ),
         enableSorting: true,
         sortDescFirst: true,
@@ -295,15 +304,15 @@ export const PartiesPage = () => {
       },
       {
         id: 'deposit',
-        header: () => withUnit('Uang Muka'),
+        header: () => withUnit(t('partiesPage.columns.deposit')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => {
           const p = row.original;
           const lines: Array<{ label: string; value: number }> = [];
-          if (isCustomerSide(p)) lines.push({ label: 'Pelanggan', value: num(p.customerDepositBalance) });
-          if (isSupplierSide(p)) lines.push({ label: 'Vendor', value: num(p.depositBalance) });
+          if (isCustomerSide(p)) lines.push({ label: t('partiesPage.type.customer'), value: num(p.customerDepositBalance) });
+          if (isSupplierSide(p)) lines.push({ label: t('partiesPage.type.supplier'), value: num(p.depositBalance) });
           return (
             <div className="flex flex-col items-end">
               {lines.map((l) => (
@@ -318,28 +327,28 @@ export const PartiesPage = () => {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('partiesPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const p = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${p.name}`}
+              label={t('partiesPage.actions.menuLabel', { name: p.name })}
               actions={[
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => openEdit(p) },
+                { label: t('partiesPage.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => openEdit(p) },
                 {
-                  label: 'Lihat faktur penjualan',
+                  label: t('partiesPage.actions.viewSalesInvoices'),
                   icon: FileText,
                   hidden: !isCustomerSide(p),
                   onSelect: () => navigate(`/sales?partyId=${encodeURIComponent(p.id)}`),
                 },
                 {
-                  label: 'Lihat faktur pembelian',
+                  label: t('partiesPage.actions.viewPurchaseInvoices'),
                   icon: ShoppingCart,
                   hidden: !isSupplierSide(p),
                   onSelect: () => navigate(`/purchase?partyId=${encodeURIComponent(p.id)}`),
                 },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(p) },
+                { label: t('partiesPage.actions.delete'), icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(p) },
               ]}
             />
           );
@@ -347,7 +356,7 @@ export const PartiesPage = () => {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, canDelete],
+    [canEdit, canDelete, t],
   );
 
   const summary = summaryQuery.data;
@@ -358,88 +367,91 @@ export const PartiesPage = () => {
     // Manual activation: avoids two history entries per click (see DeliveryOrders).
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
       <PageHeader
-        title="Pelanggan & Vendor"
-        description="Kelola data mitra bisnis, saldo piutang, dan hutang usaha."
+        title={t('partiesPage.title')}
+        description={t('partiesPage.description')}
         actions={
           <>
             {tab !== 'analysis' && (
               <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
                 <Download aria-hidden />
-                <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+                <span className="sr-only sm:not-sr-only">{t('partiesPage.exportExcel')}</span>
               </Button>
             )}
             {canEdit && (
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <Upload aria-hidden />
-                <span className="sr-only sm:not-sr-only">Impor</span>
+                <span className="sr-only sm:not-sr-only">{t('partiesPage.import')}</span>
               </Button>
             )}
             {canEdit && (
               <Button onClick={openCreate}>
                 <Plus aria-hidden />
-                Tambah Mitra
+                {t('partiesPage.addPartner')}
               </Button>
             )}
           </>
         }
       >
-        <TabsList variant="underline" aria-label="Jenis mitra">
-          <TabsTrigger value="all">Semua</TabsTrigger>
-          <TabsTrigger value="Customer">Pelanggan</TabsTrigger>
-          <TabsTrigger value="Supplier">Vendor</TabsTrigger>
-          <TabsTrigger value="analysis">Analisis</TabsTrigger>
+        <TabsList variant="underline" aria-label={t('partiesPage.tabs.label')}>
+          <TabsTrigger value="all">{t('partiesPage.tabs.all')}</TabsTrigger>
+          <TabsTrigger value="Customer">{t('partiesPage.tabs.customer')}</TabsTrigger>
+          <TabsTrigger value="Supplier">{t('partiesPage.tabs.supplier')}</TabsTrigger>
+          <TabsTrigger value="analysis">{t('partiesPage.tabs.analysis')}</TabsTrigger>
         </TabsList>
       </PageHeader>
 
       {tab !== 'analysis' && (
         <TabsContent value={tab} className="mt-0 space-y-5">
-          <section aria-label="Ringkasan mitra sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section aria-label={t('partiesPage.kpi.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
-              label="Jumlah Mitra"
+              label={t('partiesPage.kpi.count')}
               icon={Users}
               loading={kpiLoading}
               value={summary ? formatNumber(summary.total) : '—'}
               hint={
                 summary
-                  ? `${formatNumber(summary.byType.Customer)} pelanggan · ${formatNumber(summary.byType.Supplier)} vendor`
+                  ? t('partiesPage.kpi.countHint', {
+                      customers: formatNumber(summary.byType.Customer),
+                      suppliers: formatNumber(summary.byType.Supplier),
+                    })
                   : undefined
               }
             />
             <StatCard
-              label="Total Piutang"
+              label={t('partiesPage.kpi.receivable')}
               icon={Wallet}
               loading={kpiLoading}
               value={kpiMoney(summary?.totalReceivable)}
               valueTitle={summary ? formatRupiah(summary.totalReceivable) : undefined}
-              hint={summary ? `UM pelanggan ${formatRupiah(summary.totalCustomerDeposit, { compact: true })}` : undefined}
+              hint={summary ? t('partiesPage.kpi.customerDepositHint', { amount: formatRupiah(summary.totalCustomerDeposit, { compact: true }) }) : undefined}
             />
             <StatCard
-              label="Total Hutang"
+              label={t('partiesPage.kpi.payable')}
               icon={Scale}
               loading={kpiLoading}
               value={kpiMoney(summary?.totalPayable)}
               valueTitle={summary ? formatRupiah(summary.totalPayable) : undefined}
-              hint={summary ? `UM vendor ${formatRupiah(summary.totalVendorDeposit, { compact: true })}` : undefined}
+              hint={summary ? t('partiesPage.kpi.supplierDepositHint', { amount: formatRupiah(summary.totalVendorDeposit, { compact: true }) }) : undefined}
             />
             <StatCard
-              label="Mitra dengan Saldo"
+              label={t('partiesPage.kpi.withBalance')}
               icon={PiggyBank}
               loading={kpiLoading}
               value={summary ? formatNumber(summary.withOutstandingCount) : '—'}
-              hint={summary ? `${formatNumber(summary.inactiveCount)} nonaktif` : undefined}
+              hint={summary ? t('partiesPage.kpi.inactiveHint', { total: formatNumber(summary.inactiveCount) }) : undefined}
             />
           </section>
 
           <div className="space-y-3">
             <FilterBar
               list={list}
-              searchLabel="Cari mitra"
-              searchPlaceholder="Cari nama, email, telepon, atau NPWP"
-              status={{ key: 'isActive', options: ACTIVE_FILTER, label: 'Status mitra', allLabel: 'Semua status' }}
+              searchLabel={t('partiesPage.filters.searchLabel')}
+              searchPlaceholder={t('partiesPage.filters.searchPlaceholder')}
+              status={{ key: 'isActive', options: activeFilterOptions(), label: t('partiesPage.filters.statusLabel'), allLabel: t('partiesPage.filters.allStatus') }}
             >
               <div className="w-[calc(50%-0.25rem)] sm:w-48">
                 <label htmlFor="parties-outstanding" className="sr-only">
-                  Saldo terutang
+                  {t('partiesPage.filters.outstandingLabel')}
                 </label>
                 <Select
                   value={list.filters.hasOutstanding || ALL}
@@ -449,9 +461,9 @@ export const PartiesPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL}>Semua saldo</SelectItem>
-                    <SelectItem value="true">Ada saldo terutang</SelectItem>
-                    <SelectItem value="false">Tanpa saldo terutang</SelectItem>
+                    <SelectItem value={ALL}>{t('partiesPage.filters.allBalances')}</SelectItem>
+                    <SelectItem value="true">{t('partiesPage.filters.hasOutstanding')}</SelectItem>
+                    <SelectItem value="false">{t('partiesPage.filters.noOutstanding')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -459,8 +471,8 @@ export const PartiesPage = () => {
 
             <DataTable
               {...listTableProps(list, total)}
-              label="Daftar pelanggan dan vendor"
-              itemLabel="mitra"
+              label={t('partiesPage.table.label')}
+              itemLabel={t('partiesPage.table.itemLabel')}
               columns={columns}
               data={partiesQuery.data?.data}
               getRowId={(row) => row.id}
@@ -473,12 +485,12 @@ export const PartiesPage = () => {
               density={density}
               onDensityChange={setDensity}
               empty={{
-                title: 'Belum ada mitra',
-                description: 'Pelanggan dan vendor yang Anda tambahkan akan muncul di sini.',
+                title: t('partiesPage.empty.title'),
+                description: t('partiesPage.empty.description'),
                 action: canEdit ? (
                   <Button size="sm" onClick={openCreate}>
                     <Plus aria-hidden />
-                    Tambah mitra pertama
+                    {t('partiesPage.empty.action')}
                   </Button>
                 ) : undefined,
               }}
@@ -504,14 +516,17 @@ export const PartiesPage = () => {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && !deleteMutation.isPending && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus mitra?"
+        title={t('partiesPage.delete.title')}
         description={
-          <>
-            <span className="font-medium text-foreground">{deleteTarget?.name}</span> akan dihapus. Jika mitra memiliki
-            transaksi terkait (faktur/pembayaran), data akan dinonaktifkan, bukan dihapus permanen.
-          </>
+          <Trans
+            t={t}
+            i18nKey="partiesPage.delete.description"
+            values={{ name: deleteTarget?.name ?? '' }}
+            components={{ name: <span className="font-medium text-foreground" /> }}
+          />
         }
-        confirmLabel="Hapus"
+        confirmLabel={t('partiesPage.delete.confirm')}
+
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);

@@ -1,10 +1,11 @@
 /**
- * Pesanan Penjualan (/sales-orders) — list kit page (pattern: pages/SalesInvoices.tsx).
+ * Sales Order (/sales-orders) — list kit page (pattern: pages/SalesInvoices.tsx).
  * Server-side paging/sort/filter on GET /sales-orders; KPI cards from
  * GET /sales-orders/summary with the same filters.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -60,10 +61,7 @@ interface SalesOrderSummary {
 
 const ENDPOINT = '/sales-orders';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(
-  ['Draft', 'Submitted', 'PartiallyDelivered', 'FullyDelivered', 'Cancelled'],
-  'sales_order',
-);
+const STATUS_VALUES = ['Draft', 'Submitted', 'PartiallyDelivered', 'FullyDelivered', 'Cancelled'];
 
 const withUnit = (label: string) => (
   <>
@@ -72,6 +70,9 @@ const withUnit = (label: string) => (
 );
 
 export const SalesOrders = () => {
+  const { t } = useTranslation('sales');
+  // Built per render so status labels follow language changes.
+  const statusFilter = statusOptions(STATUS_VALUES, 'sales_order');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,14 +106,14 @@ export const SalesOrders = () => {
       .then(({ data }) => {
         if (cancelled) return;
         if (!canCreateSalesOrderFromQuotation(data)) {
-          toast.error(`Penawaran ${data.quotationNumber} tidak bisa dibuatkan Sales Order.`);
+          toast.error(t('salesOrdersPage.toast.quotationNotEligible', { number: data.quotationNumber }));
           return;
         }
         setEditTarget(quotationToSalesOrderPrefill(data));
         setIsModalOpen(true);
       })
       .catch(() => {
-        if (!cancelled) toast.error('Gagal memuat penawaran.');
+        if (!cancelled) toast.error(t('salesOrdersPage.toast.quotationLoadFailed'));
       })
       .finally(() => {
         if (cancelled) return;
@@ -128,7 +129,7 @@ export const SalesOrders = () => {
     return () => {
       cancelled = true;
     };
-  }, [fromQuotation, setSearchParams]);
+  }, [fromQuotation, setSearchParams, t]);
 
   const openCreate = () => {
     setEditTarget(null);
@@ -139,7 +140,7 @@ export const SalesOrders = () => {
     () => [
       {
         id: 'soNumber',
-        header: 'Nomor',
+        header: t('salesOrdersPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -155,7 +156,7 @@ export const SalesOrders = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('salesOrdersPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -163,7 +164,7 @@ export const SalesOrders = () => {
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('salesOrdersPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
@@ -171,7 +172,7 @@ export const SalesOrders = () => {
             <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>
             {row.original.customerRefNo && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
-                Ref: {row.original.customerRefNo}
+                {t('salesOrdersPage.refPrefix', { ref: row.original.customerRefNo })}
               </p>
             )}
           </div>
@@ -179,20 +180,20 @@ export const SalesOrders = () => {
       },
       {
         id: 'expectedDelivery',
-        header: 'Target Kirim',
+        header: t('salesOrdersPage.columns.expectedDelivery'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => (row.original.expectedDelivery ? formatDate(row.original.expectedDelivery) : '—'),
       },
       {
         id: 'items',
-        header: 'Item',
+        header: t('salesOrdersPage.columns.items'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
       },
       {
         id: 'grandTotal',
-        header: () => withUnit('Total'),
+        header: () => withUnit(t('salesOrdersPage.columns.total')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -206,29 +207,29 @@ export const SalesOrders = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('salesOrdersPage.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="sales_order" />,
       },
       {
         id: 'deliveryOrders',
-        header: () => <abbr title="Jumlah surat jalan">SJ</abbr>,
+        header: () => <abbr title={t('salesOrdersPage.columns.deliveryOrdersTitle')}>{t('salesOrdersPage.columns.deliveryOrdersAbbr')}</abbr>,
         meta: { align: 'right', hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.deliveryOrders ?? 0),
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('salesOrdersPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk ${row.original.soNumber}`}
-            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
+            label={t('salesOrdersPage.rowActions', { number: row.original.soNumber })}
+            actions={[{ label: t('salesOrdersPage.viewDetail'), icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
           />
         ),
       },
     ],
-    [],
+    [t],
   );
 
   const count = (v: number | undefined) => (v === undefined ? '—' : formatNumber(v));
@@ -236,53 +237,53 @@ export const SalesOrders = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Pesanan Penjualan"
-        description="Komitmen jual sebelum Surat Jalan dan Faktur, cocok untuk skema “faktur dulu, kirim barang nanti”."
+        title={t('salesOrdersPage.title')}
+        description={t('salesOrdersPage.description')}
         actions={
           <Button onClick={openCreate}>
             <Plus aria-hidden />
-            Buat Pesanan
+            {t('salesOrdersPage.create')}
           </Button>
         }
       />
 
-      <section aria-label="Ringkasan pesanan sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('salesOrdersPage.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Pesanan Aktif"
+          label={t('salesOrdersPage.stats.active')}
           icon={FileText}
           loading={!summary && !summaryQuery.isError}
           value={count(summary?.activeCount)}
-          hint={summary ? `Nilai ${formatRupiah(summary.activeValue)}` : undefined}
+          hint={summary ? t('salesOrdersPage.stats.activeValue', { value: formatRupiah(summary.activeValue) }) : undefined}
         />
         <StatCard
-          label="Dikonfirmasi"
+          label={t('salesOrdersPage.stats.submitted')}
           icon={Clock}
           loading={!summary && !summaryQuery.isError}
           value={count(summary?.submittedCount)}
-          hint="menunggu pengiriman"
+          hint={t('salesOrdersPage.stats.submittedHint')}
         />
         <StatCard
-          label="Terkirim Sebagian"
+          label={t('salesOrdersPage.stats.partiallyDelivered')}
           icon={Truck}
           loading={!summary && !summaryQuery.isError}
           value={count(summary?.partiallyDeliveredCount)}
-          hint="sisa belum dikirim"
+          hint={t('salesOrdersPage.stats.partiallyDeliveredHint')}
         />
         <StatCard
-          label="Terkirim Penuh"
+          label={t('salesOrdersPage.stats.fullyDelivered')}
           icon={CheckCircle2}
           loading={!summary && !summaryQuery.isError}
           value={count(summary?.fullyDeliveredCount)}
-          hint="semua barang terkirim"
+          hint={t('salesOrdersPage.stats.fullyDeliveredHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari pesanan"
-          searchPlaceholder="Cari nomor SO, pelanggan, atau ref"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('salesOrdersPage.searchLabel')}
+          searchPlaceholder={t('salesOrdersPage.searchPlaceholder')}
+          status={{ options: statusFilter }}
           dateRange
         >
           <PartyFilter
@@ -294,8 +295,8 @@ export const SalesOrders = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar pesanan penjualan"
-          itemLabel="pesanan"
+          label={t('salesOrdersPage.tableLabel')}
+          itemLabel={t('salesOrdersPage.itemLabel')}
           columns={columns}
           data={ordersQuery.data?.data}
           getRowId={(row) => row.id}
@@ -307,12 +308,12 @@ export const SalesOrders = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada pesanan penjualan',
-            description: 'Pesanan yang Anda buat akan muncul di sini.',
+            title: t('salesOrdersPage.empty.title'),
+            description: t('salesOrdersPage.empty.description'),
             action: (
               <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
-                Buat pesanan pertama
+                {t('salesOrdersPage.empty.action')}
               </Button>
             ),
           }}

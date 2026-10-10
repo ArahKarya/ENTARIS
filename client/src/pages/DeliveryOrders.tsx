@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import api from '@/lib/api';
 import { formatNumber } from '@/lib/format';
@@ -25,6 +26,7 @@ const TAB_PARAM = 'tab';
 const LIST_KEYS = [LIST_PARAM.page, LIST_PARAM.search, LIST_PARAM.sort, 'status', 'partyId', 'startDate', 'endDate'];
 
 export const DeliveryOrders = () => {
+  const { t } = useTranslation('sales');
   const [searchParams, setSearchParams] = useSearchParams();
   const tab: Tab = searchParams.get(TAB_PARAM) === 'sjs' ? 'sjs' : 'official';
   const [createOpen, setCreateOpen] = useState<Tab | null>(null);
@@ -54,35 +56,35 @@ export const DeliveryOrders = () => {
     // mousedown AND focus before the URL-driven value updates → two history entries.
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
       <PageHeader
-        title="Surat Jalan"
+        title={t('deliveryOrdersPage.title')}
         description={
           tab === 'official'
-            ? 'Dokumen pengiriman fisik ke pelanggan. Stok keluar di sini, faktur menyusul.'
-            : 'Surat jalan sementara untuk barang yang dikirim sebelum produksi diinput.'
+            ? t('deliveryOrdersPage.descriptionOfficial')
+            : t('deliveryOrdersPage.descriptionSjs')
         }
         actions={
           tab === 'official' ? (
             <Button onClick={() => setCreateOpen('official')}>
               <Plus aria-hidden />
-              Buat Surat Jalan
+              {t('deliveryOrdersPage.createOfficial')}
             </Button>
           ) : canCreateSjs ? (
             <Button onClick={() => setCreateOpen('sjs')}>
               <Plus aria-hidden />
-              <span className="sm:hidden">Buat SJS</span>
-              <span className="hidden sm:inline">Buat Surat Jalan Sementara</span>
+              <span className="sm:hidden">{t('deliveryOrdersPage.createSjsShort')}</span>
+              <span className="hidden sm:inline">{t('deliveryOrdersPage.createSjs')}</span>
             </Button>
           ) : null
         }
       >
-        <TabsList variant="underline" aria-label="Jenis surat jalan">
-          <TabsTrigger value="official">Surat Jalan Resmi</TabsTrigger>
+        <TabsList variant="underline" aria-label={t('deliveryOrdersPage.tabsLabel')}>
+          <TabsTrigger value="official">{t('deliveryOrdersPage.tabOfficial')}</TabsTrigger>
           <TabsTrigger value="sjs">
-            Surat Jalan Sementara
+            {t('deliveryOrdersPage.tabSjs')}
             {openSjs > 0 && (
               <span className="num rounded-sm bg-warning-subtle px-1.5 text-xs font-medium leading-5 text-warning-text">
                 {formatNumber(openSjs)}
-                <span className="sr-only"> terbuka</span>
+                <span className="sr-only"> {t('deliveryOrdersPage.open')}</span>
               </span>
             )}
           </TabsTrigger>

@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Plus, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { LOCALE } from '@/lib/format';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -76,6 +78,7 @@ interface Props {
 }
 
 const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
+  const { t } = useTranslation('sales');
   const today = new Date().toISOString().split('T')[0];
   const isEdit = !!editDO;
 
@@ -225,10 +228,10 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       });
       setItems(rows.length > 0 ? rows : [defaultItem()]);
       if (rows.length > 0 && rows.every((r) => r.quantity === 0)) {
-        toast.info('Semua item SO sudah terkirim penuh. Isi qty bila mau kirim lebih.');
+        toast.info(t('deliveryOrderModal.toast.allDelivered'));
       }
     } catch {
-      setError('Gagal mengambil detail SO.');
+      setError(t('deliveryOrderModal.errors.loadSo'));
     }
   };
 
@@ -239,12 +242,12 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
     },
     onSuccess: (data: any) => {
       if (data?.pendingApproval) {
-        toast.success('Surat jalan diajukan dan menunggu persetujuan manajer (stok minus).');
+        toast.success(t('deliveryOrderModal.toast.pendingApproval'));
       } else {
         toast.success(
           isEdit
-            ? `${editDO!.doNumber} diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.`
-            : 'Surat jalan dibuat. Stok dikeluarkan dari gudang.',
+            ? t('deliveryOrderModal.toast.updated', { number: editDO!.doNumber })
+            : t('deliveryOrderModal.toast.created'),
         );
       }
       queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
@@ -257,7 +260,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
       queryClient.invalidateQueries({ queryKey: ['open-sales-orders'] });
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || (isEdit ? 'Gagal mengedit surat jalan.' : 'Gagal menyimpan surat jalan.')),
+    onError: (err: any) => setError(err.response?.data?.error || (isEdit ? t('deliveryOrderModal.errors.edit') : t('deliveryOrderModal.errors.save'))),
   });
 
   const addItem = () => setItems([...items, defaultItem()]);
@@ -324,18 +327,18 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
 
   const handleSubmit = () => {
     setError('');
-    if (!partyId) { setError('Pilih pelanggan.'); return; }
-    if (validItems.length === 0) { setError('Tambahkan minimal satu item dengan qty > 0.'); return; }
-    if (hasMissingWarehouse) { setError('Pilih gudang sumber untuk setiap baris barang dari stok.'); return; }
+    if (!partyId) { setError(t('deliveryOrderModal.validation.customer')); return; }
+    if (validItems.length === 0) { setError(t('deliveryOrderModal.validation.minItem')); return; }
+    if (hasMissingWarehouse) { setError(t('deliveryOrderModal.validation.warehouse')); return; }
     if (allowNegativeStock && negativeStockReason.trim().length < 10) {
-      setError('Alasan bypass stok minus wajib diisi (minimal 10 karakter).');
+      setError(t('deliveryOrderModal.validation.reasonMin'));
       return;
     }
 
     // Ditarik dari SO → submit lewat generate-do (otomatis kurangi SO + status).
     if (!isEdit && salesOrderId) {
       const soItems = validItems.filter((i) => i.salesOrderItemId);
-      if (soItems.length === 0) { setError('Tidak ada baris yang ditarik dari SO.'); return; }
+      if (soItems.length === 0) { setError(t('deliveryOrderModal.validation.noSoLines')); return; }
       mutation.mutate({
         endpoint: `/sales-orders/${salesOrderId}/generate-do`,
         method: 'post',
@@ -385,7 +388,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
   };
 
   const sectionLabel = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
-  const fmt3 = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 3 });
+  const fmt3 = (n: number) => n.toLocaleString(LOCALE, { maximumFractionDigits: 3 });
 
   return (
     <Dialog open onOpenChange={(open) => !open && !mutation.isPending && onClose()}>
@@ -394,9 +397,9 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
           <FormDialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Truck className="size-5 text-primary" aria-hidden />
-              {isEdit ? `Edit ${editDO!.doNumber}` : 'Buat Surat Jalan'}
+              {isEdit ? t('deliveryOrderModal.titleEdit', { number: editDO!.doNumber }) : t('deliveryOrderModal.titleCreate')}
             </DialogTitle>
-            <DialogDescription>Dokumen pengiriman fisik • stok keluar saat disimpan</DialogDescription>
+            <DialogDescription>{t('deliveryOrderModal.description')}</DialogDescription>
           </FormDialogHeader>
 
           <FormDialogBody className="space-y-5">
@@ -404,28 +407,28 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
               <div className="space-y-3">
                 {!isEdit && (
                   <Field
-                    label="Tarik dari Pesanan Penjualan (opsional)"
-                    hint={salesOrderId ? 'Baris diisi dari sisa SO. Surat Jalan akan mengurangi SO & memperbarui statusnya.' : undefined}
+                    label={t('deliveryOrderModal.fields.fromSo')}
+                    hint={salesOrderId ? t('deliveryOrderModal.fields.fromSoHint') : undefined}
                   >
                     {() => (
                       <PickerSelect
-                        aria-label="Tarik dari Pesanan Penjualan"
+                        aria-label={t('deliveryOrderModal.fields.fromSoAria')}
                         options={soOptions}
                         value={salesOrderId}
                         onChange={(v) => void handlePickSO(v)}
-                        placeholder="Tanpa SO (kirim bebas)"
+                        placeholder={t('deliveryOrderModal.fields.fromSoPlaceholder')}
                       />
                     )}
                   </Field>
                 )}
-                <Field label="Pelanggan" required>
+                <Field label={t('deliveryOrderModal.fields.customer')} required>
                   {() => (
                     <PickerSelect
-                      aria-label="Pelanggan"
+                      aria-label={t('deliveryOrderModal.fields.customer')}
                       {...partyPicker.pickerProps}
                       value={partyId}
                       onChange={setPartyId}
-                      placeholder="Pilih Pelanggan"
+                      placeholder={t('deliveryOrderModal.fields.customerPlaceholder')}
                       disabled={!!salesOrderId}
                     />
                   )}
@@ -439,29 +442,29 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Tanggal" className="sm:col-span-2">
+                <Field label={t('deliveryOrderModal.fields.date')} className="sm:col-span-2">
                   {(c) => <DateInput id={c.id} value={date} onChange={setDate} />}
                 </Field>
-                <Field label="No. Mobil">
+                <Field label={t('deliveryOrderModal.fields.vehicle')}>
                   <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)}
-                    placeholder="mis. B 1234 ABC" maxLength={30} className="uppercase" autoComplete="off" />
+                    placeholder={t('deliveryOrderModal.fields.vehiclePlaceholder')} maxLength={30} className="uppercase" autoComplete="off" />
                 </Field>
-                <Field label="Supir">
+                <Field label={t('deliveryOrderModal.fields.driver')}>
                   <Input value={driverName} onChange={(e) => setDriverName(e.target.value)}
-                    placeholder="Nama supir" maxLength={100} autoComplete="off" />
+                    placeholder={t('deliveryOrderModal.fields.driverPlaceholder')} maxLength={100} autoComplete="off" />
                 </Field>
-                <Field label="Penerima (opsional)" className="sm:col-span-2">
+                <Field label={t('deliveryOrderModal.fields.recipient')} className="sm:col-span-2">
                   <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)}
-                    placeholder="Nama penerima di lokasi tujuan" maxLength={100} autoComplete="off" />
+                    placeholder={t('deliveryOrderModal.fields.recipientPlaceholder')} maxLength={100} autoComplete="off" />
                 </Field>
               </div>
             </div>
 
             {!isEdit && partyId && (linkableNotes?.length ?? 0) > 0 && (
               <fieldset className="rounded-lg border border-warning/30 bg-warning-subtle px-4 py-3">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-warning-text">Tautkan Surat Jalan Sementara</legend>
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-warning-text">{t('deliveryOrderModal.linkNotes.legend')}</legend>
                 <p className="mb-2 text-xs text-warning-text">
-                  Barang berikut sudah dikirim dengan surat jalan sementara. Pilih untuk menautkannya ke surat jalan resmi ini (qty boleh berbeda).
+                  {t('deliveryOrderModal.linkNotes.help')}
                 </p>
                 <div className="space-y-1.5">
                   {linkableNotes!.map((n: any) => (
@@ -476,7 +479,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         <span className="font-mono text-xs">{n.number}</span>
                         <span className="text-xs text-muted-foreground"> · {String(n.date).slice(0, 10)}{n.nomorMobil ? ` · ${String(n.nomorMobil).toUpperCase()}` : ''}</span>
                         <span className="block text-xs text-foreground">
-                          {(n.items ?? []).map((it: any) => `${it.itemName} ${Number(it.quantity).toLocaleString('id-ID')} ${it.unit}`).join(', ')}
+                          {(n.items ?? []).map((it: any) => `${it.itemName} ${Number(it.quantity).toLocaleString(LOCALE)} ${it.unit}`).join(', ')}
                         </span>
                       </span>
                     </label>
@@ -487,22 +490,22 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
 
             <section aria-labelledby="do-items-title">
               <div className="mb-3 flex items-center justify-between">
-                <h3 id="do-items-title" className={sectionLabel}>Daftar Barang</h3>
+                <h3 id="do-items-title" className={sectionLabel}>{t('deliveryOrderModal.items.title')}</h3>
                 <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={addItem}>
-                  <Plus aria-hidden /> Tambah Baris
+                  <Plus aria-hidden /> {t('deliveryOrderModal.items.addRow')}
                 </Button>
               </div>
 
-              <TableRegion label="Daftar barang surat jalan">
+              <TableRegion label={t('deliveryOrderModal.items.tableLabel')}>
                 <table className="w-full min-w-[760px] text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       <th scope="col" className="w-8 px-4 py-3 text-left">#</th>
-                      <th scope="col" className="min-w-[260px] px-4 py-3 text-left">Nama Barang</th>
-                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">Qty</th>
-                      <th scope="col" className="w-28 px-3 py-3 text-left">Satuan</th>
-                      <th scope="col" className="min-w-[160px] px-3 py-3 text-left">Keterangan</th>
-                      <th scope="col" className="w-12 px-2 py-3"><span className="sr-only">Aksi</span></th>
+                      <th scope="col" className="min-w-[260px] px-4 py-3 text-left">{t('deliveryOrderModal.columns.itemName')}</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">{t('deliveryOrderModal.columns.qty')}</th>
+                      <th scope="col" className="w-28 px-3 py-3 text-left">{t('deliveryOrderModal.columns.unit')}</th>
+                      <th scope="col" className="min-w-[160px] px-3 py-3 text-left">{t('deliveryOrderModal.columns.description')}</th>
+                      <th scope="col" className="w-12 px-2 py-3"><span className="sr-only">{t('deliveryOrderModal.columns.actions')}</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -511,18 +514,18 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         <td className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">{idx + 1}</td>
                         <td className="space-y-1.5 px-4 py-3">
                           <PickerSelect
-                            aria-label={`Barang baris ${idx + 1}`}
+                            aria-label={t('deliveryOrderModal.rows.item', { row: idx + 1 })}
                             options={inventoryOptions}
                             value={item.inventoryItemId}
                             onChange={(v) => selectInventoryItem(idx, v)}
-                            placeholder="Pilih dari Stok Gudang"
+                            placeholder={t('deliveryOrderModal.rows.itemPlaceholder')}
                           />
                           {!item.inventoryItemId && (
                             <Input
-                              aria-label={`Nama barang manual baris ${idx + 1}`}
+                              aria-label={t('deliveryOrderModal.rows.manualName', { row: idx + 1 })}
                               value={item.itemName}
                               onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                              placeholder="Atau ketik nama barang manual..."
+                              placeholder={t('deliveryOrderModal.rows.manualNamePlaceholder')}
                               className="h-9 text-xs"
                               autoComplete="off"
                             />
@@ -532,15 +535,15 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                               <WarehouseSelect
                                 value={item.warehouseId}
                                 onChange={(v) => updateItem(idx, 'warehouseId', v)}
-                                label={`Gudang sumber baris ${idx + 1}`}
+                                label={t('deliveryOrderModal.rows.warehouse', { row: idx + 1 })}
                               />
                               {item.warehouseId && (() => {
                                 const avail = lineStock(item.inventoryItemId, item.warehouseId);
-                                if (avail == null) return <p className="text-[11px] text-muted-foreground">Memuat stok gudang…</p>;
+                                if (avail == null) return <p className="text-[11px] text-muted-foreground">{t('deliveryOrderModal.rows.loadingStock')}</p>;
                                 const short = avail < (Number(item.quantity) || 0);
                                 return (
                                   <p className={`text-[11px] ${short ? 'font-medium text-danger-text' : 'text-muted-foreground'}`}>
-                                    Stok di gudang ini: {fmt3(avail)} {item.unit}
+                                    {t('deliveryOrderModal.rows.stockHere', { qty: fmt3(avail), unit: item.unit })}
                                   </p>
                                 );
                               })()}
@@ -549,7 +552,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         </td>
                         <td className="px-3 py-3">
                           <NumberInput
-                            aria-label={`Qty baris ${idx + 1}`}
+                            aria-label={t('deliveryOrderModal.rows.qty', { row: idx + 1 })}
                             value={item.quantity}
                             onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
                             min={0}
@@ -558,7 +561,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         </td>
                         <td className="px-3 py-3">
                           <OptionSelect
-                            aria-label={`Satuan baris ${idx + 1}`}
+                            aria-label={t('deliveryOrderModal.rows.unit', { row: idx + 1 })}
                             value={item.unit}
                             onChange={(v) => updateItem(idx, 'unit', v)}
                             options={UNITS.map((u) => ({ value: u, label: u }))}
@@ -566,10 +569,10 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         </td>
                         <td className="px-3 py-3">
                           <Input
-                            aria-label={`Keterangan baris ${idx + 1}`}
+                            aria-label={t('deliveryOrderModal.rows.description', { row: idx + 1 })}
                             value={item.description}
                             onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                            placeholder="Catatan baris..."
+                            placeholder={t('deliveryOrderModal.rows.descriptionPlaceholder')}
                             className="h-9 text-xs"
                             autoComplete="off"
                           />
@@ -580,7 +583,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                               variant="ghost"
                               size="icon-sm"
                               className="text-danger-text max-sm:size-11"
-                              aria-label={`Hapus baris ${idx + 1}`}
+                              aria-label={t('deliveryOrderModal.rows.remove', { row: idx + 1 })}
                               onClick={() => removeItem(idx)}
                             >
                               <Trash2 aria-hidden />
@@ -595,32 +598,32 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
             </section>
 
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-              <Field label="Catatan">
+              <Field label={t('deliveryOrderModal.fields.notes')}>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Misal: dititipkan ke pos satpam..."
+                  placeholder={t('deliveryOrderModal.fields.notesPlaceholder')}
                   rows={3}
                   className="resize-none"
                 />
               </Field>
 
               <div className="rounded-xl border border-border bg-muted/40 p-4">
-                <p className={`${sectionLabel} mb-2`}>Ringkasan Qty</p>
+                <p className={`${sectionLabel} mb-2`}>{t('deliveryOrderModal.summary.title')}</p>
                 {Object.keys(totalQtyByUnit).length === 0 ? (
-                  <p className="text-xs italic text-muted-foreground">Belum ada barang.</p>
+                  <p className="text-xs italic text-muted-foreground">{t('deliveryOrderModal.summary.empty')}</p>
                 ) : (
                   <div className="space-y-1.5">
                     {Object.entries(totalQtyByUnit).map(([u, q]) => (
                       <div key={u} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total {u}</span>
+                        <span className="text-muted-foreground">{t('deliveryOrderModal.summary.total', { unit: u })}</span>
                         <span className="tabular-nums text-foreground">{fmt3(q)} {u}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 <p className="mt-3 text-[11px] italic text-muted-foreground">
-                  Surat jalan tidak mencatat rupiah. Invoice menyusul setelah pengiriman.
+                  {t('deliveryOrderModal.summary.note')}
                 </p>
               </div>
             </div>
@@ -630,12 +633,12 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                 <div className="mb-2 flex items-start gap-2">
                   <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                   <div>
-                    <p className="font-medium">Stok tidak mencukupi untuk:</p>
+                    <p className="font-medium">{t('deliveryOrderModal.shortage.title')}</p>
                     <ul className="ml-1 mt-1 list-inside list-disc space-y-0.5 text-xs">
                       {stockShortages.map((s) => (
                         <li key={s.id}>
-                          <span className="font-medium">{s.name}</span> @ {s.warehouse}: tersedia {fmt3(s.available)} {s.unit}, dibutuhkan {fmt3(s.needed)} {s.unit}
-                          <span> (kurang {fmt3(s.needed - s.available)})</span>
+                          <span className="font-medium">{s.name}</span> @ {s.warehouse}: {t('deliveryOrderModal.shortage.line', { available: fmt3(s.available), needed: fmt3(s.needed), unit: s.unit })}
+                          <span> {t('deliveryOrderModal.shortage.short', { qty: fmt3(s.needed - s.available) })}</span>
                         </li>
                       ))}
                     </ul>
@@ -650,20 +653,20 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                     />
                     {isAdmin ? (
                       <span>
-                        <strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan akan menyusul). Audit log akan dicatat.
+                        <strong>{t('deliveryOrderModal.shortage.adminOverride')}</strong> {t('deliveryOrderModal.shortage.adminOverrideText')}
                       </span>
                     ) : (
                       <span>
-                        <strong>Ajukan persetujuan stok minus:</strong> tetap buat Surat Jalan (mis. barang dikirim sambil produksi berjalan). Surat Jalan akan dibuat setelah <strong>disetujui manajer</strong>.
+                        <strong>{t('deliveryOrderModal.shortage.requestApproval')}</strong> {t('deliveryOrderModal.shortage.requestApprovalText')} <strong>{t('deliveryOrderModal.shortage.managerApproved')}</strong>.
                       </span>
                     )}
                   </label>
                   {allowNegativeStock && (
-                    <Field label={isAdmin ? 'Alasan bypass stok minus' : 'Alasan pengajuan stok minus'} required>
+                    <Field label={isAdmin ? t('deliveryOrderModal.shortage.reasonBypass') : t('deliveryOrderModal.shortage.reasonRequest')} required>
                       <Textarea
                         value={negativeStockReason}
                         onChange={(e) => setNegativeStockReason(e.target.value)}
-                        placeholder={`${isAdmin ? 'Alasan bypass' : 'Alasan'} (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'`}
+                        placeholder={isAdmin ? t('deliveryOrderModal.shortage.reasonBypassPlaceholder') : t('deliveryOrderModal.shortage.reasonPlaceholder')}
                         className="text-xs"
                         rows={2}
                       />
@@ -677,19 +680,19 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
           </FormDialogBody>
 
           <FormDialogFooter>
-            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('deliveryOrderModal.cancel')}</FooterButton>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
               <p className="text-xs text-muted-foreground">
                 {canSubmit
-                  ? 'Siap disimpan. Stok akan dikeluarkan dari gudang.'
+                  ? t('deliveryOrderModal.footer.ready')
                   : hasMissingWarehouse
-                    ? 'Pilih gudang sumber untuk setiap baris barang dari stok.'
+                    ? t('deliveryOrderModal.validation.warehouse')
                     : !partyId
-                      ? 'Pilih pelanggan dan tambahkan minimal 1 item.'
-                      : 'Lengkapi minimal 1 item dengan qty > 0.'}
+                      ? t('deliveryOrderModal.footer.needCustomer')
+                      : t('deliveryOrderModal.footer.needItem')}
               </p>
               <FooterButton type="submit" loading={mutation.isPending} disabled={!canSubmit && !mutation.isPending}>
-                {mutation.isPending ? 'Menyimpan…' : 'Simpan Surat Jalan'}
+                {mutation.isPending ? t('deliveryOrderModal.saving') : t('deliveryOrderModal.submit')}
               </FooterButton>
             </div>
           </FormDialogFooter>

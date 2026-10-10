@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -46,6 +47,7 @@ interface LineState {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Props) {
+  const { t } = useTranslation('sales');
   const queryClient = useQueryClient();
   const [invoiceId, setInvoiceId] = useState<string>('');
   const [date, setDate] = useState(todayStr());
@@ -123,19 +125,19 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
           };
         })
         .filter(Boolean);
-      if (items.length === 0) throw new Error('Pilih minimal satu baris dengan qty > 0.');
+      if (items.length === 0) throw new Error(t('salesReturnModal.errors.noLines'));
       const r = await api.post('/sales-returns', { salesInvoiceId: invoiceId, date, reason: reason || null, items });
       return r.data;
     },
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['sales-returns'] });
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
-      if (res?.pendingApproval) toast.success('Retur diajukan, menunggu persetujuan manajer.');
-      else toast.success('Retur penjualan dibuat.');
+      if (res?.pendingApproval) toast.success(t('salesReturnModal.toast.pendingApproval'));
+      else toast.success(t('salesReturnModal.toast.created'));
       onClose();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.error || err?.message || 'Gagal membuat retur.');
+      toast.error(err?.response?.data?.error || err?.message || t('salesReturnModal.toast.createFailed'));
     },
   });
 
@@ -153,17 +155,17 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
     <Dialog open={open} onOpenChange={(next) => !next && !mutation.isPending && onClose()}>
       <DialogContent className={`${formDialogClass} sm:max-w-4xl`}>
         <FormDialogHeader>
-          <DialogTitle>Retur Penjualan Baru</DialogTitle>
-          <DialogDescription>Pilih faktur, lalu isi qty barang yang dikembalikan.</DialogDescription>
+          <DialogTitle>{t('salesReturnModal.title')}</DialogTitle>
+          <DialogDescription>{t('salesReturnModal.description')}</DialogDescription>
         </FormDialogHeader>
 
         <FormDialogBody>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Invoice Penjualan" required>
+            <Field label={t('salesReturnModal.fields.invoice')} required>
               {() => (
                 <PickerSelect
-                  aria-label="Invoice Penjualan"
-                  placeholder="Pilih invoice"
+                  aria-label={t('salesReturnModal.fields.invoice')}
+                  placeholder={t('salesReturnModal.fields.invoicePlaceholder')}
                   value={invoiceId}
                   onChange={(v) => { setInvoiceId(v); setLines({}); }}
                   options={returnableInvoices.map((i) => ({
@@ -173,34 +175,34 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
                 />
               )}
             </Field>
-            <Field label="Tanggal Retur" required>
+            <Field label={t('salesReturnModal.fields.date')} required>
               {(control) => <DateInput id={control.id} value={date} onChange={setDate} />}
             </Field>
           </div>
 
           {eligible?.invoice && (
             <p className="text-sm text-muted-foreground">
-              Outstanding invoice:{' '}
+              {t('salesReturnModal.outstanding')}{' '}
               <span className="font-medium tabular-nums text-foreground">{formatRupiah(Number(eligible.invoice.outstanding))}</span>
-              {' · '}Total: <span className="tabular-nums">{formatRupiah(Number(eligible.invoice.grandTotal))}</span>
+              {' · '}{t('salesReturnModal.total')} <span className="tabular-nums">{formatRupiah(Number(eligible.invoice.grandTotal))}</span>
             </p>
           )}
 
           {invoiceId && (
-            <TableRegion label="Baris faktur yang dapat diretur">
+            <TableRegion label={t('salesReturnModal.table.label')}>
               <table className="w-full min-w-[620px] text-sm">
                 <thead className="bg-muted/50 text-left">
                   <tr>
-                    <th scope="col" className="px-3 py-2">Item</th>
-                    <th scope="col" className="px-3 py-2 text-right">Terjual</th>
-                    <th scope="col" className="px-3 py-2 text-right">Sisa bisa retur</th>
-                    <th scope="col" className="px-3 py-2 text-right">Qty retur</th>
-                    <th scope="col" className="px-3 py-2 text-center">Masuk stok?</th>
+                    <th scope="col" className="px-3 py-2">{t('salesReturnModal.table.item')}</th>
+                    <th scope="col" className="px-3 py-2 text-right">{t('salesReturnModal.table.sold')}</th>
+                    <th scope="col" className="px-3 py-2 text-right">{t('salesReturnModal.table.remaining')}</th>
+                    <th scope="col" className="px-3 py-2 text-right">{t('salesReturnModal.table.returnQty')}</th>
+                    <th scope="col" className="px-3 py-2 text-center">{t('salesReturnModal.table.restock')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {eligibleLoading && (
-                    <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">Memuat…</td></tr>
+                    <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">{t('salesReturnModal.loading')}</td></tr>
                   )}
                   {(eligible?.lines ?? []).map((ln) => {
                     const st = lines[ln.salesInvoiceItemId];
@@ -214,8 +216,8 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
                           <div className="font-medium">{ln.itemName}</div>
                           <div className="text-xs text-muted-foreground">
                             {formatRupiah(ln.rate)}/{ln.unit}
-                            {ln.discount > 0 ? ` · disc ${ln.discount}%` : ''}
-                            {ln.taxPct > 0 ? ` · PPN ${ln.taxPct}%` : ''}
+                            {ln.discount > 0 ? ` · ${t('salesReturnModal.table.discount', { value: ln.discount })}` : ''}
+                            {ln.taxPct > 0 ? ` · ${t('salesReturnModal.table.tax', { value: ln.taxPct })}` : ''}
                             {ln.warehouseName ? ` · ${ln.warehouseName}` : ''}
                           </div>
                         </td>
@@ -224,7 +226,7 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
                         <td className="px-3 py-2 text-right">
                           <NumberInput
                             min={0} max={ln.remaining} step="any" disabled={disabled}
-                            aria-label={`Qty retur ${ln.itemName}`}
+                            aria-label={t('salesReturnModal.table.returnQtyFor', { name: ln.itemName })}
                             aria-invalid={invalid || undefined}
                             aria-describedby={invalid ? errId : undefined}
                             className={`${numberInputClass} ml-auto w-28 ${invalid ? 'border-danger' : ''}`}
@@ -233,14 +235,14 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
                           />
                           {invalid && (
                             <p id={errId} role="alert" className="mt-1 text-xs font-medium text-danger-text">
-                              Maksimal {ln.remaining} {ln.unit}.
+                              {t('salesReturnModal.table.max', { qty: ln.remaining, unit: ln.unit })}
                             </p>
                           )}
                         </td>
                         <td className="px-3 py-2 text-center">
                           {ln.isInventory ? (
                             <Checkbox
-                              aria-label={`Masuk stok ${ln.itemName}`}
+                              aria-label={t('salesReturnModal.table.restockFor', { name: ln.itemName })}
                               checked={st?.restock !== false}
                               onCheckedChange={(checked) => setLine(ln.salesInvoiceItemId, { restock: checked === true })}
                             />
@@ -257,12 +259,12 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
           )}
 
           {invoiceId && (
-            <Field label="Alasan Retur (opsional)">
+            <Field label={t('salesReturnModal.fields.reason')}>
               <Textarea
                 rows={2}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="mis. barang rusak saat pengiriman, salah kirim, dll."
+                placeholder={t('salesReturnModal.fields.reasonPlaceholder')}
               />
             </Field>
           )}
@@ -271,27 +273,27 @@ export default function SalesReturnModal({ open, onClose, prefillInvoiceId }: Pr
             <div className="space-y-1 rounded-lg bg-muted/40 p-3 text-sm">
               {summary.total > 0 ? (
                 <>
-                  <div className="flex justify-between"><span>Subtotal retur</span><span className="tabular-nums">{formatRupiah(summary.subtotal)}</span></div>
-                  {summary.tax > 0 && <div className="flex justify-between"><span>PPN</span><span className="tabular-nums">{formatRupiah(summary.tax)}</span></div>}
-                  <div className="flex justify-between border-t border-border pt-1 font-semibold"><span>Total Retur</span><span className="tabular-nums">{formatRupiah(summary.total)}</span></div>
-                  <div className="flex justify-between text-muted-foreground"><span>↳ Kurangi piutang</span><span className="tabular-nums">{formatRupiah(summary.arReduce)}</span></div>
-                  {summary.credit > 0 && <div className="flex justify-between text-muted-foreground"><span>↳ Jadi kredit pelanggan</span><span className="tabular-nums">{formatRupiah(summary.credit)}</span></div>}
+                  <div className="flex justify-between"><span>{t('salesReturnModal.summary.subtotal')}</span><span className="tabular-nums">{formatRupiah(summary.subtotal)}</span></div>
+                  {summary.tax > 0 && <div className="flex justify-between"><span>{t('salesReturnModal.summary.tax')}</span><span className="tabular-nums">{formatRupiah(summary.tax)}</span></div>}
+                  <div className="flex justify-between border-t border-border pt-1 font-semibold"><span>{t('salesReturnModal.summary.total')}</span><span className="tabular-nums">{formatRupiah(summary.total)}</span></div>
+                  <div className="flex justify-between text-muted-foreground"><span>↳ {t('salesReturnModal.summary.arReduce')}</span><span className="tabular-nums">{formatRupiah(summary.arReduce)}</span></div>
+                  {summary.credit > 0 && <div className="flex justify-between text-muted-foreground"><span>↳ {t('salesReturnModal.summary.credit')}</span><span className="tabular-nums">{formatRupiah(summary.credit)}</span></div>}
                 </>
               ) : (
-                <div className="text-muted-foreground">Retur qty-only (nilai Rp0): hanya mengembalikan stok fisik, tidak mengubah piutang/kredit pelanggan.</div>
+                <div className="text-muted-foreground">{t('salesReturnModal.summary.qtyOnly')}</div>
               )}
             </div>
           )}
         </FormDialogBody>
 
         <FormDialogFooter>
-          <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+          <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('salesReturnModal.cancel')}</FooterButton>
           <FooterButton
             onClick={() => mutation.mutate()}
             loading={mutation.isPending}
             disabled={(summary.total <= 0 && !hasQty) || hasInvalidQty}
           >
-            {mutation.isPending ? 'Menyimpan…' : 'Simpan Retur'}
+            {mutation.isPending ? t('salesReturnModal.saving') : t('salesReturnModal.save')}
           </FooterButton>
         </FormDialogFooter>
       </DialogContent>

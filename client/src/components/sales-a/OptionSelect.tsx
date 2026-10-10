@@ -2,6 +2,7 @@
  * Compact single select (Radix Select) for short option lists inside dialogs
  * and sheets: units, payment terms, accounts, warehouses.
  */
+import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface SelectChoice {
@@ -36,6 +37,7 @@ export function OptionSelect({
   className,
   id,
 }: OptionSelectProps) {
+  const { t } = useTranslation('sales');
   return (
     <Select
       value={value === '' ? (emptyLabel ? NONE : '') : value}
@@ -43,7 +45,7 @@ export function OptionSelect({
       disabled={disabled}
     >
       <SelectTrigger id={id} aria-label={ariaLabel} className={className}>
-        <SelectValue placeholder={placeholder ?? emptyLabel ?? 'Pilih…'} />
+        <SelectValue placeholder={placeholder ?? emptyLabel ?? t('optionSelect.placeholder')} />
       </SelectTrigger>
       <SelectContent>
         {emptyLabel && <SelectItem value={NONE}>{emptyLabel}</SelectItem>}

@@ -8,6 +8,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, CheckCircle2, Download, Eye, Plus, Receipt, Undo2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -74,7 +76,7 @@ interface SalesInvoiceSummary {
 
 const ENDPOINT = '/sales/invoices';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Submitted', 'PartiallyPaid', 'Paid', 'Cancelled'], 'sales_invoice');
+const STATUS_FILTER_VALUES = ['Submitted', 'PartiallyPaid', 'Paid', 'Cancelled'];
 const RETURNABLE = new Set(['Submitted', 'PartiallyPaid', 'Paid', 'Overdue']);
 
 /** Column header with the currency unit kept in normal case: "TOTAL (Rp)". */
@@ -92,39 +94,42 @@ function isOverdue(inv: SalesInvoiceRow, now = new Date()): boolean {
   return !!inv.dueDate && new Date(inv.dueDate) < now && num(inv.outstanding) > 0;
 }
 
-function toExportRows(invoices: SalesInvoiceRow[]): Record<string, unknown>[] {
+function toExportRows(invoices: SalesInvoiceRow[], t: TFunction<'sales'>): Record<string, unknown>[] {
+  const c = (key: string) => t(`salesInvoicesPage.export.${key}` as 'salesInvoicesPage.export.date');
   const now = new Date();
   return invoices.flatMap((inv) => {
     const totalPaid = num(inv.grandTotal) - num(inv.outstanding);
     const status = getStatusLabel(inv.status, 'sales_invoice');
-    const statusLabel = isOverdue(inv, now) ? `${status} (Jatuh Tempo)` : status;
+    const statusLabel = isOverdue(inv, now) ? t('salesInvoicesPage.export.overdueStatus', { status }) : status;
     const items: Array<SalesInvoiceItemRow | null> = inv.items && inv.items.length > 0 ? inv.items : [null];
     return items.map((it) => ({
-      Tanggal: formatDate(inv.date),
-      'Nomor Dokumen': inv.invoiceNumber,
-      Pelanggan: inv.customer?.name ?? '',
-      Telepon: inv.customer?.phone ?? '',
-      'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
-      'Jenis Item': it ? (it.itemType === 'service' ? 'Jasa' : 'Produk') : '',
-      'Nama Produk': it?.itemName ?? '',
-      Deskripsi: it?.description ?? '',
-      Qty: it ? num(it.quantity) : '',
-      Unit: it?.unit ?? '',
-      'Harga Satuan': it ? num(it.rate) : '',
-      'Diskon (%)': it ? num(it.discount) : '',
-      'PPN (%)': it ? num(it.taxPct) : '',
-      'PPh (%)': it ? num(it.pphPct) : '',
-      'Subtotal Item': it ? num(it.amount) : '',
-      'Total Invoice': num(inv.grandTotal),
-      'Sudah Dibayar': totalPaid,
-      'Sisa Tagihan': num(inv.outstanding),
-      Status: statusLabel,
-      Catatan: inv.notes ?? '',
+      [c('date')]: formatDate(inv.date),
+      [c('documentNumber')]: inv.invoiceNumber,
+      [c('customer')]: inv.customer?.name ?? '',
+      [c('phone')]: inv.customer?.phone ?? '',
+      [c('dueDate')]: inv.dueDate ? formatDate(inv.dueDate) : '',
+      [c('itemType')]: it ? (it.itemType === 'service' ? t('salesInvoicesPage.export.service') : t('salesInvoicesPage.export.product')) : '',
+      [c('productName')]: it?.itemName ?? '',
+      [c('description')]: it?.description ?? '',
+      [c('qty')]: it ? num(it.quantity) : '',
+      [c('unit')]: it?.unit ?? '',
+      [c('unitPrice')]: it ? num(it.rate) : '',
+      [c('discountPct')]: it ? num(it.discount) : '',
+      [c('vatPct')]: it ? num(it.taxPct) : '',
+      [c('pphPct')]: it ? num(it.pphPct) : '',
+      [c('itemSubtotal')]: it ? num(it.amount) : '',
+      [c('invoiceTotal')]: num(inv.grandTotal),
+      [c('paid')]: totalPaid,
+      [c('outstanding')]: num(inv.outstanding),
+      [c('status')]: statusLabel,
+      [c('notes')]: inv.notes ?? '',
     }));
   });
 }
 
 export const SalesInvoices = () => {
+  const { t } = useTranslation('sales');
+  const statusFilter = statusOptions(STATUS_FILTER_VALUES, 'sales_invoice');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -182,10 +187,10 @@ export const SalesInvoices = () => {
       const params = { ...list.filterParams, ...(list.params.sort ? { sort: list.params.sort } : {}) };
       const { rows, truncated } = await fetchAllPages<SalesInvoiceRow>(ENDPOINT, params);
       const stamp = new Date().toISOString().slice(0, 10);
-      exportToExcel(toExportRows(rows), `invoice-penjualan-${stamp}`);
-      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} faktur pertama. Persempit filter.`);
+      exportToExcel(toExportRows(rows, t), t('salesInvoicesPage.export.fileName', { stamp }));
+      if (truncated) toast.warning(t('salesInvoicesPage.export.truncated', { count: formatNumber(rows.length) }));
     } catch {
-      toast.error('Gagal mengekspor faktur. Coba lagi.');
+      toast.error(t('salesInvoicesPage.export.failed'));
     } finally {
       setExporting(false);
     }
@@ -195,7 +200,7 @@ export const SalesInvoices = () => {
     () => [
       {
         id: 'invoiceNumber',
-        header: 'Nomor',
+        header: t('salesInvoicesPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -211,7 +216,7 @@ export const SalesInvoices = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('salesInvoicesPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -219,7 +224,7 @@ export const SalesInvoices = () => {
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('salesInvoicesPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
@@ -235,7 +240,7 @@ export const SalesInvoices = () => {
       },
       {
         id: 'dueDate',
-        header: 'Jatuh Tempo',
+        header: t('salesInvoicesPage.columns.dueDate'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap' },
         cell: ({ row }) => {
@@ -248,7 +253,7 @@ export const SalesInvoices = () => {
               {late && (
                 <>
                   <AlertTriangle className="size-3.5" aria-hidden />
-                  <span className="sr-only">(lewat jatuh tempo)</span>
+                  <span className="sr-only">{t('salesInvoicesPage.columns.overdueSr')}</span>
                 </>
               )}
             </span>
@@ -257,13 +262,13 @@ export const SalesInvoices = () => {
       },
       {
         id: 'items',
-        header: 'Item',
+        header: t('salesInvoicesPage.columns.items'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original.items?.length ?? 0),
       },
       {
         id: 'grandTotal',
-        header: () => withUnit('Total'),
+        header: () => withUnit(t('salesInvoicesPage.columns.total')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -276,9 +281,9 @@ export const SalesInvoices = () => {
               {deduction > 0 && (
                 <div
                   className="mt-0.5 text-xs font-normal text-warning-text"
-                  title={`Potongan dari pembayaran (komisi/diskon): ${formatRupiah(deduction)}\nNet: ${formatRupiah(num(inv.grandTotal) - deduction)}`}
+                  title={t('salesInvoicesPage.columns.deductionTitle', { deduction: formatRupiah(deduction), net: formatRupiah(num(inv.grandTotal) - deduction) })}
                 >
-                  pot. {money(deduction)} · net {money(num(inv.grandTotal) - deduction)}
+                  {t('salesInvoicesPage.columns.deductionShort', { deduction: money(deduction), net: money(num(inv.grandTotal) - deduction) })}
                 </div>
               )}
             </div>
@@ -287,7 +292,7 @@ export const SalesInvoices = () => {
       },
       {
         id: 'outstanding',
-        header: () => withUnit('Sisa'),
+        header: () => withUnit(t('salesInvoicesPage.columns.outstanding')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -306,23 +311,23 @@ export const SalesInvoices = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('salesInvoicesPage.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="sales_invoice" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('salesInvoicesPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const inv = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${inv.invoiceNumber}`}
+              label={t('salesInvoicesPage.actions.label', { number: inv.invoiceNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(inv.id) },
+                { label: t('salesInvoicesPage.actions.view'), icon: Eye, onSelect: () => setSelectedId(inv.id) },
                 {
-                  label: 'Buat retur',
+                  label: t('salesInvoicesPage.actions.createReturn'),
                   icon: Undo2,
                   hidden: !canReturn || !RETURNABLE.has(inv.status),
                   onSelect: () => setReturnModal({ open: true, invoiceId: inv.id }),
@@ -333,7 +338,7 @@ export const SalesInvoices = () => {
         },
       },
     ],
-    [canReturn],
+    [canReturn, t],
   );
 
   const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
@@ -341,40 +346,40 @@ export const SalesInvoices = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Faktur Penjualan"
-        description="Kelola faktur penjualan dan piutang pelanggan."
+        title={t('salesInvoicesPage.title')}
+        description={t('salesInvoicesPage.description')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
               <Download aria-hidden />
-              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              <span className="sr-only sm:not-sr-only">{t('salesInvoicesPage.exportExcel')}</span>
             </Button>
             {canReturn && (
               <Button variant="outline" onClick={() => setReturnModal({ open: true })}>
                 <Undo2 aria-hidden />
-                <span className="sr-only sm:not-sr-only">Retur</span>
+                <span className="sr-only sm:not-sr-only">{t('salesInvoicesPage.return')}</span>
               </Button>
             )}
             {canCreate && (
               <Button onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat Faktur
+                {t('salesInvoicesPage.create')}
               </Button>
             )}
           </>
         }
       />
 
-      <section aria-label="Ringkasan faktur sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('salesInvoicesPage.kpi.sectionLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Faktur"
+          label={t('salesInvoicesPage.kpi.count')}
           icon={Receipt}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary ? `Nilai ${formatRupiah(summary.grandTotal)}` : undefined}
+          hint={summary ? t('salesInvoicesPage.kpi.countHint', { amount: formatRupiah(summary.grandTotal) }) : undefined}
         />
         <StatCard
-          label="Total Piutang"
+          label={t('salesInvoicesPage.kpi.receivables')}
           icon={Wallet}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.outstanding)}
@@ -382,27 +387,27 @@ export const SalesInvoices = () => {
           hint={summary ? formatRupiah(summary.outstanding) : undefined}
         />
         <StatCard
-          label="Lunas"
+          label={t('salesInvoicesPage.kpi.paid')}
           icon={CheckCircle2}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.paidCount) : '—'}
-          hint="faktur dibayar penuh"
+          hint={t('salesInvoicesPage.kpi.paidHint')}
         />
         <StatCard
-          label="Lewat Jatuh Tempo"
+          label={t('salesInvoicesPage.kpi.overdue')}
           icon={AlertTriangle}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.overdueCount) : '—'}
-          hint={summary ? `Sisa ${formatRupiah(summary.overdueOutstanding)}` : undefined}
+          hint={summary ? t('salesInvoicesPage.kpi.overdueHint', { amount: formatRupiah(summary.overdueOutstanding) }) : undefined}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari faktur"
-          searchPlaceholder="Cari nomor faktur atau pelanggan"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('salesInvoicesPage.search.label')}
+          searchPlaceholder={t('salesInvoicesPage.search.placeholder')}
+          status={{ options: statusFilter }}
           dateRange
         >
           <PartyFilter
@@ -414,8 +419,8 @@ export const SalesInvoices = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar faktur penjualan"
-          itemLabel="faktur"
+          label={t('salesInvoicesPage.table.label')}
+          itemLabel={t('salesInvoicesPage.table.itemLabel')}
           columns={columns}
           data={invoicesQuery.data?.data}
           getRowId={(row) => row.id}
@@ -427,12 +432,12 @@ export const SalesInvoices = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada faktur penjualan',
-            description: 'Faktur yang Anda buat akan muncul di sini.',
+            title: t('salesInvoicesPage.empty.title'),
+            description: t('salesInvoicesPage.empty.description'),
             action: canCreate ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat faktur pertama
+                {t('salesInvoicesPage.empty.action')}
               </Button>
             ) : undefined,
           }}

@@ -5,7 +5,8 @@ import { Ban, Download, FileDown, Loader2, Package, Pencil, Save, Wallet } from 
 import { pdf, PDFDownloadLink } from '@react-pdf/renderer';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
-import { formatRupiah } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
+import { formatRupiah, LOCALE } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +47,7 @@ interface Props {
 }
 
 const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEditFull }) => {
+  const { t } = useTranslation('sales');
   const company = useCompanyPDF();
   const queryClient = useQueryClient();
   const isSales = type === 'sales';
@@ -98,9 +100,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       // Allocations released → refresh payment list & customer/vendor deposits
       queryClient.invalidateQueries({ queryKey: ['payments'] });
-      toast.success('Invoice dibatalkan.');
+      toast.success(t('invoiceDetailDrawer.toast.cancelled'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan invoice.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('invoiceDetailDrawer.toast.cancelFailed')),
   });
 
   const cancelDepositAppMutation = useMutation({
@@ -113,9 +115,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoices' : 'purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: [isSales ? 'customer-deposits' : 'vendor-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
-      toast.success('Alokasi uang muka dibatalkan.');
+      toast.success(t('invoiceDetailDrawer.toast.depositAppCancelled'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan alokasi uang muka.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('invoiceDetailDrawer.toast.depositAppCancelFailed')),
   });
 
   const editMutation = useMutation({
@@ -124,10 +126,10 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoice-detail' : 'purchase-invoice-detail', invoiceId] });
       queryClient.invalidateQueries({ queryKey: [isSales ? 'sales-invoices' : 'purchase-invoices'] });
-      toast.success('Invoice diperbarui.');
+      toast.success(t('invoiceDetailDrawer.toast.updated'));
       setIsEditing(false);
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal memperbarui invoice.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('invoiceDetailDrawer.toast.updateFailed')),
   });
 
   const reviseMutation = useMutation({
@@ -138,7 +140,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         // Belum diterapkan: hanya diantrekan → tanpa update optimistis.
         queryClient.invalidateQueries({ queryKey: ['approval-pending', 'PurchaseInvoiceRevisePrice', invoiceId] });
         queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
-        toast.success('Perubahan dikirim untuk persetujuan.');
+        toast.success(t('invoiceDetailDrawer.toast.sentForApproval'));
         setReviseOpen(false);
         setReviseRates({});
         setReviseReason('');
@@ -148,12 +150,12 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success('Harga invoice direvisi. Jurnal selisih sudah diposting.');
+      toast.success(t('invoiceDetailDrawer.toast.priceRevised'));
       setReviseOpen(false);
       setReviseRates({});
       setReviseReason('');
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal merevisi harga invoice.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('invoiceDetailDrawer.toast.reviseFailed')),
   });
 
   const submitRevise = () => {
@@ -168,11 +170,11 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       })
       .filter(Boolean) as { itemId: string; newRate: number }[];
     if (lines.length === 0) {
-      toast.error('Tidak ada harga yang diubah.');
+      toast.error(t('invoiceDetailDrawer.toast.noPriceChanged'));
       return;
     }
     if (reviseReason.trim().length < 10) {
-      toast.error('Alasan revisi minimal 10 karakter.');
+      toast.error(t('invoiceDetailDrawer.toast.reasonTooShort'));
       return;
     }
     reviseMutation.mutate({ lines, reason: reviseReason.trim() });
@@ -198,9 +200,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice-attachments', attachmentRefType, invoiceId] });
-      toast.success('Lampiran diunggah.');
+      toast.success(t('invoiceDetailDrawer.toast.attachmentUploaded'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal upload lampiran.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('invoiceDetailDrawer.toast.attachmentUploadFailed')),
   });
 
   const deleteAttachmentMutation = useMutation({
@@ -208,9 +210,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice-attachments', attachmentRefType, invoiceId] });
       queryClient.invalidateQueries({ queryKey: ['invoice-related-attachments', type, invoiceId] });
-      toast.success('Lampiran dihapus.');
+      toast.success(t('invoiceDetailDrawer.toast.attachmentDeleted'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal hapus lampiran.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('invoiceDetailDrawer.toast.attachmentDeleteFailed')),
   });
 
   // Payment attachments linked to this invoice via payment_allocations or deposit applications.
@@ -230,7 +232,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   if (!invoiceId) return null;
 
   const party = isSales ? invoice?.customer : invoice?.supplier;
-  const partyLabel = isSales ? 'Pelanggan' : 'Supplier';
+  const partyLabel = isSales ? t('invoiceDetailDrawer.party.customer') : t('invoiceDetailDrawer.party.supplier');
   const outstanding = Number(invoice?.outstanding ?? 0);
   const grandTotal = Number(invoice?.grandTotal ?? 0);
   const paidAmount = grandTotal - outstanding;
@@ -248,7 +250,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
     totalQtyByUnit[u] = (totalQtyByUnit[u] ?? 0) + q;
   }
   const totalQtyLabel = Object.entries(totalQtyByUnit)
-    .map(([u, q]) => `${(q as number).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${u}`)
+    .map(([u, q]) => `${(q as number).toLocaleString(LOCALE, { maximumFractionDigits: 3 })} ${u}`)
     .join(' · ');
   const taxPct = Number(invoice?.taxPct ?? 0);
   // Per-item tax: sum each item's tax, fallback to invoice-level for old invoices
@@ -388,9 +390,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
       link.download = `${invoice.invoiceNumber}_with_lampiran.pdf`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('PDF + lampiran siap diunduh.');
+      toast.success(t('invoiceDetailDrawer.toast.mergedReady'));
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menggabungkan PDF.');
+      toast.error(err?.message || t('invoiceDetailDrawer.toast.mergeFailed'));
     } finally {
       setIsMerging(false);
     }
@@ -417,25 +419,25 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
             <div className="flex flex-wrap items-center gap-2">
               <SheetTitle className="flex items-center gap-2">
                 {isSales ? <FileDown className="size-5 text-primary" aria-hidden /> : <Package className="size-5 text-primary" aria-hidden />}
-                {isLoading ? 'Memuat…' : invoice?.invoiceNumber ?? (isSales ? 'Invoice Penjualan' : 'Invoice Pembelian')}
+                {isLoading ? t('invoiceDetailDrawer.loading') : invoice?.invoiceNumber ?? (isSales ? t('invoiceDetailDrawer.salesInvoice') : t('invoiceDetailDrawer.purchaseInvoice'))}
               </SheetTitle>
               {pendingRevise && <PendingApprovalBadge />}
             </div>
-            <SheetDescription>{isSales ? 'Invoice Penjualan' : 'Invoice Pembelian'}</SheetDescription>
+            <SheetDescription>{isSales ? t('invoiceDetailDrawer.salesInvoice') : t('invoiceDetailDrawer.purchaseInvoice')}</SheetDescription>
           </SheetHeader>
 
           {pendingRevise && (
             <div className="px-4 pt-3 sm:px-6">
-              <PendingApprovalNotice what="Revisi harga invoice" />
+              <PendingApprovalNotice what={t('invoiceDetailDrawer.pendingRevise')} />
             </div>
           )}
 
           <SheetBody className="px-0 py-0">
             {isLoading ? (
-              <LoadingState label="Memuat invoice…" />
+              <LoadingState label={t('invoiceDetailDrawer.loadingInvoice')} />
             ) : !invoice ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                Invoice tidak ditemukan.
+                {t('invoiceDetailDrawer.notFound')}
               </div>
             ) : (
               <>
@@ -517,7 +519,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                   <div className="space-y-2 border-b border-border px-6 py-3">
                     {partyDepositBalance > 0 && (
                       <div className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2 text-xs">
-                        <span className="text-warning-text">Saldo Uang Muka {partyLabel}</span>
+                        <span className="text-warning-text">{isSales ? t('invoiceDetailDrawer.depositBalance.customer') : t('invoiceDetailDrawer.depositBalance.supplier')}</span>
                         <span className="font-semibold tabular-nums text-warning-text">{formatRupiah(partyDepositBalance)}</span>
                       </div>
                     )}
@@ -526,40 +528,40 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                       className={cn('w-full', footBtn)}
                       onClick={() => (isSales ? setIsApplyCustomerDepositOpen(true) : setIsApplyDepositOpen(true))}
                       disabled={partyDepositBalance <= 0}
-                      title={partyDepositBalance <= 0 ? `${partyLabel} belum punya saldo uang muka` : undefined}
+                      title={partyDepositBalance <= 0 ? (isSales ? t('invoiceDetailDrawer.noDepositBalance.customer') : t('invoiceDetailDrawer.noDepositBalance.supplier')) : undefined}
                     >
-                      <Wallet aria-hidden /> Gunakan Uang Muka
-                      {partyDepositBalance <= 0 && <span className="text-xs opacity-70">(saldo 0)</span>}
+                      <Wallet aria-hidden /> {t('invoiceDetailDrawer.useDeposit')}
+                      {partyDepositBalance <= 0 && <span className="text-xs opacity-70">{t('invoiceDetailDrawer.zeroBalance')}</span>}
                     </Button>
                   </div>
                 )}
 
                 {/* Notes */}
                 <div className="px-6 py-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Catatan</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('invoiceDetailDrawer.notes')}</h3>
                   {isEditing ? (
                     <div className="space-y-3">
                       <Textarea
-                        aria-label="Catatan invoice"
+                        aria-label={t('invoiceDetailDrawer.notesAria')}
                         value={editNotes}
                         onChange={(e) => setEditNotes(e.target.value)}
                         rows={3}
-                        placeholder="Catatan invoice..."
+                        placeholder={t('invoiceDetailDrawer.notesPlaceholder')}
                         className="resize-none"
                       />
                       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
                         <Button variant="ghost" className={footBtn} onClick={() => setIsEditing(false)} disabled={editMutation.isPending}>
-                          Batal
+                          {t('invoiceDetailDrawer.cancel')}
                         </Button>
                         <Button className={footBtn} onClick={saveEdit} loading={editMutation.isPending}>
                           {!editMutation.isPending && <Save aria-hidden />}
-                          {editMutation.isPending ? 'Menyimpan…' : 'Simpan'}
+                          {editMutation.isPending ? t('invoiceDetailDrawer.saving') : t('invoiceDetailDrawer.save')}
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <p className="whitespace-pre-wrap text-sm text-foreground">
-                      {invoice.notes || <span className="italic text-muted-foreground">Tidak ada catatan</span>}
+                      {invoice.notes || <span className="italic text-muted-foreground">{t('invoiceDetailDrawer.noNotes')}</span>}
                     </p>
                   )}
                 </div>
@@ -575,26 +577,26 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     variant="ghost"
                     className={cn('text-danger-text', footBtn)}
                     onClick={() => setConfirmCancel(true)}
-                    title="Batalkan invoice"
+                    title={t('invoiceDetailDrawer.cancelInvoiceTitle')}
                   >
-                    <Ban aria-hidden /> Batalkan Invoice
+                    <Ban aria-hidden /> {t('invoiceDetailDrawer.cancelInvoice')}
                   </Button>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap [&>*:only-child]:col-span-2">
                 {canEdit && !isEditing && (
-                  <Button variant="outline" className={footBtn} onClick={startEditing} title="Edit catatan & jatuh tempo">
-                    <Pencil aria-hidden /> Edit
+                  <Button variant="outline" className={footBtn} onClick={startEditing} title={t('invoiceDetailDrawer.editTitle')}>
+                    <Pencil aria-hidden /> {t('invoiceDetailDrawer.edit')}
                   </Button>
                 )}
                 {!isSales && canEdit && onEditFull && Number(invoice?.outstanding ?? 0) === Number(invoice?.grandTotal ?? 0) && (
-                  <Button variant="outline" className={footBtn} onClick={() => onEditFull(invoice)} title="Batalkan dan buat ulang invoice ini">
-                    Edit Lengkap
+                  <Button variant="outline" className={footBtn} onClick={() => onEditFull(invoice)} title={t('invoiceDetailDrawer.editFullTitle')}>
+                    {t('invoiceDetailDrawer.editFull')}
                   </Button>
                 )}
                 {!isSales && invoice.status !== 'Cancelled' && invoice.status !== 'Draft' && (
-                  <Button variant="outline" className={footBtn} onClick={openRevise} disabled={!!pendingRevise} title={pendingRevise ? 'Menunggu persetujuan' : 'Revisi harga dari supplier (selisih diposting otomatis)'}>
-                    Revisi Harga
+                  <Button variant="outline" className={footBtn} onClick={openRevise} disabled={!!pendingRevise} title={pendingRevise ? t('invoiceDetailDrawer.awaitingApproval') : t('invoiceDetailDrawer.revisePriceTitle')}>
+                    {t('invoiceDetailDrawer.revisePrice')}
                   </Button>
                 )}
                 {showMergedPdf ? (
@@ -603,10 +605,10 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     className={footBtn}
                     onClick={downloadMergedPdf}
                     loading={isMerging}
-                    title={`Unduh PDF invoice + ${mergedCount} lampiran (${attachments.length} invoice, ${paymentAttachments.length} pembayaran) dalam 1 file`}
+                    title={t('invoiceDetailDrawer.mergedPdfTitle', { count: mergedCount, invoiceCount: attachments.length, paymentCount: paymentAttachments.length })}
                   >
                     {!isMerging && <Download aria-hidden />}
-                    Unduh PDF +{mergedCount}
+                    {t('invoiceDetailDrawer.downloadPdfPlus', { count: mergedCount })}
                   </Button>
                 ) : (
                   <PDFDownloadLink
@@ -620,7 +622,7 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
                     {({ loading }) => (
                       <>
                         {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
-                        Unduh PDF
+                        {t('invoiceDetailDrawer.downloadPdf')}
                       </>
                     )}
                   </PDFDownloadLink>
@@ -635,9 +637,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
         tone="danger"
-        title="Batalkan Invoice"
-        description="Yakin ingin membatalkan invoice ini? Semua jurnal, stok, dan saldo terkait akan dibalik. Invoice yang sudah ada pembayaran atau alokasi uang muka harus dibatalkan terlebih dahulu."
-        confirmLabel="Batalkan Invoice"
+        title={t('invoiceDetailDrawer.confirmCancel.title')}
+        description={t('invoiceDetailDrawer.confirmCancel.description')}
+        confirmLabel={t('invoiceDetailDrawer.confirmCancel.confirm')}
         loading={cancelMutation.isPending}
         onConfirm={() => cancelMutation.mutateAsync()}
       />
@@ -662,9 +664,9 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
         open={cancelDepositAppId !== null}
         onOpenChange={(open) => !open && setCancelDepositAppId(null)}
         tone="danger"
-        title="Batalkan Alokasi Uang Muka"
-        description="Yakin ingin membatalkan alokasi uang muka ini? Saldo deposit akan dikembalikan dan outstanding invoice akan bertambah kembali."
-        confirmLabel="Batalkan Alokasi"
+        title={t('invoiceDetailDrawer.confirmCancelDeposit.title')}
+        description={t('invoiceDetailDrawer.confirmCancelDeposit.description')}
+        confirmLabel={t('invoiceDetailDrawer.confirmCancelDeposit.confirm')}
         loading={cancelDepositAppMutation.isPending}
         onConfirm={() => (cancelDepositAppId ? cancelDepositAppMutation.mutateAsync(cancelDepositAppId) : undefined)}
       />

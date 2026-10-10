@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Plus, Trash2 } from 'lucide-react';
@@ -53,6 +54,7 @@ interface Props {
 }
 
 const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
+  const { t } = useTranslation('sales');
   const isEdit = Boolean(editTarget?.id);
   const today = new Date().toISOString().split('T')[0];
 
@@ -192,23 +194,23 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      toast.success(isEdit ? 'Sales Order diperbarui.' : 'Sales Order dibuat sebagai draf.');
+      toast.success(isEdit ? t('salesOrderModal.toast.updated') : t('salesOrderModal.toast.created'));
       onClose();
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Gagal menyimpan.';
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || t('salesOrderModal.errors.saveFailed');
       setError(msg);
     },
   });
 
   const handleSubmit = () => {
     setError('');
-    if (!partyId) { setError('Pelanggan wajib dipilih.'); return; }
-    if (items.length === 0) { setError('Minimal satu item.'); return; }
+    if (!partyId) { setError(t('salesOrderModal.errors.customerRequired')); return; }
+    if (items.length === 0) { setError(t('salesOrderModal.errors.noItems')); return; }
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      if (!it.itemName) { setError(`Baris ${i + 1}: nama item wajib diisi.`); return; }
-      if (it.quantity <= 0) { setError(`Baris ${i + 1}: qty harus > 0.`); return; }
+      if (!it.itemName) { setError(t('salesOrderModal.errors.itemNameRequired', { row: i + 1 })); return; }
+      if (it.quantity <= 0) { setError(t('salesOrderModal.errors.qtyPositive', { row: i + 1 })); return; }
     }
     mutation.mutate();
   };
@@ -224,54 +226,54 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
           className={formShellClass}
         >
           <FormDialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Sales Order' : 'Buat Sales Order'}</DialogTitle>
-            <DialogDescription>Komitmen jual ke pelanggan (Draft → Submitted)</DialogDescription>
+            <DialogTitle>{isEdit ? t('salesOrderModal.titleEdit') : t('salesOrderModal.titleCreate')}</DialogTitle>
+            <DialogDescription>{t('salesOrderModal.description')}</DialogDescription>
           </FormDialogHeader>
 
           <FormDialogBody>
             {quotationId && (
               <p className="rounded-md bg-info-subtle px-3 py-2 text-xs text-info-text">
-                Dari penawaran <span className="font-mono font-semibold">{quotationNumber || '—'}</span>
+                {t('salesOrderModal.fromQuotation')} <span className="font-mono font-semibold">{quotationNumber || '—'}</span>
               </p>
             )}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <Field label="Tanggal">
+              <Field label={t('salesOrderModal.fields.date')}>
                 {(c) => <DateInput id={c.id} value={date} onChange={setDate} />}
               </Field>
-              <Field label="Target Pengiriman">
+              <Field label={t('salesOrderModal.fields.expectedDelivery')}>
                 {(c) => <DateInput id={c.id} value={expectedDelivery} onChange={setExpectedDelivery} />}
               </Field>
-              <Field label="Pelanggan" required className="md:col-span-2">
+              <Field label={t('salesOrderModal.fields.customer')} required className="md:col-span-2">
                 {() => (
                   <PickerSelect
-                    aria-label="Pelanggan"
+                    aria-label={t('salesOrderModal.fields.customer')}
                     value={partyId}
                     onChange={setPartyId}
                     {...partyPicker.pickerProps}
-                    placeholder="Pilih pelanggan..."
+                    placeholder={t('salesOrderModal.fields.customerPlaceholder')}
                   />
                 )}
               </Field>
-              <Field label="No. Referensi PO Pelanggan" className="md:col-span-2">
-                <Input value={customerRefNo} onChange={(e) => setCustomerRefNo(e.target.value)} placeholder="Opsional" autoComplete="off" />
+              <Field label={t('salesOrderModal.fields.customerRefNo')} className="md:col-span-2">
+                <Input value={customerRefNo} onChange={(e) => setCustomerRefNo(e.target.value)} placeholder={t('salesOrderModal.fields.optional')} autoComplete="off" />
               </Field>
-              <Field label="Catatan" className="md:col-span-2">
-                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" autoComplete="off" />
+              <Field label={t('salesOrderModal.fields.notes')} className="md:col-span-2">
+                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('salesOrderModal.fields.optional')} autoComplete="off" />
               </Field>
             </div>
 
             <div className="overflow-hidden rounded-lg border border-border">
-              <TableRegion label="Daftar item sales order" className="rounded-none border-0">
+              <TableRegion label={t('salesOrderModal.table.label')} className="rounded-none border-0">
                 <table className="min-w-[760px] w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th scope="col" className="px-3 py-2 text-left text-xs font-medium">Item</th>
-                      <th scope="col" className="w-24 px-3 py-2 text-right text-xs font-medium">Qty</th>
-                      <th scope="col" className="w-24 px-3 py-2 text-left text-xs font-medium">Unit</th>
-                      <th scope="col" className="w-32 px-3 py-2 text-right text-xs font-medium">Harga/Unit</th>
-                      <th scope="col" className="w-20 px-3 py-2 text-right text-xs font-medium">Disc %</th>
-                      <th scope="col" className="w-32 px-3 py-2 text-right text-xs font-medium">Subtotal</th>
-                      <th scope="col" className="w-12 px-1 py-2"><span className="sr-only">Aksi</span></th>
+                      <th scope="col" className="px-3 py-2 text-left text-xs font-medium">{t('salesOrderModal.table.item')}</th>
+                      <th scope="col" className="w-24 px-3 py-2 text-right text-xs font-medium">{t('salesOrderModal.table.qty')}</th>
+                      <th scope="col" className="w-24 px-3 py-2 text-left text-xs font-medium">{t('salesOrderModal.table.unit')}</th>
+                      <th scope="col" className="w-32 px-3 py-2 text-right text-xs font-medium">{t('salesOrderModal.table.rate')}</th>
+                      <th scope="col" className="w-20 px-3 py-2 text-right text-xs font-medium">{t('salesOrderModal.table.discount')}</th>
+                      <th scope="col" className="w-32 px-3 py-2 text-right text-xs font-medium">{t('salesOrderModal.table.subtotal')}</th>
+                      <th scope="col" className="w-12 px-1 py-2"><span className="sr-only">{t('salesOrderModal.table.actions')}</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -279,16 +281,16 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                       <tr key={it.id} className="border-t border-border">
                         <td className="px-3 py-2">
                           <PickerSelect
-                            aria-label={`Item baris ${idx + 1}`}
+                            aria-label={t('salesOrderModal.table.itemRow', { row: idx + 1 })}
                             value={it.inventoryItemId}
                             onChange={(v) => onPickInventory(it.id, v)}
                             options={itemOptions}
-                            placeholder="Pilih item..."
+                            placeholder={t('salesOrderModal.table.itemPlaceholder')}
                           />
                         </td>
                         <td className="px-3 py-2">
                           <NumberInput
-                            aria-label={`Qty baris ${idx + 1}`}
+                            aria-label={t('salesOrderModal.table.qtyRow', { row: idx + 1 })}
                             value={it.quantity}
                             onChange={(e) => updateItem(it.id, { quantity: Number(e.target.value) })}
                             className={numberInputClass}
@@ -298,7 +300,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                         </td>
                         <td className="px-3 py-2">
                           <OptionSelect
-                            aria-label={`Unit baris ${idx + 1}`}
+                            aria-label={t('salesOrderModal.table.unitRow', { row: idx + 1 })}
                             value={it.unit}
                             onChange={(v) => updateItem(it.id, { unit: v })}
                             options={UNITS.map((u) => ({ value: u, label: u }))}
@@ -306,7 +308,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                         </td>
                         <td className="px-3 py-2">
                           <NumberInput
-                            aria-label={`Harga per unit baris ${idx + 1}`}
+                            aria-label={t('salesOrderModal.table.rateRow', { row: idx + 1 })}
                             value={it.rate}
                             onChange={(e) => updateItem(it.id, { rate: Number(e.target.value) })}
                             className={numberInputClass}
@@ -315,7 +317,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                         </td>
                         <td className="px-3 py-2">
                           <NumberInput
-                            aria-label={`Diskon persen baris ${idx + 1}`}
+                            aria-label={t('salesOrderModal.table.discountRow', { row: idx + 1 })}
                             value={it.discount}
                             onChange={(e) => updateItem(it.id, { discount: Number(e.target.value) })}
                             className={numberInputClass}
@@ -332,7 +334,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                               variant="ghost"
                               size="icon-sm"
                               className="text-danger-text max-sm:size-11"
-                              aria-label={`Hapus baris ${idx + 1}`}
+                              aria-label={t('salesOrderModal.table.removeRow', { row: idx + 1 })}
                               onClick={() => setItems((arr) => arr.filter((x) => x.id !== it.id))}
                             >
                               <Trash2 aria-hidden />
@@ -346,34 +348,34 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
               </TableRegion>
               <div className="border-t border-border bg-muted/30 px-3 py-2">
                 <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={() => setItems((arr) => [...arr, defaultItem()])}>
-                  <Plus aria-hidden /> Tambah baris
+                  <Plus aria-hidden /> {t('salesOrderModal.table.addRow')}
                 </Button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
-                <Field label="Potongan">
+                <Field label={t('salesOrderModal.fields.discountAmount')}>
                   <NumberInput value={potongan} onChange={num(setPotongan)} className={numberInputClass} min={0} />
                 </Field>
-                <Field label="PPN %">
+                <Field label={t('salesOrderModal.fields.taxPct')}>
                   <NumberInput value={taxPct} onChange={num(setTaxPct)} className={numberInputClass} min={0} max={100} />
                 </Field>
-                <Field label="Biaya Lain">
+                <Field label={t('salesOrderModal.fields.otherCosts')}>
                   <NumberInput value={biayaLain} onChange={num(setBiayaLain)} className={numberInputClass} />
                 </Field>
               </div>
               <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t('salesOrderModal.totals.subtotal')}</span>
                   <span className="tabular-nums">{formatRupiah(totals.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">PPN ({taxPct}%)</span>
+                  <span className="text-muted-foreground">{t('salesOrderModal.totals.tax', { pct: taxPct })}</span>
                   <span className="tabular-nums">{formatRupiah(totals.tax)}</span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold">
-                  <span>Grand Total</span>
+                  <span>{t('salesOrderModal.totals.grandTotal')}</span>
                   <span className="tabular-nums text-primary">{formatRupiah(totals.grandTotal)}</span>
                 </div>
               </div>
@@ -383,9 +385,9 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
           </FormDialogBody>
 
           <FormDialogFooter>
-            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('salesOrderModal.cancel')}</FooterButton>
             <FooterButton type="submit" loading={mutation.isPending}>
-              {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan sebagai Draft'}
+              {mutation.isPending ? t('salesOrderModal.saving') : isEdit ? t('salesOrderModal.saveChanges') : t('salesOrderModal.saveDraft')}
             </FooterButton>
           </FormDialogFooter>
         </form>

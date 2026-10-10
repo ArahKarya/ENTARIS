@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { ComboboxField } from './overlays/ComboboxField';
 import { usePartyPicker } from '@/hooks/usePartyPicker';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
@@ -24,14 +25,8 @@ interface InquiryItem {
   description: string;
 }
 
-const CHANNELS = [
-  { value: 'WhatsApp', label: 'WhatsApp' },
-  { value: 'Telepon', label: 'Telepon' },
-  { value: 'Email', label: 'Email' },
-  { value: 'WalkIn', label: 'Walk-in' },
-  { value: 'Referral', label: 'Referral' },
-  { value: 'Lainnya', label: 'Lainnya' },
-];
+/** Channel enum values sent to the API; labels come from inquiryModal.channels.<value>. */
+const CHANNELS = ['WhatsApp', 'Telepon', 'Email', 'WalkIn', 'Referral', 'Lainnya'] as const;
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter', 'Jasa'];
 
@@ -46,6 +41,7 @@ interface Props {
 }
 
 const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
+  const { t } = useTranslation('sales');
   const isEdit = Boolean(editTarget?.id);
   const today = new Date().toISOString().split('T')[0];
 
@@ -135,17 +131,17 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
       return res.data;
     },
     onSuccess: () => {
-      toast.success(isEdit ? 'Inquiry diperbarui.' : 'Inquiry dicatat.');
+      toast.success(isEdit ? t('inquiryModal.toast.updated') : t('inquiryModal.toast.created'));
       queryClient.invalidateQueries({ queryKey: ['inquiries'] });
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error ?? 'Gagal menyimpan inquiry.'),
+    onError: (err: any) => setError(err.response?.data?.error ?? t('inquiryModal.errors.saveFailed')),
   });
 
 
   const handleSubmit = () => {
     setError('');
-    if (!prospectName.trim()) { setError('Nama prospek/customer wajib diisi.'); return; }
+    if (!prospectName.trim()) { setError(t('inquiryModal.errors.nameRequired')); return; }
 
     const validItems = itemsMode === 'structured'
       ? items.filter((it) => it.itemName.trim().length > 0).map((it) => ({
@@ -158,7 +154,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
       : [];
 
     if (itemsMode === 'structured' && validItems.length === 0 && !itemsText.trim()) {
-      setError('Tambahkan minimal satu item, atau isi permintaan di mode free-text.');
+      setError(t('inquiryModal.errors.noItems'));
       return;
     }
 
@@ -177,7 +173,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
     });
   };
 
-  const nameError = error.startsWith('Nama prospek') ? error : undefined;
+  const nameError = error && error === t('inquiryModal.errors.nameRequired') ? error : undefined;
   const formError = nameError ? '' : error;
 
   return (
@@ -190,31 +186,31 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
         >
           <OverlayHeader>
             <DialogTitle>
-              {isEdit ? `Edit Inquiry ${editTarget?.inquiryNumber ?? ''}` : 'Catat Inquiry Baru'}
+              {isEdit ? t('inquiryModal.titleEdit', { number: editTarget?.inquiryNumber ?? '' }) : t('inquiryModal.titleCreate')}
             </DialogTitle>
             <DialogDescription>
-              Catat permintaan awal dari calon pelanggan sebelum dibuatkan Penawaran.
+              {t('inquiryModal.description')}
             </DialogDescription>
           </OverlayHeader>
 
           <OverlayBody className="gap-5">
             <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Tanggal">
+              <Field label={t('inquiryModal.fields.date')}>
                 <DateInput value={date} onChange={setDate} />
               </Field>
-              <Field label="Channel">
+              <Field label={t('inquiryModal.fields.channel')}>
                 {(control) => (
                   <Select value={channel} onValueChange={setChannel}>
                     <SelectTrigger {...control}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CHANNELS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                      {CHANNELS.map((c) => <SelectItem key={c} value={c}>{t(`inquiryModal.channels.${c}`)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 )}
               </Field>
-              <Field label="Tindak Lanjut (opsional)">
+              <Field label={t('inquiryModal.fields.followUp')}>
                 <DateInput value={followUpDate} onChange={setFollowUpDate} />
               </Field>
             </div>
@@ -222,28 +218,28 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
             <div className="grid gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
               <div className="flex flex-col gap-1.5">
                 <ComboboxField
-                  label="Pilih dari Pelanggan Existing (opsional)"
+                  label={t('inquiryModal.fields.existingCustomer')}
                   {...partyPicker.pickerProps}
                   value={partyId}
                   onChange={onPickParty}
-                  placeholder="Cari pelanggan terdaftar..."
+                  placeholder={t('inquiryModal.placeholders.existingCustomer')}
                 />
                 {!partyId && (
                   <p className="text-xs text-warning-text">
-                    Belum dipilih → akan dicatat sebagai prospect baru. Saat konversi ke Penawaran, pelanggan otomatis dibuat.
+                    {t('inquiryModal.newProspectHint')}
                   </p>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Nama Prospek/Customer" required error={nameError}>
+                <Field label={t('inquiryModal.fields.prospectName')} required error={nameError}>
                   <Input value={prospectName} onChange={(e) => setProspectName(e.target.value)} maxLength={200}
-                    placeholder="Nama perusahaan atau perorangan" />
+                    placeholder={t('inquiryModal.placeholders.prospectName')} />
                 </Field>
-                <Field label="Telepon">
+                <Field label={t('inquiryModal.fields.phone')}>
                   <Input type="tel" value={prospectPhone} onChange={(e) => setProspectPhone(e.target.value)}
                     placeholder="08xx-xxxx-xxxx" />
                 </Field>
-                <Field label="Email">
+                <Field label={t('inquiryModal.fields.email')}>
                   <Input type="email" value={prospectEmail} onChange={(e) => setProspectEmail(e.target.value)}
                     placeholder="email@domain.com" />
                 </Field>
@@ -252,36 +248,36 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
 
             <div className="grid gap-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Permintaan / Item</span>
-                <div role="group" aria-label="Mode input permintaan" className="inline-flex gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('inquiryModal.items.title')}</span>
+                <div role="group" aria-label={t('inquiryModal.items.modeLabel')} className="inline-flex gap-1">
                   <Button type="button" size="sm" variant={itemsMode === 'freetext' ? 'primary' : 'outline'}
                     aria-pressed={itemsMode === 'freetext'} onClick={() => setItemsMode('freetext')}>
-                    Free-text
+                    {t('inquiryModal.items.freetext')}
                   </Button>
                   <Button type="button" size="sm" variant={itemsMode === 'structured' ? 'primary' : 'outline'}
                     aria-pressed={itemsMode === 'structured'} onClick={() => setItemsMode('structured')}>
-                    Terstruktur
+                    {t('inquiryModal.items.structured')}
                   </Button>
                 </div>
               </div>
               {itemsMode === 'freetext' ? (
-                <Field label="Permintaan (free-text)" hideLabel>
+                <Field label={t('inquiryModal.items.freetextLabel')} hideLabel>
                   <Textarea value={itemsText} onChange={(e) => setItemsText(e.target.value)} rows={4}
-                    placeholder="Mis: Produk A 25 kg 100 sak, Produk B 2 ton, butuh delivery pekan depan..." />
+                    placeholder={t('inquiryModal.items.freetextPlaceholder')} />
                 </Field>
               ) : (
                 <div className="grid gap-2">
                   {items.map((it, idx) => (
                     <div key={it.id} className="grid grid-cols-12 items-end gap-2 rounded-lg border border-border bg-muted/20 p-2">
-                      <Field label="Item" className="col-span-12 md:col-span-4">
+                      <Field label={t('inquiryModal.items.item')} className="col-span-12 md:col-span-4">
                         <Input value={it.itemName} onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                          placeholder="Nama produk/jasa" />
+                          placeholder={t('inquiryModal.items.itemPlaceholder')} />
                       </Field>
-                      <Field label="Qty" className="col-span-4 md:col-span-2">
+                      <Field label={t('inquiryModal.items.qty')} className="col-span-4 md:col-span-2">
                         <NumberInput value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
                           className="h-10 text-right tabular-nums md:h-9" />
                       </Field>
-                      <Field label="Unit" className="col-span-4 md:col-span-2">
+                      <Field label={t('inquiryModal.items.unit')} className="col-span-4 md:col-span-2">
                         {(control) => (
                           <Select value={it.unit} onValueChange={(v) => updateItem(idx, 'unit', v)}>
                             <SelectTrigger {...control}><SelectValue /></SelectTrigger>
@@ -291,7 +287,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                           </Select>
                         )}
                       </Field>
-                      <Field label="Est. Harga" className="col-span-4 md:col-span-3">
+                      <Field label={t('inquiryModal.items.estimatedPrice')} className="col-span-4 md:col-span-3">
                         <NumberInput value={it.estimatedPrice} onChange={(e) => updateItem(idx, 'estimatedPrice', e.target.value)}
                           placeholder="0" className="h-10 text-right tabular-nums md:h-9" />
                       </Field>
@@ -300,7 +296,7 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                           <Button type="button" variant="ghost" size="icon-touch"
                             className="text-danger-text md:size-9"
                             onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                            aria-label={`Hapus baris item ${idx + 1}`}>
+                            aria-label={t('inquiryModal.items.removeRow', { n: idx + 1 })}>
                             <Trash2 aria-hidden />
                           </Button>
                         )}
@@ -309,24 +305,24 @@ const InquiryModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
                   ))}
                   <Button type="button" variant="ghost" size="sm" className="justify-self-start"
                     onClick={() => setItems([...items, newRow()])}>
-                    <Plus aria-hidden /> Tambah baris
+                    <Plus aria-hidden /> {t('inquiryModal.items.addRow')}
                   </Button>
                 </div>
               )}
             </div>
 
-            <Field label="Catatan Internal">
+            <Field label={t('inquiryModal.fields.internalNotes')}>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-                placeholder="Sumber referral, batas budget, dll..." />
+                placeholder={t('inquiryModal.placeholders.internalNotes')} />
             </Field>
 
             <FormError message={formError} />
           </OverlayBody>
 
           <OverlayFooter>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('inquiryModal.actions.cancel')}</Button>
             <Button type="submit" disabled={!prospectName.trim()} loading={mutation.isPending}>
-              {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Inquiry'}
+              {mutation.isPending ? t('inquiryModal.actions.saving') : isEdit ? t('inquiryModal.actions.saveChanges') : t('inquiryModal.actions.save')}
             </Button>
           </OverlayFooter>
         </form>

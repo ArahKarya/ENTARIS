@@ -2,6 +2,7 @@
  * Drop-in for SearchableSelect inside dialogs: its menu portals outside the modal
  * focus scope and cannot be clicked there, so this uses ComboboxFilter.
  */
+import { useTranslation } from 'react-i18next';
 import { ComboboxFilter } from '@/components/shared';
 
 export interface PickerOption {
@@ -26,13 +27,15 @@ export function PickerSelect({
   options,
   value,
   onChange,
-  placeholder = 'Pilih',
+  placeholder: placeholderProp,
   disabled,
   className,
   'aria-label': ariaLabel,
   onSearchChange,
   loading,
 }: PickerSelectProps) {
+  const { t } = useTranslation('sales');
+  const placeholder = placeholderProp ?? t('pickerSelect.placeholder');
   const label = ariaLabel ?? placeholder;
   if (disabled) {
     const selected = options.find((o) => o.value === value);
@@ -56,7 +59,7 @@ export function PickerSelect({
       onChange={onChange}
       options={options}
       allLabel={placeholder}
-      searchPlaceholder="Cari…"
+      searchPlaceholder={t('pickerSelect.search')}
       onSearchChange={onSearchChange}
       loading={loading}
     />

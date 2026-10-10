@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { AlertTriangle, Building2, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
@@ -58,6 +59,7 @@ interface PartyFormModalProps {
 }
 
 const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editParty }) => {
+  const { t } = useTranslation('sales');
   const [form, setForm] = useState<PartyFormData>(defaultForm());
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
@@ -102,11 +104,11 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
       setError('');
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan data mitra.')
+    onError: (err: any) => setError(err.response?.data?.error || t('partyFormModal.errors.saveFailed'))
   });
 
   const handleSubmit = () => {
-    if (!form.name.trim()) { setError('Nama mitra wajib diisi.'); return; }
+    if (!form.name.trim()) { setError(t('partyFormModal.errors.nameRequired')); return; }
     const { npwp, website: _w, contactPerson: _cp, ...rest } = form;
     mutation.mutate({ ...rest, taxId: npwp.trim() || null, isWapu: form.isWapu });
   };
@@ -127,9 +129,11 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
   });
   const hasDuplicateWarning = !isEdit && (similarParties?.length ?? 0) > 0;
 
-  const nameError = error === 'Nama mitra wajib diisi.' ? error : undefined;
+  const nameError = error === t('partyFormModal.errors.nameRequired') ? error : undefined;
   const formError = nameError ? '' : error;
-  const typeLabel = form.partyType === 'Customer' ? 'Pelanggan' : form.partyType === 'Supplier' ? 'Vendor' : 'Pelanggan & Vendor';
+  const shortTypeLabel = (type: PartyType) =>
+    type === 'Customer' ? t('partyFormModal.typeShort.customer') : type === 'Supplier' ? t('partyFormModal.typeShort.supplier') : t('partyFormModal.typeShort.both');
+  const typeLabel = shortTypeLabel(form.partyType);
   const iconCls = 'pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground';
   const inputCls = 'pl-9';
 
@@ -142,15 +146,15 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
           className="flex min-h-0 flex-1 flex-col"
         >
           <OverlayHeader>
-            <DialogTitle>{isEdit ? 'Edit Mitra' : 'Tambah Mitra Baru'}</DialogTitle>
+            <DialogTitle>{isEdit ? t('partyFormModal.titleEdit') : t('partyFormModal.titleCreate')}</DialogTitle>
             <DialogDescription>
-              {isEdit ? `Mengubah data ${editParty.name}` : 'Pelanggan, vendor, atau keduanya'}
+              {isEdit ? t('partyFormModal.descriptionEdit', { name: editParty.name }) : t('partyFormModal.descriptionCreate')}
             </DialogDescription>
           </OverlayHeader>
 
           <OverlayBody className="gap-6">
             <div role="radiogroup" aria-labelledby="party-type-label" className="grid gap-2">
-              <span id="party-type-label" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tipe Mitra</span>
+              <span id="party-type-label" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t('partyFormModal.partyType')}</span>
               <div className="flex overflow-hidden rounded-lg border border-border">
                 {(['Customer', 'Supplier', 'Both'] as PartyType[]).map(type => (
                   <button
@@ -166,16 +170,16 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                         : 'bg-card text-muted-foreground hover:bg-accent',
                     )}
                   >
-                    {type === 'Customer' ? 'Pelanggan' : type === 'Supplier' ? 'Vendor / Supplier' : 'Keduanya'}
+                    {type === 'Customer' ? t('partyFormModal.typeOption.customer') : type === 'Supplier' ? t('partyFormModal.typeOption.supplier') : t('partyFormModal.typeOption.both')}
                   </button>
                 ))}
               </div>
             </div>
 
             <section aria-labelledby="party-identity" className="grid gap-3">
-              <h3 id="party-identity" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Identitas</h3>
+              <h3 id="party-identity" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t('partyFormModal.sections.identity')}</h3>
               <Field
-                label="Nama / Perusahaan"
+                label={t('partyFormModal.fields.name')}
                 required
                 error={nameError}
               >
@@ -183,7 +187,7 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                   <div className="relative">
                   <Building2 className={iconCls} aria-hidden />
                   <Input {...control} value={form.name} onChange={e => set('name', e.target.value)}
-                    placeholder="Nama perusahaan atau perorangan" className={inputCls} />
+                    placeholder={t('partyFormModal.fields.namePlaceholder')} className={inputCls} />
                   </div>
                 )}
               </Field>
@@ -192,17 +196,17 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold">Nama mirip sudah ada</p>
-                      <p className="mt-0.5 text-xs">Periksa apakah salah satu di bawah ini adalah mitra yang Anda maksud:</p>
+                      <p className="text-xs font-semibold">{t('partyFormModal.duplicate.title')}</p>
+                      <p className="mt-0.5 text-xs">{t('partyFormModal.duplicate.hint')}</p>
                       <ul className="mt-2 grid gap-1">
                         {similarParties!.map((sp) => (
                           <li key={sp.id} className="flex items-center justify-between rounded-md border border-border bg-card px-2 py-1.5 text-foreground">
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-xs font-medium">{sp.name}</p>
                               <p className="text-[11px] text-muted-foreground">
-                                {sp.partyType === 'Customer' ? 'Pelanggan' : sp.partyType === 'Supplier' ? 'Vendor' : 'Pelanggan & Vendor'}
+                                {shortTypeLabel(sp.partyType)}
                                 {sp.phone ? ` • ${sp.phone}` : ''}
-                                {!sp.isActive ? ' • (Non-aktif)' : ''}
+                                {!sp.isActive ? ` • ${t('partyFormModal.duplicate.inactive')}` : ''}
                               </p>
                             </div>
                             <span className="ml-2 text-[11px] font-semibold tabular-nums text-warning-text">
@@ -230,19 +234,18 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                 <Checkbox id="party-wapu" checked={form.isWapu}
                   onCheckedChange={(checked) => setBool('isWapu', checked === true)} className="mt-0.5" />
                 <div className="grid gap-0.5">
-                  <Label htmlFor="party-wapu" className="text-sm font-medium text-warning-text">Wajib Pungut (WAPU)</Label>
+                  <Label htmlFor="party-wapu" className="text-sm font-medium text-warning-text">{t('partyFormModal.wapu.label')}</Label>
                   <p className="text-xs text-warning-text">
-                    Customer memungut PPN sendiri ke kas negara (mis. BUMN atau instansi pemerintah).
-                    Invoice ke pihak ini akan otomatis di-set tanpa PPN (tax_pct=0).
+                    {t('partyFormModal.wapu.description')}
                   </p>
                 </div>
               </div>
             </section>
 
             <section aria-labelledby="party-contact" className="grid gap-3">
-              <h3 id="party-contact" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Kontak</h3>
+              <h3 id="party-contact" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t('partyFormModal.sections.contact')}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Telepon / WhatsApp">
+                <Field label={t('partyFormModal.fields.phone')}>
                   {(control) => (
                     <div className="relative">
                     <Phone className={iconCls} aria-hidden />
@@ -251,12 +254,12 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
                     </div>
                   )}
                 </Field>
-                <Field label="Email">
+                <Field label={t('partyFormModal.fields.email')}>
                   {(control) => (
                     <div className="relative">
                     <Mail className={iconCls} aria-hidden />
                     <Input {...control} type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                      placeholder="email@perusahaan.com" className={inputCls} />
+                      placeholder={t('partyFormModal.fields.emailPlaceholder')} className={inputCls} />
                     </div>
                   )}
                 </Field>
@@ -264,13 +267,13 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
             </section>
 
             <section aria-labelledby="party-address" className="grid gap-3">
-              <h3 id="party-address" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Alamat</h3>
-              <Field label="Alamat" hideLabel>
+              <h3 id="party-address" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t('partyFormModal.sections.address')}</h3>
+              <Field label={t('partyFormModal.fields.address')} hideLabel>
                 {(control) => (
                   <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-3 size-3.5 text-muted-foreground" aria-hidden />
                   <Textarea {...control} value={form.address} onChange={e => set('address', e.target.value)}
-                    placeholder="Jl. Sudirman No. 1, Kelurahan ..., Kota ..., Provinsi ..."
+                    placeholder={t('partyFormModal.fields.addressPlaceholder')}
                     rows={3} className="resize-none pl-9" />
                   </div>
                 )}
@@ -285,9 +288,10 @@ const PartyFormModal: React.FC<PartyFormModalProps> = ({ isOpen, onClose, editPa
               {typeLabel}{form.name ? ` · ${form.name}` : ''}
             </p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
-              <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+              <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('partyFormModal.cancel')}</Button>
               <Button type="submit" disabled={!form.name.trim()} loading={mutation.isPending}>
-                {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Mitra'}
+                {mutation.isPending ? t('partyFormModal.saving') : isEdit ? t('partyFormModal.saveChanges') : t('partyFormModal.saveCreate')}
+
               </Button>
             </div>
           </OverlayFooter>
