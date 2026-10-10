@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { saveAttachment, deleteAttachment, getFullPath, detectMimeFromMagicBytes, ATTACHMENT_MIME } from '../utils/fileStorage';
 import { handleRouteError } from '../utils/errors';
-import { hasCap } from '../services/permissionService';
+import { ATTACHMENT_REF_TYPES, checkAttachmentAccess, isAttachmentRefType, type AccessResult } from '../services/attachmentAccess';
 
 const router = Router();
 
@@ -12,6 +12,9 @@ const router = Router();
 const ALLOWED_MIME = ATTACHMENT_MIME;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES = 5;
+
+const actorOf = (req: AuthRequest) => (req.user ? { userId: req.user.userId, role: req.user.role } : undefined);
+const deny = (res: Response, access: Exclude<AccessResult, { ok: true }>) => res.status(access.status).json({ error: access.error });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -38,20 +41,15 @@ router.post(
         return res.status(400).json({ error: 'referenceType dan referenceId wajib diisi.' });
       }
 
-      const ALLOWED_REF_TYPES = ['payment', 'journal', 'purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt', 'approval_request'];
-      if (!ALLOWED_REF_TYPES.includes(referenceType)) {
+      if (!isAttachmentRefType(referenceType)) {
         return res.status(400).json({
-          error: `referenceType harus salah satu dari: ${ALLOWED_REF_TYPES.join(', ')}.`,
+          error: `referenceType harus salah satu dari: ${ATTACHMENT_REF_TYPES.join(', ')}.`,
         });
       }
 
-      // StaffProduksi boleh upload lampiran untuk dokumen yang mereka pegang
-      // fisik: invoice pembelian, Surat Jalan, dan STT (incl. bukti jembatan
-      // timbang). Tidak boleh untuk payment/journal/sales_invoice murni.
-      if (req.user?.role === 'StaffProduksi'
-          && !['purchase_invoice', 'sales_invoice', 'sales_order', 'delivery_order', 'goods_receipt', 'approval_request'].includes(referenceType)) {
-        return res.status(403).json({ error: 'Akses ditolak untuk tipe referensi ini.' });
-      }
+      // Upload needs `edit` on the document's module (approval requests: the requester).
+      const access = await checkAttachmentAccess(actorOf(req), referenceType, String(referenceId), 'edit');
+      if (!access.ok) return deny(res, access);
 
       // Validate reference exists
       if (referenceType === 'payment') {
@@ -80,9 +78,6 @@ router.post(
         // pemegang approval.view_all; hanya selagi masih bisa diputuskan/direvisi.
         const ar = await prisma.approvalRequest.findUnique({ where: { id: referenceId } });
         if (!ar) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
-        if (ar.requestedBy !== req.user!.userId && !(await hasCap(req.user!.role, 'approval.view_all'))) {
-          return res.status(403).json({ error: 'Bukan pengajuan Anda.' });
-        }
         if (!['Pending', 'NeedsRevision'].includes(ar.status)) {
           return res.status(400).json({ error: 'Pengajuan sudah diproses; lampirkan ke dokumennya.' });
         }
@@ -161,14 +156,9 @@ router.get('/file/:id', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'File tidak ditemukan.' });
     }
 
-    // Role-based access: StaffProduksi only sees invoice attachments, mirroring
-    // the upload gate. Other roles already have read access via their normal
-    // navigation, so the UUID-guess attack surface is reduced to admin/account.
-    const role = req.user?.role;
-    if (role === 'StaffProduksi' &&
-        !['purchase_invoice', 'sales_invoice', 'delivery_order', 'goods_receipt', 'approval_request'].includes(attachment.referenceType)) {
-      return res.status(403).json({ error: 'Akses ditolak untuk file ini.' });
-    }
+    // Reading a file needs `view` on the module of its document.
+    const access = await checkAttachmentAccess(actorOf(req), attachment.referenceType, attachment.referenceId, 'view');
+    if (!access.ok) return deny(res, access);
 
     const fullPath = getFullPath(attachment.filePath);
     const isImage = attachment.mimeType.startsWith('image/');
@@ -207,6 +197,10 @@ router.get('/invoice/:type/:id/related', async (req: AuthRequest, res: Response)
     }
     const refType = invoiceType === 'sales' ? 'sales_invoice' : 'purchase_invoice';
     const allocInvoiceType = invoiceType === 'sales' ? 'SalesInvoice' : 'PurchaseInvoice';
+
+    // Payment proofs linked to the invoice are part of its detail: invoice `view` is enough.
+    const access = await checkAttachmentAccess(actorOf(req), refType, invoiceId, 'view');
+    if (!access.ok) return deny(res, access);
 
     // Invoice's own attachments
     const ownAttachments = await prisma.transactionAttachment.findMany({
@@ -288,6 +282,11 @@ router.get('/:referenceType/:referenceId', async (req: AuthRequest, res: Respons
   try {
     const referenceType = req.params.referenceType as string;
     const referenceId = req.params.referenceId as string;
+    if (!isAttachmentRefType(referenceType)) {
+      return res.status(400).json({ error: 'referenceType tidak dikenal.' });
+    }
+    const access = await checkAttachmentAccess(actorOf(req), referenceType, referenceId, 'view');
+    if (!access.ok) return deny(res, access);
     const attachments = await prisma.transactionAttachment.findMany({
       where: { referenceType, referenceId },
       orderBy: { createdAt: 'asc' },
@@ -314,12 +313,9 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Lampiran tidak ditemukan.' });
     }
 
-    // Only Admin, Accountant, or uploader can delete
-    const isOwner = attachment.uploadedBy === req.user!.userId;
-    const isPrivileged = ['Admin', 'Accountant'].includes(req.user!.role);
-    if (!isOwner && !isPrivileged) {
-      return res.status(403).json({ error: 'Tidak memiliki akses untuk menghapus lampiran ini.' });
-    }
+    // Deleting needs `edit` on the module of the attachment's document.
+    const access = await checkAttachmentAccess(actorOf(req), attachment.referenceType, attachment.referenceId, 'edit');
+    if (!access.ok) return deny(res, access);
 
     // Delete file first, then DB record
     await deleteAttachment(attachment.filePath);
@@ -338,6 +334,12 @@ router.post('/counts', async (req: AuthRequest, res: Response) => {
     if (!referenceType || !Array.isArray(referenceIds) || referenceIds.length === 0) {
       return res.json({});
     }
+    if (!isAttachmentRefType(referenceType)) {
+      return res.status(400).json({ error: 'referenceType tidak dikenal.' });
+    }
+    // Batch counts: module `view` without a per-document lookup.
+    const access = await checkAttachmentAccess(actorOf(req), referenceType, null, 'view');
+    if (!access.ok) return deny(res, access);
 
     const counts = await prisma.transactionAttachment.groupBy({
       by: ['referenceId'],
