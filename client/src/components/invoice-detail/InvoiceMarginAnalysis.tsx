@@ -66,7 +66,7 @@ export function InvoiceMarginAnalysis({ items }: { items: any[] }) {
           </tbody>
         </table>
       </TableRegion>
-      <p className="mt-1.5 text-[10px] text-muted-foreground">
+      <p className="mt-1.5 text-xs text-muted-foreground">
         Material basis = pakai WAC saat ini. Loaded basis = pakai HPP per batch
         (Phase 3: include biaya produksi & by-product NRV).
       </p>

@@ -69,7 +69,7 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
 
   const previewLines: JournalPreviewLine[] = (preview?.lines ?? []).map((l) => ({
     side: l.side,
-    account: l.accountLabel ?? <span className="text-warning">Akun belum dipilih</span>,
+    account: l.accountLabel ?? <span className="text-warning-text">Akun belum dipilih</span>,
     amount: formatMoney(l.amount),
   }));
 
@@ -146,7 +146,7 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
             }
           />
           {preview && preview.problems.length > 0 && (
-            <ul className="space-y-1 text-sm text-warning-foreground" aria-label="Yang perlu dilengkapi">
+            <ul className="space-y-1 text-sm text-warning-text" aria-label="Yang perlu dilengkapi">
               {preview.problems.map((p) => (
                 <li key={p} className="flex items-start gap-2 text-foreground">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />

@@ -84,9 +84,12 @@ export function StatCard({
       {loading ? (
         <div className="mt-2 h-8 w-32 animate-pulse rounded-md bg-muted" aria-hidden />
       ) : (
-        <p className="mt-1 font-heading text-[28px] font-bold leading-[34px] tracking-tight text-foreground num" title={valueTitle}>
-          {value}
-        </p>
+        <>
+          <p className="mt-1 font-heading text-[28px] font-bold leading-[34px] tracking-tight text-foreground num">
+            {value}
+          </p>
+          {valueTitle && valueTitle !== value && <p className="text-xs text-muted-foreground num">{valueTitle}</p>}
+        </>
       )}
       {(effectiveDelta || note) && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

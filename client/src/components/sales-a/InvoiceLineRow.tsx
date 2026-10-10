@@ -139,7 +139,7 @@ export function InvoiceLineRow({
                 {/* Optional batch picker (hybrid FIFO/specific-id) */}
                 {item.inventoryItemId && item.warehouseId && !fromDO && (
                   <div>
-                    <p className="mb-0.5 text-[10px] text-muted-foreground">Batch (opsional, default WAC)</p>
+                    <p className="mb-0.5 text-xs text-muted-foreground">Batch (opsional, default WAC)</p>
                     <BatchSelect
                       label={`Batch baris ${n}`}
                       itemId={item.inventoryItemId}

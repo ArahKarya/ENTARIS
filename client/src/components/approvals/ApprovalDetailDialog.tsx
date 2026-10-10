@@ -219,7 +219,7 @@ function DetailContent({
                       <span className="text-foreground">
                         {itemName(it.itemId)}
                         {Number(it.batchUnitCost ?? 0) > 0 && (
-                          <span className="ml-1.5 text-[9px] px-1 py-0.5 bg-info-subtle text-info-text rounded">batch @{formatRupiah(Number(it.batchUnitCost))}</span>
+                          <span className="ml-1.5 text-xs px-1 py-0.5 bg-info-subtle text-info-text rounded">batch @{formatRupiah(Number(it.batchUnitCost))}</span>
                         )}
                       </span>
                       <span className="font-mono tabular-nums text-muted-foreground">
@@ -240,7 +240,7 @@ function DetailContent({
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-xs">
                       <span className="text-foreground">
                         {itemName(it.itemId)}
-                        {it.isByProduct && <span className="ml-1.5 text-[9px] px-1 py-0.5 bg-warning-subtle text-warning-text rounded font-medium">Samping</span>}
+                        {it.isByProduct && <span className="ml-1.5 text-xs px-1 py-0.5 bg-warning-subtle text-warning-text rounded font-medium">Samping</span>}
                       </span>
                       <span className="font-mono tabular-nums text-muted-foreground">
                         {fmtNum(Number(it.quantity ?? 0))} {itemUnit(it.itemId)}
@@ -346,33 +346,33 @@ function DetailContent({
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total Diterima</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Diterima</p>
                       <p className="text-sm font-semibold text-foreground tabular-nums">{fmtNum(totalKg)} kg</p>
                       {totalTruk > 0 && (
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           truk {fmtNum(totalTruk)} · refaksi {fmtNum(totalRef)}
                           {totalTruk > 0 ? ` (${((totalRef / totalTruk) * 100).toFixed(2)}%)` : ''}
                         </p>
                       )}
                     </div>
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Harga Rata² / kg</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Harga Rata² / kg</p>
                       <p className="text-sm font-semibold text-foreground tabular-nums">
                         {totalKg > 0 ? formatRupiah(Math.round((pi?.grandTotal ?? 0) / totalKg)) : '—'}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">grand total ÷ kg diterima</p>
+                      <p className="text-xs text-muted-foreground">grand total ÷ kg diterima</p>
                     </div>
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hutang Berjalan Supplier</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Hutang Berjalan Supplier</p>
                       <p className="text-sm font-semibold text-foreground tabular-nums">{sup ? formatRupiah(sup.openOutstanding) : '—'}</p>
-                      <p className="text-[10px] text-muted-foreground">{sup ? `${sup.openInvoiceCount} invoice belum lunas` : ''}</p>
+                      <p className="text-xs text-muted-foreground">{sup ? `${sup.openInvoiceCount} invoice belum lunas` : ''}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Deposit / Uang Muka</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Deposit / Uang Muka</p>
                       <p className={cn('text-sm font-semibold tabular-nums', (sup?.depositBalance ?? 0) > 0 ? 'text-success-text' : 'text-foreground')}>
                         {sup ? formatRupiah(sup.depositBalance) : '—'}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">{(sup?.depositBalance ?? 0) > 0 ? 'bisa dipotongkan' : ''}</p>
+                      <p className="text-xs text-muted-foreground">{(sup?.depositBalance ?? 0) > 0 ? 'bisa dipotongkan' : ''}</p>
                     </div>
                   </div>
                   {warn.length > 0 && (
@@ -395,7 +395,7 @@ function DetailContent({
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
                 <div className="border border-border rounded-lg overflow-x-auto" role="region" aria-label="Rincian item pengajuan" tabIndex={0}>
                   <table className="w-full text-xs">
-                    <thead className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wide">
+                    <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
                       <tr>
                         <th className="px-2 py-2 text-left">#</th>
                         <th className="px-2 py-2 text-left">STT</th>
@@ -436,26 +436,26 @@ function DetailContent({
                             <td className="px-2 py-2 font-mono text-foreground whitespace-nowrap">
                               {sl?.sttNumber ?? <span className="text-muted-foreground">—</span>}
                               {sl?.sttDate && (
-                                <div className="text-[10px] text-muted-foreground font-sans">
+                                <div className="text-xs text-muted-foreground font-sans">
                                   {new Date(sl.sttDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
                                 </div>
                               )}
                             </td>
                             <td className="px-2 py-2">
                               <div className="font-medium text-foreground">{it.itemName ?? '—'}</div>
-                              {it.warehouseId && <div className="text-[10px] text-muted-foreground">{warehouseMap[it.warehouseId] ?? 'gudang'}</div>}
+                              {it.warehouseId && <div className="text-xs text-muted-foreground">{warehouseMap[it.warehouseId] ?? 'gudang'}</div>}
                             </td>
                             <td className="px-2 py-2 whitespace-nowrap text-muted-foreground">{it.nomorMobil ?? '—'}</td>
                             <td className="px-2 py-2 text-right tabular-nums">{it.kualitas ?? '—'}</td>
                             <td className="px-2 py-2 text-right tabular-nums">{truk > 0 ? fmtNum(truk) : '—'}</td>
                             <td className="px-2 py-2 text-right tabular-nums">
                               {ref > 0 ? fmtNum(ref) : '—'}
-                              {ref > 0 && truk > 0 && <div className="text-[10px] text-muted-foreground">{((ref / truk) * 100).toFixed(2)}%</div>}
+                              {ref > 0 && truk > 0 && <div className="text-xs text-muted-foreground">{((ref / truk) * 100).toFixed(2)}%</div>}
                             </td>
                             <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap">
                               <span className="font-medium">{fmtNum(qty)}</span> <span className="text-muted-foreground">{it.unit ?? ''}</span>
                               {sl && (
-                                <div className={cn('text-[10px]', qtyMismatch ? 'text-danger-text font-semibold' : 'text-muted-foreground')}>
+                                <div className={cn('text-xs', qtyMismatch ? 'text-danger-text font-semibold' : 'text-muted-foreground')}>
                                   STT {fmtNum(Number(sl.quantity))}
                                 </div>
                               )}
@@ -470,12 +470,12 @@ function DetailContent({
                                 >
                                   <span className="text-muted-foreground">{formatRupiah(last.rate)}</span>
                                   {diff !== 0 && (
-                                    <span className={cn('ml-1 text-[10px] font-semibold', diff > 0 ? 'text-danger-text' : 'text-success-text')}>
+                                    <span className={cn('ml-1 text-xs font-semibold', diff > 0 ? 'text-danger-text' : 'text-success-text')}>
                                       {diff > 0 ? '▲' : '▼'}
                                       {formatRupiah(Math.abs(diff))}
                                     </span>
                                   )}
-                                  <div className="text-[10px] text-muted-foreground">
+                                  <div className="text-xs text-muted-foreground">
                                     {lastSame ? 'supplier ini' : (last.supplier ?? 'lain')} ·{' '}
                                     {new Date(last.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
                                   </div>
@@ -484,11 +484,11 @@ function DetailContent({
                                 <span className="text-muted-foreground">—</span>
                               )}
                             </td>
-                            <td className="px-2 py-2 text-right text-[10px] text-muted-foreground">{tax.length ? tax.join(' · ') : '—'}</td>
+                            <td className="px-2 py-2 text-right text-xs text-muted-foreground">{tax.length ? tax.join(' · ') : '—'}</td>
                             <td className="px-2 py-2 text-right tabular-nums font-medium whitespace-nowrap">{formatRupiah(Math.round(piLineTotal(it)))}</td>
                             <td className="px-2 py-2 text-muted-foreground">
                               {ket ?? <span className="text-muted-foreground">—</span>}
-                              {sl?.alreadyInvoiced && <div className="text-[10px] text-danger-text font-semibold">sudah di {sl.alreadyInvoiced}</div>}
+                              {sl?.alreadyInvoiced && <div className="text-xs text-danger-text font-semibold">sudah di {sl.alreadyInvoiced}</div>}
                             </td>
                           </tr>
                         );
@@ -497,7 +497,7 @@ function DetailContent({
                   </table>
                 </div>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Harga Lalu = harga beli item sama pada invoice terakhir (supplier ini bila ada). Arahkan kursor untuk lihat 5 riwayat. ▲ merah = lebih mahal.
               </p>
             </div>
@@ -557,7 +557,7 @@ function DetailContent({
               )}
               <div className="flex justify-between pt-1 border-t border-border font-semibold text-foreground">
                 <span>
-                  Grand Total <span className="text-[10px] font-normal text-muted-foreground">(estimasi)</span>
+                  Grand Total <span className="text-xs font-normal text-muted-foreground">(estimasi)</span>
                 </span>
                 <span className="font-mono tabular-nums">{formatRupiah(pi?.grandTotal ?? 0)}</span>
               </div>

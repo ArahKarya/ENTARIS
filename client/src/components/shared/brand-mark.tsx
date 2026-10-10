@@ -81,8 +81,8 @@ export function BrandMark({ variant = 'default', size = 24, title = 'Entaris', c
 }
 
 const WORDMARK_SIZES = {
-  sm: { mark: 20, text: 'text-sm', chip: 'text-[10px] px-1 py-px', tagline: 'text-[9px]' },
-  md: { mark: 28, text: 'text-lg', chip: 'text-[11px] px-1.5 py-0.5', tagline: 'text-[10px]' },
+  sm: { mark: 20, text: 'text-sm', chip: 'text-[0.625rem] px-1 py-px', tagline: 'text-[0.5625rem]' },
+  md: { mark: 28, text: 'text-lg', chip: 'text-[11px] px-1.5 py-0.5', tagline: 'text-[0.625rem]' },
   lg: { mark: 40, text: 'text-2xl', chip: 'text-xs px-1.5 py-0.5', tagline: 'text-[11px]' },
 } as const;
 

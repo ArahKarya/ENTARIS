@@ -113,7 +113,7 @@ export function InvoiceAttachmentsSection({
                   {a.fileName}
                 </a>
                 {a.payment && (
-                  <span className="whitespace-nowrap rounded bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary-subtle-foreground">
+                  <span className="whitespace-nowrap rounded bg-primary-subtle px-1.5 py-0.5 text-xs font-medium text-primary-subtle-foreground">
                     {a.payment.paymentNumber}
                   </span>
                 )}
@@ -121,7 +121,7 @@ export function InvoiceAttachmentsSection({
               </li>
             ))}
           </ul>
-          <p className="mt-1.5 text-[10px] italic text-muted-foreground">
+          <p className="mt-1.5 text-xs italic text-muted-foreground">
             Lampiran ini milik pembayaran terkait. Kelola dari menu Bank &amp; Kas.
           </p>
         </div>

@@ -196,8 +196,8 @@ export function FixedAssetImportDialog({ open, onOpenChange, coa }: FixedAssetIm
                         </td>
                         <td className="px-2 py-1.5">
                           {r.error ? (
-                            <span className="inline-flex items-center gap-1 text-danger-text" title={r.error}>
-                              <AlertCircle className="size-3.5" aria-hidden /> Error
+                            <span className="inline-flex items-start gap-1 text-danger-text">
+                              <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {r.error}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-success-text">

@@ -86,8 +86,13 @@ export function McpCallsCard() {
       {
         id: 'tool',
         header: 'Tool',
-        meta: { cellClassName: 'max-w-44 truncate font-mono text-xs' },
-        cell: ({ row }) => <span title={row.original.error ?? row.original.tool}>{row.original.tool}</span>,
+        meta: { cellClassName: 'max-w-56 text-xs' },
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate font-mono">{row.original.tool}</p>
+            {row.original.error && <p className="mt-0.5 whitespace-normal break-words text-danger-text">{row.original.error}</p>}
+          </div>
+        ),
       },
       {
         id: 'risk',

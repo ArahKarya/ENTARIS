@@ -132,7 +132,7 @@ const InquiryDetailDrawer: React.FC<Props> = ({ inquiryId, onClose, onEdit }) =>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-foreground">{q.party?.name ?? q.prospectName}</span>
                       {!q.partyId && (
-                        <span className="rounded-sm bg-warning-subtle px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-warning-text">prospect</span>
+                        <span className="rounded-sm bg-warning-subtle px-1.5 py-0.5 text-xs uppercase tracking-wider text-warning-text">prospect</span>
                       )}
                     </div>
                     {q.prospectPhone && <p className="text-xs text-muted-foreground"><span className="sr-only">Telepon: </span>{q.prospectPhone}</p>}
