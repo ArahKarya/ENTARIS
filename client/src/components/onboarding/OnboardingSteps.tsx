@@ -196,9 +196,7 @@ export function SecurityStep({
 export function DoneStep({ companyName }: { companyName: string }) {
   return (
     <div className="flex flex-col items-center gap-3 py-4 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full bg-success-subtle text-success-text">
-        <CheckCircle2 className="size-7" aria-hidden />
-      </span>
+      <CheckCircle2 className="size-8 text-success-text" aria-hidden />
       <p className="max-w-sm text-sm text-muted-foreground">
         {companyName ? `${companyName} siap digunakan.` : 'Entaris siap digunakan.'} Langkah yang belum lengkap
         tampil sebagai daftar <span className="font-medium text-foreground">Lengkapi penyiapan</span> di Dasbor.

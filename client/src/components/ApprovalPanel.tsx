@@ -192,9 +192,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         <LoadingState className="rounded-lg border border-border bg-card py-10" label="Memuat pengajuan…" />
       ) : requests.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-4 py-10 text-center">
-          <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Clock className="size-5" aria-hidden />
-          </span>
+          <Clock className="size-5 text-muted-foreground" aria-hidden />
           <p className="text-sm font-medium text-foreground">Tidak ada pengajuan berstatus "{labelOf(status)}"</p>
           <p className="text-sm text-muted-foreground">Pengajuan baru akan muncul di sini.</p>
         </div>

@@ -355,9 +355,7 @@ function AttentionPanel({
     >
       {!loading && !error && rows.length === 0 ? (
         <div role="status" className="flex items-center gap-3 px-4 py-6">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success-subtle text-success-text">
-            <CheckCircle2 className="size-5" aria-hidden />
-          </span>
+          <CheckCircle2 className="size-5 shrink-0 text-success-text" aria-hidden />
           <div>
             <p className="text-sm font-medium text-foreground">Semua stok aman</p>
             <p className="text-xs text-muted-foreground">Tidak ada item aktif yang habis atau di bawah minimum.</p>
