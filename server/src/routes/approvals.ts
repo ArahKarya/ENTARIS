@@ -6,6 +6,7 @@ import { logger } from '../lib/logger';
 import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils/schemas';
 import { decideApproval } from '../services/approvalDecision';
 import { buildApprovalComparison, isEditDocumentType, findPendingForTarget } from '../services/approvalEditRequests';
+import { loadApprovalLookups } from '../services/approvalContextLookups';
 
 const router = Router();
 
@@ -115,7 +116,8 @@ router.get('/requests/:id', async (req: AuthRequest, res) => {
 });
 
 // GET /requests/:id/context — info pendukung dialog approval:
-// STT sumber per baris (Invoice Pembelian) + lampiran pengajuan & lampiran STT.
+// STT sumber per baris (Invoice Pembelian) + lampiran pengajuan & lampiran STT,
+// plus party and item names resolved from the payload ids.
 router.get('/requests/:id/context', async (req: AuthRequest, res) => {
   try {
     const request = await prisma.approvalRequest.findUnique({ where: { id: req.params.id as string } });
@@ -195,7 +197,13 @@ router.get('/requests/:id/context', async (req: AuthRequest, res) => {
         sameSupplier: r.purchaseInvoice?.partyId === payload.partyId,
       }));
     }));
-    res.json({ sttLines, stts, requestAttachments: requestAtt, supplier, priceHistory, comparison: buildApprovalComparison(request) });
+    // Party / item names for the dialog (payload stores ids only).
+    const lookups = await loadApprovalLookups(prisma, payload);
+    res.json({
+      sttLines, stts, requestAttachments: requestAtt, supplier, priceHistory,
+      party: lookups.party, items: lookups.items,
+      comparison: buildApprovalComparison(request),
+    });
   } catch (error) {
     logger.error(error, 'GET /approvals/requests/:id/context error');
     res.status(500).json({ error: 'Gagal mengambil detail pendukung.' });

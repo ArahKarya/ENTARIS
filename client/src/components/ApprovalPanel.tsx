@@ -6,7 +6,7 @@ import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { cap } from '../lib/permissions';
 import { ApprovalDetailDialog } from './approvals/ApprovalDetailDialog';
-import { fmtDate, fmtNum, approvalTypeLabel, isAiToolApproval, isEditApprovalType } from './approvals/approval-utils';
+import { fmtDate, fmtNum, approvalTypeLabel, approvalLabels, isAiToolApproval, isEditApprovalType } from './approvals/approval-utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
 
@@ -64,7 +64,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
   const { data: detailCtx, isLoading: detailCtxLoading } = useQuery<any>({
     queryKey: ['approval-request-context', detailReq?.id],
     queryFn: async () => (await api.get(`/approvals/requests/${detailReq!.id}/context`)).data,
-    enabled: !!detailReq && (detailReq.documentType === 'PurchaseInvoice' || isEditApprovalType(detailReq.documentType)),
+    enabled: !!detailReq && !isAiToolApproval(detailReq.documentType),
     staleTime: 30 * 1000,
   });
 
@@ -96,39 +96,11 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
     refetchInterval: 30000,
   });
 
-  // Map id → {name, unit} utk detail produksi (payload simpan id).
-  // limit=500: endpoint /inventory/items juga paginated (default 100) — sama
-  // seperti party map di bawah, hindari item hilang dari lookup kalau count
-  // tumbuh melewati 100.
-  const { data: itemMap = {} } = useQuery<Record<string, { name: string; unit: string }>>({
-    queryKey: ['inventory-items-namemap'],
-    queryFn: async () => {
-      const raw = (await api.get('/inventory/items?limit=500')).data;
-      const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
-      const m: Record<string, { name: string; unit: string }> = {};
-      for (const it of list) m[it.id] = { name: it.name, unit: it.unit };
-      return m;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const itemName = (id: string) => itemMap[id]?.name ?? `(item ${id?.slice?.(0, 8) ?? '?'})`;
-  const itemUnit = (id: string) => itemMap[id]?.unit ?? 'kg';
+  // Party and item names come from the context endpoint (resolved server-side from payload ids),
+  // so the dialog does not depend on capped client-side lookup lists.
+  const { partyName, itemName, itemUnit } = approvalLabels(detailCtx, detailCtxLoading);
 
-  // Name maps untuk perkaya detail (supplier, gudang, mesin) — payload simpan id.
-  // limit=500 (bukan default paginated 100) supaya SEMUA party ke-load untuk
-  // lookup map — kalau tidak, party di luar 100 nama pertama (urut alfabetis)
-  // hilang dari map dan tampil sebagai '—' walau partyId di payload valid.
-  const { data: partyMap = {} } = useQuery<Record<string, string>>({
-    queryKey: ['parties-namemap'],
-    queryFn: async () => {
-      const raw = (await api.get('/parties?limit=500')).data;
-      const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
-      const m: Record<string, string> = {};
-      for (const p of list) m[p.id] = p.name;
-      return m;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  // Name maps untuk perkaya detail (gudang, mesin) - payload simpan id.
   const { data: warehouseMap = {} } = useQuery<Record<string, string>>({
     queryKey: ['warehouses-namemap'],
     queryFn: async () => {
@@ -336,7 +308,7 @@ export default function ApprovalPanel({ documentType, onResubmit, onViewDocument
         currentUserId={currentUserId}
         detailCtx={detailCtx}
         detailCtxLoading={detailCtxLoading}
-        partyMap={partyMap}
+        partyName={partyName}
         warehouseMap={warehouseMap}
         machineMap={machineMap}
         itemName={itemName}

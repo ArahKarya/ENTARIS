@@ -68,3 +68,38 @@ export function prodHppEstimate(payload: any): { hpp: number | null; knownMateri
   const hpp = (material + costTotal - byproductValue) / mainQty;
   return { hpp: Math.round(hpp), knownMaterial: true, byproductValue, costTotal: Math.round(costTotal), mainQty };
 }
+
+/** Party / item names the server resolves in GET /approvals/requests/:id/context. */
+export interface ApprovalLookupContext {
+  party?: { id: string; name: string } | null;
+  supplier?: { name?: string | null } | null;
+  items?: Record<string, { name: string; unit: string }>;
+}
+
+export interface ApprovalLabels {
+  partyName: (partyId: string | null | undefined) => string;
+  itemName: (itemId: string | null | undefined) => string;
+  itemUnit: (itemId: string | null | undefined) => string;
+}
+
+/**
+ * Display labels for ids stored in an approval payload. While the context is loading the
+ * placeholder is an ellipsis; a missing record falls back to a short id instead of a bare dash.
+ */
+export function approvalLabels(ctx: ApprovalLookupContext | null | undefined, loading: boolean): ApprovalLabels {
+  const shortId = (id: string | null | undefined) => (id ? id.slice(0, 8) : '?');
+  return {
+    partyName: (partyId) => {
+      if (!partyId) return '-';
+      const name = (ctx?.party?.id === partyId ? ctx.party.name : null) ?? ctx?.supplier?.name;
+      if (name) return name;
+      return loading ? '…' : `(pihak ${shortId(partyId)})`;
+    },
+    itemName: (itemId) => {
+      const name = itemId ? ctx?.items?.[itemId]?.name : undefined;
+      if (name) return name;
+      return loading ? '…' : `(item ${shortId(itemId)})`;
+    },
+    itemUnit: (itemId) => (itemId ? ctx?.items?.[itemId]?.unit : undefined) ?? '',
+  };
+}
