@@ -31,7 +31,9 @@ describe('crypto', () => {
     expect(encryptSecret('entsig_rahasia', ENV)).not.toBe(enc);
     expect(decryptSecret(enc, ENV)).toBe('entsig_rahasia');
     const [v, iv, tag, ct] = enc.split('.');
-    const flipped = `${v}.${iv}.${tag}.${ct.slice(0, -2)}AA`;
+    // Change the last ciphertext char to a different one so the tag check always fails.
+    const last = ct.slice(-1) === 'A' ? 'B' : 'A';
+    const flipped = `${v}.${iv}.${tag}.${ct.slice(0, -1)}${last}`;
     expect(() => decryptSecret(flipped, ENV)).toThrow();
   });
 
