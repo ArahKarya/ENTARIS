@@ -9,6 +9,7 @@ import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { MiniTable } from '../dashboard-kit/MiniTable';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE } from '../dashboard-kit/chart-theme';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface YieldPoint { date: string; avgYield: number; count: number }
 interface TopItem { id: string; name: string; unit: string; quantity: number }
@@ -99,6 +100,7 @@ function YieldRankList({ title, runs, best }: { title: string; runs: YieldRun[];
 }
 
 export default function ProductionDeepDive({ startDate, endDate }: Props) {
+  const animate = useChartAnimation();
   const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
     queryKey: ['dashboard-production-deep-dive', startDate, endDate],
     queryFn: async () => (await api.get('/inventory/dashboard/production', { params: { startDate, endDate } })).data,
@@ -153,7 +155,7 @@ export default function ProductionDeepDive({ startDate, endDate }: Props) {
               <XAxis dataKey="date" tick={AXIS_TICK} tickLine={false} axisLine={false} tickFormatter={fmtShortDate} />
               <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} unit="%" />
               <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${Number(v).toFixed(2)}%`} labelFormatter={(d) => formatDate(String(d))} />
-              <Line type="monotone" dataKey="avgYield" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3, fill: 'var(--chart-2)' }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="avgYield" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3, fill: 'var(--chart-2)' }} isAnimationActive={animate} />
             </LineChart>
           </ResponsiveContainer>
         </ChartFrame>

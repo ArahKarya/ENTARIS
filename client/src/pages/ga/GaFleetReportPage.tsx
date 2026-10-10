@@ -24,6 +24,7 @@ import { useReportPeriod } from '@/components/ga/vehicle/useReportPeriod';
 import { monthLabel } from '@/components/ga/vehicle/fleet-report-model';
 import { DueMarker, UnitHeader } from '@/components/ga/vehicle/vehicle-ui';
 import { FLUSH_TABLE } from '@/components/ga/vehicle/ui-classes';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 type ComplianceState = 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE';
 type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident' | 'workorder';
@@ -95,6 +96,7 @@ function vehicleLink(assetId: string, section?: string) {
 }
 
 export function GaFleetReportPage() {
+  const animate = useChartAnimation();
   const { period, setPreset, setRange } = useReportPeriod();
   const [search, setSearch] = useState('');
 
@@ -318,7 +320,7 @@ export function GaFleetReportPage() {
                           }}
                         />
                         {CATS.map((c, i) => (
-                          <Bar key={c} dataKey={c} stackId="cost" fill={CAT_COLOR[c]} maxBarSize={28} radius={i === CATS.length - 1 ? [3, 3, 0, 0] : 0} />
+                          <Bar isAnimationActive={animate} key={c} dataKey={c} stackId="cost" fill={CAT_COLOR[c]} maxBarSize={28} radius={i === CATS.length - 1 ? [3, 3, 0, 0] : 0} />
                         ))}
                       </BarChart>
                     </ResponsiveContainer>
@@ -363,7 +365,7 @@ export function GaFleetReportPage() {
                             );
                           }}
                         />
-                        <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                        <Bar isAnimationActive={animate} dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={22}>
                           {distribution.map((d) => (
                             <Cell key={d.category} fill={CAT_COLOR[d.category]} />
                           ))}

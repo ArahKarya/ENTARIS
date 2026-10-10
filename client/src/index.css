@@ -399,8 +399,30 @@
     html { font-synthesis-weight: none; }
   }
 
+  /* Motion levels (DESIGN.md "Gerak"), set on <html data-motion> by theme-init.js and
+     MotionContext. 'smooth' and 'lively' keep the CSS as written; 'lively' adds JS
+     effects (KPI count-up, chart animation). Loading spinners keep spinning. */
+  :root[data-motion='none'] *:not(.animate-spin),
+  :root[data-motion='none'] *::before,
+  :root[data-motion='none'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Only open/close of dialogs, sheets and menus (keyframe animations) remain. */
+  :root[data-motion='minimal'] *,
+  :root[data-motion='minimal'] *::before,
+  :root[data-motion='minimal'] *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    :root:not([data-motion]) *,
+    :root:not([data-motion]) *::before,
+    :root:not([data-motion]) *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;

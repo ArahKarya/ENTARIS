@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartFrame } from './ChartFrame';
 import { CHART_COLORS, TOOLTIP_STYLE } from './chart-theme';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 export interface DonutDatum {
   key: string;
@@ -24,6 +25,7 @@ export interface DonutBreakdownProps {
 
 /** Donut + visible legend listing label, amount and percentage (colour is never the only signal). */
 export function DonutBreakdown({ data, formatValue, summary, caption, valueHeader, legendLimit = 6, footer }: DonutBreakdownProps) {
+  const animate = useChartAnimation();
   const total = data.reduce((s, d) => s + d.value, 0);
   const pct = (v: number) => (total > 0 ? `${((v / total) * 100).toFixed(0)}%` : '0%');
   return (
@@ -39,7 +41,7 @@ export function DonutBreakdown({ data, formatValue, summary, caption, valueHeade
       >
         <ResponsiveContainer width="100%" height="100%">
           <PieChart accessibilityLayer={false}>
-            <Pie data={data} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={44} outerRadius={72} paddingAngle={2} isAnimationActive={false} stroke="var(--card)">
+            <Pie data={data} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={44} outerRadius={72} paddingAngle={2} isAnimationActive={animate} stroke="var(--card)">
               {data.map((d, i) => (
                 <Cell key={d.key} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}

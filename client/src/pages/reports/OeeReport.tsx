@@ -25,6 +25,7 @@ import {
   type DataColumn,
   type SummaryItem,
 } from '@/components/report-kit';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface OeeSummary {
   totalRuns: number;
@@ -151,6 +152,7 @@ function trendSummary(trend: ReadonlyArray<TrendRow>): string {
 }
 
 function OeeTrendChart({ trend, summary }: { trend: TrendRow[]; summary: OeeSummary }) {
+  const animate = useChartAnimation();
   const legend: ChartLegendItem[] = [
     { name: 'OEE', style: OEE_STYLE, value: `rata-rata ${fmtPct(summary.avgOee)}` },
     { name: 'Availability', style: AVAIL_STYLE, value: `rata-rata ${fmtPct(summary.avgAvailability)}` },
@@ -195,10 +197,10 @@ function OeeTrendChart({ trend, summary }: { trend: TrendRow[]; summary: OeeSumm
             formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
             labelFormatter={(label, payload) => `${label} · ${payload?.[0]?.payload?.runs ?? 0} run`}
           />
-          <Line type="monotone" dataKey="avgOee" name="OEE" stroke={OEE_STYLE.color} strokeWidth={OEE_STYLE.width} dot={seriesDot(OEE_STYLE)} isAnimationActive={false} />
-          <Line type="monotone" dataKey="avgAvailability" name="Availability" stroke={AVAIL_STYLE.color} strokeWidth={AVAIL_STYLE.width} strokeDasharray={AVAIL_STYLE.dash} dot={seriesDot(AVAIL_STYLE, 3)} isAnimationActive={false} />
-          <Line type="monotone" dataKey="avgPerformance" name="Performance" stroke={PERF_STYLE.color} strokeWidth={PERF_STYLE.width} strokeDasharray={PERF_STYLE.dash} dot={seriesDot(PERF_STYLE, 3)} isAnimationActive={false} />
-          <Line type="monotone" dataKey="avgQuality" name="Quality" stroke={QUAL_STYLE.color} strokeWidth={QUAL_STYLE.width} strokeDasharray={QUAL_STYLE.dash} dot={seriesDot(QUAL_STYLE, 3)} isAnimationActive={false} />
+          <Line type="monotone" dataKey="avgOee" name="OEE" stroke={OEE_STYLE.color} strokeWidth={OEE_STYLE.width} dot={seriesDot(OEE_STYLE)} isAnimationActive={animate} />
+          <Line type="monotone" dataKey="avgAvailability" name="Availability" stroke={AVAIL_STYLE.color} strokeWidth={AVAIL_STYLE.width} strokeDasharray={AVAIL_STYLE.dash} dot={seriesDot(AVAIL_STYLE, 3)} isAnimationActive={animate} />
+          <Line type="monotone" dataKey="avgPerformance" name="Performance" stroke={PERF_STYLE.color} strokeWidth={PERF_STYLE.width} strokeDasharray={PERF_STYLE.dash} dot={seriesDot(PERF_STYLE, 3)} isAnimationActive={animate} />
+          <Line type="monotone" dataKey="avgQuality" name="Quality" stroke={QUAL_STYLE.color} strokeWidth={QUAL_STYLE.width} strokeDasharray={QUAL_STYLE.dash} dot={seriesDot(QUAL_STYLE, 3)} isAnimationActive={animate} />
         </LineChart>
       </ResponsiveContainer>
     </ChartFigure>

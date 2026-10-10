@@ -6,6 +6,7 @@ import { formatRupiah } from '@/lib/format';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE, compactIdrTick } from '../dashboard-kit/chart-theme';
+import { useChartAnimation } from '@/contexts/motion-context';
 
 interface MonthData {
   name: string;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function MonthlyProfitChart({ startDate, endDate }: Props = {}) {
+  const animate = useChartAnimation();
   const { data, isLoading, isError, refetch } = useQuery<MonthData[]>({
     queryKey: ['monthly-profit', startDate, endDate],
     queryFn: async () => (await api.get('/dashboard/monthly-profit', { params: { startDate, endDate } })).data,
@@ -60,8 +62,8 @@ export default function MonthlyProfitChart({ startDate, endDate }: Props = {}) {
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
             <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={compactIdrTick} width={44} />
             <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'var(--muted)' }} formatter={(v) => formatRupiah(Number(v))} />
-            <Bar dataKey="revenue" name="Pendapatan" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-            <Bar dataKey="expense" name="Beban" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            <Bar dataKey="revenue" name="Pendapatan" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
+            <Bar dataKey="expense" name="Beban" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />
           </BarChart>
         </ResponsiveContainer>
       </ChartFrame>

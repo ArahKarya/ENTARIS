@@ -33,6 +33,7 @@ import { AssetPickerList } from '@/components/ga/assets/AssetPickerList';
 import { OptionSelect } from '@/components/ga/assets/OptionSelect';
 import { RentalFormSheet, type BuildingRental } from '@/components/ga/assets/RentalFormSheet';
 import { useAssetSelection } from '@/components/ga/assets/useAssetSelection';
+import { scrollBehavior } from '@/lib/motion';
 
 /** Rental markers are fetched per asset; cap the fan-out for very long lists. */
 const MARKER_LIMIT = 40;
@@ -147,7 +148,7 @@ export const GaBuildingPage = () => {
     select(a.id);
     // Stacked layout (below lg): bring the detail into view.
     if (window.matchMedia('(max-width: 1023px)').matches) {
-      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' }));
     }
   };
 

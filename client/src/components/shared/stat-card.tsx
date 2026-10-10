@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Minus, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMotion } from '@/contexts/motion-context';
+import { CountUp } from './count-up';
 
 export interface StatDelta {
   /** Display text, e.g. "+12%" or "Rp 3,2 jt". */
@@ -67,6 +69,8 @@ export function StatCard({
   loading,
   className,
 }: StatCardProps) {
+  const { motion } = useMotion();
+  const countUp = motion === 'lively' && (typeof value === 'string' || typeof value === 'number');
   const effectiveDelta: StatDelta | undefined =
     delta ?? (trend ? { value: trend.value, direction: trend.positive ? 'up' : 'down' } : undefined);
   const note = hint ?? subtitle;
@@ -86,7 +90,7 @@ export function StatCard({
       ) : (
         <>
           <p className="mt-1 font-heading text-[28px] font-bold leading-[34px] tracking-tight text-foreground num">
-            {value}
+            {countUp ? <CountUp key={String(value)} text={String(value)} /> : value}
           </p>
           {valueTitle && valueTitle !== value && <p className="text-xs text-muted-foreground num">{valueTitle}</p>}
         </>
