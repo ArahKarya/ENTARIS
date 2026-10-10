@@ -137,7 +137,7 @@ export const GaDocumentsPage = () => {
               <DocumentLink onClick={() => setOpenDoc(d.id)}>{d.code}</DocumentLink>
               {/* Mobile: title + expiry marker stacked here because their columns are hidden. */}
               <span className="line-clamp-2 max-w-48 text-sm font-medium break-words text-foreground sm:hidden">{d.title}</span>
-              <span className="max-w-48 truncate text-xs text-muted-foreground lg:hidden">{d.type?.name ?? '-'}</span>
+              <span className="max-w-48 truncate text-xs text-muted-foreground lg:hidden">{d.type?.name ?? '—'}</span>
               <ExpiryDate date={d.expiryDate} state={d.expiryState} markerOnly className="md:hidden" />
             </div>
           );
@@ -166,7 +166,7 @@ export const GaDocumentsPage = () => {
         id: 'type',
         header: 'Jenis',
         meta: { hideBelow: 'lg', cellClassName: 'max-w-48 text-muted-foreground' },
-        cell: ({ row }) => row.original.type?.name ?? '-',
+        cell: ({ row }) => row.original.type?.name ?? '—',
       },
       {
         id: 'asset',
@@ -174,7 +174,7 @@ export const GaDocumentsPage = () => {
         meta: { hideBelow: 'xl', cellClassName: 'max-w-52' },
         cell: ({ row }) => {
           const a = row.original.asset;
-          if (!a) return <span className="text-muted-foreground">-</span>;
+          if (!a) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="min-w-0 text-sm">
               <p className="truncate text-foreground">{a.name}</p>
@@ -258,28 +258,28 @@ export const GaDocumentsPage = () => {
           label="Jumlah Dokumen"
           icon={FileText}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint="sesuai filter"
         />
         <StatCard
           label="Kedaluwarsa"
           icon={AlertTriangle}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.expiredCount) : '-'}
+          value={summary ? formatNumber(summary.expiredCount) : '—'}
           hint="perlu diperpanjang"
         />
         <StatCard
           label="Segera Kedaluwarsa"
           icon={Clock}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.expiringCount) : '-'}
+          value={summary ? formatNumber(summary.expiringCount) : '—'}
           hint={`dalam ${EXPIRING_SOON_DAYS} hari`}
         />
         <StatCard
           label="Berlaku"
           icon={CheckCircle2}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.validCount) : '-'}
+          value={summary ? formatNumber(summary.validCount) : '—'}
           hint="termasuk tanpa batas"
         />
       </section>

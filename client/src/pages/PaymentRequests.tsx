@@ -259,7 +259,7 @@ export const PaymentRequests = () => {
         header: 'Dibayar',
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => (row.original.paymentDate ? formatDate(row.original.paymentDate) : '-'),
+        cell: ({ row }) => (row.original.paymentDate ? formatDate(row.original.paymentDate) : '—'),
       },
       {
         id: 'age',
@@ -354,7 +354,7 @@ export const PaymentRequests = () => {
         header: 'Dibutuhkan',
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => (row.original.neededBy ? formatDate(row.original.neededBy) : '-'),
+        cell: ({ row }) => (row.original.neededBy ? formatDate(row.original.neededBy) : '—'),
       },
       {
         id: 'totalAmount',
@@ -490,7 +490,7 @@ export const PaymentRequests = () => {
               label="Uang Muka Belum Selesai"
               icon={HandCoins}
               loading={!advances}
-              value={advances ? kpiMoney(advances.amount) : '-'}
+              value={advances ? kpiMoney(advances.amount) : '—'}
               valueTitle={advances ? formatRupiah(advances.amount) : undefined}
               hint={advances ? `${formatNumber(advances.count)} uang muka` : undefined}
             />
@@ -498,21 +498,21 @@ export const PaymentRequests = () => {
               label={`Lewat ${overdueDays} Hari`}
               icon={AlarmClock}
               loading={!advances}
-              value={advances ? formatNumber(advances.overdueCount) : '-'}
+              value={advances ? formatNumber(advances.overdueCount) : '—'}
               hint={advances ? kpiMoney(advances.overdueAmount) : undefined}
             />
             <StatCard
               label="Karyawan"
               icon={Users}
               loading={!advances}
-              value={advances ? formatNumber(advances.byEmployee.length) : '-'}
+              value={advances ? formatNumber(advances.byEmployee.length) : '—'}
               hint="dengan uang muka terbuka"
             />
             <StatCard
               label="Terlama"
               icon={Hourglass}
               loading={!advances}
-              value={advances ? `${formatNumber(Math.max(0, ...advances.byEmployee.map((e) => e.oldestDays)))} hari` : '-'}
+              value={advances ? `${formatNumber(Math.max(0, ...advances.byEmployee.map((e) => e.oldestDays)))} hari` : '—'}
               hint="sejak dibayar"
             />
           </section>
@@ -552,21 +552,21 @@ export const PaymentRequests = () => {
           label="Dalam Persetujuan"
           icon={Hourglass}
           loading={kpiLoading}
-          value={summary ? formatNumber(inApproval.count) : '-'}
+          value={summary ? formatNumber(inApproval.count) : '—'}
           hint={summary ? kpiMoney(inApproval.amount) : undefined}
         />
         <StatCard
           label="Siap Dibayar"
           icon={BadgeCheck}
           loading={kpiLoading}
-          value={summary ? formatNumber(ready.count) : '-'}
+          value={summary ? formatNumber(ready.count) : '—'}
           hint={summary ? kpiMoney(ready.amount) : undefined}
         />
         <StatCard
           label="Sudah Dibayar"
           icon={Banknote}
           loading={kpiLoading}
-          value={summary ? kpiMoney(paid.amount) : '-'}
+          value={summary ? kpiMoney(paid.amount) : '—'}
           valueTitle={summary ? formatRupiah(paid.amount) : undefined}
           hint={summary ? `${formatNumber(paid.count)} pengajuan` : undefined}
         />
@@ -574,7 +574,7 @@ export const PaymentRequests = () => {
           label="Draf & Perlu Revisi"
           icon={FilePenLine}
           loading={kpiLoading}
-          value={summary ? formatNumber(needsWork.count) : '-'}
+          value={summary ? formatNumber(needsWork.count) : '—'}
           hint={summary && (byStatus.REVISION?.count ?? 0) > 0 ? `${formatNumber(byStatus.REVISION?.count ?? 0)} perlu revisi` : 'belum diajukan'}
         />
       </section>

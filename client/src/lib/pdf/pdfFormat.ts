@@ -1,6 +1,6 @@
 /**
  * Pemformat angka/tanggal untuk semua PDF — tipis di atas lib/format
- * (id-ID, "Rp", nilai kosong "-") agar tidak ada template yang memformat sendiri.
+ * (id-ID, "Rp", nilai kosong "—") agar tidak ada template yang memformat sendiri.
  */
 import { LOCALE, parseDate, formatDate, formatDateTime, formatNumber, formatRupiah, type NumericInput, type DateInput } from '../format';
 
@@ -33,5 +33,5 @@ export const pdfRpAuto = (n: NumericInput): string => pdfRp(n, hasCents(n) ? 2 :
 /** "Senin, 5 Oktober 2026" — tanggal panjang dengan nama hari (laporan harian). */
 export const pdfDateWeekday = (d: DateInput): string => {
   const date = parseDate(d);
-  return date ? date.toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+  return date ? date.toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '—';
 };

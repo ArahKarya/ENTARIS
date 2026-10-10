@@ -139,9 +139,9 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
               <>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Detail label="Diminta">{formatDate(mr.requestedAt)}</Detail>
-                  <Detail label="Pemohon">{mr.requester?.fullName || requesterName || '-'}</Detail>
-                  <Detail label="Aset">{mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : '-'}</Detail>
-                  <Detail label="Mesin / target">{mr.machineTarget || '-'}</Detail>
+                  <Detail label="Pemohon">{mr.requester?.fullName || requesterName || '—'}</Detail>
+                  <Detail label="Aset">{mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : '—'}</Detail>
+                  <Detail label="Mesin / target">{mr.machineTarget || '—'}</Detail>
                   {mr.approvedAt && <Detail label="Disetujui">{formatDate(mr.approvedAt)}</Detail>}
                   {mr.rejectedAt && <Detail label="Ditolak">{formatDate(mr.rejectedAt)}</Detail>}
                   <Detail label="Estimasi nilai">
@@ -343,7 +343,7 @@ function ItemRow({
           {item.procurementStatus === 'RECEIVED' && (
             <p className="text-xs text-success-text">
               Diterima {formatNumber(Number(item.receivedQty), { maxDecimals: 3 })} {item.uom} →{' '}
-              {item.receivedIntoLocation?.name ?? '-'} ({formatDate(item.receivedAt)})
+              {item.receivedIntoLocation?.name ?? '—'} ({formatDate(item.receivedAt)})
             </p>
           )}
         </div>

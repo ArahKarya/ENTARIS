@@ -88,7 +88,7 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
               </p>
               <p className="num font-mono text-xs text-muted-foreground">{it.sku}</p>
               {/* Mobile: category stacked here because its column is hidden. */}
-              <p className="truncate text-xs text-muted-foreground lg:hidden">{it.category?.name ?? '-'}</p>
+              <p className="truncate text-xs text-muted-foreground lg:hidden">{it.category?.name ?? '—'}</p>
             </div>
           );
         },
@@ -98,7 +98,7 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
         header: 'Kategori',
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => row.original.category?.name ?? '-',
+        cell: ({ row }) => row.original.category?.name ?? '—',
       },
       {
         id: 'totalStock',
@@ -135,7 +135,7 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => (row.original.minStock ? `${formatQty(row.original.minStock)} ${row.original.uom}` : '-'),
+        cell: ({ row }) => (row.original.minStock ? `${formatQty(row.original.minStock)} ${row.original.uom}` : '—'),
       },
       {
         id: 'stockStatus',
@@ -172,28 +172,28 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
           label="Jumlah Item"
           icon={Boxes}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary ? `${formatNumber(summary.activeCount)} aktif` : undefined}
         />
         <StatCard
           label="Stok Aman"
           icon={CheckCircle2}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.okCount) : '-'}
+          value={summary ? formatNumber(summary.okCount) : '—'}
           hint="di atas stok minimum"
         />
         <StatCard
           label="Stok Menipis"
           icon={AlertTriangle}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.lowCount) : '-'}
+          value={summary ? formatNumber(summary.lowCount) : '—'}
           hint="di bawah stok minimum"
         />
         <StatCard
           label="Stok Habis"
           icon={PackageX}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.outCount) : '-'}
+          value={summary ? formatNumber(summary.outCount) : '—'}
           hint="stok nol"
         />
       </section>

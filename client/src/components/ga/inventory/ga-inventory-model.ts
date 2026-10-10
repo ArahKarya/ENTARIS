@@ -143,5 +143,5 @@ export function movementRoute(m: Pick<GaMovementRow, 'fromLocation' | 'toLocatio
   if (from && to) return `${from} → ${to}`;
   if (to) return `→ ${to}`;
   if (from) return `${from} →`;
-  return '-';
+  return '—';
 }

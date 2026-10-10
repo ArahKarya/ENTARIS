@@ -18,7 +18,7 @@ export function PlanVsActual({ planned, actual, className }: PlanVsActualProps) 
   const planTotal = [...plan.values()].reduce((s, v) => s + v, 0);
   const realTotal = [...real.values()].reduce((s, v) => s + v, 0);
   const diffClass = (d: number) => (d > 0 ? 'text-danger' : d < 0 ? 'text-success-text' : 'text-muted-foreground');
-  const diffText = (d: number) => (d === 0 ? '-' : `${d > 0 ? '+' : '-'}${formatMoney(Math.abs(d))}`);
+  const diffText = (d: number) => (d === 0 ? '—' : `${d > 0 ? '+' : '—'}${formatMoney(Math.abs(d))}`);
 
   return (
     // Scrollable region must be keyboard-focusable (axe: scrollable-region-focusable).

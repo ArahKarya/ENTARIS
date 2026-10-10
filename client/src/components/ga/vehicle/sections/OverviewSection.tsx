@@ -205,11 +205,11 @@ export function OverviewSection({ assetId, canEdit, row, asset, assetUnavailable
         )}
         <Panel title="Aset & Nilai Buku">
           <dl className="grid grid-cols-2 gap-3">
-            <DetailItem label="Kode aset"><span className="num">{asset?.code ?? row?.code ?? '-'}</span></DetailItem>
-            <DetailItem label="Kategori">{asset?.category?.name ?? row?.categoryName ?? '-'}</DetailItem>
-            <DetailItem label="Cabang">{asset?.branch?.name ?? '-'}</DetailItem>
+            <DetailItem label="Kode aset"><span className="num">{asset?.code ?? row?.code ?? '—'}</span></DetailItem>
+            <DetailItem label="Kategori">{asset?.category?.name ?? row?.categoryName ?? '—'}</DetailItem>
+            <DetailItem label="Cabang">{asset?.branch?.name ?? '—'}</DetailItem>
             <DetailItem label="Odometer terakhir">
-              <span className="num">{row?.odometer != null ? `${formatNumber(row.odometer)} km` : '-'}</span>
+              <span className="num">{row?.odometer != null ? `${formatNumber(row.odometer)} km` : '—'}</span>
             </DetailItem>
             {fa ? (
               <>
@@ -220,7 +220,7 @@ export function OverviewSection({ assetId, canEdit, row, asset, assetUnavailable
               </>
             ) : (
               <DetailItem label="Harga perolehan">
-                <span className="num">{asset?.acquisitionCost != null ? formatRupiah(asset.acquisitionCost) : '-'}</span>
+                <span className="num">{asset?.acquisitionCost != null ? formatRupiah(asset.acquisitionCost) : '—'}</span>
               </DetailItem>
             )}
           </dl>

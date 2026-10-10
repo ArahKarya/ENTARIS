@@ -48,7 +48,7 @@ export interface ScheduleReportProps {
 }
 
 function daysText(days: number | null): string {
-  if (days === null) return '-';
+  if (days === null) return '—';
   return days < 0 ? `${Math.abs(days)} hari lewat` : `${days} hari`;
 }
 

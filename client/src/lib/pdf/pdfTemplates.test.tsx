@@ -108,6 +108,6 @@ describe('pdfFormat', () => {
     expect(pdfMoneyAuto(5500.5)).toBe('5.500,50');
     expect(pdfRpAuto(10)).toContain('10');
     expect(pdfDate('2026-10-04')).toBe('4 Oktober 2026');
-    expect(pdfDate(null)).toBe('-');
+    expect(pdfDate(null)).toBe('—');
   });
 });

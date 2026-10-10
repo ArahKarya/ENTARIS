@@ -116,13 +116,13 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
         id: 'odometer',
         header: () => <UnitHeader label="Odometer" unit="km" />,
         meta: { align: 'right', hideBelow: 'md' },
-        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '-'),
+        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '—'),
       },
       {
         id: 'biaya',
         header: () => <UnitHeader label="Biaya" />,
         meta: { align: 'right' },
-        cell: ({ row }) => (row.original.biaya != null ? money(row.original.biaya) : '-'),
+        cell: ({ row }) => (row.original.biaya != null ? money(row.original.biaya) : '—'),
       },
       {
         id: 'jurnal',

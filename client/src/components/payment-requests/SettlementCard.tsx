@@ -51,7 +51,7 @@ export function SettlementCard({ pr, onFill }: { pr: PaymentRequestDetail; onFil
           >
             {age.overdue && <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />}
             <span>
-              Uang muka {formatMoney(advance)} dibayar {pr.paymentDate ? formatDate(pr.paymentDate) : '-'},{' '}
+              Uang muka {formatMoney(advance)} dibayar {pr.paymentDate ? formatDate(pr.paymentDate) : '—'},{' '}
               <span className="num font-medium">{age.days} hari</span> belum selesai
               {age.overdue ? ` (melewati ${age.overdueDays} hari / batas waktu)` : ''}.
             </span>
@@ -110,8 +110,8 @@ export function SettlementCard({ pr, onFill }: { pr: PaymentRequestDetail; onFil
 
         {status === 'SETTLED' && (
           <dl className="space-y-1 border-t border-border pt-3 text-sm">
-            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Diposting</dt><dd>{pr.settledAt ? formatDateTime(pr.settledAt) : '-'}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Tanggal</dt><dd>{pr.settlementDate ? formatDate(pr.settlementDate) : '-'}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Diposting</dt><dd>{pr.settledAt ? formatDateTime(pr.settledAt) : '—'}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Tanggal</dt><dd>{pr.settlementDate ? formatDate(pr.settlementDate) : '—'}</dd></div>
             {pr.settlementCashAccount && (
               <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Kas/bank</dt><dd className="text-right">{pr.settlementCashAccount.accountNumber} · {pr.settlementCashAccount.name}</dd></div>
             )}

@@ -32,7 +32,7 @@ export function ExpiryDate({ date, state, markerOnly = false, showDistance = tru
   const marked = markerOnly ? (state === 'expired' || state === 'expiring' ? state : null) : state ?? null;
   if (markerOnly && !marked) return null;
   const alert = marked === 'expired' || marked === 'expiring';
-  if (!date && !markerOnly && !marked) return <span className={cn('text-muted-foreground', className)}>-</span>;
+  if (!date && !markerOnly && !marked) return <span className={cn('text-muted-foreground', className)}>—</span>;
   const Icon = marked ? ICON[marked] : null;
   return (
     <span className={cn('inline-flex flex-col items-start gap-0.5', className)}>

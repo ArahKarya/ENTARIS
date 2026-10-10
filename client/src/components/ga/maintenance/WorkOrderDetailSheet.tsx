@@ -201,15 +201,15 @@ export function WorkOrderDetailSheet({
               <>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Detail label="Jatuh tempo">
-                    {wo.dueAt ? <DueDate date={wo.dueAt} dueState={dueState} /> : '-'}
+                    {wo.dueAt ? <DueDate date={wo.dueAt} dueState={dueState} /> : '—'}
                   </Detail>
                   <Detail label="Teknisi">{assignee ?? <span className="text-muted-foreground">Belum ditugaskan</span>}</Detail>
                   <Detail label="Dilaporkan">{formatDate(wo.reportedAt)}</Detail>
-                  <Detail label="Mulai dikerjakan">{wo.startedAt ? formatDate(wo.startedAt) : '-'}</Detail>
-                  <Detail label="Selesai">{wo.completedAt ? formatDate(wo.completedAt) : '-'}</Detail>
-                  <Detail label="Ditutup">{wo.closedAt ? formatDate(wo.closedAt) : '-'}</Detail>
-                  <Detail label="Komponen">{wo.component || '-'}</Detail>
-                  <Detail label="Jadwal preventif">{wo.scheduleId ? 'Terhubung' : '-'}</Detail>
+                  <Detail label="Mulai dikerjakan">{wo.startedAt ? formatDate(wo.startedAt) : '—'}</Detail>
+                  <Detail label="Selesai">{wo.completedAt ? formatDate(wo.completedAt) : '—'}</Detail>
+                  <Detail label="Ditutup">{wo.closedAt ? formatDate(wo.closedAt) : '—'}</Detail>
+                  <Detail label="Komponen">{wo.component || '—'}</Detail>
+                  <Detail label="Jadwal preventif">{wo.scheduleId ? 'Terhubung' : '—'}</Detail>
                   {wo.description && (
                     <Detail label="Deskripsi" wide>
                       <span className="whitespace-pre-wrap">{wo.description}</span>
@@ -255,7 +255,7 @@ export function WorkOrderDetailSheet({
                       {wo.parts.map((p) => (
                         <li key={p.id} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
                           <div className="min-w-0">
-                            <p className="truncate text-foreground">{p.inventoryItem?.name ?? '-'}</p>
+                            <p className="truncate text-foreground">{p.inventoryItem?.name ?? '—'}</p>
                             <p className="num text-xs text-muted-foreground">
                               {formatNumber(toNum(p.quantity), { maxDecimals: 2 })} {p.inventoryItem?.uom ?? ''} ×{' '}
                               {formatRupiah(toNum(p.unitCost))}

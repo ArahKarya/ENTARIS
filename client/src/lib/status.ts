@@ -227,7 +227,7 @@ function humanize(status: string): string {
 }
 
 export function getStatusMeta(status: string | null | undefined, docType?: DocType): StatusMeta {
-  if (!status || !status.trim()) return m('-', 'neutral');
+  if (!status || !status.trim()) return m('—', 'neutral');
   const key = normalizeStatusKey(status);
   return BY_DOC[docType as DocType]?.[key] ?? BASE[key] ?? m(humanize(status), 'neutral');
 }

@@ -5,7 +5,7 @@
 
 export const LOCALE = 'id-ID';
 /** Shown for missing or invalid values. */
-export const EMPTY_VALUE = '-';
+export const EMPTY_VALUE = '—';
 /** Non-breaking space, as Intl uses between "Rp" and the amount. */
 const NBSP = '\u00a0';
 /** Tailwind utility defined in index.css: tabular-nums + lining-nums + nowrap. */

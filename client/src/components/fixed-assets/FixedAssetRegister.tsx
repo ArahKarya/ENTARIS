@@ -90,7 +90,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
     );
   }, [summaryQuery.data]);
   const kpiLoading = !totals && !summaryQuery.isError;
-  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
 
   const columns = useMemo<ColumnDef<FixedAssetRow>[]>(
     () => [
@@ -214,7 +214,7 @@ export function FixedAssetRegister({ list, canEdit, onOpen, onEdit, onDispose, o
           label="Aset Aktif"
           icon={Building2}
           loading={kpiLoading}
-          value={totals ? formatNumber(totals.count) : '-'}
+          value={totals ? formatNumber(totals.count) : '—'}
           hint="tidak termasuk dilepas"
         />
         <StatCard

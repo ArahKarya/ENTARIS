@@ -87,7 +87,7 @@ export const CashBookDrafts = () => {
           <div className="min-w-0">
             <p className="truncate font-medium text-foreground" title={row.original.title}>{row.original.title}</p>
             <p className="num truncate text-xs text-muted-foreground">
-              {formatDate(row.original.entryDate)} · {row.original.cashAccount ? `${row.original.cashAccount.accountNumber} ${row.original.cashAccount.name}` : '-'}
+              {formatDate(row.original.entryDate)} · {row.original.cashAccount ? `${row.original.cashAccount.accountNumber} ${row.original.cashAccount.name}` : '—'}
             </p>
           </div>
         ),
@@ -99,7 +99,7 @@ export const CashBookDrafts = () => {
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
             <SourceChip source={row.original.source} />
-            <span className="max-w-32 truncate text-xs text-muted-foreground">{row.original.createdBy.fullName ?? '-'}</span>
+            <span className="max-w-32 truncate text-xs text-muted-foreground">{row.original.createdBy.fullName ?? '—'}</span>
           </div>
         ),
       },
@@ -138,7 +138,7 @@ export const CashBookDrafts = () => {
               {formatNumber(n)} baris
             </span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           );
         },
       },

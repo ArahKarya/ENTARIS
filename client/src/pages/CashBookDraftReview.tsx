@@ -214,7 +214,7 @@ export const CashBookDraftReview = () => {
   if (reviewCount > 0) postWarnings.push(`${formatNumber(reviewCount)} baris masih ditandai Ragu / perlu ditinjau.`);
   if (duplicateCount > 0) postWarnings.push(`${formatNumber(duplicateCount)} baris ditandai kemungkinan duplikat.`);
   if (balance.checked && !balance.ok) postWarnings.push(`Saldo akhir tidak cocok (selisih ${rupiah(balance.difference ?? 0)}).`);
-  const cashLabel = draft.cashAccount ? `${draft.cashAccount.accountNumber} ${draft.cashAccount.name}` : '-';
+  const cashLabel = draft.cashAccount ? `${draft.cashAccount.accountNumber} ${draft.cashAccount.name}` : '—';
 
   return (
     <div className="space-y-5">

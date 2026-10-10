@@ -90,7 +90,7 @@ function formatColumnName(key: string): string {
 }
 
 function formatCellValue(val: unknown): string {
-  if (val === null || val === undefined) return '-';
+  if (val === null || val === undefined) return '—';
   if (typeof val === 'number') {
     return Number.isInteger(val) ? formatNumber(val) : formatNumber(val, { decimals: 2 });
   }
@@ -190,21 +190,21 @@ export default function HealthCheckPage() {
           label="Status Keseluruhan"
           icon={ListChecks}
           loading={loadingKpi}
-          value={data ? STATUS[data.status].label : '-'}
+          value={data ? STATUS[data.status].label : '—'}
           hint={data ? `${formatNumber(counts.ok)} dari ${formatNumber(checks.length)} lolos` : undefined}
         />
-        <StatCard label="OK" icon={CheckCircle2} loading={loadingKpi} value={data ? formatNumber(counts.ok) : '-'} />
+        <StatCard label="OK" icon={CheckCircle2} loading={loadingKpi} value={data ? formatNumber(counts.ok) : '—'} />
         <StatCard
           label="Peringatan"
           icon={AlertTriangle}
           loading={loadingKpi}
-          value={data ? formatNumber(counts.warning) : '-'}
+          value={data ? formatNumber(counts.warning) : '—'}
         />
         <StatCard
           label="Gagal"
           icon={XCircle}
           loading={loadingKpi}
-          value={data ? formatNumber(counts.error) : '-'}
+          value={data ? formatNumber(counts.error) : '—'}
           hint={data ? `${formatNumber(issues)} temuan` : undefined}
         />
       </section>

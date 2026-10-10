@@ -50,7 +50,7 @@ const ReviewRow = memo(function ReviewRow({ row, editable, options, selected, ex
 
   const amountCell = (side: 'masuk' | 'keluar') =>
     row.direction !== side ? (
-      <span className="text-muted-foreground" aria-label="kosong">-</span>
+      <span className="text-muted-foreground" aria-label="kosong">—</span>
     ) : canEdit ? (
       <MoneyInput aria-label={`Nominal ${side} baris ${n}`} className="min-w-24" value={row.amount} onChange={(v) => v !== null && v > 0 && onEdit(row.id, { amount: v })} />
     ) : (

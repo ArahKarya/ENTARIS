@@ -15,19 +15,19 @@ export function TravelSummary({ pr }: { pr: PaymentRequestDetail }) {
         <dl className="grid gap-x-6 gap-y-2.5 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">Kota / tujuan</dt>
-            <dd className="font-medium text-foreground">{pr.travelDestination ?? '-'}</dd>
+            <dd className="font-medium text-foreground">{pr.travelDestination ?? '—'}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Durasi</dt>
-            <dd className="font-medium text-foreground">{days ? `${days} hari (${Math.max(days - 1, 0)} malam)` : '-'}</dd>
+            <dd className="font-medium text-foreground">{days ? `${days} hari (${Math.max(days - 1, 0)} malam)` : '—'}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Berangkat</dt>
-            <dd className="text-foreground">{pr.travelStartDate ? formatDate(pr.travelStartDate) : '-'}</dd>
+            <dd className="text-foreground">{pr.travelStartDate ? formatDate(pr.travelStartDate) : '—'}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Kembali</dt>
-            <dd className="text-foreground">{pr.travelEndDate ? formatDate(pr.travelEndDate) : '-'}</dd>
+            <dd className="text-foreground">{pr.travelEndDate ? formatDate(pr.travelEndDate) : '—'}</dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-muted-foreground">Keperluan</dt>

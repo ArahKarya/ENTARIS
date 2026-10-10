@@ -21,7 +21,7 @@ export const CONDITION_OPTIONS: ReadonlyArray<{ value: AssetCondition; label: st
 
 export function conditionMeta(condition: string | null | undefined): { label: string; tone: StatusTone } {
   const found = CONDITION_OPTIONS.find((o) => o.value === condition);
-  return found ? { label: found.label, tone: found.tone } : { label: condition || '-', tone: 'neutral' };
+  return found ? { label: found.label, tone: found.tone } : { label: condition || '—', tone: 'neutral' };
 }
 
 export interface RefCodeName {
@@ -225,7 +225,7 @@ export const CALIBRATION_RESULT_OPTIONS: ReadonlyArray<{ value: 'PASS' | 'FAIL' 
 ];
 
 export function optionLabel(options: ReadonlyArray<{ value: string; label: string }>, value: string | null | undefined): string {
-  if (!value) return '-';
+  if (!value) return '—';
   return options.find((o) => o.value === value)?.label ?? value;
 }
 

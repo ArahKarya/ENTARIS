@@ -179,7 +179,7 @@ export const Quotations = () => {
 
   const total = quotationsQuery.data?.total;
   const summary = summaryQuery.data;
-  // On error the cards fall back to '-' instead of an endless skeleton.
+  // On error the cards fall back to '—' instead of an endless skeleton.
   const summaryLoading = !summary && !summaryQuery.isError;
 
   const openCreate = () => {
@@ -214,7 +214,7 @@ export const Quotations = () => {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.quotationNumber}</DocumentLink>
             {/* Mobile: customer stacked here because its column is hidden. */}
             <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
-              {row.original.customer?.name ?? '-'}
+              {row.original.customer?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -235,7 +235,7 @@ export const Quotations = () => {
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>
+            <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>
             {row.original.customer?.phone && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 {row.original.customer.phone}
@@ -297,7 +297,7 @@ export const Quotations = () => {
             return <span className="num font-mono text-xs text-success-text">{q.salesInvoice.invoiceNumber}</span>;
           }
           if (q.status === 'Accepted') return <span className="text-xs text-info-text">Belum dikonversi</span>;
-          return <span className="text-muted-foreground">-</span>;
+          return <span className="text-muted-foreground">—</span>;
         },
       },
       {
@@ -361,28 +361,28 @@ export const Quotations = () => {
           label="Jumlah Penawaran"
           icon={FileText}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary ? `Nilai ${formatRupiah(summary.grandTotal)}` : undefined}
         />
         <StatCard
           label="Terkirim"
           icon={Clock}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.sentCount) : '-'}
+          value={summary ? formatNumber(summary.sentCount) : '—'}
           hint={sentHint}
         />
         <StatCard
           label="Diterima"
           icon={CheckCircle2}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.acceptedCount) : '-'}
+          value={summary ? formatNumber(summary.acceptedCount) : '—'}
           hint={summary ? `${formatNumber(summary.awaitingConversionCount)} belum dikonversi` : undefined}
         />
         <StatCard
           label="Tingkat Konversi"
           icon={Percent}
           loading={summaryLoading}
-          value={summary ? formatPercent(summary.conversionRate) : '-'}
+          value={summary ? formatPercent(summary.conversionRate) : '—'}
           hint={summary ? `dari ${formatNumber(summary.issuedCount)} diterbitkan` : undefined}
         />
       </section>

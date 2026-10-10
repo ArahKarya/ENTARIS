@@ -40,7 +40,7 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
           <div className="min-w-0">
             <p className="text-foreground">{row.original.description}</p>
             <p className="text-xs text-muted-foreground">
-              {[row.original.location, row.original.driverName].filter(Boolean).join(' · ') || '-'}
+              {[row.original.location, row.original.driverName].filter(Boolean).join(' · ') || '—'}
             </p>
           </div>
         ),
@@ -73,7 +73,7 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
               ±{formatRupiah(est, { symbol: false })}
             </span>
           ) : (
-            '-'
+            '—'
           );
         },
       },

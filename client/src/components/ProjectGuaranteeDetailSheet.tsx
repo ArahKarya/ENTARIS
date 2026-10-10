@@ -106,16 +106,16 @@ export function ProjectGuaranteeDetailSheet({
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Pemberi proyek">{g.party?.name ?? '-'}</Detail>
+                <Detail label="Pemberi proyek">{g.party?.name ?? '—'}</Detail>
                 <Detail label="Jenis jaminan">{g.guaranteeType}</Detail>
                 <Detail label="Tanggal setor">{formatDate(g.date)}</Detail>
                 <Detail label="Jatuh tempo kembali">
                   <DueDate date={g.expectedReturnDate} dueState={g.dueState} />
                 </Detail>
                 <Detail label="Akun sumber dana">
-                  {g.account ? `${g.account.accountNumber} · ${g.account.name}` : '-'}
+                  {g.account ? `${g.account.accountNumber} · ${g.account.name}` : '—'}
                 </Detail>
-                <Detail label="No. referensi">{g.referenceNo || '-'}</Detail>
+                <Detail label="No. referensi">{g.referenceNo || '—'}</Detail>
                 {g.notes && (
                   <div className="col-span-2">
                     <Detail label="Catatan">{g.notes}</Detail>

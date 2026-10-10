@@ -140,7 +140,7 @@ export const PdfPartyBlock: React.FC<PdfPartyBlockProps> = ({ label, name, lines
   return (
     <View style={{ flex }}>
       <Text style={[S.label, { color: p.soft }]}>{label}</Text>
-      <Text style={[S.partyName, { color: p.ink }]}>{name || '-'}</Text>
+      <Text style={[S.partyName, { color: p.ink }]}>{name || '—'}</Text>
       {lines.filter(Boolean).map((l, i) => (
         <Text key={i} style={[S.partyLine, { color: p.ink }]}>{l}</Text>
       ))}
@@ -148,7 +148,7 @@ export const PdfPartyBlock: React.FC<PdfPartyBlockProps> = ({ label, name, lines
   );
 };
 
-/** Pasangan label/nilai ringkas untuk blok meta (tanggal, termin, dst). Nilai kosong -> "-". */
+/** Pasangan label/nilai ringkas untuk blok meta (tanggal, termin, dst). Nilai kosong -> "—". */
 export const PdfMetaField: React.FC<{ label: string; value?: string | null; tone?: PdfTone; bold?: boolean }> = ({
   label, value, tone = 'color', bold,
 }) => {
@@ -157,7 +157,7 @@ export const PdfMetaField: React.FC<{ label: string; value?: string | null; tone
     <View style={{ marginBottom: 5 }}>
       <Text style={[S.label, { color: p.soft }]}>{label}</Text>
       <Text style={[S.partyLine, { color: p.ink, fontFamily: bold ? F.bold : F.regular, fontSize: bold ? 10 : 9 }]}>
-        {value || '-'}
+        {value || '—'}
       </Text>
     </View>
   );
@@ -229,7 +229,7 @@ export const PdfTable: React.FC<PdfTableProps> = ({ columns, rows, tone = 'color
                 key={c.key}
                 style={[S.td, { flex: c.width, textAlign: alignOf(c.align), color: p.ink }, fontSize ? { fontSize } : {}, cellPad(i)]}
               >
-                {v == null || v === '' ? '-' : String(v)}
+                {v == null || v === '' ? '—' : String(v)}
               </Text>
             ) : (
               <View key={c.key} style={[{ flex: c.width }, cellPad(i)]}>{v}</View>

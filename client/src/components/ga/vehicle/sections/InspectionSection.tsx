@@ -93,10 +93,10 @@ function InspectionDetailDialog({
               </DialogDescription>
             </DialogHeader>
             <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <DetailItem label="Inspektor">{inspection.inspectorName || '-'}</DetailItem>
-              <DetailItem label="Level BBM">{inspection.fuelLevel ? FUEL_LEVEL_LABELS[inspection.fuelLevel] ?? inspection.fuelLevel : '-'}</DetailItem>
+              <DetailItem label="Inspektor">{inspection.inspectorName || '—'}</DetailItem>
+              <DetailItem label="Level BBM">{inspection.fuelLevel ? FUEL_LEVEL_LABELS[inspection.fuelLevel] ?? inspection.fuelLevel : '—'}</DetailItem>
               <DetailItem label="Odometer">
-                <span className="num">{inspection.odometer != null ? `${formatNumber(inspection.odometer)} km` : '-'}</span>
+                <span className="num">{inspection.odometer != null ? `${formatNumber(inspection.odometer)} km` : '—'}</span>
               </DetailItem>
               <DetailItem label="Inspeksi berikutnya">
                 <DueDateCell date={inspection.nextDueDate} state={dueStateOf(inspection.nextDueDate)} />
@@ -229,7 +229,7 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
         cell: ({ row }) => (
           <div>
             <p className="num whitespace-nowrap text-foreground">{formatDate(row.original.tanggal)}</p>
-            <p className="text-xs text-muted-foreground">{row.original.inspectorName || '-'}</p>
+            <p className="text-xs text-muted-foreground">{row.original.inspectorName || '—'}</p>
           </div>
         ),
       },
@@ -242,7 +242,7 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
         id: 'odometer',
         header: () => <UnitHeader label="Odometer" unit="km" />,
         meta: { align: 'right', hideBelow: 'md' },
-        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '-'),
+        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '—'),
       },
       {
         id: 'next',
@@ -261,7 +261,7 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
               {row.original.photos.length}
             </span>
           ) : (
-            '-'
+            '—'
           ),
       },
       {

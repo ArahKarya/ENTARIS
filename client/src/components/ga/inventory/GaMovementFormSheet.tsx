@@ -143,7 +143,7 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
               value={needs.from ? form.fromLocationId : ''}
               onChange={(v) => set('fromLocationId', v)}
               options={locationOptions}
-              placeholder={needs.from ? 'Pilih lokasi…' : '-'}
+              placeholder={needs.from ? 'Pilih lokasi…' : '—'}
               disabled={!needs.from}
             />
           </Field>
@@ -152,7 +152,7 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
               value={needs.to ? form.toLocationId : ''}
               onChange={(v) => set('toLocationId', v)}
               options={locationOptions}
-              placeholder={needs.to ? 'Pilih lokasi…' : '-'}
+              placeholder={needs.to ? 'Pilih lokasi…' : '—'}
               disabled={!needs.to}
             />
           </Field>

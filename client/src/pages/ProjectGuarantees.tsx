@@ -156,7 +156,7 @@ export const ProjectGuarantees = () => {
             <div className="flex flex-col items-start gap-0.5">
               <DocumentLink onClick={() => setSelected(g)}>{g.guaranteeNumber}</DocumentLink>
               {/* Mobile: party + project + date stacked here because their columns are hidden. */}
-              <span className="max-w-40 truncate text-sm font-medium text-foreground sm:hidden">{g.party?.name ?? '-'}</span>
+              <span className="max-w-40 truncate text-sm font-medium text-foreground sm:hidden">{g.party?.name ?? '—'}</span>
               <span className="max-w-40 truncate text-xs text-muted-foreground sm:hidden">{g.projectName}</span>
               <span className="num text-xs text-muted-foreground md:hidden">{formatDate(g.date)}</span>
             </div>
@@ -180,7 +180,7 @@ export const ProjectGuarantees = () => {
           const g = row.original;
           return (
             <div className="min-w-0">
-              <p className="truncate font-medium text-foreground">{g.party?.name ?? '-'}</p>
+              <p className="truncate font-medium text-foreground">{g.party?.name ?? '—'}</p>
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden" title={g.projectName}>
                 {g.guaranteeType} · {g.projectName}
               </p>
@@ -261,7 +261,7 @@ export const ProjectGuarantees = () => {
     [canEdit, canCancel],
   );
 
-  const kpiMoney = (v: number | undefined) => (v === undefined ? '-' : formatRupiah(v, { compact: true }));
+  const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
   const kpiLoading = !summary && !summaryQuery.isError;
 
   return (
@@ -308,7 +308,7 @@ export const ProjectGuarantees = () => {
           label="Lewat Jatuh Tempo"
           icon={AlertTriangle}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.overdueCount) : '-'}
+          value={summary ? formatNumber(summary.overdueCount) : '—'}
           hint={
             summary
               ? summary.overdueCount > 0

@@ -97,10 +97,10 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72 text-xs' },
         cell: ({ row }) => {
           const s = row.original.summary;
-          if (!s) return <span className="text-muted-foreground">-</span>;
+          if (!s) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="space-y-0.5">
-              <div className="truncate font-medium text-foreground">{s.mainOutput ?? '-'}</div>
+              <div className="truncate font-medium text-foreground">{s.mainOutput ?? '—'}</div>
               <div className="num text-muted-foreground">
                 Input {formatQty(s.inputQty)} → Output {formatQty(s.outputQty)}
               </div>
@@ -112,7 +112,7 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
         id: 'createdBy',
         header: 'Dibuat oleh',
         meta: { hideBelow: 'lg', cellClassName: 'text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.createdBy?.fullName ?? '-',
+        cell: ({ row }) => row.original.createdBy?.fullName ?? '—',
       },
       {
         id: 'status',

@@ -123,7 +123,7 @@ export const EamBillsTab = () => {
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => (row.original.date ? formatDate(row.original.date) : '-'),
+        cell: ({ row }) => (row.original.date ? formatDate(row.original.date) : '—'),
       },
       {
         id: 'description',
@@ -158,7 +158,7 @@ export const EamBillsTab = () => {
         meta: { hideBelow: 'lg', cellClassName: 'min-w-36 max-w-56' },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate text-foreground">{row.original.assetName ?? '-'}</p>
+            <p className="truncate text-foreground">{row.original.assetName ?? '—'}</p>
             {row.original.assetCode && (
               <p className="num truncate font-mono text-xs text-muted-foreground">{row.original.assetCode}</p>
             )}
@@ -233,14 +233,14 @@ export const EamBillsTab = () => {
           label="Belum Diposting"
           icon={AlertCircle}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.pendingCount) : '-'}
+          value={summary ? formatNumber(summary.pendingCount) : '—'}
           hint="semua jenis"
         />
         <StatCard
           label="Nilai Belum Diposting"
           icon={Wallet}
           loading={kpiLoading}
-          value={summary ? formatRupiah(summary.pendingAmount, { compact: true }) : '-'}
+          value={summary ? formatRupiah(summary.pendingAmount, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.pendingAmount) : undefined}
           hint={summary ? formatRupiah(summary.pendingAmount) : undefined}
         />
@@ -248,7 +248,7 @@ export const EamBillsTab = () => {
           label="Sesuai Filter"
           icon={list.filters.posting ? CheckCircle2 : ListFilter}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.matchedCount) : '-'}
+          value={summary ? formatNumber(summary.matchedCount) : '—'}
           hint={summary ? `Nilai ${formatRupiah(summary.matchedAmount)}` : undefined}
           className="col-span-2 lg:col-span-1"
         />

@@ -77,7 +77,7 @@ export const GoodsReceipts = () => {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.sttNumber}</DocumentLink>
             {/* Mobile: supplier + date stacked here because their columns are hidden. */}
             <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
-              {row.original.supplier?.name ?? '-'}
+              {row.original.supplier?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -96,7 +96,7 @@ export const GoodsReceipts = () => {
         header: 'Pemasok',
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
-        cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.supplier?.name ?? '-'}</p>,
+        cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.supplier?.name ?? '—'}</p>,
       },
       {
         id: 'purchaseOrder',
@@ -106,14 +106,14 @@ export const GoodsReceipts = () => {
           row.original.purchaseOrder ? (
             <span className="num font-mono text-xs text-foreground">{row.original.purchaseOrder.poNumber}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
         id: 'nomorMobil',
         header: 'No. Mobil',
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
-        cell: ({ row }) => row.original.nomorMobil || '-',
+        cell: ({ row }) => row.original.nomorMobil || '—',
       },
       {
         id: 'items',
@@ -144,7 +144,7 @@ export const GoodsReceipts = () => {
           row.original.invoice ? (
             <span className="num font-mono text-xs text-foreground">{row.original.invoice.invoiceNumber}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {

@@ -133,7 +133,7 @@ export const Inquiries = () => {
 
   const total = inquiriesQuery.data?.total;
   const summary = summaryQuery.data;
-  // On error the cards fall back to '-' instead of an endless skeleton.
+  // On error the cards fall back to '—' instead of an endless skeleton.
   const summaryLoading = !summary && !summaryQuery.isError;
 
   const openCreate = () => {
@@ -194,7 +194,7 @@ export const Inquiries = () => {
           const q = row.original;
           const phone = q.prospectPhone || q.party?.phone;
           const email = q.prospectEmail || q.party?.email;
-          if (!phone && !email) return <span className="text-muted-foreground">-</span>;
+          if (!phone && !email) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="min-w-0 text-xs text-muted-foreground">
               {phone && <p className="num truncate">{phone}</p>}
@@ -231,7 +231,7 @@ export const Inquiries = () => {
           row.original.quotation ? (
             <span className="num font-mono text-xs text-success-text">{row.original.quotation.quotationNumber}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -289,28 +289,28 @@ export const Inquiries = () => {
           label="Jumlah Pertanyaan"
           icon={Inbox}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.count) : '-'}
+          value={summary ? formatNumber(summary.count) : '—'}
           hint={summary ? `${formatNumber(summary.inProgressCount)} sedang diproses` : undefined}
         />
         <StatCard
           label="Baru"
           icon={Inbox}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.newCount) : '-'}
+          value={summary ? formatNumber(summary.newCount) : '—'}
           hint="belum ditindaklanjuti"
         />
         <StatCard
           label="Dikonversi"
           icon={CheckCircle2}
           loading={summaryLoading}
-          value={summary ? formatNumber(summary.convertedCount) : '-'}
+          value={summary ? formatNumber(summary.convertedCount) : '—'}
           hint="jadi penawaran"
         />
         <StatCard
           label="Tingkat Konversi"
           icon={Percent}
           loading={summaryLoading}
-          value={summary ? formatPercent(summary.conversionRate) : '-'}
+          value={summary ? formatPercent(summary.conversionRate) : '—'}
           hint="dari semua pertanyaan"
         />
       </section>

@@ -18,7 +18,7 @@ interface NegativeStockItem {
 }
 
 function daysAgo(iso: string | null): string {
-  if (!iso) return '-';
+  if (!iso) return '—';
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   if (days <= 0) return 'hari ini';
   if (days === 1) return '1 hari lalu';

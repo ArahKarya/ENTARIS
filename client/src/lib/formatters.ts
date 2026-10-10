@@ -7,9 +7,9 @@ export const formatRupiah = (value: number) => {
 };
 
 export const formatDate = (date: string | Date | null | undefined) => {
-  if (!date) return '-';
+  if (!date) return '—';
   const d = new Date(date);
-  if (isNaN(d.getTime())) return '-';
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('id-ID', {
     day: '2-digit',
     month: 'short',
@@ -18,9 +18,9 @@ export const formatDate = (date: string | Date | null | undefined) => {
 };
 
 export const formatTime = (date: string | Date | null | undefined) => {
-  if (!date) return '-';
+  if (!date) return '—';
   const d = new Date(date);
-  if (isNaN(d.getTime())) return '-';
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit'

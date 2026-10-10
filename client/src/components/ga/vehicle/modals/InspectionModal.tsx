@@ -173,7 +173,7 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
 
         <p className="flex items-center gap-2 rounded-md bg-info-subtle px-3 py-2 text-xs text-info-text">
           <CalendarClock className="size-4 shrink-0" aria-hidden />
-          Jadwal inspeksi berikutnya: <strong className="num">{nextDueDate ? formatDate(nextDueDate) : '-'}</strong>
+          Jadwal inspeksi berikutnya: <strong className="num">{nextDueDate ? formatDate(nextDueDate) : '—'}</strong>
         </p>
 
         <fieldset className="space-y-2">

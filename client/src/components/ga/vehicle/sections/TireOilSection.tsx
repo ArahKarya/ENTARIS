@@ -126,7 +126,7 @@ export function TireOilSection({ assetId, canEdit, odometer }: TireOilSectionPro
         id: 'installedOdometer',
         header: () => <UnitHeader label="Odo pasang" unit="km" />,
         meta: { align: 'right', hideBelow: 'lg' },
-        cell: ({ row }) => (row.original.installedOdometer != null ? formatNumber(row.original.installedOdometer) : '-'),
+        cell: ({ row }) => (row.original.installedOdometer != null ? formatNumber(row.original.installedOdometer) : '—'),
       },
       {
         id: 'status',
@@ -190,7 +190,7 @@ export function TireOilSection({ assetId, canEdit, odometer }: TireOilSectionPro
         id: 'notes',
         header: 'Catatan',
         meta: { hideBelow: 'lg', cellClassName: 'max-w-64 truncate text-muted-foreground' },
-        cell: ({ row }) => row.original.notes || '-',
+        cell: ({ row }) => row.original.notes || '—',
       },
       {
         id: 'actions',

@@ -231,7 +231,7 @@ const SalesOrderModal: React.FC<Props> = ({ isOpen, onClose, editTarget }) => {
           <FormDialogBody>
             {quotationId && (
               <p className="rounded-md bg-info-subtle px-3 py-2 text-xs text-info-text">
-                Dari penawaran <span className="font-mono font-semibold">{quotationNumber || '-'}</span>
+                Dari penawaran <span className="font-mono font-semibold">{quotationNumber || '—'}</span>
               </p>
             )}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">

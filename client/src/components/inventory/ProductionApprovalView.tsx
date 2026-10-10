@@ -72,18 +72,18 @@ export function ProductionApprovalView({ children }: { children: ReactNode }) {
         <Metric
           icon={Hourglass}
           label={decider ? 'Menunggu keputusan' : 'Pengajuan Anda menunggu'}
-          value={pending.data ? formatQueueCount(pendingRows.length) : '-'}
+          value={pending.data ? formatQueueCount(pendingRows.length) : '—'}
           tone={pendingRows.length > 0 ? 'warning' : undefined}
         />
         <Metric
           icon={RotateCcw}
           label="Perlu revisi"
-          value={revision.data ? formatQueueCount(revision.data.length) : '-'}
+          value={revision.data ? formatQueueCount(revision.data.length) : '—'}
         />
         <Metric
           icon={Clock3}
           label="Antrean tertua"
-          value={pendingRows.length === 0 ? '-' : oldest === 0 ? 'Hari ini' : `${formatNumber(oldest)} hari`}
+          value={pendingRows.length === 0 ? '—' : oldest === 0 ? 'Hari ini' : `${formatNumber(oldest)} hari`}
           tone={oldest >= 3 ? 'danger' : undefined}
         />
       </section>

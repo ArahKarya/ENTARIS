@@ -98,7 +98,7 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
       columns={ITEM_COLS}
       rows={rows.map((it, i) => ({
         no: String(i + 1),
-        code: it.code || '-',
+        code: it.code || '—',
         name: (
           <View>
             <Text style={{ fontSize: 10 }}>{it.name}</Text>
@@ -107,10 +107,10 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
         ),
         qty: <Text style={{ fontSize: 10, fontFamily: F.bold, textAlign: 'right' }}>{fmtNum(it.qty)}</Text>,
         unit: it.unit,
-        cost: it.unitCost != null ? fmtRp(it.unitCost, 2) : '-',
+        cost: it.unitCost != null ? fmtRp(it.unitCost, 2) : '—',
         total: it.unitCost != null ? (
           <Text style={{ fontSize: 10, fontFamily: F.bold, textAlign: 'right' }}>{fmtRp((it.unitCost ?? 0) * it.qty, 0)}</Text>
-        ) : '-',
+        ) : '—',
       }))}
     />
   );

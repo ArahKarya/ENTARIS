@@ -81,28 +81,28 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
           label="Total Item"
           icon={Package}
           loading={loading}
-          value={s ? formatNumber(s.totalItems) : '-'}
+          value={s ? formatNumber(s.totalItems) : '—'}
           hint={s ? `${formatNumber(s.activeItems)} aktif · ${formatNumber(s.categoryCount)} kategori` : undefined}
         />
         <StatCard
           label="Total Kuantitas"
           icon={Boxes}
           loading={loading}
-          value={s ? formatQty(s.totalQty) : '-'}
+          value={s ? formatQty(s.totalQty) : '—'}
           hint={s ? `di ${formatNumber(s.locationCount)} lokasi` : undefined}
         />
         <StatCard
           label="Perlu Restock"
           icon={AlertTriangle}
           loading={loading}
-          value={s ? formatNumber(s.lowStockCount) : '-'}
+          value={s ? formatNumber(s.lowStockCount) : '—'}
           hint={s ? `di bawah minimum · ${formatNumber(s.outOfStockCount)} habis` : undefined}
         />
         <StatCard
           label="Mutasi 30 Hari"
           icon={TrendingUp}
           loading={loading}
-          value={s ? formatNumber(s.movements30d) : '-'}
+          value={s ? formatNumber(s.movements30d) : '—'}
           hint={s ? `${formatNumber(s.itemsMoved30d)} item bergerak` : undefined}
         />
       </section>
@@ -257,7 +257,7 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
               {d?.recentMovements.map((m) => (
                 <li key={m.id} className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{m.item?.name ?? '-'}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{m.item?.name ?? '—'}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       <span className="num">{formatDateTime(m.createdAt)}</span> · {movementRoute(m)}
                     </p>

@@ -96,7 +96,7 @@ describe('labels and parsing', () => {
 
   it('labels enum options', () => {
     expect(optionLabel(OWNERSHIP_OPTIONS, 'SEWA_MASUK')).toBe('Disewa (sewa masuk)');
-    expect(optionLabel(OWNERSHIP_OPTIONS, null)).toBe('-');
+    expect(optionLabel(OWNERSHIP_OPTIONS, null)).toBe('—');
   });
 
   it('parses optional numbers', () => {

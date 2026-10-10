@@ -21,6 +21,6 @@ describe('ga inventory model', () => {
     expect(formatMovementQty({ type: 'OUT', quantity: 4 })).toBe('4');
     expect(movementRoute({ fromLocation: { code: 'A', name: 'Gudang A' }, toLocation: { code: 'B' } })).toBe('Gudang A → B');
     expect(movementRoute({ toLocation: { code: 'B', name: 'Gudang B' } })).toBe('→ Gudang B');
-    expect(movementRoute({})).toBe('-');
+    expect(movementRoute({})).toBe('—');
   });
 });

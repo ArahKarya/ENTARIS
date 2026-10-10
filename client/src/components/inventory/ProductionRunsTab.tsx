@@ -50,7 +50,7 @@ interface ProductionRunsTabProps {
 }
 
 function Lines({ lines, cancelled }: { lines: ProductionRunLine[]; cancelled: boolean }) {
-  if (lines.length === 0) return <span className="text-muted-foreground">-</span>;
+  if (lines.length === 0) return <span className="text-muted-foreground">—</span>;
   return (
     <ul className={cn('min-w-0 space-y-0.5 text-xs', cancelled && 'line-through')}>
       {lines.map((l, idx) => (
@@ -58,7 +58,7 @@ function Lines({ lines, cancelled }: { lines: ProductionRunLine[]; cancelled: bo
           key={l.id}
           className={cn('flex min-w-0 items-baseline gap-1.5', idx > 0 && 'group-data-[density=compact]/table:hidden')}
         >
-          <span className="truncate font-medium text-foreground">{l.item?.name ?? '-'}</span>
+          <span className="truncate font-medium text-foreground">{l.item?.name ?? '—'}</span>
           <span className="num shrink-0 text-muted-foreground">
             {formatQty(l.quantity)} {l.item?.unit}
           </span>
@@ -130,7 +130,7 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
         id: 'reference',
         header: 'Referensi',
         meta: { hideBelow: 'xl', cellClassName: 'num font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.referenceNumber || '-',
+        cell: ({ row }) => row.original.referenceNumber || '—',
       },
       {
         id: 'inputs',
@@ -155,7 +155,7 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
           return (
             <div className="flex flex-col items-end gap-1">
               <span className={cn(r.isCancelled ? 'text-muted-foreground line-through' : 'font-medium text-foreground')}>
-                {r.yieldPct != null ? `${formatNumber(r.yieldPct, { decimals: 1 })}%` : '-'}
+                {r.yieldPct != null ? `${formatNumber(r.yieldPct, { decimals: 1 })}%` : '—'}
               </span>
               {r.isCancelled && <StatusBadge status="Cancelled" docType="production_run" />}
             </div>
@@ -166,7 +166,7 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
         id: 'notes',
         header: 'Catatan',
         meta: { hideBelow: 'xl', cellClassName: 'max-w-44 truncate text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.notes || '-',
+        cell: ({ row }) => row.original.notes || '—',
       },
       {
         id: 'actions',
@@ -203,28 +203,28 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
           label="Proses Produksi"
           icon={Factory}
           loading={kpiLoading}
-          value={summary ? formatNumber(summary.activeCount) : '-'}
+          value={summary ? formatNumber(summary.activeCount) : '—'}
           hint={summary && summary.cancelledCount > 0 ? `${formatNumber(summary.cancelledCount)} dibatalkan` : 'diposting'}
         />
         <StatCard
           label="Total Input"
           icon={Scale}
           loading={kpiLoading}
-          value={summary ? `${formatQty(summary.inputQty)}${unit}` : '-'}
+          value={summary ? `${formatQty(summary.inputQty)}${unit}` : '—'}
           hint="bahan baku dipakai"
         />
         <StatCard
           label="Total Output"
           icon={Scale}
           loading={kpiLoading}
-          value={summary ? `${formatQty(summary.outputQty)}${unit}` : '-'}
+          value={summary ? `${formatQty(summary.outputQty)}${unit}` : '—'}
           hint={summary && summary.byproductQty > 0 ? `termasuk samping ${formatQty(summary.byproductQty)}${unit}` : 'produk dihasilkan'}
         />
         <StatCard
           label="Rendemen Rata-rata"
           icon={Percent}
           loading={kpiLoading}
-          value={summary?.yieldPct != null ? `${formatNumber(summary.yieldPct, { decimals: 1 })}%` : '-'}
+          value={summary?.yieldPct != null ? `${formatNumber(summary.yieldPct, { decimals: 1 })}%` : '—'}
           hint="tertimbang input"
         />
       </section>

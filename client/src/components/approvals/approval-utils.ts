@@ -90,7 +90,7 @@ export function approvalLabels(ctx: ApprovalLookupContext | null | undefined, lo
   const shortId = (id: string | null | undefined) => (id ? id.slice(0, 8) : '?');
   return {
     partyName: (partyId) => {
-      if (!partyId) return '-';
+      if (!partyId) return '—';
       const name = (ctx?.party?.id === partyId ? ctx.party.name : null) ?? ctx?.supplier?.name;
       if (name) return name;
       return loading ? '…' : `(pihak ${shortId(partyId)})`;

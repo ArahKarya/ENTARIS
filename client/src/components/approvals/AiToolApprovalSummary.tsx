@@ -24,7 +24,7 @@ export function AiToolApprovalSummary({ payload, status }: { payload: Record<str
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-foreground">{p.confirm || p.tool || 'Permintaan AIRA'}</p>
           <p className="text-xs text-muted-foreground">
-            Tool <span className="font-mono">{p.tool ?? '-'}</span> ({p.risk ?? '-'}) · diminta {p.actor?.name ?? '-'}
+            Tool <span className="font-mono">{p.tool ?? '—'}</span> ({p.risk ?? '—'}) · diminta {p.actor?.name ?? '—'}
             {p.actor?.jabatan ? ` (${p.actor.jabatan})` : ''} lewat {p.channel ?? 'MCP'}
             {p.tokenName ? ` · token ${p.tokenName}` : ''}
           </p>

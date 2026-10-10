@@ -193,7 +193,7 @@ export default function MachinesTab() {
               meta: { align: 'right', hideBelow: 'md' },
               cell: ({ row }) => {
                 const o = oeeById.get(row.original.id);
-                if (!o || o.runs === 0) return <span className="text-muted-foreground">-</span>;
+                if (!o || o.runs === 0) return <span className="text-muted-foreground">—</span>;
                 return (
                   <span
                     className={cn(

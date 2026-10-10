@@ -30,7 +30,7 @@ interface FixedAssetDetailSheetProps {
 }
 
 const num = (v: unknown) => toNumber(v as string | number | null) ?? 0;
-const account = (a?: { accountNumber: string; name: string } | null) => (a ? `${a.accountNumber} · ${a.name}` : '-');
+const account = (a?: { accountNumber: string; name: string } | null) => (a ? `${a.accountNumber} · ${a.name}` : '—');
 
 function Detail({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
   return (
@@ -128,7 +128,7 @@ export function FixedAssetDetailSheet({
                 <Detail label="Masa manfaat">{formatNumber(asset.usefulLifeMonths)} bulan</Detail>
                 <Detail label="Nilai sisa">{formatRupiah(asset.salvageValue)}</Detail>
                 <Detail label="Metode">{asset.depreciationMethod === 'straight_line' ? 'Garis lurus' : asset.depreciationMethod}</Detail>
-                <Detail label="Dibuat oleh">{asset.user?.fullName ?? '-'}</Detail>
+                <Detail label="Dibuat oleh">{asset.user?.fullName ?? '—'}</Detail>
                 {asset.gaAsset && (
                   <Detail label="Aset EAM terkait">
                     <span className="font-mono">{asset.gaAsset.code}</span> · {asset.gaAsset.name}

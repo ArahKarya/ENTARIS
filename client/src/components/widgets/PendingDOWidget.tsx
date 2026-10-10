@@ -66,7 +66,7 @@ export default function PendingDOWidget() {
                   <span className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">{it.doNumber}</span>
                   <span className="text-muted-foreground">{formatDate(it.date)}</span>
                 </div>
-                <p className="mt-0.5 truncate font-medium text-foreground">{it.customer?.name ?? '-'}</p>
+                <p className="mt-0.5 truncate font-medium text-foreground">{it.customer?.name ?? '—'}</p>
                 <p className="num mt-0.5 text-[11px] text-muted-foreground">
                   {it.totalQty.toLocaleString('id-ID', { maximumFractionDigits: 3 })} {it.unit} - {it.itemCount} item
                 </p>

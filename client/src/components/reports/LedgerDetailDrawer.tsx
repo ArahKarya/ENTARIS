@@ -109,13 +109,13 @@ const LedgerDetailDrawer: React.FC<LedgerDetailDrawerProps> = ({
                         </button>
                       </td>
                       <td className="max-w-[200px] truncate px-3 py-2.5 text-muted-foreground" title={entry.description || ''}>
-                        {entry.description || '-'}
+                        {entry.description || '—'}
                       </td>
                       <td className={cn('whitespace-nowrap px-3 py-2.5 text-right tabular-nums', entry.debit > 0 ? 'text-foreground' : 'text-muted-foreground')}>
-                        {entry.debit > 0 ? formatRupiah(entry.debit) : '-'}
+                        {entry.debit > 0 ? formatRupiah(entry.debit) : '—'}
                       </td>
                       <td className={cn('whitespace-nowrap px-3 py-2.5 text-right tabular-nums', entry.credit > 0 ? 'text-foreground' : 'text-muted-foreground')}>
-                        {entry.credit > 0 ? formatRupiah(entry.credit) : '-'}
+                        {entry.credit > 0 ? formatRupiah(entry.credit) : '—'}
                       </td>
                       <td className={cn('whitespace-nowrap px-3 py-2.5 text-right font-medium tabular-nums', entry.runningBalance < 0 ? 'text-danger-text' : 'text-foreground')}>
                         {formatRupiah(Math.abs(entry.runningBalance))}

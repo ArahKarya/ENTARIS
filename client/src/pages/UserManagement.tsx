@@ -270,7 +270,7 @@ export const UserManagement = () => {
           row.original.supervisor ? (
             <span title={row.original.supervisor.fullName}>{row.original.supervisor.fullName}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
@@ -402,27 +402,27 @@ export const UserManagement = () => {
           label="Jumlah Pengguna"
           icon={Users}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.total) : '-'}
+          value={summary ? formatNumber(summary.total) : '—'}
         />
         <StatCard
           label="Aktif"
           icon={UserCheck}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.active) : '-'}
+          value={summary ? formatNumber(summary.active) : '—'}
           hint="dapat masuk ke aplikasi"
         />
         <StatCard
           label="Nonaktif"
           icon={UserX}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.inactive) : '-'}
+          value={summary ? formatNumber(summary.inactive) : '—'}
           hint="akses diblokir"
         />
         <StatCard
           label="Telegram Tertaut"
           icon={Send}
           loading={!summary && !summaryQuery.isError}
-          value={summary ? formatNumber(summary.telegramLinked) : '-'}
+          value={summary ? formatNumber(summary.telegramLinked) : '—'}
           hint="menerima notifikasi"
         />
       </section>

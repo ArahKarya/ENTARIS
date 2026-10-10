@@ -60,10 +60,10 @@ const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'stock_transfer'
 function Route({ row, className }: { row: StockTransferRow; className?: string }) {
   return (
     <span className={className}>
-      <span className="text-foreground">{row.fromWarehouse?.name ?? '-'}</span>
+      <span className="text-foreground">{row.fromWarehouse?.name ?? '—'}</span>
       <ArrowRight className="mx-1 inline size-3 align-[-1px] text-muted-foreground" aria-hidden />
       <span className="sr-only"> ke </span>
-      <span className="font-medium text-foreground">{row.toWarehouse?.name ?? '-'}</span>
+      <span className="font-medium text-foreground">{row.toWarehouse?.name ?? '—'}</span>
     </span>
   );
 }
@@ -152,13 +152,13 @@ export const StockTransfers = () => {
         id: 'nomorMobil',
         header: 'No. Mobil',
         meta: { hideBelow: 'xl', cellClassName: 'num whitespace-nowrap font-mono text-xs uppercase' },
-        cell: ({ row }) => row.original.nomorMobil || <span className="text-muted-foreground">-</span>,
+        cell: ({ row }) => row.original.nomorMobil || <span className="text-muted-foreground">—</span>,
       },
       {
         id: 'driverName',
         header: 'Supir',
         meta: { hideBelow: 'lg' },
-        cell: ({ row }) => row.original.driverName || <span className="text-muted-foreground">-</span>,
+        cell: ({ row }) => row.original.driverName || <span className="text-muted-foreground">—</span>,
       },
       {
         id: 'items',

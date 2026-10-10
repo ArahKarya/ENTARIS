@@ -90,7 +90,7 @@ export function GaMaterialRequestPage() {
               <DocumentLink onClick={() => openDetail(mr)}>{mr.code}</DocumentLink>
               {/* Mobile: target + date stacked here because their columns are hidden. */}
               <span className="max-w-48 truncate text-xs text-muted-foreground sm:hidden">
-                {mr.asset ? mr.asset.name : mr.machineTarget || '-'}
+                {mr.asset ? mr.asset.name : mr.machineTarget || '—'}
               </span>
               <span className="num text-xs text-muted-foreground md:hidden">{formatDate(mr.requestedAt ?? mr.createdAt)}</span>
             </div>
@@ -113,7 +113,7 @@ export function GaMaterialRequestPage() {
           const mr = row.original;
           return (
             <div className="min-w-0">
-              <p className="truncate font-medium text-foreground">{mr.asset ? mr.asset.name : mr.machineTarget || '-'}</p>
+              <p className="truncate font-medium text-foreground">{mr.asset ? mr.asset.name : mr.machineTarget || '—'}</p>
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
                 {mr.asset ? mr.asset.code : ''}
                 {mr.items.length > 0 && `${mr.asset ? ' · ' : ''}${mr.items.map((i) => i.itemName).join(', ')}`}
@@ -133,14 +133,14 @@ export function GaMaterialRequestPage() {
               {row.original.workOrder.code}
             </span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {
         id: 'requester',
         header: 'Pemohon',
         meta: { hideBelow: 'xl', cellClassName: 'max-w-40 truncate' },
-        cell: ({ row }) => row.original.requester?.fullName ?? '-',
+        cell: ({ row }) => row.original.requester?.fullName ?? '—',
       },
       {
         id: 'items',
@@ -171,7 +171,7 @@ export function GaMaterialRequestPage() {
 
   const s = summaryQuery.data;
   const kpiLoading = !s && !summaryQuery.isError;
-  const n = (v: number | undefined) => (v === undefined ? '-' : formatNumber(v));
+  const n = (v: number | undefined) => (v === undefined ? '—' : formatNumber(v));
 
   return (
     <div className="space-y-5 pb-8">

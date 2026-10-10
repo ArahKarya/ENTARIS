@@ -84,7 +84,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
             <DocumentLink onClick={() => setSelectedId(row.original.id)}>{row.original.doNumber}</DocumentLink>
             {/* Mobile: customer + date stacked here because their columns are hidden. */}
             <span className="max-w-44 truncate text-sm font-medium text-foreground sm:hidden">
-              {row.original.customer?.name ?? '-'}
+              {row.original.customer?.name ?? '—'}
             </span>
             <span className="num text-xs text-muted-foreground md:hidden">{formatDate(row.original.date)}</span>
           </div>
@@ -103,7 +103,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
         header: 'Pelanggan',
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
-        cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '-'}</p>,
+        cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>,
       },
       {
         id: 'poRef',
@@ -111,10 +111,10 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
         meta: { hideBelow: 'lg', cellClassName: 'min-w-32 whitespace-nowrap' },
         cell: ({ row }) => {
           const so = row.original.salesOrder;
-          if (!so) return <span className="text-muted-foreground">-</span>;
+          if (!so) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="flex flex-col">
-              <span className="num font-mono text-xs text-foreground">{so.customerRefNo?.trim() || '-'}</span>
+              <span className="num font-mono text-xs text-foreground">{so.customerRefNo?.trim() || '—'}</span>
               <span className="num font-mono text-xs text-muted-foreground">{so.soNumber}</span>
             </div>
           );
@@ -124,7 +124,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
         id: 'nomorMobil',
         header: 'No. Mobil',
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
-        cell: ({ row }) => row.original.nomorMobil || '-',
+        cell: ({ row }) => row.original.nomorMobil || '—',
       },
       {
         id: 'items',
@@ -155,7 +155,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
           row.original.invoice ? (
             <span className="num font-mono text-xs text-foreground">{row.original.invoice.invoiceNumber}</span>
           ) : (
-            <span className="text-muted-foreground">-</span>
+            <span className="text-muted-foreground">—</span>
           ),
       },
       {

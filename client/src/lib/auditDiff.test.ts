@@ -50,7 +50,7 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime('2026-10-04T11:55:00Z', now)).toBe('5 menit yang lalu');
     expect(formatRelativeTime('2026-10-04T09:00:00Z', now)).toBe('3 jam yang lalu');
     expect(formatRelativeTime('2026-10-03T12:00:00Z', now)).toBe('kemarin');
-    expect(formatRelativeTime('invalid', now)).toBe('-');
+    expect(formatRelativeTime('invalid', now)).toBe('—');
   });
 });
 

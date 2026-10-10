@@ -143,7 +143,7 @@ export const GaAssetsPage = () => {
               <DocumentLink onClick={() => openAsset(a)}>{a.code}</DocumentLink>
               {/* Mobile: name + category stacked here because their columns are hidden. */}
               <span className="line-clamp-2 max-w-44 whitespace-normal text-sm font-medium break-words text-foreground sm:hidden">{a.name}</span>
-              <span className="text-xs text-muted-foreground md:hidden">{a.category?.name ?? '-'}</span>
+              <span className="text-xs text-muted-foreground md:hidden">{a.category?.name ?? '—'}</span>
               <StatusBadge status={a.status} docType="ga_asset" className="mt-0.5 sm:hidden" />
             </div>
           );
@@ -182,13 +182,13 @@ export const GaAssetsPage = () => {
         id: 'category',
         header: 'Kategori',
         meta: { hideBelow: 'md', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => row.original.category?.name ?? '-',
+        cell: ({ row }) => row.original.category?.name ?? '—',
       },
       {
         id: 'branch',
         header: 'Cabang',
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
-        cell: ({ row }) => row.original.branch?.name ?? '-',
+        cell: ({ row }) => row.original.branch?.name ?? '—',
       },
       {
         id: 'condition',

@@ -152,7 +152,7 @@ export default function AuditLogDetailSheet({ open, log, loading, error, onClose
                   <span className="block text-xs text-muted-foreground">{formatRelativeTime(log.createdAt)}</span>
                 </Detail>
                 <Detail label="Pengguna">
-                  {log.user?.fullName ?? '-'}
+                  {log.user?.fullName ?? '—'}
                   {log.user?.email && <span className="block text-xs text-muted-foreground">{log.user.email}</span>}
                 </Detail>
                 <Detail label="Entitas">{log.entityType}</Detail>
@@ -160,7 +160,7 @@ export default function AuditLogDetailSheet({ open, log, loading, error, onClose
                   <span className="break-all font-mono text-xs">{log.entityId}</span>
                 </Detail>
                 <Detail label="Alamat IP">
-                  <span className="font-mono text-xs">{log.ipAddress ?? '-'}</span>
+                  <span className="font-mono text-xs">{log.ipAddress ?? '—'}</span>
                 </Detail>
                 {log.userAgent && (
                   <Detail label="Perangkat (user agent)" className="sm:col-span-2">

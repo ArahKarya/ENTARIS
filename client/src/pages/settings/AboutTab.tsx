@@ -59,7 +59,7 @@ export const AboutTab: React.FC = () => {
 
   useEffect(() => {
     api.get('/settings/runtime').then(res => setRuntime(res.data)).catch(() => {
-      setRuntime({ platform: '-', domain: window.location.origin, hostname: '-', nodeVersion: '-', memory: '-', uptime: 0, env: '-' });
+      setRuntime({ platform: '—', domain: window.location.origin, hostname: '—', nodeVersion: '—', memory: '—', uptime: 0, env: '—' });
     });
   }, []);
 

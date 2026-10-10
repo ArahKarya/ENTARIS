@@ -41,8 +41,8 @@ describe('getStatusMeta', () => {
 
   it('humanises unknown statuses with a neutral tone instead of throwing', () => {
     expect(getStatusMeta('SOME_NEW_STATE')).toEqual({ label: 'Some New State', tone: 'neutral' });
-    expect(getStatusMeta('')).toEqual({ label: '-', tone: 'neutral' });
-    expect(getStatusMeta(null)).toEqual({ label: '-', tone: 'neutral' });
+    expect(getStatusMeta('')).toEqual({ label: '—', tone: 'neutral' });
+    expect(getStatusMeta(null)).toEqual({ label: '—', tone: 'neutral' });
   });
 
   it('only ever returns a known tone', () => {

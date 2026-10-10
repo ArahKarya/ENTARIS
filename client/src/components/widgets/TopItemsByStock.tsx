@@ -74,7 +74,7 @@ export default function TopItemsByStock() {
               return <span className="text-muted-foreground">{formatNumber(min)}</span>;
             default: {
               const lv = stockLevel(cur, min);
-              return lv ? <Badge variant={lv.variant}>{lv.label}</Badge> : <span className="text-muted-foreground">-</span>;
+              return lv ? <Badge variant={lv.variant}>{lv.label}</Badge> : <span className="text-muted-foreground">—</span>;
             }
           }
         }}

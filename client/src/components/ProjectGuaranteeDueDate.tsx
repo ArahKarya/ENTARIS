@@ -29,7 +29,7 @@ interface DueDateProps {
  */
 export function DueDate({ date, dueState, markerOnly = false, className }: DueDateProps) {
   if (markerOnly && !dueState) return null;
-  if (!date && !markerOnly) return <span className="text-muted-foreground">-</span>;
+  if (!date && !markerOnly) return <span className="text-muted-foreground">—</span>;
   const Icon = dueState === 'overdue' ? AlertTriangle : Clock;
   return (
     <span className={cn('inline-flex flex-col items-start gap-0.5', className)}>

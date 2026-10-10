@@ -51,7 +51,7 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
           <div>
             <p className="num whitespace-nowrap text-foreground">{formatDate(row.original.tanggal)}</p>
             <p className="text-xs text-muted-foreground">
-              {[row.original.spbu, row.original.driverName].filter(Boolean).join(' · ') || '-'}
+              {[row.original.spbu, row.original.driverName].filter(Boolean).join(' · ') || '—'}
             </p>
           </div>
         ),
@@ -60,7 +60,7 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
         id: 'odometer',
         header: () => <UnitHeader label="Odometer" unit="km" />,
         meta: { align: 'right', hideBelow: 'sm' },
-        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '-'),
+        cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '—'),
       },
       {
         id: 'liters',
@@ -72,7 +72,7 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
         id: 'price',
         header: () => <UnitHeader label="Harga/L" />,
         meta: { align: 'right', hideBelow: 'md' },
-        cell: ({ row }) => (row.original.pricePerLiter != null ? formatRupiah(row.original.pricePerLiter, { symbol: false }) : '-'),
+        cell: ({ row }) => (row.original.pricePerLiter != null ? formatRupiah(row.original.pricePerLiter, { symbol: false }) : '—'),
       },
       {
         id: 'totalCost',
